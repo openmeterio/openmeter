@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceUsageBasedLineConfigCreate is the builder for creating a BillingInvoiceUsageBasedLineConfig entity.
@@ -31,7 +31,7 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetNamespace(s string) 
 }
 
 // SetPriceType sets the "price_type" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPriceType(pt plan.PriceType) *BillingInvoiceUsageBasedLineConfigCreate {
+func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPriceType(pt productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigCreate {
 	biublcc.mutation.SetPriceType(pt)
 	return biublcc
 }
@@ -43,8 +43,8 @@ func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetFeatureKey(s string)
 }
 
 // SetPrice sets the "price" field.
-func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPrice(pl *plan.Price) *BillingInvoiceUsageBasedLineConfigCreate {
-	biublcc.mutation.SetPrice(pl)
+func (biublcc *BillingInvoiceUsageBasedLineConfigCreate) SetPrice(pr *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigCreate {
+	biublcc.mutation.SetPrice(pr)
 	return biublcc
 }
 
@@ -267,7 +267,7 @@ type (
 )
 
 // SetPriceType sets the "price_type" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetPriceType(v plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpsert {
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetPriceType(v productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.Set(billinginvoiceusagebasedlineconfig.FieldPriceType, v)
 	return u
 }
@@ -279,7 +279,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdatePriceType() *BillingInv
 }
 
 // SetPrice sets the "price" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetPrice(v *plan.Price) *BillingInvoiceUsageBasedLineConfigUpsert {
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.Set(billinginvoiceusagebasedlineconfig.FieldPrice, v)
 	return u
 }
@@ -363,7 +363,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) Update(set func(*BillingIn
 }
 
 // SetPriceType sets the "price_type" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetPriceType(v plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetPriceType(v productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.SetPriceType(v)
 	})
@@ -377,7 +377,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdatePriceType() *Billing
 }
 
 // SetPrice sets the "price" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetPrice(v *plan.Price) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.SetPrice(v)
 	})
@@ -636,7 +636,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) Update(set func(*BillingI
 }
 
 // SetPriceType sets the "price_type" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetPriceType(v plan.PriceType) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetPriceType(v productcatalog.PriceType) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.SetPriceType(v)
 	})
@@ -650,7 +650,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdatePriceType() *Billin
 }
 
 // SetPrice sets the "price" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetPrice(v *plan.Price) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetPrice(v *productcatalog.Price) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.SetPrice(v)
 	})

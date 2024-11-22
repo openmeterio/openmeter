@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -55,7 +55,7 @@ type Service interface {
 	UpdatePhase(ctx context.Context, params UpdatePhaseInput) (*Phase, error)
 }
 
-var _ Validator = (*ListPlansInput)(nil)
+var _ models.Validator = (*ListPlansInput)(nil)
 
 type ListPlansInput struct {
 	pagination.Page
@@ -80,31 +80,11 @@ func (i ListPlansInput) Validate() error {
 	return nil
 }
 
-var _ Validator = (*CreatePlanInput)(nil)
+var _ models.Validator = (*CreatePlanInput)(nil)
 
 type CreatePlanInput struct {
 	models.NamespacedModel
-
-	// Key is the unique key for Plan.
-	Key string `json:"key"`
-
-	// Version
-	Version int `json:"version"`
-
-	// Name
-	Name string `json:"name"`
-
-	// Description
-	Description *string `json:"description,omitempty"`
-
-	// Metadata
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	// Currency
-	Currency currency.Code `json:"currency"`
-
-	// Phases
-	Phases []Phase `json:"phases"`
+	productcatalog.Plan
 }
 
 func (i CreatePlanInput) Validate() error {
@@ -140,15 +120,15 @@ func (i CreatePlanInput) Validate() error {
 }
 
 var (
-	_ Validator     = (*UpdatePlanInput)(nil)
-	_ Equaler[Plan] = (*UpdatePlanInput)(nil)
+	_ models.Validator     = (*UpdatePlanInput)(nil)
+	_ models.Equaler[Plan] = (*UpdatePlanInput)(nil)
 )
 
 type UpdatePlanInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	EffectivePeriod
+	productcatalog.EffectivePeriod
 
 	// Name
 	Name *string `json:"name"`
@@ -157,14 +137,10 @@ type UpdatePlanInput struct {
 	Description *string `json:"description,omitempty"`
 
 	// Metadata
-	Metadata *map[string]string `json:"metadata,omitempty"`
+	Metadata *models.Metadata `json:"metadata,omitempty"`
 
 	// Phases
-	Phases *[]Phase `json:"phases"`
-}
-
-func (i UpdatePlanInput) StrictEqual(p Plan) bool {
-	return i.Equal(p)
+	Phases *[]productcatalog.Phase `json:"phases"`
 }
 
 func (i UpdatePlanInput) Equal(p Plan) bool {
@@ -188,7 +164,7 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.Metadata != nil && !MetadataEqual(*i.Metadata, p.Metadata) {
+	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
 		return false
 	}
 
@@ -276,7 +252,7 @@ type PublishPlanInput struct {
 	models.NamespacedID
 
 	// EffectivePeriod
-	EffectivePeriod
+	productcatalog.EffectivePeriod
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -398,49 +374,29 @@ type ListPhasesInput struct {
 	IncludeDeleted bool
 }
 
-var _ Validator = (*CreatePhaseInput)(nil)
+var _ models.Validator = (*CreatePhaseInput)(nil)
 
 type CreatePhaseInput struct {
 	models.NamespacedModel
+	productcatalog.Phase
 
-	// Key is the unique key for Phase
-	Key string `json:"key"`
-
-	// Name
-	Name string `json:"name"`
-
-	// Description
-	Description *string `json:"description,omitempty"`
-
-	// Metadata
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	// StartAfter
-	StartAfter datex.Period `json:"interval,omitempty"`
-
-	// PlanID
+	// PlanID identifies the Plan the Phase belongs to. See Key.
 	PlanID string `json:"planId"`
-
-	// RateCards
-	RateCards []RateCard `json:"rateCards,omitempty"`
-
-	// Discounts
-	Discounts []Discount `json:"discounts,omitempty"`
 }
 
 func (i CreatePhaseInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, errors.New("namespace must not be empty"))
 	}
 
 	if i.Key == "" || i.PlanID == "" {
-		errs = append(errs, errors.New("either ID or Key/PlanID pair must be provided"))
+		errs = append(errs, errors.New("key and planID must be provided"))
 	}
 
 	if i.Name == "" {
-		errs = append(errs, errors.New("invalid Name: must not be empty"))
+		errs = append(errs, errors.New("name must not be empty"))
 	}
 
 	if len(errs) > 0 {
@@ -450,10 +406,9 @@ func (i CreatePhaseInput) Validate() error {
 	return nil
 }
 
-var _ Validator = (*DeletePhaseInput)(nil)
+var _ models.Validator = (*DeletePhaseInput)(nil)
 
 type DeletePhaseInput struct {
-	// NamespacedID
 	models.NamespacedID
 
 	// Key is the unique key for Phase. Can be used as an alternative way to identify a Phase in Plan
@@ -468,11 +423,11 @@ func (i DeletePhaseInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, errors.New("namespace must not be empty"))
 	}
 
 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		errs = append(errs, errors.New("either ID or Key/PlanID pair must be provided"))
+		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
 	}
 
 	if len(errs) > 0 {
@@ -482,16 +437,15 @@ func (i DeletePhaseInput) Validate() error {
 	return nil
 }
 
-var _ Validator = (*GetPhaseInput)(nil)
+var _ models.Validator = (*GetPhaseInput)(nil)
 
 type GetPhaseInput struct {
 	models.NamespacedID
 
-	// Key is the unique key for Phase. Can be used as an alternative way to identify a Phase in Plan
-	// without providing/knowing its unique ID. Use it with PlanID in order to identify a Phase in Plan.
+	// Key is the unique key for Phase.
 	Key string `json:"key"`
 
-	// PlanID identifies the Plan the Phase belongs to. See Key.
+	// PlanID identifies the Plan the Phase belongs to.
 	PlanID string `json:"planId"`
 }
 
@@ -499,11 +453,11 @@ func (i GetPhaseInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+		errs = append(errs, errors.New("namespace must not be empty"))
 	}
 
 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		errs = append(errs, errors.New("invalid: either ID or Key/PlanID pair must be provided"))
+		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
 	}
 
 	if len(errs) > 0 {
@@ -514,12 +468,15 @@ func (i GetPhaseInput) Validate() error {
 }
 
 var (
-	_ Validator      = (*UpdatePhaseInput)(nil)
-	_ Equaler[Phase] = (*UpdatePhaseInput)(nil)
+	_ models.Validator      = (*UpdatePhaseInput)(nil)
+	_ models.Equaler[Phase] = (*UpdatePhaseInput)(nil)
 )
 
 type UpdatePhaseInput struct {
 	models.NamespacedID
+
+	// PlanID identifies the Plan the Phase belongs to. See Key.
+	PlanID string `json:"planId"`
 
 	// Key is the unique key for Resource.
 	Key string `json:"key"`
@@ -531,24 +488,16 @@ type UpdatePhaseInput struct {
 	Description *string `json:"description,omitempty"`
 
 	// Metadata
-	Metadata *map[string]string `json:"metadata,omitempty"`
+	Metadata *models.Metadata `json:"metadata,omitempty"`
 
 	// StartAfter
 	StartAfter *datex.Period `json:"interval,omitempty"`
 
-	// PlanID
-	PlanID string `json:"planId"`
-
 	// RateCards
-	RateCards *[]RateCard `json:"rateCards,omitempty"`
+	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
 
 	// Discounts
-	Discounts *[]Discount `json:"discounts,omitempty"`
-}
-
-// StrictEqual implements the Equaler interface.
-func (i UpdatePhaseInput) StrictEqual(p Phase) bool {
-	return i.Equal(p)
+	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 }
 
 // Equal implements the Equaler interface.
@@ -573,14 +522,12 @@ func (i UpdatePhaseInput) Equal(p Phase) bool {
 		return false
 	}
 
-	if i.Metadata != nil && !MetadataEqual(*i.Metadata, p.Metadata) {
+	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
 		return false
 	}
 
-	if i.Discounts != nil {
-		if ok, _ := DiscountsEqual(*i.Discounts, p.Discounts); !ok {
-			return false
-		}
+	if i.Discounts != nil && !i.Discounts.Equal(p.Discounts) {
+		return false
 	}
 
 	if i.PlanID != p.PlanID {

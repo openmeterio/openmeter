@@ -1,4 +1,4 @@
-package plan
+package productcatalog
 
 import (
 	"encoding/json"
@@ -9,6 +9,8 @@ import (
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const DefaultPaymentTerm = InAdvancePaymentTerm
@@ -53,7 +55,7 @@ func (p PriceType) Values() []string {
 type pricer interface {
 	json.Marshaler
 	json.Unmarshaler
-	Validator
+	models.Validator
 
 	Type() PriceType
 	AsFlat() (FlatPrice, error)
@@ -156,7 +158,7 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func (p Price) Validate() error {
+func (p *Price) Validate() error {
 	switch p.t {
 	case FlatPriceType:
 		return p.flat.Validate()
@@ -166,6 +168,30 @@ func (p Price) Validate() error {
 		return p.tiered.Validate()
 	default:
 		return errors.New("invalid Price: not initialized")
+	}
+}
+
+func (p *Price) Equal(v *Price) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	if p.t != v.t {
+		return false
+	}
+	switch p.t {
+	case FlatPriceType:
+		return p.flat.Equal(v.flat)
+	case UnitPriceType:
+		return p.unit.Equal(v.unit)
+	case TieredPriceType:
+		return p.tiered.Equal(v.tiered)
+	default:
+		return false
 	}
 }
 
@@ -224,8 +250,8 @@ func (p *Price) FromTiered(price TieredPrice) {
 	p.t = TieredPriceType
 }
 
-func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) Price {
-	p := Price{}
+func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) *Price {
+	p := &Price{}
 
 	switch any(v).(type) {
 	case FlatPrice:
@@ -251,7 +277,27 @@ type FlatPrice struct {
 	PaymentTerm PaymentTermType `json:"paymentTerm,omitempty"`
 }
 
-func (f FlatPrice) Validate() error {
+func (f *FlatPrice) Equal(v *FlatPrice) bool {
+	if f == nil && v == nil {
+		return true
+	}
+
+	if f == nil || v == nil {
+		return false
+	}
+
+	if !f.Amount.Equal(v.Amount) {
+		return false
+	}
+
+	if f.PaymentTerm != v.PaymentTerm {
+		return false
+	}
+
+	return true
+}
+
+func (f *FlatPrice) Validate() error {
 	var errs []error
 
 	if f.Amount.IsNegative() {
@@ -280,7 +326,47 @@ type UnitPrice struct {
 	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
 }
 
-func (u UnitPrice) Validate() error {
+func (u *UnitPrice) Equal(v *UnitPrice) bool {
+	if u == nil && v == nil {
+		return true
+	}
+
+	if u == nil || v == nil {
+		return false
+	}
+
+	if !u.Amount.Equal(v.Amount) {
+		return false
+	}
+
+	if u.MinimumAmount != nil && v.MinimumAmount == nil {
+		return false
+	}
+
+	if u.MinimumAmount == nil && v.MinimumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(u.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
+		return false
+	}
+
+	if u.MaximumAmount != nil && v.MaximumAmount == nil {
+		return false
+	}
+
+	if u.MaximumAmount == nil && v.MaximumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(u.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+		return false
+	}
+
+	return true
+}
+
+func (u *UnitPrice) Validate() error {
 	var errs []error
 
 	if u.Amount.IsNegative() {
@@ -360,7 +446,47 @@ type TieredPrice struct {
 	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
 }
 
-func (t TieredPrice) Validate() error {
+func (t *TieredPrice) Equal(v *TieredPrice) bool {
+	if t == nil && v == nil {
+		return true
+	}
+
+	if t == nil || v == nil {
+		return false
+	}
+
+	if t.Mode != v.Mode {
+		return false
+	}
+
+	if len(t.Tiers) != len(v.Tiers) {
+		return false
+	}
+
+	if t.MinimumAmount == nil && v.MinimumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(t.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
+		return false
+	}
+
+	if t.MaximumAmount != nil && v.MaximumAmount == nil {
+		return false
+	}
+
+	if t.MaximumAmount == nil && v.MaximumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(t.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+		return false
+	}
+
+	return true
+}
+
+func (t *TieredPrice) Validate() error {
 	var errs []error
 
 	if !lo.Contains(TieredPriceMode("").Values(), t.Mode) {
@@ -420,8 +546,8 @@ func (t TieredPrice) Validate() error {
 	return nil
 }
 
-func (t TieredPrice) WithSortedTiers() TieredPrice {
-	out := t
+func (t *TieredPrice) WithSortedTiers() TieredPrice {
+	out := *t
 	out.Tiers = make([]PriceTier, len(t.Tiers))
 	copy(out.Tiers, t.Tiers)
 
@@ -445,7 +571,7 @@ func (t TieredPrice) WithSortedTiers() TieredPrice {
 	return out
 }
 
-var _ Validator = (*PriceTier)(nil)
+var _ models.Validator = (*PriceTier)(nil)
 
 // PriceTier describes a tier of price(s).
 type PriceTier struct {
@@ -491,7 +617,7 @@ func (p PriceTier) Validate() error {
 	return nil
 }
 
-var _ Validator = (*PriceTierFlatPrice)(nil)
+var _ models.Validator = (*PriceTierFlatPrice)(nil)
 
 type PriceTierFlatPrice struct {
 	// Amount of the flat price.
@@ -506,7 +632,7 @@ func (f PriceTierFlatPrice) Validate() error {
 	return nil
 }
 
-var _ Validator = (*PriceTierUnitPrice)(nil)
+var _ models.Validator = (*PriceTierUnitPrice)(nil)
 
 type PriceTierUnitPrice struct {
 	// Amount of the flat price.

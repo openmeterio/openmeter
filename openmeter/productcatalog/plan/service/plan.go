@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -25,7 +26,7 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 	return transaction.Run(ctx, s.adapter, fn)
 }
 
-func (s service) expandFeatures(ctx context.Context, namespace string, rateCards *[]plan.RateCard) error {
+func (s service) expandFeatures(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
 	if rateCards == nil || len(*rateCards) == 0 {
 		return nil
 	}
@@ -109,7 +110,7 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		// * calculate the version number for the new Plan based by incrementing the last version
 		if len(allVersions.Items) >= 0 {
 			for _, p := range allVersions.Items {
-				if p.DeletedAt == nil && p.Status() == plan.DraftStatus {
+				if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
 					return nil, fmt.Errorf("only a single draft version is allowed for Plan")
 				}
 
@@ -166,7 +167,11 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.ArchivedStatus, plan.ScheduledStatus, plan.DraftStatus}
+		allowedPlanStatuses := []productcatalog.PlanStatus{
+			productcatalog.ArchivedStatus,
+			productcatalog.ScheduledStatus,
+			productcatalog.DraftStatus,
+		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be deleted, but it has %s state", allowedPlanStatuses, planStatus)
@@ -247,7 +252,10 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []productcatalog.PlanStatus{
+			productcatalog.DraftStatus,
+			productcatalog.ScheduledStatus,
+		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
@@ -257,7 +265,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 		// NOTE(chrisgacsal): we only allow updating the state of the Plan via Publish/Archive,
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
-		params.EffectivePeriod = plan.EffectivePeriod{}
+		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
 		if err != nil {
@@ -305,7 +313,10 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []productcatalog.PlanStatus{
+			productcatalog.DraftStatus,
+			productcatalog.ScheduledStatus,
+		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
@@ -414,7 +425,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		activeStatuses := []plan.PlanStatus{plan.ActiveStatus}
+		activeStatuses := []productcatalog.PlanStatus{productcatalog.ActiveStatus}
 		status := p.Status()
 		if !lo.Contains(activeStatuses, status) {
 			return nil, fmt.Errorf("only Plans in %+v can be archived, but it is in %s state", activeStatuses, status)
@@ -433,7 +444,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 				Namespace: p.Namespace,
 				ID:        p.ID,
 			},
-			EffectivePeriod: plan.EffectivePeriod{
+			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveTo: lo.ToPtr(params.EffectiveTo.UTC()),
 			},
 		})
@@ -522,7 +533,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		nextVersion := 1
 		var match, stop bool
 		for _, p := range allVersions.Items {
-			if p.DeletedAt == nil && p.Status() == plan.DraftStatus {
+			if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
 				return nil, fmt.Errorf("only a single draft version is allowed for Plan")
 			}
 
@@ -546,13 +557,28 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 			NamespacedModel: models.NamespacedModel{
 				Namespace: sourcePlan.Namespace,
 			},
-			Key:         sourcePlan.Key,
-			Version:     nextVersion,
-			Name:        sourcePlan.Name,
-			Description: sourcePlan.Description,
-			Metadata:    sourcePlan.Metadata,
-			Currency:    sourcePlan.Currency,
-			Phases:      sourcePlan.Phases,
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Key:         sourcePlan.Key,
+					Version:     nextVersion,
+					Name:        sourcePlan.Name,
+					Description: sourcePlan.Description,
+					Metadata:    sourcePlan.Metadata,
+					Currency:    sourcePlan.Currency,
+				},
+				Phases: func() []productcatalog.Phase {
+					var phases []productcatalog.Phase
+
+					for _, phase := range sourcePlan.Phases {
+						phases = append(phases, productcatalog.Phase{
+							PhaseMeta: phase.PhaseMeta,
+							RateCards: phase.RateCards,
+						})
+					}
+
+					return phases
+				}(),
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new version of a Plan: %w", err)

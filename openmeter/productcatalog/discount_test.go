@@ -1,83 +1,44 @@
-package plan
+package productcatalog
 
 import (
 	"testing"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMetadataEqual(t *testing.T) {
+func TestDiscount_JSON(t *testing.T) {
 	tests := []struct {
-		Name string
-
-		Left  map[string]string
-		Right map[string]string
-
-		ExpectedResult bool
+		Name          string
+		Discount      Discount
+		ExpectedError bool
 	}{
 		{
-			Name: "Equal",
-			Left: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
-			Right: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
-			ExpectedResult: true,
-		},
-		{
-			Name: "Left diff",
-			Left: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
-			Right: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			ExpectedResult: false,
-		},
-		{
-			Name: "Right diff",
-			Left: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			Right: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
-			ExpectedResult: false,
-		},
-		{
-			Name: "Complete diff",
-			Left: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
-			Right: map[string]string{
-				"key4": "value4",
-				"key5": "value5",
-				"key6": "value6",
-			},
-			ExpectedResult: false,
+			Name: "Valid",
+			Discount: NewDiscountFrom(PercentageDiscount{
+				Percentage: decimal.NewFromFloat(99.9),
+				RateCards: []string{
+					"ratecard-1",
+					"ratecard-2",
+				},
+			}),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			result := MetadataEqual(test.Left, test.Right)
+			b, err := json.Marshal(&test.Discount)
+			require.NoError(t, err)
 
-			assert.Equal(t, test.ExpectedResult, result)
+			t.Logf("Serialized Discount: %s", string(b))
+
+			d := Discount{}
+			err = json.Unmarshal(b, &d)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Discount, d)
 		})
 	}
 }
@@ -86,10 +47,9 @@ func TestDiscountsEqual(t *testing.T) {
 	tests := []struct {
 		Name string
 
-		Left  []Discount
-		Right []Discount
+		Left  Discounts
+		Right Discounts
 
-		ExpectedError  bool
 		ExpectedResult bool
 	}{
 		{
@@ -126,7 +86,6 @@ func TestDiscountsEqual(t *testing.T) {
 					},
 				}),
 			},
-			ExpectedError:  false,
 			ExpectedResult: true,
 		},
 		{
@@ -156,7 +115,6 @@ func TestDiscountsEqual(t *testing.T) {
 					},
 				}),
 			},
-			ExpectedError:  false,
 			ExpectedResult: false,
 		},
 		{
@@ -186,7 +144,6 @@ func TestDiscountsEqual(t *testing.T) {
 					},
 				}),
 			},
-			ExpectedError:  false,
 			ExpectedResult: false,
 		},
 		{
@@ -223,20 +180,14 @@ func TestDiscountsEqual(t *testing.T) {
 					},
 				}),
 			},
-			ExpectedError:  false,
 			ExpectedResult: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			result, err := DiscountsEqual(test.Left, test.Right)
-			if test.ExpectedError {
-				require.Errorf(t, err, "expected to fail")
-			}
-			require.NoErrorf(t, err, "expected to succeed")
-
-			assert.Equal(t, test.ExpectedResult, result)
+			match := test.Left.Equal(test.Right)
+			assert.Equal(t, test.ExpectedResult, match)
 		})
 	}
 }

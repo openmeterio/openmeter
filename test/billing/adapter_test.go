@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -113,7 +113,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 				Status: billingentity.InvoiceLineStatusValid,
 			},
 			UsageBased: billingentity.UsageBasedLine{
-				Price: plan.NewPriceFrom(plan.UnitPrice{
+				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(1),
 				}),
 				FeatureKey: "test",
@@ -309,7 +309,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
 			ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
 		},
 		UsageBased: billingentity.UsageBasedLine{
-			Price: plan.NewPriceFrom(plan.UnitPrice{
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(1),
 			}),
 			FeatureKey: "test",
@@ -329,7 +329,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
 			line.FlatFee = billingentity.FlatFeeLine{
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
-				PaymentTerm:   plan.InArrearsPaymentTerm,
+				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 			}
 
 			out.Children.Append(line)
@@ -460,7 +460,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		newLine.FlatFee = billingentity.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
-			PaymentTerm:   plan.InArrearsPaymentTerm,
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 		}
 
 		lineChildren := lines[0].Children.MustGet()
@@ -536,7 +536,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		newLine.FlatFee = billingentity.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
-			PaymentTerm:   plan.InArrearsPaymentTerm,
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 		}
 		detailedLines[0] = newLine
 

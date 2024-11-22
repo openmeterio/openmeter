@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -46,7 +47,10 @@ func (s service) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []productcatalog.PlanStatus{
+			productcatalog.DraftStatus,
+			productcatalog.ScheduledStatus,
+		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
@@ -103,7 +107,11 @@ func (s service) DeletePhase(ctx context.Context, params plan.DeletePhaseInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus, plan.ArchivedStatus}
+		allowedPlanStatuses := []productcatalog.PlanStatus{
+			productcatalog.DraftStatus,
+			productcatalog.ScheduledStatus,
+			productcatalog.ArchivedStatus,
+		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
@@ -173,7 +181,10 @@ func (s service) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
-		allowedPlanStatuses := []plan.PlanStatus{plan.DraftStatus, plan.ScheduledStatus}
+		allowedPlanStatuses := []productcatalog.PlanStatus{
+			productcatalog.DraftStatus,
+			productcatalog.ScheduledStatus,
+		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
 			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)

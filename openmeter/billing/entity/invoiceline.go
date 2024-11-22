@@ -10,7 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -202,10 +202,10 @@ func (FlatFeeCategory) Values() []string {
 }
 
 type FlatFeeLine struct {
-	ConfigID      string                `json:"configId"`
-	PerUnitAmount alpacadecimal.Decimal `json:"perUnitAmount"`
-	PaymentTerm   plan.PaymentTermType  `json:"paymentTerm"`
-	Category      FlatFeeCategory       `json:"category"`
+	ConfigID      string                         `json:"configId"`
+	PerUnitAmount alpacadecimal.Decimal          `json:"perUnitAmount"`
+	PaymentTerm   productcatalog.PaymentTermType `json:"paymentTerm"`
+	Category      FlatFeeCategory                `json:"category"`
 
 	Quantity alpacadecimal.Decimal `json:"quantity"`
 }
@@ -510,7 +510,7 @@ func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
 	return NewLineChildren(clonedNewLines)
 }
 
-type Price = plan.Price
+type Price = productcatalog.Price
 
 type UsageBasedLine struct {
 	ConfigID string `json:"configId"`

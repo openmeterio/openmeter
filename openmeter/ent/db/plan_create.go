@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 )
 
@@ -217,19 +217,19 @@ func (pc *PlanCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (pc *PlanCreate) defaults() {
 	if _, ok := pc.mutation.CreatedAt(); !ok {
-		v := dbplan.DefaultCreatedAt()
+		v := plan.DefaultCreatedAt()
 		pc.mutation.SetCreatedAt(v)
 	}
 	if _, ok := pc.mutation.UpdatedAt(); !ok {
-		v := dbplan.DefaultUpdatedAt()
+		v := plan.DefaultUpdatedAt()
 		pc.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := pc.mutation.Currency(); !ok {
-		v := dbplan.DefaultCurrency
+		v := plan.DefaultCurrency
 		pc.mutation.SetCurrency(v)
 	}
 	if _, ok := pc.mutation.ID(); !ok {
-		v := dbplan.DefaultID()
+		v := plan.DefaultID()
 		pc.mutation.SetID(v)
 	}
 }
@@ -240,7 +240,7 @@ func (pc *PlanCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Plan.namespace"`)}
 	}
 	if v, ok := pc.mutation.Namespace(); ok {
-		if err := dbplan.NamespaceValidator(v); err != nil {
+		if err := plan.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Plan.namespace": %w`, err)}
 		}
 	}
@@ -257,7 +257,7 @@ func (pc *PlanCreate) check() error {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Plan.key"`)}
 	}
 	if v, ok := pc.mutation.Key(); ok {
-		if err := dbplan.KeyValidator(v); err != nil {
+		if err := plan.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Plan.key": %w`, err)}
 		}
 	}
@@ -265,7 +265,7 @@ func (pc *PlanCreate) check() error {
 		return &ValidationError{Name: "version", err: errors.New(`db: missing required field "Plan.version"`)}
 	}
 	if v, ok := pc.mutation.Version(); ok {
-		if err := dbplan.VersionValidator(v); err != nil {
+		if err := plan.VersionValidator(v); err != nil {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
@@ -273,7 +273,7 @@ func (pc *PlanCreate) check() error {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "Plan.currency"`)}
 	}
 	if v, ok := pc.mutation.Currency(); ok {
-		if err := dbplan.CurrencyValidator(v); err != nil {
+		if err := plan.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Plan.currency": %w`, err)}
 		}
 	}
@@ -306,7 +306,7 @@ func (pc *PlanCreate) sqlSave(ctx context.Context) (*Plan, error) {
 func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Plan{config: pc.config}
-		_spec = sqlgraph.NewCreateSpec(dbplan.Table, sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(plan.Table, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = pc.conflict
 	if id, ok := pc.mutation.ID(); ok {
@@ -314,59 +314,59 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = id
 	}
 	if value, ok := pc.mutation.Namespace(); ok {
-		_spec.SetField(dbplan.FieldNamespace, field.TypeString, value)
+		_spec.SetField(plan.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := pc.mutation.Metadata(); ok {
-		_spec.SetField(dbplan.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(plan.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
 	if value, ok := pc.mutation.CreatedAt(); ok {
-		_spec.SetField(dbplan.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := pc.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbplan.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := pc.mutation.DeletedAt(); ok {
-		_spec.SetField(dbplan.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(plan.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := pc.mutation.Name(); ok {
-		_spec.SetField(dbplan.FieldName, field.TypeString, value)
+		_spec.SetField(plan.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if value, ok := pc.mutation.Description(); ok {
-		_spec.SetField(dbplan.FieldDescription, field.TypeString, value)
+		_spec.SetField(plan.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
 	if value, ok := pc.mutation.Key(); ok {
-		_spec.SetField(dbplan.FieldKey, field.TypeString, value)
+		_spec.SetField(plan.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
 	if value, ok := pc.mutation.Version(); ok {
-		_spec.SetField(dbplan.FieldVersion, field.TypeInt, value)
+		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
 		_node.Version = value
 	}
 	if value, ok := pc.mutation.Currency(); ok {
-		_spec.SetField(dbplan.FieldCurrency, field.TypeString, value)
+		_spec.SetField(plan.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
 	}
 	if value, ok := pc.mutation.EffectiveFrom(); ok {
-		_spec.SetField(dbplan.FieldEffectiveFrom, field.TypeTime, value)
+		_spec.SetField(plan.FieldEffectiveFrom, field.TypeTime, value)
 		_node.EffectiveFrom = &value
 	}
 	if value, ok := pc.mutation.EffectiveTo(); ok {
-		_spec.SetField(dbplan.FieldEffectiveTo, field.TypeTime, value)
+		_spec.SetField(plan.FieldEffectiveTo, field.TypeTime, value)
 		_node.EffectiveTo = &value
 	}
 	if nodes := pc.mutation.PhasesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbplan.PhasesTable,
-			Columns: []string{dbplan.PhasesColumn},
+			Table:   plan.PhasesTable,
+			Columns: []string{plan.PhasesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
@@ -431,133 +431,133 @@ type (
 
 // SetMetadata sets the "metadata" field.
 func (u *PlanUpsert) SetMetadata(v map[string]string) *PlanUpsert {
-	u.Set(dbplan.FieldMetadata, v)
+	u.Set(plan.FieldMetadata, v)
 	return u
 }
 
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateMetadata() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldMetadata)
+	u.SetExcluded(plan.FieldMetadata)
 	return u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
 func (u *PlanUpsert) ClearMetadata() *PlanUpsert {
-	u.SetNull(dbplan.FieldMetadata)
+	u.SetNull(plan.FieldMetadata)
 	return u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *PlanUpsert) SetUpdatedAt(v time.Time) *PlanUpsert {
-	u.Set(dbplan.FieldUpdatedAt, v)
+	u.Set(plan.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateUpdatedAt() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldUpdatedAt)
+	u.SetExcluded(plan.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *PlanUpsert) SetDeletedAt(v time.Time) *PlanUpsert {
-	u.Set(dbplan.FieldDeletedAt, v)
+	u.Set(plan.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateDeletedAt() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldDeletedAt)
+	u.SetExcluded(plan.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *PlanUpsert) ClearDeletedAt() *PlanUpsert {
-	u.SetNull(dbplan.FieldDeletedAt)
+	u.SetNull(plan.FieldDeletedAt)
 	return u
 }
 
 // SetName sets the "name" field.
 func (u *PlanUpsert) SetName(v string) *PlanUpsert {
-	u.Set(dbplan.FieldName, v)
+	u.Set(plan.FieldName, v)
 	return u
 }
 
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateName() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldName)
+	u.SetExcluded(plan.FieldName)
 	return u
 }
 
 // SetDescription sets the "description" field.
 func (u *PlanUpsert) SetDescription(v string) *PlanUpsert {
-	u.Set(dbplan.FieldDescription, v)
+	u.Set(plan.FieldDescription, v)
 	return u
 }
 
 // UpdateDescription sets the "description" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateDescription() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldDescription)
+	u.SetExcluded(plan.FieldDescription)
 	return u
 }
 
 // ClearDescription clears the value of the "description" field.
 func (u *PlanUpsert) ClearDescription() *PlanUpsert {
-	u.SetNull(dbplan.FieldDescription)
+	u.SetNull(plan.FieldDescription)
 	return u
 }
 
 // SetVersion sets the "version" field.
 func (u *PlanUpsert) SetVersion(v int) *PlanUpsert {
-	u.Set(dbplan.FieldVersion, v)
+	u.Set(plan.FieldVersion, v)
 	return u
 }
 
 // UpdateVersion sets the "version" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateVersion() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldVersion)
+	u.SetExcluded(plan.FieldVersion)
 	return u
 }
 
 // AddVersion adds v to the "version" field.
 func (u *PlanUpsert) AddVersion(v int) *PlanUpsert {
-	u.Add(dbplan.FieldVersion, v)
+	u.Add(plan.FieldVersion, v)
 	return u
 }
 
 // SetEffectiveFrom sets the "effective_from" field.
 func (u *PlanUpsert) SetEffectiveFrom(v time.Time) *PlanUpsert {
-	u.Set(dbplan.FieldEffectiveFrom, v)
+	u.Set(plan.FieldEffectiveFrom, v)
 	return u
 }
 
 // UpdateEffectiveFrom sets the "effective_from" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateEffectiveFrom() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldEffectiveFrom)
+	u.SetExcluded(plan.FieldEffectiveFrom)
 	return u
 }
 
 // ClearEffectiveFrom clears the value of the "effective_from" field.
 func (u *PlanUpsert) ClearEffectiveFrom() *PlanUpsert {
-	u.SetNull(dbplan.FieldEffectiveFrom)
+	u.SetNull(plan.FieldEffectiveFrom)
 	return u
 }
 
 // SetEffectiveTo sets the "effective_to" field.
 func (u *PlanUpsert) SetEffectiveTo(v time.Time) *PlanUpsert {
-	u.Set(dbplan.FieldEffectiveTo, v)
+	u.Set(plan.FieldEffectiveTo, v)
 	return u
 }
 
 // UpdateEffectiveTo sets the "effective_to" field to the value that was provided on create.
 func (u *PlanUpsert) UpdateEffectiveTo() *PlanUpsert {
-	u.SetExcluded(dbplan.FieldEffectiveTo)
+	u.SetExcluded(plan.FieldEffectiveTo)
 	return u
 }
 
 // ClearEffectiveTo clears the value of the "effective_to" field.
 func (u *PlanUpsert) ClearEffectiveTo() *PlanUpsert {
-	u.SetNull(dbplan.FieldEffectiveTo)
+	u.SetNull(plan.FieldEffectiveTo)
 	return u
 }
 
@@ -568,7 +568,7 @@ func (u *PlanUpsert) ClearEffectiveTo() *PlanUpsert {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(dbplan.FieldID)
+//				u.SetIgnore(plan.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -576,19 +576,19 @@ func (u *PlanUpsertOne) UpdateNewValues() *PlanUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
-			s.SetIgnore(dbplan.FieldID)
+			s.SetIgnore(plan.FieldID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(dbplan.FieldNamespace)
+			s.SetIgnore(plan.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(dbplan.FieldCreatedAt)
+			s.SetIgnore(plan.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(dbplan.FieldKey)
+			s.SetIgnore(plan.FieldKey)
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(dbplan.FieldCurrency)
+			s.SetIgnore(plan.FieldCurrency)
 		}
 	}))
 	return u
@@ -947,7 +947,7 @@ type PlanUpsertBulk struct {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(dbplan.FieldID)
+//				u.SetIgnore(plan.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -956,19 +956,19 @@ func (u *PlanUpsertBulk) UpdateNewValues() *PlanUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
-				s.SetIgnore(dbplan.FieldID)
+				s.SetIgnore(plan.FieldID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(dbplan.FieldNamespace)
+				s.SetIgnore(plan.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(dbplan.FieldCreatedAt)
+				s.SetIgnore(plan.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(dbplan.FieldKey)
+				s.SetIgnore(plan.FieldKey)
 			}
 			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(dbplan.FieldCurrency)
+				s.SetIgnore(plan.FieldCurrency)
 			}
 		}
 	}))

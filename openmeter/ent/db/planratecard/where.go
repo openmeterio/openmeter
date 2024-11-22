@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -534,19 +534,19 @@ func KeyContainsFold(v string) predicate.PlanRateCard {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v plan.RateCardType) predicate.PlanRateCard {
+func TypeEQ(v productcatalog.RateCardType) predicate.PlanRateCard {
 	vc := v
 	return predicate.PlanRateCard(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v plan.RateCardType) predicate.PlanRateCard {
+func TypeNEQ(v productcatalog.RateCardType) predicate.PlanRateCard {
 	vc := v
 	return predicate.PlanRateCard(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...plan.RateCardType) predicate.PlanRateCard {
+func TypeIn(vs ...productcatalog.RateCardType) predicate.PlanRateCard {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -555,7 +555,7 @@ func TypeIn(vs ...plan.RateCardType) predicate.PlanRateCard {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...plan.RateCardType) predicate.PlanRateCard {
+func TypeNotIn(vs ...productcatalog.RateCardType) predicate.PlanRateCard {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

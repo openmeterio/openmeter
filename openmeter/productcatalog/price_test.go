@@ -1,4 +1,4 @@
-package plan
+package productcatalog
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 func TestPrice_JSON(t *testing.T) {
 	tests := []struct {
 		Name          string
-		Price         Price
+		Price         *Price
 		ExpectedError bool
 	}{
 		{
@@ -68,8 +68,8 @@ func TestPrice_JSON(t *testing.T) {
 
 			t.Logf("Serialized Price: %s", string(b))
 
-			d := Price{}
-			err = json.Unmarshal(b, &d)
+			d := &Price{}
+			err = json.Unmarshal(b, d)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Price, d)

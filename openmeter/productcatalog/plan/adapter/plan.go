@@ -6,14 +6,13 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/samber/lo"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -148,33 +147,32 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			return nil, fmt.Errorf("failed to cast Plan: %w", err)
 		}
 
-		if len(params.Phases) == 0 {
-			return p, nil
-		}
+		if len(params.Phases) > 0 {
+			p.Phases = make([]plan.Phase, 0, len(params.Phases))
+			for _, phase := range params.Phases {
+				planPhase, err := a.CreatePhase(ctx, plan.CreatePhaseInput{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: params.Namespace,
+					},
+					PlanID: p.ID,
+					Phase: productcatalog.Phase{
+						PhaseMeta: productcatalog.PhaseMeta{
+							Key:         phase.Key,
+							Name:        phase.Name,
+							Description: phase.Description,
+							Metadata:    phase.Metadata,
+							StartAfter:  phase.StartAfter,
+							Discounts:   phase.Discounts,
+						},
+						RateCards: phase.RateCards,
+					},
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to create PlanPhase for Plan: %w", err)
+				}
 
-		// Create phases
-
-		p.Phases = make([]plan.Phase, 0, len(params.Phases))
-
-		for _, phase := range params.Phases {
-			planPhase, err := a.CreatePhase(ctx, plan.CreatePhaseInput{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: params.Namespace,
-				},
-				Key:         phase.Key,
-				Name:        phase.Name,
-				Description: phase.Description,
-				Metadata:    phase.Metadata,
-				StartAfter:  phase.StartAfter,
-				PlanID:      p.ID,
-				RateCards:   phase.RateCards,
-				Discounts:   phase.Discounts,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to create PlanPhase for Plan: %w", err)
+				p.Phases = append(p.Phases, *planPhase)
 			}
-
-			p.Phases = append(p.Phases, *planPhase)
 		}
 
 		return p, nil
@@ -400,11 +398,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		}
 
 		// Return early if there are no changes in PlanPhases.
-		diffResult, err := planPhasesDiff(*params.Phases, p.Phases)
-		if err != nil {
-			return nil, fmt.Errorf("failed to calculate Plan Phases diff: %w", err)
-		}
-
+		diffResult := planPhasesDiff(*params.Phases, p.Phases)
 		if !diffResult.IsDiff() {
 			return p, nil
 		}
@@ -504,50 +498,27 @@ func (d planPhasesDiffResult) IsDiff() bool {
 	return len(d.Add) > 0 || len(d.Update) > 0 || len(d.Remove) > 0
 }
 
-func planPhasesDiff(requested, actual []plan.Phase) (planPhasesDiffResult, error) {
+func planPhasesDiff(requested []productcatalog.Phase, actual []plan.Phase) planPhasesDiffResult {
 	result := planPhasesDiffResult{}
 
-	inputsMap := make(map[string]plan.UpdatePhaseInput, len(requested))
+	requestedMap := make(map[string]productcatalog.Phase, len(requested))
 	for _, phase := range requested {
-		inputsMap[phase.Key] = plan.UpdatePhaseInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: phase.Namespace,
-				ID:        phase.ID,
-			},
-			Key:         phase.Key,
-			Name:        &phase.Name,
-			Description: phase.Description,
-			Metadata:    &phase.Metadata,
-			StartAfter:  &phase.StartAfter,
-			PlanID:      phase.PlanID,
-			RateCards:   &phase.RateCards,
-			Discounts:   &phase.Discounts,
-		}
+		requestedMap[phase.Key] = phase
 	}
 
-	phaseMap := make(map[string]plan.Phase, len(actual))
+	actualMap := make(map[string]plan.Phase, len(actual))
 	for _, phase := range actual {
-		phaseMap[phase.Key] = phase
+		actualMap[phase.Key] = phase
 	}
 
 	phasesVisited := make(map[string]struct{})
-	for phaseKey, input := range inputsMap {
-		phase, ok := phaseMap[phaseKey]
+	for phaseKey, requestedPhase := range requestedMap {
+		actualPhase, ok := actualMap[phaseKey]
 
 		// Collect new phases
 		if !ok {
 			result.Add = append(result.Add, plan.CreatePhaseInput{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: input.Namespace,
-				},
-				Key:         input.Key,
-				Name:        lo.FromPtrOr(input.Name, ""),
-				Description: input.Description,
-				Metadata:    lo.FromPtrOr(input.Metadata, nil),
-				StartAfter:  lo.FromPtrOr(input.StartAfter, datex.Period{}),
-				PlanID:      input.PlanID,
-				RateCards:   lo.FromPtrOr(input.RateCards, nil),
-				Discounts:   lo.FromPtrOr(input.Discounts, nil),
+				Phase: requestedPhase,
 			})
 			phasesVisited[phaseKey] = struct{}{}
 
@@ -555,40 +526,41 @@ func planPhasesDiff(requested, actual []plan.Phase) (planPhasesDiffResult, error
 		}
 
 		// Collect phases to be updated
-		if !input.Equal(phase) {
-			result.Update = append(result.Update, input)
+		if !requestedPhase.Equal(actualPhase.Phase) {
+			result.Update = append(result.Update, plan.UpdatePhaseInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: actualPhase.Namespace,
+					ID:        actualPhase.ID,
+				},
+				PlanID:      actualPhase.PlanID,
+				Key:         actualPhase.Key,
+				Name:        &requestedPhase.Name,
+				Description: requestedPhase.Description,
+				Metadata:    &requestedPhase.Metadata,
+				StartAfter:  &requestedPhase.StartAfter,
+				RateCards:   &requestedPhase.RateCards,
+				Discounts:   &requestedPhase.Discounts,
+			})
 			phasesVisited[phaseKey] = struct{}{}
 
 			continue
 		}
 
-		diffResult, err := rateCardsDiff(lo.FromPtr(input.RateCards), phase.RateCards)
-		if err != nil {
-			return result, err
-		}
-
-		if diffResult.IsDiff() {
-			result.Update = append(result.Update, input)
-			phasesVisited[phaseKey] = struct{}{}
-
-			continue
-		}
-
-		result.Keep = append(result.Keep, phase)
+		result.Keep = append(result.Keep, actualPhase)
 		phasesVisited[phaseKey] = struct{}{}
 	}
 
 	// Collect phases to be deleted
-	for phaseKey, phase := range phaseMap {
+	for phaseKey, actualPhase := range actualMap {
 		if _, ok := phasesVisited[phaseKey]; !ok {
 			result.Remove = append(result.Remove, plan.DeletePhaseInput{
 				NamespacedID: models.NamespacedID{
-					Namespace: phase.Namespace,
-					ID:        phase.ID,
+					Namespace: actualPhase.Namespace,
+					ID:        actualPhase.ID,
 				},
 			})
 		}
 	}
 
-	return result, nil
+	return result
 }

@@ -8,9 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 )
 
 // PlanDelete is the builder for deleting a Plan entity.
@@ -41,7 +40,7 @@ func (pd *PlanDelete) ExecX(ctx context.Context) int {
 }
 
 func (pd *PlanDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(dbplan.Table, sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString))
+	_spec := sqlgraph.NewDeleteSpec(plan.Table, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
 	if ps := pd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -75,7 +74,7 @@ func (pdo *PlanDeleteOne) Exec(ctx context.Context) error {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{dbplan.Label}
+		return &NotFoundError{plan.Label}
 	default:
 		return nil
 	}

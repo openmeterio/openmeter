@@ -1,15 +1,16 @@
 package httpdriver
 
 import (
+	"errors"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
-	"github.com/rickb777/period"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -26,7 +27,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 		EffectiveTo:   p.EffectiveTo,
 		Id:            p.ID,
 		Key:           p.Key,
-		Metadata:      lo.EmptyableToPtr(p.Metadata),
+		Metadata:      lo.EmptyableToPtr(api.Metadata(p.Metadata)),
 		Name:          p.Name,
 		UpdatedAt:     p.UpdatedAt,
 		Version:       p.Version,
@@ -44,13 +45,13 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 
 	var status api.PlanStatus
 	switch p.Status() {
-	case plan.DraftStatus:
+	case productcatalog.DraftStatus:
 		status = api.PlanStatusDraft
-	case plan.ActiveStatus:
+	case productcatalog.ActiveStatus:
 		status = api.PlanStatusActive
-	case plan.ArchivedStatus:
+	case productcatalog.ArchivedStatus:
 		status = api.PlanStatusArchived
-	case plan.ScheduledStatus:
+	case productcatalog.ScheduledStatus:
 		status = api.PlanStatusScheduled
 	default:
 		return resp, fmt.Errorf("invalid PlanStatus: %s", p.Status())
@@ -65,7 +66,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	resp := api.PlanPhase{
 		Description: p.Description,
 		Key:         p.Key,
-		Metadata:    lo.EmptyableToPtr(p.Metadata),
+		Metadata:    lo.EmptyableToPtr(api.Metadata(p.Metadata)),
 		Name:        p.Name,
 		StartAfter:  lo.ToPtr(p.StartAfter.ISOString().String()),
 	}
@@ -104,14 +105,16 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	return resp, nil
 }
 
-func FromRateCard(r plan.RateCard) (api.RateCard, error) {
+func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
+	var err error
+
 	resp := api.RateCard{}
 
 	switch r.Type() {
-	case plan.FlatFeeRateCardType:
-		rc, err := r.AsFlatFee()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
+	case productcatalog.FlatFeeRateCardType:
+		rc, ok := r.(*plan.FlatFeeRateCard)
+		if !ok {
+			return resp, errors.New("failed to cast FlatFeeRateCard")
 		}
 
 		var tmpl api.RateCardEntitlement
@@ -123,8 +126,8 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 		}
 
 		var featureKey *string
-		if rc.Feature != nil {
-			featureKey = &rc.Feature.Key
+		if rc.Feature() != nil {
+			featureKey = &rc.Feature().Key
 		}
 
 		var billingCadence *string
@@ -156,8 +159,8 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 			Description:         rc.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
-			Key:                 rc.Key,
-			Metadata:            lo.EmptyableToPtr(rc.Metadata),
+			Key:                 rc.Key(),
+			Metadata:            lo.EmptyableToPtr(api.Metadata(rc.Metadata)),
 			Name:                rc.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
@@ -166,10 +169,10 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast FlatPriceRateCard: %w", err)
 		}
-	case plan.UsageBasedRateCardType:
-		rc, err := r.AsUsageBased()
-		if err != nil {
-			return resp, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
+	case productcatalog.UsageBasedRateCardType:
+		rc, ok := r.(*plan.UsageBasedRateCard)
+		if !ok {
+			return resp, errors.New("failed to cast UsageBasedRateCard")
 		}
 
 		var tmpl api.RateCardEntitlement
@@ -181,14 +184,14 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 		}
 
 		var featureKey *string
-		if rc.Feature != nil {
-			featureKey = &rc.Feature.Key
+		if rc.Feature() != nil {
+			featureKey = &rc.Feature().Key
 		}
 
 		var price api.RateCardUsageBasedPrice
 		if rc.Price != nil {
 			switch rc.Price.Type() {
-			case plan.FlatPriceType:
+			case productcatalog.FlatPriceType:
 				flatPrice, err := rc.Price.AsFlat()
 				if err != nil {
 					return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
@@ -202,7 +205,7 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 				if err != nil {
 					return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
 				}
-			case plan.UnitPriceType:
+			case productcatalog.UnitPriceType:
 				unitPrice, err := rc.Price.AsUnit()
 				if err != nil {
 					return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
@@ -227,7 +230,7 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 				if err != nil {
 					return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
 				}
-			case plan.TieredPriceType:
+			case productcatalog.TieredPriceType:
 				tieredPrice, err := rc.Price.AsTiered()
 				if err != nil {
 					return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
@@ -248,7 +251,7 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 					Mode:          api.TieredPriceMode(tieredPrice.Mode),
 					MinimumAmount: minimumAmount,
 					MaximumAmount: maximumAmount,
-					Tiers: lo.Map(tieredPrice.Tiers, func(t plan.PriceTier, _ int) api.PriceTier {
+					Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
 						var upToAmount *float64
 						if t.UpToAmount != nil {
 							a, _ := t.UpToAmount.Float64()
@@ -295,8 +298,8 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 			Description:         rc.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
-			Key:                 rc.Key,
-			Metadata:            lo.EmptyableToPtr(rc.Metadata),
+			Key:                 rc.Key(),
+			Metadata:            lo.EmptyableToPtr(api.Metadata(rc.Metadata)),
 			Name:                rc.Name,
 			Price:               &price,
 			TaxConfig:           taxConfig,
@@ -305,13 +308,13 @@ func FromRateCard(r plan.RateCard) (api.RateCard, error) {
 			return resp, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
 		}
 	default:
-		return resp, fmt.Errorf("invalid type: %s", r.Type())
+		return resp, fmt.Errorf("invalid RateCard type: %s", r.Type())
 	}
 
 	return resp, nil
 }
 
-func FromTaxConfig(c plan.TaxConfig) api.TaxConfig {
+func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 	var stripe *api.StripeTaxConfig
 
 	if c.Stripe != nil {
@@ -325,18 +328,18 @@ func FromTaxConfig(c plan.TaxConfig) api.TaxConfig {
 	}
 }
 
-func FromPaymentTerm(t plan.PaymentTermType) api.PricePaymentTerm {
+func FromPaymentTerm(t productcatalog.PaymentTermType) api.PricePaymentTerm {
 	switch t {
-	case plan.InArrearsPaymentTerm:
+	case productcatalog.InArrearsPaymentTerm:
 		return api.PricePaymentTermInArrears
-	case plan.InAdvancePaymentTerm:
+	case productcatalog.InAdvancePaymentTerm:
 		fallthrough
 	default:
 		return api.PricePaymentTermInAdvance
 	}
 }
 
-func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlement, error) {
+func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCardEntitlement, error) {
 	result := api.RateCardEntitlement{}
 
 	switch t.Type() {
@@ -350,7 +353,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 			IsSoftLimit:             lo.ToPtr(metered.IsSoftLimit),
 			IssueAfterReset:         metered.IssueAfterReset,
 			IssueAfterResetPriority: metered.IssueAfterResetPriority,
-			Metadata:                lo.EmptyableToPtr(metered.Metadata),
+			Metadata:                lo.EmptyableToPtr(api.Metadata(metered.Metadata)),
 			PreserveOverageAtReset:  metered.PreserveOverageAtReset,
 			Type:                    api.RateCardMeteredEntitlementTypeMetered,
 			UsagePeriod:             lo.ToPtr(metered.UsagePeriod.ISOString().String()),
@@ -365,7 +368,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 		}
 
 		err = result.FromRateCardStaticEntitlement(api.RateCardStaticEntitlement{
-			Metadata: lo.EmptyableToPtr(static.Metadata),
+			Metadata: lo.EmptyableToPtr(api.Metadata(static.Metadata)),
 			Type:     api.RateCardStaticEntitlementTypeStatic,
 			Config:   static.Config,
 		})
@@ -379,7 +382,7 @@ func FromEntitlementTemplate(t plan.EntitlementTemplate) (api.RateCardEntitlemen
 		}
 
 		err = result.FromRateCardBooleanEntitlement(api.RateCardBooleanEntitlement{
-			Metadata: lo.EmptyableToPtr(boolean.Metadata),
+			Metadata: lo.EmptyableToPtr(api.Metadata(boolean.Metadata)),
 			Type:     api.RateCardBooleanEntitlementTypeBoolean,
 		})
 		if err != nil {
@@ -399,10 +402,15 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
-		Key:         a.Key,
-		Name:        a.Name,
-		Description: a.Description,
-		Metadata:    lo.FromPtrOr(a.Metadata, nil),
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Key:         a.Key,
+				Name:        a.Name,
+				Description: a.Description,
+				Metadata:    lo.FromPtrOr(a.Metadata, nil),
+			},
+			Phases: nil,
+		},
 	}
 
 	req.Currency = currency.Code(a.Currency)
@@ -411,10 +419,10 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 	}
 
 	if len(a.Phases) > 0 {
-		req.Phases = make([]plan.Phase, 0, len(a.Phases))
+		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
 
 		for _, phase := range a.Phases {
-			planPhase, err := AsPlanPhase(phase, namespace, "")
+			planPhase, err := AsPlanPhase(phase)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
 			}
@@ -426,18 +434,16 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 	return req, nil
 }
 
-func AsPlanPhase(a api.PlanPhase, namespace, planID string) (plan.Phase, error) {
+func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 	var err error
 
-	phase := plan.Phase{
-		NamespacedID: models.NamespacedID{
-			Namespace: namespace,
+	phase := productcatalog.Phase{
+		PhaseMeta: productcatalog.PhaseMeta{
+			Key:         a.Key,
+			Name:        a.Name,
+			Description: a.Description,
+			Metadata:    lo.FromPtrOr(a.Metadata, nil),
 		},
-		Key:         a.Key,
-		Name:        a.Name,
-		Description: a.Description,
-		Metadata:    lo.FromPtrOr(a.Metadata, nil),
-		PlanID:      planID,
 	}
 
 	phase.StartAfter, err = datex.ISOString(lo.FromPtrOr(a.StartAfter, plan.DefaultStartAfter)).Parse()
@@ -447,17 +453,17 @@ func AsPlanPhase(a api.PlanPhase, namespace, planID string) (plan.Phase, error) 
 
 	discounts := lo.FromPtrOr(a.Discounts, nil)
 	if len(discounts) > 0 {
-		phase.Discounts = make([]plan.Discount, 0, len(discounts))
+		phase.Discounts = make([]productcatalog.Discount, 0, len(discounts))
 
 		for _, discount := range discounts {
 			switch discount.Type {
 			case api.DiscountPercentageTypePercentage:
-				percentageDiscount := plan.PercentageDiscount{
+				percentageDiscount := productcatalog.PercentageDiscount{
 					Percentage: decimal.NewFromFloat(float64(discount.Percentage)),
 					RateCards:  lo.FromPtrOr(discount.RateCards, nil),
 				}
 
-				phaseDiscount := plan.NewDiscountFrom(percentageDiscount)
+				phaseDiscount := productcatalog.NewDiscountFrom(percentageDiscount)
 				if err = phaseDiscount.Validate(); err != nil {
 					return phase, fmt.Errorf("invalid Discount: %w", err)
 				}
@@ -468,10 +474,10 @@ func AsPlanPhase(a api.PlanPhase, namespace, planID string) (plan.Phase, error) 
 	}
 
 	if len(a.RateCards) > 0 {
-		phase.RateCards = make([]plan.RateCard, 0, len(a.RateCards))
+		phase.RateCards = make([]productcatalog.RateCard, 0, len(a.RateCards))
 
 		for _, rc := range a.RateCards {
-			rateCard, err := AsRateCard(rc, namespace)
+			rateCard, err := AsRateCard(rc)
 			if err != nil {
 				return phase, fmt.Errorf("failed to cast RateCard: %w", err)
 			}
@@ -483,50 +489,47 @@ func AsPlanPhase(a api.PlanPhase, namespace, planID string) (plan.Phase, error) 
 	return phase, nil
 }
 
-func AsRateCard(r api.RateCard, namespace string) (plan.RateCard, error) {
+func AsRateCard(r api.RateCard) (productcatalog.RateCard, error) {
 	rType, err := r.Discriminator()
 	if err != nil {
-		return plan.RateCard{}, fmt.Errorf("failed to cast type: %w", err)
+		return nil, fmt.Errorf("failed to cast type: %w", err)
 	}
 
 	switch rType {
-	case string(plan.FlatFeeRateCardType):
+	case string(productcatalog.FlatFeeRateCardType):
 		flat, err := r.AsRateCardFlatFee()
 		if err != nil {
-			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
+			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		flatRateCard, err := AsFlatFeeRateCard(flat, namespace)
+		flatRateCard, err := AsFlatFeeRateCard(flat)
 		if err != nil {
-			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
+			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		return plan.NewRateCardFrom(flatRateCard), nil
-	case string(plan.UsageBasedRateCardType):
+		return &flatRateCard, nil
+	case string(productcatalog.UsageBasedRateCardType):
 		usage, err := r.AsRateCardUsageBased()
 		if err != nil {
-			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
+			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		usageBasedRateCard, err := AsUsageBasedRateCard(usage, namespace)
+		usageBasedRateCard, err := AsUsageBasedRateCard(usage)
 		if err != nil {
-			return plan.RateCard{}, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
+			return nil, fmt.Errorf("failed to cast FlatFeeRateCard: %w", err)
 		}
 
-		return plan.NewRateCardFrom(usageBasedRateCard), nil
+		return &usageBasedRateCard, nil
 	default:
-		return plan.RateCard{}, fmt.Errorf("invalid type: %s", rType)
+		return nil, fmt.Errorf("invalid type: %s", rType)
 	}
 }
 
-func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFeeRateCard, error) {
+func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard, error) {
 	var err error
 
-	flatRateCard := plan.FlatFeeRateCard{
-		RateCardMeta: plan.RateCardMeta{
-			NamespacedID: models.NamespacedID{
-				Namespace: namespace,
-			},
+	rc := productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         flat.Key,
 			Name:        flat.Name,
 			Description: flat.Description,
@@ -535,7 +538,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	}
 
 	if flat.FeatureKey != nil {
-		flatRateCard.Feature = &feature.Feature{
+		rc.RateCardMeta.Feature = &feature.Feature{
 			Key: *flat.FeatureKey,
 		}
 	}
@@ -543,61 +546,58 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee, namespace string) (plan.FlatFee
 	if flat.EntitlementTemplate != nil {
 		tmpl, err := AsEntitlementTemplate(*flat.EntitlementTemplate)
 		if err != nil {
-			return plan.FlatFeeRateCard{}, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
+			return productcatalog.FlatFeeRateCard{}, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 		}
 
-		flatRateCard.EntitlementTemplate = lo.ToPtr(tmpl)
+		rc.EntitlementTemplate = tmpl
 	}
 
 	if flat.TaxConfig != nil {
-		flatRateCard.TaxConfig = lo.ToPtr(AsTaxConfig(*flat.TaxConfig))
+		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*flat.TaxConfig))
 	}
 
 	if flat.BillingCadence != nil {
 		isoString := datex.ISOString(*flat.BillingCadence)
-		flatRateCard.BillingCadence, err = isoString.ParsePtrOrNil()
+		rc.BillingCadence, err = isoString.ParsePtrOrNil()
 		if err != nil {
-			return flatRateCard, fmt.Errorf("failed to cast BillingCadence: %w", err)
+			return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
 		}
 	}
 
 	if flat.Price != nil {
 		amount, err := decimal.NewFromString(flat.Price.Amount)
 		if err != nil {
-			return flatRateCard, fmt.Errorf("failed to cast Price Amount to decimal: %w", err)
+			return rc, fmt.Errorf("failed to cast Price Amount to decimal: %w", err)
 		}
 
-		var paymentTerm plan.PaymentTermType
+		var paymentTerm productcatalog.PaymentTermType
 		if flat.Price.PaymentTerm != nil {
 			switch *flat.Price.PaymentTerm {
 			case api.PricePaymentTermInArrears:
-				paymentTerm = plan.InArrearsPaymentTerm
+				paymentTerm = productcatalog.InArrearsPaymentTerm
 			case api.PricePaymentTermInAdvance:
-				paymentTerm = plan.InAdvancePaymentTerm
+				paymentTerm = productcatalog.InAdvancePaymentTerm
 			default:
-				paymentTerm = plan.DefaultPaymentTerm
+				paymentTerm = productcatalog.DefaultPaymentTerm
 			}
 		} else {
-			paymentTerm = plan.DefaultPaymentTerm
+			paymentTerm = productcatalog.DefaultPaymentTerm
 		}
 
-		flatRateCard.Price = lo.ToPtr(plan.NewPriceFrom(plan.FlatPrice{
+		rc.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      amount,
 			PaymentTerm: paymentTerm,
-		}))
+		})
 	}
 
-	return flatRateCard, nil
+	return rc, nil
 }
 
-func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.UsageBasedRateCard, error) {
+func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBasedRateCard, error) {
 	var err error
 
-	usageRateCard := plan.UsageBasedRateCard{
-		RateCardMeta: plan.RateCardMeta{
-			NamespacedID: models.NamespacedID{
-				Namespace: namespace,
-			},
+	rc := productcatalog.UsageBasedRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
 			Key:         usage.Key,
 			Name:        usage.Name,
 			Description: usage.Description,
@@ -606,7 +606,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 	}
 
 	if usage.FeatureKey != nil {
-		usageRateCard.Feature = &feature.Feature{
+		rc.RateCardMeta.Feature = &feature.Feature{
 			Key: *usage.FeatureKey,
 		}
 	}
@@ -614,75 +614,75 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased, namespace string) (plan.
 	if usage.EntitlementTemplate != nil {
 		tmpl, err := AsEntitlementTemplate(*usage.EntitlementTemplate)
 		if err != nil {
-			return usageRateCard, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
+			return rc, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 		}
 
-		usageRateCard.EntitlementTemplate = lo.ToPtr(tmpl)
+		rc.EntitlementTemplate = tmpl
 	}
 
 	if usage.TaxConfig != nil {
-		usageRateCard.TaxConfig = lo.ToPtr(AsTaxConfig(*usage.TaxConfig))
+		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*usage.TaxConfig))
 	}
 
 	isoString := datex.ISOString(usage.BillingCadence)
-	usageRateCard.BillingCadence, err = isoString.Parse()
+	rc.BillingCadence, err = isoString.Parse()
 	if err != nil {
-		return usageRateCard, fmt.Errorf("failed to cast BillingCadence: %w", err)
+		return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
 	}
 
 	if usage.Price != nil {
 		price, err := AsPrice(*usage.Price)
 		if err != nil {
-			return usageRateCard, fmt.Errorf("failed to cast Price: %w", err)
+			return rc, fmt.Errorf("failed to cast Price: %w", err)
 		}
 
-		usageRateCard.Price = lo.ToPtr(price)
+		rc.Price = price
 	}
 
-	return usageRateCard, nil
+	return rc, nil
 }
 
-func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
-	var price plan.Price
+func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
+	var price *productcatalog.Price
 
 	usagePriceType, err := p.Discriminator()
 	if err != nil {
-		return price, fmt.Errorf("failed to cast type: %w", err)
+		return nil, fmt.Errorf("failed to cast type: %w", err)
 	}
 
 	switch usagePriceType {
 	case string(api.FlatPriceTypeFlat):
 		flat, err := p.AsFlatPriceWithPaymentTerm()
 		if err != nil {
-			return price, fmt.Errorf("failed to cast FlatPrice: %w", err)
+			return nil, fmt.Errorf("failed to cast FlatPrice: %w", err)
 		}
 
-		flatPrice := plan.FlatPrice{}
+		flatPrice := productcatalog.FlatPrice{}
 
 		flatPrice.Amount, err = decimal.NewFromString(flat.Amount)
 		if err != nil {
-			return price, fmt.Errorf("failed to cast Amount of FlatPrice to decimal: %w", err)
+			return nil, fmt.Errorf("failed to cast Amount of FlatPrice to decimal: %w", err)
 		}
 
 		if flat.PaymentTerm != nil {
 			switch *flat.PaymentTerm {
 			case api.PricePaymentTermInArrears:
-				flatPrice.PaymentTerm = plan.InArrearsPaymentTerm
+				flatPrice.PaymentTerm = productcatalog.InArrearsPaymentTerm
 			case api.PricePaymentTermInAdvance:
-				flatPrice.PaymentTerm = plan.InAdvancePaymentTerm
+				flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
 			default:
-				flatPrice.PaymentTerm = plan.DefaultPaymentTerm
+				flatPrice.PaymentTerm = productcatalog.DefaultPaymentTerm
 			}
 		}
 
-		price = plan.NewPriceFrom(flatPrice)
+		price = productcatalog.NewPriceFrom(flatPrice)
 	case string(api.UnitPriceTypeUnit):
 		unit, err := p.AsUnitPriceWithCommitments()
 		if err != nil {
-			return price, fmt.Errorf("failed to cast UnitPrice: %w", err)
+			return nil, fmt.Errorf("failed to cast UnitPrice: %w", err)
 		}
 
-		unitPrice := plan.UnitPrice{}
+		unitPrice := productcatalog.UnitPrice{}
 
 		unitPrice.Amount, err = decimal.NewFromString(unit.Amount)
 		if err != nil {
@@ -692,7 +692,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 		if unit.MinimumAmount != nil {
 			minimumAmount, err := decimal.NewFromString(*unit.MinimumAmount)
 			if err != nil {
-				return price, fmt.Errorf("failed to cast MinimumAmount of UnitPrice to decimal: %w", err)
+				return nil, fmt.Errorf("failed to cast MinimumAmount of UnitPrice to decimal: %w", err)
 			}
 
 			unitPrice.MinimumAmount = &minimumAmount
@@ -701,24 +701,24 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 		if unit.MaximumAmount != nil {
 			maximumAmount, err := decimal.NewFromString(*unit.MaximumAmount)
 			if err != nil {
-				return price, fmt.Errorf("failed to cast MaximumAmount of UnitPrice to decimal: %w", err)
+				return nil, fmt.Errorf("failed to cast MaximumAmount of UnitPrice to decimal: %w", err)
 			}
 
 			unitPrice.MaximumAmount = &maximumAmount
 		}
 
-		price = plan.NewPriceFrom(unitPrice)
+		price = productcatalog.NewPriceFrom(unitPrice)
 	case string(api.TieredPriceWithCommitmentsTypeTiered):
 		tiered, err := p.AsTieredPriceWithCommitments()
 		if err != nil {
 			return price, fmt.Errorf("failed to cast TieredPrice: %w", err)
 		}
 
-		tieredPrice := plan.TieredPrice{
+		tieredPrice := productcatalog.TieredPrice{
 			Tiers: nil,
 		}
 
-		tieredPrice.Mode, err = plan.NewTieredPriceMode(string(tiered.Mode))
+		tieredPrice.Mode, err = productcatalog.NewTieredPriceMode(string(tiered.Mode))
 		if err != nil {
 			return price, fmt.Errorf("failed to cast TieredPriceMode: %w", err)
 		}
@@ -742,7 +742,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 		}
 
 		if len(tiered.Tiers) > 0 {
-			tieredPrice.Tiers = make([]plan.PriceTier, 0, len(tiered.Tiers))
+			tieredPrice.Tiers = make([]productcatalog.PriceTier, 0, len(tiered.Tiers))
 			for _, tier := range tiered.Tiers {
 				priceTier, err := AsPriceTier(tier)
 				if err != nil {
@@ -753,7 +753,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 			}
 		}
 
-		price = plan.NewPriceFrom(tieredPrice)
+		price = productcatalog.NewPriceFrom(tieredPrice)
 	default:
 		return price, fmt.Errorf("invalid Price type for UsageBasedRateCard: %s", usagePriceType)
 	}
@@ -761,8 +761,8 @@ func AsPrice(p api.RateCardUsageBasedPrice) (plan.Price, error) {
 	return price, nil
 }
 
-func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
-	tier := plan.PriceTier{
+func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
+	tier := productcatalog.PriceTier{
 		UpToAmount: nil,
 		FlatPrice:  nil,
 		UnitPrice:  nil,
@@ -778,7 +778,7 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 			return tier, fmt.Errorf("invalid Amount for FlatPrice component in PriceTier: %w", err)
 		}
 
-		tier.FlatPrice = &plan.PriceTierFlatPrice{
+		tier.FlatPrice = &productcatalog.PriceTierFlatPrice{
 			Amount: amount,
 		}
 	}
@@ -789,7 +789,7 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 			return tier, fmt.Errorf("invalid Amount for UnitPrice component in PriceTier: %w", err)
 		}
 
-		tier.UnitPrice = &plan.PriceTierUnitPrice{
+		tier.UnitPrice = &productcatalog.PriceTierUnitPrice{
 			Amount: amount,
 		}
 	}
@@ -797,28 +797,28 @@ func AsPriceTier(t api.PriceTier) (plan.PriceTier, error) {
 	return tier, nil
 }
 
-func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate, error) {
-	tmpl := plan.EntitlementTemplate{}
+func AsEntitlementTemplate(e api.RateCardEntitlement) (*productcatalog.EntitlementTemplate, error) {
+	tmpl := &productcatalog.EntitlementTemplate{}
 
 	eType, err := e.Discriminator()
 	if err != nil {
-		return tmpl, fmt.Errorf("failed to cast EntitlementTemplate type: %w", err)
+		return nil, fmt.Errorf("failed to cast EntitlementTemplate type: %w", err)
 	}
 
 	switch eType {
 	case string(api.RateCardMeteredEntitlementTypeMetered):
 		metered, err := e.AsRateCardMeteredEntitlement()
 		if err != nil {
-			return tmpl, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
+			return nil, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
 		}
 
 		usagePeriodISO := datex.ISOString(lo.FromPtrOr(metered.UsagePeriod, ""))
 		usagePeriod, err := usagePeriodISO.Parse()
 		if err != nil {
-			return tmpl, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)
+			return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)
 		}
 
-		meteredTemplate := plan.MeteredEntitlementTemplate{
+		meteredTemplate := productcatalog.MeteredEntitlementTemplate{
 			Metadata:                lo.FromPtrOr(metered.Metadata, nil),
 			IsSoftLimit:             lo.FromPtrOr(metered.IsSoftLimit, false),
 			IssueAfterReset:         metered.IssueAfterReset,
@@ -827,42 +827,42 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (plan.EntitlementTemplate,
 			UsagePeriod:             usagePeriod,
 		}
 
-		tmpl = plan.NewEntitlementTemplateFrom(meteredTemplate)
+		tmpl = productcatalog.NewEntitlementTemplateFrom(meteredTemplate)
 	case string(api.RateCardStaticEntitlementTypeStatic):
 		static, err := e.AsRateCardStaticEntitlement()
 		if err != nil {
 			return tmpl, fmt.Errorf("failed to cast Static EntitlementTemplate: %w", err)
 		}
 
-		staticTemplate := plan.StaticEntitlementTemplate{
+		staticTemplate := productcatalog.StaticEntitlementTemplate{
 			Metadata: lo.FromPtrOr(static.Metadata, nil),
 			Config:   static.Config,
 		}
 
-		tmpl = plan.NewEntitlementTemplateFrom(staticTemplate)
+		tmpl = productcatalog.NewEntitlementTemplateFrom(staticTemplate)
 	case string(api.RateCardBooleanEntitlementTypeBoolean):
 		boolean, err := e.AsRateCardMeteredEntitlement()
 		if err != nil {
 			return tmpl, fmt.Errorf("failed to cast Boolean EntitlementTemplate: %w", err)
 		}
 
-		booleanTemplate := plan.BooleanEntitlementTemplate{
+		booleanTemplate := productcatalog.BooleanEntitlementTemplate{
 			Metadata: lo.FromPtrOr(boolean.Metadata, nil),
 		}
 
-		tmpl = plan.NewEntitlementTemplateFrom(booleanTemplate)
+		tmpl = productcatalog.NewEntitlementTemplateFrom(booleanTemplate)
 	default:
-		return plan.EntitlementTemplate{}, fmt.Errorf("invalid EntitlementTemplate type: %s", eType)
+		return nil, fmt.Errorf("invalid EntitlementTemplate type: %s", eType)
 	}
 
 	return tmpl, nil
 }
 
-func AsTaxConfig(c api.TaxConfig) plan.TaxConfig {
-	tc := plan.TaxConfig{}
+func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
+	tc := productcatalog.TaxConfig{}
 
 	if c.Stripe != nil {
-		tc.Stripe = &plan.StripeTaxConfig{
+		tc.Stripe = &productcatalog.StripeTaxConfig{
 			Code: c.Stripe.Code,
 		}
 	}
@@ -878,12 +878,12 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 		},
 		Name:        lo.ToPtr(a.Name),
 		Description: a.Description,
-		Metadata:    a.Metadata,
+		Metadata:    (*models.Metadata)(a.Metadata),
 	}
 
-	phases := make([]plan.Phase, 0, len(a.Phases))
+	phases := make([]productcatalog.Phase, 0, len(a.Phases))
 	for _, phase := range a.Phases {
-		planPhase, err := AsPlanPhase(phase, namespace, planID)
+		planPhase, err := AsPlanPhase(phase)
 		if err != nil {
 			return req, fmt.Errorf("failed to cast Plan Phase from HTTP update request: %w", err)
 		}
@@ -902,12 +902,13 @@ func AsCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (Crea
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
 		},
-		Key:         a.Key,
-		Name:        a.Name,
-		Description: a.Description,
-		Metadata:    lo.FromPtrOr(a.Metadata, nil),
-		StartAfter: datex.Period{
-			Period: period.Period{},
+		Phase: productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{
+				Key:         a.Key,
+				Name:        a.Name,
+				Description: a.Description,
+				Metadata:    lo.FromPtrOr(a.Metadata, nil),
+			},
 		},
 		PlanID: planID,
 	}
@@ -918,10 +919,10 @@ func AsCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (Crea
 	}
 
 	if len(a.RateCards) > 0 {
-		req.RateCards = make([]plan.RateCard, 0, len(a.RateCards))
+		req.RateCards = make([]productcatalog.RateCard, 0, len(a.RateCards))
 
 		for _, rc := range a.RateCards {
-			rateCard, err := AsRateCard(rc, namespace)
+			rateCard, err := AsRateCard(rc)
 			if err != nil {
 				return req, fmt.Errorf("failed to cast RateCard from HTTP create request: %w", err)
 			}
@@ -941,7 +942,7 @@ func AsUpdatePhaseRequest(a api.PlanPhaseUpdate, namespace, planID, phaseKey str
 		Key:         phaseKey,
 		Name:        a.Name,
 		Description: a.Description,
-		Metadata:    a.Metadata,
+		Metadata:    (*models.Metadata)(a.Metadata),
 		PlanID:      planID,
 	}
 
@@ -957,19 +958,19 @@ func AsUpdatePhaseRequest(a api.PlanPhaseUpdate, namespace, planID, phaseKey str
 	}
 
 	if a.RateCards != nil && *a.RateCards != nil {
-		phases := make([]plan.RateCard, 0, len(*a.RateCards))
+		rateCards := make([]productcatalog.RateCard, 0, len(*a.RateCards))
 		if len(*a.RateCards) > 0 {
 			for _, phase := range *a.RateCards {
-				planPhase, err := AsRateCard(phase, namespace)
+				planPhase, err := AsRateCard(phase)
 				if err != nil {
 					return req, fmt.Errorf("failed to cast RateCard from HTTP update request: %w", err)
 				}
 
-				phases = append(phases, planPhase)
+				rateCards = append(rateCards, planPhase)
 			}
 		}
 
-		req.RateCards = &phases
+		req.RateCards = lo.ToPtr(productcatalog.RateCards(rateCards))
 	}
 
 	return req, nil

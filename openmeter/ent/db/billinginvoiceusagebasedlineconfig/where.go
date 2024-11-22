@@ -6,7 +6,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // ID filters vertices based on their ID field.
@@ -145,19 +145,19 @@ func NamespaceContainsFold(v string) predicate.BillingInvoiceUsageBasedLineConfi
 }
 
 // PriceTypeEQ applies the EQ predicate on the "price_type" field.
-func PriceTypeEQ(v plan.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
+func PriceTypeEQ(v productcatalog.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
 	vc := v
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldPriceType, vc))
 }
 
 // PriceTypeNEQ applies the NEQ predicate on the "price_type" field.
-func PriceTypeNEQ(v plan.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
+func PriceTypeNEQ(v productcatalog.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
 	vc := v
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNEQ(FieldPriceType, vc))
 }
 
 // PriceTypeIn applies the In predicate on the "price_type" field.
-func PriceTypeIn(vs ...plan.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
+func PriceTypeIn(vs ...productcatalog.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -166,7 +166,7 @@ func PriceTypeIn(vs ...plan.PriceType) predicate.BillingInvoiceUsageBasedLineCon
 }
 
 // PriceTypeNotIn applies the NotIn predicate on the "price_type" field.
-func PriceTypeNotIn(vs ...plan.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
+func PriceTypeNotIn(vs ...productcatalog.PriceType) predicate.BillingInvoiceUsageBasedLineConfig {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

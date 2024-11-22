@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -125,7 +125,7 @@ func (prcu *PlanRateCardUpdate) ClearFeatureKey() *PlanRateCardUpdate {
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (prcu *PlanRateCardUpdate) SetEntitlementTemplate(pt *plan.EntitlementTemplate) *PlanRateCardUpdate {
+func (prcu *PlanRateCardUpdate) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *PlanRateCardUpdate {
 	prcu.mutation.SetEntitlementTemplate(pt)
 	return prcu
 }
@@ -137,7 +137,7 @@ func (prcu *PlanRateCardUpdate) ClearEntitlementTemplate() *PlanRateCardUpdate {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (prcu *PlanRateCardUpdate) SetTaxConfig(pc *plan.TaxConfig) *PlanRateCardUpdate {
+func (prcu *PlanRateCardUpdate) SetTaxConfig(pc *productcatalog.TaxConfig) *PlanRateCardUpdate {
 	prcu.mutation.SetTaxConfig(pc)
 	return prcu
 }
@@ -169,8 +169,8 @@ func (prcu *PlanRateCardUpdate) ClearBillingCadence() *PlanRateCardUpdate {
 }
 
 // SetPrice sets the "price" field.
-func (prcu *PlanRateCardUpdate) SetPrice(pl *plan.Price) *PlanRateCardUpdate {
-	prcu.mutation.SetPrice(pl)
+func (prcu *PlanRateCardUpdate) SetPrice(pr *productcatalog.Price) *PlanRateCardUpdate {
+	prcu.mutation.SetPrice(pr)
 	return prcu
 }
 
@@ -568,7 +568,7 @@ func (prcuo *PlanRateCardUpdateOne) ClearFeatureKey() *PlanRateCardUpdateOne {
 }
 
 // SetEntitlementTemplate sets the "entitlement_template" field.
-func (prcuo *PlanRateCardUpdateOne) SetEntitlementTemplate(pt *plan.EntitlementTemplate) *PlanRateCardUpdateOne {
+func (prcuo *PlanRateCardUpdateOne) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) *PlanRateCardUpdateOne {
 	prcuo.mutation.SetEntitlementTemplate(pt)
 	return prcuo
 }
@@ -580,7 +580,7 @@ func (prcuo *PlanRateCardUpdateOne) ClearEntitlementTemplate() *PlanRateCardUpda
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (prcuo *PlanRateCardUpdateOne) SetTaxConfig(pc *plan.TaxConfig) *PlanRateCardUpdateOne {
+func (prcuo *PlanRateCardUpdateOne) SetTaxConfig(pc *productcatalog.TaxConfig) *PlanRateCardUpdateOne {
 	prcuo.mutation.SetTaxConfig(pc)
 	return prcuo
 }
@@ -612,8 +612,8 @@ func (prcuo *PlanRateCardUpdateOne) ClearBillingCadence() *PlanRateCardUpdateOne
 }
 
 // SetPrice sets the "price" field.
-func (prcuo *PlanRateCardUpdateOne) SetPrice(pl *plan.Price) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetPrice(pl)
+func (prcuo *PlanRateCardUpdateOne) SetPrice(pr *productcatalog.Price) *PlanRateCardUpdateOne {
+	prcuo.mutation.SetPrice(pr)
 	return prcuo
 }
 

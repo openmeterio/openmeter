@@ -2,82 +2,47 @@ package plan
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const DefaultStartAfter = "P0D"
 
-type Phase struct {
-	models.NamespacedID
+type PhaseManagedFields struct {
 	models.ManagedModel
-
-	// Key is the unique key for Phase.
-	Key string `json:"key"`
-
-	// Name
-	Name string `json:"name"`
-
-	// Description
-	Description *string `json:"description,omitempty"`
-
-	// Metadata
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	// StartAfter
-	StartAfter datex.Period `json:"interval"`
-
-	// RateCards
-	RateCards []RateCard `json:"rateCards"`
-
-	// Discounts
-	Discounts []Discount `json:"discounts,omitempty"`
+	models.NamespacedID
 
 	// PlanID
-	PlanID string `json:"-"`
+	PlanID string `json:"planId"`
 }
 
-func (p Phase) Validate() error {
+func (m PhaseManagedFields) Equal(v PhaseManagedFields) bool {
+	if m.Namespace != v.Namespace {
+		return false
+	}
+
+	if m.ID != v.ID {
+		return false
+	}
+
+	return m.PlanID == v.PlanID
+}
+
+func (m PhaseManagedFields) Validate() error {
 	var errs []error
 
-	if p.StartAfter.IsNegative() {
-		errs = append(errs, fmt.Errorf("the StartAfter period must not be negative"))
+	if m.Namespace == "" {
+		errs = append(errs, errors.New("namespace must not be empty"))
 	}
 
-	// Check for
-	// * duplicated rate card keys
-	// * namespace mismatch
-	// * invalid RateCards
-	rateCardKeys := make(map[string]RateCard)
-	for _, rateCard := range p.RateCards {
-		if _, ok := rateCardKeys[rateCard.Key()]; ok {
-			errs = append(errs, fmt.Errorf("duplicated RateCard: %s", rateCard.Key()))
-		} else {
-			rateCardKeys[rateCard.Key()] = rateCard
-		}
-
-		if rateCard.Namespace() != p.Namespace {
-			errs = append(errs, fmt.Errorf("invalid RateCard: namespace mismatch %s", rateCard.Namespace()))
-		}
-
-		if err := rateCard.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid RateCard: %w", err))
-		}
+	if m.ID == "" {
+		errs = append(errs, errors.New("unique identifier must not be empty"))
 	}
 
-	for _, discount := range p.Discounts {
-		if err := discount.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid Discount: %w", err))
-		}
-
-		for _, key := range discount.RateCardKeys() {
-			if _, ok := rateCardKeys[key]; !ok {
-				errs = append(errs, fmt.Errorf("invalid Discount: unknown RateCard: %s", key))
-			}
-		}
+	if m.PlanID == "" {
+		errs = append(errs, errors.New("planID must not be empty"))
 	}
 
 	if len(errs) > 0 {
@@ -87,9 +52,64 @@ func (p Phase) Validate() error {
 	return nil
 }
 
-type SortFunc func(left, right Phase) int
+type ManagedPhase interface {
+	ManagedFields() PhaseManagedFields
+}
 
-var SortPhasesByStartAfter SortFunc = func(left, right Phase) int {
+var (
+	_ models.Validator      = (*Phase)(nil)
+	_ models.Equaler[Phase] = (*Phase)(nil)
+)
+
+type Phase struct {
+	PhaseManagedFields
+	productcatalog.Phase
+}
+
+func (p Phase) Equal(v Phase) bool {
+	switch any(v).(type) {
+	case Phase:
+		vv := any(v).(Phase)
+
+		if !p.PhaseManagedFields.Equal(vv.PhaseManagedFields) {
+			return false
+		}
+
+		if p.PlanID != vv.PlanID {
+			return false
+		}
+
+		return p.Phase.Equal(vv.Phase)
+	case productcatalog.Phase:
+		vv := any(v).(productcatalog.Phase)
+
+		return p.Phase.Equal(vv)
+	default:
+		return false
+	}
+}
+
+func (p Phase) Validate() error {
+	var errs []error
+
+	if err := p.PhaseManagedFields.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := p.Phase.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+type SortPhasesFunc = func(left, right Phase) int
+
+var SortPhasesByStartAfter SortPhasesFunc = func(left, right Phase) int {
 	lt, _ := left.StartAfter.Duration()
 	rt, _ := right.StartAfter.Duration()
 

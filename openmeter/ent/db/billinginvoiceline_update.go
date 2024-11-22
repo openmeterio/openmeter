@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceLineUpdate is the builder for updating BillingInvoiceLine entities.
@@ -316,13 +316,13 @@ func (bilu *BillingInvoiceLineUpdate) ClearQuantity() *BillingInvoiceLineUpdate 
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (bilu *BillingInvoiceLineUpdate) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineUpdate {
+func (bilu *BillingInvoiceLineUpdate) SetTaxConfig(pc productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetTaxConfig(pc)
 	return bilu
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineUpdate {
+func (bilu *BillingInvoiceLineUpdate) SetNillableTaxConfig(pc *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
 	if pc != nil {
 		bilu.SetTaxConfig(*pc)
 	}
@@ -1158,13 +1158,13 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearQuantity() *BillingInvoiceLineUpd
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (biluo *BillingInvoiceLineUpdateOne) SetTaxConfig(pc productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetTaxConfig(pc)
 	return biluo
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(pc *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
 	if pc != nil {
 		biluo.SetTaxConfig(*pc)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,126 +19,146 @@ import (
 func TestRateCard_JSON(t *testing.T) {
 	tests := []struct {
 		Name          string
-		RateCard      RateCard
+		RateCard      productcatalog.RateCard
 		ExpectedError bool
 	}{
 		{
 			Name: "FlatFee",
-			RateCard: NewRateCardFrom(FlatFeeRateCard{
-				RateCardMeta: RateCardMeta{
+			RateCard: &FlatFeeRateCard{
+				RateCardManagedFields: RateCardManagedFields{
 					ManagedModel: models.ManagedModel{
 						CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
 						UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
 						DeletedAt: lo.ToPtr(time.Now().UTC()),
 					},
-					Key:         "ratecard-1",
-					Name:        "RateCard 1",
-					Description: lo.ToPtr("RateCard 1"),
-					Metadata: map[string]string{
-						"key": "value",
+					NamespacedID: models.NamespacedID{
+						Namespace: "namespace-1",
+						ID:        "01JDPHJMKJ8SNYTK0GK88VD0E9",
 					},
-					Feature: &feature.Feature{
-						ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
-						Name:      "Feature 1",
-						Key:       "feature-1",
-						MeterSlug: lo.ToPtr("meter-1"),
-						MeterGroupByFilters: map[string]string{
-							"key": "value",
-						},
-						Metadata: map[string]string{
-							"key": "value",
-						},
-						CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
-						UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
-						ArchivedAt: lo.ToPtr(time.Now().UTC()),
-					},
-					EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
-						Metadata: map[string]string{
-							"key": "value",
-						},
-						Config: []byte(`{"key":"value"}`),
-					})),
-					TaxConfig: &TaxConfig{
-						Stripe: &StripeTaxConfig{
-							Code: "txcd_99999999",
-						},
-					},
-					Price: lo.ToPtr(NewPriceFrom(FlatPrice{
-						Amount:      decimal.NewFromInt(1000),
-						PaymentTerm: InAdvancePaymentTerm,
-					})),
+					PhaseID: "01JDPHJMKKT1S3XF47V2AGMA6J",
 				},
-				BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
-			}),
+				FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:         "ratecard-1",
+						Name:        "RateCard 1",
+						Description: lo.ToPtr("RateCard 1"),
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						Feature: &feature.Feature{
+							ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
+							Name:      "Feature 1",
+							Key:       "feature-1",
+							MeterSlug: lo.ToPtr("meter-1"),
+							MeterGroupByFilters: map[string]string{
+								"key": "value",
+							},
+							Metadata: map[string]string{
+								"key": "value",
+							},
+							CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
+							UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+							ArchivedAt: lo.ToPtr(time.Now().UTC()),
+						},
+						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+							productcatalog.StaticEntitlementTemplate{
+								Metadata: map[string]string{
+									"key": "value",
+								},
+								Config: []byte(`{"key":"value"}`),
+							}),
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{
+								Code: "txcd_99999999",
+							},
+						},
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(1000),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
+				},
+			},
 		},
 		{
 			Name: "UsageBased",
-			RateCard: NewRateCardFrom(UsageBasedRateCard{
-				RateCardMeta: RateCardMeta{
+			RateCard: &UsageBasedRateCard{
+				RateCardManagedFields: RateCardManagedFields{
 					ManagedModel: models.ManagedModel{
 						CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
 						UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
 						DeletedAt: lo.ToPtr(time.Now().UTC()),
 					},
-					Key:         "ratecard-2",
-					Name:        "RateCard 2",
-					Description: lo.ToPtr("RateCard 2"),
-					Metadata: map[string]string{
-						"key": "value",
+					NamespacedID: models.NamespacedID{
+						Namespace: "namespace-2",
+						ID:        "01JDPHJMKKHSBYD60YR9D26EST",
 					},
-					Feature: &feature.Feature{
-						ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
-						Name:      "Feature 2",
-						Key:       "feature-2",
-						MeterSlug: lo.ToPtr("meter-2"),
-						MeterGroupByFilters: map[string]string{
-							"key": "value",
-						},
-						Metadata: map[string]string{
-							"key": "value",
-						},
-						CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
-						UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
-						ArchivedAt: lo.ToPtr(time.Now().UTC()),
-					},
-					EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
-						Metadata: map[string]string{
-							"key": "value",
-						},
-						IsSoftLimit:             true,
-						IssueAfterReset:         lo.ToPtr(500.0),
-						IssueAfterResetPriority: lo.ToPtr[uint8](1),
-						PreserveOverageAtReset:  lo.ToPtr(true),
-						UsagePeriod:             datex.MustParse(t, "P1M"),
-					})),
-					TaxConfig: &TaxConfig{
-						Stripe: &StripeTaxConfig{
-							Code: "txcd_99999999",
-						},
-					},
-					Price: lo.ToPtr(NewPriceFrom(UnitPrice{
-						Amount:        decimal.NewFromInt(1000),
-						MinimumAmount: lo.ToPtr(decimal.NewFromInt(10)),
-						MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-					})),
+					PhaseID: "01JDPHJMKKH4YDJTQY5F3EAHCF",
 				},
-				BillingCadence: datex.MustParse(t, "P1M"),
-			}),
+				UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:         "ratecard-2",
+						Name:        "RateCard 2",
+						Description: lo.ToPtr("RateCard 2"),
+						Metadata: map[string]string{
+							"key": "value",
+						},
+						Feature: &feature.Feature{
+							ID:        "01JBP3SGZ20Y7VRVC351TDFXYZ",
+							Name:      "Feature 2",
+							Key:       "feature-2",
+							MeterSlug: lo.ToPtr("meter-2"),
+							MeterGroupByFilters: map[string]string{
+								"key": "value",
+							},
+							Metadata: map[string]string{
+								"key": "value",
+							},
+							CreatedAt:  time.Now().Add(-3 * time.Hour).UTC(),
+							UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+							ArchivedAt: lo.ToPtr(time.Now().UTC()),
+						},
+						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+							productcatalog.MeteredEntitlementTemplate{
+								Metadata: map[string]string{
+									"key": "value",
+								},
+								IsSoftLimit:             true,
+								IssueAfterReset:         lo.ToPtr(500.0),
+								IssueAfterResetPriority: lo.ToPtr[uint8](1),
+								PreserveOverageAtReset:  lo.ToPtr(true),
+								UsagePeriod:             datex.MustParse(t, "P1M"),
+							}),
+						TaxConfig: &productcatalog.TaxConfig{
+							Stripe: &productcatalog.StripeTaxConfig{
+								Code: "txcd_99999999",
+							},
+						},
+						Price: productcatalog.NewPriceFrom(
+							productcatalog.UnitPrice{
+								Amount:        decimal.NewFromInt(1000),
+								MinimumAmount: lo.ToPtr(decimal.NewFromInt(10)),
+								MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+							}),
+					},
+					BillingCadence: datex.MustParse(t, "P1M"),
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			b, err := json.Marshal(&test.RateCard)
-			require.NoError(t, err)
+			require.NoErrorf(t, err, "serializing RateCard must not fail")
 
 			t.Logf("Serialized RateCard: %s", string(b))
 
-			d := RateCard{}
-			err = json.Unmarshal(b, &d)
-			require.NoError(t, err)
+			rc, err := NewRateCardFrom(b)
+			require.NoErrorf(t, err, "deserializing RateCard must not fail")
 
-			assert.Equal(t, test.RateCard, d)
+			assert.Equal(t, test.RateCard, rc)
 		})
 	}
 }
@@ -152,108 +173,119 @@ func TestFlatFeeRateCard(t *testing.T) {
 			{
 				Name: "valid",
 				RateCard: FlatFeeRateCard{
-					RateCardMeta: RateCardMeta{
+					RateCardManagedFields: RateCardManagedFields{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
+							UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
+							DeletedAt: lo.ToPtr(time.Now().UTC()),
+						},
 						NamespacedID: models.NamespacedID{
 							Namespace: "namespace-1",
-							ID:        "01JBP3SGZ2WVRN5N746HKJR67X",
+							ID:        "01JDPHJMKKBARD45QV203H97CE",
 						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
-						Key:         "flat-1",
-						Name:        "Flat 1",
-						Description: lo.ToPtr("Flat 1"),
-						Metadata: map[string]string{
-							"name": "Flat 1",
-						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-1",
-							ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-							Name:                "Feature 1",
-							Key:                 "feat-1",
-							MeterSlug:           lo.ToPtr("meter-1"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 1",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
-						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
-							Metadata: map[string]string{
-								"name": "static-1",
-							},
-							Config: []byte(`"test"`),
-						})),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
-						},
-						Price: lo.ToPtr(NewPriceFrom(FlatPrice{
-							Amount:      decimal.NewFromInt(1000),
-							PaymentTerm: InArrearsPaymentTerm,
-						})),
-						PhaseID: "",
+						PhaseID: "01JDPHJMKK2WFF1D8AD5SYB2P1",
 					},
-					BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
+					FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:         "flat-1",
+							Name:        "Flat 1",
+							Description: lo.ToPtr("Flat 1"),
+							Metadata: map[string]string{
+								"name": "Flat 1",
+							},
+							Feature: &feature.Feature{
+								Namespace:           "namespace-1",
+								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
+								Name:                "Feature 1",
+								Key:                 "feat-1",
+								MeterSlug:           lo.ToPtr("meter-1"),
+								MeterGroupByFilters: nil,
+								Metadata: map[string]string{
+									"name": "Feature 1",
+								},
+								ArchivedAt: &time.Time{},
+								CreatedAt:  time.Time{},
+								UpdatedAt:  time.Time{},
+							},
+							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+								productcatalog.StaticEntitlementTemplate{
+									Metadata: map[string]string{
+										"name": "static-1",
+									},
+									Config: []byte(`"test"`),
+								}),
+							TaxConfig: &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{
+									Code: "txcd_99999999",
+								},
+							},
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(1000),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
+						BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
+					},
 				},
 				ExpectedError: false,
 			},
 			{
 				Name: "invalid",
 				RateCard: FlatFeeRateCard{
-					RateCardMeta: RateCardMeta{
+					RateCardManagedFields: RateCardManagedFields{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
+							UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
+							DeletedAt: lo.ToPtr(time.Now().UTC()),
+						},
 						NamespacedID: models.NamespacedID{
 							Namespace: "namespace-2",
-							ID:        "01JBP3SGZ26YSACQ7HQRZHZAMH",
+							ID:        "01JDPHJMKK6T8QBKQQQWGCCXYT",
 						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
-						Key:         "flat-2",
-						Name:        "Flat 2",
-						Description: lo.ToPtr("Flat 2"),
-						Metadata: map[string]string{
-							"name": "Flat 2",
-						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-2",
-							ID:                  "01JBP3SGZ2YTM6DVH2W318TPNH",
-							Name:                "Feature 2",
-							Key:                 "feat-2",
-							MeterSlug:           lo.ToPtr("meter-2"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 2",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
-						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(StaticEntitlementTemplate{
-							Metadata: map[string]string{
-								"name": "static-1",
-							},
-							Config: []byte("invalid JSON"),
-						})),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "invalid_code",
-							},
-						},
-						Price: lo.ToPtr(NewPriceFrom(FlatPrice{
-							Amount:      decimal.NewFromInt(-1000),
-							PaymentTerm: PaymentTermType("invalid"),
-						})),
-						PhaseID: "",
+						PhaseID: "01JDPHJMKKZCTPZMD5SYDJENP3",
 					},
-					BillingCadence: lo.ToPtr(datex.MustParse(t, "P0M")),
+					FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:         "flat-2",
+							Name:        "Flat 2",
+							Description: lo.ToPtr("Flat 2"),
+							Metadata: map[string]string{
+								"name": "Flat 2",
+							},
+							Feature: &feature.Feature{
+								Namespace:           "namespace-2",
+								ID:                  "01JBP3SGZ2YTM6DVH2W318TPNH",
+								Name:                "Feature 2",
+								Key:                 "feat-2",
+								MeterSlug:           lo.ToPtr("meter-2"),
+								MeterGroupByFilters: nil,
+								Metadata: map[string]string{
+									"name": "Feature 2",
+								},
+								ArchivedAt: &time.Time{},
+								CreatedAt:  time.Time{},
+								UpdatedAt:  time.Time{},
+							},
+							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+								productcatalog.StaticEntitlementTemplate{
+									Metadata: map[string]string{
+										"name": "static-1",
+									},
+									Config: []byte("invalid JSON"),
+								}),
+							TaxConfig: &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{
+									Code: "invalid_code",
+								},
+							},
+							Price: productcatalog.NewPriceFrom(
+								productcatalog.FlatPrice{
+									Amount:      decimal.NewFromInt(-1000),
+									PaymentTerm: productcatalog.PaymentTermType("invalid"),
+								}),
+						},
+						BillingCadence: lo.ToPtr(datex.MustParse(t, "P0M")),
+					},
 				},
 				ExpectedError: true,
 			},
@@ -283,118 +315,130 @@ func TestUsageBasedRateCard(t *testing.T) {
 			{
 				Name: "valid",
 				RateCard: UsageBasedRateCard{
-					RateCardMeta: RateCardMeta{
+					RateCardManagedFields: RateCardManagedFields{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
+							UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
+							DeletedAt: lo.ToPtr(time.Now().UTC()),
+						},
 						NamespacedID: models.NamespacedID{
 							Namespace: "namespace-1",
-							ID:        "01JBP3SGZ2WVRN5N746HKJR67X",
+							ID:        "01JDPHJMKKK8MN7DNTEPS7BJ65",
 						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
-						Key:         "usage-1",
-						Name:        "Usage 1",
-						Description: lo.ToPtr("Usage 1"),
-						Metadata: map[string]string{
-							"name": "usage-1",
-						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-1",
-							ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
-							Name:                "Feature 1",
-							Key:                 "feat-1",
-							MeterSlug:           lo.ToPtr("meter-1"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 1",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
-						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
-							Metadata: map[string]string{
-								"name": "Entitlement 1",
-							},
-							IsSoftLimit:             true,
-							IssueAfterReset:         lo.ToPtr(500.0),
-							IssueAfterResetPriority: lo.ToPtr[uint8](1),
-							PreserveOverageAtReset:  nil,
-							UsagePeriod:             datex.MustParse(t, "P1M"),
-						})),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
-						},
-						Price: lo.ToPtr(NewPriceFrom(UnitPrice{
-							Amount:        decimal.NewFromInt(1000),
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-							MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-						})),
-						PhaseID: "",
+						PhaseID: "01JDPHJMKK9J7Z45XRM4J3DS72",
 					},
-					BillingCadence: datex.MustParse(t, "P1M"),
+					UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:         "usage-1",
+							Name:        "Usage 1",
+							Description: lo.ToPtr("Usage 1"),
+							Metadata: map[string]string{
+								"name": "usage-1",
+							},
+							Feature: &feature.Feature{
+								Namespace:           "namespace-1",
+								ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
+								Name:                "Feature 1",
+								Key:                 "feat-1",
+								MeterSlug:           lo.ToPtr("meter-1"),
+								MeterGroupByFilters: nil,
+								Metadata: map[string]string{
+									"name": "Feature 1",
+								},
+								ArchivedAt: &time.Time{},
+								CreatedAt:  time.Time{},
+								UpdatedAt:  time.Time{},
+							},
+							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+								productcatalog.MeteredEntitlementTemplate{
+									Metadata: map[string]string{
+										"name": "Entitlement 1",
+									},
+									IsSoftLimit:             true,
+									IssueAfterReset:         lo.ToPtr(500.0),
+									IssueAfterResetPriority: lo.ToPtr[uint8](1),
+									PreserveOverageAtReset:  nil,
+									UsagePeriod:             datex.MustParse(t, "P1M"),
+								}),
+							TaxConfig: &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{
+									Code: "txcd_99999999",
+								},
+							},
+							Price: productcatalog.NewPriceFrom(
+								productcatalog.UnitPrice{
+									Amount:        decimal.NewFromInt(1000),
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+								}),
+						},
+						BillingCadence: datex.MustParse(t, "P1M"),
+					},
 				},
 				ExpectedError: false,
 			},
 			{
 				Name: "invalid",
 				RateCard: UsageBasedRateCard{
-					RateCardMeta: RateCardMeta{
+					RateCardManagedFields: RateCardManagedFields{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: time.Now().Add(-2 * time.Hour).UTC(),
+							UpdatedAt: time.Now().Add(-1 * time.Hour).UTC(),
+							DeletedAt: lo.ToPtr(time.Now().UTC()),
+						},
 						NamespacedID: models.NamespacedID{
 							Namespace: "namespace-2",
-							ID:        "01JBWYPN0A4NJW0HCYVP47WQZ5",
+							ID:        "01JDPHJMKK6RGN078EQEPHVJS2",
 						},
-						ManagedModel: models.ManagedModel{
-							CreatedAt: time.Time{},
-							UpdatedAt: time.Time{},
-							DeletedAt: &time.Time{},
-						},
-						Key:         "usage-2",
-						Name:        "Usage 2",
-						Description: lo.ToPtr("Usage 2"),
-						Metadata: map[string]string{
-							"name": "usage-2",
-						},
-						Feature: &feature.Feature{
-							Namespace:           "namespace-2",
-							ID:                  "01JBWYR0G2PYB9DVADKQXF8E0P",
-							Name:                "Feature 2",
-							Key:                 "feat-2",
-							MeterSlug:           lo.ToPtr("meter-2"),
-							MeterGroupByFilters: nil,
-							Metadata: map[string]string{
-								"name": "Feature 2",
-							},
-							ArchivedAt: &time.Time{},
-							CreatedAt:  time.Time{},
-							UpdatedAt:  time.Time{},
-						},
-						EntitlementTemplate: lo.ToPtr(NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
-							Metadata: map[string]string{
-								"name": "Entitlement 1",
-							},
-							IsSoftLimit:             true,
-							IssueAfterReset:         lo.ToPtr(500.0),
-							IssueAfterResetPriority: lo.ToPtr[uint8](1),
-							PreserveOverageAtReset:  nil,
-							UsagePeriod:             datex.MustParse(t, "P1M"),
-						})),
-						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "invalid_code",
-							},
-						},
-						Price: lo.ToPtr(NewPriceFrom(UnitPrice{
-							Amount:        decimal.NewFromInt(-1000),
-							MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-							MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-						})),
-						PhaseID: "",
+						PhaseID: "01JDPHJMKKBZFWS90VX5BFFKPE",
 					},
-					BillingCadence: datex.MustParse(t, "P0M"),
+					UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:         "usage-2",
+							Name:        "Usage 2",
+							Description: lo.ToPtr("Usage 2"),
+							Metadata: map[string]string{
+								"name": "usage-2",
+							},
+							Feature: &feature.Feature{
+								Namespace:           "namespace-2",
+								ID:                  "01JBWYR0G2PYB9DVADKQXF8E0P",
+								Name:                "Feature 2",
+								Key:                 "feat-2",
+								MeterSlug:           lo.ToPtr("meter-2"),
+								MeterGroupByFilters: nil,
+								Metadata: map[string]string{
+									"name": "Feature 2",
+								},
+								ArchivedAt: &time.Time{},
+								CreatedAt:  time.Time{},
+								UpdatedAt:  time.Time{},
+							},
+							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+								productcatalog.MeteredEntitlementTemplate{
+									Metadata: map[string]string{
+										"name": "Entitlement 1",
+									},
+									IsSoftLimit:             true,
+									IssueAfterReset:         lo.ToPtr(500.0),
+									IssueAfterResetPriority: lo.ToPtr[uint8](1),
+									PreserveOverageAtReset:  nil,
+									UsagePeriod:             datex.MustParse(t, "P1M"),
+								}),
+							TaxConfig: &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{
+									Code: "invalid_code",
+								},
+							},
+							Price: productcatalog.NewPriceFrom(
+								productcatalog.UnitPrice{
+									Amount:        decimal.NewFromInt(-1000),
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+								}),
+						},
+						BillingCadence: datex.MustParse(t, "P0M"),
+					},
 				},
 				ExpectedError: true,
 			},

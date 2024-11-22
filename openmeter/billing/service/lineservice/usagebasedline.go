@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -67,13 +67,13 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billingenti
 }
 
 func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billingentity.Period, error) {
-	if l.line.UsageBased.Price.Type() == plan.TieredPriceType {
+	if l.line.UsageBased.Price.Type() == productcatalog.TieredPriceType {
 		tiered, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
 			return nil, err
 		}
 
-		if tiered.Mode == plan.VolumeTieredPrice {
+		if tiered.Mode == productcatalog.VolumeTieredPrice {
 			if l.line.ParentLine != nil {
 				if asof.Before(l.line.ParentLine.Period.End) {
 					return nil, nil
@@ -220,31 +220,31 @@ func (l *usageBasedLine) CalculateDetailedLines() error {
 
 func (l usageBasedLine) calculateDetailedLines(usage *featureUsageResponse) (newDetailedLinesInput, error) {
 	switch l.line.UsageBased.Price.Type() {
-	case plan.FlatPriceType:
+	case productcatalog.FlatPriceType:
 		flatPrice, err := l.line.UsageBased.Price.AsFlat()
 		if err != nil {
 			return nil, fmt.Errorf("converting price to flat price: %w", err)
 		}
 		return l.calculateFlatPriceDetailedLines(usage, flatPrice)
 
-	case plan.UnitPriceType:
+	case productcatalog.UnitPriceType:
 		unitPrice, err := l.line.UsageBased.Price.AsUnit()
 		if err != nil {
 			return nil, fmt.Errorf("converting price to unit price: %w", err)
 		}
 
 		return l.calculateUnitPriceDetailedLines(usage, unitPrice)
-	case plan.TieredPriceType:
+	case productcatalog.TieredPriceType:
 		tieredPrice, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
 			return nil, fmt.Errorf("converting price to tiered price: %w", err)
 		}
 
 		switch tieredPrice.Mode {
-		case plan.VolumeTieredPrice:
+		case productcatalog.VolumeTieredPrice:
 			return l.calculateVolumeTieredPriceDetailedLines(usage, tieredPrice)
 
-		case plan.GraduatedTieredPrice:
+		case productcatalog.GraduatedTieredPrice:
 			return l.calculateGraduatedTieredPriceDetailedLines(usage, tieredPrice)
 		default:
 			return nil, fmt.Errorf("unsupported tiered price mode: %s", tieredPrice.Mode)
@@ -254,27 +254,27 @@ func (l usageBasedLine) calculateDetailedLines(usage *featureUsageResponse) (new
 	}
 }
 
-func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse, flatPrice plan.FlatPrice) (newDetailedLinesInput, error) {
+func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse, flatPrice productcatalog.FlatPrice) (newDetailedLinesInput, error) {
 	// Flat price is the same as the non-metered version, we just allow attaching entitlements to it
 	switch {
-	case flatPrice.PaymentTerm == plan.InAdvancePaymentTerm && l.IsFirstInPeriod():
+	case flatPrice.PaymentTerm == productcatalog.InAdvancePaymentTerm && l.IsFirstInPeriod():
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
 				Quantity:               alpacadecimal.NewFromFloat(1),
 				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
-				PaymentTerm:            plan.InAdvancePaymentTerm,
+				PaymentTerm:            productcatalog.InAdvancePaymentTerm,
 			},
 		}, nil
-	case flatPrice.PaymentTerm != plan.InAdvancePaymentTerm && l.IsLastInPeriod():
+	case flatPrice.PaymentTerm != productcatalog.InAdvancePaymentTerm && l.IsLastInPeriod():
 		return newDetailedLinesInput{
 			{
 				Name:                   l.line.Name,
 				Quantity:               alpacadecimal.NewFromFloat(1),
 				PerUnitAmount:          flatPrice.Amount,
 				ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
-				PaymentTerm:            plan.InArrearsPaymentTerm,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			},
 		}, nil
 	}
@@ -282,7 +282,7 @@ func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse,
 	return nil, nil
 }
 
-func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageResponse, unitPrice plan.UnitPrice) (newDetailedLinesInput, error) {
+func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageResponse, unitPrice productcatalog.UnitPrice) (newDetailedLinesInput, error) {
 	out := make(newDetailedLinesInput, 0, 2)
 	totalPreUsageAmount := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(unitPrice.Amount))
 	totalUsageAmount := l.currency.RoundToPrecision(usage.LinePeriodQty.Add(usage.PreLinePeriodQty).Mul(unitPrice.Amount))
@@ -293,7 +293,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 			Quantity:               usage.LinePeriodQty,
 			PerUnitAmount:          unitPrice.Amount,
 			ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
-			PaymentTerm:            plan.InArrearsPaymentTerm,
+			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 		}
 
 		if unitPrice.MaximumAmount != nil {
@@ -325,7 +325,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 				// Min spend is always billed for the whole period
 				Period:                 &period,
 				ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
-				PaymentTerm:            plan.InArrearsPaymentTerm,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				Category:               billingentity.FlatFeeCategoryCommitment,
 			})
 		}
@@ -334,7 +334,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 	return out, nil
 }
 
-func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUsageResponse, price plan.TieredPrice) (newDetailedLinesInput, error) {
+func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUsageResponse, price productcatalog.TieredPrice) (newDetailedLinesInput, error) {
 	if !usage.PreLinePeriodQty.IsZero() {
 		return nil, billingentity.ErrInvoiceLineVolumeSplitNotSupported
 	}
@@ -359,7 +359,7 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 			Quantity:               alpacadecimal.NewFromFloat(1),
 			PerUnitAmount:          tier.FlatPrice.Amount,
 			ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-			PaymentTerm:            plan.InArrearsPaymentTerm,
+			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 		}
 
 		if price.MaximumAmount != nil {
@@ -378,7 +378,7 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 			Quantity:               usage.LinePeriodQty,
 			PerUnitAmount:          tier.UnitPrice.Amount,
 			ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
-			PaymentTerm:            plan.InArrearsPaymentTerm,
+			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 		}
 
 		if price.MaximumAmount != nil {
@@ -403,7 +403,7 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 				Quantity:               alpacadecimal.NewFromFloat(1),
 				PerUnitAmount:          normalizedMinimumAmount.Sub(total),
 				ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
-				PaymentTerm:            plan.InArrearsPaymentTerm,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				Category:               billingentity.FlatFeeCategoryCommitment,
 			})
 		}
@@ -413,11 +413,11 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 }
 
 type findTierForQuantityResult struct {
-	Tier  *plan.PriceTier
+	Tier  *productcatalog.PriceTier
 	Index int
 }
 
-func findTierForQuantity(price plan.TieredPrice, quantity alpacadecimal.Decimal) (findTierForQuantityResult, error) {
+func findTierForQuantity(price productcatalog.TieredPrice, quantity alpacadecimal.Decimal) (findTierForQuantityResult, error) {
 	for i, tier := range price.WithSortedTiers().Tiers {
 		if tier.UpToAmount == nil || quantity.LessThanOrEqual(*tier.UpToAmount) {
 			return findTierForQuantityResult{
@@ -431,7 +431,7 @@ func findTierForQuantity(price plan.TieredPrice, quantity alpacadecimal.Decimal)
 	return findTierForQuantityResult{}, fmt.Errorf("could not find tier for quantity %s: %w", quantity, billingentity.ErrInvoiceLineMissingOpenEndedTier)
 }
 
-func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featureUsageResponse, price plan.TieredPrice) (newDetailedLinesInput, error) {
+func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featureUsageResponse, price productcatalog.TieredPrice) (newDetailedLinesInput, error) {
 	out := make(newDetailedLinesInput, 0, len(price.Tiers))
 
 	err := tieredPriceCalculator(tieredPriceCalculatorInput{
@@ -450,7 +450,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 					Quantity:               in.Quantity,
 					PerUnitAmount:          in.Tier.UnitPrice.Amount,
 					ChildUniqueReferenceID: fmt.Sprintf(GraduatedTieredPriceUsageChildUniqueReferenceID, tierIndex),
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				}
 
 				if price.MaximumAmount != nil {
@@ -473,7 +473,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					PerUnitAmount:          in.Tier.FlatPrice.Amount,
 					ChildUniqueReferenceID: fmt.Sprintf(GraduatedTieredFlatPriceChildUniqueReferenceID, tierIndex),
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				}
 
 				if price.MaximumAmount != nil {
@@ -498,7 +498,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 						Quantity:               alpacadecimal.NewFromFloat(1),
 						PerUnitAmount:          normalizedMinimumAmount.Sub(periodTotal),
 						ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
-						PaymentTerm:            plan.InArrearsPaymentTerm,
+						PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 						Category:               billingentity.FlatFeeCategoryCommitment,
 					})
 				}
@@ -515,7 +515,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 }
 
 type tierRange struct {
-	Tier      plan.PriceTier
+	Tier      productcatalog.PriceTier
 	TierIndex int
 
 	FromQty        alpacadecimal.Decimal // exclusive
@@ -524,7 +524,7 @@ type tierRange struct {
 }
 
 type tierCallbackInput struct {
-	Tier                plan.PriceTier
+	Tier                productcatalog.PriceTier
 	TierIndex           int
 	Quantity            alpacadecimal.Decimal
 	AtTierBoundary      bool
@@ -532,7 +532,7 @@ type tierCallbackInput struct {
 }
 
 type tieredPriceCalculatorInput struct {
-	TieredPrice plan.TieredPrice
+	TieredPrice productcatalog.TieredPrice
 	// FromQty is the quantity that was already billed for the previous tiers (exclusive)
 	FromQty alpacadecimal.Decimal
 	// ToQty is the quantity that we are going to bill for this tiered price (inclusive)
@@ -550,7 +550,7 @@ func (i tieredPriceCalculatorInput) Validate() error {
 		return err
 	}
 
-	if i.TieredPrice.Mode != plan.GraduatedTieredPrice {
+	if i.TieredPrice.Mode != productcatalog.GraduatedTieredPrice {
 		return fmt.Errorf("only graduated tiered prices are supported")
 	}
 
@@ -741,8 +741,8 @@ type newDetailedLineInput struct {
 	ChildUniqueReferenceID string                `json:"childUniqueReferenceID"`
 	Period                 *billingentity.Period `json:"period,omitempty"`
 	// PaymentTerm is the payment term for the detailed line, defaults to arrears
-	PaymentTerm plan.PaymentTermType          `json:"paymentTerm,omitempty"`
-	Category    billingentity.FlatFeeCategory `json:"category,omitempty"`
+	PaymentTerm productcatalog.PaymentTermType `json:"paymentTerm,omitempty"`
+	Category    billingentity.FlatFeeCategory  `json:"category,omitempty"`
 
 	Discounts []billingentity.LineDiscount `json:"discounts,omitempty"`
 }
@@ -835,7 +835,7 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 				TaxConfig:              l.line.TaxConfig,
 			},
 			FlatFee: billingentity.FlatFeeLine{
-				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, plan.InArrearsPaymentTerm),
+				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount: in.PerUnitAmount,
 				Quantity:      in.Quantity,
 				Category:      in.Category,

@@ -10,7 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 type CreateInvoiceLinesInput struct {
@@ -269,7 +269,7 @@ func (u UpdateInvoiceLineUsageBasedInput) Apply(l *billingentity.UsageBasedLine)
 type UpdateInvoiceLineFlatFeeInput struct {
 	PerUnitAmount mo.Option[alpacadecimal.Decimal]
 	Quantity      mo.Option[alpacadecimal.Decimal]
-	PaymentTerm   mo.Option[plan.PaymentTermType]
+	PaymentTerm   mo.Option[productcatalog.PaymentTermType]
 }
 
 func (u UpdateInvoiceLineFlatFeeInput) Validate() error {
@@ -283,7 +283,7 @@ func (u UpdateInvoiceLineFlatFeeInput) Validate() error {
 		outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix("quantity", billingentity.ErrFieldMustBePositiveOrZero))
 	}
 
-	if u.PaymentTerm.IsPresent() && !slices.Contains(plan.PaymentTermType("").Values(), u.PaymentTerm.OrEmpty()) {
+	if u.PaymentTerm.IsPresent() && !slices.Contains(productcatalog.PaymentTermType("").Values(), u.PaymentTerm.OrEmpty()) {
 		outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix("payment_term", fmt.Errorf("invalid payment term %s", u.PaymentTerm.OrEmpty())))
 	}
 
