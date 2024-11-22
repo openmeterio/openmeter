@@ -545,6 +545,7 @@ model LineCharge {
  * Totals contains the summaries of all calculations for the invoice.
  */
 @friendlyName("BillingInvoiceTotals")
+@friendlyName("BillingTotals")
 model Totals {
   @summary("The total value of the line before taxes, discounts and commitments.")
   amount: Numeric;
