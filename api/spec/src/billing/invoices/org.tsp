@@ -31,7 +31,7 @@ namespace Invoices;
 @friendlyName("BillingParty")
 model Party {
   @summary("ID of the party.")
-  @visibility("read", "query", "update")
+  @visibility("read", "update")
   // id is null if there's no dedicated entity different from the parent object to store the party (these are not updated directly via
   // the underlying entity so it's not a problem)
   id?: ULID;
