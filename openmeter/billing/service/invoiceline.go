@@ -10,6 +10,7 @@ import (
 	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -26,6 +27,13 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 		return nil, billingentity.ValidationError{
 			Err: err,
 		}
+	}
+
+	if err := s.validateCustomerForUpdate(ctx, customerentity.CustomerID{
+		Namespace: input.Namespace,
+		ID:        input.CustomerID,
+	}); err != nil {
+		return nil, err
 	}
 
 	return TransactingRepoForGatheringInvoiceManipulation(
@@ -257,5 +265,42 @@ func (s *Service) newLineService(adapter billing.Adapter) (*lineservice.Service,
 		FeatureService:     s.featureService,
 		MeterRepo:          s.meterRepo,
 		StreamingConnector: s.streamingConnector,
+	})
+}
+
+func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLineInput) (*billingentity.Line, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Line, error) {
+		return s.adapter.GetInvoiceLine(ctx, input)
+	})
+}
+
+func (s *Service) ValidateLineOwnership(ctx context.Context, input billing.ValidateLineOwnershipInput) error {
+	if err := input.Validate(); err != nil {
+		return billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
+		ownership, err := txAdapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
+			Namespace: input.Namespace,
+			ID:        input.InvoiceID,
+		})
+		if err != nil {
+			return err
+		}
+
+		if ownership.CustomerID != input.CustomerID {
+			return billingentity.NotFoundError{
+				Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
+			}
+		}
+		return nil
 	})
 }

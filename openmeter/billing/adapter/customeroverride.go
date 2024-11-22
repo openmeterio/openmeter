@@ -196,6 +196,10 @@ func (r *adapter) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 }
 
 func (r *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
+	if err := r.UpsertCustomerOverride(ctx, input); err != nil {
+		return err
+	}
+
 	_, err := r.db.BillingCustomerOverride.Query().
 		Where(billingcustomeroverride.CustomerID(input.ID)).
 		Where(billingcustomeroverride.Namespace(input.Namespace)).

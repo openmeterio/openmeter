@@ -226,13 +226,21 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 }
 
 func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceInput, txAdapter billing.Adapter, lineSrv *lineservice.Service, asOf time.Time) ([]lineservice.LineWithBillablePeriod, error) {
-	if input.IncludePendingLines != nil {
+	if input.IncludePendingLines.IsPresent() {
+		lineIDs := input.IncludePendingLines.OrEmpty()
+
+		if len(lineIDs) == 0 {
+			return nil, billingentity.ValidationError{
+				Err: billingentity.ErrInvoiceEmpty,
+			}
+		}
+
 		inScopeLines, err := txAdapter.ListInvoiceLines(ctx,
 			billing.ListInvoiceLinesAdapterInput{
 				Namespace:  input.Customer.Namespace,
 				CustomerID: input.Customer.ID,
 
-				LineIDs: input.IncludePendingLines,
+				LineIDs: input.IncludePendingLines.OrEmpty(),
 			})
 		if err != nil {
 			return nil, fmt.Errorf("resolving in scope lines: %w", err)
@@ -250,17 +258,17 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateIn
 		}
 
 		// all lines must be found
-		if len(resolvedLines) != len(input.IncludePendingLines) {
+		if len(resolvedLines) != len(lineIDs) {
 			includedLines := lo.Map(resolvedLines, func(l lineservice.LineWithBillablePeriod, _ int) string {
 				return l.ID()
 			})
 
-			missingIDs := lo.Without(input.IncludePendingLines, includedLines...)
+			missingIDs := lo.Without(lineIDs, includedLines...)
 
 			return nil, billingentity.NotFoundError{
 				ID:     strings.Join(missingIDs, ","),
 				Entity: billingentity.EntityInvoiceLine,
-				Err:    fmt.Errorf("some invoice lines are not billable"),
+				Err:    billingentity.ErrInvoiceLinesNotBillable,
 			}
 		}
 
@@ -408,5 +416,30 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 		}
 
 		return invoice, nil
+	})
+}
+
+func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.ValidateInvoiceOwnershipInput) error {
+	if err := input.Validate(); err != nil {
+		return billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
+		ownership, err := txAdapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
+			Namespace: input.Namespace,
+			ID:        input.InvoiceID,
+		})
+		if err != nil {
+			return err
+		}
+
+		if ownership.CustomerID != input.CustomerID {
+			return billingentity.NotFoundError{
+				Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
+			}
+		}
+		return nil
 	})
 }

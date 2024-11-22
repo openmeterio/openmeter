@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -606,7 +607,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: []string{line2ID},
+			IncludePendingLines: mo.Some([]string{line2ID}),
 			AsOf:                lo.ToPtr(line1IssueAt.Add(time.Minute)),
 		})
 
@@ -621,7 +622,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: []string{line2ID},
+			IncludePendingLines: mo.Some([]string{line2ID}),
 			AsOf:                lo.ToPtr(now),
 		})
 

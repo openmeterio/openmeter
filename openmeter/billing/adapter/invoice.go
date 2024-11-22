@@ -477,6 +477,36 @@ func (r *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 	return nil
 }
 
+func (r *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoiceOwnershipAdapterInput) (billing.GetOwnershipAdapterResponse, error) {
+	if err := in.Validate(); err != nil {
+		return billing.GetOwnershipAdapterResponse{}, billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	dbInvoice, err := r.db.BillingInvoice.Query().
+		Where(billinginvoice.ID(in.ID)).
+		Where(billinginvoice.Namespace(in.Namespace)).
+		First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return billing.GetOwnershipAdapterResponse{}, billingentity.NotFoundError{
+				Entity: billingentity.EntityInvoice,
+				ID:     in.ID,
+				Err:    err,
+			}
+		}
+
+		return billing.GetOwnershipAdapterResponse{}, err
+	}
+
+	return billing.GetOwnershipAdapterResponse{
+		Namespace:  dbInvoice.Namespace,
+		InvoiceID:  dbInvoice.ID,
+		CustomerID: dbInvoice.CustomerID,
+	}, nil
+}
+
 func (r *adapter) mapInvoiceFromDB(ctx context.Context, invoice db.BillingInvoice, expand billingentity.InvoiceExpand) (billingentity.Invoice, error) {
 	res := billingentity.Invoice{
 		ID:          invoice.ID,

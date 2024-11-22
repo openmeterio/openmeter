@@ -264,6 +264,23 @@ interface CustomerInvoiceEndpoints {
   // Line management
 
   /**
+   * Get an invoice line
+   */
+  @get
+  @route("/lines/{lineId}")
+  @summary("Get an invoice line")
+  @operationId("billingGetInvoiceLine")
+  @extension("x-internal", true)
+  getInvoiceLine(
+    @path customerId: ULID,
+    @path invoiceId: ULID,
+    @path lineId: ULID,
+  ): {
+    @statusCode _: 204;
+    @body body: Invoices.InvoiceLine;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
    * Delete an invoice line
    */
   @delete

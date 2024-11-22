@@ -24,6 +24,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
+var _ ProfileHandler = (*handler)(nil)
+
 type (
 	CreateProfileRequest  = billing.CreateProfileInput
 	CreateProfileResponse = api.BillingProfile

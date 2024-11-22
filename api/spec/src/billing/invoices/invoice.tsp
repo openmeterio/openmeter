@@ -151,9 +151,6 @@ model Invoice {
 
   @summary("List of invoice lines representing each of the items sold to the customer.")
   @visibility("read", "query") // Seperate API endpoint is available for updating
-  // TODO: we might want to group this by subscription, so that we don't have to add individual references
-  // per line item, however that poses a problem, when a manually added line-item is added, as that should also be
-  // bound to a subscription.
   lines?: InvoiceLine[];
 
   @summary("Discounts or allowances applied to the complete invoice.")
@@ -396,9 +393,11 @@ model Line {
   status: LineStatus;
 
   @summary("Discounts applied to this line.")
+  @visibility("read", "query")
   discounts?: LineDiscount[];
 
   @summary("Charges applied to this line.")
+  @visibility("read", "query")
   charges?: LineCharge[];
 
   @summary("The invoice this item belongs to.")
@@ -414,9 +413,13 @@ model Line {
   @summary("Tax config specify the tax configuration for this line.")
   taxConfig?: OpenMeter.ProductCatalog.TaxConfig | null;
 
-  @visibility("read")
-  @summary("Total sum of the line, including discounts and charges.")
-  total: Numeric;
+  @visibility("read", "query")
+  @summary("The lines detailing the item or service sold.")
+  children?: InvoiceLine[] | null;
+
+  @visibility("read", "query")
+  @summary("Totals for this line.")
+  totals: Totals;
 
   @summary("Period of the line item applies to for revenue recognition pruposes.")
   period: Period;
@@ -433,6 +436,7 @@ model InvoiceReference {
   @summary("The ID of the invoice.")
   id: ULID;
 
+  @visibility("read", "query")
   @summary("The number of the invoice.")
   number?: InvoiceNumber;
 }
@@ -491,6 +495,12 @@ model FlatFeeLine {
  */
 @friendlyName("BillingGenericCharge")
 model GenericCharge {
+  ...ResourceTimestamps;
+
+  @summary("ID of the entity")
+  @visibility("read", "query")
+  id: ULID;
+
   /**
    * Percentage if fixed amount not applied
    */
@@ -507,10 +517,7 @@ model GenericCharge {
   code?: string;
 
   @summary("Text description as to why the discount was applied.")
-  reason?: string;
-
-  // TODO: Add fields required for referencing the charge/discount in the plan if it is coming from
-  // there.
+  description?: string;
 }
 
 /**
@@ -538,39 +545,28 @@ model LineCharge {
  * Totals contains the summaries of all calculations for the invoice.
  */
 @friendlyName("BillingInvoiceTotals")
+@friendlyName("BillingTotals")
 model Totals {
-  @summary("Sum of all line item sums")
-  sum: Money;
+  @summary("The total value of the line before taxes, discounts and commitments.")
+  amount: Numeric;
 
-  @summary("Sum of all document level discounts")
-  discount?: Money;
+  @summary("The amount of value of the line that are due to additional charges.")
+  chargesTotal: Numeric;
 
-  @summary("Sum of all document level charges")
-  charge?: Money;
+  @summary("The amount of value of the line that are due to discounts.")
+  discountsTotal: Numeric;
 
-  @summary("If prices include tax, this is the total tax included in the price.")
-  taxIncluded?: Money;
+  @summary("The total amount of taxes that are included in the line.")
+  taxesInclusiveTotal: Numeric;
 
-  @summary("Sum of all line sums minus the discounts, plus the charges, without tax.")
-  total: Money;
+  @summary("The total amount of taxes that are added on top of amount from the line.")
+  taxesExclusiveTotal: Numeric;
 
-  @summary("Total amount of tax to apply to the invoice.")
-  tax?: Money;
+  @summary("The total amount of taxes for this line.")
+  taxesTotal: Numeric;
 
-  @summary("Grand total after all taxes have been applied.")
-  totalWithTax: Money;
-
-  @summary("Rounding amount to apply to the invoice in case the total and payable amounts don't quite match.")
-  rounding?: Money;
-
-  @summary("Total amount to be paid after applying taxes and outlays.")
-  payable: Money;
-
-  @summary("Total amount already paid in advance.")
-  advance?: Money;
-
-  @summary("How much actually needs to be paid now.")
-  due?: Money;
+  @summary("The total amount value of the line after taxes, discounts and commitments.")
+  total: Numeric;
 }
 
 /*
