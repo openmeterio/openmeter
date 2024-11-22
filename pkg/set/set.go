@@ -55,8 +55,8 @@ func (s *Set[T]) IsEmpty() bool {
 
 // Subtract removes all items from a that are also in b
 func Subtract[T comparable](a *Set[T], b ...*Set[T]) *Set[T] {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 
 	for _, set := range b {
 		set.mu.RLock()
