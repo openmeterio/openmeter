@@ -15,6 +15,12 @@ func TestSet(t *testing.T) {
 		require.ElementsMatch(t, res.AsSlice(), []int{1, 2, 3})
 	})
 
+	t.Run("Union (empty)", func(t *testing.T) {
+		res := set.Union(set.New(1, 2))
+
+		require.ElementsMatch(t, res.AsSlice(), []int{1, 2})
+	})
+
 	t.Run("Subtract", func(t *testing.T) {
 		res := set.Subtract(set.New(1, 2, 3), set.New(2, 3))
 
