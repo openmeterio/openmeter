@@ -3272,8 +3272,10 @@ export interface components {
     }
     /** @description CustomerApp
      *     Stores the app specific data for the customer.
-     *     One of: stripe */
-    CustomerApp: components['schemas']['StripeCustomerApp']
+     *     One of: stripe, sandbox */
+    CustomerApp:
+      | components['schemas']['StripeCustomerApp']
+      | components['schemas']['SandboxCustomerApp']
     /** @description Resource create operation model. */
     CustomerCreate: {
       /**
@@ -6087,6 +6089,29 @@ export interface components {
        */
       type: 'sandbox'
     }
+    /** @description Sandbox Customer App. */
+    SandboxCustomerApp: {
+      /**
+       * App ID
+       * @description The app ID.
+       *     If not provided, it will use the global default for the app type.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
+      /**
+       * App Type
+       * @description The app name.
+       * @enum {string}
+       */
+      type: 'sandbox'
+      /**
+       * Data
+       * @description The app data.
+       */
+      data: components['schemas']['SandboxCustomerAppData']
+    }
+    /** @description Sandbox Customer App Data. */
+    SandboxCustomerAppData: Record<string, never>
     /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
     ServiceUnavailableProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
@@ -6195,7 +6220,15 @@ export interface components {
      * @enum {string}
      */
     StripeCheckoutSessionMode: 'setup'
-    /** @description Stripe Customer App. */
+    /**
+     * @description Stripe Customer App.
+     * @example {
+     *       "type": "stripe",
+     *       "data": {
+     *         "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
+     *       }
+     *     }
+     */
     StripeCustomerApp: {
       /**
        * App ID

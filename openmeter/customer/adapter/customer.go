@@ -10,6 +10,8 @@ import (
 	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -198,9 +200,6 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 			customerEntity.Edges.Subjects = customerSubjects
 			customer := CustomerFromDBEntity(*customerEntity)
 
-			// TODO: support mapping for apps
-			customer.Apps = input.Apps
-
 			// Post-create hook
 			for _, observer := range *a.observers {
 				if err := observer.PostCreate(ctx, customer); err != nil {
@@ -294,6 +293,16 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
 					query.Where(customersubjectsdb.IsDeletedEQ(false))
 				}).
+				WithApps(func(acq *entdb.AppCustomerQuery) {
+					acq.
+						WithApp(
+							func(aq *entdb.AppQuery) {
+								aq.Select(appdb.FieldType)
+							},
+						).
+						Select(appcustomerdb.FieldAppID).
+						Where(appcustomerdb.DeletedAtIsNil())
+				}).
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -312,7 +321,17 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 				return nil, fmt.Errorf("invalid query result: nil customer received")
 			}
 
-			return CustomerFromDBEntity(*entity), nil
+			customer := CustomerFromDBEntity(*entity)
+
+			// Decorate hook
+			for _, observer := range *a.observers {
+				customer, err = observer.Decorate(ctx, customer)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get customer: decorate hook failed: %w", err)
+				}
+			}
+
+			return customer, nil
 		},
 	)
 }

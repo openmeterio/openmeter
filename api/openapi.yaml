@@ -10052,13 +10052,18 @@ components:
         updatedAt: 2024-01-01T01:01:01.001Z
       description: A customer object.
     CustomerApp:
-      type: object
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/StripeCustomerApp'
+        - $ref: '#/components/schemas/SandboxCustomerApp'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/StripeCustomerApp'
+          sandbox: '#/components/schemas/SandboxCustomerApp'
       description: |-
         CustomerApp
         Stores the app specific data for the customer.
-        One of: stripe
+        One of: stripe, sandbox
     CustomerCreate:
       type: object
       required:
@@ -13912,6 +13917,35 @@ components:
 
         The app is not creating anything in external systems, thus it is safe to use for
         verifying OpenMeter features.
+    SandboxCustomerApp:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The app ID.
+            If not provided, it will use the global default for the app type.
+          title: App ID
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: The app name.
+          title: App Type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/SandboxCustomerAppData'
+          description: The app data.
+          title: Data
+      description: Sandbox Customer App.
+    SandboxCustomerAppData:
+      type: object
+      description: Sandbox Customer App Data.
     ServiceUnavailableProblemResponse:
       type: object
       allOf:
@@ -14077,6 +14111,10 @@ components:
             - $ref: '#/components/schemas/StripeCustomerAppData'
           description: The app data.
           title: Data
+      example:
+        type: stripe
+        data:
+          stripeCustomerId: cus_xxxxxxxxxxxxxx
       description: Stripe Customer App.
     StripeCustomerAppData:
       type: object

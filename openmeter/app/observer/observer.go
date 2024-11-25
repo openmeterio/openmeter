@@ -6,6 +6,7 @@ type Observer[T any] interface {
 	PostCreate(context.Context, *T) error
 	PostUpdate(context.Context, *T) error
 	PostDelete(context.Context, *T) error
+	Decorate(context.Context, *T) (*T, error)
 }
 
 type Publisher[T any] interface {
