@@ -66,6 +66,11 @@ func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity
 			AppID:      *customerApp.AppID,
 		})
 		if err != nil {
+			if _, ok := err.(app.CustomerPreConditionError); ok {
+				// Skip stripe app if customer has no stripe data
+				continue
+			}
+
 			return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 		}
 
