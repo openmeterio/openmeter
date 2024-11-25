@@ -20,7 +20,7 @@ interface InvoiceEndpoints {
   list(
     @query
     @summary("Filter by the customer ID or key")
-    customers?: Array<ULID>,
+    customers?: ULID[],
 
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
@@ -36,6 +36,7 @@ interface InvoiceEndpoints {
 @route("/api/v1/billing/invoices/{customerId}")
 @tag("Billing (Experimental)")
 interface CustomerInvoicesEndpoints {
+  // TODO move to different endpoint and rename
   /**
    * Create a new invoice from the pending line items.
    *
@@ -101,6 +102,7 @@ interface CustomerInvoicesEndpoints {
     @path
     customerId: ULID,
 
+    // TODO nested visibility on .lines doesn't work here
     @body
     request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<Lines>,
   ): {
@@ -169,10 +171,7 @@ interface CustomerInvoiceEndpoints {
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Approve an invoice and start executing the payment workflow.
@@ -194,10 +193,7 @@ interface CustomerInvoiceEndpoints {
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Void an invoice
@@ -220,10 +216,7 @@ interface CustomerInvoiceEndpoints {
 
     @body
     request: VoidInvoiceInput,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Advance the invoice's state to the next status.
@@ -243,10 +236,7 @@ interface CustomerInvoiceEndpoints {
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Retry advancing the invoice after a failed attempt.
@@ -264,10 +254,7 @@ interface CustomerInvoiceEndpoints {
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   // Line management
 
@@ -283,10 +270,7 @@ interface CustomerInvoiceEndpoints {
     @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
-  ): {
-    @statusCode _: 204;
-    @body body: Invoices.InvoiceLine;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete an invoice line
@@ -318,11 +302,8 @@ interface CustomerInvoiceEndpoints {
     @path lineId: ULID,
 
     @body
-    request: Invoices.InvoiceLine,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.InvoiceLine;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    request: Invoices.InvoiceLineUpdate,
+  ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * TODOs:

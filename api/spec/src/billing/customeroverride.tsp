@@ -15,7 +15,7 @@ interface CustomerOverrides {
   @extension("x-internal", true)
   list(
     @query
-    billingProfile?: Array<ULID>,
+    billingProfile?: ULID[],
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
@@ -32,10 +32,11 @@ interface CustomerOverrides {
   @extension("x-internal", true)
   upsert(
     @path
+    @extension("x-go-type", "string")
     customerId: ULID,
 
     @body
-    request: CustomerWorkflowOverride,
+    request: Rest.Resource.ResourceCreateModel<CustomerOverride>,
   ):
     | {
         // Updated
@@ -62,6 +63,7 @@ interface CustomerOverrides {
   @extension("x-internal", true)
   get(
     @path
+    @extension("x-go-type", "string")
     customerId: ULID,
   ): CustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -75,6 +77,7 @@ interface CustomerOverrides {
   @extension("x-internal", true)
   delete(
     @path
+    @extension("x-go-type", "string")
     customerId: ULID,
   ): {
     @statusCode _: 204;
@@ -110,7 +113,7 @@ model CustomerOverride {
  */
 @friendlyName("BillingCustomerWorkflowOverride")
 model CustomerWorkflowOverride {
-  ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
+  ...Workflow;
 
   // Note: these are only available for read, as provider override is not supported via the customer override.
   // to do that the customer should be assocatied with a new billing profile instead.

@@ -1,3 +1,5 @@
+import "../rest.tsp";
+
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
@@ -35,33 +37,40 @@ interface Profiles {
   @summary("Create a new billing profile")
   @operationId("billingCreateProfile")
   @extension("x-internal", true)
-  create(@body profile: ProfileCreateInput): {
+  create(@body profile: ProfileCreate): {
     @statusCode _: 201;
     @body profile: Profile;
   } | OpenMeter.CommonErrors;
 
   /**
-   * Archive a billing profile
+   * Delete a billing profile
    */
   @route("/{id}")
   @delete
-  @summary("Archive a billing profile")
-  @operationId("billingArchiveProfile")
+  @summary("Delete a billing profile")
+  @operationId("billingDeleteProfile")
   @extension("x-internal", true)
-  archive(@path id: string): {
+  delete(
+    @extension("x-go-type", "string")
+    @path
+    id: ULID,
+  ): {
     @statusCode _: 204;
-  } | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Get a billing profile by ID
    */
   @route("/{id}")
   @get
-  @summary("Get a billing profile by ID")
+  @summary("Get a billing profile")
   @operationId("billingGetProfile")
   @extension("x-internal", true)
   get(
-    @path id: string,
+    @extension("x-go-type", "string")
+    @path
+    id: ULID,
+
     @query expand?: ProfileExpand[],
   ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -73,10 +82,13 @@ interface Profiles {
   @summary("Update a billing profile")
   @operationId("billingUpdateProfile")
   @extension("x-internal", true)
-  update(@path id: string, @body profile: Profile): {
-    @statusCode _: 200;
-    @body profile: Profile;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  update(
+    @extension("x-go-type", "string")
+    @path
+    id: ULID,
+
+    @body profile: Rest.Resource.ResourceReplaceModel<Profile>,
+  ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   // Customer overrides
 }
@@ -109,6 +121,7 @@ enum ProfileExpand {
 model Profile {
   ...OmitProperties<global.Resource, "updatedAt">;
 
+  // TODO: do we need updatedAt?
   /**
    * When the resource was last updated.
    *
@@ -200,6 +213,7 @@ model Workflow {
  */
 @friendlyName("BillingWorkflowSettings")
 model WorkflowSettings {
+  // TODO replace summary with comment description
   @summary("The collection settings for this workflow")
   collection?: WorkflowCollectionSettings;
 
@@ -249,19 +263,10 @@ enum AppReferenceType {
 }
 
 /**
- * AppIdOrType can be used to reference an app during creation only.
- *
- * This can be either an AppType or the ULID of an app.
- */
-@friendlyName("BillingWorkflowAppIdOrType")
-scalar AppIdOrType extends string;
-
-/**
  * ProfileCreateInput represents the input for creating a billing profile
  */
-@friendlyName("BillingProfileCreateInput")
-model ProfileCreateInput {
-  ...OmitProperties<Profile, "apps">;
+@friendlyName("BillingProfileCreate")
+model ProfileCreate is Rest.Resource.ResourceCreateModel<Profile> {
   apps: ProfileCreateAppsInput;
 }
 
@@ -271,13 +276,16 @@ model ProfileCreateInput {
 @friendlyName("BillingProfileCreateAppsInput")
 model ProfileCreateAppsInput {
   @summary("The tax app used for this workflow")
-  tax: AppIdOrType;
+  @extension("x-go-type", "string")
+  tax: ULID | string;
 
   @summary("The invoicing app used for this workflow")
-  invoicing: AppIdOrType;
+  @extension("x-go-type", "string")
+  invoicing: ULID | string;
 
   @summary("The payment app used for this workflow")
-  payment: AppIdOrType;
+  @extension("x-go-type", "string")
+  payment: ULID | string;
 }
 
 /**
