@@ -352,24 +352,6 @@ func (d AppData) Validate() error {
 	return nil
 }
 
-// CustomerAppData represents the Stripe associated data for an app used by a customer
-type CustomerAppData struct {
-	StripeCustomerID             string
-	StripeDefaultPaymentMethodID *string
-}
-
-func (d CustomerAppData) Validate() error {
-	if d.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
-	}
-
-	if d.StripeDefaultPaymentMethodID != nil && *d.StripeDefaultPaymentMethodID == "" {
-		return errors.New("stripe default payment method id cannot be empty if provided")
-	}
-
-	return nil
-}
-
 type SetCustomerDefaultPaymentMethodInput struct {
 	AppID            appentitybase.AppID
 	StripeCustomerID string

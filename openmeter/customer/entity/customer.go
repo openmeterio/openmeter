@@ -3,8 +3,6 @@ package customerentity
 import (
 	"errors"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,43 +50,6 @@ func (c Customer) Validate() error {
 
 func (c Customer) GetID() CustomerID {
 	return CustomerID{c.Namespace, c.ID}
-}
-
-// AsAPICustomer converts a Customer to an API Customer
-func (c Customer) AsAPICustomer() (api.Customer, error) {
-	apiCustomer := api.Customer{
-		Id:               c.ManagedResource.ID,
-		Name:             c.Name,
-		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
-		PrimaryEmail:     c.PrimaryEmail,
-		Description:      c.Description,
-		CreatedAt:        c.CreatedAt,
-		UpdatedAt:        c.UpdatedAt,
-		DeletedAt:        c.DeletedAt,
-	}
-
-	if c.BillingAddress != nil {
-		address := api.Address{
-			City:        c.BillingAddress.City,
-			State:       c.BillingAddress.State,
-			PostalCode:  c.BillingAddress.PostalCode,
-			Line1:       c.BillingAddress.Line1,
-			Line2:       c.BillingAddress.Line2,
-			PhoneNumber: c.BillingAddress.PhoneNumber,
-		}
-
-		if c.BillingAddress.Country != nil {
-			address.Country = lo.ToPtr(string(*c.BillingAddress.Country))
-		}
-
-		apiCustomer.BillingAddress = &address
-	}
-
-	if c.Currency != nil {
-		apiCustomer.Currency = lo.ToPtr(string(*c.Currency))
-	}
-
-	return apiCustomer, nil
 }
 
 type CustomerMutate struct {
@@ -148,11 +109,6 @@ func (i CustomerID) Validate() error {
 // CustomerUsageAttribution represents the usage attribution for a customer
 type CustomerUsageAttribution struct {
 	SubjectKeys []string
-}
-
-// CustomerExternalMapping represents the external mapping for a customer
-type CustomerExternalMapping struct {
-	StripeCustomerID *string `json:"stripeCustomerID"`
 }
 
 // ListCustomersInput represents the input for the ListCustomers method

@@ -68,7 +68,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			for _, customer := range resp.Items {
 				var item api.Customer
 
-				item, err = customer.AsAPICustomer()
+				item, err = customerToAPI(customer)
 				if err != nil {
 					return ListCustomersResponse{}, fmt.Errorf("failed to cast customer customer: %w", err)
 				}
@@ -126,9 +126,14 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 			}
 
 			if body.Apps != nil {
-				req.Apps = lo.Map(*body.Apps, func(app api.StripeCustomerApp, _ int) customerentity.CustomerApp {
-					return mapApp(ns, app)
-				})
+				for _, app := range *body.Apps {
+					customerApp, err := mapApp(ns, app)
+					if err != nil {
+						return req, err
+					}
+
+					req.Apps = append(req.Apps, customerApp)
+				}
 			}
 
 			return req, nil
@@ -139,7 +144,11 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerResponse{}, err
 			}
 
-			return customer.AsAPICustomer()
+			if customer == nil {
+				return CreateCustomerResponse{}, fmt.Errorf("failed to create customer")
+			}
+
+			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -187,9 +196,14 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 			}
 
 			if body.Apps != nil {
-				req.Apps = lo.Map(*body.Apps, func(app api.StripeCustomerApp, _ int) customerentity.CustomerApp {
-					return mapApp(ns, app)
-				})
+				for _, app := range *body.Apps {
+					customerApp, err := mapApp(ns, app)
+					if err != nil {
+						return req, err
+					}
+
+					req.Apps = append(req.Apps, customerApp)
+				}
 			}
 
 			return req, nil
@@ -200,7 +214,11 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerResponse{}, err
 			}
 
-			return customer.AsAPICustomer()
+			if customer == nil {
+				return UpdateCustomerResponse{}, fmt.Errorf("failed to update customer")
+			}
+
+			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -274,7 +292,11 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 				return GetCustomerResponse{}, err
 			}
 
-			return customer.AsAPICustomer()
+			if customer == nil {
+				return GetCustomerResponse{}, fmt.Errorf("failed to get customer")
+			}
+
+			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(

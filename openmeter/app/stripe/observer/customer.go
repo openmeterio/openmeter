@@ -48,6 +48,37 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 	}, nil
 }
 
+func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity.Customer) (*customerentity.Customer, error) {
+	var apps []customerentity.CustomerApp
+
+	for _, customerApp := range customer.Apps {
+		if customerApp.Type != appentitybase.AppTypeStripe {
+			apps = append(apps, customerApp)
+			continue
+		}
+
+		if customerApp.AppID == nil {
+			return nil, fmt.Errorf("app id is required for stripe app in namespace %s", customer.GetID().Namespace)
+		}
+
+		stripeCustomerAppData, err := c.appStripeService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+			CustomerID: customer.GetID(),
+			AppID:      *customerApp.AppID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
+		}
+
+		customerApp.Data = stripeCustomerAppData
+
+		apps = append(apps, customerApp)
+	}
+
+	customer.Apps = apps
+
+	return customer, nil
+}
+
 func (c CustomerObserver) PostCreate(ctx context.Context, customer *customerentity.Customer) error {
 	return c.upsert(ctx, customer)
 }

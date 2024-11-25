@@ -11,22 +11,21 @@ namespace OpenMeter.App;
 /**
  * CustomerApp
  * Stores the app specific data for the customer.
- * One of: stripe
+ * One of: stripe, sandbox
  */
 @friendlyName("CustomerApp")
 @discriminator("type")
 union CustomerApp {
   @summary("Stripe")
   stripe: StripeCustomerApp,
+
+  @summary("Sandbox")
+  sandbox: SandboxCustomerApp,
 }
 
 /**
  * Customer App Base.
  */
-@example(#{
-  type: Type.Stripe,
-  data: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
-})
 @friendlyName("CustomerAppBase")
 model CustomerAppBase<TYPE extends Type, DATA> {
   /**
@@ -50,8 +49,26 @@ model CustomerAppBase<TYPE extends Type, DATA> {
 }
 
 /**
+ * Sandbox Customer App.
+ */
+@friendlyName("SandboxCustomerApp")
+model SandboxCustomerApp {
+  ...CustomerAppBase<Type.Sandbox, SandboxCustomerAppData>;
+}
+
+/**
+ * Sandbox Customer App Data.
+ */
+@friendlyName("SandboxCustomerAppData")
+model SandboxCustomerAppData {}
+
+/**
  * Stripe Customer App.
  */
+@example(#{
+  type: Type.Stripe,
+  data: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
+})
 @friendlyName("StripeCustomerApp")
 model StripeCustomerApp {
   ...CustomerAppBase<Type.Stripe, StripeCustomerAppData>;
