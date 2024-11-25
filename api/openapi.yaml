@@ -8928,22 +8928,29 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        external:
-          allOf:
-            - $ref: '#/components/schemas/CustomerExternalMapping'
-          description: External mappings for the customer.
-          title: External Mappings
+        apps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerApp'
+          description: Application specific metadata.
+          title: Apps
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         name: ACME Inc.
         usageAttribution:
           subjectKeys:
             - my_subject_key
-        external:
-          stripeCustomerId: cus_xxxxxxxxxxxxxx
         createdAt: 2024-01-01T01:01:01.001Z
         updatedAt: 2024-01-01T01:01:01.001Z
       description: A customer object.
+    CustomerApp:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/StripeCustomerApp'
+      description: |-
+        CustomerApp
+        Stores the app specific data for the customer.
+        One of: stripe
     CustomerCreate:
       type: object
       required:
@@ -8995,23 +9002,13 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        external:
-          allOf:
-            - $ref: '#/components/schemas/CustomerExternalMapping'
-          description: External mappings for the customer.
-          title: External Mappings
+        apps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerApp'
+          description: Application specific metadata.
+          title: Apps
       description: Resource create operation model.
-    CustomerExternalMapping:
-      type: object
-      properties:
-        stripeCustomerId:
-          type: string
-          description: |-
-            The Stripe customer ID.
-            Mapping to a Stripe Customer object.
-            Required to use Stripe as an invocing provider.
-          title: Stripe Customer
-      description: External mappings for the customer.
     CustomerId:
       type: object
       required:
@@ -9107,11 +9104,12 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        external:
-          allOf:
-            - $ref: '#/components/schemas/CustomerExternalMapping'
-          description: External mappings for the customer.
-          title: External Mappings
+        apps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerApp'
+          description: Application specific metadata.
+          title: Apps
       description: Resource update operation model.
     CustomerUsageAttribution:
       type: object
@@ -14186,6 +14184,46 @@ components:
       enum:
         - setup
       description: Stripe CheckoutSession.mode
+    StripeCustomerApp:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The app ID.
+            If not provided, it will use the global default for the app type.
+          title: App ID
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app name.
+          title: App Type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/StripeCustomerAppData'
+          description: The app data.
+          title: Data
+      description: Stripe Customer App.
+    StripeCustomerAppData:
+      type: object
+      required:
+        - stripeCustomerId
+      properties:
+        stripeCustomerId:
+          type: string
+          description: The Stripe customer ID.
+        stripeDefaultPaymentMethodId:
+          type: string
+          description: The Stripe default payment method ID.
+      example:
+        stripeCustomerId: cus_xxxxxxxxxxxxxx
+      description: Stripe Customer App Data.
     StripePaymentIntentStatus:
       type: string
       enum:

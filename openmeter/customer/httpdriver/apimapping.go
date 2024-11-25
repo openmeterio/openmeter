@@ -4,6 +4,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -57,4 +58,20 @@ func mapAddress(apiAddress *api.Address) *models.Address {
 	}
 
 	return &address
+}
+
+func mapApp(namespace string, apiApp api.CustomerApp) customerentity.CustomerApp {
+	customerApp := customerentity.CustomerApp{
+		Type: appentitybase.AppType(apiApp.Type),
+		Data: apiApp.Data,
+	}
+
+	if apiApp.Id != nil {
+		customerApp.AppID = &appentitybase.AppID{
+			Namespace: namespace,
+			ID:        *apiApp.Id,
+		}
+	}
+
+	return customerApp
 }
