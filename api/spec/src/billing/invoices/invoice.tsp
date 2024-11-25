@@ -351,6 +351,16 @@ union InvoiceLine {
 }
 
 /**
+ * BillingInvoiceLineUpdate represents the update model for an invoice line.
+ */
+@friendlyName("BillingInvoiceLineUpdate")
+@discriminator("type")
+union InvoiceLineUpdate {
+  usageBased: Rest.Resource.ResourceReplaceModel<UsageBasedLine>,
+  flatFee: Rest.Resource.ResourceReplaceModel<FlatFeeLine>,
+}
+
+/**
  * LineTypes represents the different types of lines that can be used in an invoice.
  */
 @friendlyName("BillingLineTypes")
