@@ -73,7 +73,6 @@ func mapApp(namespace string, apiApp api.CustomerApp) (customerentity.CustomerAp
 	}
 
 	switch appType {
-
 	// Sandbox app
 	case string(appentitybase.AppTypeSandbox):
 		apiSandboxApp, err := apiApp.AsSandboxCustomerApp()
