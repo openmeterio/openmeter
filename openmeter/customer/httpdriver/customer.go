@@ -112,7 +112,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			return CreateCustomerRequest{
+			req := CreateCustomerRequest{
 				Namespace: ns,
 				CustomerMutate: customerentity.CustomerMutate{
 					Name:             body.Name,
@@ -123,7 +123,15 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 					Currency:         mapCurrency(body.Currency),
 					Timezone:         mapTimezone(body.Timezone),
 				},
-			}, nil
+			}
+
+			if body.Apps != nil {
+				req.Apps = lo.Map(*body.Apps, func(app api.StripeCustomerApp, _ int) customerentity.CustomerApp {
+					return mapApp(ns, app)
+				})
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
 			customer, err := h.service.CreateCustomer(ctx, request)
@@ -162,7 +170,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerRequest{}, err
 			}
 
-			return UpdateCustomerRequest{
+			req := UpdateCustomerRequest{
 				CustomerID: customerentity.CustomerID{
 					Namespace: ns,
 					ID:        customerID,
@@ -176,7 +184,15 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 					Currency:         mapCurrency(body.Currency),
 					Timezone:         mapTimezone(body.Timezone),
 				},
-			}, nil
+			}
+
+			if body.Apps != nil {
+				req.Apps = lo.Map(*body.Apps, func(app api.StripeCustomerApp, _ int) customerentity.CustomerApp {
+					return mapApp(ns, app)
+				})
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request UpdateCustomerRequest) (UpdateCustomerResponse, error) {
 			customer, err := h.service.UpdateCustomer(ctx, request)
