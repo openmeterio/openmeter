@@ -137,7 +137,6 @@ enum CustomerOrderBy {
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   name: "ACME Inc.",
   usageAttribution: #{ subjectKeys: #["my_subject_key"] },
-  external: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
   createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
 })
@@ -179,10 +178,10 @@ model Customer {
   billingAddress?: Address;
 
   /**
-   * External mappings for the customer.
+   * Application specific metadata.
    */
-  @summary("External Mappings")
-  external?: CustomerExternalMapping;
+  @summary("Apps")
+  apps?: App.CustomerApp[];
 }
 
 /**
@@ -200,18 +199,4 @@ model CustomerUsageAttribution {
   @minItems(1)
   @maxItems(1)
   subjectKeys: string[];
-}
-
-/**
- * External mappings for the customer.
- */
-@friendlyName("CustomerExternalMapping")
-model CustomerExternalMapping {
-  /**
-   * The Stripe customer ID.
-   * Mapping to a Stripe Customer object.
-   * Required to use Stripe as an invocing provider.
-   */
-  @summary("Stripe Customer")
-  stripeCustomerId?: string;
 }
