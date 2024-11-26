@@ -50,12 +50,9 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 
 // Decorate decorates customer with stripe app customer data
 func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity.Customer) (*customerentity.Customer, error) {
-	var apps []customerentity.CustomerApp
-
 	// Fetch customer data for all apps that have a stripe app type
-	for _, customerApp := range customer.Apps {
+	for i, customerApp := range customer.Apps {
 		if customerApp.Type != appentitybase.AppTypeStripe {
-			apps = append(apps, customerApp)
 			continue
 		}
 
@@ -77,12 +74,9 @@ func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity
 			return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 		}
 
-		customerApp.Data = stripeCustomerAppData
-
-		apps = append(apps, customerApp)
+		// Overwrite app data with stripe customer data
+		customer.Apps[i].Data = stripeCustomerAppData
 	}
-
-	customer.Apps = apps
 
 	return customer, nil
 }
