@@ -11,6 +11,10 @@ func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // (GET /api/v1/subscriptions/{subscriptionId})
 func (a *Router) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string, params api.GetSubscriptionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
