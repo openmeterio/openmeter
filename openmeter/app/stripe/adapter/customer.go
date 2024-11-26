@@ -78,6 +78,15 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 			UpdateStripeCustomerID().
 			Exec(ctx)
 		if err != nil {
+			if entdb.IsConstraintError(err) {
+				return nil, app.CustomerPreConditionError{
+					AppID:      input.AppID,
+					AppType:    appentitybase.AppTypeStripe,
+					CustomerID: input.CustomerID,
+					Condition:  "unique stripe customer id",
+				}
+			}
+
 			return nil, fmt.Errorf("failed to upsert app stripe customer data: %w", err)
 		}
 

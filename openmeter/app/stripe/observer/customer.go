@@ -48,9 +48,11 @@ func NewCustomerObserver(config CustomerObserverConfig) (*CustomerObserver, erro
 	}, nil
 }
 
+// Decorate decorates customer with stripe app customer data
 func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity.Customer) (*customerentity.Customer, error) {
 	var apps []customerentity.CustomerApp
 
+	// Fetch customer data for all apps that have a stripe app type
 	for _, customerApp := range customer.Apps {
 		if customerApp.Type != appentitybase.AppTypeStripe {
 			apps = append(apps, customerApp)
@@ -61,6 +63,7 @@ func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity
 			return nil, fmt.Errorf("app id is required for stripe app in namespace %s", customer.GetID().Namespace)
 		}
 
+		// Get customer specific stripe app data
 		stripeCustomerAppData, err := c.appStripeService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
 			CustomerID: customer.GetID(),
 			AppID:      *customerApp.AppID,
@@ -84,10 +87,12 @@ func (c CustomerObserver) Decorate(ctx context.Context, customer *customerentity
 	return customer, nil
 }
 
+// PostCreate saves the stripe customer data
 func (c CustomerObserver) PostCreate(ctx context.Context, customer *customerentity.Customer) error {
 	return c.upsert(ctx, customer)
 }
 
+// PostUpdate updates the stripe customer data
 func (c CustomerObserver) PostUpdate(ctx context.Context, customer *customerentity.Customer) error {
 	return c.upsert(ctx, customer)
 }
