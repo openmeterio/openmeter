@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -16,6 +17,10 @@ func errorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[customerentity.ValidationError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customerentity.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customerentity.SubjectKeyConflictError](ctx, http.StatusConflict, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w)
+			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
+
+			// TODO: we have to add app errors as it can happen when cutomer app data is created or updated
+			commonhttp.HandleErrorIfTypeMatches[app.CustomerPreConditionError](ctx, http.StatusConflict, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[app.AppNotFoundError](ctx, http.StatusNotFound, err, w)
 	}
 }

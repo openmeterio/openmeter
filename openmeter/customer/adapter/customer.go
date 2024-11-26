@@ -200,12 +200,21 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 			customerEntity.Edges.Subjects = customerSubjects
 			customer := CustomerFromDBEntity(*customerEntity)
 
+			// We need to add the apps to the customer so the post create hook can access them
+			customer.Apps = input.Apps
+
 			// Post-create hook
 			for _, observer := range *a.observers {
 				if err := observer.PostCreate(ctx, customer); err != nil {
 					a.logger.ErrorContext(ctx, "failed to create customer: post-create hook failed", "error", err)
 					return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
 				}
+			}
+
+			// We re-fetch the customer to ensure we have the app data and the customer
+			customer, err = a.GetCustomer(ctx, customerentity.GetCustomerInput(customer.GetID()))
+			if err != nil {
+				return nil, fmt.Errorf("failed to get created customer: %w", err)
 			}
 
 			return customer, nil
@@ -513,11 +522,20 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 
 			customer := CustomerFromDBEntity(*entity)
 
+			// We need to add the apps to the customer so the post update hook can access them
+			customer.Apps = input.Apps
+
 			// Post-update hook
 			for _, observer := range *a.observers {
 				if err := observer.PostUpdate(ctx, customer); err != nil {
 					return nil, fmt.Errorf("failed to update customer: post-update hook failed: %w", err)
 				}
+			}
+
+			// We re-fetch the customer to ensure we have the app data and the customer
+			customer, err = a.GetCustomer(ctx, customerentity.GetCustomerInput(customer.GetID()))
+			if err != nil {
+				return nil, fmt.Errorf("failed to get updated customer: %w", err)
 			}
 
 			return customer, nil
