@@ -132,6 +132,10 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 func (l *usageBasedLine) UpdateTotals() error {
 	// Calculate the line totals
 	for _, line := range l.line.Children.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
 		lineSvc, err := l.service.FromEntity(line)
 		if err != nil {
 			return fmt.Errorf("creating line service: %w", err)
@@ -152,6 +156,11 @@ func (l *usageBasedLine) UpdateTotals() error {
 	res := billingentity.Totals{}
 
 	res = res.Add(lo.Map(l.line.Children.OrEmpty(), func(l *billingentity.Line, _ int) billingentity.Totals {
+		// Deleted lines are not contributing to the totals
+		if l.DeletedAt != nil {
+			return billingentity.Totals{}
+		}
+
 		return l.Totals
 	})...)
 

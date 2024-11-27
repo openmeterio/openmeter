@@ -338,3 +338,5 @@ func (v ValidateLineOwnershipInput) Validate() error {
 
 	return nil
 }
+
+type DeleteInvoiceLineInput = billingentity.LineID

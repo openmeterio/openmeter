@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 type idDiff = diff[string]
@@ -259,6 +260,105 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				Discounts: idDiff{
 					ToCreate: []string{"D2.1.2"},
 					ToDelete: []string{"D2.1.1"},
+				},
+			},
+		}, lineDiff)
+	})
+
+	// DeletedAt handling
+	t.Run("support for detailed lines being deleted using deletedAt", func(t *testing.T) {
+		base := cloneLines(template)
+		snapshotAsDBState(base)
+
+		base[1].Children.GetByID("2.1").DeletedAt = lo.ToPtr(clock.Now())
+
+		lineDiff, err := diffInvoiceLines(base)
+		require.NoError(t, err)
+
+		requireDiff(t, lineDiffExpectation{
+			AffectedLineIDs: []string{"2"},
+			ChildrenDiff: &lineDiffExpectation{
+				LineBase: idDiff{
+					ToDelete: []string{"2.1"},
+				},
+				Discounts: idDiff{
+					ToDelete: []string{"D2.1.1"},
+				},
+			},
+		}, lineDiff)
+	})
+
+	t.Run("support for parent lines with children being deleted using deletedAt", func(t *testing.T) {
+		base := cloneLines(template)
+		snapshotAsDBState(base)
+
+		base[1].DeletedAt = lo.ToPtr(clock.Now())
+
+		lineDiff, err := diffInvoiceLines(base)
+		require.NoError(t, err)
+
+		requireDiff(t, lineDiffExpectation{
+			LineBase: idDiff{
+				ToDelete: []string{"2"},
+			},
+			ChildrenDiff: &lineDiffExpectation{
+				LineBase: idDiff{
+					ToDelete: []string{"2.1", "2.2"},
+				},
+				Discounts: idDiff{
+					ToDelete: []string{"D2.1.1"},
+				},
+			},
+		}, lineDiff)
+	})
+
+	t.Run("support for parent lines without children being deleted using deletedAt", func(t *testing.T) {
+		base := cloneLines(template)
+		snapshotAsDBState(base)
+
+		base[0].DeletedAt = lo.ToPtr(clock.Now())
+
+		lineDiff, err := diffInvoiceLines(base)
+		require.NoError(t, err)
+
+		requireDiff(t, lineDiffExpectation{
+			LineBase: idDiff{
+				ToDelete: []string{"1"},
+			},
+		}, lineDiff)
+	})
+
+	t.Run("deleted, changed lines are not triggering updates", func(t *testing.T) {
+		base := cloneLines(template)
+		base[0].DeletedAt = lo.ToPtr(clock.Now())
+		snapshotAsDBState(base)
+		base[0].Description = lo.ToPtr("test")
+
+		lineDiff, err := diffInvoiceLines(base)
+		require.NoError(t, err)
+
+		requireDiff(t, lineDiffExpectation{}, lineDiff)
+	})
+
+	t.Run("deleted, changed lines are not triggering updates", func(t *testing.T) {
+		base := cloneLines(template)
+		base[1].DeletedAt = lo.ToPtr(clock.Now())
+		base[1].Children.GetByID("2.1").DeletedAt = lo.ToPtr(clock.Now())
+
+		snapshotAsDBState(base)
+		base[1].DeletedAt = nil
+		base[1].Children.GetByID("2.1").DeletedAt = nil
+
+		lineDiff, err := diffInvoiceLines(base)
+		require.NoError(t, err)
+
+		requireDiff(t, lineDiffExpectation{
+			LineBase: idDiff{
+				ToUpdate: []string{"2"},
+			},
+			ChildrenDiff: &lineDiffExpectation{
+				LineBase: idDiff{
+					ToUpdate: []string{"2.1"},
 				},
 			},
 		}, lineDiff)

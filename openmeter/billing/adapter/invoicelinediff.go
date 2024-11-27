@@ -177,12 +177,11 @@ func diffInvoiceLines(lines []*billingentity.Line) (*invoiceLineDiff, error) {
 
 	diff.AffectedLineIDs = set.Subtract(
 		set.Union(diff.AffectedLineIDs, diff.ChildrenDiff.AffectedLineIDs),
-		set.New(lo.Map(diff.LineBase.ToUpdate, func(l *billingentity.Line, _ int) string {
-			return l.ID
-		})...),
-		set.New(lo.Map(diff.ChildrenDiff.LineBase.ToUpdate, func(l *billingentity.Line, _ int) string {
-			return l.ID
-		})...),
+		lineIDsAsSet(diff.LineBase.ToUpdate),
+		lineIDsAsSet(diff.ChildrenDiff.LineBase.ToUpdate),
+
+		lineIDsAsSet(diff.LineBase.ToDelete),
+		lineIDsAsSet(diff.ChildrenDiff.LineBase.ToDelete),
 	)
 
 	// Let's make sure we are not leaking any in-progress calculation details
@@ -190,6 +189,12 @@ func diffInvoiceLines(lines []*billingentity.Line) (*invoiceLineDiff, error) {
 	diff.ChildrenDiff.ChildrenDiff = nil
 
 	return &diff, nil
+}
+
+func lineIDsAsSet(lines []*billingentity.Line) *set.Set[string] {
+	return set.New(lo.Map(lines, func(l *billingentity.Line, _ int) string {
+		return l.ID
+	})...)
 }
 
 func diffLineBaseEntities(line *billingentity.Line, out *invoiceLineDiff) error {
@@ -205,7 +210,36 @@ func diffLineBaseEntities(line *billingentity.Line, out *invoiceLineDiff) error 
 
 	baseNeedsUpdate := false
 	if !line.DBState.LineBase.Equal(line.LineBase) {
-		baseNeedsUpdate = true
+		switch {
+		case (line.DBState.LineBase.DeletedAt == nil) && (line.LineBase.DeletedAt != nil):
+			// The line got deleted
+			out.LineBase.NeedsDelete(line)
+			out.AffectedLineIDs.Add(lineParentIDs(line, lineIDExcludeSelf)...)
+
+			if line.Children.IsPresent() {
+				// We need to delete the children as well
+				if err := deleteLineChildren(line, out); err != nil {
+					return err
+				}
+			}
+
+			if err := handleLineDependantEntities(line, operationDelete, out); err != nil {
+				return err
+			}
+
+			return nil
+		case (line.DBState.LineBase.DeletedAt != nil) && (line.LineBase.DeletedAt == nil):
+			// The line got undeleted
+
+			// Warning: it's up to the caller to make sure that child objects are properly updated too
+			baseNeedsUpdate = true
+
+		case line.DBState.LineBase.DeletedAt != nil && line.LineBase.DeletedAt != nil:
+			// The line is deleted, we don't need to update anything
+			return nil
+		default:
+			baseNeedsUpdate = true
+		}
 	}
 
 	switch line.Type {
@@ -284,6 +318,20 @@ func getChildrenActions(dbSave []*billingentity.Line, current []*billingentity.L
 		if err := diffLineBaseEntities(currentLine, out); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func deleteLineChildren(line *billingentity.Line, out *invoiceLineDiff) error {
+	for _, child := range line.DBState.Children.OrEmpty() {
+		out.ChildrenDiff.LineBase.NeedsDelete(child)
+
+		if err := handleLineDependantEntities(child, operationDelete, out.ChildrenDiff); err != nil {
+			return err
+		}
+
+		out.ChildrenDiff.AffectedLineIDs.Add(lineParentIDs(child, lineIDExcludeSelf)...)
 	}
 
 	return nil

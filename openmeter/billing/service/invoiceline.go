@@ -12,6 +12,7 @@ import (
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -369,4 +370,49 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 	}
 
 	return updatedLine, nil
+}
+
+func (s *Service) DeleteInvoiceLine(ctx context.Context, input billing.DeleteInvoiceLineInput) error {
+	if err := input.Validate(); err != nil {
+		return billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	existingLine, err := s.adapter.GetInvoiceLine(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	if existingLine.Status != billingentity.InvoiceLineStatusValid {
+		return billingentity.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", existingLine.ID, billingentity.ErrInvoiceLineDeleteInvalidStatus),
+		}
+	}
+
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		_, err := s.executeTriggerOnInvoice(
+			ctx,
+			billingentity.InvoiceID{
+				ID:        existingLine.InvoiceID,
+				Namespace: existingLine.Namespace,
+			},
+			triggerUpdated,
+			ExecuteTriggerWithAllowInStates(billingentity.InvoiceStatusDraftUpdating),
+			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
+				line := sm.Invoice.Lines.GetByID(existingLine.ID)
+				if line == nil || line.DeletedAt != nil {
+					return billingentity.NotFoundError{
+						Err: fmt.Errorf("line[%s]: not found in invoice", existingLine.ID),
+					}
+				}
+
+				line.DeletedAt = lo.ToPtr(clock.Now())
+
+				return nil
+			}),
+		)
+
+		return err
+	})
 }

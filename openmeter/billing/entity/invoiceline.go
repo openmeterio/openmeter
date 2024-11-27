@@ -232,6 +232,13 @@ type Line struct {
 	DBState *Line
 }
 
+func (i Line) LineID() LineID {
+	return LineID{
+		Namespace: i.Namespace,
+		ID:        i.ID,
+	}
+}
+
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
 // for creating a new line without any references to the parent or children (or config IDs).
 func (i Line) CloneWithoutDependencies() *Line {
