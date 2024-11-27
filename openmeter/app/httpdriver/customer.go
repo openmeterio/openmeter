@@ -157,6 +157,67 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 	)
 }
 
+type DeleteCustomerDataParams struct {
+	CustomerId string
+	AppId      string
+}
+
+type DeleteCustomerDataRequest struct {
+	AppID      appentitybase.AppID
+	CustomerID customerentity.CustomerID
+}
+
+type (
+	DeleteCustomerDataResponse = interface{}
+	DeleteCustomerDataHandler  httptransport.HandlerWithArgs[DeleteCustomerDataRequest, DeleteCustomerDataResponse, DeleteCustomerDataParams]
+)
+
+// DeleteCustomerData returns a handler for deleting a customer data.
+func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params DeleteCustomerDataParams) (DeleteCustomerDataRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return DeleteCustomerDataRequest{}, err
+			}
+
+			return DeleteCustomerDataRequest{
+				CustomerID: customerentity.CustomerID{
+					Namespace: ns,
+					ID:        params.CustomerId,
+				},
+				AppID: appentitybase.AppID{
+					Namespace: ns,
+					ID:        params.AppId,
+				},
+			}, nil
+		},
+		func(ctx context.Context, request DeleteCustomerDataRequest) (DeleteCustomerDataResponse, error) {
+			// Get app
+			app, err := h.service.GetApp(ctx, request.AppID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Delete customer data
+			err = app.DeleteCustomerData(ctx, appentity.DeleteCustomerDataInput{
+				CustomerID: request.CustomerID,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		},
+		commonhttp.EmptyResponseEncoder[DeleteCustomerDataResponse](http.StatusNoContent),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("deleteCustomerData"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
 // getCustomerData converts an API CustomerAppData to a list of CustomerData
 func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp api.CustomerAppData) (appentity.App, appentity.CustomerData, error) {
 	// Get app type

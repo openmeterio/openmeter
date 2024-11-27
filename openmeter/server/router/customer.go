@@ -57,5 +57,8 @@ func (a *Router) UpsertCustomerAppData(w http.ResponseWriter, r *http.Request, c
 // Delete customer app data
 // (DELETE /api/v1/customer/customers/{customerId}/apps/{appId})
 func (a *Router) DeleteCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string, appID string) {
-	// a.appHandler.DeleteCustomerAppData().With(params).ServeHTTP(w, r)
+	a.appHandler.DeleteCustomerData().With(httpdriver.DeleteCustomerDataParams{
+		CustomerId: customerID,
+		AppId:      appID,
+	}).ServeHTTP(w, r)
 }

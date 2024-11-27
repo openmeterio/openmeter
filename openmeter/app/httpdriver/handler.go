@@ -24,6 +24,7 @@ type AppHandler interface {
 	// Customer Data handlers
 	ListCustomerData() ListCustomerDataHandler
 	UpsertCustomerData() UpsertCustomerDataHandler
+	DeleteCustomerData() DeleteCustomerDataHandler
 
 	// Marketplace handlers
 	ListMarketplaceListings() ListMarketplaceListingsHandler

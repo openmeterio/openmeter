@@ -56,3 +56,26 @@ func (a EnsureCustomerInput) Validate() error {
 
 	return nil
 }
+
+type DeleteCustomerInput struct {
+	AppID      appentitybase.AppID
+	CustomerID customerentity.CustomerID
+}
+
+func (a DeleteCustomerInput) Validate() error {
+	if err := a.AppID.Validate(); err != nil {
+		return err
+	}
+
+	if err := a.CustomerID.Validate(); err != nil {
+		return err
+	}
+
+	if a.AppID.Namespace != a.CustomerID.Namespace {
+		return ValidationError{
+			Err: fmt.Errorf("app ID namespace %s does not match customer ID namespace %s", a.AppID.Namespace, a.CustomerID.Namespace),
+		}
+	}
+
+	return nil
+}

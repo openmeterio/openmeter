@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 )
 
 var _ app.AppAdapter = (*adapter)(nil)
@@ -96,5 +97,33 @@ func (a adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInp
 		},
 	)
 
+	return err
+}
+
+// DeleteCustomer deletes app customer
+func (a adapter) DeleteCustomer(ctx context.Context, input app.DeleteCustomerInput) error {
+	if err := input.Validate(); err != nil {
+		return app.ValidationError{
+			Err: fmt.Errorf("error delete customer: %w", err),
+		}
+	}
+
+	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+		// Delete app customer
+		query := repo.db.AppCustomer.
+			Delete().
+			Where(
+				appcustomerdb.Namespace(input.CustomerID.Namespace),
+				appcustomerdb.CustomerID(input.CustomerID.ID),
+				appcustomerdb.AppID(input.AppID.ID),
+			)
+
+		_, err := query.Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete app customer: %w", err)
+		}
+
+		return nil, nil
+	})
 	return err
 }
