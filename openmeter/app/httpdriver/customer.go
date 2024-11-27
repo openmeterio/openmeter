@@ -21,7 +21,7 @@ import (
 )
 
 type (
-	ListCustomerDataRequest  = app.ListCustomerDataInput
+	ListCustomerDataRequest  = app.ListCustomerInput
 	ListCustomerDataResponse = api.CustomerAppDataPaginatedResponse
 	ListCustomerDataHandler  httptransport.HandlerWithArgs[ListCustomerDataRequest, ListCustomerDataResponse, ListCustomerDataParams]
 )
@@ -241,9 +241,7 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 			return nil, nil, fmt.Errorf("error getting sandbox app: %w", err)
 		}
 
-		sandboxCustomerData := appsandbox.CustomerData{
-			AppID: app.GetID(),
-		}
+		sandboxCustomerData := appsandbox.CustomerData{}
 
 		return app, sandboxCustomerData, nil
 
@@ -262,7 +260,6 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 		}
 
 		stripeCustomerData := appstripeentity.CustomerData{
-			AppID:                        app.GetID(),
 			StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
 			StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
 		}
@@ -297,13 +294,12 @@ func (h *handler) getApp(ctx context.Context, namespace string, appID *string, a
 	return app, nil
 }
 
-// customerDataToAPI converts a CustomerData to an API CustomerAppData
-func customerDataToAPI(a appentity.CustomerData) (api.CustomerAppData, error) {
+// customerDataToAPI converts a CustomerApp to an API CustomerAppData
+func customerDataToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
+	appId := a.App.GetID().ID
 
-	appId := a.GetAppID().ID
-
-	switch customerApp := a.(type) {
+	switch customerApp := a.CustomerData.(type) {
 	case appstripeentity.CustomerData:
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
@@ -329,7 +325,7 @@ func customerDataToAPI(a appentity.CustomerData) (api.CustomerAppData, error) {
 		}
 
 	default:
-		return apiCustomerAppData, fmt.Errorf("unsupported customer data for app: %s", a.GetAppID().ID)
+		return apiCustomerAppData, fmt.Errorf("unsupported customer data for app: %s", appId)
 	}
 
 	return apiCustomerAppData, nil

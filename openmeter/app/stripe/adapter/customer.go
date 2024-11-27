@@ -42,7 +42,6 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 	}
 
 	customerData := appstripeentity.CustomerData{
-		AppID:                        input.AppID,
 		StripeCustomerID:             stripeCustomerDBEntity.StripeCustomerID,
 		StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
 	}

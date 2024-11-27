@@ -15,9 +15,9 @@ import (
 var _ app.AppAdapter = (*adapter)(nil)
 
 // ListCustomerData lists app customer data
-func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerDataInput) (pagination.PagedResponse[appentity.CustomerData], error) {
+func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[appentity.CustomerData]{}, app.ValidationError{
+		return pagination.PagedResponse[appentity.CustomerApp]{}, app.ValidationError{
 			Err: fmt.Errorf("error listing customer data: %w", err),
 		}
 	}
@@ -29,13 +29,13 @@ func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerDat
 		Type:       input.Type,
 	})
 	if err != nil {
-		return pagination.PagedResponse[appentity.CustomerData]{}, fmt.Errorf("failed to list apps: %w", err)
+		return pagination.PagedResponse[appentity.CustomerApp]{}, fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	response := pagination.PagedResponse[appentity.CustomerData]{
+	response := pagination.PagedResponse[appentity.CustomerApp]{
 		Page:       input.Page,
 		TotalCount: apps.TotalCount,
-		Items:      make([]appentity.CustomerData, 0, len(apps.Items)),
+		Items:      make([]appentity.CustomerApp, 0, len(apps.Items)),
 	}
 
 	for _, app := range apps.Items {
@@ -43,10 +43,13 @@ func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerDat
 			CustomerID: input.CustomerID,
 		})
 		if err != nil {
-			return pagination.PagedResponse[appentity.CustomerData]{}, fmt.Errorf("failed to get customer data for app %s: %w", app.GetID().ID, err)
+			return pagination.PagedResponse[appentity.CustomerApp]{}, fmt.Errorf("failed to get customer data for app %s: %w", app.GetID().ID, err)
 		}
 
-		response.Items = append(response.Items, customerData)
+		response.Items = append(response.Items, appentity.CustomerApp{
+			App:          app,
+			CustomerData: customerData,
+		})
 	}
 
 	return response, nil

@@ -29,7 +29,7 @@ type AppService interface {
 	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
 
 	// Customer data
-	ListCustomerData(ctx context.Context, input ListCustomerDataInput) (pagination.PagedResponse[appentity.CustomerData], error)
+	ListCustomerData(ctx context.Context, input ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error)
 	EnsureCustomer(ctx context.Context, input EnsureCustomerInput) error
 	DeleteCustomer(ctx context.Context, input DeleteCustomerInput) error
 }

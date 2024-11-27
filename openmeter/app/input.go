@@ -8,13 +8,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type ListCustomerDataInput struct {
+type ListCustomerInput struct {
 	pagination.Page
 	CustomerID customerentity.CustomerID
 	Type       *appentitybase.AppType
 }
 
-func (a ListCustomerDataInput) Validate() error {
+func (a ListCustomerInput) Validate() error {
 	if err := a.Page.Validate(); err != nil {
 		return err
 	}

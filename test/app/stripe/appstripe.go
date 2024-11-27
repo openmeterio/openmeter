@@ -182,7 +182,6 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
-			AppID:            testApp.GetID(),
 			StripeCustomerID: "cus_123",
 		},
 	})
@@ -196,7 +195,6 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Get customer data must not return error")
 	require.Equal(t, appstripeentity.CustomerData{
-		AppID:            testApp.GetID(),
 		StripeCustomerID: "cus_123",
 	}, customerData, "Customer data must match")
 
@@ -204,7 +202,6 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
-			AppID:            testApp.GetID(),
 			StripeCustomerID: "cus_456",
 		},
 	})
@@ -218,7 +215,6 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Get customer data must not return error")
 	require.Equal(t, appstripeentity.CustomerData{
-		AppID:            testApp.GetID(),
 		StripeCustomerID: "cus_456",
 	}, customerData, "Customer data must match")
 
@@ -274,7 +270,6 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	err = app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
-			AppID:            app.GetID(),
 			StripeCustomerID: "cus_123",
 		},
 	})
@@ -347,7 +342,6 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	err = app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
-			AppID:            app.GetID(),
 			StripeCustomerID: "cus_123",
 		},
 	})
