@@ -13,20 +13,35 @@ namespace Invoices;
  */
 @friendlyName("BillingDueDate")
 model DueDate {
-  @summary("When the payment is due.")
+  /**
+   * When the payment is due.
+   */
   // Note: This is a date-time, but we should use a date-time string to be more specific. (original schema has a Date field)
+  @visibility("read")
   dueAt: DateTime;
 
-  @summary("Other details to take into account for the due date.")
+  /**
+   * Other details to take into account for the due date.
+   */
+  @visibility("read")
   notes?: string;
 
-  @summary("How much needs to be paid by the date.")
+  /**
+   * How much needs to be paid by the date.
+   */
+  @visibility("read")
   amount: Money;
 
-  @summary("Percentage of the total that should be paid by the date.")
+  /**
+   * Percentage of the total that should be paid by the date.
+   */
+  @visibility("read")
   percent?: Percentage;
 
-  @summary("If different from the parent document's base currency.")
+  /**
+   * If different from the parent document's base currency.
+   */
+  @visibility("read")
   currency?: CurrencyCode;
 }
 
@@ -38,10 +53,14 @@ model DueDate {
  */
 @friendlyName("BillingPaymentTermType")
 enum PaymentTermType {
-  @summary("Due on a specific date")
+  /**
+   * Due on a specific date.
+   */
   dueDate: "due_date",
 
-  @summary("On receipt of invoice")
+  /**
+   * On receipt of invoice
+   */
   instant: "instant",
 }
 
@@ -49,13 +68,21 @@ enum PaymentTermType {
 @friendlyName("BillingGenericPaymentTerms")
 @discriminator("type")
 model GenericPaymentTerms<T extends PaymentTermType> {
-  @summary("Type of terms to be applied.")
+  /**
+   * Type of terms to be applied.
+   */
   type: T;
 
-  @summary("Text detail of the chosen payment terms.")
+  /**
+   * Text detail of the chosen payment terms.
+   */
+  @visibility("read")
   detail?: string;
 
-  @summary("Description of the conditions for payment.")
+  /**
+   * Description of the conditions for payment.
+   */
+  @visibility("read")
   notes?: string;
 }
 
@@ -74,8 +101,11 @@ model PaymentTermInstant {
 model PaymentTermDueDate {
   ...GenericPaymentTerms<PaymentTermType.dueDate>;
 
-  @summary("When the payment is due.")
+  /**
+   * When the payment is due.
+   */
   @minItems(1)
+  @visibility("read")
   dueAt: DueDate[];
 }
 

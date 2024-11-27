@@ -51,7 +51,6 @@ interface Profiles {
   @operationId("billingDeleteProfile")
   @extension("x-internal", true)
   delete(
-    @extension("x-go-type", "string")
     @path
     id: ULID,
   ): {
@@ -67,7 +66,6 @@ interface Profiles {
   @operationId("billingGetProfile")
   @extension("x-internal", true)
   get(
-    @extension("x-go-type", "string")
     @path
     id: ULID,
 
@@ -83,14 +81,11 @@ interface Profiles {
   @operationId("billingUpdateProfile")
   @extension("x-internal", true)
   update(
-    @extension("x-go-type", "string")
     @path
     id: ULID,
 
     @body profile: Rest.Resource.ResourceReplaceModel<Profile>,
   ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  // Customer overrides
 }
 
 /**
@@ -119,30 +114,66 @@ enum ProfileExpand {
  */
 @friendlyName("BillingProfile")
 model Profile {
-  ...OmitProperties<global.Resource, "updatedAt">;
+  ...global.Resource;
 
-  // TODO: do we need updatedAt?
   /**
-   * When the resource was last updated.
-   *
-   * For updates this field must be set to the last update time to detect conflicts.
+   * The name and contact information for the supplier this billing profile represents
    */
-  @summary("Last update time of the resource")
-  @visibility("read", "update")
-  updatedAt: DateTime;
-
-  @summary("The name and contact information for the supplier this billing profile represents")
+  @visibility("read", "create", "update")
   supplier: Invoices.Party;
 
-  @summary("The billing workflow settings for this profile")
+  /**
+   * The billing workflow settings for this profile
+   */
+  @visibility("read")
   workflow: Workflow;
 
-  @summary("The applications used by this billing profile")
+  /**
+   * The applications used by this billing profile.
+   *
+   * Expand settings govern if this includes the whole app object or just the ID references.
+   */
   @visibility("read")
   apps: ProfileAppsOrReference;
 
-  @summary("Is this the default profile?")
+  /**
+   * Is this the default profile?
+   */
+  @visibility("read", "create", "update")
   default: boolean;
+}
+
+/**
+ * ProfileCreateInput represents the input for creating a billing profile
+ */
+@friendlyName("BillingProfileCreate")
+model ProfileCreate is Rest.Resource.ResourceCreateModel<Profile> {
+  /**
+   * The billing workflow settings for this profile.
+   */
+  @visibility("create")
+  workflow: Rest.Resource.ResourceCreateModel<Workflow>;
+
+  /**
+   * The apps used by this billing profile.
+   */
+  @visibility("create")
+  apps: ProfileAppsCreate;
+}
+
+/**
+ * ProfileReplaceUpdate represents the input for updating a billing profile
+ *
+ * The apps field cannot be updated directly, if an app change is desired a new
+ * profile should be created.
+ */
+@friendlyName("BillingProfileReplaceUpdate")
+model ProfileReplaceUpdate is Rest.Resource.ResourceReplaceModel<Profile> {
+  /**
+   * The billing workflow settings for this profile.
+   */
+  @visibility("update")
+  workflow: Workflow;
 }
 
 /**
@@ -153,16 +184,19 @@ model ProfileApps {
   /*
    * The tax app used for this workflow
    */
+  @visibility("read")
   tax: OpenMeter.App.App;
 
   /*
    * The invoicing app used for this workflow
    */
+  @visibility("read")
   invoicing: OpenMeter.App.App;
 
   /*
    * The payment app used for this workflow
    */
+  @visibility("read")
   payment: OpenMeter.App.App;
 }
 
@@ -171,13 +205,22 @@ model ProfileApps {
  */
 @friendlyName("BillingProfileAppReferences")
 model ProfileAppReferences {
-  @summary("The tax app used for this workflow")
+  /**
+   * The tax app used for this workflow
+   */
+  @visibility("read")
   tax: OpenMeter.App.AppReference;
 
-  @summary("The invoicing app used for this workflow")
+  /**
+   * The invoicing app used for this workflow
+   */
+  @visibility("read")
   invoicing: OpenMeter.App.AppReference;
 
-  @summary("The payment app used for this workflow")
+  /**
+   * The payment app used for this workflow
+   */
+  @visibility("read")
   payment: OpenMeter.App.AppReference;
 }
 
@@ -189,6 +232,42 @@ model ProfileAppReferences {
 union ProfileAppsOrReference {
   profileApps: ProfileApps,
   profileAppReferences: ProfileAppReferences,
+}
+
+/**
+ * App reference type specifies the type of reference inside an app reference
+ */
+@friendlyName("BillingWorkflowAppReferenceType")
+enum AppReferenceType {
+  appId: "app_id",
+  appType: "app_type",
+}
+
+/**
+ * ProfileAppsCreate represents the input for creating a billing profile's apps
+ */
+@friendlyName("BillingProfileAppsCreate")
+model ProfileAppsCreate {
+  /**
+   * The tax app used for this workflow
+   */
+  @visibility("create")
+  @extension("x-go-type", "string")
+  tax: ULID | string;
+
+  /**
+   * The invoicing app used for this workflow
+   */
+  @extension("x-go-type", "string")
+  @visibility("create")
+  invoicing: ULID | string;
+
+  /**
+   * The payment app used for this workflow
+   */
+  @extension("x-go-type", "string")
+  @visibility("create")
+  payment: ULID | string;
 }
 
 /**
@@ -204,7 +283,6 @@ model Workflow {
    */
   @visibility("read")
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
-  @summary("ID")
   id: ULID;
 }
 
@@ -213,14 +291,22 @@ model Workflow {
  */
 @friendlyName("BillingWorkflowSettings")
 model WorkflowSettings {
-  // TODO replace summary with comment description
-  @summary("The collection settings for this workflow")
+  /**
+   * The collection settings for this workflow
+   */
+  @visibility("read", "create", "update")
   collection?: WorkflowCollectionSettings;
 
-  @summary("The invoicing settings for this workflow")
+  /**
+   * The invoicing settings for this workflow
+   */
+  @visibility("read", "create", "update")
   invoicing?: WorkflowInvoicingSettings;
 
-  @summary("The payment settings for this workflow")
+  /**
+   * The payment settings for this workflow
+   */
+  @visibility("read", "create", "update")
   payment?: WorkflowPaymentSettings;
 }
 
@@ -229,19 +315,55 @@ model WorkflowSettings {
  */
 @friendlyName("BillingWorkflowCollectionSettings")
 model WorkflowCollectionSettings {
-  /**
-   * When to collect the pending line items into an invoice.
-   */
-
-  // TODO: make it an union type
-  alignment?: CollectionAlignment = CollectionAlignment.subscription;
+  alignment?: WorkflowCollectionAlignment = #{
+    type: CollectionAlignment.subscription,
+  };
 
   /**
-   * The interval for collecting the pending line items into an invoice.
+   * This grace period can be used to delay the collection of the pending line items specified in
+   * alignment.
+   *
+   * This is useful, in case of multiple subscriptions having slightly different billing periods.
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
+  @visibility("read", "create", "update")
   interval?: string = "PT1H";
+}
+
+/**
+ * CollectionAlignment specifies when the pending line items should be collected into
+ * an invoice.
+ */
+@friendlyName("BillingCollectionAlignment")
+@summary("Collection alignment")
+enum CollectionAlignment {
+  /**
+   * Align the collection to the start of the subscription period.
+   */
+  subscription: "subscription",
+}
+
+/**
+ * The alignment for collecting the pending line items into an invoice.
+ *
+ * Defaults to subscription, which means that we are to create a new invoice every time the
+ * a subscription period starts (for in advance items) or ends (for in arrears items).
+ */
+@friendlyName("BillingWorkflowCollectionAlignment")
+@discriminator("type")
+union WorkflowCollectionAlignment {
+  subscription: WorkflowCollectionAlignmentSubscription,
+}
+
+/**
+ * WorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
+ * into an invoice.
+ */
+@friendlyName("BillingWorkflowCollectionAlignmentSubscription")
+model WorkflowCollectionAlignmentSubscription {
+  @visibility("read", "create", "update")
+  type: CollectionAlignment.subscription;
 }
 
 /**
@@ -250,55 +372,11 @@ model WorkflowCollectionSettings {
 @summary("Workflow payment settings")
 @friendlyName("BillingWorkflowPaymentSettings")
 model WorkflowPaymentSettings {
-  collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
-}
-
-/**
- * App reference type specifies the type of reference inside an app reference
- */
-@friendlyName("BillingWorkflowAppReferenceType")
-enum AppReferenceType {
-  appId: "app_id",
-  appType: "app_type",
-}
-
-/**
- * ProfileCreateInput represents the input for creating a billing profile
- */
-@friendlyName("BillingProfileCreate")
-model ProfileCreate is Rest.Resource.ResourceCreateModel<Profile> {
-  apps: ProfileCreateAppsInput;
-}
-
-/**
- * ProfileCreateAppsInput represents the input for creating a billing profile's apps
- */
-@friendlyName("BillingProfileCreateAppsInput")
-model ProfileCreateAppsInput {
-  @summary("The tax app used for this workflow")
-  @extension("x-go-type", "string")
-  tax: ULID | string;
-
-  @summary("The invoicing app used for this workflow")
-  @extension("x-go-type", "string")
-  invoicing: ULID | string;
-
-  @summary("The payment app used for this workflow")
-  @extension("x-go-type", "string")
-  payment: ULID | string;
-}
-
-/**
- * CollectionAlignment specifies when the pending line items should be collected into
- * an invoice.
- */
-@friendlyName("BillingWorkflowCollectionAlignment")
-@summary("Collection alignment")
-enum CollectionAlignment {
   /**
-   * Align the collection to the start of the subscription period.
+   * The payment method for the invoice.
    */
-  subscription: "subscription",
+  @visibility("read", "create", "update")
+  collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
 }
 
 /**
@@ -310,6 +388,7 @@ model WorkflowInvoicingSettings {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
    */
+  @visibility("read", "create", "update")
   autoAdvance?: boolean = true;
 
   /**
@@ -317,6 +396,7 @@ model WorkflowInvoicingSettings {
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
+  @visibility("read", "create", "update")
   draftPeriod?: string = "P1D";
 
   /**
@@ -324,6 +404,7 @@ model WorkflowInvoicingSettings {
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
+  @visibility("read", "create", "update")
   dueAfter?: string = "P7D";
 }
 

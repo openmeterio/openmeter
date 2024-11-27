@@ -25,14 +25,22 @@ enum DocumentRefType {
 @summary("DocumentRef is used to describe an existing document or a specific part of it's contents.")
 @friendlyName("BillingGenericDocumentRef")
 model GenericDocumentRef {
-  @summary("Type of the document referenced.")
+  /**
+   * Type of the document referenced.
+   */
   @visibility("read")
   type: DocumentRefType;
 
-  @summary("Human readable description on why this reference is here or needs to be used.")
+  /**
+   * Human readable description on why this reference is here or needs to be used.
+   */
+  @visibility("read")
   reason?: string;
 
-  @summary("Additional details about the document.")
+  /**
+   * Additional details about the document.
+   */
+  @visibility("read")
   description?: string;
 }
 
@@ -43,15 +51,23 @@ model GenericDocumentRef {
 model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
   type: DocumentRefType.creditNoteOriginalInvoice;
 
-  @summary("IssueAt reflects the time the document was issued.")
+  /**
+   * IssueAt reflects the time the document was issued.
+   */
+  @visibility("read")
   issuedAt?: DateTime;
 
-  @summary("(Serial) Number of the referenced document.")
+  /**
+   * (Serial) Number of the referenced document.
+   */
   @visibility("read")
   number?: InvoiceNumber;
 
-  @summary("Link to the source document.")
+  /**
+   * Link to the source document.
+   */
   @format("uri")
+  @visibility("read")
   url: string;
 }
 
