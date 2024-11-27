@@ -40,7 +40,7 @@ func (a *Router) UpdateCustomer(w http.ResponseWriter, r *http.Request, customer
 // List customer apps
 // (GET /api/v1/customer/customers/{customerId}/apps)
 func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string, params api.ListCustomerAppDataParams) {
-	a.appHandler.ListCustomerAppData().With(httpdriver.ListCustomerDataParams{
+	a.appHandler.ListCustomerData().With(httpdriver.ListCustomerDataParams{
 		ListCustomerAppDataParams: params,
 		CustomerId:                customerID,
 	}).ServeHTTP(w, r)
