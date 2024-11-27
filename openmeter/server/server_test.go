@@ -598,7 +598,7 @@ func (n NoopAppService) UninstallApp(ctx context.Context, input appentity.Uninst
 	return nil
 }
 
-func (n NoopAppService) ListCustomerApps(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error) {
+func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error) {
 	return pagination.PagedResponse[appentity.CustomerApp]{}, nil
 }
 

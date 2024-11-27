@@ -47,6 +47,12 @@ model CustomerAppBase<TYPE extends Type> {
  */
 @friendlyName("SandboxCustomerAppData")
 model SandboxCustomerAppData {
+  /**
+   * The installed sandbox app this data belongs to.
+   */
+  @visibility("read")
+  app?: SandboxApp;
+
   ...CustomerAppBase<Type.Sandbox>;
 }
 
@@ -57,6 +63,12 @@ model SandboxCustomerAppData {
 @friendlyName("StripeCustomerAppData")
 model StripeCustomerAppData {
   ...CustomerAppBase<Type.Stripe>;
+
+  /**
+   * The installed stripe app this data belongs to.
+   */
+  @visibility("read")
+  app?: StripeApp;
 
   /**
    * The Stripe customer ID.

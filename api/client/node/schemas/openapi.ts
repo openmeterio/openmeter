@@ -6207,6 +6207,8 @@ export interface components {
     }
     /** @description Sandbox Customer App Data. */
     SandboxCustomerAppData: {
+      /** @description The installed sandbox app this data belongs to. */
+      readonly app?: components['schemas']['SandboxApp']
       /**
        * App ID
        * @description The app ID.
@@ -6350,6 +6352,8 @@ export interface components {
        * @enum {string}
        */
       type: 'stripe'
+      /** @description The installed stripe app this data belongs to. */
+      readonly app?: components['schemas']['StripeApp']
       /** @description The Stripe customer ID. */
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */

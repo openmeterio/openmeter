@@ -13,6 +13,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -67,8 +68,8 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 
 			items := make([]api.CustomerAppData, 0, len(resp.Items))
 
-			for _, customerData := range resp.Items {
-				item, err := customerDataToAPI(customerData)
+			for _, customerApp := range resp.Items {
+				item, err := customerAppToAPI(customerApp)
 				if err != nil {
 					return ListCustomerDataResponse{}, fmt.Errorf("failed to cast app customer data: %w", err)
 				}
@@ -294,16 +295,24 @@ func (h *handler) getApp(ctx context.Context, namespace string, appID *string, a
 	return app, nil
 }
 
-// customerDataToAPI converts a CustomerApp to an API CustomerAppData
-func customerDataToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
+// customerAppToAPI converts a CustomerApp to an API CustomerAppData
+func customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 
 	switch customerApp := a.CustomerData.(type) {
 	case appstripeentity.CustomerData:
+		stripeApp, ok := a.App.(appstripeentityapp.App)
+		if !ok {
+			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
+		}
+
+		apiApp := mapStripeAppToAPI(stripeApp)
+
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
 			Type:                         api.StripeCustomerAppDataTypeStripe,
+			App:                          &apiApp,
 			StripeCustomerId:             customerApp.StripeCustomerID,
 			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
 		}
@@ -314,9 +323,17 @@ func customerDataToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
 		}
 
 	case appsandbox.CustomerData:
+		sandboxApp, ok := a.App.(appsandbox.App)
+		if !ok {
+			return apiCustomerAppData, fmt.Errorf("error casting app to sandbox app")
+		}
+
+		apiApp := mapSandboxAppToAPI(sandboxApp)
+
 		apiSandboxCustomerAppData := api.SandboxCustomerAppData{
 			Id:   &appId,
 			Type: api.SandboxCustomerAppDataTypeSandbox,
+			App:  &apiApp,
 		}
 
 		err := apiCustomerAppData.FromSandboxCustomerAppData(apiSandboxCustomerAppData)

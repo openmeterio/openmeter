@@ -14280,6 +14280,11 @@ components:
       required:
         - type
       properties:
+        app:
+          allOf:
+            - $ref: '#/components/schemas/SandboxApp'
+          description: The installed sandbox app this data belongs to.
+          readOnly: true
         id:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -14455,6 +14460,11 @@ components:
             - stripe
           description: The app name.
           title: App Type
+        app:
+          allOf:
+            - $ref: '#/components/schemas/StripeApp'
+          description: The installed stripe app this data belongs to.
+          readOnly: true
         stripeCustomerId:
           type: string
           description: The Stripe customer ID.
