@@ -204,3 +204,5 @@ type GetOwnershipAdapterResponse struct {
 	InvoiceID  string
 	CustomerID string
 }
+
+type DeleteInvoiceInput = billingentity.InvoiceID

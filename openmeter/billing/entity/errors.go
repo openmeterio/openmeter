@@ -32,6 +32,7 @@ var (
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
 	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "some invoice lines are not billable")
 	ErrInvoiceEmpty              = NewValidationError("invoice_empty", "invoice is empty")
+	ErrInvoiceDeleteFailed       = NewValidationError("invoice_delete_failed", "invoice delete failed")
 
 	ErrInvoiceLineFeatureHasNoMeters             = NewValidationError("invoice_line_feature_has_no_meters", "usage based invoice line: feature has no meters")
 	ErrInvoiceLineVolumeSplitNotSupported        = NewValidationError("invoice_line_graduated_split_not_supported", "graduated tiered pricing is not supported for split periods")

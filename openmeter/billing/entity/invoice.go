@@ -54,6 +54,11 @@ const (
 	InvoiceStatusDraftWaitingAutoApproval  InvoiceStatus = "draft_waiting_auto_approval"
 	InvoiceStatusDraftReadyToIssue         InvoiceStatus = "draft_ready_to_issue"
 
+	InvoiceStatusDeleteInProgress InvoiceStatus = "delete_in_progress"
+	InvoiceStatusDeleteSyncing    InvoiceStatus = "delete_syncing"
+	InvoiceStatusDeleteFailed     InvoiceStatus = "delete_failed"
+	InvoiceStatusDeleted          InvoiceStatus = "deleted"
+
 	InvoiceStatusIssuing           InvoiceStatus = "issuing_syncing"
 	InvoiceStatusIssuingSyncFailed InvoiceStatus = "issuing_sync_failed"
 
@@ -72,6 +77,12 @@ var validStatuses = []InvoiceStatus{
 	InvoiceStatusDraftSyncFailed,
 	InvoiceStatusDraftWaitingAutoApproval,
 	InvoiceStatusDraftReadyToIssue,
+
+	InvoiceStatusDeleteInProgress,
+	InvoiceStatusDeleteSyncing,
+	InvoiceStatusDeleteFailed,
+	InvoiceStatusDeleted,
+
 	InvoiceStatusIssuing,
 	InvoiceStatusIssuingSyncFailed,
 	InvoiceStatusIssued,
@@ -94,6 +105,7 @@ func (s InvoiceStatus) ShortStatus() string {
 var failedStatuses = []InvoiceStatus{
 	InvoiceStatusDraftSyncFailed,
 	InvoiceStatusIssuingSyncFailed,
+	InvoiceStatusDeleteFailed,
 }
 
 func (s InvoiceStatus) IsFailed() bool {
