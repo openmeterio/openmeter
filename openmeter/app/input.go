@@ -56,6 +56,18 @@ func (a UpsertCustomerDataInput) Validate() error {
 		}
 	}
 
+	if a.Data == nil {
+		return ValidationError{
+			Err: fmt.Errorf("customer data cannot be nil"),
+		}
+	}
+
+	if err := a.Data.Validate(); err != nil {
+		return ValidationError{
+			Err: fmt.Errorf("error validating customer data: %w", err),
+		}
+	}
+
 	return nil
 }
 

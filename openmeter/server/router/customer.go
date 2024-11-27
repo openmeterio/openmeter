@@ -49,11 +49,13 @@ func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, cus
 // Upsert customer app data
 // (PUT /api/v1/customer/customers/{customerId}/apps/{appId})
 func (a *Router) UpsertCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string) {
-	// a.customerHandler.UpsertCustomerAppData().With(params).ServeHTTP(w, r)
+	a.appHandler.UpsertCustomerData().With(httpdriver.UpsertCustomerDataParams{
+		CustomerId: customerID,
+	}).ServeHTTP(w, r)
 }
 
 // Delete customer app data
 // (DELETE /api/v1/customer/customers/{customerId}/apps/{appId})
 func (a *Router) DeleteCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string, appID string) {
-	// a.customerHandler.DeleteCustomerAppData().With(params).ServeHTTP(w, r)
+	// a.appHandler.DeleteCustomerAppData().With(params).ServeHTTP(w, r)
 }

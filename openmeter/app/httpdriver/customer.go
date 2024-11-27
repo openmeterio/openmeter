@@ -86,10 +86,154 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListCustomerDataResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("listCustomers"),
+			httptransport.WithOperationName("listCustomerData"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+type (
+	UpsertCustomerDataRequest  = []app.UpsertCustomerDataInput
+	UpsertCustomerDataResponse = interface{}
+	UpsertCustomerDataHandler  httptransport.HandlerWithArgs[UpsertCustomerDataRequest, UpsertCustomerDataResponse, UpsertCustomerDataParams]
+)
+
+type UpsertCustomerDataParams struct {
+	CustomerId string
+}
+
+// UpsertCustomerData returns a new httptransport.Handler for creating a customer.
+func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params UpsertCustomerDataParams) (UpsertCustomerDataRequest, error) {
+			body := []api.CustomerAppData{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return UpsertCustomerDataRequest{}, fmt.Errorf("field to decode create customer request: %w", err)
+			}
+
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return UpsertCustomerDataRequest{}, err
+			}
+
+			customerId := customerentity.CustomerID{
+				Namespace: ns,
+				ID:        params.CustomerId,
+			}
+
+			reqs := make(UpsertCustomerDataRequest, 0, len(body))
+
+			for _, apiCustomerData := range body {
+				data, err := toCustomerData(ctx, h.service, customerId, apiCustomerData)
+				if err != nil {
+					return UpsertCustomerDataRequest{}, fmt.Errorf("failed to convert customer data: %w", err)
+				}
+
+				reqs = append(reqs, app.UpsertCustomerDataInput{
+					AppID:      data.GetAppID(),
+					CustomerID: customerId,
+					Data:       data,
+				})
+			}
+
+			return reqs, nil
+		},
+		func(ctx context.Context, reqs UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
+			for _, req := range reqs {
+				err := h.service.UpsertCustomerData(ctx, req)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, nil
+		},
+		commonhttp.EmptyResponseEncoder[UpsertCustomerDataResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("upsertCustomerData"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+// toCustomerData converts an API CustomerAppData to a list of CustomerData
+func toCustomerData(ctx context.Context, service app.Service, customerID customerentity.CustomerID, apiApp api.CustomerAppData) (appentity.CustomerData, error) {
+	// Get app type
+	appType, err := apiApp.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("error getting app type: %w", err)
+	}
+
+	switch appType {
+	// Sandbox app
+	case string(appentitybase.AppTypeSandbox):
+		sandboxCustomerData, err := apiApp.AsSandboxCustomerAppData()
+		if err != nil {
+			return nil, fmt.Errorf("error converting to sandbox app: %w", err)
+		}
+
+		// Get app ID from API data or get default app
+		var appID appentitybase.AppID
+
+		if sandboxCustomerData.Id != nil {
+			appID = appentitybase.AppID{
+				Namespace: customerID.Namespace,
+				ID:        *sandboxCustomerData.Id,
+			}
+		} else {
+			app, err := service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+				Namespace: customerID.Namespace,
+				Type:      appentitybase.AppTypeSandbox,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("error getting default sandbox app: %w", err)
+			}
+
+			appID = app.GetID()
+		}
+
+		return appsandbox.CustomerData{
+			AppID:      appID,
+			CustomerID: customerID,
+		}, nil
+
+	// Stripe app
+	case string(appentitybase.AppTypeStripe):
+		stripeCustomerData, err := apiApp.AsStripeCustomerAppData()
+		if err != nil {
+			return nil, fmt.Errorf("error converting to stripe app: %w", err)
+		}
+
+		// Get app ID from API data or get default app
+		var appID appentitybase.AppID
+
+		if stripeCustomerData.Id != nil {
+			appID = appentitybase.AppID{
+				Namespace: customerID.Namespace,
+				ID:        *stripeCustomerData.Id,
+			}
+		} else {
+			app, err := service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+				Namespace: customerID.Namespace,
+				Type:      appentitybase.AppTypeStripe,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("error getting default sandbox app: %w", err)
+			}
+
+			appID = app.GetID()
+		}
+
+		return appstripeentity.CustomerData{
+			AppID:                        appID,
+			CustomerID:                   customerID,
+			StripeCustomerID:             stripeCustomerData.StripeCustomerId,
+			StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodId,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("unsupported app type: %s", appType)
 }
 
 // customerDataToAPI converts a CustomerData to an API CustomerAppData

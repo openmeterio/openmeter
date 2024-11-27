@@ -70,6 +70,35 @@ func (a adapter) UpsertCustomerData(ctx context.Context, input app.UpsertCustome
 		ctx,
 		a,
 		func(ctx context.Context, repo *adapter) (any, error) {
+			err = a.upsertCustomerData(ctx, input)
+
+			// Upsert customer data for the app
+			if err := getApp.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+				CustomerID: input.CustomerID,
+				Data:       input.Data,
+			}); err != nil {
+				return nil, fmt.Errorf("failed to upsert customer data for app %s: %w", input.AppID.ID, err)
+			}
+
+			return nil, nil
+		},
+	)
+
+	return err
+}
+
+// upsertCustomerData upserts app customer data without calling the app's UpsertCustomerData method
+func (a adapter) upsertCustomerData(ctx context.Context, input app.UpsertCustomerDataInput) error {
+	if err := input.Validate(); err != nil {
+		return app.ValidationError{
+			Err: err,
+		}
+	}
+
+	_, err := entutils.TransactingRepo(
+		ctx,
+		a,
+		func(ctx context.Context, repo *adapter) (any, error) {
 			// Upsert customer data for the app
 			err := repo.db.AppCustomer.
 				Create().
@@ -96,14 +125,6 @@ func (a adapter) UpsertCustomerData(ctx context.Context, input app.UpsertCustome
 				}
 
 				return nil, fmt.Errorf("failed to upsert app customer: %w", err)
-			}
-
-			// Upsert customer data for the app
-			if err := getApp.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
-				CustomerID: input.CustomerID,
-				Data:       input.Data,
-			}); err != nil {
-				return nil, fmt.Errorf("failed to upsert customer data for app %s: %w", input.AppID.ID, err)
 			}
 
 			return nil, nil

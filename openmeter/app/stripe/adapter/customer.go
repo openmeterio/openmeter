@@ -66,15 +66,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 	}
 
 	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
-		err := repo.appService.UpsertCustomerData(ctx, app.UpsertCustomerDataInput{
-			AppID:      input.AppID,
-			CustomerID: input.CustomerID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to upsert app customer data: %w", err)
-		}
-
-		err = repo.db.AppStripeCustomer.
+		err := repo.db.AppStripeCustomer.
 			Create().
 			SetNamespace(input.AppID.Namespace).
 			SetStripeAppID(input.AppID.ID).
@@ -112,14 +104,6 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 	}
 
 	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
-		err := repo.appService.DeleteCustomerData(ctx, app.DeleteCustomerDataInput{
-			AppID:      input.AppID,
-			CustomerID: input.CustomerID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to delete app customer data: %w", err)
-		}
-
 		query := repo.db.AppStripeCustomer.
 			Delete().
 			Where(
@@ -131,7 +115,7 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 			query = query.Where(appstripecustomerdb.AppID(input.AppID.ID))
 		}
 
-		_, err = query.Exec(ctx)
+		_, err := query.Exec(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete app stripe customer data: %w", err)
 		}
