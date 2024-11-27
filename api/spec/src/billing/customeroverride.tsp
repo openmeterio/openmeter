@@ -23,38 +23,38 @@ interface CustomerOverrides {
   ): OpenMeter.PaginatedResponse<CustomerOverride> | OpenMeter.CommonErrors;
 
   /**
-   * Create/update a new customer override.
+   * Create a new or update an existing customer override.
    */
   @post
   @route("/{customerId}")
-  @summary("Create/update a customer override")
   @operationId("billingUpsertCustomerOverride")
+  @summary("Create a new or update a customer override")
   @extension("x-internal", true)
   upsert(
     @path
-    @extension("x-go-type", "string")
     customerId: ULID,
 
     @body
-    request: Rest.Resource.ResourceCreateModel<CustomerOverride>,
+    request: CustomerOverrideCreate,
   ):
-    | {
-        // Updated
-        @statusCode _: 200;
-
-        @body body: CustomerOverride;
-      }
     | {
         // Created
         @statusCode _: 201;
 
         @body body: CustomerOverride;
       }
+    | {
+        // Updated
+        @statusCode _: 200;
+
+        @body body: CustomerOverride;
+      }
+    | CustomerOverride
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
 
   /**
-   * Get a customer override by id.
+   * Get a customer override by customer id.
    */
   @get
   @route("/{customerId}")
@@ -63,12 +63,11 @@ interface CustomerOverrides {
   @extension("x-internal", true)
   get(
     @path
-    @extension("x-go-type", "string")
     customerId: ULID,
   ): CustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Delete a customer override by id.
+   * Delete a customer override by customer id.
    */
   @delete
   @route("/{customerId}")
@@ -77,7 +76,6 @@ interface CustomerOverrides {
   @extension("x-internal", true)
   delete(
     @path
-    @extension("x-go-type", "string")
     customerId: ULID,
   ): {
     @statusCode _: 204;
@@ -98,7 +96,22 @@ enum CustomerOverrideOrderBy {
 @friendlyName("BillingCustomerOverride")
 model CustomerOverride {
   ...ResourceTimestamps;
-  workflow: CustomerWorkflowOverride;
+  workflow?: CustomerWorkflowOverride;
+
+  /**
+   * The billing profile this override is associated with.
+   *
+   * If not provided, the default billing profile is chosen if available.
+   */
+  billingProfile?: ULID;
+}
+
+/**
+ * Payload for creating a new or updating an existing customer override.
+ */
+@friendlyName("BillingCustomerOverrideCreate")
+model CustomerOverrideCreate {
+  workflow?: Rest.Resource.ResourceCreateModel<CustomerWorkflowOverride>;
 
   /**
    * The billing profile this override is associated with.

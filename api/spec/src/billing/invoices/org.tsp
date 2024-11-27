@@ -30,19 +30,23 @@ namespace Invoices;
  */
 @friendlyName("BillingParty")
 model Party {
-  @summary("ID of the party.")
-  @visibility("read", "update")
-  // id is null if there's no dedicated entity different from the parent object to store the party (these are not updated directly via
-  // the underlying entity so it's not a problem)
-  id?: ULID;
-
-  @summary("Legal name or representation of the organization.")
+  /**
+   * Legal name or representation of the organization.
+   */
+  @visibility("read", "update", "create")
   name?: string;
 
-  @summary("The entity's legal ID code used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes.")
+  /**
+   * The entity's legal ID code used for tax purposes. They may have
+   * other numbers, but we're only interested in those valid for tax purposes.
+   */
+  @visibility("read", "update", "create")
   taxId?: TaxIdentity;
 
-  @summary("Regular post addresses for where information should be sent if needed.")
+  /**
+   * Regular post addresses for where information should be sent if needed.
+   */
   @maxItems(1)
-  addresses?: Array<Address>;
+  @visibility("read", "update", "create")
+  addresses?: Address[];
 }
