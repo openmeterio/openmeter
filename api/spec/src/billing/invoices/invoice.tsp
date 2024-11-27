@@ -382,12 +382,7 @@ enum LineStatus {
 @discriminator("type")
 @friendlyName("BillingLine")
 model Line {
-  ...OmitProperties<global.Resource, "id" | "updatedAt">;
-
-  @summary("Last Update Time")
-  @visibility("read", "query", "update")
-  @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
-  updatedAt: DateTime;
+  ...OmitProperties<global.Resource, "id">;
 
   @visibility("read", "update")
   id: ULID;
@@ -409,7 +404,6 @@ model Line {
   invoice?: InvoiceReference;
 
   @summary("The currency of this line")
-  @visibility("read", "query", "create")
   currency: CurrencyCode;
 
   @summary("Map of taxes to be applied and used in the invoice totals.")
@@ -440,8 +434,6 @@ model Line {
 @friendlyName("BillingInvoiceReference")
 model InvoiceReference {
   @summary("The ID of the invoice.")
-  // If we want we can add update here and support moving lines between invoices, right now we don't support that.
-  @visibility("read", "query", "create")
   id: ULID;
 
   @visibility("read")
@@ -473,7 +465,6 @@ model UsageBasedLine {
   price: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
 
   @summary("The feature that the usage is based on.")
-  @visibility("read", "query", "create")
   featureKey: Key;
 
   @summary("Quantity of the item being sold.")

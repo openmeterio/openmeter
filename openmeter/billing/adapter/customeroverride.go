@@ -99,61 +99,47 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 }
 
 func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.CustomerOverride, error) {
-		query := tx.db.BillingCustomerOverride.Query().
-			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
-			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
-			WithBillingProfile(func(bpq *db.BillingProfileQuery) {
-				bpq.WithWorkflowConfig()
-			}).
-			WithCustomer()
+	query := a.db.BillingCustomerOverride.Query().
+		Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
+		Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
+		WithBillingProfile(func(bpq *db.BillingProfileQuery) {
+			bpq.WithWorkflowConfig()
+		}).
+		WithCustomer()
 
-		if !input.IncludeDeleted {
-			query = query.Where(billingcustomeroverride.DeletedAtIsNil())
+	if !input.IncludeDeleted {
+		query = query.Where(billingcustomeroverride.DeletedAtIsNil())
+	}
+
+	dbCustomerOverride, err := query.First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, nil
 		}
 
-		dbCustomerOverride, err := query.First(ctx)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return nil, nil
-			}
+		return nil, err
+	}
 
-			return nil, err
+	if dbCustomerOverride.Edges.Customer == nil {
+		return nil, billingentity.NotFoundError{
+			ID:     input.Customer.ID,
+			Entity: billingentity.EntityCustomer,
+			Err:    billingentity.ErrCustomerNotFound,
 		}
+	}
 
-		if dbCustomerOverride.Edges.Customer == nil {
-			return nil, billingentity.NotFoundError{
-				ID:     input.Customer.ID,
-				Entity: billingentity.EntityCustomer,
-				Err:    billingentity.ErrCustomerNotFound,
-			}
-		}
-
-		return mapCustomerOverrideFromDB(dbCustomerOverride)
-	})
+	return mapCustomerOverrideFromDB(dbCustomerOverride)
 }
 
 func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		rowsAffected, err := tx.db.BillingCustomerOverride.Update().
-			Where(billingcustomeroverride.CustomerID(input.CustomerID)).
-			Where(billingcustomeroverride.Namespace(input.Namespace)).
-			Where(billingcustomeroverride.DeletedAtIsNil()).
-			SetDeletedAt(clock.Now()).
-			Save(ctx)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return billingentity.NotFoundError{
-					ID:     input.CustomerID,
-					Entity: billingentity.EntityCustomerOverride,
-					Err:    billingentity.ErrCustomerOverrideNotFound,
-				}
-			}
-
-			return err
-		}
-
-		if rowsAffected == 0 {
+	rowsAffected, err := a.db.BillingCustomerOverride.Update().
+		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
+		Where(billingcustomeroverride.Namespace(input.Namespace)).
+		Where(billingcustomeroverride.DeletedAtIsNil()).
+		SetDeletedAt(clock.Now()).
+		Save(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
 			return billingentity.NotFoundError{
 				ID:     input.CustomerID,
 				Entity: billingentity.EntityCustomerOverride,
@@ -161,51 +147,57 @@ func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 			}
 		}
 
-		return nil
-	})
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return billingentity.NotFoundError{
+			ID:     input.CustomerID,
+			Entity: billingentity.EntityCustomerOverride,
+			Err:    billingentity.ErrCustomerOverrideNotFound,
+		}
+	}
+
+	return nil
 }
 
 func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]customerentity.CustomerID, error) {
-		dbCustomerOverrides, err := tx.db.BillingCustomerOverride.Query().
-			Where(billingcustomeroverride.Namespace(input.Namespace)).
-			Where(billingcustomeroverride.BillingProfileID(input.ID)).
-			Where(billingcustomeroverride.DeletedAtIsNil()).
-			Select(billingcustomeroverride.FieldCustomerID).
-			All(ctx)
-		if err != nil {
-			return nil, err
-		}
+	dbCustomerOverrides, err := a.db.BillingCustomerOverride.Query().
+		Where(billingcustomeroverride.Namespace(input.Namespace)).
+		Where(billingcustomeroverride.BillingProfileID(input.ID)).
+		Where(billingcustomeroverride.DeletedAtIsNil()).
+		Select(billingcustomeroverride.FieldCustomerID).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-		var customerIDs []customerentity.CustomerID
-		for _, dbCustomerOverride := range dbCustomerOverrides {
-			customerIDs = append(customerIDs, customerentity.CustomerID{
-				Namespace: input.Namespace,
-				ID:        dbCustomerOverride.CustomerID,
-			})
-		}
+	var customerIDs []customerentity.CustomerID
+	for _, dbCustomerOverride := range dbCustomerOverrides {
+		customerIDs = append(customerIDs, customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        dbCustomerOverride.CustomerID,
+		})
+	}
 
-		return customerIDs, nil
-	})
+	return customerIDs, nil
 }
 
 func (a *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		err := tx.db.BillingCustomerOverride.Create().
-			SetNamespace(input.Namespace).
-			SetCustomerID(input.ID).
-			OnConflict(
-				entsql.DoNothing(),
-			).
-			Exec(ctx)
-		if err != nil {
-			// The do nothing returns no lines, so we have the record ready
-			if err == sql.ErrNoRows {
-				return nil
-			}
+	err := a.db.BillingCustomerOverride.Create().
+		SetNamespace(input.Namespace).
+		SetCustomerID(input.ID).
+		OnConflict(
+			entsql.DoNothing(),
+		).
+		Exec(ctx)
+	if err != nil {
+		// The do nothing returns no lines, so we have the record ready
+		if err == sql.ErrNoRows {
+			return nil
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {

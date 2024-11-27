@@ -2,7 +2,6 @@ package billingadapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -58,10 +57,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		lineDiffs, err := diffInvoiceLines(input.Lines)
 		if err != nil {
 			return nil, fmt.Errorf("generating line diffs: %w", err)
-		}
-
-		if err := tx.validateUpdate(ctx, lineDiffs); err != nil {
-			return nil, fmt.Errorf("validating update: %w", err)
 		}
 
 		// Step 1: Let's create/upsert the line configs first
@@ -287,54 +282,6 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs diff[*bi
 				).Exec(ctx)
 		},
 	})
-}
-
-func (a *adapter) validateUpdate(ctx context.Context, diffs *invoiceLineDiff) error {
-	allDiffs := unionOfDiffs(diffs.LineBase, diffs.ChildrenDiff.LineBase)
-
-	updatingLineIDs := lo.Map(allDiffs.ToUpdate, func(line *billingentity.Line, _ int) string {
-		return line.ID
-	})
-
-	if len(updatingLineIDs) == 0 {
-		return nil
-	}
-
-	// Let's fetch the lines that are being updated
-	linesWithUpdatedAt, err := a.db.BillingInvoiceLine.Query().
-		Select(billinginvoiceline.FieldID, billinginvoiceline.FieldUpdatedAt).
-		Where(billinginvoiceline.IDIn(updatingLineIDs...)).
-		All(ctx)
-	if err != nil {
-		return fmt.Errorf("fetching lines: %w", err)
-	}
-
-	dbUpdatedAtByID := make(map[string]time.Time, len(linesWithUpdatedAt))
-	for _, line := range linesWithUpdatedAt {
-		dbUpdatedAtByID[line.ID] = line.UpdatedAt
-	}
-
-	// Let's validate that the lines have not been updated since we fetched them and
-	// that they exist in the database
-	var outErr error
-	for _, line := range allDiffs.ToUpdate {
-		dbUpdatedAt, ok := dbUpdatedAtByID[line.ID]
-		if !ok {
-			outErr = errors.Join(outErr, billingentity.ValidationError{
-				Err: fmt.Errorf("line[%s] not found", line.ID),
-			})
-		}
-
-		if !dbUpdatedAt.Equal(line.UpdatedAt.Truncate(time.Microsecond)) {
-			return billingentity.ConflictError{
-				ID:     line.ID,
-				Entity: billingentity.EntityInvoiceLine,
-				Err:    billingentity.ErrInvoiceLineConflict,
-			}
-		}
-	}
-
-	return outErr
 }
 
 // TODO[OM-982]: Add pagination

@@ -360,17 +360,6 @@ func (a *adapter) AssociatedLineCounts(ctx context.Context, input billing.Associ
 }
 
 func (a *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, existing *db.BillingInvoice) error {
-	// The user is expected to submit the updatedAt of the source invoice version it based the update on
-	// if this doesn't match the current updatedAt, we can't allow the update as it might overwrite some already
-	// changed values.
-	if !existing.UpdatedAt.Equal(req.UpdatedAt.Truncate(time.Microsecond)) {
-		return billingentity.ConflictError{
-			Entity: billingentity.EntityInvoice,
-			ID:     req.ID,
-			Err:    billingentity.ErrInvoiceLineConflict,
-		}
-	}
-
 	if req.Currency != existing.Currency {
 		return billingentity.ValidationError{
 			Err: fmt.Errorf("currency cannot be changed"),

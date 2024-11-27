@@ -107,8 +107,9 @@ func (i AssociateLinesToInvoiceAdapterInput) Validate() error {
 type UpdateInvoiceLineAdapterInput billingentity.Line
 
 type UpdateInvoiceLineInput struct {
-	Invoice   billingentity.InvoiceID
-	UpdatedAt time.Time
+	// Mandatory fields for update
+	Line billingentity.LineID
+	Type billingentity.InvoiceLineType
 
 	LineBase   UpdateInvoiceLineBaseInput
 	UsageBased UpdateInvoiceLineUsageBasedInput
@@ -121,26 +122,18 @@ func (u UpdateInvoiceLineInput) Validate() error {
 		outErr = errors.Join(outErr, err)
 	}
 
-	if u.Invoice.ID == "" {
-		outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix("id", billingentity.ErrFieldRequired))
+	if err := u.Line.Validate(); err != nil {
+		outErr = errors.Join(outErr, fmt.Errorf("validating LineID: %w", err))
 	}
 
-	if u.Invoice.Namespace == "" {
-		outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix("namespace", billingentity.ErrFieldRequired))
-	}
-
-	if u.UpdatedAt.IsZero() {
-		outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix("updated_at", billingentity.ErrFieldRequired))
-	}
-
-	if !slices.Contains(u.LineBase.Type.Values(), string(u.LineBase.Type)) {
+	if !slices.Contains(u.Type.Values(), string(u.Type)) {
 		outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix(
-			"type", fmt.Errorf("line base: invalid type %s", u.LineBase.Type),
+			"type", fmt.Errorf("line base: invalid type %s", u.Type),
 		))
 		return outErr
 	}
 
-	switch u.LineBase.Type {
+	switch u.Type {
 	case billingentity.InvoiceLineTypeUsageBased:
 		if err := u.UsageBased.Validate(); err != nil {
 			outErr = errors.Join(outErr, err)
@@ -163,7 +156,7 @@ func (u UpdateInvoiceLineInput) Apply(l *billingentity.Line) (*billingentity.Lin
 	// however in this specific case we don't care about that, so we just copy it over
 	l.ParentLine = oldParentLine
 
-	if u.LineBase.Type != l.Type {
+	if u.Type != l.Type {
 		return l, fmt.Errorf("line type cannot be changed")
 	}
 
@@ -186,9 +179,6 @@ func (u UpdateInvoiceLineInput) Apply(l *billingentity.Line) (*billingentity.Lin
 }
 
 type UpdateInvoiceLineBaseInput struct {
-	Type billingentity.InvoiceLineType
-	ID   string
-
 	InvoiceAt mo.Option[time.Time]
 
 	Metadata  mo.Option[map[string]string]

@@ -321,12 +321,6 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		if !profile.UpdatedAt.Equal(input.UpdatedAt) {
-			return nil, billingentity.UpdateAfterDeleteError{
-				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileConflict, input.ID),
-			}
-		}
-
 		if !profile.Default && input.Default {
 			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 				Namespace: input.Namespace,

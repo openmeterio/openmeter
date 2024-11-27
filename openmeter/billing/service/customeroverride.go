@@ -84,40 +84,32 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 		}
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.CustomerOverride, error) {
-		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customerentity.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if existingOverride == nil {
-			return nil, billingentity.NotFoundError{
-				ID:     input.CustomerID,
-				Entity: billingentity.EntityCustomerOverride,
-				Err:    billingentity.ErrCustomerOverrideNotFound,
-			}
-		}
-
-		if !existingOverride.UpdatedAt.Equal(input.UpdatedAt) {
-			return nil, billingentity.UpdateAfterDeleteError{
-				Err: billingentity.ErrCustomerOverrideConflict,
-			}
-		}
-
-		override, err := s.adapter.UpdateCustomerOverride(ctx, billing.UpdateCustomerOverrideAdapterInput{
-			UpdateCustomerOverrideInput: input,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		return s.resolveCustomerOverride(ctx, override)
+	existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+		Customer: customerentity.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	if existingOverride == nil {
+		return nil, billingentity.NotFoundError{
+			ID:     input.CustomerID,
+			Entity: billingentity.EntityCustomerOverride,
+			Err:    billingentity.ErrCustomerOverrideNotFound,
+		}
+	}
+
+	override, err := s.adapter.UpdateCustomerOverride(ctx, billing.UpdateCustomerOverrideAdapterInput{
+		UpdateCustomerOverrideInput: input,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.resolveCustomerOverride(ctx, override)
 }
 
 func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (*billingentity.CustomerOverride, error) {

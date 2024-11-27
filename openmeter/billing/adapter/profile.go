@@ -82,80 +82,76 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 		return nil, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.BaseProfile, error) {
-		dbProfile, err := tx.db.BillingProfile.Query().
-			Where(billingprofile.Namespace(input.Profile.Namespace)).
-			Where(billingprofile.ID(input.Profile.ID)).
-			WithWorkflowConfig().First(ctx)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return nil, nil
-			}
-
-			return nil, err
+	dbProfile, err := a.db.BillingProfile.Query().
+		Where(billingprofile.Namespace(input.Profile.Namespace)).
+		Where(billingprofile.ID(input.Profile.ID)).
+		WithWorkflowConfig().First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, nil
 		}
 
-		return mapProfileFromDB(dbProfile)
-	})
+		return nil, err
+	}
+
+	return mapProfileFromDB(dbProfile)
 }
 
 func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.PagedResponse[billingentity.BaseProfile], error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.PagedResponse[billingentity.BaseProfile], error) {
-		query := tx.db.BillingProfile.Query().
-			Where(billingprofile.Namespace(input.Namespace)).
-			WithWorkflowConfig()
+	query := a.db.BillingProfile.Query().
+		Where(billingprofile.Namespace(input.Namespace)).
+		WithWorkflowConfig()
 
-		if !input.IncludeArchived {
-			query = query.Where(billingprofile.DeletedAtIsNil())
+	if !input.IncludeArchived {
+		query = query.Where(billingprofile.DeletedAtIsNil())
+	}
+
+	order := entutils.GetOrdering(sortx.OrderDefault)
+	if !input.Order.IsDefaultValue() {
+		order = entutils.GetOrdering(input.Order)
+	}
+
+	switch input.OrderBy {
+	case api.BillingProfileOrderByCreatedAt:
+		query = query.Order(billingprofile.ByCreatedAt(order...))
+	case api.BillingProfileOrderByUpdatedAt:
+		query = query.Order(billingprofile.ByUpdatedAt(order...))
+	case api.BillingProfileOrderByName:
+		query = query.Order(billingprofile.ByName(order...))
+	case api.BillingProfileOrderByDefault:
+		query = query.Order(billingprofile.ByDefault(order...))
+	default:
+		query = query.Order(billingprofile.ByCreatedAt(order...))
+	}
+
+	response := pagination.PagedResponse[billingentity.BaseProfile]{
+		Page: input.Page,
+	}
+
+	paged, err := query.Paginate(ctx, input.Page)
+	if err != nil {
+		return response, err
+	}
+
+	result := make([]billingentity.BaseProfile, 0, len(paged.Items))
+	for _, item := range paged.Items {
+		if item == nil {
+			a.logger.WarnContext(ctx, "invalid query result: nil billing profile received")
+			continue
 		}
 
-		order := entutils.GetOrdering(sortx.OrderDefault)
-		if !input.Order.IsDefaultValue() {
-			order = entutils.GetOrdering(input.Order)
-		}
-
-		switch input.OrderBy {
-		case api.BillingProfileOrderByCreatedAt:
-			query = query.Order(billingprofile.ByCreatedAt(order...))
-		case api.BillingProfileOrderByUpdatedAt:
-			query = query.Order(billingprofile.ByUpdatedAt(order...))
-		case api.BillingProfileOrderByName:
-			query = query.Order(billingprofile.ByName(order...))
-		case api.BillingProfileOrderByDefault:
-			query = query.Order(billingprofile.ByDefault(order...))
-		default:
-			query = query.Order(billingprofile.ByCreatedAt(order...))
-		}
-
-		response := pagination.PagedResponse[billingentity.BaseProfile]{
-			Page: input.Page,
-		}
-
-		paged, err := query.Paginate(ctx, input.Page)
+		profile, err := mapProfileFromDB(item)
 		if err != nil {
-			return response, err
+			return response, fmt.Errorf("cannot map profile: %w", err)
 		}
 
-		result := make([]billingentity.BaseProfile, 0, len(paged.Items))
-		for _, item := range paged.Items {
-			if item == nil {
-				tx.logger.WarnContext(ctx, "invalid query result: nil billing profile received")
-				continue
-			}
+		result = append(result, *profile)
+	}
 
-			profile, err := mapProfileFromDB(item)
-			if err != nil {
-				return response, fmt.Errorf("cannot map profile: %w", err)
-			}
+	response.TotalCount = paged.TotalCount
+	response.Items = result
 
-			result = append(result, *profile)
-		}
-
-		response.TotalCount = paged.TotalCount
-		response.Items = result
-
-		return response, nil
-	})
+	return response, nil
 }
 
 func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billingentity.BaseProfile, error) {
@@ -163,23 +159,21 @@ func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 		return nil, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.BaseProfile, error) {
-		dbProfile, err := tx.db.BillingProfile.Query().
-			Where(billingprofile.Namespace(input.Namespace)).
-			Where(billingprofile.Default(true)).
-			Where(billingprofile.DeletedAtIsNil()).
-			WithWorkflowConfig().
-			Only(ctx)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return nil, nil
-			}
-
-			return nil, err
+	dbProfile, err := a.db.BillingProfile.Query().
+		Where(billingprofile.Namespace(input.Namespace)).
+		Where(billingprofile.Default(true)).
+		Where(billingprofile.DeletedAtIsNil()).
+		WithWorkflowConfig().
+		Only(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, nil
 		}
 
-		return mapProfileFromDB(dbProfile)
-	})
+		return nil, err
+	}
+
+	return mapProfileFromDB(dbProfile)
 }
 
 func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {

@@ -21,26 +21,24 @@ import (
 var _ billing.InvoiceService = (*Service)(nil)
 
 func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.ListInvoicesResponse, error) {
-		invoices, err := s.adapter.ListInvoices(ctx, input)
+	invoices, err := s.adapter.ListInvoices(ctx, input)
+	if err != nil {
+		return billing.ListInvoicesResponse{}, err
+	}
+
+	for i := range invoices.Items {
+		invoices.Items[i], err = s.resolveWorkflowApps(ctx, invoices.Items[i])
 		if err != nil {
-			return billing.ListInvoicesResponse{}, err
+			return billing.ListInvoicesResponse{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoices.Items[i].ID, err)
 		}
 
-		for i := range invoices.Items {
-			invoices.Items[i], err = s.resolveWorkflowApps(ctx, invoices.Items[i])
-			if err != nil {
-				return billing.ListInvoicesResponse{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoices.Items[i].ID, err)
-			}
-
-			invoices.Items[i], err = s.resolveStatusDetails(ctx, invoices.Items[i])
-			if err != nil {
-				return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoices.Items[i].ID, err)
-			}
+		invoices.Items[i], err = s.resolveStatusDetails(ctx, invoices.Items[i])
+		if err != nil {
+			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoices.Items[i].ID, err)
 		}
+	}
 
-		return invoices, nil
-	})
+	return invoices, nil
 }
 
 func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billingentity.Invoice) (billingentity.Invoice, error) {
@@ -79,24 +77,22 @@ func (s *Service) resolveStatusDetails(ctx context.Context, invoice billingentit
 }
 
 func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billingentity.Invoice, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billingentity.Invoice, error) {
-		invoice, err := s.adapter.GetInvoiceById(ctx, input)
-		if err != nil {
-			return billingentity.Invoice{}, err
-		}
+	invoice, err := s.adapter.GetInvoiceById(ctx, input)
+	if err != nil {
+		return billingentity.Invoice{}, err
+	}
 
-		invoice, err = s.resolveWorkflowApps(ctx, invoice)
-		if err != nil {
-			return billingentity.Invoice{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoice.ID, err)
-		}
+	invoice, err = s.resolveWorkflowApps(ctx, invoice)
+	if err != nil {
+		return billingentity.Invoice{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoice.ID, err)
+	}
 
-		invoice, err = s.resolveStatusDetails(ctx, invoice)
-		if err != nil {
-			return billingentity.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
-		}
+	invoice, err = s.resolveStatusDetails(ctx, invoice)
+	if err != nil {
+		return billingentity.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+	}
 
-		return invoice, nil
-	})
+	return invoice, nil
 }
 
 func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoiceInput) ([]billingentity.Invoice, error) {
@@ -499,20 +495,18 @@ func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.Va
 		}
 	}
 
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
-			Namespace: input.Namespace,
-			ID:        input.InvoiceID,
-		})
-		if err != nil {
-			return err
-		}
-
-		if ownership.CustomerID != input.CustomerID {
-			return billingentity.NotFoundError{
-				Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
-			}
-		}
-		return nil
+	ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
+		Namespace: input.Namespace,
+		ID:        input.InvoiceID,
 	})
+	if err != nil {
+		return err
+	}
+
+	if ownership.CustomerID != input.CustomerID {
+		return billingentity.NotFoundError{
+			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
+		}
+	}
+	return nil
 }

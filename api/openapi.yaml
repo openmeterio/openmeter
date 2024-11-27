@@ -1229,7 +1229,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-    put:
+    post:
       operationId: billingUpdateInvoiceLine
       summary: Update an invoice line
       description: Update an invoice line
@@ -1311,7 +1311,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingInvoiceLine'
+              $ref: '#/components/schemas/BillingInvoiceLineCreate'
       x-internal: true
   /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry:
     post:
@@ -8093,6 +8093,13 @@ components:
           description: Timestamp of when the resource was created.
           title: Creation Time
           readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
         deletedAt:
           type: string
           format: date-time
@@ -8100,12 +8107,6 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          title: Last Update Time
         id:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -8159,6 +8160,77 @@ components:
             - $ref: '#/components/schemas/BillingInvoiceTotals'
           title: Totals for this line.
           readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - flat_fee
+        perUnitAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Price of the item being sold.
+        paymentTerm:
+          allOf:
+            - $ref: '#/components/schemas/PricePaymentTerm'
+          title: Payment term of the line.
+          default: in_advance
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          title: Quantity of the item being sold.
+      description: BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
+    BillingFlatFeeLineCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - period
+        - invoiceAt
+        - type
+        - perUnitAmount
+        - quantity
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceReference'
+          title: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          title: The currency of this line
+        taxConfig:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          nullable: true
+          title: Tax config specify the tax configuration for this line.
         period:
           allOf:
             - $ref: '#/components/schemas/BillingPeriod'
@@ -8528,12 +8600,14 @@ components:
         - '*'
         - lines
         - preceding
+        - workflow
         - workflow.apps
       description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
       x-enum-varnames:
         - all
         - lines
         - preceding
+        - workflow
         - workflowApps
     BillingInvoiceExtendedStatus:
       type: string
@@ -8566,6 +8640,16 @@ components:
         mapping:
           usage_based: '#/components/schemas/BillingUsageBasedLine'
           flat_fee: '#/components/schemas/BillingFlatFeeLine'
+      description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    BillingInvoiceLineCreate:
+      anyOf:
+        - $ref: '#/components/schemas/BillingUsageBasedLineCreate'
+        - $ref: '#/components/schemas/BillingFlatFeeLineCreate'
+      discriminator:
+        propertyName: type
+        mapping:
+          usage_based: '#/components/schemas/BillingUsageBasedLineCreate'
+          flat_fee: '#/components/schemas/BillingFlatFeeLineCreate'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
     BillingInvoiceLineCreateItem:
       anyOf:
@@ -9255,6 +9339,13 @@ components:
           description: Timestamp of when the resource was created.
           title: Creation Time
           readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T01:01:01.001Z
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
         deletedAt:
           type: string
           format: date-time
@@ -9262,12 +9353,6 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2024-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          title: Last Update Time
         id:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -9349,6 +9434,73 @@ components:
             - $ref: '#/components/schemas/Numeric'
           title: Quantity of the item being sold.
           readOnly: true
+      description: UsageBasedLine represents a line item that is sold to the customer based on usage.
+    BillingUsageBasedLineCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - period
+        - invoiceAt
+        - type
+        - price
+        - featureKey
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceReference'
+          title: The invoice this item belongs to.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          title: The currency of this line
+        taxConfig:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          nullable: true
+          title: Tax config specify the tax configuration for this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingPeriod'
+          title: Period of the line item applies to for revenue recognition pruposes.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          title: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - usage_based
+        price:
+          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A key is a unique string that is used to identify a resource.
+          title: The feature that the usage is based on.
       description: UsageBasedLine represents a line item that is sold to the customer based on usage.
     BillingUsageBasedLineCreateItem:
       type: object

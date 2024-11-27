@@ -1540,16 +1540,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		s.Run("update line item", func() {
 			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
-				// TODO[later]: it will be removed or made optional only for internal use
-				UpdatedAt: flatPerUnit.UpdatedAt,
-				Invoice: billingentity.InvoiceID{
+				Line: billingentity.LineID{
 					Namespace: namespace,
-					ID:        out[0].ID,
+					ID:        flatPerUnit.ID,
 				},
-				LineBase: billing.UpdateInvoiceLineBaseInput{
-					ID:   flatPerUnit.ID,
-					Type: billingentity.InvoiceLineTypeUsageBased,
-				},
+				Type: billingentity.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
 					Price: mo.Some(plan.NewPriceFrom(plan.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(250),
@@ -1587,15 +1582,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		s.Run("invalid update of a line item", func() {
 			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
-				UpdatedAt: flatPerUnit.UpdatedAt,
-				Invoice: billingentity.InvoiceID{
+				Line: billingentity.LineID{
 					Namespace: namespace,
-					ID:        out[0].ID,
+					ID:        flatPerUnit.ID,
 				},
-				LineBase: billing.UpdateInvoiceLineBaseInput{
-					ID:   flatPerUnit.ID,
-					Type: billingentity.InvoiceLineTypeUsageBased,
-				},
+				Type: billingentity.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
 					Price: mo.Some(plan.NewPriceFrom(plan.TieredPrice{
 						Mode: plan.VolumeTieredPrice,

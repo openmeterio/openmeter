@@ -258,11 +258,9 @@ func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLi
 		}
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Line, error) {
-		return s.adapter.GetInvoiceLine(ctx, billing.GetInvoiceLineAdapterInput{
-			Namespace: input.Namespace,
-			ID:        input.ID,
-		})
+	return s.adapter.GetInvoiceLine(ctx, billing.GetInvoiceLineAdapterInput{
+		Namespace: input.Namespace,
+		ID:        input.ID,
 	})
 }
 
@@ -273,22 +271,20 @@ func (s *Service) ValidateLineOwnership(ctx context.Context, input billing.Valid
 		}
 	}
 
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
-			Namespace: input.Namespace,
-			ID:        input.InvoiceID,
-		})
-		if err != nil {
-			return err
-		}
-
-		if ownership.CustomerID != input.CustomerID {
-			return billingentity.NotFoundError{
-				Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
-			}
-		}
-		return nil
+	ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
+		Namespace: input.Namespace,
+		ID:        input.InvoiceID,
 	})
+	if err != nil {
+		return err
+	}
+
+	if ownership.CustomerID != input.CustomerID {
+		return billingentity.NotFoundError{
+			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
+		}
+	}
+	return nil
 }
 
 func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineInput) (*billingentity.Line, error) {
@@ -299,17 +295,17 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 	}
 
 	triggeredInvoice, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Invoice, error) {
-		existingLine, err := s.adapter.GetInvoiceLine(ctx, billing.GetInvoiceLineAdapterInput{
-			Namespace: input.Invoice.Namespace,
-			ID:        input.LineBase.ID,
-		})
+		existingLine, err := s.adapter.GetInvoiceLine(ctx, input.Line)
 		if err != nil {
 			return nil, err
 		}
 
 		invoice, err := s.executeTriggerOnInvoice(
 			ctx,
-			input.Invoice,
+			billingentity.InvoiceID{
+				ID:        existingLine.InvoiceID,
+				Namespace: existingLine.Namespace,
+			},
 			triggerUpdated,
 			ExecuteTriggerWithAllowInStates(billingentity.InvoiceStatusDraftUpdating),
 			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
@@ -354,7 +350,7 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 		return nil, err
 	}
 
-	invoice, err := s.AdvanceInvoice(ctx, input.Invoice)
+	invoice, err := s.AdvanceInvoice(ctx, triggeredInvoice.InvoiceID())
 	// We don't care if we cannot advance the invoice, as most probably we ended up in a failed state
 	if errors.Is(err, billingentity.ErrInvoiceCannotAdvance) {
 		invoice = *triggeredInvoice
@@ -363,12 +359,12 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 	}
 
 	updatedLine := lo.FindOrElse(invoice.Lines.OrEmpty(), nil, func(l *billingentity.Line) bool {
-		return l.ID == input.LineBase.ID
+		return l.ID == input.Line.ID
 	})
 
 	if updatedLine == nil {
 		return nil, billingentity.NotFoundError{
-			Err: fmt.Errorf("line[%s]: not found in invoice", input.LineBase.ID),
+			Err: fmt.Errorf("line[%s]: not found in invoice", input.Line.ID),
 		}
 	}
 

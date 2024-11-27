@@ -582,23 +582,6 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		require.True(s.T(), found)
 		require.Equal(s.T(), "ref1", *deleted.ChildUniqueReferenceID)
 	})
-
-	// When the updatedAt is invalid, a conflict error is returned
-	s.Run("Conflict error handling", func() {
-		// Given we have a line
-		line := lines[0]
-
-		// When we update the line with an invalid updatedAt
-		line.UpdatedAt = time.Now().Add(-time.Hour)
-		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: ns,
-			Lines:     []*billingentity.Line{line},
-		})
-
-		// Then a conflict error is returned
-		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billingentity.ConflictError{})
-	})
 }
 
 func getUniqReferenceNames(lines []*billingentity.Line) []string {

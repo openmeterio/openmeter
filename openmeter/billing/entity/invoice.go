@@ -182,6 +182,13 @@ type Invoice struct {
 	ExpandedFields InvoiceExpand `json:"-"`
 }
 
+func (i Invoice) InvoiceID() InvoiceID {
+	return InvoiceID{
+		Namespace: i.Namespace,
+		ID:        i.ID,
+	}
+}
+
 func (i *Invoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
 	i.ValidationIssues = lo.Filter(i.ValidationIssues, func(issue ValidationIssue, _ int) bool {
 		return issue.Component != reportingComponent

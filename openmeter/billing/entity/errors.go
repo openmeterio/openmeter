@@ -16,11 +16,9 @@ var (
 	ErrDefaultProfileNotFound       = NewValidationError("default_profile_not_found", "default profile not found")
 	ErrProfileNotFound              = NewValidationError("profile_not_found", "profile not found")
 	ErrProfileAlreadyDeleted        = NewValidationError("profile_already_deleted", "profile already deleted")
-	ErrProfileConflict              = NewValidationError("profile_update_conflict", "profile has been already updated")
 	ErrProfileReferencedByOverrides = NewValidationError("profile_referenced", "profile is referenced by customer overrides")
 
 	ErrCustomerOverrideNotFound       = NewValidationError("customer_override_not_found", "customer override not found")
-	ErrCustomerOverrideConflict       = NewValidationError("customer_override_conflict", "customer override has been already updated conflict")
 	ErrCustomerOverrideAlreadyDeleted = NewValidationError("customer_override_deleted", "customer override already deleted")
 	ErrCustomerNotFound               = NewValidationError("customer_not_found", "customer not found")
 	ErrCustomerDeleted                = NewValidationError("customer_deleted", "customer has been deleted")
@@ -43,7 +41,6 @@ var (
 	ErrInvoiceCreateUBPLineCustomerHasNoSubjects = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer has no subjects")
 	ErrInvoiceCreateUBPLinePeriodIsEmpty         = NewValidationError("invoice_create_ubp_line_period_is_empty", "creating an usage based line: truncated period is empty")
 	ErrInvoiceLineCurrencyMismatch               = NewValidationError("invoice_line_currency_mismatch", "invoice line currency mismatch")
-	ErrInvoiceLineConflict                       = NewValidationError("invoice_line_conflict", "invoice line has been already updated")
 )
 
 var _ error = (*NotFoundError)(nil)
