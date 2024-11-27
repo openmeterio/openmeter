@@ -20,6 +20,7 @@ const (
 var (
 	_ customerentity.App         = (*App)(nil)
 	_ billingentity.InvoicingApp = (*App)(nil)
+	_ appentity.CustomerData     = (*CustomerData)(nil)
 )
 
 type App struct {
@@ -35,7 +36,10 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 }
 
 func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
-	return nil, nil
+	return CustomerData{
+		AppID:      a.GetID(),
+		CustomerID: input.CustomerID,
+	}, nil
 }
 
 func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
@@ -70,6 +74,23 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billingentity.Invoice)
 
 func (a App) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) error {
 	return nil
+}
+
+type CustomerData struct {
+	AppID      appentitybase.AppID
+	CustomerID customerentity.CustomerID
+}
+
+func (c CustomerData) Validate() error {
+	return nil
+}
+
+func (c CustomerData) GetAppID() appentitybase.AppID {
+	return c.AppID
+}
+
+func (c CustomerData) GetCustomerID() customerentity.CustomerID {
+	return c.CustomerID
 }
 
 type Factory struct {

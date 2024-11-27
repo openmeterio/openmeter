@@ -42,12 +42,18 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 			return appstripeentity.CustomerData{}, fmt.Errorf("error getting stripe customer data: %w", err)
 		}
 
-		return appstripeentity.CustomerData{
+		customerData := appstripeentity.CustomerData{
 			AppID:                        input.AppID,
 			CustomerID:                   input.CustomerID,
 			StripeCustomerID:             stripeCustomerDBEntity.StripeCustomerID,
 			StripeDefaultPaymentMethodID: stripeCustomerDBEntity.StripeDefaultPaymentMethodID,
-		}, nil
+		}
+
+		if err := customerData.Validate(); err != nil {
+			return appstripeentity.CustomerData{}, fmt.Errorf("error validating stripe customer data: %w", err)
+		}
+
+		return customerData, nil
 	})
 }
 

@@ -27,6 +27,7 @@ func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerDat
 		Page:       input.Page,
 		Namespace:  input.CustomerID.Namespace,
 		CustomerID: &input.CustomerID,
+		Type:       input.Type,
 	})
 	if err != nil {
 		return pagination.PagedResponse[appentity.CustomerData]{}, fmt.Errorf("failed to list apps: %w", err)

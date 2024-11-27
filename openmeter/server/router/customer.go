@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 )
 
 // List customers
@@ -34,4 +35,25 @@ func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerID 
 // (PUT /api/v1/customer/customers/{customerId})
 func (a *Router) UpdateCustomer(w http.ResponseWriter, r *http.Request, customerID string) {
 	a.customerHandler.UpdateCustomer().With(customerID).ServeHTTP(w, r)
+}
+
+// List customer apps
+// (GET /api/v1/customer/customers/{customerId}/apps)
+func (a *Router) ListCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string, params api.ListCustomerAppDataParams) {
+	a.appHandler.ListCustomerData().With(httpdriver.ListCustomerDataParams{
+		ListCustomerAppDataParams: params,
+		CustomerId:                customerID,
+	}).ServeHTTP(w, r)
+}
+
+// Upsert customer app data
+// (PUT /api/v1/customer/customers/{customerId}/apps/{appId})
+func (a *Router) UpsertCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string) {
+	// a.customerHandler.UpsertCustomerAppData().With(params).ServeHTTP(w, r)
+}
+
+// Delete customer app data
+// (DELETE /api/v1/customer/customers/{customerId}/apps/{appId})
+func (a *Router) DeleteCustomerAppData(w http.ResponseWriter, r *http.Request, customerID string, appID string) {
+	// a.customerHandler.DeleteCustomerAppData().With(params).ServeHTTP(w, r)
 }

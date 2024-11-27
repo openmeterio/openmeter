@@ -2090,6 +2090,216 @@ paths:
       tags:
         - Customers
       x-internal: true
+  /api/v1/customers/{customerId}/apps:
+    get:
+      operationId: listCustomerAppData
+      summary: List customer app data
+      description: List customers app data.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+        - $ref: '#/components/parameters/queryCustomerList.type'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAppDataPaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Customers
+      x-internal: true
+    put:
+      operationId: upsertCustomerAppData
+      summary: Upsert customer app data
+      description: Upsert customer app data.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerAppData'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CustomerAppData'
+      x-internal: true
+  /api/v1/customers/{customerId}/apps/{appId}:
+    delete:
+      operationId: deleteCustomerAppData
+      summary: Delete customer app data
+      description: Delete customer app data.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Customers
+      x-internal: true
   /api/v1/customers/{id}:
     get:
       operationId: getCustomer
@@ -7670,6 +7880,14 @@ components:
       schema:
         type: string
       explode: false
+    queryCustomerList.type:
+      name: type
+      in: query
+      required: false
+      description: Filter customer data by app type.
+      schema:
+        $ref: '#/components/schemas/AppType'
+      explode: false
   schemas:
     Address:
       type: object
@@ -8928,12 +9146,6 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        apps:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerApp'
-          description: Application specific metadata.
-          title: Apps
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         name: ACME Inc.
@@ -8943,19 +9155,45 @@ components:
         createdAt: 2024-01-01T01:01:01.001Z
         updatedAt: 2024-01-01T01:01:01.001Z
       description: A customer object.
-    CustomerApp:
+    CustomerAppData:
       anyOf:
-        - $ref: '#/components/schemas/StripeCustomerApp'
-        - $ref: '#/components/schemas/SandboxCustomerApp'
+        - $ref: '#/components/schemas/StripeCustomerAppData'
+        - $ref: '#/components/schemas/SandboxCustomerAppData'
       discriminator:
         propertyName: type
         mapping:
-          stripe: '#/components/schemas/StripeCustomerApp'
-          sandbox: '#/components/schemas/SandboxCustomerApp'
+          stripe: '#/components/schemas/StripeCustomerAppData'
+          sandbox: '#/components/schemas/SandboxCustomerAppData'
       description: |-
-        CustomerApp
+        CustomerAppData
         Stores the app specific data for the customer.
         One of: stripe, sandbox
+    CustomerAppDataPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          example: 500
+          description: The items in the current page.
+        page:
+          type: integer
+          example: 1
+          description: The items in the current page.
+        pageSize:
+          type: integer
+          example: 100
+          description: The items in the current page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerAppData'
+          description: The items in the current page.
+      description: Paginated response
     CustomerCreate:
       type: object
       required:
@@ -9007,12 +9245,6 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        apps:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerApp'
-          description: Application specific metadata.
-          title: Apps
       description: Resource create operation model.
     CustomerId:
       type: object
@@ -9109,12 +9341,6 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
-        apps:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerApp'
-          description: Application specific metadata.
-          title: Apps
       description: Resource update operation model.
     CustomerUsageAttribution:
       type: object
@@ -14049,11 +14275,10 @@ components:
 
         The app is not creating anything in external systems, thus it is safe to use for
         verifying OpenMeter features.
-    SandboxCustomerApp:
+    SandboxCustomerAppData:
       type: object
       required:
         - type
-        - data
       properties:
         id:
           type: string
@@ -14069,14 +14294,6 @@ components:
             - sandbox
           description: The app name.
           title: App Type
-        data:
-          allOf:
-            - $ref: '#/components/schemas/SandboxCustomerAppData'
-          description: The app data.
-          title: Data
-      description: Sandbox Customer App.
-    SandboxCustomerAppData:
-      type: object
       description: Sandbox Customer App Data.
     ServiceUnavailableProblemResponse:
       type: object
@@ -14218,11 +14435,11 @@ components:
       enum:
         - setup
       description: Stripe CheckoutSession.mode
-    StripeCustomerApp:
+    StripeCustomerAppData:
       type: object
       required:
         - type
-        - data
+        - stripeCustomerId
       properties:
         id:
           type: string
@@ -14238,21 +14455,6 @@ components:
             - stripe
           description: The app name.
           title: App Type
-        data:
-          allOf:
-            - $ref: '#/components/schemas/StripeCustomerAppData'
-          description: The app data.
-          title: Data
-      example:
-        type: stripe
-        data:
-          stripeCustomerId: cus_xxxxxxxxxxxxxx
-      description: Stripe Customer App.
-    StripeCustomerAppData:
-      type: object
-      required:
-        - stripeCustomerId
-      properties:
         stripeCustomerId:
           type: string
           description: The Stripe customer ID.
@@ -14260,6 +14462,7 @@ components:
           type: string
           description: The Stripe default payment method ID.
       example:
+        type: stripe
         stripeCustomerId: cus_xxxxxxxxxxxxxx
       description: Stripe Customer App Data.
     StripePaymentIntentStatus:

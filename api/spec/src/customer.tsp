@@ -83,6 +83,7 @@ interface Customers {
   @summary("List customer app data")
   @extension("x-internal", true)
   listAppData(
+    @path customerId: ULID,
     ...ListCustomerAppDataParams,
   ): PaginatedResponse<App.CustomerAppData> | NotFoundError | CommonErrors;
 
@@ -162,12 +163,6 @@ model ListCustomersParams {
 @friendlyName("queryCustomerList")
 model ListCustomerAppDataParams {
   ...PaginatedQuery;
-
-  /**
-   * Customer ID.
-   */
-  @path
-  customerId: ULID;
 
   /**
    * Filter customer data by app type.

@@ -449,6 +449,50 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/customers/{customerId}/apps': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List customer app data
+     * @description List customers app data.
+     */
+    get: operations['listCustomerAppData']
+    /**
+     * Upsert customer app data
+     * @description Upsert customer app data.
+     */
+    put: operations['upsertCustomerAppData']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/customers/{customerId}/apps/{appId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Delete customer app data
+     * @description Delete customer app data.
+     */
+    delete: operations['deleteCustomerAppData']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/customers/{id}': {
     parameters: {
       query?: never
@@ -3264,18 +3308,33 @@ export interface components {
        *     Used for tax and invoicing.
        */
       billingAddress?: components['schemas']['Address']
-      /**
-       * Apps
-       * @description Application specific metadata.
-       */
-      apps?: components['schemas']['CustomerApp'][]
     }
-    /** @description CustomerApp
+    /** @description CustomerAppData
      *     Stores the app specific data for the customer.
      *     One of: stripe, sandbox */
-    CustomerApp:
-      | components['schemas']['StripeCustomerApp']
-      | components['schemas']['SandboxCustomerApp']
+    CustomerAppData:
+      | components['schemas']['StripeCustomerAppData']
+      | components['schemas']['SandboxCustomerAppData']
+    /** @description Paginated response */
+    CustomerAppDataPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['CustomerAppData'][]
+    }
     /** @description Resource create operation model. */
     CustomerCreate: {
       /**
@@ -3320,11 +3379,6 @@ export interface components {
        *     Used for tax and invoicing.
        */
       billingAddress?: components['schemas']['Address']
-      /**
-       * Apps
-       * @description Application specific metadata.
-       */
-      apps?: components['schemas']['CustomerApp'][]
     }
     /** @description Create Stripe checkout session customer ID. */
     CustomerId: {
@@ -3423,11 +3477,6 @@ export interface components {
        *     Used for tax and invoicing.
        */
       billingAddress?: components['schemas']['Address']
-      /**
-       * Apps
-       * @description Application specific metadata.
-       */
-      apps?: components['schemas']['CustomerApp'][]
     }
     /** @description Mapping to attribute metered usage to the customer.
      *     One customer can have multiple subjects,
@@ -6089,8 +6138,8 @@ export interface components {
        */
       type: 'sandbox'
     }
-    /** @description Sandbox Customer App. */
-    SandboxCustomerApp: {
+    /** @description Sandbox Customer App Data. */
+    SandboxCustomerAppData: {
       /**
        * App ID
        * @description The app ID.
@@ -6104,14 +6153,7 @@ export interface components {
        * @enum {string}
        */
       type: 'sandbox'
-      /**
-       * Data
-       * @description The app data.
-       */
-      data: components['schemas']['SandboxCustomerAppData']
     }
-    /** @description Sandbox Customer App Data. */
-    SandboxCustomerAppData: Record<string, never>
     /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
     ServiceUnavailableProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /**
@@ -6221,15 +6263,13 @@ export interface components {
      */
     StripeCheckoutSessionMode: 'setup'
     /**
-     * @description Stripe Customer App.
+     * @description Stripe Customer App Data.
      * @example {
      *       "type": "stripe",
-     *       "data": {
-     *         "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
-     *       }
+     *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
      *     }
      */
-    StripeCustomerApp: {
+    StripeCustomerAppData: {
       /**
        * App ID
        * @description The app ID.
@@ -6243,19 +6283,6 @@ export interface components {
        * @enum {string}
        */
       type: 'stripe'
-      /**
-       * Data
-       * @description The app data.
-       */
-      data: components['schemas']['StripeCustomerAppData']
-    }
-    /**
-     * @description Stripe Customer App Data.
-     * @example {
-     *       "stripeCustomerId": "cus_xxxxxxxxxxxxxx"
-     *     }
-     */
-    StripeCustomerAppData: {
       /** @description The Stripe customer ID. */
       stripeCustomerId: string
       /** @description The Stripe default payment method ID. */
@@ -7052,6 +7079,8 @@ export interface components {
     /** @description Filter customers by usage attribution subject.
      *     Case-insensitive partial match. */
     'queryCustomerList.subject': string
+    /** @description Filter customer data by app type. */
+    'queryCustomerList.type': components['schemas']['AppType']
   }
   requestBodies: never
   headers: never
@@ -9564,6 +9593,271 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  listCustomerAppData: {
+    parameters: {
+      query?: {
+        /** @description The page number. */
+        page?: components['parameters']['PaginatedQuery.page']
+        /** @description The number of items in the page. */
+        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description Filter customer data by app type. */
+        type?: components['parameters']['queryCustomerList.type']
+      }
+      header?: never
+      path: {
+        customerId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CustomerAppDataPaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  upsertCustomerAppData: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        customerId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CustomerAppData'][]
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CustomerAppData'][]
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  deleteCustomerAppData: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        customerId: string
+        appId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */

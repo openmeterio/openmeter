@@ -12,6 +12,7 @@ import (
 type ListCustomerDataInput struct {
 	pagination.Page
 	CustomerID customerentity.CustomerID
+	Type       *appentitybase.AppType
 }
 
 func (a ListCustomerDataInput) Validate() error {
@@ -21,6 +22,14 @@ func (a ListCustomerDataInput) Validate() error {
 
 	if err := a.CustomerID.Validate(); err != nil {
 		return err
+	}
+
+	if a.Type != nil {
+		if *a.Type == "" {
+			return ValidationError{
+				Err: fmt.Errorf("app type cannot be empty"),
+			}
+		}
 	}
 
 	return nil

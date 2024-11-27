@@ -77,11 +77,9 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 				query = query.Where(appdb.DeletedAtIsNil())
 			}
 
-			// Only list apps that has data for the given customer
+			// Only list apps that has customer data for the given customer
 			if params.CustomerID != nil {
-				query = query.WithCustomerApps(func(q *db.AppCustomerQuery) {
-					q.Where(appcustomerdb.CustomerID(params.CustomerID.ID))
-				})
+				query = query.Where(appdb.HasCustomerAppsWith(appcustomerdb.CustomerID(params.CustomerID.ID)))
 			}
 
 			response := pagination.PagedResponse[appentity.App]{
