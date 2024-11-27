@@ -30,6 +30,5 @@ type AppService interface {
 
 	// Customer data
 	ListCustomerData(ctx context.Context, input ListCustomerDataInput) (pagination.PagedResponse[appentity.CustomerData], error)
-	UpsertCustomerData(ctx context.Context, input UpsertCustomerDataInput) error
-	DeleteCustomerData(ctx context.Context, input DeleteCustomerDataInput) error
+	EnsureCustomer(ctx context.Context, input EnsureCustomerInput) error
 }

@@ -14,10 +14,6 @@ func (s *Service) ListCustomerData(ctx context.Context, input app.ListCustomerDa
 	return s.adapter.ListCustomerData(ctx, input)
 }
 
-func (s *Service) UpsertCustomerData(ctx context.Context, input app.UpsertCustomerDataInput) error {
-	return s.adapter.UpsertCustomerData(ctx, input)
-}
-
-func (s *Service) DeleteCustomerData(ctx context.Context, input app.DeleteCustomerDataInput) error {
-	return s.adapter.DeleteCustomerData(ctx, input)
+func (s *Service) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInput) error {
+	return s.adapter.EnsureCustomer(ctx, input)
 }

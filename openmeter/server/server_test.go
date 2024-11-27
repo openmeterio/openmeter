@@ -603,11 +603,7 @@ func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCust
 	return pagination.PagedResponse[appentity.CustomerData]{}, nil
 }
 
-func (n NoopAppService) UpsertCustomerData(ctx context.Context, input app.UpsertCustomerDataInput) error {
-	return nil
-}
-
-func (n NoopAppService) DeleteCustomerData(ctx context.Context, input app.DeleteCustomerDataInput) error {
+func (n NoopAppService) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInput) error {
 	return nil
 }
 

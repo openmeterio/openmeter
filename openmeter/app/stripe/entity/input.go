@@ -143,9 +143,10 @@ func (o CreateStripeCustomerOutput) Validate() error {
 }
 
 type UpsertStripeCustomerDataInput struct {
-	AppID            appentitybase.AppID
-	CustomerID       customerentity.CustomerID
-	StripeCustomerID string
+	AppID                        appentitybase.AppID
+	CustomerID                   customerentity.CustomerID
+	StripeCustomerID             string
+	StripeDefaultPaymentMethodID *string
 }
 
 func (i UpsertStripeCustomerDataInput) Validate() error {
@@ -163,6 +164,10 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 
 	if i.StripeCustomerID == "" {
 		return errors.New("stripe customer id is required")
+	}
+
+	if i.StripeDefaultPaymentMethodID != nil && !strings.HasPrefix(*i.StripeDefaultPaymentMethodID, "pm_") {
+		return errors.New("stripe default payment method must start with pm_")
 	}
 
 	return nil

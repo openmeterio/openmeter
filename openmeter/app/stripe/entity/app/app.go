@@ -29,6 +29,7 @@ type App struct {
 	appstripeentity.AppData
 
 	StripeClientFactory stripeclient.StripeClientFactory `json:"-"`
+	AppService          app.AppService
 	// TODO: can this be a service? The factory is is in the adapter that the service depends on
 	StripeAppService stripeapp.Adapter `json:"-"`
 	SecretService    secret.Service    `json:"-"`
@@ -53,6 +54,10 @@ func (a App) Validate() error {
 
 	if a.StripeClientFactory == nil {
 		return errors.New("stripe client factory is required")
+	}
+
+	if a.AppService == nil {
+		return errors.New("app service is required")
 	}
 
 	if a.StripeAppService == nil {
@@ -200,12 +205,21 @@ func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCusto
 		return fmt.Errorf("error casting stripe customer data")
 	}
 
+	// Make sure the customer has an app relationship
+	err := a.AppService.EnsureCustomer(ctx, app.EnsureCustomerInput{
+		AppID:      a.GetID(),
+		CustomerID: input.CustomerID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to ensure customer: %w", err)
+	}
+
+	// Upsert stripe customer data
 	if err := a.StripeAppService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
-		AppID:            a.GetID(),
-		CustomerID:       input.CustomerID,
-		StripeCustomerID: stripeCustomerData.StripeCustomerID,
-		// TODO: implement this
-		// StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
+		AppID:                        a.GetID(),
+		CustomerID:                   input.CustomerID,
+		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
+		StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
 	}); err != nil {
 		return fmt.Errorf("failed to upsert stripe customer data: %w", err)
 	}

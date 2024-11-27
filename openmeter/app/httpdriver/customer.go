@@ -92,15 +92,19 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 	)
 }
 
-type (
-	UpsertCustomerDataRequest  = []app.UpsertCustomerDataInput
-	UpsertCustomerDataResponse = interface{}
-	UpsertCustomerDataHandler  httptransport.HandlerWithArgs[UpsertCustomerDataRequest, UpsertCustomerDataResponse, UpsertCustomerDataParams]
-)
+type UpsertCustomerDataRequest struct {
+	CustomerId customerentity.CustomerID
+	Data       []api.CustomerAppData
+}
 
 type UpsertCustomerDataParams struct {
 	CustomerId string
 }
+
+type (
+	UpsertCustomerDataResponse = interface{}
+	UpsertCustomerDataHandler  httptransport.HandlerWithArgs[UpsertCustomerDataRequest, UpsertCustomerDataResponse, UpsertCustomerDataParams]
+)
 
 // UpsertCustomerData returns a new httptransport.Handler for creating a customer.
 func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
@@ -108,7 +112,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 		func(ctx context.Context, r *http.Request, params UpsertCustomerDataParams) (UpsertCustomerDataRequest, error) {
 			body := []api.CustomerAppData{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return UpsertCustomerDataRequest{}, fmt.Errorf("field to decode create customer request: %w", err)
+				return UpsertCustomerDataRequest{}, fmt.Errorf("field to decode upsert customer data request: %w", err)
 			}
 
 			ns, err := h.resolveNamespace(ctx)
@@ -121,26 +125,22 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 				ID:        params.CustomerId,
 			}
 
-			reqs := make(UpsertCustomerDataRequest, 0, len(body))
-
-			for _, apiCustomerData := range body {
-				data, err := toCustomerData(ctx, h.service, ns, apiCustomerData)
+			return UpsertCustomerDataRequest{
+				CustomerId: customerId,
+				Data:       body,
+			}, nil
+		},
+		func(ctx context.Context, req UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
+			for _, apiCustomerData := range req.Data {
+				app, customerData, err := h.getCustomerData(ctx, req.CustomerId.Namespace, apiCustomerData)
 				if err != nil {
-					return UpsertCustomerDataRequest{}, fmt.Errorf("failed to convert customer data: %w", err)
+					return nil, err
 				}
 
-				reqs = append(reqs, app.UpsertCustomerDataInput{
-					AppID:      data.GetAppID(),
-					CustomerID: customerId,
-					Data:       data,
+				err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+					CustomerID: req.CustomerId,
+					Data:       customerData,
 				})
-			}
-
-			return reqs, nil
-		},
-		func(ctx context.Context, reqs UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
-			for _, req := range reqs {
-				err := h.service.UpsertCustomerData(ctx, req)
 				if err != nil {
 					return nil, err
 				}
@@ -157,81 +157,83 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 	)
 }
 
-// toCustomerData converts an API CustomerAppData to a list of CustomerData
-func toCustomerData(ctx context.Context, service app.Service, namespace string, apiApp api.CustomerAppData) (appentity.CustomerData, error) {
+// getCustomerData converts an API CustomerAppData to a list of CustomerData
+func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp api.CustomerAppData) (appentity.App, appentity.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
-		return nil, fmt.Errorf("error getting app type: %w", err)
+		return nil, nil, fmt.Errorf("error getting app type: %w", err)
 	}
 
 	switch appType {
 	// Sandbox app
 	case string(appentitybase.AppTypeSandbox):
-		sandboxCustomerData, err := apiApp.AsSandboxCustomerAppData()
+		// Parse as sandbox app
+		apiSandboxCustomerData, err := apiApp.AsSandboxCustomerAppData()
 		if err != nil {
-			return nil, fmt.Errorf("error converting to sandbox app: %w", err)
+			return nil, nil, fmt.Errorf("error converting to sandbox app: %w", err)
 		}
 
 		// Get app ID from API data or get default app
-		var appID appentitybase.AppID
-
-		if sandboxCustomerData.Id != nil {
-			appID = appentitybase.AppID{
-				Namespace: namespace,
-				ID:        *sandboxCustomerData.Id,
-			}
-		} else {
-			app, err := service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
-				Namespace: namespace,
-				Type:      appentitybase.AppTypeSandbox,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("error getting default sandbox app: %w", err)
-			}
-
-			appID = app.GetID()
+		app, err := h.getApp(ctx, namespace, apiSandboxCustomerData.Id, appentitybase.AppTypeSandbox)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error getting sandbox app: %w", err)
 		}
 
-		return appsandbox.CustomerData{
-			AppID: appID,
-		}, nil
+		sandboxCustomerData := appsandbox.CustomerData{
+			AppID: app.GetID(),
+		}
+
+		return app, sandboxCustomerData, nil
 
 	// Stripe app
 	case string(appentitybase.AppTypeStripe):
-		stripeCustomerData, err := apiApp.AsStripeCustomerAppData()
+		// Parse as stripe app
+		apiStripeCustomerData, err := apiApp.AsStripeCustomerAppData()
 		if err != nil {
-			return nil, fmt.Errorf("error converting to stripe app: %w", err)
+			return nil, nil, fmt.Errorf("error converting to stripe app: %w", err)
 		}
 
 		// Get app ID from API data or get default app
-		var appID appentitybase.AppID
-
-		if stripeCustomerData.Id != nil {
-			appID = appentitybase.AppID{
-				Namespace: namespace,
-				ID:        *stripeCustomerData.Id,
-			}
-		} else {
-			app, err := service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
-				Namespace: namespace,
-				Type:      appentitybase.AppTypeStripe,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("error getting default sandbox app: %w", err)
-			}
-
-			appID = app.GetID()
+		app, err := h.getApp(ctx, namespace, apiStripeCustomerData.Id, appentitybase.AppTypeStripe)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error getting stripe app: %w", err)
 		}
 
-		return appstripeentity.CustomerData{
-			AppID:                        appID,
-			StripeCustomerID:             stripeCustomerData.StripeCustomerId,
-			StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodId,
-		}, nil
+		stripeCustomerData := appstripeentity.CustomerData{
+			AppID:                        app.GetID(),
+			StripeCustomerID:             apiStripeCustomerData.StripeCustomerId,
+			StripeDefaultPaymentMethodID: apiStripeCustomerData.StripeDefaultPaymentMethodId,
+		}
+
+		return app, stripeCustomerData, nil
 	}
 
-	return nil, fmt.Errorf("unsupported app type: %s", appType)
+	return nil, nil, fmt.Errorf("unsupported app type: %s", appType)
+}
+
+// getApp gets an app by ID or gets the default app by type
+func (h *handler) getApp(ctx context.Context, namespace string, appID *string, appType appentitybase.AppType) (appentity.App, error) {
+	if appID != nil {
+		app, err := h.service.GetApp(ctx, appentitybase.AppID{
+			Namespace: namespace,
+			ID:        *appID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error getting app by id: %w", err)
+		}
+
+		return app, nil
+	}
+	app, err := h.service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: namespace,
+		Type:      appType,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting default %s app: %w", appType, err)
+	}
+
+	return app, nil
 }
 
 // customerDataToAPI converts a CustomerData to an API CustomerAppData
