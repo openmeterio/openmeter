@@ -7267,7 +7267,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSubscriptionRequestBody'
+              $ref: '#/components/schemas/SubscriptionCreate'
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}:
     get:
@@ -7359,12 +7359,6 @@ paths:
       description: |-
         Batch processing commands for manipulating running subscriptions.
         The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
-
-        Add operations insert a new member based on the creation input without altering the existing members.
-
-        Remove operations remove the member from the collection / document.
-
-        The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
       parameters:
         - name: subscriptionId
           in: path
@@ -7441,7 +7435,7 @@ paths:
                   - $ref: '#/components/schemas/SubscriptionEditAddUpdateItem'
                   - $ref: '#/components/schemas/SubscriptionEditRemoveUpdateItem'
                   - $ref: '#/components/schemas/SubscriptionEditAdd'
-                  - $ref: '#/components/schemas/SubscriptionEditExtend'
+                  - $ref: '#/components/schemas/SubscriptionEditStretch'
                   - $ref: '#/components/schemas/SubscriptionEditRemoveWithValue'
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}/cancel:
@@ -7527,11 +7521,90 @@ paths:
                   example: 2023-01-01T01:01:01.001Z
                   description: If not provided the subscription is canceled immediately.
       x-internal: true
+  /api/v1/subscriptions/{subscriptionId}/change:
+    post:
+      operationId: changeSubscription
+      summary: Change subscription
+      description: |-
+        Closes a running subscription and starts a new one according to the specification.
+        Can be used for upgrades, downgrades, and plan changes.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '409':
+          description: The request could not be completed due to a conflict with the current state of the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ConflictProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionChange'
+      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/migrate:
     post:
       operationId: migrateSubscription
       summary: Migrate subscription
-      description: Migrates the subscripiton to the procided version of the plan.
+      description: Migrates the subscripiton to the provided version of the current plan.
       parameters:
         - name: subscriptionId
           in: path
@@ -10405,6 +10478,29 @@ components:
       description: |-
         [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
         Custom two-letter country codes are also supported for convenience.
+    CreateCustomSubscriptionRequestBody:
+      type: object
+      required:
+        - currency
+        - activeFrom
+        - customPlan
+        - customerId
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customPlan:
+          $ref: '#/components/schemas/PlanCreate'
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Create a custom subscription.
     CreateStripeCheckoutSessionRequest:
       type: object
       required:
@@ -10503,56 +10599,6 @@ components:
           type: string
           description: Return URL.
       description: Create Stripe Checkout Session response.
-    CreateSubscriptionRequestBody:
-      type: object
-      required:
-        - customerId
-        - plan
-        - currency
-        - activeFrom
-        - customizations
-      properties:
-        customerId:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-        plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customizations:
-          type: array
-          items:
-            anyOf:
-              - $ref: '#/components/schemas/SubscriptionEditAddItem'
-              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
-      description: Create subscription request body.
     CurrencyCode:
       type: string
       example: USD
@@ -10562,6 +10608,23 @@ components:
       description: |-
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
+    CustomSubscriptionChange:
+      type: object
+      required:
+        - currency
+        - activeFrom
+        - customPlan
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customPlan:
+          $ref: '#/components/schemas/PlanCreate'
+      description: Change a custom subscription.
     Customer:
       type: object
       required:
@@ -13711,6 +13774,100 @@ components:
         - archived
         - scheduled
       description: The status of a plan.
+    PlanSubscriptionChange:
+      type: object
+      required:
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+      properties:
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/SubscriptionEditAddItem'
+              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
+      description: Change subscription based on plan.
+    PlanSubscriptionCreate:
+      type: object
+      required:
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+        - customerId
+      properties:
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/SubscriptionEditAddItem'
+              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Create subscription based on plan.
     PortalToken:
       type: object
       required:
@@ -14834,6 +14991,16 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
       description: Subscription is an exact subscription instance.
+    SubscriptionChange:
+      oneOf:
+        - $ref: '#/components/schemas/PlanSubscriptionChange'
+        - $ref: '#/components/schemas/CustomSubscriptionChange'
+      description: Change a subscription.
+    SubscriptionCreate:
+      oneOf:
+        - $ref: '#/components/schemas/PlanSubscriptionCreate'
+        - $ref: '#/components/schemas/CreateCustomSubscriptionRequestBody'
+      description: Create a subscription.
     SubscriptionEditAdd:
       type: object
       required:
@@ -14885,29 +15052,6 @@ components:
         value:
           $ref: '#/components/schemas/RateCardUpdateItem'
       description: Subscription item add operation.
-    SubscriptionEditExtend:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - extend
-        path:
-          type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-        value:
-          type: object
-          properties:
-            extendBy:
-              type: string
-              format: duration
-          required:
-            - extendBy
-      description: Subscription phase extend operation.
     SubscriptionEditRemoveItem:
       type: object
       required:
@@ -14958,6 +15102,30 @@ components:
           required:
             - shift
       description: Subscription item remove operation with a value.
+    SubscriptionEditStretch:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - extend
+        path:
+          type: string
+          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+        value:
+          type: object
+          properties:
+            extendBy:
+              type: string
+              format: duration
+              description: The signed duration to extend or shrink the phase by.
+          required:
+            - extendBy
+      description: Subscription phase stretch operation.
     SubscriptionExpanded:
       type: object
       required:
@@ -15046,6 +15214,7 @@ components:
     SubscriptionItem:
       type: object
       required:
+        - id
         - name
         - createdAt
         - updatedAt
@@ -15053,6 +15222,13 @@ components:
         - billingCandence
         - price
       properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
         name:
           type: string
           minLength: 1
@@ -15190,6 +15366,7 @@ components:
     SubscriptionPhaseExpanded:
       type: object
       required:
+        - id
         - name
         - createdAt
         - updatedAt
@@ -15198,6 +15375,13 @@ components:
         - activeFrom
         - items
       properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
         name:
           type: string
           minLength: 1

@@ -1606,12 +1606,6 @@ export interface paths {
      * Edit subscription
      * @description Batch processing commands for manipulating running subscriptions.
      *     The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
-     *
-     *     Add operations insert a new member based on the creation input without altering the existing members.
-     *
-     *     Remove operations remove the member from the collection / document.
-     *
-     *     The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
      */
     patch: operations['editSubscription']
     trace?: never
@@ -1636,6 +1630,27 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/subscriptions/{subscriptionId}/change': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Change subscription
+     * @description Closes a running subscription and starts a new one according to the specification.
+     *     Can be used for upgrades, downgrades, and plan changes.
+     */
+    post: operations['changeSubscription']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/subscriptions/{subscriptionId}/migrate': {
     parameters: {
       query?: never
@@ -1647,7 +1662,7 @@ export interface paths {
     put?: never
     /**
      * Migrate subscription
-     * @description Migrates the subscripiton to the procided version of the plan.
+     * @description Migrates the subscripiton to the provided version of the current plan.
      */
     post: operations['migrateSubscription']
     delete?: never
@@ -3130,6 +3145,22 @@ export interface components {
      * @example US
      */
     CountryCode: string
+    /** @description Create a custom subscription. */
+    CreateCustomSubscriptionRequestBody: {
+      currency: components['schemas']['CurrencyCode']
+      /**
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: string
+      customPlan: components['schemas']['PlanCreate']
+      /**
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      customerId: string
+    }
     /** @description Create Stripe checkout session request. */
     CreateStripeCheckoutSessionRequest: {
       /**
@@ -3188,18 +3219,14 @@ export interface components {
       /** @description Return URL. */
       returnURL?: string
     }
-    /** @description Create subscription request body. */
-    CreateSubscriptionRequestBody: {
-      /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      customerId: string
-      plan: {
-        /** @description A key is a unique string that is used to identify a resource. */
-        key: string
-        version: number
-      }
+    /**
+     * @description Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+     *     Custom three-letter currency codes are also supported for convenience.
+     * @example USD
+     */
+    CurrencyCode: string
+    /** @description Change a custom subscription. */
+    CustomSubscriptionChange: {
       currency: components['schemas']['CurrencyCode']
       /**
        * Format: date-time
@@ -3207,23 +3234,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeFrom: string
-      /** @description Batch processing commands for customizing the susbcription.
-       *     The key format is `/phases/{phaseKey}/items/{itemKey}`.
-       *
-       *     Add operations insert a new member based on the creation input without altering the existing members.
-       *
-       *     Remove operations remove the member from the document. */
-      customizations: (
-        | components['schemas']['SubscriptionEditAddItem']
-        | components['schemas']['SubscriptionEditRemoveItem']
-      )[]
+      customPlan: components['schemas']['PlanCreate']
     }
-    /**
-     * @description Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-     *     Custom three-letter currency codes are also supported for convenience.
-     * @example USD
-     */
-    CurrencyCode: string
     /**
      * @description A customer object.
      * @example {
@@ -5645,6 +5657,61 @@ export interface components {
      * @enum {string}
      */
     PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
+    /** @description Change subscription based on plan. */
+    PlanSubscriptionChange: {
+      plan: {
+        /** @description A key is a unique string that is used to identify a resource. */
+        key: string
+        version: number
+      }
+      currency: components['schemas']['CurrencyCode']
+      /**
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: string
+      /** @description Batch processing commands for customizing the susbcription.
+       *     The key format is `/phases/{phaseKey}/items/{itemKey}`.
+       *
+       *     Add operations insert a new member based on the creation input without altering the existing members.
+       *
+       *     Remove operations remove the member from the document. */
+      customizations: (
+        | components['schemas']['SubscriptionEditAddItem']
+        | components['schemas']['SubscriptionEditRemoveItem']
+      )[]
+    }
+    /** @description Create subscription based on plan. */
+    PlanSubscriptionCreate: {
+      plan: {
+        /** @description A key is a unique string that is used to identify a resource. */
+        key: string
+        version: number
+      }
+      currency: components['schemas']['CurrencyCode']
+      /**
+       * Format: date-time
+       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      activeFrom: string
+      /** @description Batch processing commands for customizing the susbcription.
+       *     The key format is `/phases/{phaseKey}/items/{itemKey}`.
+       *
+       *     Add operations insert a new member based on the creation input without altering the existing members.
+       *
+       *     Remove operations remove the member from the document. */
+      customizations: (
+        | components['schemas']['SubscriptionEditAddItem']
+        | components['schemas']['SubscriptionEditRemoveItem']
+      )[]
+      /**
+       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      customerId: string
+    }
     /** @description A consumer portal token.
      *
      *     Validator doesn't obey required for readOnly properties
@@ -6520,6 +6587,14 @@ export interface components {
        */
       activeTo?: string
     }
+    /** @description Change a subscription. */
+    SubscriptionChange:
+      | components['schemas']['PlanSubscriptionChange']
+      | components['schemas']['CustomSubscriptionChange']
+    /** @description Create a subscription. */
+    SubscriptionCreate:
+      | components['schemas']['PlanSubscriptionCreate']
+      | components['schemas']['CreateCustomSubscriptionRequestBody']
     /** @description Subscription item add operation. */
     SubscriptionEditAdd: {
       /** @enum {string} */
@@ -6541,16 +6616,6 @@ export interface components {
       path: string
       value: components['schemas']['RateCardUpdateItem']
     }
-    /** @description Subscription phase extend operation. */
-    SubscriptionEditExtend: {
-      /** @enum {string} */
-      op: 'extend'
-      path: string
-      value: {
-        /** Format: duration */
-        extendBy: string
-      }
-    }
     /** @description Subscription phase remove operation. */
     SubscriptionEditRemoveItem: {
       /** @enum {string} */
@@ -6570,6 +6635,19 @@ export interface components {
       path: string
       value: {
         shift: components['schemas']['RemovePhaseShifting']
+      }
+    }
+    /** @description Subscription phase stretch operation. */
+    SubscriptionEditStretch: {
+      /** @enum {string} */
+      op: 'extend'
+      path: string
+      value: {
+        /**
+         * Format: duration
+         * @description The signed duration to extend or shrink the phase by.
+         */
+        extendBy: string
       }
     }
     /** @description Expanded subscription */
@@ -6640,6 +6718,12 @@ export interface components {
     }
     /** @description The actual contents of the Subscription, what the user gets, what they pay, etc... */
     SubscriptionItem: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -6743,6 +6827,12 @@ export interface components {
     }
     /** @description Expanded subscription phase */
     SubscriptionPhaseExpanded: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
       /**
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
@@ -16023,7 +16113,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateSubscriptionRequestBody']
+        'application/json': components['schemas']['SubscriptionCreate']
       }
     }
     responses: {
@@ -16207,7 +16297,7 @@ export interface operations {
           | components['schemas']['SubscriptionEditAddUpdateItem']
           | components['schemas']['SubscriptionEditRemoveUpdateItem']
           | components['schemas']['SubscriptionEditAdd']
-          | components['schemas']['SubscriptionEditExtend']
+          | components['schemas']['SubscriptionEditStretch']
           | components['schemas']['SubscriptionEditRemoveWithValue']
         )[]
       }
@@ -16315,6 +16405,104 @@ export interface operations {
            */
           effectiveDate?: string
         }
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Subscription']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The request could not be completed due to a conflict with the current state of the target resource. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  changeSubscription: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        subscriptionId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubscriptionChange']
       }
     }
     responses: {
