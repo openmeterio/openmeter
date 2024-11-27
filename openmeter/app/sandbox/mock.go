@@ -40,6 +40,21 @@ func NewMockApp(_ *testing.T) *MockApp {
 	return &MockApp{}
 }
 
+func (m *MockApp) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+	args := m.Called(ctx, input)
+	return args.Get(0).(appentity.CustomerData), args.Error(1)
+}
+
+func (m *MockApp) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+	args := m.Called(ctx, input)
+	return args.Error(0)
+}
+
+func (m *MockApp) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+	args := m.Called(ctx, input)
+	return args.Error(0)
+}
+
 func (m *MockApp) ValidateCustomer(appID string, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
 	m.validateCustomerCalled = true
 	return m.validateCustomerResponse.MustGet()
@@ -154,6 +169,18 @@ var (
 	_ billingentity.InvoicingApp = (*mockAppInstance)(nil)
 	_ customerentity.App         = (*mockAppInstance)(nil)
 )
+
+func (m *mockAppInstance) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+	return m.parent.GetCustomerData(ctx, input)
+}
+
+func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+	return m.parent.UpsertCustomerData(ctx, input)
+}
+
+func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+	return m.parent.DeleteCustomerData(ctx, input)
+}
 
 func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
 	return m.parent.ValidateCustomer(m.GetID().ID, customer, capabilities)

@@ -29,4 +29,9 @@ type AppAdapter interface {
 	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)
 	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
 	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
+
+	// Customer data
+	ListCustomerData(ctx context.Context, input ListCustomerDataInput) (pagination.PagedResponse[appentity.CustomerData], error)
+	UpsertCustomerData(ctx context.Context, input UpsertCustomerDataInput) error
+	DeleteCustomerData(ctx context.Context, input DeleteCustomerDataInput) error
 }

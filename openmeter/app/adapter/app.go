@@ -9,6 +9,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -74,6 +75,13 @@ func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (p
 			// Do not return deleted apps by default
 			if !params.IncludeDeleted {
 				query = query.Where(appdb.DeletedAtIsNil())
+			}
+
+			// Only list apps that has data for the given customer
+			if params.CustomerID != nil {
+				query = query.WithCustomerApps(func(q *db.AppCustomerQuery) {
+					q.Where(appcustomerdb.CustomerID(params.CustomerID.ID))
+				})
 			}
 
 			response := pagination.PagedResponse[appentity.App]{

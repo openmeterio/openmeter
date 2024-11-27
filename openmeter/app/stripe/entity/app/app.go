@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -166,6 +167,65 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 		}
 
 		// TODO: should we have currency as an input to validation?
+	}
+
+	return nil
+}
+
+// GetCustomerData gets the customer data for the app
+func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("error validating input: %w", err)
+	}
+
+	customerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
+		AppID:      a.GetID(),
+		CustomerID: input.CustomerID,
+	})
+	if err != nil {
+		return customerData, fmt.Errorf("failed to get stripe customer data: %w", err)
+	}
+
+	return customerData, nil
+}
+
+// UpsertCustomerData upserts the customer data for the app
+func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("error validating input: %w", err)
+	}
+
+	stripeCustomerData, ok := input.Data.(appstripeentity.CustomerData)
+	if !ok {
+		return fmt.Errorf("error casting stripe customer data")
+	}
+
+	if err := a.StripeAppService.UpsertStripeCustomerData(ctx, appstripeentity.UpsertStripeCustomerDataInput{
+		AppID:            a.GetID(),
+		CustomerID:       input.CustomerID,
+		StripeCustomerID: stripeCustomerData.StripeCustomerID,
+		// TODO: implement this
+		// StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
+	}); err != nil {
+		return fmt.Errorf("failed to upsert stripe customer data: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteCustomerData deletes the customer data for the app
+func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("error validating input: %w", err)
+	}
+
+	appId := a.GetID()
+
+	if err := a.StripeAppService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+		AppID:      &appId,
+		CustomerID: input.CustomerID,
+	}); err != nil {
+		return fmt.Errorf("failed to delete stripe customer data: %w", err)
 	}
 
 	return nil

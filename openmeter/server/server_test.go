@@ -599,6 +599,18 @@ func (n NoopAppService) UninstallApp(ctx context.Context, input appentity.Uninst
 	return nil
 }
 
+func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerDataInput) (pagination.PagedResponse[appentity.CustomerData], error) {
+	return pagination.PagedResponse[appentity.CustomerData]{}, nil
+}
+
+func (n NoopAppService) UpsertCustomerData(ctx context.Context, input app.UpsertCustomerDataInput) error {
+	return nil
+}
+
+func (n NoopAppService) DeleteCustomerData(ctx context.Context, input app.DeleteCustomerDataInput) error {
+	return nil
+}
+
 var _ appstripe.Service = (*NoopAppStripeService)(nil)
 
 type NoopAppStripeService struct{}
@@ -619,8 +631,8 @@ func (n NoopAppStripeService) SetCustomerDefaultPaymentMethod(ctx context.Contex
 	return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, nil
 }
 
-func (n NoopAppStripeService) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerAppData, error) {
-	return appstripeentity.CustomerAppData{}, nil
+func (n NoopAppStripeService) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
+	return appstripeentity.CustomerData{}, nil
 }
 
 func (n NoopAppStripeService) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {

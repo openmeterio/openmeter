@@ -48,7 +48,7 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (appentity.App
 	if err != nil {
 		if _, ok := lo.ErrorsAs[app.AppDefaultNotFoundError](err); ok {
 			// Let's provision the new app
-			defaultApp, err = input.AppService.CreateApp(ctx, appentity.CreateAppInput{
+			_, err := input.AppService.CreateApp(ctx, appentity.CreateAppInput{
 				Namespace:   input.Namespace,
 				Name:        "Sandbox",
 				Description: "OpenMeter Sandbox App to be used for testing purposes.",
@@ -58,7 +58,10 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (appentity.App
 				return nil, fmt.Errorf("cannot create sandbox app: %w", err)
 			}
 
-			return defaultApp, nil
+			return input.AppService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+				Namespace: input.Namespace,
+				Type:      appentitybase.AppTypeSandbox,
+			})
 		}
 		return nil, err
 	}

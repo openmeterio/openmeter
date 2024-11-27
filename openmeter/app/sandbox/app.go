@@ -34,7 +34,17 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	return nil
 }
 
-// InvoicingApp implementation
+func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+	return nil, nil
+}
+
+func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+	return nil
+}
+
+func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+	return nil
+}
 
 func (a App) ValidateInvoice(ctx context.Context, invoice billingentity.Invoice) error {
 	return nil
@@ -120,7 +130,7 @@ func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	return appBase, nil
+	return a.NewApp(ctx, appBase)
 }
 
 func (a *Factory) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
