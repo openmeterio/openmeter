@@ -268,18 +268,12 @@ interface Subscriptions {
   @summary("Create subscription")
   @extension("x-internal", true)
   create(
-    @body body: CreateSubscriptionRequestBody,
+    @body body: SubscriptionCreate,
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
   /**
    * Batch processing commands for manipulating running subscriptions.
    * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
-   *
-   * Add operations insert a new member based on the creation input without altering the existing members.
-   *
-   * Remove operations remove the member from the collection / document.
-   *
-   * The extend operation extends the specific phase if possible, while delaying all subsequent phases by the same amount.
    */
   @patch
   @operationId("editSubscription")
@@ -299,7 +293,27 @@ interface Subscriptions {
     | OpenMeter.CommonErrors;
 
   /**
-   * Migrates the subscripiton to the procided version of the plan.
+   * Closes a running subscription and starts a new one according to the specification.
+   * Can be used for upgrades, downgrades, and plan changes.
+   */
+  @post
+  @operationId("changeSubscription")
+  @summary("Change subscription")
+  @route("/{subscriptionId}/change")
+  @extension("x-internal", true)
+  change(
+    @path subscriptionId: ULID,
+
+    @body
+    body: SubscriptionChange,
+  ):
+    | Subscription
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+
+  /**
+   * Migrates the subscripiton to the provided version of the current plan.
    */
   @post
   @operationId("migrateSubscription")

@@ -71,7 +71,8 @@ model SubscriptionPhaseExpanded {
  */
 @friendlyName("SubscriptionPhase")
 model SubscriptionPhase {
-  ...VirtualResource;
+  ...global.Resource;
+  ...Keyed;
   ...OmitProperties<SubscriptionPhaseCreate, "startAfter">;
 
   /**
@@ -114,8 +115,7 @@ model SubscriptionPhaseCreate {
  */
 @friendlyName("SubscriptionItem")
 model SubscriptionItem {
-  // Key is overriden to add extra doc. Uses the same type.
-  ...OmitProperties<VirtualResource, "key">;
+  ...global.Resource;
 
   /**
    * The identifier of the RateCard.
@@ -177,11 +177,58 @@ model SubscriptionItem {
 }
 
 /**
- * Create subscription request body.
+ * Create a subscription.
  */
-@friendlyName("CreateSubscriptionRequestBody")
-model CreateSubscriptionRequestBody {
+@friendlyName("SubscriptionCreate")
+@oneOf
+union SubscriptionCreate {
+  PlanSubscriptionCreate,
+  CustomSubscriptionCreate,
+}
+
+/**
+ * Change a subscription.
+ */
+@friendlyName("SubscriptionChange")
+@oneOf
+union SubscriptionChange {
+  PlanSubscriptionChange,
+  CustomSubscriptionChange,
+}
+
+/**
+ * Create a custom subscription.
+ */
+@friendlyName("CreateCustomSubscriptionRequestBody")
+model CustomSubscriptionCreate {
+  ...CustomSubscriptionChange;
   customerId: ULID;
+}
+
+/**
+ * Change a custom subscription.
+ */
+@friendlyName("CustomSubscriptionChange")
+model CustomSubscriptionChange {
+  currency: CurrencyCode;
+  activeFrom: DateTime;
+  customPlan: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>;
+}
+
+/**
+ * Create subscription based on plan.
+ */
+@friendlyName("PlanSubscriptionCreate")
+model PlanSubscriptionCreate {
+  ...PlanSubscriptionChange;
+  customerId: ULID;
+}
+
+/**
+ * Change subscription based on plan.
+ */
+@friendlyName("PlanSubscriptionChange")
+model PlanSubscriptionChange {
   plan: {
     key: Key;
     version: integer;
@@ -211,7 +258,7 @@ scalar SubscriptionPhasePatchKey extends string;
 @friendlyName("RemovePhaseShifting")
 enum RemovePhaseShifting {
   /**
-   * Shifts all subsequent phases to start sonner by the deleted phase's length
+   * Shifts all subsequent phases to start sooner by the deleted phase's length
    */
   Next,
 
@@ -224,8 +271,11 @@ enum RemovePhaseShifting {
 alias SubscriptionPhasePatch = SubscriptionEditAdd<
   SubscriptionPhaseCreate,
   SubscriptionPhasePatchKey
-> | SubscriptionPhaseExtend<
+> | SubscriptionPhaseStretch<
   {
+    /**
+     * The signed duration to extend or shrink the phase by.
+     */
     @encode(DurationKnownEncoding.ISO8601)
     extendBy: duration;
   },
@@ -258,10 +308,10 @@ model SubscriptionEditAdd<T, K extends string> {
 }
 
 /**
- * Subscription phase extend operation.
+ * Subscription phase stretch operation.
  */
-@friendlyName("SubscriptionEditExtend")
-model SubscriptionPhaseExtend<T, K extends string> {
+@friendlyName("SubscriptionEditStretch")
+model SubscriptionPhaseStretch<T, K extends string> {
   `op`: "extend";
   path: K;
   value: T;

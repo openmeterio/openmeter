@@ -116,15 +116,6 @@ model Resource {
 }
 
 /**
- * Represents a resource that doesn't exist in the persistence layer, just a representation.
- */
-@friendlyName("VirtualResource")
-model VirtualResource {
-  ...OmitProperties<Resource, "id">;
-  ...Keyed;
-}
-
-/**
  * Represents resources that can be cadenced, have scheduled activity changes.
  */
 @friendlyName("CadencedResource")
