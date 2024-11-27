@@ -42,18 +42,15 @@ func NewMockApp(_ *testing.T) *MockApp {
 }
 
 func (m *MockApp) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
-	args := m.Called(ctx, input)
-	return args.Get(0).(appentity.CustomerData), args.Error(1)
+	return nil, nil
 }
 
 func (m *MockApp) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
-	args := m.Called(ctx, input)
-	return args.Error(0)
+	return nil
 }
 
 func (m *MockApp) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
-	args := m.Called(ctx, input)
-	return args.Error(0)
+	return nil
 }
 
 func (m *MockApp) ValidateCustomer(appID string, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
