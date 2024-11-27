@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/qmuntal/stateless"
+	"github.com/samber/lo"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
@@ -33,6 +34,8 @@ var (
 	// triggerUpdated is used to trigger a change in the invoice (we are using this to calculate the immutable states
 	// and trigger re-validation)
 	triggerUpdated stateless.Trigger = "trigger_updated"
+	// triggerDelete is used to delete the invoice
+	triggerDelete stateless.Trigger = "trigger_delete"
 
 	// TODO[OM-989]: we should have a triggerAsyncNext to signify that a transition should be done asynchronously (
 	// e.g. the invoice needs to be synced to an external system such as stripe)
@@ -83,11 +86,13 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftCreated).
 		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
 		OnActive(out.calculateInvoice)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftUpdating).
 		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		OnActive(
 			allOf(
 				out.calculateInvoice,
@@ -102,6 +107,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 			boolFn(out.noCriticalValidationErrors),
 		).
 		Permit(triggerFailed, billingentity.InvoiceStatusDraftInvalid).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		// NOTE: we should permit update here, but stateless doesn't allow transitions to the same state
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
 		OnActive(allOf(
@@ -111,6 +117,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftInvalid).
 		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncing).
@@ -126,15 +133,18 @@ func allocateStateMachine() *InvoiceStateMachine {
 			boolFn(out.isAutoAdvanceEnabled),
 			boolFn(out.noCriticalValidationErrors),
 		).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerFailed, billingentity.InvoiceStatusDraftSyncFailed).
 		OnActive(out.syncDraftInvoice)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncFailed).
 		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftReadyToIssue).
 		Permit(triggerNext, billingentity.InvoiceStatusIssuing).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	// Automatic and manual approvals
@@ -142,6 +152,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		// Manual approval forces the draft invoice to be issued regardless of the review period
 		Permit(triggerApprove, billingentity.InvoiceStatusDraftReadyToIssue).
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerNext,
 			billingentity.InvoiceStatusDraftReadyToIssue,
 			boolFn(out.shouldAutoAdvance),
@@ -157,14 +168,32 @@ func allocateStateMachine() *InvoiceStateMachine {
 		).
 		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
+	// Deletion state
+	stateMachine.Configure(billingentity.InvoiceStatusDeleteInProgress).
+		Permit(triggerNext, billingentity.InvoiceStatusDeleteSyncing).
+		Permit(triggerFailed, billingentity.InvoiceStatusDeleteFailed).
+		OnActive(out.deleteInvoice)
+
+	stateMachine.Configure(billingentity.InvoiceStatusDeleteSyncing).
+		Permit(triggerNext, billingentity.InvoiceStatusDeleted).
+		Permit(triggerFailed, billingentity.InvoiceStatusDeleteFailed).
+		OnActive(out.syncDeletedInvoice)
+
+	stateMachine.Configure(billingentity.InvoiceStatusDeleteFailed).
+		Permit(triggerRetry, billingentity.InvoiceStatusDeleteInProgress)
+
+	stateMachine.Configure(billingentity.InvoiceStatusDeleted)
+
 	// Issuing state
 
 	stateMachine.Configure(billingentity.InvoiceStatusIssuing).
 		Permit(triggerNext, billingentity.InvoiceStatusIssued).
 		Permit(triggerFailed, billingentity.InvoiceStatusIssuingSyncFailed).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		OnActive(out.issueInvoice)
 
 	stateMachine.Configure(billingentity.InvoiceStatusIssuingSyncFailed).
+		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
 		Permit(triggerRetry, billingentity.InvoiceStatusIssuing)
 
 	// Issued state (final)
@@ -344,6 +373,18 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 // issueInvoice issues the invoice using the invoicing app
 func (m *InvoiceStateMachine) issueInvoice(ctx context.Context) error {
+	return nil
+}
+
+// syncDeletedInvoice syncs the deleted invoice with the external system
+func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
+	return nil
+}
+
+// deleteInvoice deletes the invoice
+func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context) error {
+	m.Invoice.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+
 	return nil
 }
 

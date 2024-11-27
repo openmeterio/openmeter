@@ -51,6 +51,7 @@ type InvoiceService interface {
 	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (billingentity.Invoice, error)
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (billingentity.Invoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (billingentity.Invoice, error)
+	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
 
 	ValidateInvoiceOwnership(ctx context.Context, input ValidateInvoiceOwnershipInput) error
 }

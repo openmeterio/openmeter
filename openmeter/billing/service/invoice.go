@@ -510,3 +510,24 @@ func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.Va
 	}
 	return nil
 }
+
+func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
+	if err := input.Validate(); err != nil {
+		return billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	invoice, err := s.executeTriggerOnInvoice(ctx, input, triggerDelete)
+	if err != nil {
+		return err
+	}
+
+	if invoice.Status != billingentity.InvoiceStatusDeleted {
+		return billingentity.ValidationError{
+			Err: fmt.Errorf("%w [status=%s]", billingentity.ErrInvoiceDeleteFailed, invoice.Status),
+		}
+	}
+
+	return err
+}

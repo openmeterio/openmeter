@@ -1656,6 +1656,18 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				Total:  0,
 			}, invoice.Totals)
 		})
+
+		s.Run("invoice deletion works", func() {
+			err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
+			require.NoError(s.T(), err)
+
+			deletedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: out[0].InvoiceID(),
+				Expand:  billingentity.InvoiceExpandAll,
+			})
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), deletedInvoice.DeletedAt)
+		})
 	})
 
 	s.Run("create mid period invoice - pt2", func() {

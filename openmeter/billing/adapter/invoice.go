@@ -145,6 +145,9 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListInvoicesResponse, error) {
+		// Note: we are not filtering for deleted invoices here (as in deleted_at is not nil), as we have the deleted
+		// status that we can use to filter for.
+
 		query := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.Namespace(input.Namespace)).
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
@@ -411,6 +414,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetOrClearDueAt(in.DueAt).
 			SetOrClearDraftUntil(in.DraftUntil).
 			SetOrClearIssuedAt(in.IssuedAt).
+			SetOrClearDeletedAt(in.DeletedAt).
 			// Totals
 			SetAmount(in.Totals.Amount).
 			SetChargesTotal(in.Totals.ChargesTotal).
