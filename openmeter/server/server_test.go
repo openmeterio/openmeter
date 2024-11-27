@@ -607,6 +607,10 @@ func (n NoopAppService) EnsureCustomer(ctx context.Context, input app.EnsureCust
 	return nil
 }
 
+func (n NoopAppService) DeleteCustomer(ctx context.Context, input app.DeleteCustomerInput) error {
+	return nil
+}
+
 var _ appstripe.Service = (*NoopAppStripeService)(nil)
 
 type NoopAppStripeService struct{}

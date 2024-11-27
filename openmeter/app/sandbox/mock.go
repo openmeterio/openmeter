@@ -10,6 +10,7 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -167,7 +168,7 @@ type mockAppInstance struct {
 
 var (
 	_ billingentity.InvoicingApp = (*mockAppInstance)(nil)
-	_ customerentity.App         = (*mockAppInstance)(nil)
+	_ customerapp.App            = (*mockAppInstance)(nil)
 )
 
 func (m *mockAppInstance) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {

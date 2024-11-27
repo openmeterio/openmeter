@@ -14,6 +14,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -149,12 +150,12 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	require.ErrorIs(t, err, app.AppNotFoundError{AppID: createApp.GetID()}, "get after uninstall must return app not found error")
 }
 
-// TestCustomerCreate tests stripe app behavior when creating a new customer
-func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing.T) {
+// TestCustomerData tests stripe app behavior when adding customer data
+func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+	testApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
 		},
@@ -164,26 +165,80 @@ func (s *AppHandlerTestSuite) TestCustomerCreate(ctx context.Context, t *testing
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, app, "Create stripe app must return app")
+	require.NotNil(t, testApp, "Create stripe app must return app")
 
 	// Create a customer
 	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
 			Name: "Test Customer",
-			Apps: []customerentity.CustomerApp{
-				{
-					Type: appentitybase.AppTypeStripe,
-					Data: appstripeentity.CustomerAppData{
-						StripeCustomerID: "cus_123",
-					},
-				},
-			},
 		},
 	})
 
 	require.NoError(t, err, "Create customer must not return error")
 	require.NotNil(t, customer, "Create customer must return customer")
+
+	// Add customer data to the app
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			AppID:            testApp.GetID(),
+			StripeCustomerID: "cus_123",
+		},
+	})
+
+	require.NoError(t, err, "Upsert customer data must not return error")
+
+	// Get customer data
+	customerData, err := testApp.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "Get customer data must not return error")
+	require.Equal(t, appstripeentity.CustomerData{
+		StripeCustomerID: "cus_123",
+	}, customerData, "Customer data must match")
+
+	// Update customer data
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			AppID:            testApp.GetID(),
+			StripeCustomerID: "cus_456",
+		},
+	})
+
+	require.NoError(t, err, "Update customer data must not return error")
+
+	// Updated customer data must match
+	customerData, err = testApp.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "Get customer data must not return error")
+	require.Equal(t, appstripeentity.CustomerData{
+		AppID:            testApp.GetID(),
+		StripeCustomerID: "cus_456",
+	}, customerData, "Customer data must match")
+
+	// Delete customer data
+	err = testApp.DeleteCustomerData(ctx, appentity.DeleteCustomerDataInput{
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "Delete customer data must not return error")
+
+	// Get customer data should return 404
+	_, err = testApp.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+		CustomerID: customer.GetID(),
+	})
+
+	require.ErrorIs(t, err, app.CustomerPreConditionError{
+		AppID:      testApp.GetID(),
+		AppType:    appentitybase.AppTypeStripe,
+		CustomerID: customer.GetID(),
+		Condition:  "customer has no data for stripe app",
+	})
 }
 
 // TestCustomerValidate tests stripe app behavior when validating a customer
@@ -208,20 +263,24 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
 			Name: "Test Customer",
-			Apps: []customerentity.CustomerApp{
-				{
-					Type: appentitybase.AppTypeStripe,
-					Data: appstripeentity.CustomerAppData{
-						StripeCustomerID: "cus_123",
-					},
-				},
-			},
 		},
 	})
 
 	require.NoError(t, err, "Create customer must not return error")
 	require.NotNil(t, customer, "Create customer must return customer")
 
+	// Add customer data to the app
+	err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			AppID:            app.GetID(),
+			StripeCustomerID: "cus_123",
+		},
+	})
+
+	require.NoError(t, err, "Upsert customer data must not return error")
+
+	// Create customer without stripe data
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
@@ -238,7 +297,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NoError(t, err, "Get app must not return error")
 
 	// App should implement Customer App
-	customerApp, err := customerentity.GetApp(getApp)
+	customerApp, err := customerapp.GetApp(getApp)
 
 	require.NoError(t, err, "Get app must not return error")
 
@@ -277,22 +336,25 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
 			Name: "Test Customer",
-			Apps: []customerentity.CustomerApp{
-				{
-					Type: appentitybase.AppTypeStripe,
-					Data: appstripeentity.CustomerAppData{
-						StripeCustomerID: "cus_123",
-					},
-				},
-			},
 		},
 	})
 
-	appID := app.GetID()
-	customerID := customer.GetID()
-
 	require.NoError(t, err, "Create customer must not return error")
 	require.NotNil(t, customer, "Create customer must return customer")
+
+	// Add customer data to the app
+	app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			StripeCustomerID: "cus_123",
+		},
+	})
+
+	require.NoError(t, err, "Upserrt customer data must not return error")
+
+	// Create checkout session
+	appID := app.GetID()
+	customerID := customer.GetID()
 
 	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,

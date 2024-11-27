@@ -23,9 +23,9 @@ type Customer struct {
 }
 
 func (c Customer) Validate() error {
-	if c.Name == "" {
+	if err := c.ManagedResource.Validate(); err != nil {
 		return ValidationError{
-			Err: errors.New("name is required"),
+			Err: err,
 		}
 	}
 

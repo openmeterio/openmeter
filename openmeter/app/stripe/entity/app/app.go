@@ -12,6 +12,7 @@ import (
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
@@ -21,7 +22,7 @@ const (
 	APIKeySecretKey = "stripe_api_key"
 )
 
-var _ customerentity.App = (*App)(nil)
+var _ customerapp.App = (*App)(nil)
 
 // App represents an installed Stripe app
 type App struct {

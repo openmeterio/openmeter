@@ -10,6 +10,7 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -18,7 +19,7 @@ const (
 )
 
 var (
-	_ customerentity.App         = (*App)(nil)
+	_ customerapp.App            = (*App)(nil)
 	_ billingentity.InvoicingApp = (*App)(nil)
 	_ appentity.CustomerData     = (*CustomerData)(nil)
 )
