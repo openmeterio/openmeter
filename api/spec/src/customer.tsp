@@ -73,6 +73,43 @@ interface Customers {
   delete(@path id: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
+
+  /**
+   * List customers app data.
+   */
+  @get
+  @route("/{customerId}/apps")
+  @operationId("listCustomerAppData")
+  @summary("List customer app data")
+  @extension("x-internal", true)
+  listAppData(
+    ...ListCustomerAppDataParams,
+  ): PaginatedResponse<App.CustomerAppData> | NotFoundError | CommonErrors;
+
+  /**
+   * Upsert customer app data.
+   */
+  @put
+  @route("/{customerId}/apps")
+  @operationId("upsertCustomerAppData")
+  @summary("Upsert customer app data")
+  @extension("x-internal", true)
+  upsertAppData(
+    @path customerId: ULID,
+    @body appData: App.CustomerAppData[],
+  ): App.CustomerAppData[] | NotFoundError | CommonErrors;
+
+  /**
+   * Delete customer app data.
+   */
+  @delete
+  @route("/{customerId}/apps/{appId}")
+  @operationId("deleteCustomerAppData")
+  @summary("Delete customer app data")
+  @extension("x-internal", true)
+  deleteAppData(@path customerId: ULID, @path appId: ULID): {
+    @statusCode _: 204;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
@@ -117,6 +154,27 @@ model ListCustomersParams {
   @query
   @example("my_subject_key")
   subject?: string;
+}
+
+/**
+ * Query params for listing customers.
+ */
+@friendlyName("queryCustomerList")
+model ListCustomerAppDataParams {
+  ...PaginatedQuery;
+
+  /**
+   * Customer ID.
+   */
+  @path
+  customerId: ULID;
+
+  /**
+   * Filter customer data by app type.
+   */
+  @query
+  @example(App.Type.Stripe)
+  type?: App.Type;
 }
 
 /**
@@ -176,12 +234,6 @@ model Customer {
    */
   @summary("Billing Address")
   billingAddress?: Address;
-
-  /**
-   * Application specific metadata.
-   */
-  @summary("Apps")
-  apps?: App.CustomerApp[];
 }
 
 /**

@@ -9,25 +9,25 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.App;
 
 /**
- * CustomerApp
+ * CustomerAppData
  * Stores the app specific data for the customer.
  * One of: stripe, sandbox
  */
-@friendlyName("CustomerApp")
+@friendlyName("CustomerAppData")
 @discriminator("type")
-union CustomerApp {
+union CustomerAppData {
   @summary("Stripe")
-  stripe: StripeCustomerApp,
+  stripe: StripeCustomerAppData,
 
   @summary("Sandbox")
-  sandbox: SandboxCustomerApp,
+  sandbox: SandboxCustomerAppData,
 }
 
 /**
  * Customer App Base.
  */
-@friendlyName("CustomerAppBase")
-model CustomerAppBase<TYPE extends Type, DATA> {
+@friendlyName("CustomerAppDataBase")
+model CustomerAppBase<TYPE extends Type> {
   /**
    * The app ID.
    * If not provided, it will use the global default for the app type.
@@ -40,46 +40,24 @@ model CustomerAppBase<TYPE extends Type, DATA> {
    */
   @summary("App Type")
   type: TYPE;
-
-  /**
-   * The app data.
-   */
-  @summary("Data")
-  data: DATA;
-}
-
-/**
- * Sandbox Customer App.
- */
-@friendlyName("SandboxCustomerApp")
-model SandboxCustomerApp {
-  ...CustomerAppBase<Type.Sandbox, SandboxCustomerAppData>;
 }
 
 /**
  * Sandbox Customer App Data.
  */
 @friendlyName("SandboxCustomerAppData")
-model SandboxCustomerAppData {}
-
-/**
- * Stripe Customer App.
- */
-@example(#{
-  type: Type.Stripe,
-  data: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
-})
-@friendlyName("StripeCustomerApp")
-model StripeCustomerApp {
-  ...CustomerAppBase<Type.Stripe, StripeCustomerAppData>;
+model SandboxCustomerAppData {
+  ...CustomerAppBase<Type.Sandbox>;
 }
 
 /**
  * Stripe Customer App Data.
  */
-@example(#{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" })
+@example(#{ type: Type.Stripe, stripeCustomerId: "cus_xxxxxxxxxxxxxx" })
 @friendlyName("StripeCustomerAppData")
 model StripeCustomerAppData {
+  ...CustomerAppBase<Type.Stripe>;
+
   /**
    * The Stripe customer ID.
    */
