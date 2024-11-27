@@ -37,8 +37,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 
 func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
 	return CustomerData{
-		AppID:      a.GetID(),
-		CustomerID: input.CustomerID,
+		AppID: a.GetID(),
 	}, nil
 }
 
@@ -77,8 +76,7 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) e
 }
 
 type CustomerData struct {
-	AppID      appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	AppID appentitybase.AppID
 }
 
 func (c CustomerData) Validate() error {
@@ -87,10 +85,6 @@ func (c CustomerData) Validate() error {
 
 func (c CustomerData) GetAppID() appentitybase.AppID {
 	return c.AppID
-}
-
-func (c CustomerData) GetCustomerID() customerentity.CustomerID {
-	return c.CustomerID
 }
 
 type Factory struct {

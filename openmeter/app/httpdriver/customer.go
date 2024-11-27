@@ -124,7 +124,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 			reqs := make(UpsertCustomerDataRequest, 0, len(body))
 
 			for _, apiCustomerData := range body {
-				data, err := toCustomerData(ctx, h.service, customerId, apiCustomerData)
+				data, err := toCustomerData(ctx, h.service, ns, apiCustomerData)
 				if err != nil {
 					return UpsertCustomerDataRequest{}, fmt.Errorf("failed to convert customer data: %w", err)
 				}
@@ -158,7 +158,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 }
 
 // toCustomerData converts an API CustomerAppData to a list of CustomerData
-func toCustomerData(ctx context.Context, service app.Service, customerID customerentity.CustomerID, apiApp api.CustomerAppData) (appentity.CustomerData, error) {
+func toCustomerData(ctx context.Context, service app.Service, namespace string, apiApp api.CustomerAppData) (appentity.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
@@ -178,12 +178,12 @@ func toCustomerData(ctx context.Context, service app.Service, customerID custome
 
 		if sandboxCustomerData.Id != nil {
 			appID = appentitybase.AppID{
-				Namespace: customerID.Namespace,
+				Namespace: namespace,
 				ID:        *sandboxCustomerData.Id,
 			}
 		} else {
 			app, err := service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
-				Namespace: customerID.Namespace,
+				Namespace: namespace,
 				Type:      appentitybase.AppTypeSandbox,
 			})
 			if err != nil {
@@ -194,8 +194,7 @@ func toCustomerData(ctx context.Context, service app.Service, customerID custome
 		}
 
 		return appsandbox.CustomerData{
-			AppID:      appID,
-			CustomerID: customerID,
+			AppID: appID,
 		}, nil
 
 	// Stripe app
@@ -210,12 +209,12 @@ func toCustomerData(ctx context.Context, service app.Service, customerID custome
 
 		if stripeCustomerData.Id != nil {
 			appID = appentitybase.AppID{
-				Namespace: customerID.Namespace,
+				Namespace: namespace,
 				ID:        *stripeCustomerData.Id,
 			}
 		} else {
 			app, err := service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
-				Namespace: customerID.Namespace,
+				Namespace: namespace,
 				Type:      appentitybase.AppTypeStripe,
 			})
 			if err != nil {
@@ -227,7 +226,6 @@ func toCustomerData(ctx context.Context, service app.Service, customerID custome
 
 		return appstripeentity.CustomerData{
 			AppID:                        appID,
-			CustomerID:                   customerID,
 			StripeCustomerID:             stripeCustomerData.StripeCustomerId,
 			StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodId,
 		}, nil
