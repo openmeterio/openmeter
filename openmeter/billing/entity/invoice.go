@@ -118,12 +118,14 @@ type InvoiceExpand struct {
 	Preceding    bool
 	WorkflowApps bool
 	Lines        bool
+	DeletedLines bool
 }
 
 var InvoiceExpandAll = InvoiceExpand{
 	Preceding:    true,
 	WorkflowApps: true,
 	Lines:        true,
+	DeletedLines: false,
 }
 
 func (e InvoiceExpand) Validate() error {
@@ -132,6 +134,11 @@ func (e InvoiceExpand) Validate() error {
 
 func (e InvoiceExpand) SetLines(v bool) InvoiceExpand {
 	e.Lines = v
+	return e
+}
+
+func (e InvoiceExpand) SetDeletedLines(v bool) InvoiceExpand {
+	e.DeletedLines = v
 	return e
 }
 

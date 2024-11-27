@@ -22,6 +22,10 @@ func RecalculateDetailedLinesAndTotals(invoice *billingentity.Invoice, deps Calc
 	var outErr error
 
 	for _, line := range lines {
+		if line.IsDeleted() {
+			continue
+		}
+
 		if err := line.CalculateDetailedLines(); err != nil {
 			outErr = errors.Join(outErr,
 				billingentity.ValidationWithFieldPrefix(fmt.Sprintf("line[%s]", line.ID()),
@@ -41,6 +45,11 @@ func RecalculateDetailedLinesAndTotals(invoice *billingentity.Invoice, deps Calc
 	totals := billingentity.Totals{}
 
 	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billingentity.Line, _ int) billingentity.Totals {
+		// Deleted lines are not contributing to the totals
+		if line.DeletedAt != nil {
+			return billingentity.Totals{}
+		}
+
 		return line.Totals
 	})...)
 

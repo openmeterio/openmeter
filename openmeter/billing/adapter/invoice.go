@@ -44,7 +44,7 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 			WithBillingWorkflowConfig()
 
 		if in.Expand.Lines {
-			query = tx.expandInvoiceLineItems(query)
+			query = tx.expandInvoiceLineItems(query, in.Expand.DeletedLines)
 		}
 
 		invoice, err := query.Only(ctx)
@@ -64,13 +64,17 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	})
 }
 
-func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery) *db.BillingInvoiceQuery {
+func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, includeDeleted bool) *db.BillingInvoiceQuery {
 	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		if !includeDeleted {
+			q = q.Where(billinginvoiceline.DeletedAtIsNil())
+		}
+
 		q = q.Where(
-			billinginvoiceline.DeletedAtIsNil(),
 			// Detailed lines are sub-lines of a line and should not be included in the top-level invoice
 			billinginvoiceline.StatusIn(billingentity.InvoiceLineStatusValid),
 		)
+
 		a.expandLineItems(q)
 	})
 }
@@ -184,7 +188,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		}
 
 		if input.Expand.Lines {
-			query = tx.expandInvoiceLineItems(query)
+			query = tx.expandInvoiceLineItems(query, input.Expand.DeletedLines)
 		}
 
 		switch input.OrderBy {

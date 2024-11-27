@@ -1606,6 +1606,56 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			require.ErrorIs(s.T(), err, billingentity.ErrInvoiceLinesNotBillable)
 			require.Nil(s.T(), line)
 		})
+
+		s.Run("deleting a detailed line item would fail", func() {
+			detailedLine := flatPerUnit.Children.MustGet()[0]
+
+			err := s.BillingService.DeleteInvoiceLine(ctx, detailedLine.LineID())
+			require.Error(s.T(), err)
+			require.ErrorIs(s.T(), err, billingentity.ErrInvoiceLineDeleteInvalidStatus)
+			require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+		})
+
+		s.Run("deleting a valid line item worked", func() {
+			err := s.BillingService.DeleteInvoiceLine(ctx, flatPerUnit.LineID())
+			require.NoError(s.T(), err)
+
+			invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: billingentity.InvoiceID{
+					Namespace: namespace,
+					ID:        out[0].ID,
+				},
+				Expand: billingentity.InvoiceExpandAll.SetDeletedLines(true),
+			})
+			require.NoError(s.T(), err)
+
+			require.Len(s.T(), invoice.Lines.MustGet(), 3)
+
+			deletedLine := invoice.Lines.GetByID(flatPerUnit.ID)
+			require.NotNil(s.T(), deletedLine)
+			require.NotNil(s.T(), deletedLine.DeletedAt)
+
+			requireTotals(s.T(), expectedTotals{
+				Amount: 0,
+				Total:  0,
+			}, invoice.Totals)
+
+			// Let's validate without deleted line fetching
+			invoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: out[0].InvoiceID(),
+				Expand:  billingentity.InvoiceExpandAll.SetDeletedLines(false),
+			})
+			require.NoError(s.T(), err)
+
+			require.NotContains(s.T(), lo.Map(invoice.Lines.MustGet(), func(l *billingentity.Line, _ int) string {
+				return l.ID
+			}), []string{flatPerUnit.ID})
+
+			requireTotals(s.T(), expectedTotals{
+				Amount: 0,
+				Total:  0,
+			}, invoice.Totals)
+		})
 	})
 
 	s.Run("create mid period invoice - pt2", func() {

@@ -37,6 +37,7 @@ var (
 	ErrInvoiceLineVolumeSplitNotSupported        = NewValidationError("invoice_line_graduated_split_not_supported", "graduated tiered pricing is not supported for split periods")
 	ErrInvoiceLineNoTiers                        = NewValidationError("invoice_line_no_tiers", "usage based invoice line: no tiers found")
 	ErrInvoiceLineMissingOpenEndedTier           = NewValidationError("invoice_line_missing_open_ended_tier", "usage based invoice line: missing open ended tier")
+	ErrInvoiceLineDeleteInvalidStatus            = NewValidationError("invoice_line_delete_invalid_status", "invoice line cannot be deleted in the current state (only valid lines can be deleted)")
 	ErrInvoiceCreateNoLines                      = NewValidationError("invoice_create_no_lines", "the new invoice would have no lines")
 	ErrInvoiceCreateUBPLineCustomerHasNoSubjects = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer has no subjects")
 	ErrInvoiceCreateUBPLinePeriodIsEmpty         = NewValidationError("invoice_create_ubp_line_period_is_empty", "creating an usage based line: truncated period is empty")
