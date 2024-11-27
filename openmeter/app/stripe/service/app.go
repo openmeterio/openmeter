@@ -2,12 +2,9 @@ package appservice
 
 import (
 	"context"
-	"fmt"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 )
 
 var _ appstripe.AppService = (*Service)(nil)
@@ -38,21 +35,4 @@ func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripee
 
 func (s *Service) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 	return s.adapter.SetCustomerDefaultPaymentMethod(ctx, input)
-}
-
-// newApp maps a stripe app to an app
-func (s *Service) newApp(appBase appentitybase.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
-	app := appstripeentityapp.App{
-		AppBase:             appBase,
-		AppData:             stripeApp,
-		StripeAppService:    s,
-		SecretService:       s.secretService,
-		StripeClientFactory: s.adapter.GetStripeClientFactory(),
-	}
-
-	if err := app.Validate(); err != nil {
-		return appstripeentityapp.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
-	}
-
-	return app, nil
 }

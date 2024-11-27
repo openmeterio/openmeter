@@ -13,16 +13,15 @@ type Service interface {
 }
 
 type AppService interface {
-	// Marketplace
+	// App Factory methods
 	NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error)
 	InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error)
 	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
-
+	// Stripe App methods
 	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
-	// App
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)
-	// Customer
+	// Stripe App Customer methods
 	GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error)
 	UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error
 	DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error

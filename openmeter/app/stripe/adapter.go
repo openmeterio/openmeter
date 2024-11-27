@@ -16,7 +16,6 @@ type Adapter interface {
 
 type AppStripeAdapter interface {
 	GetStripeClientFactory() client.StripeClientFactory
-
 	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 	// App

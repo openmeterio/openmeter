@@ -11,6 +11,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
@@ -163,4 +164,21 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	// We don't need to delete Stripe specific rows from DB because of cascade delete in app.
 
 	return nil
+}
+
+// newApp combines the app base and stripe app data to create a new app
+func (s *Service) newApp(appBase appentitybase.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
+	app := appstripeentityapp.App{
+		AppBase:             appBase,
+		AppData:             stripeApp,
+		StripeAppService:    s,
+		SecretService:       s.secretService,
+		StripeClientFactory: s.adapter.GetStripeClientFactory(),
+	}
+
+	if err := app.Validate(); err != nil {
+		return appstripeentityapp.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
+	}
+
+	return app, nil
 }
