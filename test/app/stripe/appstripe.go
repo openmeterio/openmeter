@@ -196,6 +196,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Get customer data must not return error")
 	require.Equal(t, appstripeentity.CustomerData{
+		AppID:            testApp.GetID(),
 		StripeCustomerID: "cus_123",
 	}, customerData, "Customer data must match")
 
@@ -346,6 +347,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
+			AppID:            app.GetID(),
 			StripeCustomerID: "cus_123",
 		},
 	})

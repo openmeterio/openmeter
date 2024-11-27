@@ -3,6 +3,8 @@ package appstripe
 import (
 	"context"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 )
 
@@ -11,6 +13,11 @@ type Service interface {
 }
 
 type AppService interface {
+	// Marketplace
+	NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error)
+	InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error)
+	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
+
 	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 	// App

@@ -30,9 +30,8 @@ type App struct {
 	appstripeentity.AppData
 
 	StripeClientFactory stripeclient.StripeClientFactory `json:"-"`
-	// TODO: can this be a service? The factory is is in the adapter that the service depends on
-	StripeAppService stripeapp.Adapter `json:"-"`
-	SecretService    secret.Service    `json:"-"`
+	StripeAppService    stripeapp.Service                `json:"-"`
+	SecretService       secret.Service                   `json:"-"`
 }
 
 func (a App) Validate() error {

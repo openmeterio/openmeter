@@ -642,6 +642,19 @@ func (n NoopAppStripeService) DeleteStripeCustomerData(ctx context.Context, inpu
 	return nil
 }
 
+// Factory methods
+func (n NoopAppStripeService) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+	return nil, nil
+}
+
+func (n NoopAppStripeService) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+	return nil, nil
+}
+
+func (n NoopAppStripeService) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+	return nil
+}
+
 var _ customer.Service = (*NoopCustomerService)(nil)
 
 type NoopCustomerService struct{}

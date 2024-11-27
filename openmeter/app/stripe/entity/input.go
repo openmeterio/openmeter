@@ -328,6 +328,11 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 	return nil
 }
 
+type AppBase struct {
+	appentitybase.AppBase
+	AppData
+}
+
 // AppData represents the Stripe associated data for the app
 type AppData struct {
 	StripeAccountID string

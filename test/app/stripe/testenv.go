@@ -144,7 +144,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	appStripeService, err := appstripeservice.New(appstripeservice.Config{
-		Adapter: appStripeAdapter,
+		Adapter:       appStripeAdapter,
+		AppService:    appService,
+		SecretService: secretService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

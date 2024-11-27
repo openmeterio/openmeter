@@ -1,4 +1,4 @@
-package appstripeadapter
+package appservice
 
 import (
 	"context"
@@ -15,16 +15,16 @@ import (
 )
 
 // This file implements the app.AppFactory interface
-var _ appentity.AppFactory = (*adapter)(nil)
+var _ appentity.AppFactory = (*Service)(nil)
 
 // NewApp implement the app.AppFactory interface and returns a Stripe App by extending the AppBase
-func (a adapter) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
-	stripeApp, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: appBase.GetID()})
+func (s *Service) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: appBase.GetID()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
 
-	app, err := a.mapAppStripeFromDB(appBase, stripeApp)
+	app, err := s.newApp(appBase, stripeApp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
@@ -33,7 +33,7 @@ func (a adapter) NewApp(ctx context.Context, appBase appentitybase.AppBase) (app
 }
 
 // NewApp implement the app.AppFactory interface and installs a Stripe App type
-func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
 	// Validate input
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
@@ -47,7 +47,7 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 	}
 
 	// Get stripe client
-	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
+	stripeClient, err := s.adapter.GetStripeClientFactory()(stripeclient.StripeClientConfig{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
 	})
@@ -68,7 +68,7 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 	// This is challenging because we need to coordinate between three remote services (secret, stripe, db)
 
 	// Create API Key secret
-	apiKeySecretID, err := a.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+	apiKeySecretID, err := s.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
 		AppID: appID,
 		Key:   appstripeentity.APIKeySecretKey,
 		Value: input.APIKey,
@@ -87,7 +87,7 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 	}
 
 	// Create webhook secret
-	webhookSecretID, err := a.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
+	webhookSecretID, err := s.secretService.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{
 		AppID: appID,
 		Key:   appstripeentity.WebhookSecretKey,
 		Value: stripeWebhookEndpoint.Secret,
@@ -113,18 +113,23 @@ func (a adapter) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFa
 		return nil, fmt.Errorf("invalid create stripe app input: %w", err)
 	}
 
-	app, err := a.CreateStripeApp(ctx, createStripeAppInput)
+	stripeApp, err := s.adapter.CreateStripeApp(ctx, createStripeAppInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app: %w", err)
+	}
+
+	app, err := s.newApp(stripeApp.AppBase, stripeApp.AppData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to factor stripe app: %w", err)
 	}
 
 	return app, nil
 }
 
 // UninstallApp uninstalls an app by id
-func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
 	// Get Stripe App
-	app, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+	app, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
 		AppID: input,
 	})
 	if err != nil {
@@ -132,13 +137,13 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppI
 	}
 
 	// Get Stripe API Key
-	apiKeySecret, err := a.secretService.GetAppSecret(ctx, app.APIKey)
+	apiKeySecret, err := s.secretService.GetAppSecret(ctx, app.APIKey)
 	if err != nil {
 		return fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}
 
 	// Create Stripe Client
-	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
+	stripeClient, err := s.adapter.GetStripeClientFactory()(stripeclient.StripeClientConfig{
 		Namespace: app.APIKey.Namespace,
 		APIKey:    apiKeySecret.Value,
 	})
