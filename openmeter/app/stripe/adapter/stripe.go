@@ -372,9 +372,8 @@ func (a adapter) mapAppStripeFromDB(
 	stripeApp appstripeentity.AppData,
 ) (appstripeentityapp.App, error) {
 	app := appstripeentityapp.App{
-		AppBase:    appBase,
-		AppData:    stripeApp,
-		AppService: a.appService,
+		AppBase: appBase,
+		AppData: stripeApp,
 
 		// TODO: fixme, it should be a service not an adapter
 		// But the factory (this) is is in the adapter that the service depends on

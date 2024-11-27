@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
@@ -646,14 +645,6 @@ func (n NoopAppStripeService) DeleteStripeCustomerData(ctx context.Context, inpu
 var _ customer.Service = (*NoopCustomerService)(nil)
 
 type NoopCustomerService struct{}
-
-func (n NoopCustomerService) Register(observer appobserver.Observer[customerentity.Customer]) error {
-	return nil
-}
-
-func (n NoopCustomerService) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
-	return nil
-}
 
 func (n NoopCustomerService) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
 	return pagination.PagedResponse[customerentity.Customer]{}, nil

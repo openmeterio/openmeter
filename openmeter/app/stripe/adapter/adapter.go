@@ -103,7 +103,6 @@ func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, e
 
 func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	// Should we re-register the observers? Adapter is overloaded, does too much
 	return &adapter{
 		db:                  txClient.Client(),
 		appService:          a.appService,
