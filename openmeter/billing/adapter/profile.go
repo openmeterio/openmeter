@@ -28,39 +28,41 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 	}
 
-	dbWorkflowConfig, err := a.createWorkflowConfig(ctx, input.Namespace, input.WorkflowConfig)
-	if err != nil {
-		return nil, err
-	}
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.BaseProfile, error) {
+		dbWorkflowConfig, err := tx.createWorkflowConfig(ctx, input.Namespace, input.WorkflowConfig)
+		if err != nil {
+			return nil, err
+		}
 
-	dbProfile, err := a.db.BillingProfile.Create().
-		SetNamespace(input.Namespace).
-		SetDefault(input.Default).
-		SetName(input.Name).
-		SetNillableDescription(input.Description).
-		SetSupplierName(input.Supplier.Name).
-		SetNillableSupplierTaxCode(input.Supplier.TaxCode).
-		SetSupplierAddressCountry(*input.Supplier.Address.Country). // Validation is done at service level
-		SetNillableSupplierAddressState(input.Supplier.Address.State).
-		SetNillableSupplierAddressCity(input.Supplier.Address.City).
-		SetNillableSupplierAddressPostalCode(input.Supplier.Address.PostalCode).
-		SetNillableSupplierAddressLine1(input.Supplier.Address.Line1).
-		SetNillableSupplierAddressLine2(input.Supplier.Address.Line2).
-		SetNillableSupplierAddressPhoneNumber(input.Supplier.Address.PhoneNumber).
-		SetWorkflowConfig(dbWorkflowConfig).
-		SetInvoicingAppID(input.Apps.Invoicing.ID).
-		SetPaymentAppID(input.Apps.Payment.ID).
-		SetTaxAppID(input.Apps.Tax.ID).
-		SetMetadata(input.Metadata).
-		Save(ctx)
-	if err != nil {
-		return nil, err
-	}
+		dbProfile, err := tx.db.BillingProfile.Create().
+			SetNamespace(input.Namespace).
+			SetDefault(input.Default).
+			SetName(input.Name).
+			SetNillableDescription(input.Description).
+			SetSupplierName(input.Supplier.Name).
+			SetNillableSupplierTaxCode(input.Supplier.TaxCode).
+			SetSupplierAddressCountry(*input.Supplier.Address.Country). // Validation is done at service level
+			SetNillableSupplierAddressState(input.Supplier.Address.State).
+			SetNillableSupplierAddressCity(input.Supplier.Address.City).
+			SetNillableSupplierAddressPostalCode(input.Supplier.Address.PostalCode).
+			SetNillableSupplierAddressLine1(input.Supplier.Address.Line1).
+			SetNillableSupplierAddressLine2(input.Supplier.Address.Line2).
+			SetNillableSupplierAddressPhoneNumber(input.Supplier.Address.PhoneNumber).
+			SetWorkflowConfig(dbWorkflowConfig).
+			SetInvoicingAppID(input.Apps.Invoicing.ID).
+			SetPaymentAppID(input.Apps.Payment.ID).
+			SetTaxAppID(input.Apps.Tax.ID).
+			SetMetadata(input.Metadata).
+			Save(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Hack: we need to add the edges back
-	dbProfile.Edges.WorkflowConfig = dbWorkflowConfig
+		// Hack: we need to add the edges back
+		dbProfile.Edges.WorkflowConfig = dbWorkflowConfig
 
-	return mapProfileFromDB(dbProfile)
+		return mapProfileFromDB(dbProfile)
+	})
 }
 
 func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
@@ -76,7 +78,6 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 }
 
 func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billingentity.BaseProfile, error) {
-	// This needs to be wrapped, as the service expects this to be atomic
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -153,7 +154,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 	return response, nil
 }
 
-func (a adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billingentity.BaseProfile, error) {
+func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billingentity.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -180,75 +181,79 @@ func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		return err
 	}
 
-	profile, err := a.GetProfile(ctx, billing.GetProfileInput{
-		Profile: models.NamespacedID{
-			Namespace: input.Namespace,
-			ID:        input.ID,
-		},
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		profile, err := tx.GetProfile(ctx, billing.GetProfileInput{
+			Profile: models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.ID,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.db.BillingWorkflowConfig.UpdateOneID(profile.WorkflowConfig.ID).
+			Where(billingworkflowconfig.Namespace(profile.Namespace)).
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.db.BillingProfile.UpdateOneID(input.ID).
+			Where(billingprofile.Namespace(input.Namespace)).
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	_, err = a.db.BillingWorkflowConfig.UpdateOneID(profile.WorkflowConfig.ID).
-		Where(billingworkflowconfig.Namespace(profile.Namespace)).
-		SetDeletedAt(clock.Now()).
-		Save(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = a.db.BillingProfile.UpdateOneID(input.ID).
-		Where(billingprofile.Namespace(input.Namespace)).
-		SetDeletedAt(clock.Now()).
-		Save(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (a adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billingentity.BaseProfile, error) {
+func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billingentity.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billingentity.ValidationError{
 			Err: err,
 		}
 	}
 
-	targetState := input.TargetState
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.BaseProfile, error) {
+		targetState := input.TargetState
 
-	update := a.db.BillingProfile.UpdateOneID(targetState.ID).
-		Where(billingprofile.Namespace(targetState.Namespace)).
-		SetName(targetState.Name).
-		SetNillableDescription(targetState.Description).
-		SetSupplierName(targetState.Supplier.Name).
-		SetSupplierAddressCountry(*targetState.Supplier.Address.Country).
-		SetDefault(targetState.Default).
-		SetOrClearSupplierTaxCode(targetState.Supplier.TaxCode).
-		SetOrClearSupplierAddressState(targetState.Supplier.Address.State).
-		SetOrClearSupplierAddressCity(targetState.Supplier.Address.City).
-		SetOrClearSupplierAddressPostalCode(targetState.Supplier.Address.PostalCode).
-		SetOrClearSupplierAddressLine1(targetState.Supplier.Address.Line1).
-		SetOrClearSupplierAddressLine2(targetState.Supplier.Address.Line2).
-		SetOrClearSupplierAddressPhoneNumber(targetState.Supplier.Address.PhoneNumber).
-		SetMetadata(targetState.Metadata)
+		update := tx.db.BillingProfile.UpdateOneID(targetState.ID).
+			Where(billingprofile.Namespace(targetState.Namespace)).
+			SetName(targetState.Name).
+			SetNillableDescription(targetState.Description).
+			SetSupplierName(targetState.Supplier.Name).
+			SetSupplierAddressCountry(*targetState.Supplier.Address.Country).
+			SetDefault(targetState.Default).
+			SetOrClearSupplierTaxCode(targetState.Supplier.TaxCode).
+			SetOrClearSupplierAddressState(targetState.Supplier.Address.State).
+			SetOrClearSupplierAddressCity(targetState.Supplier.Address.City).
+			SetOrClearSupplierAddressPostalCode(targetState.Supplier.Address.PostalCode).
+			SetOrClearSupplierAddressLine1(targetState.Supplier.Address.Line1).
+			SetOrClearSupplierAddressLine2(targetState.Supplier.Address.Line2).
+			SetOrClearSupplierAddressPhoneNumber(targetState.Supplier.Address.PhoneNumber).
+			SetMetadata(targetState.Metadata)
 
-	updatedProfile, err := update.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
+		updatedProfile, err := update.Save(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	updatedWorkflowConfig, err := a.updateWorkflowConfig(ctx, targetState.Namespace, input.WorkflowConfigID, targetState.WorkflowConfig)
-	if err != nil {
-		return nil, err
-	}
+		updatedWorkflowConfig, err := tx.updateWorkflowConfig(ctx, targetState.Namespace, input.WorkflowConfigID, targetState.WorkflowConfig)
+		if err != nil {
+			return nil, err
+		}
 
-	updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
-	return mapProfileFromDB(updatedProfile)
+		updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
+		return mapProfileFromDB(updatedProfile)
+	})
 }
 
-func (a adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
 	return a.db.BillingWorkflowConfig.UpdateOneID(id).
 		Where(billingworkflowconfig.Namespace(ns)).
 		SetCollectionAlignment(input.Collection.Alignment).

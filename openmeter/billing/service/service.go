@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ billing.Service = (*Service)(nil)
@@ -25,10 +25,12 @@ type Service struct {
 	customerService    customer.CustomerService
 	appService         app.Service
 	logger             *slog.Logger
-	invoiceCalculator  InvoiceCalculator
+	invoiceCalculator  invoicecalc.Calculator
 	featureService     feature.FeatureConnector
 	meterRepo          meter.Repository
 	streamingConnector streaming.Connector
+
+	lineService *lineservice.Service
 }
 
 type Config struct {
@@ -36,7 +38,6 @@ type Config struct {
 	CustomerService    customer.CustomerService
 	AppService         app.Service
 	Logger             *slog.Logger
-	InvoiceCalculator  InvoiceCalculator
 	FeatureService     feature.FeatureConnector
 	MeterRepo          meter.Repository
 	StreamingConnector streaming.Connector
@@ -79,40 +80,72 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 
-	return &Service{
+	svc := &Service{
 		adapter:            config.Adapter,
 		customerService:    config.CustomerService,
 		appService:         config.AppService,
 		logger:             config.Logger,
-		invoiceCalculator:  lo.CoalesceOrEmpty(config.InvoiceCalculator, NewInvoiceCalculator()),
 		featureService:     config.FeatureService,
 		meterRepo:          config.MeterRepo,
 		streamingConnector: config.StreamingConnector,
-	}, nil
+	}
+
+	lineSvc, err := lineservice.New(lineservice.Config{
+		BillingAdapter:     config.Adapter,
+		FeatureService:     config.FeatureService,
+		MeterRepo:          config.MeterRepo,
+		StreamingConnector: config.StreamingConnector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating line service: %w", err)
+	}
+
+	svc.lineService = lineSvc
+
+	calculator, err := invoicecalc.New(invoicecalc.Config{
+		LineService: lineSvc,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice calculator: %w", err)
+	}
+
+	svc.invoiceCalculator = calculator
+
+	return svc, nil
 }
 
-// TransactingRepoForGatheringInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
+func (s Service) WithInvoiceCalculator(calc invoicecalc.Calculator) *Service {
+	s.invoiceCalculator = calc
+
+	return &s
+}
+
+func (s Service) InvoiceCalculator() invoicecalc.Calculator {
+	return s.invoiceCalculator
+}
+
+// TranscationForGatheringInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
 // an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
 // invoice, that doesn't exist yet.
-func TransactingRepoForGatheringInvoiceManipulation[T any](ctx context.Context, adapter billing.Adapter, customer customerentity.CustomerID, fn func(ctx context.Context, txAdapter billing.Adapter) (T, error)) (T, error) {
+func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customer customerentity.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
 	if err := customer.Validate(); err != nil {
 		var empty T
 		return empty, fmt.Errorf("validating customer: %w", err)
 	}
 
 	// NOTE: This should not be in transaction, or we can get a conflict for parallel writes
-	err := adapter.UpsertCustomerOverride(ctx, customer)
+	err := svc.adapter.UpsertCustomerOverride(ctx, customer)
 	if err != nil {
 		var empty T
 		return empty, fmt.Errorf("upserting customer override: %w", err)
 	}
 
-	return entutils.TransactingRepo(ctx, adapter, func(ctx context.Context, txAdapter billing.Adapter) (T, error) {
-		if err := txAdapter.LockCustomerForUpdate(ctx, customer); err != nil {
+	return transaction.Run(ctx, svc.adapter, func(ctx context.Context) (T, error) {
+		if err := svc.adapter.LockCustomerForUpdate(ctx, customer); err != nil {
 			var empty T
 			return empty, fmt.Errorf("locking customer for update: %w", err)
 		}
 
-		return fn(ctx, txAdapter)
+		return fn(ctx)
 	})
 }

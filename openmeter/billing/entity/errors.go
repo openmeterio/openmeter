@@ -16,16 +16,19 @@ var (
 	ErrDefaultProfileNotFound       = NewValidationError("default_profile_not_found", "default profile not found")
 	ErrProfileNotFound              = NewValidationError("profile_not_found", "profile not found")
 	ErrProfileAlreadyDeleted        = NewValidationError("profile_already_deleted", "profile already deleted")
-	ErrProfileConflict              = NewValidationError("profile_update_conflict", "profile has been already updated")
 	ErrProfileReferencedByOverrides = NewValidationError("profile_referenced", "profile is referenced by customer overrides")
 
 	ErrCustomerOverrideNotFound       = NewValidationError("customer_override_not_found", "customer override not found")
-	ErrCustomerOverrideConflict       = NewValidationError("customer_override_conflict", "customer override has been already updated conflict")
 	ErrCustomerOverrideAlreadyDeleted = NewValidationError("customer_override_deleted", "customer override already deleted")
 	ErrCustomerNotFound               = NewValidationError("customer_not_found", "customer not found")
 	ErrCustomerDeleted                = NewValidationError("customer_deleted", "customer has been deleted")
 
+	ErrFieldRequired             = NewValidationError("field_required", "field is required")
+	ErrFieldMustBePositive       = NewValidationError("field_must_be_positive", "field must be positive")
+	ErrFieldMustBePositiveOrZero = NewValidationError("field_must_be_positive_or_zero", "field must be positive or zero")
+
 	ErrInvoiceCannotAdvance      = NewValidationError("invoice_cannot_advance", "invoice cannot advance")
+	ErrInvoiceCannotBeEdited     = NewValidationError("invoice_cannot_be_edited", "invoice cannot be edited in the current state")
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
 	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "some invoice lines are not billable")
 	ErrInvoiceEmpty              = NewValidationError("invoice_empty", "invoice is empty")

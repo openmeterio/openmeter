@@ -33,7 +33,7 @@ func issueDedupeHash(issue billingentity.ValidationIssue) []byte {
 // persistValidationIssues persists the validation issues for the given invoice, it will remove any
 // existing issues that are not present in the new list. It relies on consistent hashing to deduplicate
 // issues.
-func (r adapter) persistValidationIssues(ctx context.Context, invoice billingentity.InvoiceID, issues []billingentity.ValidationIssue) error {
+func (a *adapter) persistValidationIssues(ctx context.Context, invoice billingentity.InvoiceID, issues []billingentity.ValidationIssue) error {
 	hashedIssues := lo.Map(issues, func(issue billingentity.ValidationIssue, _ int) validationIssueWithDedupe {
 		return validationIssueWithDedupe{
 			issue: issue,
@@ -41,7 +41,7 @@ func (r adapter) persistValidationIssues(ctx context.Context, invoice billingent
 		}
 	})
 
-	err := r.db.BillingInvoiceValidationIssue.Update().
+	err := a.db.BillingInvoiceValidationIssue.Update().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).
 		Where(billinginvoicevalidationissue.Namespace(invoice.Namespace)).
 		Where(billinginvoicevalidationissue.DedupeHashNotIn(
@@ -55,7 +55,7 @@ func (r adapter) persistValidationIssues(ctx context.Context, invoice billingent
 		return err
 	}
 
-	return r.db.BillingInvoiceValidationIssue.MapCreateBulk(hashedIssues, func(c *db.BillingInvoiceValidationIssueCreate, i int) {
+	return a.db.BillingInvoiceValidationIssue.MapCreateBulk(hashedIssues, func(c *db.BillingInvoiceValidationIssueCreate, i int) {
 		hash := hashedIssues[i].hash
 		issue := hashedIssues[i].issue
 
@@ -96,8 +96,8 @@ type ValidationIssueWithDBMeta struct {
 // IntropectValidationIssues returns the validation issues for the given invoice, this is not
 // exposed via the adpter interface, as it's only used by tests to validate the state of the
 // database.
-func (r adapter) IntrospectValidationIssues(ctx context.Context, invoice billingentity.InvoiceID) ([]ValidationIssueWithDBMeta, error) {
-	issues, err := r.db.BillingInvoiceValidationIssue.Query().
+func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billingentity.InvoiceID) ([]ValidationIssueWithDBMeta, error) {
+	issues, err := a.db.BillingInvoiceValidationIssue.Query().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).
 		Where(billinginvoicevalidationissue.Namespace(invoice.Namespace)).
 		Order(db.Asc(billinginvoicevalidationissue.FieldCreatedAt)).

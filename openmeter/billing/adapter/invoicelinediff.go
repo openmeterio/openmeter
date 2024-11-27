@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/set"
 )
 
+// TODO[later]: Add support for setting deletedAt
+
 type operation string
 
 const (

@@ -11,12 +11,13 @@ import (
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 type InvoiceStateMachine struct {
 	Invoice      billingentity.Invoice
-	Calculator   InvoiceCalculator
+	Calculator   invoicecalc.Calculator
 	StateMachine *stateless.StateMachine
 }
 
@@ -82,7 +83,17 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftCreated).
 		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftValidating)
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
+		OnActive(out.calculateInvoice)
+
+	stateMachine.Configure(billingentity.InvoiceStatusDraftUpdating).
+		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating).
+		OnActive(
+			allOf(
+				out.calculateInvoice,
+				out.validateDraftInvoice,
+			),
+		)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftValidating).
 		Permit(
@@ -92,15 +103,15 @@ func allocateStateMachine() *InvoiceStateMachine {
 		).
 		Permit(triggerFailed, billingentity.InvoiceStatusDraftInvalid).
 		// NOTE: we should permit update here, but stateless doesn't allow transitions to the same state
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftCreated).
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
 		OnActive(allOf(
 			out.calculateInvoice,
-			out.validateDraftInvoice),
-		)
+			out.validateDraftInvoice,
+		))
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftInvalid).
 		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftValidating)
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncing).
 		Permit(
@@ -120,17 +131,17 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncFailed).
 		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftValidating)
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	stateMachine.Configure(billingentity.InvoiceStatusDraftReadyToIssue).
 		Permit(triggerNext, billingentity.InvoiceStatusIssuing).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftValidating)
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	// Automatic and manual approvals
 	stateMachine.Configure(billingentity.InvoiceStatusDraftWaitingAutoApproval).
 		// Manual approval forces the draft invoice to be issued regardless of the review period
 		Permit(triggerApprove, billingentity.InvoiceStatusDraftReadyToIssue).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftValidating).
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
 		Permit(triggerNext,
 			billingentity.InvoiceStatusDraftReadyToIssue,
 			boolFn(out.shouldAutoAdvance),
@@ -144,7 +155,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 			billingentity.InvoiceStatusDraftReadyToIssue,
 			boolFn(out.noCriticalValidationErrors),
 		).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftValidating)
+		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
 
 	// Issuing state
 
@@ -166,12 +177,12 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 type InvoiceStateMachineCallback func(context.Context, *InvoiceStateMachine) error
 
-func WithInvoiceStateMachine(ctx context.Context, invoice billingentity.Invoice, calc InvoiceCalculator, cb InvoiceStateMachineCallback) (billingentity.Invoice, error) {
+func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billingentity.Invoice, cb InvoiceStateMachineCallback) (billingentity.Invoice, error) {
 	sm := invoiceStateMachineCache.Get().(*InvoiceStateMachine)
 
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
-	sm.Calculator = calc
+	sm.Calculator = s.invoiceCalculator
 
 	defer func() {
 		sm.Invoice = billingentity.Invoice{}
@@ -182,6 +193,13 @@ func WithInvoiceStateMachine(ctx context.Context, invoice billingentity.Invoice,
 	if err := cb(ctx, sm); err != nil {
 		return billingentity.Invoice{}, err
 	}
+
+	sd, err := sm.StatusDetails(ctx)
+	if err != nil {
+		return sm.Invoice, fmt.Errorf("error resolving status details: %w", err)
+	}
+
+	sm.Invoice.StatusDetails = sd
 
 	return sm.Invoice, nil
 }
@@ -242,7 +260,7 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 
 		// We have reached a state that requires either manual intervention or that is final
 		if !canFire {
-			return nil
+			return m.Invoice.ValidationIssues.AsError()
 		}
 
 		if err := m.FireAndActivate(ctx, triggerNext); err != nil {
@@ -265,6 +283,8 @@ func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger state
 
 	activationError := m.StateMachine.ActivateCtx(ctx)
 	if activationError != nil || m.Invoice.HasCriticalValidationIssues() {
+		validationIssues := m.Invoice.ValidationIssues.Clone()
+
 		// There was an error activating the state, we should trigger a transition to the failed state
 		canFire, err := m.StateMachine.CanFireCtx(ctx, triggerFailed)
 		if err != nil {
@@ -279,11 +299,11 @@ func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger state
 			return fmt.Errorf("failed to transition to failed state: %w", err)
 		}
 
-		if err := m.StateMachine.ActivateCtx(ctx); err != nil {
-			return fmt.Errorf("failed to activate failed state: %w", err)
+		if activationError != nil {
+			return activationError
 		}
 
-		return activationError
+		return validationIssues.AsError()
 	}
 
 	return nil

@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -25,10 +25,10 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Profile, error) {
 		// Given that we have multiple constraints let's validate those here for better error reporting
 		if input.Default {
-			defaultProfile, err := txAdapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 				Namespace: input.Namespace,
 			})
 			if err != nil {
@@ -53,7 +53,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			Payment:   resolvedApps.Payment.Reference,
 		}
 
-		profile, err := txAdapter.CreateProfile(ctx, input)
+		profile, err := s.adapter.CreateProfile(ctx, input)
 		if err != nil {
 			return nil, err
 		}
@@ -208,8 +208,8 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		}
 	}
 
-	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
-		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput{
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		profile, err := s.adapter.GetProfile(ctx, billing.GetProfileInput{
 			Profile: models.NamespacedID{
 				Namespace: input.Namespace,
 				ID:        input.ID,
@@ -231,7 +231,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			}
 		}
 
-		referringCustomerIDs, err := txAdapter.GetCustomerOverrideReferencingProfile(ctx, billing.HasCustomerOverrideReferencingProfileAdapterInput(input))
+		referringCustomerIDs, err := s.adapter.GetCustomerOverrideReferencingProfile(ctx, billing.HasCustomerOverrideReferencingProfileAdapterInput(input))
 		if err != nil {
 			return err
 		}
@@ -248,7 +248,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			}
 		}
 
-		return txAdapter.DeleteProfile(ctx, billing.DeleteProfileInput{
+		return s.adapter.DeleteProfile(ctx, billing.DeleteProfileInput{
 			Namespace: input.Namespace,
 			ID:        profile.ID,
 		})
@@ -298,8 +298,8 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Profile, error) {
-		profile, err := txAdapter.GetProfile(ctx, billing.GetProfileInput{
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Profile, error) {
+		profile, err := s.adapter.GetProfile(ctx, billing.GetProfileInput{
 			Profile: models.NamespacedID{
 				Namespace: input.Namespace,
 				ID:        input.ID,
@@ -321,14 +321,8 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		if !profile.UpdatedAt.Equal(input.UpdatedAt) {
-			return nil, billingentity.UpdateAfterDeleteError{
-				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileConflict, input.ID),
-			}
-		}
-
 		if !profile.Default && input.Default {
-			defaultProfile, err := txAdapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 				Namespace: input.Namespace,
 			})
 			if err != nil {
@@ -342,7 +336,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		profile, err = txAdapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
+		profile, err = s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
 			TargetState:      billingentity.BaseProfile(input),
 			WorkflowConfigID: profile.WorkflowConfig.ID,
 		})

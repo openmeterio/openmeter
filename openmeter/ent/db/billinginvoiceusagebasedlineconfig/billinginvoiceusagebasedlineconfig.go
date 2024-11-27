@@ -23,6 +23,8 @@ const (
 	FieldFeatureKey = "feature_key"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldPreLinePeriodQuantity holds the string denoting the pre_line_period_quantity field in the database.
+	FieldPreLinePeriodQuantity = "pre_line_period_quantity"
 	// Table holds the table name of the billinginvoiceusagebasedlineconfig in the database.
 	Table = "billing_invoice_usage_based_line_configs"
 )
@@ -34,6 +36,7 @@ var Columns = []string{
 	FieldPriceType,
 	FieldFeatureKey,
 	FieldPrice,
+	FieldPreLinePeriodQuantity,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -95,4 +98,9 @@ func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 // ByPrice orders the results by the price field.
 func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
+}
+
+// ByPreLinePeriodQuantity orders the results by the pre_line_period_quantity field.
+func ByPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPreLinePeriodQuantity, opts...).ToFunc()
 }

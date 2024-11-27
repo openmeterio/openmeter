@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var _ InvoiceHandler = (*handler)(nil)
@@ -371,6 +372,7 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 		ValidationIssues: lo.EmptyableToPtr(
 			lo.Map(invoice.ValidationIssues, func(v billingentity.ValidationIssue, _ int) api.BillingValidationIssue {
 				return api.BillingValidationIssue{
+					// TODO[later]: CreatedAt, UpdatedAt
 					Severity:  api.BillingValidationIssueSeverity(v.Severity),
 					Message:   v.Message,
 					Code:      lo.EmptyableToPtr(v.Code),
@@ -389,17 +391,19 @@ func mapInvoiceToAPI(invoice billingentity.Invoice) (api.BillingInvoice, error) 
 		}
 	}
 
-	if len(invoice.Lines) > 0 {
-		outLines := make([]api.BillingInvoiceLine, 0, len(invoice.Lines))
-
-		for _, line := range invoice.Lines {
-			mappedLine, err := mapBillingLineToAPI(line)
-			if err != nil {
-				return api.BillingInvoice{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
-			}
-			outLines = append(outLines, mappedLine)
+	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billingentity.Line) (api.BillingInvoiceLine, error) {
+		mappedLine, err := mapBillingLineToAPI(line)
+		if err != nil {
+			return api.BillingInvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}
 
+		return mappedLine, nil
+	})
+	if err != nil {
+		return api.BillingInvoice{}, err
+	}
+
+	if len(outLines) > 0 {
 		out.Lines = &outLines
 	}
 
@@ -446,7 +450,6 @@ func mapInvoiceExpandToEntity(expand []api.BillingInvoiceExpand) billingentity.I
 		return billingentity.InvoiceExpand{
 			Lines:        true,
 			Preceding:    true,
-			Workflow:     true,
 			WorkflowApps: true,
 		}
 	}
@@ -454,7 +457,6 @@ func mapInvoiceExpandToEntity(expand []api.BillingInvoiceExpand) billingentity.I
 	return billingentity.InvoiceExpand{
 		Lines:        slices.Contains(expand, api.BillingInvoiceExpandLines),
 		Preceding:    slices.Contains(expand, api.BillingInvoiceExpandPreceding),
-		Workflow:     slices.Contains(expand, api.BillingInvoiceExpandWorkflow),
 		WorkflowApps: slices.Contains(expand, api.BillingInvoiceExpandWorkflowApps),
 	}
 }

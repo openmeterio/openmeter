@@ -13459,17 +13459,18 @@ func (m *BillingInvoiceLineDiscountMutation) ResetEdge(name string) error {
 // BillingInvoiceUsageBasedLineConfigMutation represents an operation that mutates the BillingInvoiceUsageBasedLineConfig nodes in the graph.
 type BillingInvoiceUsageBasedLineConfigMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	namespace     *string
-	price_type    *plan.PriceType
-	feature_key   *string
-	price         **plan.Price
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*BillingInvoiceUsageBasedLineConfig, error)
-	predicates    []predicate.BillingInvoiceUsageBasedLineConfig
+	op                       Op
+	typ                      string
+	id                       *string
+	namespace                *string
+	price_type               *plan.PriceType
+	feature_key              *string
+	price                    **plan.Price
+	pre_line_period_quantity *alpacadecimal.Decimal
+	clearedFields            map[string]struct{}
+	done                     bool
+	oldValue                 func(context.Context) (*BillingInvoiceUsageBasedLineConfig, error)
+	predicates               []predicate.BillingInvoiceUsageBasedLineConfig
 }
 
 var _ ent.Mutation = (*BillingInvoiceUsageBasedLineConfigMutation)(nil)
@@ -13720,6 +13721,55 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetPrice() {
 	m.price = nil
 }
 
+// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) {
+	m.pre_line_period_quantity = &a
+}
+
+// PreLinePeriodQuantity returns the value of the "pre_line_period_quantity" field in the mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) PreLinePeriodQuantity() (r alpacadecimal.Decimal, exists bool) {
+	v := m.pre_line_period_quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreLinePeriodQuantity returns the old "pre_line_period_quantity" field's value of the BillingInvoiceUsageBasedLineConfig entity.
+// If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldPreLinePeriodQuantity(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreLinePeriodQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreLinePeriodQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreLinePeriodQuantity: %w", err)
+	}
+	return oldValue.PreLinePeriodQuantity, nil
+}
+
+// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearPreLinePeriodQuantity() {
+	m.pre_line_period_quantity = nil
+	m.clearedFields[billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity] = struct{}{}
+}
+
+// PreLinePeriodQuantityCleared returns if the "pre_line_period_quantity" field was cleared in this mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) PreLinePeriodQuantityCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity]
+	return ok
+}
+
+// ResetPreLinePeriodQuantity resets all changes to the "pre_line_period_quantity" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetPreLinePeriodQuantity() {
+	m.pre_line_period_quantity = nil
+	delete(m.clearedFields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
+}
+
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigMutation builder.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) {
 	m.predicates = append(m.predicates, ps...)
@@ -13754,7 +13804,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceUsageBasedLineConfigMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldNamespace)
 	}
@@ -13766,6 +13816,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Fields() []string {
 	}
 	if m.price != nil {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldPrice)
+	}
+	if m.pre_line_period_quantity != nil {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
 	}
 	return fields
 }
@@ -13783,6 +13836,8 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Field(name string) (ent.Val
 		return m.FeatureKey()
 	case billinginvoiceusagebasedlineconfig.FieldPrice:
 		return m.Price()
+	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+		return m.PreLinePeriodQuantity()
 	}
 	return nil, false
 }
@@ -13800,6 +13855,8 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) OldField(ctx context.Contex
 		return m.OldFeatureKey(ctx)
 	case billinginvoiceusagebasedlineconfig.FieldPrice:
 		return m.OldPrice(ctx)
+	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+		return m.OldPreLinePeriodQuantity(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)
 }
@@ -13837,6 +13894,13 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) SetField(name string, value
 		}
 		m.SetPrice(v)
 		return nil
+	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreLinePeriodQuantity(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)
 }
@@ -13866,7 +13930,11 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) AddField(name string, value
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity) {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -13879,6 +13947,11 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) FieldCleared(name string) b
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearField(name string) error {
+	switch name {
+	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+		m.ClearPreLinePeriodQuantity()
+		return nil
+	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig nullable field %s", name)
 }
 
@@ -13897,6 +13970,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetField(name string) err
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldPrice:
 		m.ResetPrice()
+		return nil
+	case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity:
+		m.ResetPreLinePeriodQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)

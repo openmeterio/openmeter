@@ -14,87 +14,92 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
-func (r *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
-	_, err := r.db.BillingCustomerOverride.Create().
-		SetNamespace(input.Namespace).
-		SetCustomerID(input.CustomerID).
-		SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
-		SetNillableCollectionAlignment(input.Collection.Alignment).
-		SetNillableLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
-		SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-		SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
-		SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
-		SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
-		Save(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.CustomerOverride, error) {
+		_, err := tx.db.BillingCustomerOverride.Create().
+			SetNamespace(input.Namespace).
+			SetCustomerID(input.CustomerID).
+			SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
+			SetNillableCollectionAlignment(input.Collection.Alignment).
+			SetNillableLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
+			SetNillableInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
+			SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
+			SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
+			SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
+			Save(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Let's fetch the override with edges
-	return r.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customerentity.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
+		// Let's fetch the override with edges
+		return tx.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+			Customer: customerentity.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+		})
 	})
 }
 
-func (r *adapter) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
-	if input.ProfileID == "" {
-		// Let's resolve the default profile
-		defaultProfile, err := r.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: input.Namespace,
-		})
+func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.CustomerOverride, error) {
+		if input.ProfileID == "" {
+			// Let's resolve the default profile
+			defaultProfile, err := tx.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+				Namespace: input.Namespace,
+			})
+			if err != nil {
+				return nil, billingentity.NotFoundError{
+					Entity: billingentity.EntityDefaultProfile,
+					Err:    billingentity.ErrDefaultProfileNotFound,
+				}
+			}
+
+			input.ProfileID = defaultProfile.ID
+		}
+
+		update := tx.db.BillingCustomerOverride.Update().
+			Where(billingcustomeroverride.CustomerID(input.CustomerID)).
+			SetOrClearCollectionAlignment(input.Collection.Alignment).
+			SetOrClearLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
+			SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
+			SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
+			SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
+			SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod)
+
+		if input.ResetDeletedAt {
+			update = update.ClearDeletedAt()
+		}
+
+		linesAffected, err := update.Save(ctx)
 		if err != nil {
+			return nil, err
+		}
+
+		if linesAffected == 0 {
 			return nil, billingentity.NotFoundError{
-				Entity: billingentity.EntityDefaultProfile,
-				Err:    billingentity.ErrDefaultProfileNotFound,
+				ID:     input.CustomerID,
+				Entity: billingentity.EntityCustomerOverride,
+				Err:    billingentity.ErrCustomerOverrideNotFound,
 			}
 		}
 
-		input.ProfileID = defaultProfile.ID
-	}
-
-	update := r.db.BillingCustomerOverride.Update().
-		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
-		SetOrClearCollectionAlignment(input.Collection.Alignment).
-		SetOrClearLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
-		SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
-		SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
-		SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
-		SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod)
-
-	if input.ResetDeletedAt {
-		update = update.ClearDeletedAt()
-	}
-
-	linesAffected, err := update.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if linesAffected == 0 {
-		return nil, billingentity.NotFoundError{
-			ID:     input.CustomerID,
-			Entity: billingentity.EntityCustomerOverride,
-			Err:    billingentity.ErrCustomerOverrideNotFound,
-		}
-	}
-
-	return r.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customerentity.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
+		return tx.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+			Customer: customerentity.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+		})
 	})
 }
 
-func (r *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
-	query := r.db.BillingCustomerOverride.Query().
+func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
+	query := a.db.BillingCustomerOverride.Query().
 		Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 		Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 		WithBillingProfile(func(bpq *db.BillingProfileQuery) {
@@ -126,8 +131,8 @@ func (r *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	return mapCustomerOverrideFromDB(dbCustomerOverride)
 }
 
-func (r *adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
-	rowsAffected, err := r.db.BillingCustomerOverride.Update().
+func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
+	rowsAffected, err := a.db.BillingCustomerOverride.Update().
 		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
 		Where(billingcustomeroverride.Namespace(input.Namespace)).
 		Where(billingcustomeroverride.DeletedAtIsNil()).
@@ -156,8 +161,8 @@ func (r *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	return nil
 }
 
-func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error) {
-	dbCustomerOverrides, err := r.db.BillingCustomerOverride.Query().
+func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error) {
+	dbCustomerOverrides, err := a.db.BillingCustomerOverride.Query().
 		Where(billingcustomeroverride.Namespace(input.Namespace)).
 		Where(billingcustomeroverride.BillingProfileID(input.ID)).
 		Where(billingcustomeroverride.DeletedAtIsNil()).
@@ -178,8 +183,8 @@ func (r *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 	return customerIDs, nil
 }
 
-func (r *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
-	err := r.db.BillingCustomerOverride.Create().
+func (a *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
+	err := a.db.BillingCustomerOverride.Create().
 		SetNamespace(input.Namespace).
 		SetCustomerID(input.ID).
 		OnConflict(
@@ -195,18 +200,20 @@ func (r *adapter) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 	return nil
 }
 
-func (r *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
-	if err := r.UpsertCustomerOverride(ctx, input); err != nil {
+func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		if err := tx.UpsertCustomerOverride(ctx, input); err != nil {
+			return err
+		}
+
+		_, err := tx.db.BillingCustomerOverride.Query().
+			Where(billingcustomeroverride.CustomerID(input.ID)).
+			Where(billingcustomeroverride.Namespace(input.Namespace)).
+			ForUpdate().
+			First(ctx)
+
 		return err
-	}
-
-	_, err := r.db.BillingCustomerOverride.Query().
-		Where(billingcustomeroverride.CustomerID(input.ID)).
-		Where(billingcustomeroverride.Namespace(input.Namespace)).
-		ForUpdate().
-		First(ctx)
-
-	return err
+	})
 }
 
 func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billingentity.CustomerOverride, error) {

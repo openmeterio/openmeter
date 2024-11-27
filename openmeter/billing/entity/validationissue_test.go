@@ -67,3 +67,20 @@ func TestValidationIssueParsing(t *testing.T) {
 	require.Len(t, issues, 0)
 	require.Error(t, err)
 }
+
+func TestAsError(t *testing.T) {
+	issues := ValidationIssues{
+		{
+			Severity:  ValidationIssueSeverityCritical,
+			Message:   "error1",
+			Component: "component1",
+			Path:      "/some/path/from/component1",
+		},
+	}
+
+	err := issues.AsError()
+
+	validationIssues, err := ToValidationIssues(err)
+	require.NoError(t, err)
+	require.Equal(t, issues, validationIssues)
+}

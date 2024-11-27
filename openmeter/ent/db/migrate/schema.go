@@ -338,7 +338,7 @@ var (
 		{Name: "draft_until", Type: field.TypeTime, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "due_at", Type: field.TypeTime, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"gathering", "draft_created", "draft_manual_approval_needed", "draft_validating", "draft_invalid", "draft_syncing", "draft_sync_failed", "draft_waiting_auto_approval", "draft_ready_to_issue", "issuing_syncing", "issuing_sync_failed", "issued"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"gathering", "draft_created", "draft_updating", "draft_manual_approval_needed", "draft_validating", "draft_invalid", "draft_syncing", "draft_sync_failed", "draft_waiting_auto_approval", "draft_ready_to_issue", "issuing_syncing", "issuing_sync_failed", "issued"}},
 		{Name: "period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "period_end", Type: field.TypeTime, Nullable: true},
 		{Name: "tax_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -595,6 +595,7 @@ var (
 		{Name: "price_type", Type: field.TypeEnum, Enums: []string{"flat", "unit", "tiered"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 	}
 	// BillingInvoiceUsageBasedLineConfigsTable holds the schema information for the "billing_invoice_usage_based_line_configs" table.
 	BillingInvoiceUsageBasedLineConfigsTable = &schema.Table{

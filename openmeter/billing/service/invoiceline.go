@@ -2,7 +2,10 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -10,7 +13,7 @@ import (
 	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -36,14 +39,14 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 		return nil, err
 	}
 
-	return TransactingRepoForGatheringInvoiceManipulation(
+	return TranscationForGatheringInvoiceManipulation(
 		ctx,
-		s.adapter,
+		s,
 		customerentity.CustomerID{
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
 		},
-		func(ctx context.Context, txAdapter billing.Adapter) ([]*billingentity.Line, error) {
+		func(ctx context.Context) ([]*billingentity.Line, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
 				Namespace:  input.Namespace,
@@ -53,23 +56,18 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 				return nil, fmt.Errorf("fetching customer profile: %w", err)
 			}
 
-			lineSrv, err := s.newLineService(txAdapter)
-			if err != nil {
-				return nil, fmt.Errorf("creating line service: %w", err)
-			}
-
 			lines := make(lineservice.Lines, 0, len(input.Lines))
 
 			// TODO[OM-949]: we should optimize this as this does O(n) queries for invoices per line
 			for i, line := range input.Lines {
 				line.Namespace = input.Namespace
 
-				updateResult, err := s.upsertLineInvoice(ctx, txAdapter, line, input, customerProfile)
+				updateResult, err := s.upsertLineInvoice(ctx, line, input, customerProfile)
 				if err != nil {
 					return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
 				}
 
-				lineService, err := lineSrv.FromEntity(&updateResult.Line)
+				lineService, err := s.lineService.FromEntity(&updateResult.Line)
 				if err != nil {
 					return nil, fmt.Errorf("creating line service[%d]: %w", i, err)
 				}
@@ -87,7 +85,7 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			}
 
 			// Create the invoice Lines
-			createdLines, err := txAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 				Namespace: input.Namespace,
 				Lines:     lines.ToEntities(),
 			})
@@ -104,10 +102,10 @@ type upsertLineInvoiceResponse struct {
 	Invoice *billingentity.Invoice
 }
 
-func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapter, line billingentity.Line, input billing.CreateInvoiceLinesInput, customerProfile *billingentity.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
+func (s *Service) upsertLineInvoice(ctx context.Context, line billingentity.Line, input billing.CreateInvoiceLinesInput, customerProfile *billingentity.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
 	if line.InvoiceID != "" {
 		// We would want to attach the line to an existing invoice
-		invoice, err := txAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		invoice, err := s.adapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
 			Invoice: billingentity.InvoiceID{
 				ID:        line.InvoiceID,
 				Namespace: input.Namespace,
@@ -139,7 +137,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 	}
 
 	// We would want to stage a pending invoice Line
-	pendingInvoiceList, err := txAdapter.ListInvoices(ctx, billing.ListInvoicesInput{
+	pendingInvoiceList, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
 		Page: pagination.Page{
 			PageNumber: 1,
 			PageSize:   10,
@@ -157,7 +155,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 
 	if len(pendingInvoiceList.Items) == 0 {
 		// Create a new invoice
-		invoice, err := txAdapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
+		invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 			Namespace: input.Namespace,
 			Customer:  customerProfile.Customer,
 			Profile:   customerProfile.Profile,
@@ -194,10 +192,10 @@ func (s *Service) upsertLineInvoice(ctx context.Context, txAdapter billing.Adapt
 	}, nil
 }
 
-func (s *Service) associateLinesToInvoice(ctx context.Context, lineSrv *lineservice.Service, invoice billingentity.Invoice, lines []lineservice.LineWithBillablePeriod) error {
+func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billingentity.Invoice, lines []lineservice.LineWithBillablePeriod) (billingentity.Invoice, error) {
 	for _, line := range lines {
 		if line.InvoiceID() == invoice.ID {
-			return billingentity.ValidationError{
+			return invoice, billingentity.ValidationError{
 				Err: fmt.Errorf("line[%s]: line already associated with invoice[%s]", line.ID(), invoice.ID),
 			}
 		}
@@ -209,12 +207,12 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, lineSrv *lineserv
 		if !line.Period().Equal(line.BillablePeriod) {
 			// We need to split the line into multiple lines
 			if !line.Period().Start.Equal(line.BillablePeriod.Start) {
-				return fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.ID(), line.Period().Start, line.BillablePeriod.Start)
+				return invoice, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.ID(), line.Period().Start, line.BillablePeriod.Start)
 			}
 
 			splitLine, err := line.Split(ctx, line.BillablePeriod.End)
 			if err != nil {
-				return fmt.Errorf("line[%s]: splitting line: %w", line.ID(), err)
+				return invoice, fmt.Errorf("line[%s]: splitting line: %w", line.ID(), err)
 			}
 
 			invoiceLines = append(invoiceLines, splitLine.PreSplitAtLine)
@@ -231,40 +229,25 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, lineSrv *lineserv
 		}
 	}
 	if validationErrors != nil {
-		return validationErrors
+		return invoice, validationErrors
 	}
 
 	// Associate the lines to the invoice
-	invoiceLines, err := lineSrv.AssociateLinesToInvoice(ctx, &invoice, invoiceLines)
+	invoiceLines, err := s.lineService.AssociateLinesToInvoice(ctx, &invoice, invoiceLines)
 	if err != nil {
-		return fmt.Errorf("associating lines to invoice: %w", err)
+		return invoice, fmt.Errorf("associating lines to invoice: %w", err)
 	}
 
 	// Let's create the sub lines as per the meters
 	for _, line := range invoiceLines {
 		if err := line.SnapshotQuantity(ctx, &invoice); err != nil {
-			return fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
-		}
-
-		if err := line.UpdateTotals(); err != nil {
-			return fmt.Errorf("line[%s]: updating totals: %w", line.ID(), err)
+			return invoice, fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
 		}
 	}
 
-	_, err = lineSrv.UpsertLines(ctx, invoice.Namespace, invoiceLines...)
-	if err != nil {
-		return fmt.Errorf("upserting lines: %w", err)
-	}
-
-	return nil
-}
-
-func (s *Service) newLineService(adapter billing.Adapter) (*lineservice.Service, error) {
-	return lineservice.New(lineservice.Config{
-		BillingAdapter:     adapter,
-		FeatureService:     s.featureService,
-		MeterRepo:          s.meterRepo,
-		StreamingConnector: s.streamingConnector,
+	// Let's active the invoice state machine so that calculations can be done
+	return s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, ism *InvoiceStateMachine) error {
+		return ism.StateMachine.ActivateCtx(ctx)
 	})
 }
 
@@ -275,8 +258,9 @@ func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLi
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) (*billingentity.Line, error) {
-		return s.adapter.GetInvoiceLine(ctx, input)
+	return s.adapter.GetInvoiceLine(ctx, billing.GetInvoiceLineAdapterInput{
+		Namespace: input.Namespace,
+		ID:        input.ID,
 	})
 }
 
@@ -287,20 +271,102 @@ func (s *Service) ValidateLineOwnership(ctx context.Context, input billing.Valid
 		}
 	}
 
-	return entutils.TransactingRepoWithNoValue(ctx, s.adapter, func(ctx context.Context, txAdapter billing.Adapter) error {
-		ownership, err := txAdapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
-			Namespace: input.Namespace,
-			ID:        input.InvoiceID,
-		})
+	ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
+		Namespace: input.Namespace,
+		ID:        input.InvoiceID,
+	})
+	if err != nil {
+		return err
+	}
+
+	if ownership.CustomerID != input.CustomerID {
+		return billingentity.NotFoundError{
+			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
+		}
+	}
+	return nil
+}
+
+func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineInput) (*billingentity.Line, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billingentity.ValidationError{
+			Err: err,
+		}
+	}
+
+	triggeredInvoice, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Invoice, error) {
+		existingLine, err := s.adapter.GetInvoiceLine(ctx, input.Line)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		if ownership.CustomerID != input.CustomerID {
-			return billingentity.NotFoundError{
-				Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
-			}
-		}
-		return nil
+		invoice, err := s.executeTriggerOnInvoice(
+			ctx,
+			billingentity.InvoiceID{
+				ID:        existingLine.InvoiceID,
+				Namespace: existingLine.Namespace,
+			},
+			triggerUpdated,
+			ExecuteTriggerWithAllowInStates(billingentity.InvoiceStatusDraftUpdating),
+			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
+				targetState, err := input.Apply(existingLine)
+				if err != nil {
+					return err
+				}
+
+				if err := targetState.Validate(); err != nil {
+					return billingentity.ValidationError{
+						Err: err,
+					}
+				}
+
+				targetStateLineSrv, err := s.lineService.FromEntity(targetState)
+				if err != nil {
+					return fmt.Errorf("creating line service: %w", err)
+				}
+
+				period, err := targetStateLineSrv.CanBeInvoicedAsOf(ctx, targetState.Period.End)
+				if err != nil {
+					return fmt.Errorf("line[%s]: can be invoiced as of: %w", targetState.ID, err)
+				}
+
+				if period == nil {
+					return billingentity.ValidationError{
+						Err: fmt.Errorf("line[%s]: %w as of %s", targetState.ID, billingentity.ErrInvoiceLinesNotBillable, targetState.Period.End),
+					}
+				}
+
+				if ok := sm.Invoice.Lines.ReplaceByID(existingLine.ID, targetState); !ok {
+					return fmt.Errorf("line[%s]: not found in invoice", existingLine.ID)
+				}
+
+				return nil
+			}),
+		)
+
+		return &invoice, err
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	invoice, err := s.AdvanceInvoice(ctx, triggeredInvoice.InvoiceID())
+	// We don't care if we cannot advance the invoice, as most probably we ended up in a failed state
+	if errors.Is(err, billingentity.ErrInvoiceCannotAdvance) {
+		invoice = *triggeredInvoice
+	} else if err != nil {
+		return nil, fmt.Errorf("advancing invoice: %w", err)
+	}
+
+	updatedLine := lo.FindOrElse(invoice.Lines.OrEmpty(), nil, func(l *billingentity.Line) bool {
+		return l.ID == input.Line.ID
+	})
+
+	if updatedLine == nil {
+		return nil, billingentity.NotFoundError{
+			Err: fmt.Errorf("line[%s]: not found in invoice", input.Line.ID),
+		}
+	}
+
+	return updatedLine, nil
 }

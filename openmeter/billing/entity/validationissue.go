@@ -1,7 +1,11 @@
 package billingentity
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
+	"github.com/samber/lo"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
@@ -23,6 +27,11 @@ func (ValidationIssueSeverity) Values() []string {
 }
 
 type ValidationIssue struct {
+	ID        string     `json:"id,omitempty"`
+	CreatedAt time.Time  `json:"createdAt,omitempty"`
+	UpdatedAt time.Time  `json:"updatedAt,omitempty"`
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+
 	Severity  ValidationIssueSeverity `json:"severity"`
 	Message   string                  `json:"message"`
 	Code      string                  `json:"code,omitempty"`
@@ -34,7 +43,6 @@ func (i ValidationIssue) EncodeAsErrorExtension() map[string]interface{} {
 	out := map[string]interface{}{
 		"severity": i.Severity,
 		"message":  i.Message,
-		"code":     i.Code,
 	}
 
 	if i.Component != "" {
@@ -43,6 +51,10 @@ func (i ValidationIssue) EncodeAsErrorExtension() map[string]interface{} {
 
 	if i.Path != "" {
 		out["path"] = i.Path
+	}
+
+	if i.Code != "" {
+		out["code"] = i.Code
 	}
 
 	return out
@@ -147,6 +159,31 @@ func ToValidationIssues(errIn error) (ValidationIssues, error) {
 	return issues, nil
 }
 
+func (v ValidationIssues) RemoveMetaForCompare() ValidationIssues {
+	return lo.Map(v, func(issue ValidationIssue, _ int) ValidationIssue {
+		issue.CreatedAt = time.Time{}
+		issue.UpdatedAt = time.Time{}
+		issue.DeletedAt = nil
+		issue.ID = ""
+
+		return issue
+	})
+}
+
+func (v ValidationIssues) Clone() ValidationIssues {
+	return append(make(ValidationIssues, 0, len(v)), v...)
+}
+
+func (v ValidationIssues) AsError() error {
+	if len(v) == 0 {
+		return nil
+	}
+
+	return errors.Join(lo.Map(v, func(issue ValidationIssue, _ int) error {
+		return issue
+	})...)
+}
+
 type errorsUnwrap interface {
 	Unwrap() []error
 }
@@ -192,13 +229,18 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, u
 	case fieldPrefixWrapper:
 		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, true)
 	case ValidationIssue:
+		issueComponent := component
+		if issueComponent == "" {
+			issueComponent = errT.Component
+		}
+
 		return []ValidationIssue{
 			{
 				Severity:  errT.Severity,
 				Message:   errT.Message,
 				Code:      errT.Code,
 				Path:      appendToPrefix(fieldPrefix, errT.Path),
-				Component: component,
+				Component: issueComponent,
 			},
 		}, nil
 	}
