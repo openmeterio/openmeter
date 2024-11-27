@@ -179,7 +179,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.NotNil(t, customer, "Create customer must return customer")
 
 	// Add customer data to the app
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			AppID:            testApp.GetID(),
@@ -190,7 +190,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.NoError(t, err, "Upsert customer data must not return error")
 
 	// Get customer data
-	customerData, err := testApp.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+	customerData, err := testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
@@ -201,7 +201,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	}, customerData, "Customer data must match")
 
 	// Update customer data
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			AppID:            testApp.GetID(),
@@ -212,7 +212,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.NoError(t, err, "Update customer data must not return error")
 
 	// Updated customer data must match
-	customerData, err = testApp.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+	customerData, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
@@ -223,14 +223,14 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	}, customerData, "Customer data must match")
 
 	// Delete customer data
-	err = testApp.DeleteCustomerData(ctx, appentity.DeleteCustomerDataInput{
+	err = testApp.DeleteCustomerData(ctx, appentity.DeleteAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
 	require.NoError(t, err, "Delete customer data must not return error")
 
 	// Get customer data should return 404
-	_, err = testApp.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+	_, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
@@ -271,7 +271,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NotNil(t, customer, "Create customer must return customer")
 
 	// Add customer data to the app
-	err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+	err = app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			AppID:            app.GetID(),
@@ -344,7 +344,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	require.NotNil(t, customer, "Create customer must return customer")
 
 	// Add customer data to the app
-	err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+	err = app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			AppID:            app.GetID(),

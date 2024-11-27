@@ -36,17 +36,17 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	return nil
 }
 
-func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+func (a App) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
 	return CustomerData{
 		AppID: a.GetID(),
 	}, nil
 }
 
-func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
 	return nil
 }
 

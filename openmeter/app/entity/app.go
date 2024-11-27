@@ -25,16 +25,16 @@ type App interface {
 	ValidateCapabilities(capabilities ...appentitybase.CapabilityType) error
 
 	// Customer data
-	GetCustomerData(ctx context.Context, input GetCustomerDataInput) (CustomerData, error)
-	UpsertCustomerData(ctx context.Context, input UpsertCustomerDataInput) error
-	DeleteCustomerData(ctx context.Context, input DeleteCustomerDataInput) error
+	GetCustomerData(ctx context.Context, input GetAppInstanceCustomerDataInput) (CustomerData, error)
+	UpsertCustomerData(ctx context.Context, input UpsertAppInstanceCustomerDataInput) error
+	DeleteCustomerData(ctx context.Context, input DeleteAppInstanceCustomerDataInput) error
 }
 
-type GetCustomerDataInput struct {
+type GetAppInstanceCustomerDataInput struct {
 	CustomerID customerentity.CustomerID
 }
 
-func (i GetCustomerDataInput) Validate() error {
+func (i GetAppInstanceCustomerDataInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
 		return err
 	}
@@ -42,12 +42,12 @@ func (i GetCustomerDataInput) Validate() error {
 	return nil
 }
 
-type UpsertCustomerDataInput struct {
+type UpsertAppInstanceCustomerDataInput struct {
 	CustomerID customerentity.CustomerID
 	Data       CustomerData
 }
 
-func (i UpsertCustomerDataInput) Validate() error {
+func (i UpsertAppInstanceCustomerDataInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
 		return err
 	}
@@ -59,11 +59,11 @@ func (i UpsertCustomerDataInput) Validate() error {
 	return nil
 }
 
-type DeleteCustomerDataInput struct {
+type DeleteAppInstanceCustomerDataInput struct {
 	CustomerID customerentity.CustomerID
 }
 
-func (i DeleteCustomerDataInput) Validate() error {
+func (i DeleteAppInstanceCustomerDataInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
 		return err
 	}

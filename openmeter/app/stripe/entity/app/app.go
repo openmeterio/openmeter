@@ -173,7 +173,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 }
 
 // GetCustomerData gets the customer data for the app
-func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+func (a App) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating input: %w", err)
 	}
@@ -190,7 +190,7 @@ func (a App) GetCustomerData(ctx context.Context, input appentity.GetCustomerDat
 }
 
 // UpsertCustomerData upserts the customer data for the app
-func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("error validating input: %w", err)
 	}
@@ -214,7 +214,7 @@ func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertCusto
 }
 
 // DeleteCustomerData deletes the customer data for the app
-func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("error validating input: %w", err)
 	}

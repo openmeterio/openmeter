@@ -39,7 +39,7 @@ func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerDat
 	}
 
 	for _, app := range apps.Items {
-		customerData, err := app.GetCustomerData(ctx, appentity.GetCustomerDataInput{
+		customerData, err := app.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 			CustomerID: input.CustomerID,
 		})
 		if err != nil {

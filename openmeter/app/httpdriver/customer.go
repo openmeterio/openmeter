@@ -137,7 +137,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 					return nil, err
 				}
 
-				err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+				err = app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 					CustomerID: req.CustomerId,
 					Data:       customerData,
 				})
@@ -200,7 +200,7 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 			}
 
 			// Delete customer data
-			err = app.DeleteCustomerData(ctx, appentity.DeleteCustomerDataInput{
+			err = app.DeleteCustomerData(ctx, appentity.DeleteAppInstanceCustomerDataInput{
 				CustomerID: request.CustomerID,
 			})
 			if err != nil {

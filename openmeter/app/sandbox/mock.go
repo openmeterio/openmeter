@@ -41,15 +41,15 @@ func NewMockApp(_ *testing.T) *MockApp {
 	return &MockApp{}
 }
 
-func (m *MockApp) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+func (m *MockApp) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
 	return nil, nil
 }
 
-func (m *MockApp) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+func (m *MockApp) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (m *MockApp) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+func (m *MockApp) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
 	return nil
 }
 
@@ -168,15 +168,15 @@ var (
 	_ customerapp.App            = (*mockAppInstance)(nil)
 )
 
-func (m *mockAppInstance) GetCustomerData(ctx context.Context, input appentity.GetCustomerDataInput) (appentity.CustomerData, error) {
+func (m *mockAppInstance) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
 	return m.parent.GetCustomerData(ctx, input)
 }
 
-func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input appentity.UpsertCustomerDataInput) error {
+func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
 	return m.parent.UpsertCustomerData(ctx, input)
 }
 
-func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input appentity.DeleteCustomerDataInput) error {
+func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
 	return m.parent.DeleteCustomerData(ctx, input)
 }
 
