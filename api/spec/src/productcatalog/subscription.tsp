@@ -179,37 +179,37 @@ model SubscriptionItem {
 /**
  * Create a subscription.
  */
-@friendlyName("CreateSubscriptionRequestBody")
+@friendlyName("SubscriptionCreate")
 @oneOf
-union CreateSubscriptionRequestBody {
-  CreatePlanSubscriptionRequestBody,
-  CreateCustomSubscriptionRequestBody,
+union SubscriptionCreate {
+  PlanSubscriptionCreate,
+  CustomSubscriptionCreate,
 }
 
 /**
  * Change a subscription.
  */
-@friendlyName("ChangeSubscriptionRequestBody")
+@friendlyName("SubscriptionChange")
 @oneOf
-union ChangeSubscriptionRequestBody {
-  ChangePlanSubscriptionRequestBody,
-  ChangeCustomSubscriptionRequestBody,
+union SubscriptionChange {
+  PlanSubscriptionChange,
+  CustomSubscriptionChange,
 }
 
 /**
  * Create a custom subscription.
  */
 @friendlyName("CreateCustomSubscriptionRequestBody")
-model CreateCustomSubscriptionRequestBody {
-  ...ChangeCustomSubscriptionRequestBody;
+model CustomSubscriptionCreate {
+  ...CustomSubscriptionChange;
   customerId: ULID;
 }
 
 /**
  * Change a custom subscription.
  */
-@friendlyName("ChangeCustomSubscriptionRequestBody")
-model ChangeCustomSubscriptionRequestBody {
+@friendlyName("CustomSubscriptionChange")
+model CustomSubscriptionChange {
   currency: CurrencyCode;
   activeFrom: DateTime;
   customPlan: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>;
@@ -218,17 +218,17 @@ model ChangeCustomSubscriptionRequestBody {
 /**
  * Create subscription based on plan.
  */
-@friendlyName("CreatePlanSubscriptionRequestBody")
-model CreatePlanSubscriptionRequestBody {
-  ...ChangePlanSubscriptionRequestBody;
+@friendlyName("PlanSubscriptionCreate")
+model PlanSubscriptionCreate {
+  ...PlanSubscriptionChange;
   customerId: ULID;
 }
 
 /**
  * Change subscription based on plan.
  */
-@friendlyName("ChangePlanSubscriptionRequestBody")
-model ChangePlanSubscriptionRequestBody {
+@friendlyName("PlanSubscriptionChange")
+model PlanSubscriptionChange {
   plan: {
     key: Key;
     version: integer;

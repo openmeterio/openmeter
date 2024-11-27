@@ -268,7 +268,7 @@ interface Subscriptions {
   @summary("Create subscription")
   @extension("x-internal", true)
   create(
-    @body body: CreateSubscriptionRequestBody,
+    @body body: SubscriptionCreate,
   ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
   /**
@@ -305,7 +305,7 @@ interface Subscriptions {
     @path subscriptionId: ULID,
 
     @body
-    body: ChangeSubscriptionRequestBody,
+    body: SubscriptionChange,
   ):
     | Subscription
     | OpenMeter.ConflictError

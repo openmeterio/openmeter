@@ -6657,7 +6657,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSubscriptionRequestBody'
+              $ref: '#/components/schemas/SubscriptionCreate'
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}:
     get:
@@ -6988,7 +6988,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChangeSubscriptionRequestBody'
+              $ref: '#/components/schemas/SubscriptionChange'
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}/migrate:
     post:
@@ -9817,72 +9817,6 @@ components:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           title: The payment settings for this workflow
       description: WorkflowSettings represents the settings for a billing workflow.
-    ChangeCustomSubscriptionRequestBody:
-      type: object
-      required:
-        - currency
-        - activeFrom
-        - customPlan
-      properties:
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customPlan:
-          $ref: '#/components/schemas/PlanCreate'
-      description: Change a custom subscription.
-    ChangePlanSubscriptionRequestBody:
-      type: object
-      required:
-        - plan
-        - currency
-        - activeFrom
-        - customizations
-      properties:
-        plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customizations:
-          type: array
-          items:
-            anyOf:
-              - $ref: '#/components/schemas/SubscriptionEditAddItem'
-              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
-      description: Change subscription based on plan.
-    ChangeSubscriptionRequestBody:
-      oneOf:
-        - $ref: '#/components/schemas/ChangePlanSubscriptionRequestBody'
-        - $ref: '#/components/schemas/ChangeCustomSubscriptionRequestBody'
-      description: Change a subscription.
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
@@ -9959,56 +9893,6 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
       description: Create a custom subscription.
-    CreatePlanSubscriptionRequestBody:
-      type: object
-      required:
-        - plan
-        - currency
-        - activeFrom
-        - customizations
-        - customerId
-      properties:
-        plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customizations:
-          type: array
-          items:
-            anyOf:
-              - $ref: '#/components/schemas/SubscriptionEditAddItem'
-              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
-        customerId:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-      description: Create subscription based on plan.
     CreateStripeCheckoutSessionRequest:
       type: object
       required:
@@ -10107,11 +9991,6 @@ components:
           type: string
           description: Return URL.
       description: Create Stripe Checkout Session response.
-    CreateSubscriptionRequestBody:
-      oneOf:
-        - $ref: '#/components/schemas/CreatePlanSubscriptionRequestBody'
-        - $ref: '#/components/schemas/CreateCustomSubscriptionRequestBody'
-      description: Create a subscription.
     CurrencyCode:
       type: string
       example: USD
@@ -10121,6 +10000,23 @@ components:
       description: |-
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
+    CustomSubscriptionChange:
+      type: object
+      required:
+        - currency
+        - activeFrom
+        - customPlan
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customPlan:
+          $ref: '#/components/schemas/PlanCreate'
+      description: Change a custom subscription.
     Customer:
       type: object
       required:
@@ -13284,6 +13180,100 @@ components:
         - archived
         - scheduled
       description: The status of a plan.
+    PlanSubscriptionChange:
+      type: object
+      required:
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+      properties:
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/SubscriptionEditAddItem'
+              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
+      description: Change subscription based on plan.
+    PlanSubscriptionCreate:
+      type: object
+      required:
+        - plan
+        - currency
+        - activeFrom
+        - customizations
+        - customerId
+      properties:
+        plan:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+            version:
+              type: integer
+          required:
+            - key
+            - version
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customizations:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/SubscriptionEditAddItem'
+              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+          maxItems: 100
+          description: |-
+            Batch processing commands for customizing the susbcription.
+            The key format is `/phases/{phaseKey}/items/{itemKey}`.
+
+            Add operations insert a new member based on the creation input without altering the existing members.
+
+            Remove operations remove the member from the document.
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Create subscription based on plan.
     PlanVariant:
       type: object
       required:
@@ -14461,6 +14451,16 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
       description: Subscription is an exact subscription instance.
+    SubscriptionChange:
+      oneOf:
+        - $ref: '#/components/schemas/PlanSubscriptionChange'
+        - $ref: '#/components/schemas/CustomSubscriptionChange'
+      description: Change a subscription.
+    SubscriptionCreate:
+      oneOf:
+        - $ref: '#/components/schemas/PlanSubscriptionCreate'
+        - $ref: '#/components/schemas/CreateCustomSubscriptionRequestBody'
+      description: Create a subscription.
     SubscriptionEditAdd:
       type: object
       required:
