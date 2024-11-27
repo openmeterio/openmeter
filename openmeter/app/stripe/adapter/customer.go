@@ -133,7 +133,7 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 
 		// Delete app customer relationship
 		err = a.appService.DeleteCustomer(ctx, app.DeleteCustomerInput{
-			AppID:      *input.AppID,
+			AppID:      input.AppID,
 			CustomerID: input.CustomerID,
 		})
 		if err != nil {

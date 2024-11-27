@@ -343,7 +343,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	require.NotNil(t, customer, "Create customer must return customer")
 
 	// Add customer data to the app
-	app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
+	err = app.UpsertCustomerData(ctx, appentity.UpsertCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID: "cus_123",

@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 )
 
 var _ app.AppAdapter = (*adapter)(nil)
@@ -115,8 +114,11 @@ func (a adapter) DeleteCustomer(ctx context.Context, input app.DeleteCustomerInp
 			Where(
 				appcustomerdb.Namespace(input.CustomerID.Namespace),
 				appcustomerdb.CustomerID(input.CustomerID.ID),
-				appcustomerdb.AppID(input.AppID.ID),
 			)
+
+		if input.AppID != nil {
+			query = query.Where(appcustomerdb.AppID(input.AppID.ID))
+		}
 
 		_, err := query.Exec(ctx)
 		if err != nil {
