@@ -20,7 +20,6 @@ type Customer struct {
 	PrimaryEmail     *string                  `json:"primaryEmail"`
 	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
-	Apps             []CustomerApp            `json:"apps"`
 }
 
 func (c Customer) Validate() error {
@@ -60,7 +59,6 @@ type CustomerMutate struct {
 	PrimaryEmail     *string                  `json:"primaryEmail"`
 	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
-	Apps             []CustomerApp            `json:"apps"`
 }
 
 func (c CustomerMutate) Validate() error {

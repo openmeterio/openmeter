@@ -7,11 +7,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
-	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -19,33 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
-
-// Register registers a new observer
-func (r *adapter) Register(observer appobserver.Observer[customerentity.Customer]) error {
-	for _, o := range *r.observers {
-		if o == observer {
-			return fmt.Errorf("observer already registered")
-		}
-	}
-
-	observers := append(*r.observers, observer)
-	r.observers = &observers
-	return nil
-}
-
-// Deregister deregisters an observer
-func (r *adapter) Deregister(observer appobserver.Observer[customerentity.Customer]) error {
-	for i, o := range *r.observers {
-		if o == observer {
-			observers := *r.observers
-			observers = append(observers[:i], observers[i+1:]...)
-			r.observers = &observers
-			return nil
-		}
-	}
-
-	return fmt.Errorf("observer not found")
-}
 
 // ListCustomers lists customers
 func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
@@ -200,23 +170,6 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 			customerEntity.Edges.Subjects = customerSubjects
 			customer := CustomerFromDBEntity(*customerEntity)
 
-			// We need to add the apps to the customer so the post create hook can access them
-			customer.Apps = input.Apps
-
-			// Post-create hook
-			for _, observer := range *a.observers {
-				if err := observer.PostCreate(ctx, customer); err != nil {
-					a.logger.ErrorContext(ctx, "failed to create customer: post-create hook failed", "error", err)
-					return nil, fmt.Errorf("failed to create customer: post-create hook failed: %w", err)
-				}
-			}
-
-			// We re-fetch the customer to ensure we have the app data and the customer
-			customer, err = a.GetCustomer(ctx, customerentity.GetCustomerInput(customer.GetID()))
-			if err != nil {
-				return nil, fmt.Errorf("failed to get created customer: %w", err)
-			}
-
 			return customer, nil
 		},
 	)
@@ -266,19 +219,6 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 				return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
 			}
 
-			// Deleted customer
-			customer, err := repo.GetCustomer(ctx, customerentity.GetCustomerInput(input))
-			if err != nil {
-				return nil, fmt.Errorf("failed to get deleted customer: %w", err)
-			}
-
-			// Post-delete hook
-			for _, observer := range *a.observers {
-				if err := observer.PostDelete(ctx, customer); err != nil {
-					return nil, fmt.Errorf("failed to delete customer: post-delete hook failed: %w", err)
-				}
-			}
-
 			return nil, nil
 		},
 	)
@@ -302,16 +242,6 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
 					query.Where(customersubjectsdb.IsDeletedEQ(false))
 				}).
-				WithApps(func(acq *entdb.AppCustomerQuery) {
-					acq.
-						WithApp(
-							func(aq *entdb.AppQuery) {
-								aq.Select(appdb.FieldType)
-							},
-						).
-						Select(appcustomerdb.FieldAppID).
-						Where(appcustomerdb.DeletedAtIsNil())
-				}).
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -331,14 +261,6 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 			}
 
 			customer := CustomerFromDBEntity(*entity)
-
-			// Decorate hook
-			for _, observer := range *a.observers {
-				customer, err = observer.Decorate(ctx, customer)
-				if err != nil {
-					return nil, fmt.Errorf("failed to get customer: decorate hook failed: %w", err)
-				}
-			}
 
 			return customer, nil
 		},
@@ -521,22 +443,6 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			}
 
 			customer := CustomerFromDBEntity(*entity)
-
-			// We need to add the apps to the customer so the post update hook can access them
-			customer.Apps = input.Apps
-
-			// Post-update hook
-			for _, observer := range *a.observers {
-				if err := observer.PostUpdate(ctx, customer); err != nil {
-					return nil, fmt.Errorf("failed to update customer: post-update hook failed: %w", err)
-				}
-			}
-
-			// We re-fetch the customer to ensure we have the app data and the customer
-			customer, err = a.GetCustomer(ctx, customerentity.GetCustomerInput(customer.GetID()))
-			if err != nil {
-				return nil, fmt.Errorf("failed to get updated customer: %w", err)
-			}
 
 			return customer, nil
 		},

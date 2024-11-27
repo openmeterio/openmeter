@@ -9,7 +9,6 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -58,42 +57,44 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		}
 	}
 
-	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
-		err := repo.customerService.UpsertAppCustomer(ctx, customerentity.UpsertAppCustomerInput{
-			AppID:      input.AppID,
-			CustomerID: input.CustomerID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to upsert app customer: %w", err)
-		}
+	// _, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+	// 	err := repo.customerService.UpsertAppCustomer(ctx, customerentity.UpsertAppCustomerInput{
+	// 		AppID:      input.AppID,
+	// 		CustomerID: input.CustomerID,
+	// 	})
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to upsert app customer: %w", err)
+	// 	}
 
-		err = repo.db.AppStripeCustomer.
-			Create().
-			SetNamespace(input.AppID.Namespace).
-			SetStripeAppID(input.AppID.ID).
-			SetCustomerID(input.CustomerID.ID).
-			SetStripeCustomerID(input.StripeCustomerID).
-			// Upsert
-			OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
-			UpdateStripeCustomerID().
-			Exec(ctx)
-		if err != nil {
-			if entdb.IsConstraintError(err) {
-				return nil, app.CustomerPreConditionError{
-					AppID:      input.AppID,
-					AppType:    appentitybase.AppTypeStripe,
-					CustomerID: input.CustomerID,
-					Condition:  "unique stripe customer id",
-				}
-			}
+	// 	err = repo.db.AppStripeCustomer.
+	// 		Create().
+	// 		SetNamespace(input.AppID.Namespace).
+	// 		SetStripeAppID(input.AppID.ID).
+	// 		SetCustomerID(input.CustomerID.ID).
+	// 		SetStripeCustomerID(input.StripeCustomerID).
+	// 		// Upsert
+	// 		OnConflictColumns(appstripecustomerdb.FieldNamespace, appstripecustomerdb.FieldAppID, appstripecustomerdb.FieldCustomerID).
+	// 		UpdateStripeCustomerID().
+	// 		Exec(ctx)
+	// 	if err != nil {
+	// 		if entdb.IsConstraintError(err) {
+	// 			return nil, app.CustomerPreConditionError{
+	// 				AppID:      input.AppID,
+	// 				AppType:    appentitybase.AppTypeStripe,
+	// 				CustomerID: input.CustomerID,
+	// 				Condition:  "unique stripe customer id",
+	// 			}
+	// 		}
 
-			return nil, fmt.Errorf("failed to upsert app stripe customer data: %w", err)
-		}
+	// 		return nil, fmt.Errorf("failed to upsert app stripe customer data: %w", err)
+	// 	}
 
-		return nil, nil
-	})
+	// 	return nil, nil
+	// })
 
-	return err
+	// return err
+
+	return nil
 }
 
 // DeleteStripeCustomerData deletes stripe customer data

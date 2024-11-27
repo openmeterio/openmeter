@@ -125,17 +125,6 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				},
 			}
 
-			if body.Apps != nil {
-				for _, app := range *body.Apps {
-					customerApp, err := mapApp(ns, app)
-					if err != nil {
-						return req, err
-					}
-
-					req.Apps = append(req.Apps, customerApp)
-				}
-			}
-
 			return req, nil
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
@@ -193,17 +182,6 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 					Currency:         mapCurrency(body.Currency),
 					Timezone:         mapTimezone(body.Timezone),
 				},
-			}
-
-			if body.Apps != nil {
-				for _, app := range *body.Apps {
-					customerApp, err := mapApp(ns, app)
-					if err != nil {
-						return req, err
-					}
-
-					req.Apps = append(req.Apps, customerApp)
-				}
 			}
 
 			return req, nil

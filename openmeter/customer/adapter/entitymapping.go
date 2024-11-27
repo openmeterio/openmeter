@@ -3,7 +3,6 @@ package adapter
 import (
 	"github.com/samber/lo"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -48,17 +47,6 @@ func CustomerFromDBEntity(e db.Customer) *customerentity.Customer {
 			PhoneNumber: e.BillingAddressPhoneNumber,
 			PostalCode:  e.BillingAddressPostalCode,
 			State:       e.BillingAddressState,
-		}
-	}
-
-	if e.Edges.Apps != nil {
-		for _, app := range e.Edges.Apps {
-			if app.Edges.App != nil {
-				result.Apps = append(result.Apps, customerentity.CustomerApp{
-					AppID: &appentitybase.AppID{Namespace: e.Namespace, ID: app.AppID},
-					Type:  app.Edges.App.Type,
-				})
-			}
 		}
 	}
 
