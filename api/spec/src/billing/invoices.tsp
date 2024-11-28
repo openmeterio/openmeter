@@ -52,7 +52,7 @@ interface CustomerInvoicesEndpoints {
   @summary("Invoice a customer based on the pending line items")
   @operationId("invoicePendingLinesAction")
   @extension("x-internal", true)
-  invoicePendlingLinesAction(
+  invoicePendingLinesAction(
     @path
     customerId: ULID,
 
@@ -132,6 +132,9 @@ interface CustomerInvoiceEndpoints {
 
     @query
     expand: InvoiceExpand[] = #[InvoiceExpand.lines],
+
+    @query
+    includeDeletedLines: boolean = false,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**

@@ -21,7 +21,7 @@ type Handler interface {
 type ProfileHandler interface {
 	CreateProfile() CreateProfileHandler
 	GetProfile() GetProfileHandler
-	ArchiveProfile() ArchiveProfileHandler
+	DeleteProfile() DeleteProfileHandler
 	UpdateProfile() UpdateProfileHandler
 	ListProfiles() ListProfilesHandler
 }
@@ -29,17 +29,20 @@ type ProfileHandler interface {
 type InvoiceLineHandler interface {
 	CreateLineByCustomer() CreateLineByCustomerHandler
 	GetLine() GetLineHandler
+	DeleteLine() DeleteLineHandler
+	UpdateLine() UpdateLineHandler
 }
 
 type InvoiceHandler interface {
 	ListInvoices() ListInvoicesHandler
-	CreateInvoice() CreateInvoiceHandler
+	InvoicePendingLinesAction() InvoicePendingLinesActionHandler
+	DeleteInvoice() DeleteInvoiceHandler
 	GetInvoice() GetInvoiceHandler
 	ProgressInvoice(ProgressAction) ProgressInvoiceHandler
 
 	// ConvertListInvoicesByCustomerToListInvoices converts the input parameters for listing invoices by customer, so that we
 	// can use the same handler for both listing all invoices and listing invoices by customer.
-	ConvertListInvoicesByCustomerToListInvoices(customerID string, params api.BillingListInvoicesByCustomerParams) api.BillingListInvoicesParams
+	ConvertListInvoicesByCustomerToListInvoices(customerID string, params api.ListInvoicesByCustomerParams) api.ListInvoicesParams
 }
 
 type handler struct {

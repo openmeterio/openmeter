@@ -11,33 +11,33 @@ import (
 
 // List customer overrides
 // (GET /api/v1/billing/customer)
-func (a *Router) BillingListCustomerOverrides(w http.ResponseWriter, r *http.Request, params api.BillingListCustomerOverridesParams) {
+func (a *Router) ListBillingProfileCustomerOverrides(w http.ResponseWriter, r *http.Request, params api.ListBillingProfileCustomerOverridesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Delete a customer override
 // (DELETE /api/v1/billing/customer/{customerId})
-func (a *Router) BillingDeleteCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
+func (a *Router) DeleteBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get a customer override
 // (GET /api/v1/billing/customer/{customerId})
-func (a *Router) BillingGetCustomerOverrideById(w http.ResponseWriter, r *http.Request, customerId string) {
+func (a *Router) GetBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create/update a customer override
 // (POST /api/v1/billing/customer/{customerId})
-func (a *Router) BillingUpsertCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
+func (a *Router) UpsertBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // List invoices
 // (GET /api/v1/billing/invoices)
-func (a *Router) BillingListInvoices(w http.ResponseWriter, r *http.Request, params api.BillingListInvoicesParams) {
+func (a *Router) ListInvoices(w http.ResponseWriter, r *http.Request, params api.ListInvoicesParams) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingListInvoices(w, r, params)
+		unimplemented.ListInvoices(w, r, params)
 		return
 	}
 
@@ -46,106 +46,61 @@ func (a *Router) BillingListInvoices(w http.ResponseWriter, r *http.Request, par
 
 // List invoices
 // (GET /api/v1/billing/invoices/{customerId})
-func (a *Router) BillingListInvoicesByCustomer(w http.ResponseWriter, r *http.Request, customerId string, params api.BillingListInvoicesByCustomerParams) {
+func (a *Router) ListInvoicesByCustomer(w http.ResponseWriter, r *http.Request, customerId string, params api.ListInvoicesByCustomerParams) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingListInvoicesByCustomer(w, r, customerId, params)
+		unimplemented.ListInvoicesByCustomer(w, r, customerId, params)
 		return
 	}
 
 	a.billingHandler.ListInvoices().With(a.billingHandler.ConvertListInvoicesByCustomerToListInvoices(customerId, params)).ServeHTTP(w, r)
 }
 
-// Create an invoice
-// (POST /api/v1/billing/invoices/{customerId})
-func (a *Router) BillingCreateInvoice(w http.ResponseWriter, r *http.Request, customerId string) {
+// Invoice a customer based on the pending line items
+// (POST /api/v1/billing/invoices/{customerId}/invoice)
+func (a *Router) InvoicePendingLinesAction(w http.ResponseWriter, r *http.Request, customerId string) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingCreateInvoice(w, r, customerId)
+		unimplemented.InvoicePendingLinesAction(w, r, customerId)
 		return
 	}
 
-	a.billingHandler.CreateInvoice().With(customerId).ServeHTTP(w, r)
+	a.billingHandler.InvoicePendingLinesAction().With(customerId).ServeHTTP(w, r)
 }
 
 // Delete an invoice
 // (DELETE /api/v1/billing/invoices/{customerId}/invoices/{invoiceId})
-func (a *Router) BillingDeleteInvoiceByCustomerInvoiceId(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+func (a *Router) DeleteInvoice(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.DeleteInvoice(w, r, customerId, invoiceId)
+		return
+	}
+
+	a.billingHandler.DeleteInvoice().With(httpdriver.DeleteInvoiceParams{
+		CustomerID: customerId,
+		InvoiceID:  invoiceId,
+	}).ServeHTTP(w, r)
 }
 
 // Get an invoice
 // (GET /api/v1/billing/invoices/{customerId}/invoices/{invoiceId})
-func (a *Router) BillingGetInvoiceByCustomerInvoiceId(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, params api.BillingGetInvoiceByCustomerInvoiceIdParams) {
+func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, params api.GetInvoiceParams) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingGetInvoiceByCustomerInvoiceId(w, r, customerId, invoiceId, params)
+		unimplemented.GetInvoice(w, r, customerId, invoiceId, params)
 		return
 	}
 
 	a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{
-		CustomerID: customerId,
-		InvoiceID:  invoiceId,
-		Expand:     params.Expand,
+		CustomerID:          customerId,
+		InvoiceID:           invoiceId,
+		Expand:              params.Expand,
+		IncludeDeletedLines: params.IncludeDeletedLines,
 	}).ServeHTTP(w, r)
-}
-
-// Send the invoice to the customer
-// (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/approve)
-func (a *Router) BillingApproveInvoice(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
-	if !a.config.BillingEnabled {
-		unimplemented.BillingApproveInvoice(w, r, customerId, invoiceId)
-		return
-	}
-
-	a.billingHandler.ProgressInvoice(httpdriver.InvoiceProgressActionApprove).
-		With(httpdriver.ProgressInvoiceParams{
-			CustomerID: customerId,
-			InvoiceID:  invoiceId,
-		}).ServeHTTP(w, r)
-}
-
-// Get an invoice line
-// (GET /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId})
-func (a *Router) BillingGetInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, lineId string) {
-	if !a.config.BillingEnabled {
-		unimplemented.BillingGetInvoiceLine(w, r, customerId, invoiceId, lineId)
-		return
-	}
-
-	a.billingHandler.GetLine().With(httpdriver.GetLineParams{
-		CustomerID: customerId,
-		InvoiceID:  invoiceId,
-		LineID:     lineId,
-	}).ServeHTTP(w, r)
-}
-
-// Delete an invoice line
-// (DELETE /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId})
-func (a *Router) BillingDeleteInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, lineId string) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Update an invoice line
-// (PUT /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId})
-func (a *Router) BillingUpdateInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, lineId string) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Recalculate an invoice's tax amounts
-// (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/tax/recalculate)
-func (a *Router) BillingRecalculateInvoiceTax(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Void an invoice
-// (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/void)
-func (a *Router) BillingVoidInvoice(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
-	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Advance the invoice's state to the next status
 // (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/advance)
-func (a *Router) BillingInvoiceAdvance(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
+func (a *Router) AdvanceInvoiceAction(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingInvoiceAdvance(w, r, customerId, invoiceId)
+		unimplemented.AdvanceInvoiceAction(w, r, customerId, invoiceId)
 		return
 	}
 
@@ -156,11 +111,71 @@ func (a *Router) BillingInvoiceAdvance(w http.ResponseWriter, r *http.Request, c
 		}).ServeHTTP(w, r)
 }
 
+// Send the invoice to the customer
+// (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/approve)
+func (a *Router) ApproveInvoiceAction(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.ApproveInvoiceAction(w, r, customerId, invoiceId)
+		return
+	}
+
+	a.billingHandler.ProgressInvoice(httpdriver.InvoiceProgressActionApprove).
+		With(httpdriver.ProgressInvoiceParams{
+			CustomerID: customerId,
+			InvoiceID:  invoiceId,
+		}).ServeHTTP(w, r)
+}
+
+// Delete an invoice line
+// (DELETE /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId})
+func (a *Router) DeleteInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, lineId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.DeleteInvoiceLine(w, r, customerId, invoiceId, lineId)
+		return
+	}
+
+	a.billingHandler.DeleteLine().With(httpdriver.DeleteLineParams{
+		CustomerID: customerId,
+		InvoiceID:  invoiceId,
+		LineID:     lineId,
+	}).ServeHTTP(w, r)
+}
+
+// Get an invoice line
+// (GET /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId})
+func (a *Router) GetInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, lineId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.GetInvoiceLine(w, r, customerId, invoiceId, lineId)
+		return
+	}
+
+	a.billingHandler.GetLine().With(httpdriver.GetLineParams{
+		CustomerID: customerId,
+		InvoiceID:  invoiceId,
+		LineID:     lineId,
+	}).ServeHTTP(w, r)
+}
+
+// Update an invoice line
+// (PUT /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId})
+func (a *Router) UpdateInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string, lineId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.UpdateInvoiceLine(w, r, customerId, invoiceId, lineId)
+		return
+	}
+
+	a.billingHandler.UpdateLine().With(httpdriver.UpdateLineParams{
+		CustomerID: customerId,
+		InvoiceID:  invoiceId,
+		LineID:     lineId,
+	}).ServeHTTP(w, r)
+}
+
 // Retry a failed synchronization step of the invoice
 // (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry)
-func (a *Router) BillingInvoiceRetry(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
+func (a *Router) RetryInvoiceAction(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingInvoiceRetry(w, r, customerId, invoiceId)
+		unimplemented.RetryInvoiceAction(w, r, customerId, invoiceId)
 		return
 	}
 
@@ -171,11 +186,23 @@ func (a *Router) BillingInvoiceRetry(w http.ResponseWriter, r *http.Request, cus
 		}).ServeHTTP(w, r)
 }
 
+// Recalculate an invoice's tax amounts
+// (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/tax/recalculate)
+func (a *Router) RecalculateInvoiceTaxAction(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Void an invoice
+// (POST /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/void)
+func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, customerId string, invoiceId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Create a new  item
 // (POST /api/v1/billing/invoices/{customerId}/items)
-func (a *Router) BillingCreateLineByCustomer(w http.ResponseWriter, r *http.Request, customerId string) {
+func (a *Router) CreateInvoiceLineByCustomer(w http.ResponseWriter, r *http.Request, customerId string) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingCreateLineByCustomer(w, r, customerId)
+		unimplemented.CreateInvoiceLineByCustomer(w, r, customerId)
 		return
 	}
 
@@ -183,9 +210,9 @@ func (a *Router) BillingCreateLineByCustomer(w http.ResponseWriter, r *http.Requ
 }
 
 // (GET /api/v1/billing/profile)
-func (a *Router) BillingListProfiles(w http.ResponseWriter, r *http.Request, params api.BillingListProfilesParams) {
+func (a *Router) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingListProfiles(w, r, params)
+		unimplemented.ListBillingProfiles(w, r, params)
 		return
 	}
 
@@ -194,9 +221,9 @@ func (a *Router) BillingListProfiles(w http.ResponseWriter, r *http.Request, par
 
 // Create a new billing profile
 // (POST /api/v1/billing/profile)
-func (a *Router) BillingCreateProfile(w http.ResponseWriter, r *http.Request) {
+func (a *Router) CreateBillingProfile(w http.ResponseWriter, r *http.Request) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingCreateProfile(w, r)
+		unimplemented.CreateBillingProfile(w, r)
 		return
 	}
 
@@ -205,20 +232,20 @@ func (a *Router) BillingCreateProfile(w http.ResponseWriter, r *http.Request) {
 
 // Archive a billing profile
 // (DELETE /api/v1/billing/profile/{id})
-func (a *Router) BillingArchiveProfile(w http.ResponseWriter, r *http.Request, id string) {
+func (a *Router) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id string) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingArchiveProfile(w, r, id)
+		unimplemented.DeleteBillingProfile(w, r, id)
 		return
 	}
 
-	a.billingHandler.ArchiveProfile().With(id).ServeHTTP(w, r)
+	a.billingHandler.DeleteProfile().With(id).ServeHTTP(w, r)
 }
 
 // Get a billing profile by ID
 // (GET /api/v1/billing/profile/{id})
-func (a *Router) BillingGetProfile(w http.ResponseWriter, r *http.Request, id string, params api.BillingGetProfileParams) {
+func (a *Router) GetBillingProfile(w http.ResponseWriter, r *http.Request, id string, params api.GetBillingProfileParams) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingGetProfile(w, r, id, params)
+		unimplemented.GetBillingProfile(w, r, id, params)
 		return
 	}
 
@@ -230,9 +257,9 @@ func (a *Router) BillingGetProfile(w http.ResponseWriter, r *http.Request, id st
 
 // Update a billing profile
 // (PUT /api/v1/billing/profile/{id})
-func (a *Router) BillingUpdateProfile(w http.ResponseWriter, r *http.Request, id string) {
+func (a *Router) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id string) {
 	if !a.config.BillingEnabled {
-		unimplemented.BillingUpdateProfile(w, r, id)
+		unimplemented.UpdateBillingProfile(w, r, id)
 		return
 	}
 

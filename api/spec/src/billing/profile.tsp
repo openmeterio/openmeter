@@ -84,7 +84,7 @@ interface Profiles {
     @path
     id: ULID,
 
-    @body profile: Rest.Resource.ResourceReplaceModel<BillingProfile>,
+    @body profile: BillingProfileReplaceUpdate,
   ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 

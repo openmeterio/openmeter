@@ -486,7 +486,7 @@ model InvoiceLineBase {
   /**
    * The invoice this item belongs to.
    */
-  @visibility("read")
+  @visibility("read", "create")
   invoice?: InvoiceReference;
 
   /**
@@ -756,6 +756,14 @@ enum ValidationIssueSeverity {
  */
 @friendlyName("ValidationIssue")
 model ValidationIssue {
+  ...ResourceTimestamps;
+
+  /**
+   * ID of the charge or discount.
+   */
+  @visibility("read")
+  id: ULID;
+
   /**
    * The severity of the issue.
    */

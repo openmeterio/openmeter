@@ -195,15 +195,15 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		}
 
 		switch input.OrderBy {
-		case api.BillingInvoiceOrderByCustomerName:
+		case api.InvoiceOrderByCustomerName:
 			query = query.Order(billinginvoice.ByCustomerName(order...))
-		case api.BillingInvoiceOrderByIssuedAt:
+		case api.InvoiceOrderByIssuedAt:
 			query = query.Order(billinginvoice.ByIssuedAt(order...))
-		case api.BillingInvoiceOrderByStatus:
+		case api.InvoiceOrderByStatus:
 			query = query.Order(billinginvoice.ByStatus(order...))
-		case api.BillingInvoiceOrderByUpdatedAt:
+		case api.InvoiceOrderByUpdatedAt:
 			query = query.Order(billinginvoice.ByUpdatedAt(order...))
-		case api.BillingInvoiceOrderByCreatedAt:
+		case api.InvoiceOrderByCreatedAt:
 			fallthrough
 		default:
 			query = query.Order(billinginvoice.ByCreatedAt(order...))

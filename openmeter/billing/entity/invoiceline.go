@@ -57,7 +57,7 @@ func (InvoiceLineStatus) Values() []string {
 }
 
 // Period represents a time period, in billing the time period is always interpreted as
-// [start, end) (i.e. start is inclusive, end is exclusive).
+// [from, to) (i.e. from is inclusive, to is exclusive).
 type Period struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`

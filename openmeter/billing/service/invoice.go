@@ -95,7 +95,7 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	return invoice, nil
 }
 
-func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoiceInput) ([]billingentity.Invoice, error) {
+func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billingentity.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billingentity.ValidationError{
 			Err: err,
@@ -244,7 +244,7 @@ func (s *Service) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		})
 }
 
-func (s *Service) gatherInscopeLines(ctx context.Context, input billing.CreateInvoiceInput, asOf time.Time) ([]lineservice.LineWithBillablePeriod, error) {
+func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoicePendingLinesInput, asOf time.Time) ([]lineservice.LineWithBillablePeriod, error) {
 	if input.IncludePendingLines.IsPresent() {
 		lineIDs := input.IncludePendingLines.OrEmpty()
 

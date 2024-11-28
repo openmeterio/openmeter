@@ -31,6 +31,12 @@ namespace Invoices;
 @friendlyName("BillingParty")
 model BillingParty {
   /**
+   * Unique identifier for the party (if available)
+   */
+  @visibility("read")
+  id?: string;
+
+  /**
    * Legal name or representation of the organization.
    */
   @visibility("read", "update", "create")

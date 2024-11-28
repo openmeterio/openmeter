@@ -147,7 +147,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billingentity.Line
 		Namespace:        input.Namespace,
 		ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
 		Currencies:       []currencyx.Code{line.Currency},
-		OrderBy:          api.BillingInvoiceOrderByCreatedAt,
+		OrderBy:          api.InvoiceOrderByCreatedAt,
 		Order:            sortx.OrderAsc,
 	})
 	if err != nil {
