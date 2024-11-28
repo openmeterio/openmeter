@@ -108,7 +108,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		ctx,
 		in.Line.Namespace,
 		in.Meter,
-		meterQueryParams,
+		preLineQuery,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
