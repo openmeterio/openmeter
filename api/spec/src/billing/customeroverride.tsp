@@ -19,8 +19,8 @@ interface CustomerOverrides {
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<CustomerOverrideOrderBy>,
-  ): OpenMeter.PaginatedResponse<CustomerOverride> | OpenMeter.CommonErrors;
+    ...OpenMeter.QueryOrdering<BillingProfileCustomerOverrideOrderBy>,
+  ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverride> | OpenMeter.CommonErrors;
 
   /**
    * Create a new or update an existing customer override.
@@ -35,21 +35,21 @@ interface CustomerOverrides {
     customerId: ULID,
 
     @body
-    request: CustomerOverrideCreate,
+    request: BillingProfileCustomerOverrideCreate,
   ):
     | {
         // Created
         @statusCode _: 201;
 
-        @body body: CustomerOverride;
+        @body body: BillingProfileCustomerOverride;
       }
     | {
         // Updated
         @statusCode _: 200;
 
-        @body body: CustomerOverride;
+        @body body: BillingProfileCustomerOverride;
       }
-    | CustomerOverride
+    | BillingProfileCustomerOverride
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
 
@@ -64,7 +64,7 @@ interface CustomerOverrides {
   get(
     @path
     customerId: ULID,
-  ): CustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfileCustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete a customer override by customer id.
@@ -85,18 +85,18 @@ interface CustomerOverrides {
 /**
  * Order by options for customers.
  */
-@friendlyName("BillingCustomerOverrideOrderBy")
-enum CustomerOverrideOrderBy {
+@friendlyName("BillingProfileCustomerOverrideOrderBy")
+enum BillingProfileCustomerOverrideOrderBy {
   id: "id",
 }
 
 /**
  * Customer specific workflow overrides.
  */
-@friendlyName("BillingCustomerOverride")
-model CustomerOverride {
+@friendlyName("BillingProfileCustomerOverride")
+model BillingProfileCustomerOverride {
   ...ResourceTimestamps;
-  workflow?: CustomerWorkflowOverride;
+  workflow?: BillingProfileCustomerWorkflowOverride;
 
   /**
    * The billing profile this override is associated with.
@@ -109,9 +109,9 @@ model CustomerOverride {
 /**
  * Payload for creating a new or updating an existing customer override.
  */
-@friendlyName("BillingCustomerOverrideCreate")
-model CustomerOverrideCreate {
-  workflow?: Rest.Resource.ResourceCreateModel<CustomerWorkflowOverride>;
+@friendlyName("BillingProfileCustomerOverrideCreate")
+model BillingProfileCustomerOverrideCreate {
+  workflow?: Rest.Resource.ResourceCreateModel<BillingProfileCustomerWorkflowOverride>;
 
   /**
    * The billing profile this override is associated with.
@@ -124,8 +124,8 @@ model CustomerOverrideCreate {
 /**
  * Customer specific workflow overrides.
  */
-@friendlyName("BillingCustomerWorkflowOverride")
-model CustomerWorkflowOverride {
+@friendlyName("BillingProfileCustomerWorkflowOverride")
+model BillingProfileCustomerWorkflowOverride {
   ...BillingWorkflow;
 
   // Note: these are only available for read, as provider override is not supported via the customer override.
