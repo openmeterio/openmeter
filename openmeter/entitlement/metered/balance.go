@@ -81,7 +81,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		meterQuery.To = convert.ToPointer(trunc.Add(time.Minute))
 	}
 
-	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, ownerMeter.MeterSlug, meterQuery)
+	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, ownerMeter.Meter, meterQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -144,8 +144,8 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	// 1. we get the burndown history
 	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
-		From: params.From.Truncate(ownerMeter.WindowSize.Duration()),
-		To:   params.To.Truncate(ownerMeter.WindowSize.Duration()),
+		From: params.From.Truncate(ownerMeter.Meter.WindowSize.Duration()),
+		To:   params.To.Truncate(ownerMeter.Meter.WindowSize.Duration()),
 	})
 	if err != nil {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
@@ -159,7 +159,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	meterQuery.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
 	meterQuery.WindowTimeZone = &params.WindowTimeZone
 
-	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, meterQuery)
+	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, meterQuery)
 	if err != nil {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -167,11 +167,11 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// If we get 0 rows that means the windowsize is larger than the queried period.
 	// In this case we simply query for the entire period.
 	if len(meterRows) == 0 {
-		nonWindowedParams := *meterQuery
+		nonWindowedParams := meterQuery
 		nonWindowedParams.FilterSubject = []string{ownerMeter.SubjectKey}
 		nonWindowedParams.WindowSize = nil
 		nonWindowedParams.WindowTimeZone = nil
-		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, &nonWindowedParams)
+		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, nonWindowedParams)
 		if err != nil {
 			return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 		}

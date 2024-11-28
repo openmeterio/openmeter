@@ -3,14 +3,10 @@ package sink
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/huandu/go-sqlbuilder"
-
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 type Storage interface {
@@ -18,20 +14,12 @@ type Storage interface {
 }
 
 type ClickHouseStorageConfig struct {
-	ClickHouse      clickhouse.Conn
-	Database        string
-	AsyncInsert     bool
-	AsyncInsertWait bool
-	QuerySettings   map[string]string
+	Streaming streaming.Connector
 }
 
 func (c ClickHouseStorageConfig) Validate() error {
-	if c.ClickHouse == nil {
-		return fmt.Errorf("clickhouse connection is required")
-	}
-
-	if c.Database == "" {
-		return fmt.Errorf("database is required")
+	if c.Streaming == nil {
+		return fmt.Errorf("streaming connection is required")
 	}
 
 	return nil
@@ -51,67 +39,17 @@ type ClickHouseStorage struct {
 	config ClickHouseStorageConfig
 }
 
+// BatchInsert inserts multiple messages into ClickHouse.
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
-	query := InsertEventsQuery{
-		Clock:         realClock{},
-		Database:      c.config.Database,
-		Messages:      messages,
-		QuerySettings: c.config.QuerySettings,
-	}
-	sql, args, err := query.ToSQL()
-	if err != nil {
-		return err
-	}
+	var rawEvents []streaming.RawEvent
 
-	// By default, ClickHouse is writing data synchronously.
-	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
-	if c.config.AsyncInsert {
-		// With the `wait_for_async_insert` setting, you can configure
-		// if you want an insert statement to return with an acknowledgment
-		// either immediately after the data got inserted into the buffer.
-		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
-	} else {
-		err = c.config.ClickHouse.Exec(ctx, sql, args...)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to batch insert events: %w", err)
-	}
-
-	return nil
-}
-
-type InsertEventsQuery struct {
-	Clock         Clock
-	Database      string
-	Messages      []sinkmodels.SinkMessage
-	QuerySettings map[string]string
-}
-
-func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
-	tableName := clickhouse_connector.GetEventsTableName(q.Database)
-
-	query := sqlbuilder.ClickHouse.NewInsertBuilder()
-	query.InsertInto(tableName)
-	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
-
-	// Add settings
-	var settings []string
-	for key, value := range q.QuerySettings {
-		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
-	}
-
-	if len(settings) > 0 {
-		query.SQL(fmt.Sprintf("SETTINGS %s", strings.Join(settings, ", ")))
-	}
-
-	for _, message := range q.Messages {
+	for _, message := range messages {
 		var eventErr string
 		if message.Status.Error != nil {
 			eventErr = message.Status.Error.Error()
 		}
 
-		storedAt := q.Clock.Now()
+		storedAt := time.Now()
 		ingestedAt := storedAt
 
 		if message.KafkaMessage != nil {
@@ -128,33 +66,25 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			}
 		}
 
-		query.Values(
-			message.Namespace,
-			eventErr,
-			message.Serialized.Id,
-			message.Serialized.Type,
-			message.Serialized.Source,
-			message.Serialized.Subject,
-			message.Serialized.Time,
-			message.Serialized.Data,
-			ingestedAt,
-			storedAt,
-		)
+		rawEvent := streaming.RawEvent{
+			Namespace:       message.Namespace,
+			ValidationError: eventErr,
+			ID:              message.Serialized.Id,
+			Type:            message.Serialized.Type,
+			Source:          message.Serialized.Source,
+			Subject:         message.Serialized.Subject,
+			Time:            time.Unix(message.Serialized.Time, 0),
+			Data:            message.Serialized.Data,
+			IngestedAt:      ingestedAt,
+			StoredAt:        storedAt,
+		}
+
+		rawEvents = append(rawEvents, rawEvent)
 	}
 
-	sql, args := query.Build()
-	return sql, args, nil
-}
+	if err := c.config.Streaming.BatchInsert(ctx, rawEvents); err != nil {
+		return fmt.Errorf("failed to store events: %w", err)
+	}
 
-// Clock is an interface for getting the current time.
-// It is used to make the code testable.
-type Clock interface {
-	Now() time.Time
-}
-
-// realClock implements Clock using the system clock.
-type realClock struct{}
-
-func (realClock) Now() time.Time {
-	return time.Now()
+	return nil
 }

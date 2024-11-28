@@ -69,8 +69,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		return nil, err
 	}
 
-	meterQueryParams := &streaming.QueryParams{
-		Aggregation:   in.Meter.Aggregation,
+	meterQueryParams := streaming.QueryParams{
 		FilterSubject: in.Subjects,
 		From:          &in.Line.Period.Start,
 		To:            &in.Line.Period.End,
@@ -88,7 +87,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		meterValues, err := s.StreamingConnector.QueryMeter(
 			ctx,
 			in.Line.Namespace,
-			in.Meter.Slug,
+			in.Meter,
 			meterQueryParams,
 		)
 		if err != nil {
@@ -108,8 +107,8 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	preLineResult, err := s.StreamingConnector.QueryMeter(
 		ctx,
 		in.Line.Namespace,
-		in.Meter.Slug,
-		meterQueryParams,
+		in.Meter,
+		preLineQuery,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
@@ -125,7 +124,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	upToLineEndResult, err := s.StreamingConnector.QueryMeter(
 		ctx,
 		in.Line.Namespace,
-		in.Meter.Slug,
+		in.Meter,
 		upToLineEnd,
 	)
 	if err != nil {

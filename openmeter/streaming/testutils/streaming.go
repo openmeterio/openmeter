@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+var _ streaming.Connector = &MockStreamingConnector{}
+
 func NewMockStreamingConnector(t testing.TB) *MockStreamingConnector {
 	t.Helper()
 	out := &MockStreamingConnector{}
@@ -53,6 +55,14 @@ func (m *MockStreamingConnector) AddRow(meterSlug string, row models.MeterQueryR
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
 }
 
+func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
 func (m *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
 	return []streaming.CountEventRow{}, nil
 }
@@ -61,28 +71,28 @@ func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return []api.IngestedEvent{}, nil
 }
 
-func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
+func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	return nil
 }
 
-func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
 	return nil
 }
 
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
-func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	rows := []models.MeterQueryRow{}
-	_, rowOk := m.rows[meterSlug]
+	_, rowOk := m.rows[meter.Slug]
 
 	if rowOk {
-		for _, row := range m.rows[meterSlug] {
+		for _, row := range m.rows[meter.Slug] {
 			if row.WindowStart.Equal(*params.From) && row.WindowEnd.Equal(*params.To) {
 				rows = append(rows, row)
 			}
 		}
 	} else {
-		row, err := m.aggregateEvents(meterSlug, params)
+		row, err := m.aggregateEvents(meter.Slug, params)
 		if err != nil {
 			return rows, err
 		}
@@ -92,12 +102,16 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	return rows, nil
 }
 
+func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
+	return nil
+}
+
 func windowSizeToDuration(windowSize models.WindowSize) time.Duration {
 	return windowSize.Duration()
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases
-func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
 	from := defaultx.WithDefault(params.From, time.Now().AddDate(-10, 0, 0))
 	to := defaultx.WithDefault(params.To, time.Now())
@@ -158,6 +172,6 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *strea
 	return rows, nil
 }
 
-func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
+func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{}, nil
 }

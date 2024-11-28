@@ -8,11 +8,11 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
@@ -50,14 +50,7 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 		return nil, fmt.Errorf("failed to initialize clickhouse client: %w", err)
 	}
 
-	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:               logger,
-		ClickHouse:           clickHouseClient,
-		Database:             conf.Aggregation.ClickHouse.Database,
-		Meters:               meterRepository,
-		CreateOrReplaceMeter: conf.Aggregation.CreateOrReplaceMeter,
-		PopulateMeter:        conf.Aggregation.PopulateMeter,
-	})
+	streamingConnector, err := common.NewStreamingConnector(ctx, conf.Aggregation, clickHouseClient, meterRepository, logger)
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
 	}

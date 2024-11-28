@@ -209,13 +209,16 @@ func TestInvalidIngest(t *testing.T) {
 	client := initClient(t)
 
 	// Make clickhouse's job easier by sending events within a fix time range
-	now := time.Now()
+	timeBase := time.Now().Add(-time.Hour)
+	timeIdx := 0
 	eventType := "ingest_invalid"
 	subject := eventType
 	meterKey := eventType
 
 	getTime := func() time.Time {
-		return gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+		timeIdx++
+		// Event list is in reverse order by time
+		return timeBase.Add(time.Duration(-timeIdx) * time.Minute)
 	}
 
 	// Send an event with unsupported data content type: xml
@@ -284,6 +287,22 @@ func TestInvalidIngest(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, resp.StatusCode())
 	}
 
+	// Send an event with empty data
+	{
+		ev := cloudevents.New()
+		ev.SetID(ulid.Make().String())
+		ev.SetSource("my-app")
+		ev.SetType(eventType)
+		ev.SetSubject(subject)
+		ev.SetTime(getTime())
+		err := ev.SetData(cloudevents.ApplicationJSON, map[string]string{})
+		require.NoError(t, err)
+
+		resp, err := client.IngestEventWithResponse(context.Background(), ev)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
 	// Send a valid event, this is what we should get back
 	{
 		ev := cloudevents.New()
@@ -321,7 +340,7 @@ func TestInvalidIngest(t *testing.T) {
 	require.NotNil(t, resp.JSON200)
 
 	events := *resp.JSON200
-	require.Len(t, events, 2)
+	require.Len(t, events, 3)
 
 	// unsupported data content gets rejected with a bad request so it should not be in the list
 
@@ -329,12 +348,16 @@ func TestInvalidIngest(t *testing.T) {
 
 	// null data should have processing error
 	require.NotNil(t, events[0].ValidationError)
-	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[0].ValidationError)
+	require.Equal(t, `event data is null and missing value property`, *events[0].ValidationError)
 
 	// missing data should have processing error
 	// we only validate events against meters in the processing pipeline so this is an async error
 	require.NotNil(t, events[1].ValidationError)
-	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[1].ValidationError)
+	require.Equal(t, `event data is null and missing value property`, *events[1].ValidationError)
+
+	// empty data should have processing error as it does not have the required value property
+	require.NotNil(t, events[2].ValidationError)
+	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[2].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {
