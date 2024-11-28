@@ -21,7 +21,7 @@ namespace Invoices;
 @example("INV-2024-01-01-01")
 @minLength(1)
 @maxLength(256)
-@friendlyName("BillingInvoiceNumber")
+@friendlyName("InvoiceNumber")
 scalar InvoiceNumber extends string;
 
 /* Omitted fields (not required yet, from GOBL schema):
@@ -43,7 +43,7 @@ scalar InvoiceNumber extends string;
 /**
  * Invoice represents an invoice in the system.
  */
-@friendlyName("BillingInvoice")
+@friendlyName("Invoice")
 model Invoice {
   ...OmitProperties<global.Resource, "name">;
 
@@ -63,13 +63,13 @@ model Invoice {
    * The taxable entity supplying the goods or services.
    */
   @visibility("read", "update", "create")
-  supplier: Party;
+  supplier: BillingParty;
 
   /**
    * Legal entity receiving the goods or services.
    */
   @visibility("read", "update", "create")
-  customer: Party;
+  customer: BillingParty;
 
   /**
    * Number specifies the human readable key used to reference this Invoice.
@@ -95,13 +95,13 @@ model Invoice {
    * Key information regarding previous invoices and potentially details as to why they were corrected.
    */
   @visibility("read")
-  preceding?: DocumentRef[];
+  preceding?: InvoiceDocumentRef[];
 
   /**
    * Summary of all the invoice totals, including taxes (calculated).
    */
   @visibility("read")
-  totals: Totals;
+  totals: InvoiceTotals;
 
   /**
    * The status of the invoice.
@@ -182,7 +182,7 @@ model Invoice {
    * Information on when, how, and to whom the invoice should be paid.
    */
   @visibility("read", "create", "update")
-  payment?: Payment;
+  payment?: InvoicePaymentTerms;
 
   /**
    * Validation issues reported by the invoice workflow.
@@ -192,9 +192,9 @@ model Invoice {
 }
 
 /**
- * BillingInvoiceAction represents the actions that can be performed on an invoice.
+ * InvoiceAction represents the actions that can be performed on an invoice.
  */
-@friendlyName("BillingInvoiceAction")
+@friendlyName("InvoiceAction")
 enum InvoiceAction {
   /**
    * Advance the invoice to the next status.
@@ -228,7 +228,7 @@ enum InvoiceAction {
  * API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
  * the next steps of the invoice instead of the extendedStatus field.
  */
-@friendlyName("BillingInvoiceStatusDetails")
+@friendlyName("InvoiceStatusDetails")
 model InvoiceStatusDetails {
   /**
    * Is the invoice editable?
@@ -263,13 +263,13 @@ scalar InvoiceExtendedStatus extends string;
  * This is a clone of the billing profile's workflow settings at the time of invoice creation
  * with customer overrides considered.
  */
-@friendlyName("BillingInvoiceWorkflowSettings")
+@friendlyName("InvoiceWorkflowSettings")
 model InvoiceWorkflowSettings {
   /**
    * The apps that will be used to orchestrate the invoice's workflow.
    */
   @visibility("read")
-  apps?: OpenMeter.Billing.ProfileAppsOrReference;
+  apps?: OpenMeter.Billing.BillingProfileAppsOrReference;
 
   /**
    * sourceBillingProfileID is the billing profile on which the workflow was based on.
@@ -284,7 +284,7 @@ model InvoiceWorkflowSettings {
    * The workflow details used by this invoice.
    */
   @visibility("read")
-  workflow: OpenMeter.Billing.WorkflowSettings;
+  workflow: OpenMeter.Billing.BillingWorkflowSettings;
 
   /**
    * Timezone of the invoice's date fields.
@@ -296,7 +296,7 @@ model InvoiceWorkflowSettings {
 /**
  * InvoiceStatus describes the status of an invoice.
  */
-@friendlyName("BillingInvoiceStatus")
+@friendlyName("InvoiceStatus")
 enum InvoiceStatus {
   /**
    * The list of line items for the next invoice is being gathered.
@@ -327,7 +327,7 @@ enum InvoiceStatus {
  *
  * The type of invoice determines the purpose of the invoice and how it should be handled.
  */
-@friendlyName("BillingInvoiceType")
+@friendlyName("InvoiceType")
 enum InvoiceType {
   /**
    * A regular commercial invoice document between a supplier and customer.
@@ -343,8 +343,8 @@ enum InvoiceType {
 /**
  * Discount represents an allowance applied to the complete document independent from the individual lines.
  */
-@friendlyName("BillingInvoiceDiscount")
-model Discount {
+@friendlyName("InvoiceDiscount")
+model InvoiceDiscount {
   /**
    * Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.
    */
@@ -375,38 +375,38 @@ model Discount {
 /**
  * BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
  */
-@friendlyName("BillingInvoiceLine")
+@friendlyName("InvoiceLine")
 @discriminator("type")
 union InvoiceLine {
-  usageBased: UsageBasedLine,
-  flatFee: FlatFeeLine,
+  usageBased: InvoiceUsageBasedLine,
+  flatFee: InvoiceFlatFeeLine,
 }
 
 /**
- * BillingInvoiceLineReplaceUpdate represents the update model for an invoice line.
+ * InvoiceLineReplaceUpdate represents the update model for an invoice line.
  */
-@friendlyName("BillingInvoiceLineReplaceUpdate")
+@friendlyName("InvoiceLineReplaceUpdate")
 @discriminator("type")
 union InvoiceLineReplaceUpdate {
-  usageBased: Rest.Resource.ResourceReplaceModel<UsageBasedLine>,
-  flatFee: Rest.Resource.ResourceReplaceModel<FlatFeeLine>,
+  usageBased: Rest.Resource.ResourceReplaceModel<InvoiceUsageBasedLine>,
+  flatFee: Rest.Resource.ResourceReplaceModel<InvoiceFlatFeeLine>,
 }
 
 /**
- * BillingInvoiceLineCreate represents the create model for an invoice line.
+ * InvoiceLineCreate represents the create model for an invoice line.
  */
-@friendlyName("BillingInvoiceLineCreate")
+@friendlyName("InvoiceLineCreate")
 @discriminator("type")
 union InvoiceLineCreate {
-  usageBased: Rest.Resource.ResourceCreateModel<UsageBasedLine>,
-  flatFee: Rest.Resource.ResourceCreateModel<FlatFeeLine>,
+  usageBased: Rest.Resource.ResourceCreateModel<InvoiceUsageBasedLine>,
+  flatFee: Rest.Resource.ResourceCreateModel<InvoiceFlatFeeLine>,
 }
 
 /**
  * LineTypes represents the different types of lines that can be used in an invoice.
  */
-@friendlyName("BillingLineTypes")
-enum LineTypes {
+@friendlyName("InvoiceLineTypes")
+enum InvoiceLineTypes {
   flatFee: "flat_fee",
   usageBased: "usage_based",
 }
@@ -414,8 +414,8 @@ enum LineTypes {
 /**
  * Line status specifies the status of the line.
  */
-@friendlyName("BillingLineStatus")
-enum LineStatus {
+@friendlyName("InvoiceLineStatus")
+enum InvoiceLineStatus {
   /**
    * The line is valid and can be used in the invoice.
    */
@@ -435,13 +435,13 @@ enum LineStatus {
 }
 
 /**
- * Line represents a single item or service sold to the customer.
+ * InvoiceLine represents a single item or service sold to the customer.
  *
  * This is a base class for all line types, and should not be used directly.
  * */
 @discriminator("type")
-@friendlyName("BillingLine")
-model Line {
+@friendlyName("InvoiceLine")
+model InvoiceLineBase {
   // Note: ID has updated visibility as we support batch line creations and upserts
   ...OmitProperties<global.Resource, "id">;
 
@@ -454,7 +454,7 @@ model Line {
    * A line's type cannot be changed after creation.
    */
   @visibility("read", "create")
-  type: LineTypes;
+  type: InvoiceLineTypes;
 
   /**
    * Status of the line.
@@ -463,7 +463,7 @@ model Line {
    * billing engine of OpenMeter.
    */
   @visibility("read")
-  status: LineStatus;
+  status: InvoiceLineStatus;
 
   /**
    * Discounts detailes applied to this line.
@@ -472,7 +472,7 @@ model Line {
    * discounts that are affecting multiple lines.
    */
   @visibility("read")
-  discounts?: LineDiscount[];
+  discounts?: InvoiceLineDiscount[];
 
   /**
    * Charges applied to this line. (like minimum spend)
@@ -481,7 +481,7 @@ model Line {
    * charges that are affecting multiple lines.
    */
   @visibility("read")
-  charges?: LineCharge[];
+  charges?: InvoiceLineCharge[];
 
   /**
    * The invoice this item belongs to.
@@ -499,7 +499,7 @@ model Line {
    * Taxes applied to the invoice totals.
    */
   @visibility("read") // Tax is handled by the tax provider, we only need to show the output of that here
-  taxes?: TaxItem[];
+  taxes?: InvoiceLineTaxItem[];
 
   /**
    * Tax config specify the tax configuration for this line.
@@ -517,10 +517,12 @@ model Line {
    * Totals for this line.
    */
   @visibility("read")
-  totals: Totals;
+  totals: InvoiceTotals;
 
   /**
    * Period of the line item applies to for revenue recognition pruposes.
+   *
+   * Billing always treats periods as start being inclusive and end being exclusive.
    */
   @visibility("read", "create", "update")
   period: Period;
@@ -535,7 +537,7 @@ model Line {
 /**
  * Reference to an invoice.
  */
-@friendlyName("BillingInvoiceReference")
+@friendlyName("InvoiceReference")
 model InvoiceReference {
   /**
    * The ID of the invoice.
@@ -551,32 +553,12 @@ model InvoiceReference {
 }
 
 /**
- * Period represents a time range.
- *
- * Billing always treats periods as start being inclusive and end being exclusive.
+ * InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
  */
-@friendlyName("BillingPeriod")
-model Period {
-  /**
-   * Start of the period (inclusive).
-   */
-  @visibility("read", "create", "update")
-  start: DateTime;
-
-  /**
-   * End of the period (exclusive).
-   */
-  @visibility("read", "create", "update")
-  end: DateTime;
-}
-
-/**
- * UsageBasedLine represents a line item that is sold to the customer based on usage.
- */
-@friendlyName("BillingUsageBasedLine")
-model UsageBasedLine {
-  ...OmitProperties<Line, "type">;
-  type: LineTypes.usageBased;
+@friendlyName("InvoiceUsageBasedLine")
+model InvoiceUsageBasedLine {
+  ...OmitProperties<InvoiceLineBase, "type">;
+  type: InvoiceLineTypes.usageBased;
   price: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
 
   /**
@@ -601,12 +583,12 @@ model UsageBasedLine {
 }
 
 /**
- * BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
+ * InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
  */
-@friendlyName("BillingFlatFeeLine")
-model FlatFeeLine {
-  ...OmitProperties<Line, "type">;
-  type: LineTypes.flatFee;
+@friendlyName("InvoiceFlatFeeLine")
+model InvoiceFlatFeeLine {
+  ...OmitProperties<InvoiceLineBase, "type">;
+  type: InvoiceLineTypes.flatFee;
 
   /**
    * Price of the item being sold.
@@ -628,10 +610,10 @@ model FlatFeeLine {
 }
 
 /**
- * GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.
+ * InvoiceGenericCharge represents a charge or discount that can be applied to a line or the entire invoice.
  */
-@friendlyName("BillingGenericCharge")
-model GenericCharge {
+@friendlyName("InvoiceGenericCharge")
+model InvoiceGenericCharge {
   ...ResourceTimestamps;
 
   /**
@@ -666,19 +648,19 @@ model GenericCharge {
 }
 
 /**
- * LineDiscount represents an amount deducted from the line, and will be applied before taxes.
+ * InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
  */
-@friendlyName("BillingLineDiscount")
-model LineDiscount {
-  ...GenericCharge;
+@friendlyName("InvoiceLineDiscount")
+model InvoiceLineDiscount {
+  ...InvoiceGenericCharge;
 }
 
 /**
- * LineCharge represents an amount added to the line, and will be applied before taxes.
+ * InvoiceLineCharge represents an amount added to the line, and will be applied before taxes.
  */
 @friendlyName("BillingLineCharge")
-model LineCharge {
-  ...GenericCharge;
+model InvoiceLineCharge {
+  ...InvoiceGenericCharge;
 }
 
 /*
@@ -689,8 +671,8 @@ model LineCharge {
 /**
  * Totals contains the summaries of all calculations for the invoice.
  */
-@friendlyName("BillingInvoiceTotals")
-model Totals {
+@friendlyName("InvoiceTotals")
+model InvoiceTotals {
   /**
    * The total value of the line before taxes, discounts and commitments.
    */
@@ -747,8 +729,8 @@ model Totals {
 /**
  * Payment contains details as to how the invoice should be paid.
  */
-@friendlyName("BillingInvoicePayment")
-model Payment {
+@friendlyName("InvoicePaymentTerms")
+model InvoicePaymentTerms {
   /**
    * The terms of payment for the invoice.
    */
@@ -761,7 +743,7 @@ model Payment {
  *
  * Issues with severity "critical" will prevent the invoice from being issued.
  */
-@friendlyName("BillingValidationIssueSeverity")
+@friendlyName("ValidationIssueSeverity")
 enum ValidationIssueSeverity {
   critical: "critical",
   warning: "warning",
@@ -772,7 +754,7 @@ enum ValidationIssueSeverity {
  *
  * Issues with severity "critical" will prevent the invoice from being issued.
  */
-@friendlyName("BillingValidationIssue")
+@friendlyName("ValidationIssue")
 model ValidationIssue {
   /**
    * The severity of the issue.

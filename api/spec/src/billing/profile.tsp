@@ -12,7 +12,7 @@ interface Profiles {
    * List all billing profiles
    */
   @get
-  @operationId("billingListProfiles")
+  @operationId("listBillingProfiles")
   @summary("List billing profiles")
   @extension("x-internal", true)
   list(
@@ -20,12 +20,12 @@ interface Profiles {
     includeArchived?: boolean = false,
 
     @query
-    expand?: ProfileExpand[],
+    expand?: BillingProfileExpand[],
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<ProfileOrderBy>,
-  ): OpenMeter.PaginatedResponse<Profile> | OpenMeter.CommonErrors;
+    ...OpenMeter.QueryOrdering<BillingProfileOrderBy>,
+  ): OpenMeter.PaginatedResponse<BillingProfile> | OpenMeter.CommonErrors;
 
   /**
    * Create a new billing profile
@@ -35,11 +35,11 @@ interface Profiles {
    */
   @post
   @summary("Create a new billing profile")
-  @operationId("billingCreateProfile")
+  @operationId("createBillingProfile")
   @extension("x-internal", true)
-  create(@body profile: ProfileCreate): {
+  create(@body profile: BillingProfileCreate): {
     @statusCode _: 201;
-    @body profile: Profile;
+    @body profile: BillingProfile;
   } | OpenMeter.CommonErrors;
 
   /**
@@ -48,7 +48,7 @@ interface Profiles {
   @route("/{id}")
   @delete
   @summary("Delete a billing profile")
-  @operationId("billingDeleteProfile")
+  @operationId("deleteBillingProfile")
   @extension("x-internal", true)
   delete(
     @path
@@ -63,14 +63,14 @@ interface Profiles {
   @route("/{id}")
   @get
   @summary("Get a billing profile")
-  @operationId("billingGetProfile")
+  @operationId("getBillingProfile")
   @extension("x-internal", true)
   get(
     @path
     id: ULID,
 
-    @query expand?: ProfileExpand[],
-  ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    @query expand?: BillingProfileExpand[],
+  ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Update a billing profile
@@ -78,21 +78,21 @@ interface Profiles {
   @route("/{id}")
   @put
   @summary("Update a billing profile")
-  @operationId("billingUpdateProfile")
+  @operationId("updateBillingProfile")
   @extension("x-internal", true)
   update(
     @path
     id: ULID,
 
-    @body profile: Rest.Resource.ResourceReplaceModel<Profile>,
-  ): Profile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    @body profile: Rest.Resource.ResourceReplaceModel<BillingProfile>,
+  ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
 
 /**
- * ProfileOrderBy specifies the ordering options for profiles
+ * BillingProfileOrderBy specifies the ordering options for profiles
  */
 @friendlyName("BillingProfileOrderBy")
-enum ProfileOrderBy {
+enum BillingProfileOrderBy {
   createdAt: "createdAt",
   updatedAt: "updatedAt",
   default: "default",
@@ -100,33 +100,33 @@ enum ProfileOrderBy {
 }
 
 /**
- * ProfileExpand details what profile fields to expand
+ * BillingProfileExpand details what profile fields to expand
  */
 @friendlyName("BillingProfileExpand")
 @extension("x-enum-varnames", ["apps", "all"])
-enum ProfileExpand {
+enum BillingProfileExpand {
   apps: "apps",
   all: "*",
 }
 
 /**
- * Profile represents a billing profile
+ * BillingProfile represents a billing profile
  */
 @friendlyName("BillingProfile")
-model Profile {
+model BillingProfile {
   ...global.Resource;
 
   /**
    * The name and contact information for the supplier this billing profile represents
    */
   @visibility("read", "create", "update")
-  supplier: Invoices.Party;
+  supplier: Invoices.BillingParty;
 
   /**
    * The billing workflow settings for this profile
    */
   @visibility("read")
-  workflow: Workflow;
+  workflow: BillingWorkflow;
 
   /**
    * The applications used by this billing profile.
@@ -134,7 +134,7 @@ model Profile {
    * Expand settings govern if this includes the whole app object or just the ID references.
    */
   @visibility("read")
-  apps: ProfileAppsOrReference;
+  apps: BillingProfileAppsOrReference;
 
   /**
    * Is this the default profile?
@@ -144,43 +144,47 @@ model Profile {
 }
 
 /**
- * ProfileCreateInput represents the input for creating a billing profile
+ * BillingProfileCreate represents the input for creating a billing profile
  */
 @friendlyName("BillingProfileCreate")
-model ProfileCreate is Rest.Resource.ResourceCreateModel<Profile> {
+model BillingProfileCreate
+  is Rest.Resource.ResourceCreateModel<BillingProfile> {
   /**
    * The billing workflow settings for this profile.
    */
   @visibility("create")
-  workflow: Rest.Resource.ResourceCreateModel<Workflow>;
+  workflow: Rest.Resource.ResourceCreateModel<BillingWorkflow>;
 
   /**
    * The apps used by this billing profile.
    */
   @visibility("create")
-  apps: ProfileAppsCreate;
+  apps: BillingProfileAppsCreate;
 }
 
 /**
- * ProfileReplaceUpdate represents the input for updating a billing profile
+ * BillingProfileReplaceUpdate represents the input for updating a billing profile
  *
  * The apps field cannot be updated directly, if an app change is desired a new
  * profile should be created.
  */
-@friendlyName("BillingProfileReplaceUpdate")
-model ProfileReplaceUpdate is Rest.Resource.ResourceReplaceModel<Profile> {
+// Note: Rest.Resource.ResourceReplaceModel<BillingProfile> yields a BillingProfileReplaceUpdate that's why we
+// need a different friendly name here.
+@friendlyName("BillingProfileReplaceUpdateWithWorkflow")
+model BillingProfileReplaceUpdate
+  is Rest.Resource.ResourceReplaceModel<BillingProfile> {
   /**
    * The billing workflow settings for this profile.
    */
   @visibility("update")
-  workflow: Workflow;
+  workflow: BillingWorkflow;
 }
 
 /**
- * ProfileApps represents the applications used by a billing profile
+ * BillingProfileApps represents the applications used by a billing profile
  */
 @friendlyName("BillingProfileApps")
-model ProfileApps {
+model BillingProfileApps {
   /*
    * The tax app used for this workflow
    */
@@ -201,10 +205,10 @@ model ProfileApps {
 }
 
 /**
- * ProfileAppsReference represents the references (id, type) to the apps used by a billing profile
+ * BillingProfileAppReferences represents the references (id, type) to the apps used by a billing profile
  */
 @friendlyName("BillingProfileAppReferences")
-model ProfileAppReferences {
+model BillingProfileAppReferences {
   /**
    * The tax app used for this workflow
    */
@@ -229,25 +233,25 @@ model ProfileAppReferences {
  * for a billing profile.
  */
 @friendlyName("BillingProfileAppsOrReference")
-union ProfileAppsOrReference {
-  profileApps: ProfileApps,
-  profileAppReferences: ProfileAppReferences,
+union BillingProfileAppsOrReference {
+  profileApps: BillingProfileApps,
+  profileAppReferences: BillingProfileAppReferences,
 }
 
 /**
  * App reference type specifies the type of reference inside an app reference
  */
 @friendlyName("BillingWorkflowAppReferenceType")
-enum AppReferenceType {
+enum BillingWorkflowAppReferenceType {
   appId: "app_id",
   appType: "app_type",
 }
 
 /**
- * ProfileAppsCreate represents the input for creating a billing profile's apps
+ * BillingProfileAppsCreate represents the input for creating a billing profile's apps
  */
 @friendlyName("BillingProfileAppsCreate")
-model ProfileAppsCreate {
+model BillingProfileAppsCreate {
   /**
    * The tax app used for this workflow
    */
@@ -271,12 +275,12 @@ model ProfileAppsCreate {
 }
 
 /**
- * Workflow represents a billing workflow
+ * BillingWorkflow represents a billing workflow
  */
 @friendlyName("BillingWorkflow")
-model Workflow {
+model BillingWorkflow {
   ...ResourceTimestamps;
-  ...WorkflowSettings;
+  ...BillingWorkflowSettings;
 
   /**
    * A unique identifier for the resource.
@@ -287,36 +291,36 @@ model Workflow {
 }
 
 /**
- * WorkflowSettings represents the settings for a billing workflow.
+ * BillingWorkflowSettings represents the settings for a billing workflow.
  */
 @friendlyName("BillingWorkflowSettings")
-model WorkflowSettings {
+model BillingWorkflowSettings {
   /**
    * The collection settings for this workflow
    */
   @visibility("read", "create", "update")
-  collection?: WorkflowCollectionSettings;
+  collection?: BillingWorkflowCollectionSettings;
 
   /**
    * The invoicing settings for this workflow
    */
   @visibility("read", "create", "update")
-  invoicing?: WorkflowInvoicingSettings;
+  invoicing?: BillingWorkflowInvoicingSettings;
 
   /**
    * The payment settings for this workflow
    */
   @visibility("read", "create", "update")
-  payment?: WorkflowPaymentSettings;
+  payment?: BillingWorkflowPaymentSettings;
 }
 
 /**
  * Workflow collection specifies how to collect the pending line items for an invoice
  */
 @friendlyName("BillingWorkflowCollectionSettings")
-model WorkflowCollectionSettings {
-  alignment?: WorkflowCollectionAlignment = #{
-    type: CollectionAlignment.subscription,
+model BillingWorkflowCollectionSettings {
+  alignment?: BillingWorkflowCollectionAlignment = #{
+    type: BillingCollectionAlignment.subscription,
   };
 
   /**
@@ -332,12 +336,12 @@ model WorkflowCollectionSettings {
 }
 
 /**
- * CollectionAlignment specifies when the pending line items should be collected into
+ * BillingCollectionAlignment specifies when the pending line items should be collected into
  * an invoice.
  */
 @friendlyName("BillingCollectionAlignment")
 @summary("Collection alignment")
-enum CollectionAlignment {
+enum BillingCollectionAlignment {
   /**
    * Align the collection to the start of the subscription period.
    */
@@ -352,26 +356,26 @@ enum CollectionAlignment {
  */
 @friendlyName("BillingWorkflowCollectionAlignment")
 @discriminator("type")
-union WorkflowCollectionAlignment {
-  subscription: WorkflowCollectionAlignmentSubscription,
+union BillingWorkflowCollectionAlignment {
+  subscription: BillingWorkflowCollectionAlignmentSubscription,
 }
 
 /**
- * WorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
+ * BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
  * into an invoice.
  */
 @friendlyName("BillingWorkflowCollectionAlignmentSubscription")
-model WorkflowCollectionAlignmentSubscription {
+model BillingWorkflowCollectionAlignmentSubscription {
   @visibility("read", "create", "update")
-  type: CollectionAlignment.subscription;
+  type: BillingCollectionAlignment.subscription;
 }
 
 /**
- * WorkflowPaymentSettings represents the payment settings for a billing workflow
+ * BillingWorkflowPaymentSettings represents the payment settings for a billing workflow
  */
 @summary("Workflow payment settings")
 @friendlyName("BillingWorkflowPaymentSettings")
-model WorkflowPaymentSettings {
+model BillingWorkflowPaymentSettings {
   /**
    * The payment method for the invoice.
    */
@@ -380,11 +384,11 @@ model WorkflowPaymentSettings {
 }
 
 /**
- * WorkflowInvoice represents the invoice settings for a billing workflow
+ * BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow
  */
 @summary("Workflow invoice settings")
 @friendlyName("BillingWorkflowInvoicingSettings")
-model WorkflowInvoicingSettings {
+model BillingWorkflowInvoicingSettings {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
    */
@@ -411,7 +415,7 @@ model WorkflowInvoicingSettings {
 /**
  * CollectionMethod specifies how the invoice should be collected (automatic vs manual)
  */
-@friendlyName("BillingWorkflowCollectionMethod")
+@friendlyName("CollectionMethod")
 @summary("Collection method")
 enum CollectionMethod {
   chargeAutomatically: "charge_automatically",
@@ -419,11 +423,11 @@ enum CollectionMethod {
 }
 
 /**
- * LineResolution specifies how the line items should be resolved in the invoice
+ * BillingWorkflowLineResolution specifies how the line items should be resolved in the invoice
  */
 @friendlyName("BillingWorkflowLineResolution")
 @summary("Item resolution")
-enum LineResolution {
+enum BillingWorkflowLineResolution {
   /**
    * Create line items for each day in the billing period.
    */

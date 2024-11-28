@@ -29,7 +29,7 @@ namespace Invoices;
  * Party represents a person or business entity.
  */
 @friendlyName("BillingParty")
-model Party {
+model BillingParty {
   /**
    * Legal name or representation of the organization.
    */
@@ -41,7 +41,7 @@ model Party {
    * other numbers, but we're only interested in those valid for tax purposes.
    */
   @visibility("read", "update", "create")
-  taxId?: TaxIdentity;
+  taxId?: BillingPartyTaxIdentity;
 
   /**
    * Regular post addresses for where information should be sent if needed.
@@ -49,4 +49,16 @@ model Party {
   @maxItems(1)
   @visibility("read", "update", "create")
   addresses?: Address[];
+}
+
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a specific country.
+ */
+@friendlyName("BillingPartyTaxIdentity")
+model BillingPartyTaxIdentity {
+  /**
+   * Normalized tax code shown on the original identity document.
+   */
+  @visibility("read", "update", "create")
+  code?: TaxIdentificationCode;
 }

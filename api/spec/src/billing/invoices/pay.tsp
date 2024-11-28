@@ -9,10 +9,10 @@ using TypeSpec.OpenAPI;
 namespace Invoices;
 
 /**
- * DueDate contains an amount that should be paid by the given date.
+ * PaymentDueDate contains an amount that should be paid by the given date.
  */
-@friendlyName("BillingDueDate")
-model DueDate {
+@friendlyName("PaymentDueDate")
+model PaymentDueDate {
   /**
    * When the payment is due.
    */
@@ -49,9 +49,9 @@ model DueDate {
  * Most of the allowed values are omited, please see https://docs.gobl.org/draft-0/pay/terms
  */
 /**
- * PaymentPaymentTermType defines the type of terms to be applied.
+ * PaymentTermType defines the type of terms to be applied.
  */
-@friendlyName("BillingPaymentTermType")
+@friendlyName("PaymentTermType")
 enum PaymentTermType {
   /**
    * Due on a specific date.
@@ -65,7 +65,7 @@ enum PaymentTermType {
 }
 
 @summary("Terms defines when we expect the customer to pay, or have paid, for the contents of the document.")
-@friendlyName("BillingGenericPaymentTerms")
+@friendlyName("GenericPaymentTerms")
 @discriminator("type")
 model GenericPaymentTerms<T extends PaymentTermType> {
   /**
@@ -89,7 +89,7 @@ model GenericPaymentTerms<T extends PaymentTermType> {
 /**
  * PaymentTermInstant defines the terms for payment on receipt of invoice.
  */
-@friendlyName("BillingPaymentTermInstant")
+@friendlyName("PaymentTermInstant")
 model PaymentTermInstant {
   ...GenericPaymentTerms<PaymentTermType.instant>;
 }
@@ -97,7 +97,7 @@ model PaymentTermInstant {
 /**
  * PaymentTermDueDate defines the terms for payment on a specific date.
  */
-@friendlyName("BillingPaymentTermDueDate")
+@friendlyName("PaymentTermDueDate")
 model PaymentTermDueDate {
   ...GenericPaymentTerms<PaymentTermType.dueDate>;
 
@@ -106,13 +106,13 @@ model PaymentTermDueDate {
    */
   @minItems(1)
   @visibility("read")
-  dueAt: DueDate[];
+  dueAt: PaymentDueDate[];
 }
 
 /**
  * PaymentTerms defines the terms for payment.
  */
-@friendlyName("BillingPaymentTerms")
+@friendlyName("PaymentTerms")
 union PaymentTerms {
   instant: PaymentTermInstant,
   dueDate: PaymentTermDueDate,

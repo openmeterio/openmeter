@@ -9,10 +9,10 @@ using TypeSpec.OpenAPI;
 namespace Invoices;
 
 /**
- * DocumentRefType defines the type of document that is being referenced.
+ * InvoiceDocumentRefType defines the type of document that is being referenced.
  */
-@friendlyName("BillingDocumentRefType")
-enum DocumentRefType {
+@friendlyName("InvoiceDocumentRefType")
+enum InvoiceDocumentRefType {
   creditNoteOriginalInvoice: "credit_node_original_invoice",
 }
 
@@ -22,14 +22,14 @@ enum DocumentRefType {
  *  stamps: Seals of approval from other organisations that may need to be listed.
  *  ext: 	Extensions for additional codes that may be required.
  */
-@summary("DocumentRef is used to describe an existing document or a specific part of it's contents.")
-@friendlyName("BillingGenericDocumentRef")
-model GenericDocumentRef {
+@summary("InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.")
+@friendlyName("InvoiceGenericDocumentRef")
+model InvoiceGenericDocumentRef {
   /**
    * Type of the document referenced.
    */
   @visibility("read")
-  type: DocumentRefType;
+  type: InvoiceDocumentRefType;
 
   /**
    * Human readable description on why this reference is here or needs to be used.
@@ -47,9 +47,9 @@ model GenericDocumentRef {
 /**
  * CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is based on.
  */
-@friendlyName("BillingCreditNoteOriginalInvoiceRef")
-model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
-  type: DocumentRefType.creditNoteOriginalInvoice;
+@friendlyName("CreditNoteOriginalInvoiceRef")
+model InvoiceCreditNoteOriginalInvoiceRef extends InvoiceGenericDocumentRef {
+  type: InvoiceDocumentRefType.creditNoteOriginalInvoice;
 
   /**
    * IssueAt reflects the time the document was issued.
@@ -72,9 +72,9 @@ model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
 }
 
 /**
- * DocumentRef is used to describe a reference to an existing document (invoice).
+ * InvoiceDocumentRef is used to describe a reference to an existing document (invoice).
  */
-@friendlyName("BillingDocumentRef")
-union DocumentRef {
-  creditNoteOriginalInvoice: CreditNoteOriginalInvoiceRef,
+@friendlyName("InvoiceDocumentRef")
+union InvoiceDocumentRef {
+  creditNoteOriginalInvoice: InvoiceCreditNoteOriginalInvoiceRef,
 }

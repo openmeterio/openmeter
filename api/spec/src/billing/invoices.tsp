@@ -15,7 +15,7 @@ interface InvoiceEndpoints {
    */
   @get
   @summary("List invoices")
-  @operationId("billingListInvoices")
+  @operationId("listInvoices")
   @extension("x-internal", true)
   list(
     @query
@@ -50,14 +50,14 @@ interface CustomerInvoicesEndpoints {
   @post
   @route("/invoice")
   @summary("Invoice a customer based on the pending line items")
-  @operationId("billingActionInvoice")
+  @operationId("invoicePendingLinesAction")
   @extension("x-internal", true)
-  invoiceAction(
+  invoicePendlingLinesAction(
     @path
     customerId: ULID,
 
     @body
-    request: InvoiceActionInput,
+    request: InvoicePendingLinesActionInput,
   ): {
     @statusCode _: 201;
 
@@ -70,7 +70,7 @@ interface CustomerInvoicesEndpoints {
    */
   @get
   @summary("List invoices")
-  @operationId("billingListInvoicesByCustomer")
+  @operationId("listInvoicesByCustomer")
   @extension("x-internal", true)
   listInvoicesByCustomer(
     @path customerId: ULID,
@@ -96,9 +96,9 @@ interface CustomerInvoicesEndpoints {
   @post
   @route("/lines")
   @summary("Create line items")
-  @operationId("billingCreateLineByCustomer")
+  @operationId("createInvoiceLineByCustomer")
   @extension("x-internal", true)
-  createLine(
+  createInvoiceLine(
     @path
     customerId: ULID,
 
@@ -121,7 +121,7 @@ interface CustomerInvoiceEndpoints {
    */
   @get
   @summary("Get an invoice")
-  @operationId("billingGetInvoiceByCustomerInvoiceId")
+  @operationId("getInvoice")
   @extension("x-internal", true)
   getInvoice(
     @path
@@ -141,7 +141,7 @@ interface CustomerInvoiceEndpoints {
    */
   @delete
   @summary("Delete an invoice")
-  @operationId("billingDeleteInvoiceByCustomerInvoiceId")
+  @operationId("deleteInvoice")
   @extension("x-internal", true)
   deleteInvoice(
     @path
@@ -161,7 +161,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/tax/recalculate")
   @summary("Recalculate an invoice's tax amounts")
-  @operationId("billingInvoiceRecalculateTaxAction")
+  @operationId("recalculateInvoiceTaxAction")
   @extension("x-internal", true)
   recalculateTaxAction(
     @path
@@ -183,7 +183,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/approve")
   @summary("Send the invoice to the customer")
-  @operationId("billingInvoiceApproveAction")
+  @operationId("approveInvoiceAction")
   @extension("x-internal", true)
   approveAction(
     @path
@@ -203,7 +203,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/void")
   @summary("Void an invoice")
-  @operationId("billingInvoiceVoidAction")
+  @operationId("voidInvoiceAction")
   @extension("x-internal", true)
   voidInvoiceAction(
     @path
@@ -226,7 +226,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/advance")
   @summary("Advance the invoice's state to the next status")
-  @operationId("billingInvoiceAdvanceAction")
+  @operationId("advanceInvoiceAction")
   @extension("x-internal", true)
   advanceAction(
     @path
@@ -244,7 +244,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/retry")
   @summary("Retry advancing the invoice after a failed attempt.")
-  @operationId("billingInvoiceRetryAction")
+  @operationId("retryInvoiceAction")
   @extension("x-internal", true)
   retryAction(
     @path
@@ -262,7 +262,7 @@ interface CustomerInvoiceEndpoints {
   @get
   @route("/lines/{lineId}")
   @summary("Get an invoice line")
-  @operationId("billingGetInvoiceLine")
+  @operationId("getInvoiceLine")
   @extension("x-internal", true)
   getInvoiceLine(
     @path customerId: ULID,
@@ -276,7 +276,7 @@ interface CustomerInvoiceEndpoints {
   @delete
   @route("/lines/{lineId}")
   @summary("Delete an invoice line")
-  @operationId("billingDeleteInvoiceLine")
+  @operationId("deleteInvoiceLine")
   @extension("x-internal", true)
   deleteInvoiceLine(
     @path customerId: ULID,
@@ -292,7 +292,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/lines/{lineId}")
   @summary("Update an invoice line")
-  @operationId("billingUpdateInvoiceLine")
+  @operationId("updateInvoiceLine")
   @extension("x-internal", true)
   updateInvoiceLine(
     @path customerId: ULID,
@@ -314,7 +314,7 @@ interface CustomerInvoiceEndpoints {
 /**
  * InvoiceOrderBy specifies the ordering options for invoice listing.
  */
-@friendlyName("BillingInvoiceOrderBy")
+@friendlyName("InvoiceOrderBy")
 enum InvoiceOrderBy {
   customerName: "customer.name",
   issuedAt: "issuedAt",
@@ -326,7 +326,7 @@ enum InvoiceOrderBy {
 /**
  * Request to void an invoice
  */
-@friendlyName("BillingVoidInvoiceActionInput")
+@friendlyName("VoidInvoiceActionInput")
 model VoidInvoiceActionInput {
   /**
    * The action to take on the voided line items.
@@ -352,7 +352,7 @@ model VoidInvoiceActionInput {
 /**
  * InvoiceVoidAction describes how to handle the voided line items.
  */
-@friendlyName("BillingVoidInvoiceAction")
+@friendlyName("VoidInvoiceAction")
 model VoidInvoiceAction {
   /**
    * How much of the total line items to be voided? (e.g. 100% means all charges are voided)
@@ -366,7 +366,7 @@ model VoidInvoiceAction {
 /**
  * VoidInvoiceLineActionType describes how to handle the voidied line item in the invoice.
  */
-@friendlyName("BillingVoidInvoiceLineActionType")
+@friendlyName("VoidInvoiceLineActionType")
 enum VoidInvoiceLineActionType {
   /**
    * The line items will never be charged for again
@@ -382,7 +382,7 @@ enum VoidInvoiceLineActionType {
 /**
  * VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding.
  */
-@friendlyName("BillingVoidInvoiceLineAction")
+@friendlyName("VoidInvoiceLineAction")
 @discriminator("type")
 union VoidInvoiceLineAction {
   discard: VoidInvoiceLineDiscardAction,
@@ -392,7 +392,7 @@ union VoidInvoiceLineAction {
 /**
  * VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice.
  */
-@friendlyName("BillingVoidInvoiceLineDiscardAction")
+@friendlyName("VoidInvoiceLineDiscardAction")
 model VoidInvoiceLineDiscardAction {
   type: VoidInvoiceLineActionType.discard;
 }
@@ -400,7 +400,7 @@ model VoidInvoiceLineDiscardAction {
 /**
  * VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice.
  */
-@friendlyName("BillingVoidInvoiceLinePendingAction")
+@friendlyName("VoidInvoiceLinePendingAction")
 model VoidInvoiceLinePendingAction {
   type: VoidInvoiceLineActionType.pending;
 
@@ -416,7 +416,7 @@ model VoidInvoiceLinePendingAction {
 /**
  * VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when voiding.
  */
-@friendlyName("BillingVoidInvoiceLineOverride")
+@friendlyName("VoidInvoiceActionLineOverride")
 model VoidInvoiceActionLineOverride {
   /**
    * The line item ID to override.
@@ -434,7 +434,7 @@ model VoidInvoiceActionLineOverride {
 /**
  * Common parameters for listing invoices
  */
-@friendlyName("BillingInvoiceListParams")
+@friendlyName("InvoiceListParams")
 model InvoiceListParams {
   /**
    * Filter by the invoice status.
@@ -470,7 +470,7 @@ model InvoiceListParams {
 /**
  * InvoiceExpand specifies the parts of the invoice to expand in the list output.
  */
-@friendlyName("BillingInvoiceExpand")
+@friendlyName("InvoiceExpand")
 @extension("x-enum-varnames", ["all", "lines", "preceding", "workflowApps"])
 enum InvoiceExpand {
   all: "*",
@@ -485,8 +485,8 @@ enum InvoiceExpand {
  * Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
  * operation. Empty invoices are not allowed.
  */
-@friendlyName("BillingInvoiceActionInput")
-model InvoiceActionInput {
+@friendlyName("InvoicePendingLinesActionInput")
+model InvoicePendingLinesActionInput {
   /**
    * The pending line items to include in the invoice, if not provided:
    * - all line items that have invoice_at < asOf will be included

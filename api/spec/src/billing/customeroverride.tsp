@@ -11,7 +11,7 @@ interface CustomerOverrides {
    */
   @get
   @summary("List customer overrides")
-  @operationId("billingListCustomerOverrides")
+  @operationId("listBillingProfileCustomerOverrides")
   @extension("x-internal", true)
   list(
     @query
@@ -27,7 +27,7 @@ interface CustomerOverrides {
    */
   @post
   @route("/{customerId}")
-  @operationId("billingUpsertCustomerOverride")
+  @operationId("upsertBillingProfileCustomerOverride")
   @summary("Create a new or update a customer override")
   @extension("x-internal", true)
   upsert(
@@ -59,7 +59,7 @@ interface CustomerOverrides {
   @get
   @route("/{customerId}")
   @summary("Get a customer override")
-  @operationId("billingGetCustomerOverrideById")
+  @operationId("getBillingProfileCustomerOverride")
   @extension("x-internal", true)
   get(
     @path
@@ -72,7 +72,7 @@ interface CustomerOverrides {
   @delete
   @route("/{customerId}")
   @summary("Delete a customer override")
-  @operationId("billingDeleteCustomerOverride")
+  @operationId("deleteBillingProfileCustomerOverride")
   @extension("x-internal", true)
   delete(
     @path
@@ -126,7 +126,7 @@ model CustomerOverrideCreate {
  */
 @friendlyName("BillingCustomerWorkflowOverride")
 model CustomerWorkflowOverride {
-  ...Workflow;
+  ...BillingWorkflow;
 
   // Note: these are only available for read, as provider override is not supported via the customer override.
   // to do that the customer should be assocatied with a new billing profile instead.
