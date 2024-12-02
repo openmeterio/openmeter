@@ -40,7 +40,7 @@ require (
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
-	github.com/peterldowns/pgtestdb v0.0.14
+	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.60.1
@@ -75,7 +75,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	go.opentelemetry.io/proto/otlp v1.3.1
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
-	golang.org/x/net v0.30.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
 	k8s.io/apimachinery v0.31.3
@@ -86,6 +85,7 @@ require (
 
 require (
 	github.com/invopop/validation v0.8.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
 )
 
