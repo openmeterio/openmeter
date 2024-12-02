@@ -15,7 +15,7 @@ require (
 	github.com/benthosdev/benthos/v4 v4.27.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.15.2
-	github.com/confluentinc/confluent-kafka-go/v2 v2.6.0
+	github.com/confluentinc/confluent-kafka-go/v2 v2.6.1
 	github.com/getkin/kin-openapi v0.128.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
@@ -370,7 +370,7 @@ require (
 	github.com/segmentio/encoding v0.4.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/shopspring/decimal v1.4.0
 	github.com/sijms/go-ora/v2 v2.8.19 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/smira/go-statsd v1.3.3 // indirect
