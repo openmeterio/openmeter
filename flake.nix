@@ -73,12 +73,12 @@
               # Kafka build dependencies
               # https://github.com/confluentinc/confluent-kafka-go#librdkafka
               (rdkafka.overrideAttrs (_: rec {
-                version = "2.6.0";
+                version = "2.6.1";
                 src = fetchFromGitHub {
                   owner = "confluentinc";
                   repo = "librdkafka";
                   rev = "v${version}";
-                  sha256 = "sha256-QjmVu9d/wlLjt5WWyZi+WEWibfDUynHGvTwLbH36T84=";
+                  sha256 = "sha256-qgy5VVB7H0FECtQR6HkTJ58vrHIU9TAFurDNuZGGgvw=";
                 };
               }))
               cyrus_sasl

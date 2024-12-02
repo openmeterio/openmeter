@@ -1,10 +1,9 @@
 package notification
 
 import (
+	"context"
 	"errors"
 	"fmt"
-
-	"golang.org/x/net/context"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/convert"
