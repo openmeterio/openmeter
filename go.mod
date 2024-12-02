@@ -59,7 +59,7 @@ require (
 	github.com/spf13/viper v1.20.0-alpha.6
 	github.com/stretchr/testify v1.10.0
 	github.com/stripe/stripe-go/v80 v80.2.1
-	github.com/svix/svix-webhooks v1.40.0
+	github.com/svix/svix-webhooks v1.42.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.6.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.57.0
 	go.opentelemetry.io/otel v1.32.0
@@ -370,7 +370,7 @@ require (
 	github.com/segmentio/encoding v0.4.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/shopspring/decimal v1.4.0
 	github.com/sijms/go-ora/v2 v2.8.19 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/smira/go-statsd v1.3.3 // indirect
