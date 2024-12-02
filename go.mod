@@ -75,9 +75,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	go.opentelemetry.io/proto/otlp v1.3.1
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
-	golang.org/x/net v0.30.0
 	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.35.2
 	k8s.io/apimachinery v0.31.3
 	k8s.io/client-go v0.31.3
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
@@ -86,6 +85,7 @@ require (
 
 require (
 	github.com/invopop/validation v0.8.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
 )
 
