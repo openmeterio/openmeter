@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -218,13 +218,13 @@ func (bilc *BillingInvoiceLineCreate) SetNillableQuantity(a *alpacadecimal.Decim
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (bilc *BillingInvoiceLineCreate) SetTaxConfig(pc plan.TaxConfig) *BillingInvoiceLineCreate {
+func (bilc *BillingInvoiceLineCreate) SetTaxConfig(pc productcatalog.TaxConfig) *BillingInvoiceLineCreate {
 	bilc.mutation.SetTaxConfig(pc)
 	return bilc
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *plan.TaxConfig) *BillingInvoiceLineCreate {
+func (bilc *BillingInvoiceLineCreate) SetNillableTaxConfig(pc *productcatalog.TaxConfig) *BillingInvoiceLineCreate {
 	if pc != nil {
 		bilc.SetTaxConfig(*pc)
 	}
@@ -1015,7 +1015,7 @@ func (u *BillingInvoiceLineUpsert) ClearQuantity() *BillingInvoiceLineUpsert {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsert) SetTaxConfig(v plan.TaxConfig) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldTaxConfig, v)
 	return u
 }
@@ -1412,7 +1412,7 @@ func (u *BillingInvoiceLineUpsertOne) ClearQuantity() *BillingInvoiceLineUpsertO
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v plan.TaxConfig) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -1982,7 +1982,7 @@ func (u *BillingInvoiceLineUpsertBulk) ClearQuantity() *BillingInvoiceLineUpsert
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v plan.TaxConfig) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})

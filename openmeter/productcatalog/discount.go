@@ -1,4 +1,4 @@
-package plan
+package productcatalog
 
 import (
 	"encoding/json"
@@ -6,6 +6,9 @@ import (
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/pkg/hasher"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -29,7 +32,9 @@ func (p DiscountType) StringValues() []string {
 type discounter interface {
 	json.Marshaler
 	json.Unmarshaler
-	Validator
+
+	models.Validator
+	hasher.Hasher
 
 	Type() DiscountType
 	RateCardKeys() []string
@@ -42,6 +47,15 @@ var _ discounter = (*Discount)(nil)
 type Discount struct {
 	t          DiscountType
 	percentage *PercentageDiscount
+}
+
+func (d *Discount) Hash() hasher.Hash {
+	switch d.t {
+	case PercentageDiscountType:
+		return d.percentage.Hash()
+	default:
+		return 0
+	}
 }
 
 func (d *Discount) RateCardKeys() []string {
@@ -146,7 +160,10 @@ func NewDiscountFrom[T PercentageDiscount](v T) Discount {
 	return d
 }
 
-var _ Validator = (*PercentageDiscount)(nil)
+var (
+	_ models.Validator = (*PercentageDiscount)(nil)
+	_ hasher.Hasher    = (*PercentageDiscount)(nil)
+)
 
 type PercentageDiscount struct {
 	// Percentage defines percentage of the discount.
@@ -155,6 +172,18 @@ type PercentageDiscount struct {
 	// RateCards is the list of specific RateCard Keys the discount is applied to.
 	// If not provided the discount applies to all RateCards in Phase.
 	RateCards []string `json:"rateCards,omitempty"`
+}
+
+func (f PercentageDiscount) Hash() hasher.Hash {
+	var content string
+
+	content += f.Percentage.String()
+
+	for _, rateCardName := range f.RateCards {
+		content += rateCardName
+	}
+
+	return hasher.NewHash([]byte(content))
 }
 
 func (f PercentageDiscount) Validate() error {
@@ -169,4 +198,44 @@ func (f PercentageDiscount) Validate() error {
 	}
 
 	return nil
+}
+
+var _ models.Equaler[Discounts] = (*Discounts)(nil)
+
+type Discounts []Discount
+
+func (d Discounts) Equal(v Discounts) bool {
+	if len(d) != len(v) {
+		return false
+	}
+
+	leftSet := make(map[uint64]struct{})
+	for _, discount := range d {
+		leftSet[discount.Hash()] = struct{}{}
+	}
+
+	rightSet := make(map[uint64]struct{})
+	for _, discount := range v {
+		rightSet[discount.Hash()] = struct{}{}
+	}
+
+	if len(leftSet) != len(rightSet) {
+		return false
+	}
+
+	var visited int
+	for key, left := range leftSet {
+		right, ok := rightSet[key]
+		if !ok {
+			return false
+		}
+
+		if left != right {
+			return false
+		}
+
+		visited++
+	}
+
+	return visited == len(rightSet)
 }

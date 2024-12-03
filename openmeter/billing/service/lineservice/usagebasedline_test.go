@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -30,7 +30,7 @@ var ubpTestFullPeriod = billingentity.Period{
 }
 
 type ubpCalculationTestCase struct {
-	price    plan.Price
+	price    productcatalog.Price
 	lineMode testLineMode
 	usage    featureUsageResponse
 	expect   newDetailedLinesInput
@@ -112,9 +112,9 @@ func TestFlatLineCalculation(t *testing.T) {
 	// Flat price tests
 	t.Run("flat price no usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.FlatPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
-				PaymentTerm: plan.InAdvancePaymentTerm,
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{
@@ -126,7 +126,7 @@ func TestFlatLineCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InAdvancePaymentTerm,
+					PaymentTerm:            productcatalog.InAdvancePaymentTerm,
 				},
 			},
 		})
@@ -134,9 +134,9 @@ func TestFlatLineCalculation(t *testing.T) {
 
 	t.Run("flat price, in advance, usage present", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.FlatPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
-				PaymentTerm: plan.InAdvancePaymentTerm,
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{
@@ -148,7 +148,7 @@ func TestFlatLineCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InAdvancePaymentTerm,
+					PaymentTerm:            productcatalog.InAdvancePaymentTerm,
 				},
 			},
 		})
@@ -156,9 +156,9 @@ func TestFlatLineCalculation(t *testing.T) {
 
 	t.Run("flat price, in advance, usage present, mid period", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.FlatPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
-				PaymentTerm: plan.InAdvancePaymentTerm,
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -170,9 +170,9 @@ func TestFlatLineCalculation(t *testing.T) {
 
 	t.Run("flat price, in arrears, usage present, single period line", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.FlatPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
-				PaymentTerm: plan.InArrearsPaymentTerm,
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{
@@ -184,7 +184,7 @@ func TestFlatLineCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -192,9 +192,9 @@ func TestFlatLineCalculation(t *testing.T) {
 
 	t.Run("flat price, in arrears, usage present, mid period line", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.FlatPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
-				PaymentTerm: plan.InArrearsPaymentTerm,
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -206,9 +206,9 @@ func TestFlatLineCalculation(t *testing.T) {
 
 	t.Run("flat price, in arrears, usage present, last period line", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.FlatPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(100),
-				PaymentTerm: plan.InArrearsPaymentTerm,
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -220,7 +220,7 @@ func TestFlatLineCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: FlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -230,7 +230,7 @@ func TestFlatLineCalculation(t *testing.T) {
 func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("unit price, no usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
 			lineMode: singlePerPeriodLineMode,
@@ -244,7 +244,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 	// When there is no usage, we are still honoring the minimum spend
 	t.Run("unit price, no usage, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount:        alpacadecimal.NewFromFloat(10),
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -259,7 +259,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
@@ -269,7 +269,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 	// Min spend is always billed in arrears => we are not billing it in advance
 	t.Run("no usage, not the last line in period, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount:        alpacadecimal.NewFromFloat(10),
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -284,7 +284,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 	// Min spend is always billed in arrears => we are billing it for the last line
 	t.Run("no usage, last line in period, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount:        alpacadecimal.NewFromFloat(10),
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -299,7 +299,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
@@ -309,7 +309,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 	// Usage is billed regardless of line position
 	t.Run("usage present", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(100),
 			}),
 			lineMode: singlePerPeriodLineMode,
@@ -322,7 +322,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(10),
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -330,7 +330,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 
 	t.Run("usage present, mid line", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(100),
 			}),
 			lineMode: midPeriodSplitLineMode,
@@ -343,7 +343,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(10),
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -352,7 +352,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 	// Max spend is always honored
 	t.Run("usage present, max spend set, but not hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount:        alpacadecimal.NewFromFloat(10),
 				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -366,7 +366,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
 					Quantity:               alpacadecimal.NewFromFloat(10),
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -374,7 +374,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 
 	t.Run("usage present, max spend set and hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.UnitPrice{
+			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount:        alpacadecimal.NewFromFloat(10),
 				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -389,7 +389,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
 					Quantity:               alpacadecimal.NewFromFloat(5),
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
@@ -404,29 +404,29 @@ func TestUnitPriceCalculation(t *testing.T) {
 }
 
 func TestTieredVolumeCalculation(t *testing.T) {
-	testTiers := []plan.PriceTier{
+	testTiers := []productcatalog.PriceTier{
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(5)),
-			FlatPrice: &plan.PriceTierFlatPrice{
+			FlatPrice: &productcatalog.PriceTierFlatPrice{
 				// 20/unit
 				Amount: alpacadecimal.NewFromFloat(100),
 			},
 		},
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-			FlatPrice: &plan.PriceTierFlatPrice{
+			FlatPrice: &productcatalog.PriceTierFlatPrice{
 				// 10/unit
 				Amount: alpacadecimal.NewFromFloat(150),
 			},
 		},
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(15)),
-			UnitPrice: &plan.PriceTierUnitPrice{
+			UnitPrice: &productcatalog.PriceTierUnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			},
 		},
 		{
-			UnitPrice: &plan.PriceTierUnitPrice{
+			UnitPrice: &productcatalog.PriceTierUnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			},
 		},
@@ -434,8 +434,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, mid price", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: midPeriodSplitLineMode,
@@ -448,8 +448,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, no usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -462,7 +462,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -470,11 +470,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, ubp first tier, no usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode: plan.VolumeTieredPrice,
-				Tiers: []plan.PriceTier{
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode: productcatalog.VolumeTieredPrice,
+				Tiers: []productcatalog.PriceTier{
 					{
-						UnitPrice: &plan.PriceTierUnitPrice{
+						UnitPrice: &productcatalog.PriceTierUnitPrice{
 							Amount: alpacadecimal.NewFromFloat(5),
 						},
 					},
@@ -490,8 +490,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage present, tier1 mid", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -504,7 +504,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -512,8 +512,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage present, tier1 top", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -526,7 +526,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -534,8 +534,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage present, tier3 almost full", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -548,7 +548,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
 					Quantity:               alpacadecimal.NewFromFloat(14),
 					ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -556,8 +556,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage present, tier3 full", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -570,7 +570,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
 					Quantity:               alpacadecimal.NewFromFloat(15),
 					ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -578,8 +578,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage present, tier3 just passed", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -592,7 +592,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
 					Quantity:               alpacadecimal.NewFromFloat(16),
 					ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -600,8 +600,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage present, tier4", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.VolumeTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -614,7 +614,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
 					Quantity:               alpacadecimal.NewFromFloat(100),
 					ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -624,8 +624,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, no usage, min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.VolumeTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
 			}),
@@ -639,14 +639,14 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 				{
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
@@ -655,8 +655,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage over, min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.VolumeTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -670,7 +670,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
 					Quantity:               alpacadecimal.NewFromFloat(100),
 					ChildUniqueReferenceID: VolumeUnitPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -678,8 +678,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage less than min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.VolumeTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
 			}),
@@ -693,14 +693,14 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 				{
 					Name:                   "feature: minimum spend",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
@@ -709,8 +709,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, last price, usage less equals min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.VolumeTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -724,7 +724,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -733,8 +733,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	// Maximum spend
 	t.Run("tiered volume, first price, usage eq max spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.VolumeTieredPrice,
 				Tiers:         testTiers,
 				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
 			}),
@@ -748,7 +748,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -756,8 +756,8 @@ func TestTieredVolumeCalculation(t *testing.T) {
 
 	t.Run("tiered volume, first price, usage above max spend, max spend is not at tier boundary ", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.VolumeTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.VolumeTieredPrice,
 				Tiers:         testTiers,
 				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(125)),
 			}),
@@ -771,7 +771,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(150),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 125"),
@@ -786,29 +786,29 @@ func TestTieredVolumeCalculation(t *testing.T) {
 }
 
 func TestTieredGraduatedCalculation(t *testing.T) {
-	testTiers := []plan.PriceTier{
+	testTiers := []productcatalog.PriceTier{
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(5)),
-			FlatPrice: &plan.PriceTierFlatPrice{
+			FlatPrice: &productcatalog.PriceTierFlatPrice{
 				// 20/unit
 				Amount: alpacadecimal.NewFromFloat(100),
 			},
 		},
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-			FlatPrice: &plan.PriceTierFlatPrice{
+			FlatPrice: &productcatalog.PriceTierFlatPrice{
 				// 10/unit
 				Amount: alpacadecimal.NewFromFloat(50),
 			},
 		},
 		{
 			UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(15)),
-			UnitPrice: &plan.PriceTierUnitPrice{
+			UnitPrice: &productcatalog.PriceTierUnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			},
 		},
 		{
-			UnitPrice: &plan.PriceTierUnitPrice{
+			UnitPrice: &productcatalog.PriceTierUnitPrice{
 				Amount: alpacadecimal.NewFromFloat(1),
 			},
 		},
@@ -816,8 +816,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, mid price, flat only => no lines are output", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.GraduatedTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: midPeriodSplitLineMode,
@@ -831,8 +831,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, last price, no usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.GraduatedTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: lastInPeriodSplitLineMode,
@@ -845,8 +845,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, single period multiple tier usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.GraduatedTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: singlePerPeriodLineMode,
@@ -859,28 +859,28 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: "graduated-tiered-1-flat-price",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 				{
 					Name:                   "feature: flat price for tier 2",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: "graduated-tiered-2-flat-price",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 				{
 					Name:                   "feature: usage price for tier 3",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
 					Quantity:               alpacadecimal.NewFromFloat(5),
 					ChildUniqueReferenceID: "graduated-tiered-3-price-usage",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 				{
 					Name:                   "feature: usage price for tier 4",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(1),
 					Quantity:               alpacadecimal.NewFromFloat(7),
 					ChildUniqueReferenceID: "graduated-tiered-4-price-usage",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -888,8 +888,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, mid period, multiple tier usage", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:  plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.GraduatedTieredPrice,
 				Tiers: testTiers,
 			}),
 			lineMode: singlePerPeriodLineMode,
@@ -903,14 +903,14 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
 					Quantity:               alpacadecimal.NewFromFloat(3),
 					ChildUniqueReferenceID: "graduated-tiered-3-price-usage",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 				{
 					Name:                   "feature: usage price for tier 4",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(1),
 					Quantity:               alpacadecimal.NewFromFloat(7),
 					ChildUniqueReferenceID: "graduated-tiered-4-price-usage",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				},
 			},
 		})
@@ -920,8 +920,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, last line, no usage, minimum price set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.GraduatedTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
 			}),
@@ -936,7 +936,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(1000),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
@@ -945,8 +945,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, last line, no usage, minimum price set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.GraduatedTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
 			}),
@@ -961,7 +961,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Category:               billingentity.FlatFeeCategoryCommitment,
 				},
 			},
@@ -970,8 +970,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 
 	t.Run("tiered graduated, mid line, no usage, minimum price set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.GraduatedTieredPrice,
 				Tiers:         testTiers,
 				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
 			}),
@@ -987,8 +987,8 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 	// Maximum spend
 	t.Run("tiered graduated, mid period, multiple tier usage, maximum spend set mid tier 2/3", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
-			price: plan.NewPriceFrom(plan.TieredPrice{
-				Mode:          plan.GraduatedTieredPrice,
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:          productcatalog.GraduatedTieredPrice,
 				Tiers:         testTiers,
 				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(170)),
 			}),
@@ -1010,7 +1010,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
 					Quantity:               alpacadecimal.NewFromFloat(3),
 					ChildUniqueReferenceID: "graduated-tiered-3-price-usage",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
@@ -1024,7 +1024,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					PerUnitAmount:          alpacadecimal.NewFromFloat(1),
 					Quantity:               alpacadecimal.NewFromFloat(7),
 					ChildUniqueReferenceID: "graduated-tiered-4-price-usage",
-					PaymentTerm:            plan.InArrearsPaymentTerm,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Discounts: []billingentity.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
@@ -1156,30 +1156,30 @@ func TestAddDiscountForOverage(t *testing.T) {
 }
 
 func TestFindTierForQuantity(t *testing.T) {
-	testIn := plan.TieredPrice{
-		Tiers: []plan.PriceTier{
+	testIn := productcatalog.TieredPrice{
+		Tiers: []productcatalog.PriceTier{
 			{
 				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(5)),
-				FlatPrice: &plan.PriceTierFlatPrice{
+				FlatPrice: &productcatalog.PriceTierFlatPrice{
 					// 20/unit
 					Amount: alpacadecimal.NewFromFloat(100),
 				},
 			},
 			{
 				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-				FlatPrice: &plan.PriceTierFlatPrice{
+				FlatPrice: &productcatalog.PriceTierFlatPrice{
 					// 10/unit
 					Amount: alpacadecimal.NewFromFloat(150),
 				},
 			},
 			{
 				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(15)),
-				UnitPrice: &plan.PriceTierUnitPrice{
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
 					Amount: alpacadecimal.NewFromFloat(10),
 				},
 			},
 			{
-				UnitPrice: &plan.PriceTierUnitPrice{
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
 					Amount: alpacadecimal.NewFromFloat(5),
 				},
 			},
@@ -1215,7 +1215,7 @@ func TestFindTierForQuantity(t *testing.T) {
 	}, res)
 }
 
-func getTotalAmountForGraduatedTieredPrice(t *testing.T, qty alpacadecimal.Decimal, price plan.TieredPrice) alpacadecimal.Decimal {
+func getTotalAmountForGraduatedTieredPrice(t *testing.T, qty alpacadecimal.Decimal, price productcatalog.TieredPrice) alpacadecimal.Decimal {
 	t.Helper()
 
 	total := alpacadecimal.Zero
@@ -1261,31 +1261,31 @@ func (m *mockableTieredPriceCalculator) FinalizerFn(t alpacadecimal.Decimal) err
 func TestTieredPriceCalculator(t *testing.T) {
 	currency := lo.Must(currencyx.Code(currency.USD).Calculator())
 
-	testIn := plan.TieredPrice{
-		Mode: plan.GraduatedTieredPrice,
-		Tiers: []plan.PriceTier{
+	testIn := productcatalog.TieredPrice{
+		Mode: productcatalog.GraduatedTieredPrice,
+		Tiers: []productcatalog.PriceTier{
 			{
 				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(5)),
-				FlatPrice: &plan.PriceTierFlatPrice{
+				FlatPrice: &productcatalog.PriceTierFlatPrice{
 					// 20/unit
 					Amount: alpacadecimal.NewFromFloat(100),
 				},
 			},
 			{
 				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-				FlatPrice: &plan.PriceTierFlatPrice{
+				FlatPrice: &productcatalog.PriceTierFlatPrice{
 					// 10/unit
 					Amount: alpacadecimal.NewFromFloat(50),
 				},
 			},
 			{
 				UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(15)),
-				UnitPrice: &plan.PriceTierUnitPrice{
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
 					Amount: alpacadecimal.NewFromFloat(10),
 				},
 			},
 			{
-				UnitPrice: &plan.PriceTierUnitPrice{
+				UnitPrice: &productcatalog.PriceTierUnitPrice{
 					Amount: alpacadecimal.NewFromFloat(5),
 				},
 			},

@@ -1,4 +1,4 @@
-package plan
+package productcatalog
 
 import (
 	"errors"
@@ -11,7 +11,19 @@ type TaxConfig struct {
 	Stripe *StripeTaxConfig `json:"stripe,omitempty"`
 }
 
-func (c TaxConfig) Validate() error {
+func (c *TaxConfig) Equal(v *TaxConfig) bool {
+	if c == nil && v == nil {
+		return true
+	}
+
+	if c == nil || v == nil {
+		return false
+	}
+
+	return c.Stripe.Equal(v.Stripe)
+}
+
+func (c *TaxConfig) Validate() error {
 	var errs []error
 
 	if c.Stripe != nil {
@@ -36,7 +48,19 @@ type StripeTaxConfig struct {
 	Code string `json:"code"`
 }
 
-func (s StripeTaxConfig) Validate() error {
+func (s *StripeTaxConfig) Equal(v *StripeTaxConfig) bool {
+	if s == nil && v == nil {
+		return true
+	}
+
+	if s == nil || v == nil {
+		return false
+	}
+
+	return s.Code == v.Code
+}
+
+func (s *StripeTaxConfig) Validate() error {
 	if s.Code != "" && !StripeProductTaxCodeRegexp.MatchString(s.Code) {
 		return fmt.Errorf("invalid product tax code: %s", s.Code)
 	}

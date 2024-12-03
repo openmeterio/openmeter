@@ -1,18 +1,23 @@
-package plan
+package productcatalog
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/hasher"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type entitlementTemplater interface {
 	json.Marshaler
 	json.Unmarshaler
-	Validator
+	models.Validator
+	models.Equaler[*EntitlementTemplate]
 
 	Type() entitlement.EntitlementType
 	AsMetered() (MeteredEntitlementTemplate, error)
@@ -31,6 +36,31 @@ type EntitlementTemplate struct {
 	metered *MeteredEntitlementTemplate
 	static  *StaticEntitlementTemplate
 	boolean *BooleanEntitlementTemplate
+}
+
+func (e *EntitlementTemplate) Equal(v *EntitlementTemplate) bool {
+	if e == nil && v == nil {
+		return true
+	}
+
+	if e == nil || v == nil {
+		return false
+	}
+
+	if e.t != v.t {
+		return false
+	}
+
+	switch e.t {
+	case entitlement.EntitlementTypeMetered:
+		return e.metered.Equal(v.metered)
+	case entitlement.EntitlementTypeStatic:
+		return e.static.Equal(v.static)
+	case entitlement.EntitlementTypeBoolean:
+		return e.boolean.Equal(v.boolean)
+	default:
+		return false
+	}
 }
 
 func (e *EntitlementTemplate) MarshalJSON() ([]byte, error) {
@@ -176,7 +206,7 @@ func (e *EntitlementTemplate) FromBoolean(t BooleanEntitlementTemplate) {
 	e.t = entitlement.EntitlementTypeBoolean
 }
 
-func NewEntitlementTemplateFrom[T MeteredEntitlementTemplate | StaticEntitlementTemplate | BooleanEntitlementTemplate](c T) EntitlementTemplate {
+func NewEntitlementTemplateFrom[T MeteredEntitlementTemplate | StaticEntitlementTemplate | BooleanEntitlementTemplate](c T) *EntitlementTemplate {
 	r := &EntitlementTemplate{}
 
 	switch any(c).(type) {
@@ -191,12 +221,17 @@ func NewEntitlementTemplateFrom[T MeteredEntitlementTemplate | StaticEntitlement
 		r.FromBoolean(e)
 	}
 
-	return *r
+	return r
 }
+
+var (
+	_ models.Validator                            = (*MeteredEntitlementTemplate)(nil)
+	_ models.Equaler[*MeteredEntitlementTemplate] = (*MeteredEntitlementTemplate)(nil)
+)
 
 type MeteredEntitlementTemplate struct {
 	// Metadata a set of key/value pairs describing metadata for the RateCard.
-	Metadata map[string]string `json:"metadata,omitempty"`
+	Metadata models.Metadata `json:"metadata,omitempty"`
 
 	// IsSoftLimit set to `true` for allowing the subject to use the feature even if the entitlement is exhausted.
 	IsSoftLimit bool `json:"isSoftLimit,omitempty"`
@@ -216,7 +251,62 @@ type MeteredEntitlementTemplate struct {
 	UsagePeriod datex.Period `json:"usagePeriod,omitempty"`
 }
 
-func (t MeteredEntitlementTemplate) Validate() error {
+func (t *MeteredEntitlementTemplate) Equal(v *MeteredEntitlementTemplate) bool {
+	if t == nil && v == nil {
+		return true
+	}
+
+	if t == nil || v == nil {
+		return false
+	}
+
+	if !t.Metadata.Equal(v.Metadata) {
+		return false
+	}
+
+	if !t.IsSoftLimit && v.IsSoftLimit {
+		return false
+	}
+
+	if (t.IssueAfterReset != nil && v.IssueAfterReset == nil) || (t.IssueAfterReset == nil && v.IssueAfterReset != nil) {
+		return false
+	}
+
+	if lo.FromPtr(t.IssueAfterReset) != lo.FromPtr(v.IssueAfterReset) {
+		return false
+	}
+
+	if (t.IssueAfterReset != nil && v.IssueAfterReset == nil) ||
+		(t.IssueAfterReset == nil && v.IssueAfterReset != nil) {
+		return false
+	}
+
+	if lo.FromPtr(t.IssueAfterReset) != lo.FromPtr(v.IssueAfterReset) {
+		return false
+	}
+
+	if (t.IssueAfterResetPriority != nil && v.IssueAfterResetPriority == nil) ||
+		(t.IssueAfterResetPriority == nil && v.IssueAfterResetPriority != nil) {
+		return false
+	}
+
+	if lo.FromPtr(t.IssueAfterResetPriority) != lo.FromPtr(v.IssueAfterResetPriority) {
+		return false
+	}
+
+	if (t.PreserveOverageAtReset != nil && v.PreserveOverageAtReset == nil) ||
+		(t.PreserveOverageAtReset == nil && v.PreserveOverageAtReset != nil) {
+		return false
+	}
+
+	if lo.FromPtr(t.PreserveOverageAtReset) != lo.FromPtr(v.PreserveOverageAtReset) {
+		return false
+	}
+
+	return t.UsagePeriod.ISOString() == v.UsagePeriod.ISOString()
+}
+
+func (t *MeteredEntitlementTemplate) Validate() error {
 	if t.IssueAfterResetPriority != nil && t.IssueAfterReset == nil {
 		return errors.New("IssueAfterReset is required for IssueAfterResetPriority")
 	}
@@ -224,9 +314,14 @@ func (t MeteredEntitlementTemplate) Validate() error {
 	return nil
 }
 
+var (
+	_ models.Validator                           = (*StaticEntitlementTemplate)(nil)
+	_ models.Equaler[*StaticEntitlementTemplate] = (*StaticEntitlementTemplate)(nil)
+)
+
 type StaticEntitlementTemplate struct {
 	// Metadata a set of key/value pairs describing metadata for the RateCard.
-	Metadata map[string]string `json:"metadata,omitempty"`
+	Metadata models.Metadata `json:"metadata,omitempty"`
 
 	// Config stores a JSON parsable configuration for the entitlement.Entitlement.
 	// This value is also returned when checking entitlement access, and
@@ -234,7 +329,23 @@ type StaticEntitlementTemplate struct {
 	Config json.RawMessage `json:"config,omitempty"`
 }
 
-func (t StaticEntitlementTemplate) Validate() error {
+func (t *StaticEntitlementTemplate) Equal(v *StaticEntitlementTemplate) bool {
+	if t == nil && v == nil {
+		return true
+	}
+
+	if t == nil || v == nil {
+		return false
+	}
+
+	if !t.Metadata.Equal(v.Metadata) {
+		return false
+	}
+
+	return hasher.NewHash(t.Config) == hasher.NewHash(v.Config)
+}
+
+func (t *StaticEntitlementTemplate) Validate() error {
 	if len(t.Config) > 0 {
 		if ok := json.Valid(t.Config); !ok {
 			return errors.New("invalid JSON in config")
@@ -244,11 +355,28 @@ func (t StaticEntitlementTemplate) Validate() error {
 	return nil
 }
 
+var (
+	_ models.Validator                            = (*BooleanEntitlementTemplate)(nil)
+	_ models.Equaler[*BooleanEntitlementTemplate] = (*BooleanEntitlementTemplate)(nil)
+)
+
 type BooleanEntitlementTemplate struct {
 	// Metadata a set of key/value pairs describing metadata for the RateCard.
-	Metadata map[string]string `json:"metadata,omitempty"`
+	Metadata models.Metadata `json:"metadata,omitempty"`
 }
 
-func (t BooleanEntitlementTemplate) Validate() error {
+func (t *BooleanEntitlementTemplate) Equal(v *BooleanEntitlementTemplate) bool {
+	if t == nil && v == nil {
+		return true
+	}
+
+	if t == nil || v == nil {
+		return false
+	}
+
+	return t.Metadata.Equal(v.Metadata)
+}
+
+func (t *BooleanEntitlementTemplate) Validate() error {
 	return nil
 }

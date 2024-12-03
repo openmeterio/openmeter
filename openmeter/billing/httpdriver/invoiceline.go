@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -210,7 +210,7 @@ func mapCreateFlatFeeLineToEntity(line api.BillingFlatFeeLineCreateItem, ns stri
 		},
 		FlatFee: billingentity.FlatFeeLine{
 			PerUnitAmount: perUnitAmount,
-			PaymentTerm:   lo.FromPtrOr((*plan.PaymentTermType)(line.PaymentTerm), plan.InAdvancePaymentTerm),
+			PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
 			Quantity:      qty,
 		},
 	}, nil
@@ -248,7 +248,7 @@ func mapCreateUsageBasedLineToEntity(line api.BillingUsageBasedLineCreateItem, n
 			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 		},
 		UsageBased: billingentity.UsageBasedLine{
-			Price:      price,
+			Price:      lo.FromPtr(price),
 			FeatureKey: line.FeatureKey,
 		},
 	}, nil
@@ -452,22 +452,22 @@ func decimalPtrToFloat64Ptr(d *alpacadecimal.Decimal) *float64 {
 	return lo.ToPtr(d.InexactFloat64())
 }
 
-func mapPriceToAPI(price plan.Price) (api.RateCardUsageBasedPrice, error) {
+func mapPriceToAPI(price productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
 	switch price.Type() {
-	case plan.FlatPriceType:
+	case productcatalog.FlatPriceType:
 		flatPrice, err := price.AsFlat()
 		if err != nil {
 			return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map flat price: %w", err)
 		}
 		return mapFlatPriceToAPI(flatPrice)
-	case plan.UnitPriceType:
+	case productcatalog.UnitPriceType:
 		unitPriceType, err := price.AsUnit()
 		if err != nil {
 			return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map unit price: %w", err)
 		}
 
 		return mapUnitPriceToAPI(unitPriceType)
-	case plan.TieredPriceType:
+	case productcatalog.TieredPriceType:
 		tieredPriceType, err := price.AsTiered()
 		if err != nil {
 			return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map tiered price: %w", err)
@@ -479,13 +479,13 @@ func mapPriceToAPI(price plan.Price) (api.RateCardUsageBasedPrice, error) {
 	}
 }
 
-func mapFlatPriceToAPI(p plan.FlatPrice) (api.RateCardUsageBasedPrice, error) {
+func mapFlatPriceToAPI(p productcatalog.FlatPrice) (api.RateCardUsageBasedPrice, error) {
 	out := api.RateCardUsageBasedPrice{}
 
 	err := out.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
 		Amount:      p.Amount.String(),
 		PaymentTerm: lo.ToPtr(api.PricePaymentTerm(p.PaymentTerm)),
-		Type:        api.FlatPriceWithPaymentTermType(plan.FlatPriceType),
+		Type:        api.FlatPriceWithPaymentTermType(productcatalog.FlatPriceType),
 	})
 	if err != nil {
 		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map flat price: %w", err)
@@ -494,14 +494,14 @@ func mapFlatPriceToAPI(p plan.FlatPrice) (api.RateCardUsageBasedPrice, error) {
 	return out, nil
 }
 
-func mapUnitPriceToAPI(p plan.UnitPrice) (api.RateCardUsageBasedPrice, error) {
+func mapUnitPriceToAPI(p productcatalog.UnitPrice) (api.RateCardUsageBasedPrice, error) {
 	out := api.RateCardUsageBasedPrice{}
 
 	err := out.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
 		Amount:        p.Amount.String(),
 		MaximumAmount: decimalPtrToStringPtr(p.MaximumAmount),
 		MinimumAmount: decimalPtrToStringPtr(p.MinimumAmount),
-		Type:          api.UnitPriceWithCommitmentsType(plan.UnitPriceType),
+		Type:          api.UnitPriceWithCommitmentsType(productcatalog.UnitPriceType),
 	})
 	if err != nil {
 		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map unit price: %w", err)
@@ -510,10 +510,10 @@ func mapUnitPriceToAPI(p plan.UnitPrice) (api.RateCardUsageBasedPrice, error) {
 	return out, nil
 }
 
-func mapTieredPriceToAPI(p plan.TieredPrice) (api.RateCardUsageBasedPrice, error) {
+func mapTieredPriceToAPI(p productcatalog.TieredPrice) (api.RateCardUsageBasedPrice, error) {
 	out := api.RateCardUsageBasedPrice{}
 
-	tiers := lo.Map(p.Tiers, func(t plan.PriceTier, _ int) api.PriceTier {
+	tiers := lo.Map(p.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
 		res := api.PriceTier{
 			UpToAmount: decimalPtrToFloat64Ptr(t.UpToAmount),
 		}
@@ -521,14 +521,14 @@ func mapTieredPriceToAPI(p plan.TieredPrice) (api.RateCardUsageBasedPrice, error
 		if t.FlatPrice != nil {
 			res.FlatPrice = &api.FlatPrice{
 				Amount: t.FlatPrice.Amount.String(),
-				Type:   api.FlatPriceType(plan.FlatPriceType),
+				Type:   api.FlatPriceType(productcatalog.FlatPriceType),
 			}
 		}
 
 		if t.UnitPrice != nil {
 			res.UnitPrice = &api.UnitPrice{
 				Amount: t.UnitPrice.Amount.String(),
-				Type:   api.UnitPriceType(plan.UnitPriceType),
+				Type:   api.UnitPriceType(productcatalog.UnitPriceType),
 			}
 		}
 		return res
@@ -539,7 +539,7 @@ func mapTieredPriceToAPI(p plan.TieredPrice) (api.RateCardUsageBasedPrice, error
 		Mode:          api.TieredPriceMode(p.Mode),
 		MinimumAmount: decimalPtrToStringPtr(p.MinimumAmount),
 		MaximumAmount: decimalPtrToStringPtr(p.MaximumAmount),
-		Type:          api.TieredPriceWithCommitmentsType(plan.TieredPriceType),
+		Type:          api.TieredPriceWithCommitmentsType(productcatalog.TieredPriceType),
 	})
 	if err != nil {
 		return api.RateCardUsageBasedPrice{}, fmt.Errorf("failed to map tiered price: %w", err)

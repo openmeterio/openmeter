@@ -5,297 +5,50 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const (
-	FlatFeeRateCardType    RateCardType = "flat_fee"
-	UsageBasedRateCardType RateCardType = "usage_based"
+var (
+	_ models.Validator                      = (*RateCardManagedFields)(nil)
+	_ models.Equaler[RateCardManagedFields] = (*RateCardManagedFields)(nil)
 )
 
-type RateCardType string
-
-func (s RateCardType) Values() []string {
-	return []string{
-		string(FlatFeeRateCardType),
-		string(UsageBasedRateCardType),
-	}
-}
-
-type rateCarder interface {
-	json.Marshaler
-	json.Unmarshaler
-	Validator
-
-	Type() RateCardType
-	AsFlatFee() (FlatFeeRateCard, error)
-	AsUsageBased() (UsageBasedRateCard, error)
-	AsMeta() (RateCardMeta, error)
-	FromFlatFee(FlatFeeRateCard)
-	FromUsageBased(UsageBasedRateCard)
-
-	Feature() *feature.Feature
-}
-
-var _ rateCarder = (*RateCard)(nil)
-
-type RateCard struct {
-	t          RateCardType
-	flatFee    *FlatFeeRateCard
-	usageBased *UsageBasedRateCard
-}
-
-func (r *RateCard) Feature() *feature.Feature {
-	switch r.t {
-	case FlatFeeRateCardType:
-		return r.flatFee.Feature
-	case UsageBasedRateCardType:
-		return r.usageBased.Feature
-	default:
-		return nil
-	}
-}
-
-func (r *RateCard) MarshalJSON() ([]byte, error) {
-	var b []byte
-	var err error
-	var serde interface{}
-
-	switch r.t {
-	case FlatFeeRateCardType:
-		serde = struct {
-			Type RateCardType `json:"type"`
-			*FlatFeeRateCard
-		}{
-			Type:            FlatFeeRateCardType,
-			FlatFeeRateCard: r.flatFee,
-		}
-	case UsageBasedRateCardType:
-		serde = struct {
-			Type RateCardType `json:"type"`
-			*UsageBasedRateCard
-		}{
-			Type:               UsageBasedRateCardType,
-			UsageBasedRateCard: r.usageBased,
-		}
-	default:
-		return nil, fmt.Errorf("invalid type: %s", r.t)
-	}
-
-	b, err = json.Marshal(serde)
-	if err != nil {
-		return nil, fmt.Errorf("failed to JSON serialize RateCard: %w", err)
-	}
-
-	return b, nil
-}
-
-func (r *RateCard) UnmarshalJSON(bytes []byte) error {
-	serde := &struct {
-		Type RateCardType `json:"type"`
-	}{}
-
-	if err := json.Unmarshal(bytes, serde); err != nil {
-		return fmt.Errorf("failed to JSON deserialize RateCard type: %w", err)
-	}
-
-	switch serde.Type {
-	case FlatFeeRateCardType:
-		v := &FlatFeeRateCard{}
-		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to JSON deserialize FlatFeeRateCard: %w", err)
-		}
-
-		r.flatFee = v
-		r.t = FlatFeeRateCardType
-	case UsageBasedRateCardType:
-		v := &UsageBasedRateCard{}
-		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to JSON deserialize UsageBasedRateCard: %w", err)
-		}
-
-		r.usageBased = v
-		r.t = UsageBasedRateCardType
-	default:
-		return fmt.Errorf("invalid RateCard type: %s", serde.Type)
-	}
-
-	return nil
-}
-
-func (r *RateCard) Validate() error {
-	switch r.t {
-	case FlatFeeRateCardType:
-		if r.flatFee != nil {
-			return r.flatFee.Validate()
-		}
-
-		return errors.New("invalid RateCard: not initialized")
-	case UsageBasedRateCardType:
-		if r.usageBased != nil {
-			return r.usageBased.Validate()
-		}
-
-		return errors.New("invalid RateCard: not initialized")
-	default:
-		return fmt.Errorf("invalid type: %s", r.t)
-	}
-}
-
-func (r *RateCard) Type() RateCardType {
-	return r.t
-}
-
-func (r *RateCard) Key() string {
-	var key string
-
-	switch r.t {
-	case FlatFeeRateCardType:
-		if r.flatFee != nil {
-			key = r.flatFee.Key
-		}
-	case UsageBasedRateCardType:
-		if r.usageBased != nil {
-			key = r.usageBased.Key
-		}
-	}
-
-	return key
-}
-
-func (r *RateCard) Namespace() string {
-	var ns string
-
-	switch r.t {
-	case FlatFeeRateCardType:
-		if r.flatFee != nil {
-			ns = r.flatFee.Namespace
-		}
-	case UsageBasedRateCardType:
-		if r.usageBased != nil {
-			ns = r.usageBased.Namespace
-		}
-	}
-
-	return ns
-}
-
-func (r *RateCard) AsFlatFee() (FlatFeeRateCard, error) {
-	if r.t == "" || r.flatFee == nil {
-		return FlatFeeRateCard{}, errors.New("invalid RateCard: not initialized")
-	}
-
-	return *r.flatFee, nil
-}
-
-func (r *RateCard) AsUsageBased() (UsageBasedRateCard, error) {
-	if r.t == "" || r.usageBased == nil {
-		return UsageBasedRateCard{}, errors.New("invalid RateCard: not initialized")
-	}
-
-	if r.t != UsageBasedRateCardType {
-		return UsageBasedRateCard{}, fmt.Errorf("type mismatch: %s", r.t)
-	}
-
-	return *r.usageBased, nil
-}
-
-func (r *RateCard) AsMeta() (RateCardMeta, error) {
-	if r.t == "" {
-		return RateCardMeta{}, errors.New("invalid RateCard: not initialized")
-	}
-
-	switch r.t {
-	case FlatFeeRateCardType:
-		return r.flatFee.RateCardMeta, nil
-	case UsageBasedRateCardType:
-		return r.usageBased.RateCardMeta, nil
-	default:
-		return RateCardMeta{}, fmt.Errorf("type mismatch: %s", r.t)
-	}
-}
-
-func (r *RateCard) FromFlatFee(c FlatFeeRateCard) {
-	r.flatFee = &c
-	r.t = FlatFeeRateCardType
-}
-
-func (r *RateCard) FromUsageBased(c UsageBasedRateCard) {
-	r.usageBased = &c
-	r.t = UsageBasedRateCardType
-}
-
-func NewRateCardFrom[T FlatFeeRateCard | UsageBasedRateCard](c T) RateCard {
-	r := &RateCard{}
-
-	switch any(c).(type) {
-	case FlatFeeRateCard:
-		flatFee := any(c).(FlatFeeRateCard)
-		r.FromFlatFee(flatFee)
-	case UsageBasedRateCard:
-		usageBased := any(c).(UsageBasedRateCard)
-		r.FromUsageBased(usageBased)
-	}
-
-	return *r
-}
-
-var _ Validator = (*RateCardMeta)(nil)
-
-type RateCardMeta struct {
-	models.NamespacedID `json:"-"`
+type RateCardManagedFields struct {
 	models.ManagedModel
+	models.NamespacedID
 
-	// Key is the unique key for Plan.
-	Key string `json:"key"`
-
-	// Name of the RateCard
-	Name string `json:"name"`
-
-	// Description for the RateCard
-	Description *string `json:"description,omitempty"`
-
-	// Metadata a set of key/value pairs describing metadata for the RateCard
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	// Feature defines optional Feature assigned to RateCard
-	Feature *feature.Feature `json:"feature,omitempty"`
-
-	// EntitlementTemplate defines the template used for instantiating entitlement.Entitlement.
-	// If Feature is set then template must be provided as well.
-	EntitlementTemplate *EntitlementTemplate `json:"entitlementTemplate,omitempty"`
-
-	// TaxConfig defines provider specific tax information.
-	TaxConfig *TaxConfig `json:"taxConfig,omitempty"`
-
-	// Price defines the price for the RateCard
-	Price *Price `json:"price"`
-
-	// PhaseID is the ULID identifier of the Phase the RateCard belongs to.
-	PhaseID string `json:"-"`
+	// PhaseID
+	PhaseID string `json:"phaseId"`
 }
 
-func (r *RateCardMeta) Validate() error {
+func (m RateCardManagedFields) Equal(v RateCardManagedFields) bool {
+	if m.Namespace != v.Namespace {
+		return false
+	}
+
+	if m.ID != v.ID {
+		return false
+	}
+
+	return m.PhaseID == v.PhaseID
+}
+
+func (m RateCardManagedFields) Validate() error {
 	var errs []error
 
-	if r.EntitlementTemplate != nil {
-		if err := r.EntitlementTemplate.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid EntitlementTemplate: %w", err))
-		}
+	if m.Namespace == "" {
+		errs = append(errs, errors.New("namespace must not be empty"))
 	}
 
-	if r.TaxConfig != nil {
-		if err := r.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid TaxConfig: %w", err))
-		}
+	if m.ID == "" {
+		errs = append(errs, errors.New("id must not be empty"))
 	}
 
-	if r.Price != nil {
-		if err := r.Price.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid Price: %w", err))
-		}
+	if m.PhaseID == "" {
+		errs = append(errs, errors.New("phaseID must not be empty"))
 	}
 
 	if len(errs) > 0 {
@@ -305,28 +58,123 @@ func (r *RateCardMeta) Validate() error {
 	return nil
 }
 
-var _ Validator = (*FlatFeeRateCard)(nil)
+type ManagedRateCard interface {
+	ManagedFields() RateCardManagedFields
+}
+
+func NewRateCardFrom[T FlatFeeRateCard | UsageBasedRateCard | ~[]byte](v T) (productcatalog.RateCard, error) {
+	var rc productcatalog.RateCard
+
+	switch any(v).(type) {
+	case FlatFeeRateCard:
+		rc = lo.ToPtr(any(v).(FlatFeeRateCard))
+	case UsageBasedRateCard:
+		rc = lo.ToPtr(any(v).(UsageBasedRateCard))
+	case json.RawMessage, []byte:
+		b := any(v).([]byte)
+
+		serde := &productcatalog.RateCardSerde{}
+		if err := json.Unmarshal(b, serde); err != nil {
+			return nil, fmt.Errorf("failed to JSON deserialize RateCard type: %w", err)
+		}
+
+		switch serde.Type {
+		case productcatalog.FlatFeeRateCardType:
+			vv := FlatFeeRateCard{}
+			if err := json.Unmarshal(b, &vv); err != nil {
+				return nil, fmt.Errorf("failed to JSON deserialize FlatFeeRateCard: %w", err)
+			}
+
+			rc = &vv
+		case productcatalog.UsageBasedRateCardType:
+			vv := UsageBasedRateCard{}
+			if err := json.Unmarshal(b, &vv); err != nil {
+				return nil, fmt.Errorf("failed to JSON deserialize UsageBasedRateCard: %w", err)
+			}
+
+			rc = &vv
+		default:
+			return nil, fmt.Errorf("invalid RateCard type: %s", serde.Type)
+		}
+	}
+
+	return rc, nil
+}
+
+var _ ManagedRateCard = (*FlatFeeRateCard)(nil)
 
 type FlatFeeRateCard struct {
-	RateCardMeta
+	RateCardManagedFields
+	productcatalog.FlatFeeRateCard
+}
 
-	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
-	// When nil (null) it means it is a one time fee.
-	// Example: "P1D12H"
-	BillingCadence *datex.Period `json:"billingCadence"`
+func (r *FlatFeeRateCard) ManagedFields() RateCardManagedFields {
+	return r.RateCardManagedFields
+}
+
+func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
+	type flatFeeRateCardSerde FlatFeeRateCard
+	serde := struct {
+		productcatalog.RateCardSerde
+		flatFeeRateCardSerde
+	}{
+		RateCardSerde: productcatalog.RateCardSerde{
+			Type: productcatalog.FlatFeeRateCardType,
+		},
+		flatFeeRateCardSerde: flatFeeRateCardSerde(*r),
+	}
+
+	return json.Marshal(serde)
+}
+
+func (r *FlatFeeRateCard) UnmarshalJSON(b []byte) error {
+	serde := struct {
+		productcatalog.RateCardSerde
+		RateCardManagedFields
+		productcatalog.FlatFeeRateCard
+	}{
+		RateCardSerde: productcatalog.RateCardSerde{
+			Type: productcatalog.FlatFeeRateCardType,
+		},
+		RateCardManagedFields: r.RateCardManagedFields,
+		FlatFeeRateCard:       r.FlatFeeRateCard,
+	}
+
+	err := json.Unmarshal(b, &serde)
+	if err != nil {
+		return fmt.Errorf("failed to JSON deserialize FlatFeeRateCard: %w", err)
+	}
+
+	r.RateCardManagedFields = serde.RateCardManagedFields
+	r.FlatFeeRateCard = serde.FlatFeeRateCard
+
+	return nil
+}
+
+func (r *FlatFeeRateCard) Equal(v productcatalog.RateCard) bool {
+	switch vv := v.(type) {
+	case *FlatFeeRateCard:
+		if !r.RateCardManagedFields.Equal(vv.RateCardManagedFields) {
+			return false
+		}
+
+		if r.PhaseID != vv.PhaseID {
+			return false
+		}
+
+		return r.FlatFeeRateCard.Equal(&vv.FlatFeeRateCard)
+	case *productcatalog.UsageBasedRateCard:
+		return r.FlatFeeRateCard.Equal(vv)
+	default:
+		return false
+	}
 }
 
 func (r *FlatFeeRateCard) Validate() error {
 	var errs []error
 
-	if err := r.RateCardMeta.Validate(); err != nil {
+	if err := r.FlatFeeRateCard.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if r.BillingCadence != nil {
-		if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
-			errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
-		}
 	}
 
 	if len(errs) > 0 {
@@ -336,33 +184,123 @@ func (r *FlatFeeRateCard) Validate() error {
 	return nil
 }
 
-var _ Validator = (*UsageBasedRateCard)(nil)
+func (r *FlatFeeRateCard) Merge(v productcatalog.RateCard) error {
+	switch vv := v.(type) {
+	case *FlatFeeRateCard:
+		err := r.FlatFeeRateCard.Merge(&vv.FlatFeeRateCard)
+		if err != nil {
+			return err
+		}
+	case *productcatalog.FlatFeeRateCard:
+		err := r.FlatFeeRateCard.Merge(vv)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("invalid FlatFeeRateCard type: %T", vv)
+	}
+
+	return nil
+}
+
+var _ ManagedRateCard = (*UsageBasedRateCard)(nil)
 
 type UsageBasedRateCard struct {
-	RateCardMeta
+	RateCardManagedFields
+	productcatalog.UsageBasedRateCard
+}
 
-	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
-	// Example: "P1D12H"
-	BillingCadence datex.Period `json:"billingCadence"`
+func (r *UsageBasedRateCard) ManagedFields() RateCardManagedFields {
+	return r.RateCardManagedFields
+}
+
+func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
+	serde := struct {
+		productcatalog.RateCardSerde
+		RateCardManagedFields
+		productcatalog.UsageBasedRateCard
+	}{
+		RateCardSerde: productcatalog.RateCardSerde{
+			Type: productcatalog.UsageBasedRateCardType,
+		},
+		RateCardManagedFields: r.RateCardManagedFields,
+		UsageBasedRateCard:    r.UsageBasedRateCard,
+	}
+
+	return json.Marshal(serde)
+}
+
+func (r *UsageBasedRateCard) UnmarshalJSON(b []byte) error {
+	serde := struct {
+		productcatalog.RateCardSerde
+		RateCardManagedFields
+		productcatalog.UsageBasedRateCard
+	}{
+		RateCardSerde: productcatalog.RateCardSerde{
+			Type: productcatalog.UsageBasedRateCardType,
+		},
+		RateCardManagedFields: r.RateCardManagedFields,
+		UsageBasedRateCard:    r.UsageBasedRateCard,
+	}
+
+	err := json.Unmarshal(b, &serde)
+	if err != nil {
+		return fmt.Errorf("failed to JSON deserialize UsageBasedRateCard: %w", err)
+	}
+
+	r.RateCardManagedFields = serde.RateCardManagedFields
+	r.UsageBasedRateCard = serde.UsageBasedRateCard
+
+	return nil
+}
+
+func (r *UsageBasedRateCard) Equal(v productcatalog.RateCard) bool {
+	switch vv := v.(type) {
+	case *UsageBasedRateCard:
+		if !r.RateCardManagedFields.Equal(vv.RateCardManagedFields) {
+			return false
+		}
+
+		if r.PhaseID != vv.PhaseID {
+			return false
+		}
+
+		return r.UsageBasedRateCard.Equal(&vv.UsageBasedRateCard)
+	case *productcatalog.UsageBasedRateCard:
+		return r.UsageBasedRateCard.Equal(vv)
+	default:
+		return false
+	}
 }
 
 func (r *UsageBasedRateCard) Validate() error {
 	var errs []error
 
-	if err := r.RateCardMeta.Validate(); err != nil {
+	if err := r.UsageBasedRateCard.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
-		errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
-	}
-
-	if err := r.Price.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Price: %w", err))
 	}
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+func (r *UsageBasedRateCard) Merge(v productcatalog.RateCard) error {
+	switch vv := v.(type) {
+	case *UsageBasedRateCard:
+		err := r.UsageBasedRateCard.Merge(&vv.UsageBasedRateCard)
+		if err != nil {
+			return err
+		}
+	case *productcatalog.UsageBasedRateCard:
+		err := r.UsageBasedRateCard.Merge(vv)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("invalid UsageBasedRateCard type: %T", vv)
 	}
 
 	return nil

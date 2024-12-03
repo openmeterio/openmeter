@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -22,7 +22,7 @@ import (
 type PlanQuery struct {
 	config
 	ctx        *QueryContext
-	order      []dbplan.OrderOption
+	order      []plan.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Plan
 	withPhases *PlanPhaseQuery
@@ -58,7 +58,7 @@ func (pq *PlanQuery) Unique(unique bool) *PlanQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (pq *PlanQuery) Order(o ...dbplan.OrderOption) *PlanQuery {
+func (pq *PlanQuery) Order(o ...plan.OrderOption) *PlanQuery {
 	pq.order = append(pq.order, o...)
 	return pq
 }
@@ -75,9 +75,9 @@ func (pq *PlanQuery) QueryPhases() *PlanPhaseQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(dbplan.Table, dbplan.FieldID, selector),
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
 			sqlgraph.To(planphase.Table, planphase.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbplan.PhasesTable, dbplan.PhasesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, plan.PhasesTable, plan.PhasesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -93,7 +93,7 @@ func (pq *PlanQuery) First(ctx context.Context) (*Plan, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{dbplan.Label}
+		return nil, &NotFoundError{plan.Label}
 	}
 	return nodes[0], nil
 }
@@ -115,7 +115,7 @@ func (pq *PlanQuery) FirstID(ctx context.Context) (id string, err error) {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{dbplan.Label}
+		err = &NotFoundError{plan.Label}
 		return
 	}
 	return ids[0], nil
@@ -142,9 +142,9 @@ func (pq *PlanQuery) Only(ctx context.Context) (*Plan, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{dbplan.Label}
+		return nil, &NotFoundError{plan.Label}
 	default:
-		return nil, &NotSingularError{dbplan.Label}
+		return nil, &NotSingularError{plan.Label}
 	}
 }
 
@@ -169,9 +169,9 @@ func (pq *PlanQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{dbplan.Label}
+		err = &NotFoundError{plan.Label}
 	default:
-		err = &NotSingularError{dbplan.Label}
+		err = &NotSingularError{plan.Label}
 	}
 	return
 }
@@ -210,7 +210,7 @@ func (pq *PlanQuery) IDs(ctx context.Context) (ids []string, err error) {
 		pq.Unique(true)
 	}
 	ctx = setContextOp(ctx, pq.ctx, ent.OpQueryIDs)
-	if err = pq.Select(dbplan.FieldID).Scan(ctx, &ids); err != nil {
+	if err = pq.Select(plan.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -274,7 +274,7 @@ func (pq *PlanQuery) Clone() *PlanQuery {
 	return &PlanQuery{
 		config:     pq.config,
 		ctx:        pq.ctx.Clone(),
-		order:      append([]dbplan.OrderOption{}, pq.order...),
+		order:      append([]plan.OrderOption{}, pq.order...),
 		inters:     append([]Interceptor{}, pq.inters...),
 		predicates: append([]predicate.Plan{}, pq.predicates...),
 		withPhases: pq.withPhases.Clone(),
@@ -306,14 +306,14 @@ func (pq *PlanQuery) WithPhases(opts ...func(*PlanPhaseQuery)) *PlanQuery {
 //	}
 //
 //	client.Plan.Query().
-//		GroupBy(dbplan.FieldNamespace).
+//		GroupBy(plan.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (pq *PlanQuery) GroupBy(field string, fields ...string) *PlanGroupBy {
 	pq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &PlanGroupBy{build: pq}
 	grbuild.flds = &pq.ctx.Fields
-	grbuild.label = dbplan.Label
+	grbuild.label = plan.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -328,12 +328,12 @@ func (pq *PlanQuery) GroupBy(field string, fields ...string) *PlanGroupBy {
 //	}
 //
 //	client.Plan.Query().
-//		Select(dbplan.FieldNamespace).
+//		Select(plan.FieldNamespace).
 //		Scan(ctx, &v)
 func (pq *PlanQuery) Select(fields ...string) *PlanSelect {
 	pq.ctx.Fields = append(pq.ctx.Fields, fields...)
 	sbuild := &PlanSelect{PlanQuery: pq}
-	sbuild.label = dbplan.Label
+	sbuild.label = plan.Label
 	sbuild.flds, sbuild.scan = &pq.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -355,7 +355,7 @@ func (pq *PlanQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range pq.ctx.Fields {
-		if !dbplan.ValidColumn(f) {
+		if !plan.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -422,7 +422,7 @@ func (pq *PlanQuery) loadPhases(ctx context.Context, query *PlanPhaseQuery, node
 		query.ctx.AppendFieldOnce(planphase.FieldPlanID)
 	}
 	query.Where(predicate.PlanPhase(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(dbplan.PhasesColumn), fks...))
+		s.Where(sql.InValues(s.C(plan.PhasesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -452,7 +452,7 @@ func (pq *PlanQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (pq *PlanQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(dbplan.Table, dbplan.Columns, sqlgraph.NewFieldSpec(dbplan.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(plan.Table, plan.Columns, sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString))
 	_spec.From = pq.sql
 	if unique := pq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -461,9 +461,9 @@ func (pq *PlanQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := pq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbplan.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, plan.FieldID)
 		for i := range fields {
-			if fields[i] != dbplan.FieldID {
+			if fields[i] != plan.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -493,10 +493,10 @@ func (pq *PlanQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (pq *PlanQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(pq.driver.Dialect())
-	t1 := builder.Table(dbplan.Table)
+	t1 := builder.Table(plan.Table)
 	columns := pq.ctx.Fields
 	if len(columns) == 0 {
-		columns = dbplan.Columns
+		columns = plan.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if pq.sql != nil {

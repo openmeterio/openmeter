@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -407,12 +407,12 @@ func (BillingInvoiceUsageBasedLineConfig) Mixin() []ent.Mixin {
 func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("price_type").
-			GoType(plan.PriceType("")),
+			GoType(productcatalog.PriceType("")),
 		field.String("feature_key").
 			Immutable().
 			NotEmpty(),
 		field.String("price").
-			GoType(&plan.Price{}).
+			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
