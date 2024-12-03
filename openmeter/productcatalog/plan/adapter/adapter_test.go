@@ -47,8 +47,8 @@ var planV1Input = plan.CreatePlanInput{
 					Description: lo.ToPtr("Trial phase"),
 					Metadata:    models.Metadata{"name": "trial"},
 					StartAfter:  MonthPeriod,
-					Discounts:   nil,
 				},
+				Discounts: nil,
 				RateCards: []productcatalog.RateCard{
 					&plan.FlatFeeRateCard{
 						RateCardManagedFields: plan.RateCardManagedFields{
@@ -93,8 +93,8 @@ var planV1Input = plan.CreatePlanInput{
 					Description: lo.ToPtr("Pro phase"),
 					Metadata:    models.Metadata{"name": "pro"},
 					StartAfter:  TwoMonthPeriod,
-					Discounts:   nil,
 				},
+				Discounts: nil,
 				RateCards: []productcatalog.RateCard{
 					&plan.UsageBasedRateCard{
 						RateCardManagedFields: plan.RateCardManagedFields{

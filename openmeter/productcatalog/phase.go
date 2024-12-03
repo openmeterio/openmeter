@@ -31,9 +31,6 @@ type PhaseMeta struct {
 
 	// StartAfter defines the time period after the Phase becomes active measured from the Subscription start.
 	StartAfter datex.Period `json:"interval"`
-
-	// Discounts stores a set of discount(s) applied to all or specific RateCards.
-	Discounts Discounts `json:"discounts,omitempty"`
 }
 
 func (p PhaseMeta) Equal(v PhaseMeta) bool {
@@ -50,10 +47,6 @@ func (p PhaseMeta) Equal(v PhaseMeta) bool {
 	}
 
 	if p.StartAfter != v.StartAfter {
-		return false
-	}
-
-	if !p.Discounts.Equal(v.Discounts) {
 		return false
 	}
 
@@ -90,12 +83,19 @@ var (
 type Phase struct {
 	PhaseMeta
 
+	// Discounts stores a set of discount(s) applied to all or specific RateCards.
+	Discounts Discounts `json:"discounts,omitempty"`
+
 	// RateCards
 	RateCards RateCards `json:"rateCards"`
 }
 
 func (p Phase) Equal(v Phase) bool {
 	if !p.PhaseMeta.Equal(v.PhaseMeta) {
+		return false
+	}
+
+	if !p.Discounts.Equal(v.Discounts) {
 		return false
 	}
 

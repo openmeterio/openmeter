@@ -162,8 +162,8 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 							Description: phase.Description,
 							Metadata:    phase.Metadata,
 							StartAfter:  phase.StartAfter,
-							Discounts:   phase.Discounts,
 						},
+						Discounts: phase.Discounts,
 						RateCards: phase.RateCards,
 					},
 				})
