@@ -1122,8 +1122,8 @@ github.com/perimeterx/marshmallow v1.1.5 h1:a2LALqQ1BlHM8PZblsDdidgv1mWi1DgC2UmX
 github.com/perimeterx/marshmallow v1.1.5/go.mod h1:dsXbUu8CRzfYP5a87xpp0xq9S3u0Vchtcl8we9tYaXw=
 github.com/peterbourgon/ctxdata/v4 v4.0.0 h1:TmLkfE2oAht2LZBVfqiKXIYTtnMKWBktZY5GDzGV1dY=
 github.com/peterbourgon/ctxdata/v4 v4.0.0/go.mod h1:lD2jtsyrpgN0fsr+mQTBqVWjIWnu5wvi6cd2DoVak2k=
-github.com/peterldowns/pgtestdb v0.0.14 h1:myVNL8ethaPZG7CQIjZxZCXwOG428THYRbSm0mIelpU=
-github.com/peterldowns/pgtestdb v0.0.14/go.mod h1:aG99+zgvWKOdGH+vtEFTDNVmaPOJD8ldIleuwJOgacA=
+github.com/peterldowns/pgtestdb v0.1.1 h1:+hBCD1DcbKeg5Sfg0G+5WNIy/Cm0ORgwMkF4ygihrmU=
+github.com/peterldowns/pgtestdb v0.1.1/go.mod h1:yVWInWV0dxvmLdL2ao3nXDzWZ9+G6EhJ4gRwvI1Ozeg=
 github.com/peterldowns/testy v0.0.1 h1:9a6LzvnKcL52Crzud1z7jbsAojTntCh89ho6mgsr4KU=
 github.com/peterldowns/testy v0.0.1/go.mod h1:J4sm75UEzbfBIcq0zbrshWWjsJQiJ5RrhTPYKVY2Ww8=
 github.com/phpdave11/gofpdf v1.4.2/go.mod h1:zpO6xFn9yxo3YLyMvW8HcKWVdbNqgIfOOp2dXMnm1mY=
