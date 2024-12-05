@@ -19,6 +19,7 @@ func getErrorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.NotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*models.GenericForbiddenError](ctx, http.StatusForbidden, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.AlreadyExistsError](
 				ctx, http.StatusConflict, err, w,
 				func(specificErr *entitlement.AlreadyExistsError) map[string]interface{} {

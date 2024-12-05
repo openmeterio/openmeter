@@ -1,6 +1,7 @@
 package meteredentitlement_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -25,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type dependencies struct {
@@ -77,9 +77,9 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	m.Lock()
 	defer m.Unlock()
-	// migrate db
-	if err := migrate.Up(testdb.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+	// migrate db via ent schema upsert
+	if err := dbClient.Schema.Create(context.Background()); err != nil {
+		t.Fatalf("failed to create schema: %v", err)
 	}
 
 	mockPublisher := eventbus.NewMock(t)

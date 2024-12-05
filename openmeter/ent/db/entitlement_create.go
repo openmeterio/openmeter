@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -265,6 +266,20 @@ func (ec *EntitlementCreate) SetNillableCurrentUsagePeriodEnd(t *time.Time) *Ent
 	return ec
 }
 
+// SetSubscriptionManaged sets the "subscription_managed" field.
+func (ec *EntitlementCreate) SetSubscriptionManaged(b bool) *EntitlementCreate {
+	ec.mutation.SetSubscriptionManaged(b)
+	return ec
+}
+
+// SetNillableSubscriptionManaged sets the "subscription_managed" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableSubscriptionManaged(b *bool) *EntitlementCreate {
+	if b != nil {
+		ec.SetSubscriptionManaged(*b)
+	}
+	return ec
+}
+
 // SetID sets the "id" field.
 func (ec *EntitlementCreate) SetID(s string) *EntitlementCreate {
 	ec.mutation.SetID(s)
@@ -322,6 +337,25 @@ func (ec *EntitlementCreate) AddBalanceSnapshot(b ...*BalanceSnapshot) *Entitlem
 		ids[i] = b[i].ID
 	}
 	return ec.AddBalanceSnapshotIDs(ids...)
+}
+
+// SetSubscriptionItemID sets the "subscription_item" edge to the SubscriptionItem entity by ID.
+func (ec *EntitlementCreate) SetSubscriptionItemID(id string) *EntitlementCreate {
+	ec.mutation.SetSubscriptionItemID(id)
+	return ec
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item" edge to the SubscriptionItem entity by ID if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableSubscriptionItemID(id *string) *EntitlementCreate {
+	if id != nil {
+		ec = ec.SetSubscriptionItemID(*id)
+	}
+	return ec
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (ec *EntitlementCreate) SetSubscriptionItem(s *SubscriptionItem) *EntitlementCreate {
+	return ec.SetSubscriptionItemID(s.ID)
 }
 
 // SetFeature sets the "feature" edge to the Feature entity.
@@ -545,6 +579,10 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
 		_node.CurrentUsagePeriodEnd = &value
 	}
+	if value, ok := ec.mutation.SubscriptionManaged(); ok {
+		_spec.SetField(entitlement.FieldSubscriptionManaged, field.TypeBool, value)
+		_node.SubscriptionManaged = value
+	}
 	if nodes := ec.mutation.UsageResetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -591,6 +629,23 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   entitlement.SubscriptionItemTable,
+			Columns: []string{entitlement.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.entitlement_subscription_item = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ec.mutation.FeatureIDs(); len(nodes) > 0 {
@@ -855,6 +910,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
+		}
+		if _, exists := u.create.mutation.SubscriptionManaged(); exists {
+			s.SetIgnore(entitlement.FieldSubscriptionManaged)
 		}
 	}))
 	return u
@@ -1269,6 +1327,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
+			}
+			if _, exists := b.mutation.SubscriptionManaged(); exists {
+				s.SetIgnore(entitlement.FieldSubscriptionManaged)
 			}
 		}
 	}))

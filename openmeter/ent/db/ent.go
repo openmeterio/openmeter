@@ -39,6 +39,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
@@ -126,6 +129,9 @@ func checkColumn(table, column string) error {
 			plan.Table:                               plan.ValidColumn,
 			planphase.Table:                          planphase.ValidColumn,
 			planratecard.Table:                       planratecard.ValidColumn,
+			subscription.Table:                       subscription.ValidColumn,
+			subscriptionitem.Table:                   subscriptionitem.ValidColumn,
+			subscriptionphase.Table:                  subscriptionphase.ValidColumn,
 			usagereset.Table:                         usagereset.ValidColumn,
 		})
 	})

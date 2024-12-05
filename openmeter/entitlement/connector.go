@@ -67,12 +67,18 @@ type Connector interface {
 	SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error)
 
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
-	DeleteEntitlement(ctx context.Context, namespace string, id string) error
+	DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error
 
 	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
-	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey, at time.Time) ([]Entitlement, error)
+	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]Entitlement, error)
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
+
+	// Attempts to get the entitlement in an ambiguous situation where it's unclear if the entitlement is referenced by ID or FeatureKey + SubjectKey.
+	// First attempts to resolve by ID, then by FeatureKey + SubjectKey.
+	//
+	// For consistency, it is forbidden for entitlements to be created for featueres the keys of which could be mistaken for entitlement IDs.
+	GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*Entitlement, error)
 }
 
 type entitlementConnector struct {
@@ -122,12 +128,7 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	}
 
 	// Find the entitlement to override
-	oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementIdOrFeatureKey})
-
-	if _, ok := lo.ErrorsAs[*NotFoundError](err); ok {
-		oldEnt, err = c.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, input.Namespace, input.SubjectKey, entitlementIdOrFeatureKey, clock.Now())
-	}
-
+	oldEnt, err := c.GetEntitlementOfSubjectAt(ctx, input.Namespace, subject, entitlementIdOrFeatureKey, clock.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +138,7 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	}
 
 	if oldEnt.DeletedAt != nil {
-		return nil, fmt.Errorf("inconsistency error, entitlement already deleted: %s", oldEnt.ID)
+		return nil, &models.GenericUserError{Message: fmt.Sprintf("Entitlement already deleted: %s", oldEnt.ID)}
 	}
 
 	if input.ActiveFrom != nil || input.ActiveTo != nil {
@@ -151,14 +152,14 @@ func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace str
 	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 }
 
-func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string) error {
+func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	doInTx := func(ctx context.Context) (*Entitlement, error) {
 		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 		if err != nil {
 			return nil, err
 		}
 
-		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id}, at)
 		if err != nil {
 			return nil, err
 		}
@@ -180,15 +181,20 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 	return err
 }
 
-func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey, at time.Time) ([]Entitlement, error) {
+func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]Entitlement, error) {
 	return c.entitlementRepo.GetActiveEntitlementsOfSubject(ctx, namespace, subjectKey, at)
 }
 
-func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error) {
+func (c *entitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*Entitlement, error) {
 	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: idOrFeatureKey})
 	if _, ok := lo.ErrorsAs[*NotFoundError](err); ok {
 		ent, err = c.entitlementRepo.GetActiveEntitlementOfSubjectAt(ctx, namespace, subjectKey, idOrFeatureKey, at)
 	}
+	return ent, err
+}
+
+func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error) {
+	ent, err := c.GetEntitlementOfSubjectAt(ctx, namespace, subjectKey, idOrFeatureKey, at)
 	if err != nil {
 		return nil, err
 	}

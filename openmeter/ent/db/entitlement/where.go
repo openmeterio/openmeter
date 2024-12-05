@@ -150,6 +150,11 @@ func CurrentUsagePeriodEnd(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodEnd, v))
 }
 
+// SubscriptionManaged applies equality check predicate on the "subscription_managed" field. It's identical to SubscriptionManagedEQ.
+func SubscriptionManaged(v bool) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldSubscriptionManaged, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldNamespace, v))
@@ -1050,6 +1055,26 @@ func CurrentUsagePeriodEndNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldCurrentUsagePeriodEnd))
 }
 
+// SubscriptionManagedEQ applies the EQ predicate on the "subscription_managed" field.
+func SubscriptionManagedEQ(v bool) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldSubscriptionManaged, v))
+}
+
+// SubscriptionManagedNEQ applies the NEQ predicate on the "subscription_managed" field.
+func SubscriptionManagedNEQ(v bool) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldSubscriptionManaged, v))
+}
+
+// SubscriptionManagedIsNil applies the IsNil predicate on the "subscription_managed" field.
+func SubscriptionManagedIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldSubscriptionManaged))
+}
+
+// SubscriptionManagedNotNil applies the NotNil predicate on the "subscription_managed" field.
+func SubscriptionManagedNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldSubscriptionManaged))
+}
+
 // HasUsageReset applies the HasEdge predicate on the "usage_reset" edge.
 func HasUsageReset() predicate.Entitlement {
 	return predicate.Entitlement(func(s *sql.Selector) {
@@ -1111,6 +1136,29 @@ func HasBalanceSnapshot() predicate.Entitlement {
 func HasBalanceSnapshotWith(preds ...predicate.BalanceSnapshot) predicate.Entitlement {
 	return predicate.Entitlement(func(s *sql.Selector) {
 		step := newBalanceSnapshotStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionItem applies the HasEdge predicate on the "subscription_item" edge.
+func HasSubscriptionItem() predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, SubscriptionItemTable, SubscriptionItemColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionItemWith applies the HasEdge predicate on the "subscription_item" edge with a given conditions (other predicates).
+func HasSubscriptionItemWith(preds ...predicate.SubscriptionItem) predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := newSubscriptionItemStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

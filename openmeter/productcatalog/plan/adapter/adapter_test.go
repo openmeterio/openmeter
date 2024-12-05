@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 var (
@@ -172,7 +171,7 @@ func TestPostgresAdapter(t *testing.T) {
 		}
 	}()
 
-	err := migrate.Up(pg.URL)
+	err := pg.EntDriver.Client().Schema.Create(context.Background())
 	require.NoErrorf(t, err, "schema migration must not fail")
 
 	entClient := pg.EntDriver.Client()

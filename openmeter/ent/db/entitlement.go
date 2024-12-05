@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -61,10 +62,13 @@ type Entitlement struct {
 	CurrentUsagePeriodStart *time.Time `json:"current_usage_period_start,omitempty"`
 	// CurrentUsagePeriodEnd holds the value of the "current_usage_period_end" field.
 	CurrentUsagePeriodEnd *time.Time `json:"current_usage_period_end,omitempty"`
+	// SubscriptionManaged holds the value of the "subscription_managed" field.
+	SubscriptionManaged bool `json:"subscription_managed,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EntitlementQuery when eager-loading is set.
-	Edges        EntitlementEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                         EntitlementEdges `json:"edges"`
+	entitlement_subscription_item *string
+	selectValues                  sql.SelectValues
 }
 
 // EntitlementEdges holds the relations/edges for other nodes in the graph.
@@ -75,11 +79,13 @@ type EntitlementEdges struct {
 	Grant []*Grant `json:"grant,omitempty"`
 	// BalanceSnapshot holds the value of the balance_snapshot edge.
 	BalanceSnapshot []*BalanceSnapshot `json:"balance_snapshot,omitempty"`
+	// SubscriptionItem holds the value of the subscription_item edge.
+	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // UsageResetOrErr returns the UsageReset value or an error if the edge
@@ -109,12 +115,23 @@ func (e EntitlementEdges) BalanceSnapshotOrErr() ([]*BalanceSnapshot, error) {
 	return nil, &NotLoadedError{edge: "balance_snapshot"}
 }
 
+// SubscriptionItemOrErr returns the SubscriptionItem value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EntitlementEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
+	if e.SubscriptionItem != nil {
+		return e.SubscriptionItem, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: subscriptionitem.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_item"}
+}
+
 // FeatureOrErr returns the Feature value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e EntitlementEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -127,7 +144,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case entitlement.FieldMetadata, entitlement.FieldConfig:
 			values[i] = new([]byte)
-		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset:
+		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset, entitlement.FieldSubscriptionManaged:
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
@@ -137,6 +154,8 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
+		case entitlement.ForeignKeys[0]: // entitlement_subscription_item
+			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -300,6 +319,19 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				e.CurrentUsagePeriodEnd = new(time.Time)
 				*e.CurrentUsagePeriodEnd = value.Time
 			}
+		case entitlement.FieldSubscriptionManaged:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_managed", values[i])
+			} else if value.Valid {
+				e.SubscriptionManaged = value.Bool
+			}
+		case entitlement.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field entitlement_subscription_item", values[i])
+			} else if value.Valid {
+				e.entitlement_subscription_item = new(string)
+				*e.entitlement_subscription_item = value.String
+			}
 		default:
 			e.selectValues.Set(columns[i], values[i])
 		}
@@ -326,6 +358,11 @@ func (e *Entitlement) QueryGrant() *GrantQuery {
 // QueryBalanceSnapshot queries the "balance_snapshot" edge of the Entitlement entity.
 func (e *Entitlement) QueryBalanceSnapshot() *BalanceSnapshotQuery {
 	return NewEntitlementClient(e.config).QueryBalanceSnapshot(e)
+}
+
+// QuerySubscriptionItem queries the "subscription_item" edge of the Entitlement entity.
+func (e *Entitlement) QuerySubscriptionItem() *SubscriptionItemQuery {
+	return NewEntitlementClient(e.config).QuerySubscriptionItem(e)
 }
 
 // QueryFeature queries the "feature" edge of the Entitlement entity.
@@ -442,6 +479,9 @@ func (e *Entitlement) String() string {
 		builder.WriteString("current_usage_period_end=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("subscription_managed=")
+	builder.WriteString(fmt.Sprintf("%v", e.SubscriptionManaged))
 	builder.WriteByte(')')
 	return builder.String()
 }

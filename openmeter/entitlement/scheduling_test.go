@@ -80,7 +80,7 @@ func TestScheduling(t *testing.T) {
 						ActiveTo:   lo.ToPtr(activeTo),
 					},
 				)
-				assert.EqualError(t, err, "ActiveTo must be after ActiveFrom")
+				assert.EqualError(t, err, "ActiveTo cannot be before ActiveFrom")
 
 				// Same value
 				_, err = conn.ScheduleEntitlement(
@@ -95,7 +95,8 @@ func TestScheduling(t *testing.T) {
 						ActiveTo:   lo.ToPtr(activeFrom),
 					},
 				)
-				assert.EqualError(t, err, "ActiveTo must be after ActiveFrom")
+				// ActiveFrom and ActiveTo can be the same
+				assert.Nil(t, err)
 
 				// ActiveTo present but not ActiveFrom
 				_, err = conn.ScheduleEntitlement(

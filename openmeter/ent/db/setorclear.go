@@ -1694,6 +1694,258 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionUpdate) SetOrClearActiveTo(value *time.Time) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearActiveTo(value *time.Time) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearActiveTo(value *time.Time) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearActiveTo(value *time.Time) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearActiveTo()
+	}
+	return u.SetActiveTo(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearEntitlementID(value *string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearEntitlementID()
+	}
+	return u.SetEntitlementID(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearEntitlementID(value *string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearEntitlementID()
+	}
+	return u.SetEntitlementID(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *datex.ISOString) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearActiveFromOverrideRelativeToPhaseStart()
+	}
+	return u.SetActiveFromOverrideRelativeToPhaseStart(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *datex.ISOString) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearActiveFromOverrideRelativeToPhaseStart()
+	}
+	return u.SetActiveFromOverrideRelativeToPhaseStart(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearActiveToOverrideRelativeToPhaseStart(value *datex.ISOString) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearActiveToOverrideRelativeToPhaseStart()
+	}
+	return u.SetActiveToOverrideRelativeToPhaseStart(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearActiveToOverrideRelativeToPhaseStart(value *datex.ISOString) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearActiveToOverrideRelativeToPhaseStart()
+	}
+	return u.SetActiveToOverrideRelativeToPhaseStart(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearDescription(value *string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearDescription(value *string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearFeatureKey(value *string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearFeatureKey(value *string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearEntitlementTemplate(value **productcatalog.EntitlementTemplate) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearEntitlementTemplate()
+	}
+	return u.SetEntitlementTemplate(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearEntitlementTemplate(value **productcatalog.EntitlementTemplate) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearEntitlementTemplate()
+	}
+	return u.SetEntitlementTemplate(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearBillingCadence(value *datex.ISOString) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearBillingCadence(value *datex.ISOString) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearBillingCadence()
+	}
+	return u.SetBillingCadence(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearPrice(value **productcatalog.Price) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearPrice(value **productcatalog.Price) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearPrice()
+	}
+	return u.SetPrice(*value)
+}
+
+func (u *SubscriptionPhaseUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPhaseUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionPhaseUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionPhaseUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionPhaseUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionPhaseUpdateOne) SetOrClearMetadata(value *map[string]string) *SubscriptionPhaseUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *SubscriptionPhaseUpdate) SetOrClearDescription(value *string) *SubscriptionPhaseUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *SubscriptionPhaseUpdateOne) SetOrClearDescription(value *string) *SubscriptionPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
 func (u *UsageResetUpdate) SetOrClearDeletedAt(value *time.Time) *UsageResetUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

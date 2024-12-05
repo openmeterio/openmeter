@@ -3,12 +3,15 @@
 package datex
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/rickb777/period"
 	"github.com/samber/lo"
 )
+
+const MAX_SAFE_ITERATION_COUNT = 1_000_000
 
 type ISOString period.ISOString
 
@@ -39,9 +42,73 @@ type Period struct {
 	period.Period
 }
 
+// FIXME: clean up add and subtract
+
+func (p Period) Add(p2 Period) (Period, error) {
+	s2 := period.ISOString(p2.String())
+	per2, err := period.Parse(string(s2))
+	if err != nil {
+		return Period{}, err
+	}
+	p3, err := p.Period.Add(per2)
+	return Period{p3}, err
+}
+
+func (p Period) Subtract(p2 Period) (Period, error) {
+	s2 := period.ISOString(p2.String())
+	per2, err := period.Parse(string(s2))
+	if err != nil {
+		return Period{}, err
+	}
+	p3, err := p.Period.Subtract(per2)
+	return Period{p3}, err
+}
+
 // FromDuration creates a Period from a time.Duration
+func PeriodsAlign(larger Period, smaller Period) (bool, error) {
+	p, err := larger.Subtract(smaller)
+	if err != nil {
+		return false, err
+	}
+
+	if p.Sign() == -1 {
+		return false, fmt.Errorf("smaller period is larger than larger period")
+	}
+
+	per := smaller
+	for i := 1; i < MAX_SAFE_ITERATION_COUNT; i++ {
+		per, err = per.Add(smaller)
+		if err != nil {
+			return false, err
+		}
+
+		diff, err := larger.Subtract(per)
+		if err != nil {
+			return false, err
+		}
+
+		// It's an exact match
+		if diff.Sign() == 0 {
+			return true, nil
+		}
+
+		// We've overshot without a match
+		if diff.Sign() == -1 {
+			return false, nil
+		}
+	}
+
+	return false, nil
+}
+
+func Between(start time.Time, end time.Time) Period {
+	per := period.Between(start, end)
+	return Period{per}
+}
+
+// FromDuration creates an IMPRECISE Period from a time.Duration
 func FromDuration(d time.Duration) Period {
-	return Period{period.NewOf(d).Normalise(false)}
+	return Period{period.NewOf(d).Normalise(false).Simplify(false)}
 }
 
 // ISOString() returns the ISO8601 string representation of the period

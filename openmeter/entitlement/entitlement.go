@@ -2,6 +2,7 @@ package entitlement
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 	"time"
 
@@ -36,6 +37,10 @@ func (e MeasureUsageFromEnum) Validate() error {
 
 type MeasureUsageFromInput struct {
 	ts time.Time
+}
+
+func (m MeasureUsageFromInput) Equal(other MeasureUsageFromInput) bool {
+	return m.ts.Equal(other.Get())
 }
 
 func (m MeasureUsageFromInput) Get() time.Time {
@@ -92,6 +97,100 @@ type CreateEntitlementInputs struct {
 	Config                  []byte                 `json:"config,omitempty"`
 	UsagePeriod             *UsagePeriod           `json:"usagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
+
+	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
+}
+
+func (c CreateEntitlementInputs) Equal(other CreateEntitlementInputs) bool {
+	if c.Namespace != other.Namespace {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.FeatureID, other.FeatureID) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.FeatureKey, other.FeatureKey) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.SubjectKey, other.SubjectKey) {
+		return false
+	}
+
+	if c.EntitlementType != other.EntitlementType {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.Metadata, other.Metadata) {
+		return false
+	}
+
+	if (c.ActiveFrom == nil) != (other.ActiveFrom == nil) {
+		return false
+	}
+
+	if (c.ActiveFrom != nil && other.ActiveFrom != nil) && !c.ActiveFrom.Equal(*other.ActiveFrom) {
+		return false
+	}
+
+	if (c.ActiveTo == nil) != (other.ActiveTo == nil) {
+		return false
+	}
+
+	if (c.ActiveTo != nil && other.ActiveTo != nil) && !c.ActiveTo.Equal(*other.ActiveTo) {
+		return false
+	}
+
+	if (c.MeasureUsageFrom == nil) != (other.MeasureUsageFrom == nil) {
+		return false
+	}
+
+	if (c.MeasureUsageFrom != nil && other.MeasureUsageFrom != nil) && !c.MeasureUsageFrom.Equal(*other.MeasureUsageFrom) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.IssueAfterReset, other.IssueAfterReset) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.IssueAfterResetPriority, other.IssueAfterResetPriority) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.IsSoftLimit, other.IsSoftLimit) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.Config, other.Config) {
+		return false
+	}
+
+	if (c.UsagePeriod == nil) != (other.UsagePeriod == nil) {
+		return false
+	}
+
+	if (c.UsagePeriod != nil && other.UsagePeriod != nil) && !c.UsagePeriod.Equal(*other.UsagePeriod) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.PreserveOverageAtReset, other.PreserveOverageAtReset) {
+		return false
+	}
+
+	if c.SubscriptionManaged != other.SubscriptionManaged {
+		return false
+	}
+
+	return true
+}
+
+func (c CreateEntitlementInputs) Validate() error {
+	if c.FeatureID == nil && c.FeatureKey == nil {
+		return fmt.Errorf("feature id or key must be set")
+	}
+
+	return nil
 }
 
 func (c CreateEntitlementInputs) GetType() EntitlementType {
@@ -113,6 +212,35 @@ type Entitlement struct {
 
 	// static
 	Config []byte `json:"config,omitempty"`
+}
+
+func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
+	i := CreateEntitlementInputs{
+		Namespace:       e.Namespace,
+		FeatureID:       &e.FeatureID,
+		FeatureKey:      &e.FeatureKey,
+		SubjectKey:      e.SubjectKey,
+		EntitlementType: e.EntitlementType,
+		Metadata:        e.Metadata,
+		ActiveFrom:      e.ActiveFrom,
+		ActiveTo:        e.ActiveTo,
+		// MeasureUsageFrom:        &MeasureUsageFromInput{ts: e.MeasureUsageFrom},
+		IssueAfterReset:         e.IssueAfterReset,
+		IssueAfterResetPriority: e.IssueAfterResetPriority,
+		IsSoftLimit:             e.IsSoftLimit,
+		Config:                  e.Config,
+		UsagePeriod:             e.UsagePeriod,
+		PreserveOverageAtReset:  e.PreserveOverageAtReset,
+	}
+
+	if e.MeasureUsageFrom != nil {
+		mu := &MeasureUsageFromInput{}
+		// FIXME: manage error
+		_ = mu.FromTime(*e.MeasureUsageFrom)
+		i.MeasureUsageFrom = mu
+	}
+
+	return i
 }
 
 // ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
@@ -179,8 +307,7 @@ func (e EntitlementType) String() string {
 type GenericProperties struct {
 	models.NamespacedModel
 	models.ManagedModel
-
-	Metadata map[string]string `json:"metadata,omitempty"`
+	models.AnnotatedModel
 
 	// ActiveFrom allows entitlements to be scheduled for future activation.
 	// If not set, the entitlement is active immediately.
@@ -197,9 +324,23 @@ type GenericProperties struct {
 
 	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
+
+	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }
 
 type UsagePeriod recurrence.Recurrence
+
+func (u UsagePeriod) Equal(other UsagePeriod) bool {
+	if u.Interval != other.Interval {
+		return false
+	}
+
+	if !u.Anchor.Equal(other.Anchor) {
+		return false
+	}
+
+	return true
+}
 
 // The returned period is exclusive at the end end inclusive in the start
 func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error) {

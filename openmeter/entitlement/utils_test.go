@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 // Meant to work for boolean entitlements
@@ -90,9 +89,9 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 
 	m.Lock()
 	defer m.Unlock()
-	// migrate db
-	if err := migrate.Up(testdb.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+	// migrate db via ent schema upsert
+	if err := dbClient.Schema.Create(context.Background()); err != nil {
+		t.Fatalf("failed to create schema: %v", err)
 	}
 
 	featureConnector := feature.NewFeatureConnector(featureRepo, meterRepo)

@@ -115,6 +115,19 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreateGrantHandlerRequest) (api.EntitlementGrant, error) {
+			ent, err := h.entitlementConnector.GetEntitlementOfSubjectAt(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, clock.Now())
+			if err != nil {
+				return api.EntitlementGrant{}, err
+			}
+
+			if ent == nil {
+				return api.EntitlementGrant{}, fmt.Errorf("unexpected nil entitlement")
+			}
+
+			if ent.SubscriptionManaged {
+				return api.EntitlementGrant{}, &models.GenericForbiddenError{Message: "entitlement is managed by subscription"}
+			}
+
 			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.GrantInput)
 			if err != nil {
 				return api.EntitlementGrant{}, err
@@ -225,7 +238,20 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 			}, nil
 		},
 		func(ctx context.Context, request ResetEntitlementUsageHandlerRequest) (interface{}, error) {
-			_, err := h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
+			ent, err := h.entitlementConnector.GetEntitlement(ctx, request.Namespace, request.EntitlementID)
+			if err != nil {
+				return nil, err
+			}
+
+			if ent == nil {
+				return nil, fmt.Errorf("unexpected nil entitlement")
+			}
+
+			if ent.SubscriptionManaged {
+				return nil, &models.GenericForbiddenError{Message: "entitlement is managed by subscription"}
+			}
+
+			_, err = h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
 				Namespace: request.Namespace,
 				ID:        request.EntitlementID,
 			}, meteredentitlement.ResetEntitlementUsageParams{

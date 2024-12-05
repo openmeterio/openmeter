@@ -63,7 +63,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	entClient := driver.EntDriver.Client()
 	if err := migrate.Up(driver.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+		t.Fatalf("failed to create schema: %v", err)
 	}
 
 	// Customer

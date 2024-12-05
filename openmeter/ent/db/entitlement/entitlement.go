@@ -57,12 +57,16 @@ const (
 	FieldCurrentUsagePeriodStart = "current_usage_period_start"
 	// FieldCurrentUsagePeriodEnd holds the string denoting the current_usage_period_end field in the database.
 	FieldCurrentUsagePeriodEnd = "current_usage_period_end"
+	// FieldSubscriptionManaged holds the string denoting the subscription_managed field in the database.
+	FieldSubscriptionManaged = "subscription_managed"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// EdgeGrant holds the string denoting the grant edge name in mutations.
 	EdgeGrant = "grant"
 	// EdgeBalanceSnapshot holds the string denoting the balance_snapshot edge name in mutations.
 	EdgeBalanceSnapshot = "balance_snapshot"
+	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
+	EdgeSubscriptionItem = "subscription_item"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
 	// Table holds the table name of the entitlement in the database.
@@ -88,6 +92,13 @@ const (
 	BalanceSnapshotInverseTable = "balance_snapshots"
 	// BalanceSnapshotColumn is the table column denoting the balance_snapshot relation/edge.
 	BalanceSnapshotColumn = "owner_id"
+	// SubscriptionItemTable is the table that holds the subscription_item relation/edge.
+	SubscriptionItemTable = "entitlements"
+	// SubscriptionItemInverseTable is the table name for the SubscriptionItem entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionitem" package.
+	SubscriptionItemInverseTable = "subscription_items"
+	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
+	SubscriptionItemColumn = "entitlement_subscription_item"
 	// FeatureTable is the table that holds the feature relation/edge.
 	FeatureTable = "entitlements"
 	// FeatureInverseTable is the table name for the Feature entity.
@@ -121,12 +132,24 @@ var Columns = []string{
 	FieldUsagePeriodAnchor,
 	FieldCurrentUsagePeriodStart,
 	FieldCurrentUsagePeriodEnd,
+	FieldSubscriptionManaged,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "entitlements"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"entitlement_subscription_item",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -302,6 +325,11 @@ func ByCurrentUsagePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentUsagePeriodEnd, opts...).ToFunc()
 }
 
+// BySubscriptionManaged orders the results by the subscription_managed field.
+func BySubscriptionManaged(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionManaged, opts...).ToFunc()
+}
+
 // ByUsageResetCount orders the results by usage_reset count.
 func ByUsageResetCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -344,6 +372,13 @@ func ByBalanceSnapshot(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// BySubscriptionItemField orders the results by subscription_item field.
+func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByFeatureField orders the results by feature field.
 func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -369,6 +404,13 @@ func newBalanceSnapshotStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BalanceSnapshotInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BalanceSnapshotTable, BalanceSnapshotColumn),
+	)
+}
+func newSubscriptionItemStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, SubscriptionItemTable, SubscriptionItemColumn),
 	)
 }
 func newFeatureStep() *sqlgraph.Step {

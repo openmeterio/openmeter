@@ -3,6 +3,7 @@ package entitlementdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"time"
@@ -131,6 +132,19 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 			return request, nil
 		},
 		func(ctx context.Context, request OverrideEntitlementHandlerRequest) (OverrideEntitlementHandlerResponse, error) {
+			ent, err := h.connector.GetEntitlementOfSubjectAt(ctx, request.Inputs.Namespace, request.SubjectIdOrKey, request.EntitlementIdOrFeatureKey, clock.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			if ent == nil {
+				return nil, fmt.Errorf("unexpected nil entitlement")
+			}
+
+			if ent.SubscriptionManaged {
+				return nil, &models.GenericForbiddenError{Message: "entitlement is managed by subscription"}
+			}
+
 			res, err := h.connector.OverrideEntitlement(ctx, request.SubjectIdOrKey, request.EntitlementIdOrFeatureKey, request.Inputs)
 			if err != nil {
 				return nil, err
@@ -218,7 +232,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 			}, nil
 		},
 		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) (GetEntitlementsOfSubjectHandlerResponse, error) {
-			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, models.SubjectKey(id.ID), clock.Now())
+			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, id.ID, clock.Now())
 			if err != nil {
 				return nil, err
 			}
@@ -464,7 +478,20 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteEntitlementHandlerRequest) (DeleteEntitlementHandlerResponse, error) {
-			err := h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId)
+			ent, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
+			if err != nil {
+				return nil, err
+			}
+
+			if ent == nil {
+				return nil, fmt.Errorf("unexpected nil entitlement")
+			}
+
+			if ent.SubscriptionManaged {
+				return nil, &models.GenericForbiddenError{Message: "entitlement is managed by subscription"}
+			}
+
+			err = h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId, clock.Now())
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[DeleteEntitlementHandlerResponse](http.StatusNoContent),

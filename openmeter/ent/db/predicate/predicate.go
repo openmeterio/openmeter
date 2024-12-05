@@ -150,5 +150,25 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 	}
 }
 
+// Subscription is the predicate function for subscription builders.
+type Subscription func(*sql.Selector)
+
+// SubscriptionItem is the predicate function for subscriptionitem builders.
+type SubscriptionItem func(*sql.Selector)
+
+// SubscriptionItemOrErr calls the predicate only if the error is not nit.
+func SubscriptionItemOrErr(p SubscriptionItem, err error) SubscriptionItem {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// SubscriptionPhase is the predicate function for subscriptionphase builders.
+type SubscriptionPhase func(*sql.Selector)
+
 // UsageReset is the predicate function for usagereset builders.
 type UsageReset func(*sql.Selector)

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestCreateFeature(t *testing.T) {
@@ -220,8 +219,8 @@ func TestCreateFeature(t *testing.T) {
 			dbClient := testdb.EntDriver.Client()
 			defer dbClient.Close()
 
-			if err := migrate.Up(testdb.URL); err != nil {
-				t.Fatalf("failed to migrate db: %s", err.Error())
+			if err := dbClient.Schema.Create(context.Background()); err != nil {
+				t.Fatalf("failed to create schema: %v", err)
 			}
 
 			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
@@ -239,8 +238,8 @@ func TestCreateFeature(t *testing.T) {
 		dbClient := testdb.EntDriver.Client()
 		defer dbClient.Close()
 
-		if err := migrate.Up(testdb.URL); err != nil {
-			t.Fatalf("failed to migrate db: %s", err.Error())
+		if err := dbClient.Schema.Create(context.Background()); err != nil {
+			t.Fatalf("failed to create schema: %v", err)
 		}
 
 		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))

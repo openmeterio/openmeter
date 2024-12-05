@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 
+	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -114,6 +116,10 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		if err != nil {
 			return Feature{}, err
 		}
+	}
+
+	if _, err := ulid.Parse(feature.Key); err == nil {
+		return Feature{}, &models.GenericUserError{Message: "Feature key cannot be a valid ULID"}
 	}
 
 	// check key is not taken

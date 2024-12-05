@@ -58,3 +58,11 @@ type InvalidFeatureError struct {
 func (e *InvalidFeatureError) Error() string {
 	return fmt.Sprintf("invalid feature %s: %s", e.FeatureID, e.Message)
 }
+
+type ForbiddenError struct {
+	Message string
+}
+
+func (e *ForbiddenError) Error() string {
+	return fmt.Sprintf("forbidden: %s", e.Message)
+}

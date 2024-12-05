@@ -321,6 +321,42 @@ func (f PlanRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanRateCardMutation", m)
 }
 
+// The SubscriptionFunc type is an adapter to allow the use of ordinary
+// function as Subscription mutator.
+type SubscriptionFunc func(context.Context, *db.SubscriptionMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionMutation", m)
+}
+
+// The SubscriptionItemFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionItem mutator.
+type SubscriptionItemFunc func(context.Context, *db.SubscriptionItemMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionItemFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionItemMutation", m)
+}
+
+// The SubscriptionPhaseFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionPhase mutator.
+type SubscriptionPhaseFunc func(context.Context, *db.SubscriptionPhaseMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionPhaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionPhaseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionPhaseMutation", m)
+}
+
 // The UsageResetFunc type is an adapter to allow the use of ordinary
 // function as UsageReset mutator.
 type UsageResetFunc func(context.Context, *db.UsageResetMutation) (db.Value, error)

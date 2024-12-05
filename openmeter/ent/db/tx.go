@@ -66,6 +66,12 @@ type Tx struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// Subscription is the client for interacting with the Subscription builders.
+	Subscription *SubscriptionClient
+	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
+	SubscriptionItem *SubscriptionItemClient
+	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
+	SubscriptionPhase *SubscriptionPhaseClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 
@@ -225,6 +231,9 @@ func (tx *Tx) init() {
 	tx.Plan = NewPlanClient(tx.config)
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)
 	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
+	tx.Subscription = NewSubscriptionClient(tx.config)
+	tx.SubscriptionItem = NewSubscriptionItemClient(tx.config)
+	tx.SubscriptionPhase = NewSubscriptionPhaseClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }
 

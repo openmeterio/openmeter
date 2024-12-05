@@ -18,11 +18,27 @@ func (e *NamespaceNotFoundError) Error() string {
 	return fmt.Sprintf("namespace not found: %s", e.Namespace)
 }
 
-// TODO: this should be picked up in a general server error handler
+// TODO: these should be picked up in a general server error handler
 type GenericUserError struct {
 	Message string
 }
 
 func (e *GenericUserError) Error() string {
+	return e.Message
+}
+
+type GenericConflictError struct {
+	Message string
+}
+
+func (e *GenericConflictError) Error() string {
+	return e.Message
+}
+
+type GenericForbiddenError struct {
+	Message string
+}
+
+func (e *GenericForbiddenError) Error() string {
 	return e.Message
 }
