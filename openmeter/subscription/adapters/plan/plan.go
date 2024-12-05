@@ -4,6 +4,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -39,6 +40,10 @@ func (p *SubscriptionPlan) GetPhases() []subscription.PlanPhase {
 	}
 
 	return ps
+}
+
+func (p *SubscriptionPlan) Currency() currencyx.Code {
+	return currencyx.Code(p.Plan.Currency)
 }
 
 type SubscriptionPlanPhase struct {

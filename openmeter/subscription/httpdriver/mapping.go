@@ -1,7 +1,6 @@
 package httpdriver
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,269 +17,141 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
-func MapAPISubscriptionItemPatchToPatch(apiPatch api.SubscriptionItemPatch) (subscription.Patch, error) {
-	// Let's map explicitly
-
-	typ, err := apiPatch.Discriminator()
+func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
+	disc, err := apiPatch.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get discriminator: %w", err)
 	}
 
-	switch typ {
-	case string(subscription.PatchOperationAdd):
-		apiP, err := apiPatch.AsSubscriptionEditAddSubscriptionItemPatchKey()
+	switch disc {
+	case string(api.EditSubscriptionAddItemOpAddItem):
+		apiP, err := apiPatch.AsEditSubscriptionAddItem()
 		if err != nil {
-			return nil, fmt.Errorf("failed to cast to SubscriptionEditAddSubscriptionItemPatchKey: %w", err)
+			return nil, fmt.Errorf("failed to cast to EditSubscriptionAddItem: %w", err)
 		}
 
-		// Let's parse and validate path and op
-
-		path := subscription.PatchPath(apiP.Path)
-		if err := path.Validate(); err != nil {
-			return nil, fmt.Errorf("failed to validate path: %w", err)
-		}
-
-		if path.Type() != subscription.PatchPathTypeItem {
-			return nil, fmt.Errorf("invalid path %s, wrong type: %s", path, path.Type())
-		}
-
-		op := subscription.PatchOperation(apiP.Op)
-		if err := op.Validate(); err != nil {
-			return nil, fmt.Errorf("failed to validate operation: %w", err)
-		}
-
-		// Let's parse and validate value
-		planRC, err := plandriver.AsRateCard(apiP.Value)
+		// Let's parse and validate value.
+		// Fortunately TypeSpec to OpenAPI generation is utterly logical and consistent, so we have to work with a structurally identical but differently named type.
+		planRC, err := plandriver.AsRateCard(apiP.RateCard)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast to RateCard: %w", err)
 		}
 
 		sPRC := &subscriptionplan.SubscriptionPlanRateCard{
-			PhaseKey: path.PhaseKey(),
+			PhaseKey: apiP.PhaseKey,
 			RateCard: planRC,
 		}
 
-		return patch.PatchAddItem{
-			PhaseKey: path.PhaseKey(),
-			ItemKey:  path.ItemKey(),
+		p := patch.PatchAddItem{
+			PhaseKey: apiP.PhaseKey,
+			ItemKey:  planRC.Key(),
 			CreateInput: subscription.SubscriptionItemSpec{
 				CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
-					CreateSubscriptionItemPlanInput: sPRC.ToCreateSubscriptionItemPlanInput(),
+					CreateSubscriptionItemPlanInput:     sPRC.ToCreateSubscriptionItemPlanInput(),
+					CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
 				},
 			},
-		}, nil
-	case string(subscription.PatchOperationRemove):
-		apiP, err := apiPatch.AsSubscriptionEditRemoveSubscriptionItemPatchKey()
+		}
+
+		return p, nil
+	case string(api.EditSubscriptionRemoveItemOpRemoveItem):
+		apiP, err := apiPatch.AsEditSubscriptionRemoveItem()
 		if err != nil {
-			return nil, fmt.Errorf("failed to cast to SubscriptionEditRemoveSubscriptionItemPatchKey: %w", err)
+			return nil, fmt.Errorf("failed to cast to EditSubscriptionRemoveItem: %w", err)
 		}
 
-		// Let's parse and validate path and op
-
-		path := subscription.PatchPath(apiP.Path)
-		if err := path.Validate(); err != nil {
-			return nil, fmt.Errorf("failed to validate path: %w", err)
+		p := patch.PatchRemoveItem{
+			PhaseKey: apiP.PhaseKey,
+			ItemKey:  apiP.ItemKey,
 		}
 
-		if path.Type() != subscription.PatchPathTypeItem {
-			return nil, fmt.Errorf("invalid path %s, wrong type: %s", path, path.Type())
-		}
-
-		op := subscription.PatchOperation(apiP.Op)
-		if err := op.Validate(); err != nil {
-			return nil, fmt.Errorf("failed to validate operation: %w", err)
-		}
-
-		return patch.PatchRemoveItem{
-			PhaseKey: path.PhaseKey(),
-			ItemKey:  path.ItemKey(),
-		}, nil
-	default:
-		return nil, fmt.Errorf("unknown patch operation: %s", typ)
-	}
-}
-
-func MapAPISubscriptionPatchToPatch(apiPatch api.SubscriptionPatch) (subscription.Patch, error) {
-	// As there isn't a discriminator between SubscriptionItemPatch and SubscriptionPhasePatch, calling `As` with either will succeed. Because of this, we hace to manually decide based on the path content.
-	bytes, err := apiPatch.MarshalJSON()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal SubscriptionPatch: %w", err)
-	}
-
-	hasPath := struct {
-		Path string `json:"path"`
-	}{}
-
-	if err := json.Unmarshal(bytes, &hasPath); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal SubscriptionPatch: %w", err)
-	}
-
-	path := subscription.PatchPath(hasPath.Path)
-	if err := path.Validate(); err != nil {
-		return nil, fmt.Errorf("failed to validate path: %w", err)
-	}
-
-	if path.Type() == subscription.PatchPathTypeItem {
-		// FIXME: for some reason it gets a different name after generating form TypeSpec, let's just re-serialize it for now, but fix this discrepancy later
-		itemP, err := apiPatch.AsSubscriptionItemPatchUpdateItem()
+		return p, nil
+	case string(api.EditSubscriptionAddPhaseOpAddPhase):
+		apiP, err := apiPatch.AsEditSubscriptionAddPhase()
 		if err != nil {
-			return nil, fmt.Errorf("failed to cast to SubscriptionItemPatchUpdateItem: %w", err)
-		}
-		bytes, err := itemP.MarshalJSON()
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal SubscriptionItemPatchUpdateItem: %w", err)
+			return nil, fmt.Errorf("failed to cast to EditSubscriptionAddPhase: %w", err)
 		}
 
-		p := api.SubscriptionItemPatch{}
-		err = p.UnmarshalJSON(bytes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal SubscriptionItemPatchUpdateItem: %w", err)
-		}
-
-		return MapAPISubscriptionItemPatchToPatch(p)
-	} else if path.Type() == subscription.PatchPathTypePhase {
-		phaseP, err := apiPatch.AsSubscriptionPhasePatch()
-		if err != nil {
-			return nil, fmt.Errorf("failed to cast to SubscriptionPhasePatch: %w", err)
-		}
-
-		typ, err := phaseP.Discriminator()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get discriminator: %w", err)
-		}
-
-		switch typ {
-		case string(subscription.PatchOperationAdd):
-			apiP, err := phaseP.AsSubscriptionEditAddSubscriptionPhasePatchKey()
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast to SubscriptionEditAddSubscriptionPhasePatchKey: %w", err)
-			}
-
-			// Let's parse and validate path and op
-
-			path := subscription.PatchPath(apiP.Path)
-			if err := path.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate path: %w", err)
-			}
-
-			if path.Type() != subscription.PatchPathTypePhase {
-				return nil, fmt.Errorf("invalid path %s, wrong type: %s", path, path.Type())
-			}
-
-			op := subscription.PatchOperation(apiP.Op)
-			if err := op.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate operation: %w", err)
-			}
-
-			// Let's parse and validate value
-			durStr := datex.ISOString(apiP.Value.Duration)
-			dur, err := durStr.Parse()
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse duration: %w", err)
-			}
-
-			saStr := datex.ISOString("P0M")
-
-			if apiP.Value.StartAfter != nil {
-				saStr = datex.ISOString(*apiP.Value.StartAfter)
-			}
-
-			sa, err := saStr.Parse()
+		var sa datex.Period
+		if apiP.Phase.StartAfter != nil {
+			saStr := datex.ISOString(*apiP.Phase.StartAfter)
+			sa, err = saStr.Parse()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse start after: %w", err)
 			}
+		}
 
-			return patch.PatchAddPhase{
-				PhaseKey: path.PhaseKey(),
-				CreateInput: subscription.CreateSubscriptionPhaseInput{
-					Duration: &dur,
-					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
-						PhaseKey:    path.PhaseKey(),
-						StartAfter:  sa,
-						Name:        apiP.Value.Name,
-						Description: apiP.Value.Description,
-					},
-					CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
-				},
-			}, nil
-		case string(subscription.PatchOperationRemove):
-			apiP, err := phaseP.AsSubscriptionEditRemoveWithValueSubscriptionPhasePatchKey()
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast to SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey: %w", err)
-			}
+		var dur *datex.Period
 
-			// Let's parse and validate path and op
-			path := subscription.PatchPath(apiP.Path)
-			if err := path.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate path: %w", err)
-			}
-
-			if path.Type() != subscription.PatchPathTypePhase {
-				return nil, fmt.Errorf("invalid path %s, wrong type: %s", path, path.Type())
-			}
-
-			op := subscription.PatchOperation(apiP.Op)
-			if err := op.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate operation: %w", err)
-			}
-
-			// Let's parse and validate value
-
-			var shift subscription.RemoveSubscriptionPhaseShifting
-
-			if apiP.Value.Shift == api.RemovePhaseShiftingNext {
-				shift = subscription.RemoveSubscriptionPhaseShiftNext
-			} else if apiP.Value.Shift == api.RemovePhaseShiftingPrev {
-				shift = subscription.RemoveSubscriptionPhaseShiftPrev
-			} else {
-				return nil, fmt.Errorf("unknown shift value: %s", apiP.Value.Shift)
-			}
-
-			// Let's parse and validate value
-			return patch.PatchRemovePhase{
-				PhaseKey: path.PhaseKey(),
-				RemoveInput: subscription.RemoveSubscriptionPhaseInput{
-					Shift: shift,
-				},
-			}, nil
-
-		case string(subscription.PatchOperationStretch):
-			apiP, err := phaseP.AsSubscriptionEditStretchSubscriptionPhasePatchKey()
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast to SubscriptionEditStretchSubscriptionPhasePatchKey: %w", err)
-			}
-
-			// Let's parse and validate path and op
-			path := subscription.PatchPath(apiP.Path)
-			if err := path.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate path: %w", err)
-			}
-
-			if path.Type() != subscription.PatchPathTypePhase {
-				return nil, fmt.Errorf("invalid path %s, wrong type: %s", path, path.Type())
-			}
-
-			op := subscription.PatchOperation(apiP.Op)
-			if err := op.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate operation: %w", err)
-			}
-
-			// Let's parse and validate value
-			durStr := datex.ISOString(apiP.Value.ExtendBy)
-			dur, err := durStr.Parse()
+		if apiP.Phase.Duration != nil {
+			dS := datex.ISOString(*apiP.Phase.Duration)
+			d, err := dS.Parse()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse duration: %w", err)
 			}
 
-			return patch.PatchStretchPhase{
-				PhaseKey: path.PhaseKey(),
-				Duration: dur,
-			}, nil
-		default:
-			return nil, fmt.Errorf("unknown patch operation: %s", typ)
+			dur = &d
 		}
-	} else {
-		return nil, fmt.Errorf("invalid path %s, wrong type: %s", path, path.Type())
+
+		p := patch.PatchAddPhase{
+			PhaseKey: apiP.Phase.Key,
+			CreateInput: subscription.CreateSubscriptionPhaseInput{
+				Duration: dur,
+				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+					PhaseKey:    apiP.Phase.Key,
+					StartAfter:  sa,
+					Name:        apiP.Phase.Name,
+					Description: apiP.Phase.Description,
+				},
+				CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
+			},
+		}
+
+		return p, nil
+	case string(api.EditSubscriptionRemovePhaseOpRemovePhase):
+		apiP, err := apiPatch.AsEditSubscriptionRemovePhase()
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast to EditSubscriptionRemovePhase: %w", err)
+		}
+
+		var shift subscription.RemoveSubscriptionPhaseShifting
+
+		if apiP.Shift == api.RemovePhaseShiftingNext {
+			shift = subscription.RemoveSubscriptionPhaseShiftNext
+		} else if apiP.Shift == api.RemovePhaseShiftingPrev {
+			shift = subscription.RemoveSubscriptionPhaseShiftPrev
+		} else {
+			return nil, fmt.Errorf("unknown shift value: %s", apiP.Shift)
+		}
+
+		p := patch.PatchRemovePhase{
+			PhaseKey: apiP.PhaseKey,
+			RemoveInput: subscription.RemoveSubscriptionPhaseInput{
+				Shift: shift,
+			},
+		}
+
+		return p, nil
+	case string(api.EditSubscriptionStretchPhaseOpStretchPhase):
+		apiP, err := apiPatch.AsEditSubscriptionStretchPhase()
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast to EditSubscriptionStretchPhase: %w", err)
+		}
+
+		durStr := datex.ISOString(apiP.ExtendBy)
+		d, err := durStr.Parse()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse duration: %w", err)
+		}
+
+		p := patch.PatchStretchPhase{
+			PhaseKey: apiP.PhaseKey,
+			Duration: d,
+		}
+
+		return p, nil
+	default:
+		return nil, fmt.Errorf("unknown discriminator: %s", disc)
 	}
 }
 

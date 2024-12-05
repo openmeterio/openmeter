@@ -6832,8 +6832,8 @@ paths:
       summary: Create subscription
       parameters: []
       responses:
-        '200':
-          description: The request has succeeded.
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
           content:
             application/json:
               schema:
@@ -6892,6 +6892,7 @@ paths:
   /api/v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription
+      summary: Get subscription
       parameters:
         - name: subscriptionId
           in: path
@@ -6900,15 +6901,6 @@ paths:
             type: string
             example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-        - name: expand
-          in: query
-          required: false
-          schema:
-            type: boolean
-            enum:
-              - false
-              - true
-          explode: false
         - name: at
           in: query
           required: false
@@ -6918,16 +6910,13 @@ paths:
             format: date-time
             example: 2023-01-01T01:01:01.001Z
           explode: false
-      summary: Get subscription Get subscription
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                anyOf:
-                  - $ref: '#/components/schemas/Subscription'
-                  - $ref: '#/components/schemas/SubscriptionExpanded'
+                $ref: '#/components/schemas/SubscriptionExpanded'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -6970,9 +6959,9 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
-      x-internal: true
       tags:
         - Subscriptions
+      x-internal: true
     patch:
       operationId: editSubscription
       summary: Edit subscription
@@ -9020,19 +9009,9 @@ components:
     CustomSubscriptionChange:
       type: object
       required:
-        - name
-        - currency
         - activeFrom
         - customPlan
       properties:
-        metadata:
-          $ref: '#/components/schemas/Metadata'
-        name:
-          type: string
-        description:
-          type: string
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
         activeFrom:
           type: string
           format: date-time
@@ -9044,20 +9023,10 @@ components:
     CustomSubscriptionCreate:
       type: object
       required:
-        - name
-        - currency
         - activeFrom
         - customPlan
         - customerId
       properties:
-        metadata:
-          $ref: '#/components/schemas/Metadata'
-        name:
-          type: string
-        description:
-          type: string
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
         activeFrom:
           type: string
           format: date-time
@@ -9404,42 +9373,97 @@ components:
             When not specified, the discount applies to all rate cards.
           title: Discounted RateCards
       description: Percentage discount.
-    DiscountPercentageUpdateItem:
-      type: object
-      required:
-        - percentage
-      properties:
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: The percentage of the discount.
-          title: Percentage
-        rateCards:
-          type: array
-          items:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-            description: A key is a unique string that is used to identify a resource.
-          description: |-
-            The rate cards that the discount applies to.
-            When not specified, the discount applies to all rate cards.
-          title: Discounted RateCards
-      description: Percentage discount.
     DiscountType:
       type: string
       enum:
         - percentage
       description: The type of the discount.
-    DiscountUpdateItem:
+    EditOp:
+      type: string
+      enum:
+        - add_item
+        - remove_item
+        - add_phase
+        - remove_phase
+        - stretch_phase
+    EditSubscriptionAddItem:
       type: object
-      allOf:
-        - $ref: '#/components/schemas/DiscountPercentageUpdateItem'
-      description: |-
-        A discount on a price.
-        One of: percentage, amount, or usage.
+      required:
+        - op
+        - phaseKey
+        - rateCard
+      properties:
+        op:
+          type: string
+          enum:
+            - add_item
+        phaseKey:
+          type: string
+        rateCard:
+          $ref: '#/components/schemas/RateCard'
+      description: Add a new item to a phase.
+    EditSubscriptionAddPhase:
+      type: object
+      required:
+        - op
+        - phase
+      properties:
+        op:
+          type: string
+          enum:
+            - add_phase
+        phase:
+          $ref: '#/components/schemas/SubscriptionPhaseCreate'
+      description: Add a new phase
+    EditSubscriptionRemoveItem:
+      type: object
+      required:
+        - op
+        - phaseKey
+        - itemKey
+      properties:
+        op:
+          type: string
+          enum:
+            - remove_item
+        phaseKey:
+          type: string
+        itemKey:
+          type: string
+      description: Remove an item from a phase.
+    EditSubscriptionRemovePhase:
+      type: object
+      required:
+        - op
+        - phaseKey
+        - shift
+      properties:
+        op:
+          type: string
+          enum:
+            - remove_phase
+        phaseKey:
+          type: string
+        shift:
+          $ref: '#/components/schemas/RemovePhaseShifting'
+      description: Remove a phase
+    EditSubscriptionStretchPhase:
+      type: object
+      required:
+        - op
+        - phaseKey
+        - extendBy
+      properties:
+        op:
+          type: string
+          enum:
+            - stretch_phase
+        phaseKey:
+          type: string
+        extendBy:
+          type: string
+          format: duration
+      description: Stretch a phase
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -13421,29 +13445,13 @@ components:
       type: object
       required:
         - plan
-        - currency
         - activeFrom
         - name
-        - customizations
       properties:
         metadata:
           $ref: '#/components/schemas/Metadata'
         plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
+          $ref: '#/components/schemas/PlanReference'
         activeFrom:
           type: string
           format: date-time
@@ -13453,47 +13461,19 @@ components:
           type: string
         description:
           type: string
-        customizations:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubscriptionItemPatch'
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
       required:
         - plan
-        - currency
         - activeFrom
         - name
-        - customizations
         - customerId
       properties:
         metadata:
           $ref: '#/components/schemas/Metadata'
         plan:
-          type: object
-          properties:
-            key:
-              type: string
-              minLength: 1
-              maxLength: 64
-              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-              description: A key is a unique string that is used to identify a resource.
-            version:
-              type: integer
-          required:
-            - key
-            - version
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
+          $ref: '#/components/schemas/PlanReference'
         activeFrom:
           type: string
           format: date-time
@@ -13503,18 +13483,6 @@ components:
           type: string
         description:
           type: string
-        customizations:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubscriptionItemPatch'
-          maxItems: 100
-          description: |-
-            Batch processing commands for customizing the susbcription.
-            The key format is `/phases/{phaseKey}/items/{itemKey}`.
-
-            Add operations insert a new member based on the creation input without altering the existing members.
-
-            Remove operations remove the member from the document.
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -13799,73 +13767,6 @@ components:
             When null, the feature or service is free.
           title: Price
       description: A flat fee rate card defines a one-time purchase or a recurring fee.
-    RateCardFlatFeeUpdateItem:
-      type: object
-      required:
-        - type
-        - name
-        - billingCadence
-        - price
-      properties:
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: The type of the RateCard.
-          title: RateCard type
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: The feature the customer is entitled to use.
-          title: Feature key
-        entitlementTemplate:
-          $ref: '#/components/schemas/RateCardEntitlement'
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: |-
-            The tax config of the rate card.
-            When undefined, the tax config of the feature or the default tax config of the plan is used.
-          title: Tax config
-        billingCadence:
-          type: string
-          format: duration
-          nullable: true
-          description: |-
-            The billing cadence of the rate card.
-            When null it means it is a one time fee.
-          title: Billing cadence
-        price:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
-          nullable: true
-          example: {}
-          description: |-
-            The price of the rate card.
-            When null, the feature or service is free.
-          title: Price
-      description: A flat fee rate card defines a one-time purchase or a recurring fee.
     RateCardMeteredEntitlement:
       type: object
       required:
@@ -13991,16 +13892,6 @@ components:
         - flat_fee
         - usage_based
       description: The type of the rate card.
-    RateCardUpdateItem:
-      oneOf:
-        - $ref: '#/components/schemas/RateCardFlatFeeUpdateItem'
-        - $ref: '#/components/schemas/RateCardUsageBasedUpdateItem'
-      discriminator:
-        propertyName: type
-        mapping:
-          flat_fee: '#/components/schemas/RateCardFlatFeeUpdateItem'
-          usage_based: '#/components/schemas/RateCardUsageBasedUpdateItem'
-      description: A rate card defines the pricing and entitlement of a feature or service.
     RateCardUsageBased:
       type: object
       required:
@@ -14079,64 +13970,6 @@ components:
           unit: '#/components/schemas/UnitPriceWithCommitments'
           tiered: '#/components/schemas/TieredPriceWithCommitments'
       description: The price of the usage based rate card.
-    RateCardUsageBasedUpdateItem:
-      type: object
-      required:
-        - type
-        - name
-        - billingCadence
-        - price
-      properties:
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: The type of the RateCard.
-          title: RateCard type
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: The feature the customer is entitled to use.
-          title: Feature key
-        entitlementTemplate:
-          $ref: '#/components/schemas/RateCardEntitlement'
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: |-
-            The tax config of the rate card.
-            When undefined, the tax config of the feature or the default tax config of the plan is used.
-          title: Tax config
-        billingCadence:
-          type: string
-          format: duration
-          description: The billing cadence of the rate card.
-          title: Billing cadence
-        price:
-          allOf:
-            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
-          nullable: true
-      description: A usage-based rate card defines a price based on usage.
     RecurringPeriod:
       type: object
       required:
@@ -14191,8 +14024,8 @@ components:
     RemovePhaseShifting:
       type: string
       enum:
-        - Next
-        - Prev
+        - next
+        - prev
       description: The direction of the phase shift when a phase is removed.
     ResetEntitlementUsageInput:
       type: object
@@ -14750,141 +14583,33 @@ components:
       description: Create a subscription.
     SubscriptionEdit:
       type: object
+      required:
+        - customizations
       properties:
         customizations:
           type: array
           items:
-            $ref: '#/components/schemas/SubscriptionPatch'
+            $ref: '#/components/schemas/SubscriptionEditOperation'
           maxItems: 100
           description: |-
             Batch processing commands for manipulating running subscriptions.
             The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
       description: Subscription edit input.
-    SubscriptionEditAddSubscriptionItemPatchKey:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - add
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
-        value:
-          $ref: '#/components/schemas/RateCard'
-      description: Subscription item add operation.
-    SubscriptionEditAddSubscriptionItemPatchKeyUpdateItem:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - add
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
-        value:
-          $ref: '#/components/schemas/RateCardUpdateItem'
-      description: Subscription item add operation.
-    SubscriptionEditAddSubscriptionPhasePatchKey:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - add
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*$
-        value:
-          $ref: '#/components/schemas/SubscriptionPhaseCreate'
-      description: Subscription item add operation.
-    SubscriptionEditRemoveSubscriptionItemPatchKey:
-      type: object
-      required:
-        - op
-        - path
-      properties:
-        op:
-          type: string
-          enum:
-            - remove
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
-      description: Subscription phase remove operation.
-    SubscriptionEditRemoveSubscriptionItemPatchKeyUpdateItem:
-      type: object
-      required:
-        - op
-        - path
-      properties:
-        op:
-          type: string
-          enum:
-            - remove
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
-      description: Subscription phase remove operation.
-    SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - remove
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*$
-        value:
-          type: object
-          properties:
-            shift:
-              $ref: '#/components/schemas/RemovePhaseShifting'
-          required:
-            - shift
-      description: Subscription item remove operation with a value.
-    SubscriptionEditStretchSubscriptionPhasePatchKey:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - extend
-        path:
-          type: string
-          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*$
-        value:
-          type: object
-          properties:
-            extendBy:
-              type: string
-              format: duration
-              description: The signed duration to extend or shrink the phase by.
-          required:
-            - extendBy
-      description: Subscription phase stretch operation.
+    SubscriptionEditOperation:
+      oneOf:
+        - $ref: '#/components/schemas/EditSubscriptionAddItem'
+        - $ref: '#/components/schemas/EditSubscriptionRemoveItem'
+        - $ref: '#/components/schemas/EditSubscriptionAddPhase'
+        - $ref: '#/components/schemas/EditSubscriptionRemovePhase'
+        - $ref: '#/components/schemas/EditSubscriptionStretchPhase'
+      discriminator:
+        propertyName: op
+        mapping:
+          add_item: '#/components/schemas/EditSubscriptionAddItem'
+          remove_item: '#/components/schemas/EditSubscriptionRemoveItem'
+          add_phase: '#/components/schemas/EditSubscriptionAddPhase'
+          remove_phase: '#/components/schemas/EditSubscriptionRemovePhase'
+          stretch_phase: '#/components/schemas/EditSubscriptionStretchPhase'
     SubscriptionExpanded:
       type: object
       required:
@@ -15111,31 +14836,6 @@ components:
         entitlement:
           $ref: '#/components/schemas/Entitlement'
       description: Included contents like Entitlement, or the Feature.
-    SubscriptionItemPatch:
-      oneOf:
-        - $ref: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKey'
-        - $ref: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKey'
-      discriminator:
-        propertyName: op
-        mapping:
-          add: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKey'
-          remove: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKey'
-      description: Subscription item patch.
-    SubscriptionItemPatchUpdateItem:
-      oneOf:
-        - $ref: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKeyUpdateItem'
-        - $ref: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKeyUpdateItem'
-      discriminator:
-        propertyName: op
-        mapping:
-          add: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKeyUpdateItem'
-          remove: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKeyUpdateItem'
-      description: Subscription item patch.
-    SubscriptionPatch:
-      oneOf:
-        - $ref: '#/components/schemas/SubscriptionItemPatchUpdateItem'
-        - $ref: '#/components/schemas/SubscriptionPhasePatch'
-      description: Subscription patch.
     SubscriptionPhase:
       type: object
       required:
@@ -15219,7 +14919,6 @@ components:
       type: object
       required:
         - startAfter
-        - duration
         - key
         - name
       properties:
@@ -15236,12 +14935,14 @@ components:
           type: string
           format: duration
           example: P1M
-          description: The intended duration of the new phase.
+          description: |-
+            The intended duration of the new phase.
+            Duration is required when the phase will not be the last phase.
           title: Duration
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/DiscountUpdateItem'
+            $ref: '#/components/schemas/Discount'
           description: The discounts on the plan.
           title: Discounts
         key:
@@ -15341,18 +15042,6 @@ components:
           items:
             $ref: '#/components/schemas/SubscriptionItem'
       description: Expanded subscription phase
-    SubscriptionPhasePatch:
-      oneOf:
-        - $ref: '#/components/schemas/SubscriptionEditAddSubscriptionPhasePatchKey'
-        - $ref: '#/components/schemas/SubscriptionEditStretchSubscriptionPhasePatchKey'
-        - $ref: '#/components/schemas/SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey'
-      discriminator:
-        propertyName: op
-        mapping:
-          add: '#/components/schemas/SubscriptionEditAddSubscriptionPhasePatchKey'
-          extend: '#/components/schemas/SubscriptionEditStretchSubscriptionPhasePatchKey'
-          remove: '#/components/schemas/SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey'
-      description: Subscription phase patch.
     SvixOperationalWebhookRequest:
       type: object
       required:

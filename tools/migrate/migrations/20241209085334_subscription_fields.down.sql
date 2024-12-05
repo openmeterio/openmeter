@@ -5,3 +5,6 @@ ALTER TABLE "subscription_items" DROP CONSTRAINT "subscription_items_entitlement
 ALTER TABLE "subscriptions" DROP COLUMN "description", DROP COLUMN "name";
 -- reverse: modify "entitlements" table
 ALTER TABLE "entitlements" ADD COLUMN "entitlement_subscription_item" character(26) NULL;
+-- reverse: custom
+ALTER TABLE "entitlements" ADD
+ CONSTRAINT "entitlements_subscription_items_subscription_item" FOREIGN KEY ("entitlement_subscription_item") REFERENCES "subscription_items" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;

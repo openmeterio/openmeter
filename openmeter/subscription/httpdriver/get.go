@@ -47,23 +47,12 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 				return def, commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("historical queries are not supported"))
 			}
 
-			if req.Query.Expand != nil && *req.Query.Expand {
-				view, err := h.SubscriptionService.GetView(ctx, req.ID)
-				if err != nil {
-					return def, err
-				}
-
-				return MapSubscriptionViewToAPI(view)
-			} else {
-				sub, err := h.SubscriptionService.Get(ctx, req.ID)
-				if err != nil {
-					return def, err
-				}
-
-				apiSub := MapSubscriptionToAPI(sub)
-
-				return MapAPISubscriptionToAPIExpanded(apiSub), nil
+			view, err := h.SubscriptionService.GetView(ctx, req.ID)
+			if err != nil {
+				return def, err
 			}
+
+			return MapSubscriptionViewToAPI(view)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(

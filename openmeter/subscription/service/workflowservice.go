@@ -58,17 +58,10 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		return def, fmt.Errorf("failed to fetch plan: %w", err)
 	}
 
-	// Let's validate the patches
-	for i, patch := range inp.Customization {
-		if err := patch.Validate(); err != nil {
-			return def, &models.GenericUserError{Message: fmt.Sprintf("invalid patch at index %d: %s", i, err.Error())}
-		}
-	}
-
 	// Let's create the new Spec
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 		CustomerId:     cust.ID,
-		Currency:       inp.Currency,
+		Currency:       plan.Currency(),
 		ActiveFrom:     inp.ActiveFrom,
 		AnnotatedModel: inp.AnnotatedModel,
 		Name:           inp.Name,
@@ -76,18 +69,6 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to create spec from plan: %w", err)
-	}
-
-	// Let's apply the customizations
-	err = spec.ApplyPatches(lo.Map(inp.Customization, subscription.ToApplies), subscription.ApplyContext{
-		Operation:   subscription.SpecOperationCreate,
-		CurrentTime: clock.Now(),
-	})
-	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
-		// FIXME: error details are lost here
-		return def, &models.GenericUserError{Message: sErr.Error()}
-	} else if err != nil {
-		return def, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
 	// Finally, let's create the subscription

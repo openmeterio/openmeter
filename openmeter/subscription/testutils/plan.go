@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -168,6 +169,10 @@ func (p *Plan) GetKey() string {
 
 func (p *Plan) GetVersionNumber() int {
 	return p.PlanInput.Plan.Version
+}
+
+func (p *Plan) Currency() currencyx.Code {
+	return currencyx.Code("USD")
 }
 
 type PlanPhase struct {

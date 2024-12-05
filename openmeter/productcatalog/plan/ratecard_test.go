@@ -39,7 +39,7 @@ func TestRateCard_JSON(t *testing.T) {
 				},
 				FlatFeeRateCard: productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:         "ratecard-1",
+						Key:         "feature-1",
 						Name:        "RateCard 1",
 						Description: lo.ToPtr("RateCard 1"),
 						Metadata: map[string]string{
@@ -98,7 +98,7 @@ func TestRateCard_JSON(t *testing.T) {
 				},
 				UsageBasedRateCard: productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:         "ratecard-2",
+						Key:         "feature-2",
 						Name:        "RateCard 2",
 						Description: lo.ToPtr("RateCard 2"),
 						Metadata: map[string]string{
@@ -187,7 +187,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 					},
 					FlatFeeRateCard: productcatalog.FlatFeeRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:         "flat-1",
+							Key:         "feat-1",
 							Name:        "Flat 1",
 							Description: lo.ToPtr("Flat 1"),
 							Metadata: map[string]string{
@@ -246,7 +246,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 					},
 					FlatFeeRateCard: productcatalog.FlatFeeRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:         "flat-2",
+							Key:         "feat-2",
 							Name:        "Flat 2",
 							Description: lo.ToPtr("Flat 2"),
 							Metadata: map[string]string{
@@ -329,7 +329,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 					},
 					UsageBasedRateCard: productcatalog.UsageBasedRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:         "usage-1",
+							Key:         "feat-1",
 							Name:        "Usage 1",
 							Description: lo.ToPtr("Usage 1"),
 							Metadata: map[string]string{
@@ -394,7 +394,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 					},
 					UsageBasedRateCard: productcatalog.UsageBasedRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:         "usage-2",
+							Key:         "feat-2",
 							Name:        "Usage 2",
 							Description: lo.ToPtr("Usage 2"),
 							Metadata: map[string]string{

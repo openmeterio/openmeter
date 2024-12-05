@@ -62,10 +62,7 @@ func (r RateCard) Validate() error {
 
 	// Let's validate that everything around the Price is configured correctly
 	if r.Price != nil {
-		// If a Price is configured, so must be Billing Cadence and Tax Config
-		if r.BillingCadence == nil {
-			return fmt.Errorf("missing billing cadence")
-		}
+		// If a Price is configured, so must be the Tax Config
 		if r.TaxConfig == nil {
 			return fmt.Errorf("missing tax config")
 		}
