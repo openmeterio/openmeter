@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"maps"
 	"reflect"
 	"time"
 
@@ -100,7 +101,12 @@ type CreateSubscriptionItemEntityInput struct {
 }
 
 func (i CreateSubscriptionItemEntityInput) Equal(other CreateSubscriptionItemEntityInput) bool {
-	return reflect.DeepEqual(i, other)
+	a := i
+	a.AnnotatedModel = models.AnnotatedModel{}
+	b := other
+	b.AnnotatedModel = models.AnnotatedModel{}
+
+	return reflect.DeepEqual(a, b) && maps.Equal(i.Metadata, other.Metadata)
 }
 
 type SubscriptionItemRepository interface {
