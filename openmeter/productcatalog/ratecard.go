@@ -133,6 +133,12 @@ func (r RateCardMeta) Validate() error {
 		}
 	}
 
+	if r.Feature != nil {
+		if r.Key != r.Feature.Key {
+			errs = append(errs, errors.New("Feature key mismatch"))
+		}
+	}
+
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}

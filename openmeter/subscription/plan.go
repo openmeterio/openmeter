@@ -3,6 +3,8 @@ package subscription
 import (
 	"context"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type PlanRef struct {
@@ -47,6 +49,9 @@ type Plan interface {
 	GetPhases() []PlanPhase
 	GetKey() string
 	GetVersionNumber() int
+
+	// Will not make sense on the long term
+	Currency() currencyx.Code
 }
 
 type PlanNotFoundError struct {

@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -49,26 +48,16 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionRequest{}, errAsPlanSub
 			}
 
-			patches := make([]subscription.Patch, 0, len(planSubBody.Customizations))
-
-			for idx, patch := range planSubBody.Customizations {
-				p, err := MapAPISubscriptionItemPatchToPatch(patch)
-				if err != nil {
-					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map patch at idx %d to subscription.Patch: %w", idx, err)
-				}
-
-				patches = append(patches, p)
-			}
-
 			return CreateSubscriptionRequest{
-				Namespace:     ns,
-				ActiveFrom:    planSubBody.ActiveFrom,
-				CustomerID:    planSubBody.CustomerId,
-				Currency:      currencyx.Code(planSubBody.Currency),
-				Plan:          planSubBody.Plan,
-				Customization: patches,
-				Name:          planSubBody.Name,
-				Description:   planSubBody.Description,
+				Namespace:  ns,
+				ActiveFrom: planSubBody.ActiveFrom,
+				CustomerID: planSubBody.CustomerId,
+				Plan: subscription.PlanRef{
+					Key:     planSubBody.Plan.Key,
+					Version: planSubBody.Plan.Version,
+				},
+				Name:        planSubBody.Name,
+				Description: planSubBody.Description,
 				AnnotatedModel: models.AnnotatedModel{
 					Metadata: convert.DerefHeaderPtr[string](planSubBody.Metadata),
 				},

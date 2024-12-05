@@ -103,11 +103,12 @@ model SubscriptionPhaseCreate {
 
   /**
    * The intended duration of the new phase.
+   * Duration is required when the phase will not be the last phase.
    */
   @summary("Duration")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1M"))
-  duration: duration;
+  duration?: duration;
 
   /**
    * The discounts on the plan.
@@ -213,7 +214,7 @@ model SubscriptionEdit {
    * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
    */
   @maxItems(100)
-  customizations: SubscriptionPatch[];
+  customizations: SubscriptionEditOperation[];
 }
 
 /**
@@ -250,10 +251,6 @@ model CustomSubscriptionCreate {
  */
 @friendlyName("CustomSubscriptionChange")
 model CustomSubscriptionChange {
-  metadata?: global.Metadata;
-  name: string;
-  description?: string;
-  currency: CurrencyCode;
   activeFrom: DateTime;
   customPlan: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>;
 }
@@ -273,30 +270,80 @@ model PlanSubscriptionCreate {
 @friendlyName("PlanSubscriptionChange")
 model PlanSubscriptionChange {
   metadata?: global.Metadata;
-  plan: {
-    key: Key;
-    version: integer;
-  };
-  currency: CurrencyCode;
+  plan: PlanReference;
   activeFrom: DateTime;
   name: string;
   description?: string;
-
-  /**
-   * Batch processing commands for customizing the susbcription.
-   * The key format is `/phases/{phaseKey}/items/{itemKey}`.
-   *
-   * Add operations insert a new member based on the creation input without altering the existing members.
-   *
-   * Remove operations remove the member from the document.
-   *
-   */
-  @maxItems(100)
-  customizations: SubscriptionItemPatch[];
 }
 
-@pattern("^\\/phases\\/[a-z0-9]+(?:_[a-z0-9]+)*$")
-scalar SubscriptionPhasePatchKey extends string;
+@friendlyName("SubscriptionEditOperation")
+@oneOf
+@discriminator("op")
+union SubscriptionEditOperation {
+  EditSubscriptionAddItem,
+  EditSubscriptionRemoveItem,
+  EditSubscriptionAddPhase,
+  EditSubscriptionRemovePhase,
+  EditSubscriptionStretchPhase,
+}
+
+@friendlyName("EditOp")
+enum EditOp {
+  AddItem: "add_item",
+  RemoveItem: "remove_item",
+  AddPhase: "add_phase",
+  RemovePhase: "remove_phase",
+  StretchPhase: "stretch_phase",
+}
+
+/**
+ * Add a new item to a phase.
+ */
+@friendlyName("EditSubscriptionAddItem")
+model EditSubscriptionAddItem {
+  `op`: EditOp.AddItem;
+  phaseKey: string;
+  rateCard: RateCard;
+}
+
+/**
+ * Remove an item from a phase.
+ */
+@friendlyName("EditSubscriptionRemoveItem")
+model EditSubscriptionRemoveItem {
+  `op`: EditOp.RemoveItem;
+  phaseKey: string;
+  itemKey: string;
+}
+
+/**
+ * Add a new phase
+ */
+@friendlyName("EditSubscriptionAddPhase")
+model EditSubscriptionAddPhase {
+  `op`: EditOp.AddPhase;
+  phase: SubscriptionPhaseCreate;
+}
+
+/**
+ * Remove a phase
+ */
+@friendlyName("EditSubscriptionRemovePhase")
+model EditSubscriptionRemovePhase {
+  `op`: EditOp.RemovePhase;
+  phaseKey: string;
+  shift: RemovePhaseShifting;
+}
+
+/**
+ * Stretch a phase
+ */
+@friendlyName("EditSubscriptionStretchPhase")
+model EditSubscriptionStretchPhase {
+  `op`: EditOp.StretchPhase;
+  phaseKey: string;
+  extendBy: duration;
+}
 
 /**
  * The direction of the phase shift when a phase is removed.
@@ -306,112 +353,10 @@ enum RemovePhaseShifting {
   /**
    * Shifts all subsequent phases to start sooner by the deleted phase's length
    */
-  Next,
+  Next: "next",
 
   /**
    * Extends the previous phase to end later by the deleted phase's length
    */
-  Prev,
-}
-
-/**
- * Subscription phase patch.
- */
-@oneOf
-@discriminator("op")
-@friendlyName("SubscriptionPhasePatch")
-union SubscriptionPhasePatch {
-  @friendlyName("SubscriptionPatchAddPhase")
-  AddPhase: SubscriptionEditAdd<
-    SubscriptionPhaseCreate,
-    SubscriptionPhasePatchKey
-  >,
-
-  @friendlyName("SubscriptionPatchStretchPhase")
-  StretchPhase: SubscriptionPhaseStretch<
-    {
-      /**
-       * The signed duration to extend or shrink the phase by.
-       */
-      @encode(DurationKnownEncoding.ISO8601)
-      extendBy: duration,
-    },
-    SubscriptionPhasePatchKey
-  >,
-
-  @friendlyName("SubscriptionPatchRemovePhase")
-  RemovePhase: SubscriptionEditRemoveWithValue<
-    {
-      shift: RemovePhaseShifting,
-    },
-    SubscriptionPhasePatchKey
-  >,
-}
-
-@pattern("^\\/phases\\/[a-z0-9]+(?:_[a-z0-9]+)*\\/items\\/[a-z0-9]+(?:_[a-z0-9]+)*$")
-scalar SubscriptionItemPatchKey extends string;
-
-/**
- * Subscription patch.
- */
-@oneOf
-@friendlyName("SubscriptionPatch")
-union SubscriptionPatch {
-  @friendlyName("SubscriptionItemPatch")
-  SubscriptionItemPatch,
-
-  SubscriptionPhasePatch,
-}
-
-/**
- * Subscription item patch.
- */
-@oneOf
-@discriminator("op")
-@friendlyName("SubscriptionItemPatch")
-union SubscriptionItemPatch {
-  @friendlyName("SubscriptionPatchAddItem")
-  AddItem: SubscriptionEditAdd<RateCard, SubscriptionItemPatchKey>,
-
-  @friendlyName("SubscriptionPatchRemoveItem")
-  RemoveItem: SubscriptionEditRemove<SubscriptionItemPatchKey>,
-}
-
-/**
- * Subscription item add operation.
- */
-@friendlyName("SubscriptionEditAdd{name}", K)
-model SubscriptionEditAdd<T, K extends string> {
-  `op`: "add";
-  path: K;
-  value: T;
-}
-
-/**
- * Subscription phase stretch operation.
- */
-@friendlyName("SubscriptionEditStretch{name}", K)
-model SubscriptionPhaseStretch<T, K extends string> {
-  `op`: "extend";
-  path: K;
-  value: T;
-}
-
-/**
- * Subscription phase remove operation.
- */
-@friendlyName("SubscriptionEditRemove{name}", K)
-model SubscriptionEditRemove<K extends string> {
-  `op`: "remove";
-  path: K;
-}
-
-/**
- * Subscription item remove operation with a value.
- */
-@friendlyName("SubscriptionEditRemoveWithValue{name}", K)
-model SubscriptionEditRemoveWithValue<T, K extends string> {
-  `op`: "remove";
-  path: K;
-  value: T;
+  Prev: "prev",
 }

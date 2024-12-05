@@ -38,13 +38,13 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 				return EditSubscriptionRequest{}, err
 			}
 
-			if body.Customizations == nil {
+			if len(body.Customizations) == 0 {
 				return EditSubscriptionRequest{}, fmt.Errorf("missing customizations")
 			}
 
-			patches := make([]subscription.Patch, 0, len(*body.Customizations))
-			for idx, patch := range *body.Customizations {
-				p, err := MapAPISubscriptionPatchToPatch(patch)
+			patches := make([]subscription.Patch, 0, len(body.Customizations))
+			for idx, patch := range body.Customizations {
+				p, err := MapAPISubscriptionEditOperationToPatch(patch)
 				if err != nil {
 					return EditSubscriptionRequest{}, fmt.Errorf("failed to map patch at idx %d to subscription.Patch: %w", idx, err)
 				}
