@@ -88,7 +88,7 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) (subscription.SubscriptionItem, error) {
 		var def subscription.SubscriptionItem
 
-		i, err := repo.db.SubscriptionItem.Create().
+		cmd := repo.db.SubscriptionItem.Create().
 			SetNillableActiveFromOverrideRelativeToPhaseStart(input.ActiveFromOverrideRelativeToPhaseStart.ISOStringPtrOrNil()).
 			SetNillableActiveToOverrideRelativeToPhaseStart(input.ActiveToOverrideRelativeToPhaseStart.ISOStringPtrOrNil()).
 			SetActiveFrom(input.ActiveFrom).
@@ -101,12 +101,23 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			SetName(input.RateCard.Name).
 			SetNillableDescription(input.RateCard.Description).
 			SetNillableFeatureKey(input.RateCard.FeatureKey).
-			SetEntitlementTemplate(input.RateCard.EntitlementTemplate).
-			SetTaxConfig(input.RateCard.TaxConfig).
-			SetPrice(input.RateCard.Price).
 			SetNillableEntitlementID(input.EntitlementID).
-			SetNillableBillingCadence(input.RateCard.BillingCadence.ISOStringPtrOrNil()).
-			Save(ctx)
+			SetNillableBillingCadence(input.RateCard.BillingCadence.ISOStringPtrOrNil())
+
+		// Due to the custom value scanner, these fields don't have Nillable setters generated, and the normal setters panic when trying to call .Validate() on nil
+		if input.RateCard.EntitlementTemplate != nil {
+			cmd.SetEntitlementTemplate(input.RateCard.EntitlementTemplate)
+		}
+
+		if input.RateCard.TaxConfig != nil {
+			cmd.SetTaxConfig(input.RateCard.TaxConfig)
+		}
+
+		if input.RateCard.Price != nil {
+			cmd.SetPrice(input.RateCard.Price)
+		}
+
+		i, err := cmd.Save(ctx)
 		if err != nil {
 			return def, err
 		}
