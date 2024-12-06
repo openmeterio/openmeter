@@ -257,6 +257,6 @@ func newEntitlementStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntitlementInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, EntitlementTable, EntitlementColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
 	)
 }

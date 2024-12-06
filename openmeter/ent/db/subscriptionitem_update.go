@@ -455,7 +455,7 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if siu.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   subscriptionitem.EntitlementTable,
 			Columns: []string{subscriptionitem.EntitlementColumn},
 			Bidi:    false,
@@ -468,7 +468,7 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if nodes := siu.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   subscriptionitem.EntitlementTable,
 			Columns: []string{subscriptionitem.EntitlementColumn},
 			Bidi:    false,
@@ -955,7 +955,7 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 	if siuo.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   subscriptionitem.EntitlementTable,
 			Columns: []string{subscriptionitem.EntitlementColumn},
 			Bidi:    false,
@@ -968,7 +968,7 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 	if nodes := siuo.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   subscriptionitem.EntitlementTable,
 			Columns: []string{subscriptionitem.EntitlementColumn},
 			Bidi:    false,

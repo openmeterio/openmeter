@@ -23,20 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func initClient(t *testing.T) *api.ClientWithResponses {
-	t.Helper()
-
-	address := os.Getenv("OPENMETER_ADDRESS")
-	if address == "" {
-		t.Skip("OPENMETER_ADDRESS not set")
-	}
-
-	client, err := api.NewClientWithResponses(address)
-	require.NoError(t, err)
-
-	return client
-}
-
 func TestMain(m *testing.M) {
 	wait := os.Getenv("TEST_WAIT_ON_START")
 
@@ -655,41 +641,6 @@ func TestQuery(t *testing.T) {
 			assert.Equal(t, expected, resp.JSON200)
 		}, time.Minute, time.Second)
 	})
-
-	// TODO: improve group by tests by adding more than one parameter
-	//
-	// Note: this test breaks if any of the randomization parameters are changed
-	// TODO: Fix query ordering first
-	// t.Run("GroupBy", func(t *testing.T) {
-	// 	t.Parallel()
-	//
-	// 	resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-	// 		GroupBy: &[]string{"method"},
-	// 	})
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, resp.StatusCode())
-	//
-	// 	expected := &api.MeterQueryResult{
-	// 		Data: []models.MeterQueryRow{
-	// 			{
-	// 				Value:       4 * 100,
-	// 				WindowStart: timestamp.Truncate(time.Minute),
-	// 				WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
-	// 				GroupBy:     map[string]*string{},
-	// 			},
-	// 			{
-	// 				Value:       4 * 100,
-	// 				WindowStart: timestamp.Truncate(time.Minute),
-	// 				WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
-	// 				GroupBy:     map[string]*string{},
-	// 			},
-	// 		},
-	// 	}
-	//
-	// 	assert.Equal(t, expected, resp.JSON200)
-	// })
-
-	// TODO: add tests for group by and subject
 }
 
 func TestCredit(t *testing.T) {

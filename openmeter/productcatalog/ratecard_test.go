@@ -23,7 +23,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 				Name: "valid",
 				RateCard: FlatFeeRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:         "flat-1",
+						Key:         "feat-1",
 						Name:        "Flat 1",
 						Description: lo.ToPtr("Flat 1"),
 						Metadata: map[string]string{
@@ -68,7 +68,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 				Name: "invalid",
 				RateCard: FlatFeeRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:         "flat-2",
+						Key:         "feat-2",
 						Name:        "Flat 2",
 						Description: lo.ToPtr("Flat 2"),
 						Metadata: map[string]string{
@@ -137,7 +137,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "valid",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:         "usage-1",
+						Key:         "feat-1",
 						Name:        "Usage 1",
 						Description: lo.ToPtr("Usage 1"),
 						Metadata: map[string]string{
@@ -188,7 +188,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:         "usage-2",
+						Key:         "feat-2",
 						Name:        "Usage 2",
 						Description: lo.ToPtr("Usage 2"),
 						Metadata: map[string]string{
@@ -264,7 +264,7 @@ func TestRateCardsEqual(t *testing.T) {
 				Left: []RateCard{
 					&UsageBasedRateCard{
 						RateCardMeta: RateCardMeta{
-							Key:         "usage-1",
+							Key:         "feat-1",
 							Name:        "Usage 1",
 							Description: lo.ToPtr("Usage 1"),
 							Metadata: map[string]string{
@@ -313,7 +313,7 @@ func TestRateCardsEqual(t *testing.T) {
 				Right: []RateCard{
 					&UsageBasedRateCard{
 						RateCardMeta: RateCardMeta{
-							Key:         "usage-1",
+							Key:         "feat-1",
 							Name:        "Usage 1",
 							Description: lo.ToPtr("Usage 1"),
 							Metadata: map[string]string{
@@ -366,7 +366,7 @@ func TestRateCardsEqual(t *testing.T) {
 				Left: []RateCard{
 					&UsageBasedRateCard{
 						RateCardMeta: RateCardMeta{
-							Key:         "usage-1",
+							Key:         "feat-1",
 							Name:        "Usage 1",
 							Description: lo.ToPtr("Usage 1"),
 							Metadata: map[string]string{
@@ -415,7 +415,7 @@ func TestRateCardsEqual(t *testing.T) {
 				Right: []RateCard{
 					&FlatFeeRateCard{
 						RateCardMeta: RateCardMeta{
-							Key:         "flat-1",
+							Key:         "feat-1",
 							Name:        "Flat 1",
 							Description: lo.ToPtr("Flat 1"),
 							Metadata: map[string]string{

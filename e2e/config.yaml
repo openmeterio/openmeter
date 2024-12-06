@@ -29,7 +29,16 @@ sink:
     brokers: kafka:9092
     brokerAddressFamily: v4
 
+apps:
+  enabled: true
+
 entitlements:
+  enabled: true
+
+productcatalog:
+  enabled: true
+
+billing:
   enabled: true
 
 postgres:
@@ -74,3 +83,8 @@ meters:
     aggregation: COUNT
     groupBy:
       model: $.model
+  - slug: plan_meter
+    description: Meter for testing plan metered feature
+    eventType: plan_meter
+    aggregation: SUM
+    valueProperty: $.value

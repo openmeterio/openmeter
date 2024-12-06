@@ -100,7 +100,7 @@ func (siq *SubscriptionItemQuery) QueryEntitlement() *EntitlementQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, subscriptionitem.EntitlementTable, subscriptionitem.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.EntitlementTable, subscriptionitem.EntitlementColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(siq.driver.Dialect(), step)
 		return fromU, nil

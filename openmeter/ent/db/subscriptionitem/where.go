@@ -1199,7 +1199,7 @@ func HasEntitlement() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, EntitlementTable, EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

@@ -90,10 +90,6 @@ type SubscriptionItemView struct {
 	Entitlement *SubscriptionEntitlement
 }
 
-func (s *SubscriptionItemView) BillingCadenceOLD() time.Duration {
-	panic("implement me")
-}
-
 func (s *SubscriptionItemView) AsSpec() SubscriptionItemSpec {
 	return s.Spec
 }
@@ -140,7 +136,12 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement template for Item %s is not static: %w", s.SubscriptionItem.Key, err)
 			}
 
-			if !reflect.DeepEqual(e.Config, ent.Config) {
+			cfgBytes1, err := e.Config.MarshalJSON()
+			if err != nil {
+				return fmt.Errorf("failed to marshal entitlement template %s config: %w", s.Entitlement.Entitlement.ID, err)
+			}
+
+			if string(cfgBytes1) != string(ent.Config) {
 				return fmt.Errorf("entitlement %s config does not match template config", s.Entitlement.Entitlement.ID)
 			}
 

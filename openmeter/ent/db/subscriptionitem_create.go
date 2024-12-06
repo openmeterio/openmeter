@@ -494,7 +494,7 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 	if nodes := sic.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   subscriptionitem.EntitlementTable,
 			Columns: []string{subscriptionitem.EntitlementColumn},
 			Bidi:    false,

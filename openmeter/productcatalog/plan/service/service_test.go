@@ -120,7 +120,7 @@ func TestPlanService(t *testing.T) {
 						RateCards: []productcatalog.RateCard{
 							&productcatalog.FlatFeeRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:         "pro-2-ratecard-1",
+									Key:         "api_requests_total",
 									Name:        "Pro-2 RateCard 1",
 									Description: lo.ToPtr("Pro-2 RateCard 1"),
 									Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
@@ -653,7 +653,7 @@ func TestPlanService(t *testing.T) {
 								},
 								UsageBasedRateCard: productcatalog.UsageBasedRateCard{
 									RateCardMeta: productcatalog.RateCardMeta{
-										Key:         "pro-2-ratecard-1",
+										Key:         "api_requests_total",
 										Name:        "Pro-2 RateCard 1",
 										Description: lo.ToPtr("Pro-2 RateCard 1"),
 										Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
@@ -742,7 +742,7 @@ func TestPlanService(t *testing.T) {
 								},
 								UsageBasedRateCard: productcatalog.UsageBasedRateCard{
 									RateCardMeta: productcatalog.RateCardMeta{
-										Key:         "pro-2-ratecard-1",
+										Key:         "api_requests_total",
 										Name:        "Pro-2 RateCard 1",
 										Description: lo.ToPtr("Pro-2 RateCard 1"),
 										Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
@@ -831,7 +831,7 @@ func TestPlanService(t *testing.T) {
 								},
 								FlatFeeRateCard: productcatalog.FlatFeeRateCard{
 									RateCardMeta: productcatalog.RateCardMeta{
-										Key:         "pro-2-ratecard-1",
+										Key:         "api_requests_total",
 										Name:        "Pro-2 RateCard 1",
 										Description: lo.ToPtr("Pro-2 RateCard 1"),
 										Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
