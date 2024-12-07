@@ -43,7 +43,7 @@ type InvoiceLineService interface {
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (billingentity.Invoice, error)
-	CreateInvoice(ctx context.Context, input CreateInvoiceInput) ([]billingentity.Invoice, error)
+	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]billingentity.Invoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
 	// - an error is occurred
 	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)

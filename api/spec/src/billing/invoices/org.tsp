@@ -29,20 +29,42 @@ namespace Invoices;
  * Party represents a person or business entity.
  */
 @friendlyName("BillingParty")
-model Party {
-  @summary("ID of the party.")
-  @visibility("read", "update")
-  // id is null if there's no dedicated entity different from the parent object to store the party (these are not updated directly via
-  // the underlying entity so it's not a problem)
-  id?: ULID;
+model BillingParty {
+  /**
+   * Unique identifier for the party (if available)
+   */
+  @visibility("read")
+  id?: string;
 
-  @summary("Legal name or representation of the organization.")
+  /**
+   * Legal name or representation of the organization.
+   */
+  @visibility("read", "update", "create")
   name?: string;
 
-  @summary("The entity's legal ID code used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes.")
-  taxId?: TaxIdentity;
+  /**
+   * The entity's legal ID code used for tax purposes. They may have
+   * other numbers, but we're only interested in those valid for tax purposes.
+   */
+  @visibility("read", "update", "create")
+  taxId?: BillingPartyTaxIdentity;
 
-  @summary("Regular post addresses for where information should be sent if needed.")
+  /**
+   * Regular post addresses for where information should be sent if needed.
+   */
   @maxItems(1)
-  addresses?: Array<Address>;
+  @visibility("read", "update", "create")
+  addresses?: Address[];
+}
+
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a specific country.
+ */
+@friendlyName("BillingPartyTaxIdentity")
+model BillingPartyTaxIdentity {
+  /**
+   * Normalized tax code shown on the original identity document.
+   */
+  @visibility("read", "update", "create")
+  code?: TaxIdentificationCode;
 }

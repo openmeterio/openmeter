@@ -516,7 +516,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	}
 
 	s.Run("Creating invoice in the future fails", func() {
-		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -529,7 +529,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("Creating invoice without any pending lines being available fails", func() {
-		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -554,7 +554,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When creating an invoice with only item1 included", func() {
-		invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -582,7 +582,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When creating an invoice with only item2 included, but bad asof", func() {
-		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -597,7 +597,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 
 	s.Run("When creating an invoice with only item2 included", func() {
-		invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerentity.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
@@ -704,7 +704,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 	require.NotEmpty(s.T(), line1ID)
 	require.NotEmpty(s.T(), line2ID)
 
-	invoice, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customerentity.CustomerID{
 			ID:        in.Customer.ID,
 			Namespace: in.Customer.Namespace,
@@ -1466,7 +1466,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 	s.Run("create invoice with empty truncated periods", func() {
 		asOf := periodStart.Add(time.Second)
-		_, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
 		})
@@ -1481,7 +1481,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		// Period
 		asOf := periodStart.Add(time.Hour)
-		out, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
 		})
@@ -1567,9 +1567,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 				Type: billingentity.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-					Price: mo.Some(*productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(250),
-					})),
+					}),
 				},
 			})
 			require.NoError(s.T(), err)
@@ -1609,7 +1609,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 				Type: billingentity.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-					Price: mo.Some(*productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 						Mode: productcatalog.VolumeTieredPrice,
 						Tiers: []productcatalog.PriceTier{
 							{
@@ -1618,7 +1618,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 								},
 							},
 						},
-					})),
+					}),
 				},
 			})
 
@@ -1771,7 +1771,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*100))
 
 		asOf := periodStart.Add(2 * time.Hour)
-		out, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
 		})
@@ -1935,7 +1935,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, afterPreviousTest)
 
 		asOf := periodEnd
-		out, err := s.BillingService.CreateInvoice(ctx, billing.CreateInvoiceInput{
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: customerEntity.GetID(),
 			AsOf:     &asOf,
 		})

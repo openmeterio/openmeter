@@ -35,7 +35,7 @@ type (
 func (h *handler) CreateProfile() CreateProfileHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateProfileRequest, error) {
-			body := api.BillingProfileCreateInput{}
+			body := api.BillingProfileCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateProfileRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
@@ -45,7 +45,7 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 				return CreateProfileRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			workflow, err := fromAPIBillingWorkflow(body.Workflow)
+			workflow, err := fromAPIBillingWorkflowCreate(body.Workflow)
 			if err != nil {
 				return CreateProfileRequest{}, fmt.Errorf("failed to parse workflow: %w", err)
 			}
@@ -77,7 +77,7 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 		commonhttp.JSONResponseEncoderWithStatus[CreateProfileResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("billingCreateProfile"),
+			httptransport.WithOperationName("CreateBillingProfile"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
@@ -120,42 +120,42 @@ func (h *handler) GetProfile() GetProfileHandler {
 		commonhttp.JSONResponseEncoderWithStatus[CreateProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("billingGetProfile"),
+			httptransport.WithOperationName("GetBillingProfile"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
 
 type (
-	ArchiveProfileRequest  = billing.DeleteProfileInput
-	ArchiveProfileResponse = struct{}
-	ArchiveProfileHandler  httptransport.HandlerWithArgs[ArchiveProfileRequest, ArchiveProfileResponse, string]
+	DeleteProfileRequest  = billing.DeleteProfileInput
+	DeleteProfileResponse = struct{}
+	DeleteProfileHandler  httptransport.HandlerWithArgs[DeleteProfileRequest, DeleteProfileResponse, string]
 )
 
-func (h *handler) ArchiveProfile() ArchiveProfileHandler {
+func (h *handler) DeleteProfile() DeleteProfileHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, id string) (ArchiveProfileRequest, error) {
+		func(ctx context.Context, r *http.Request, id string) (DeleteProfileRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ArchiveProfileRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return DeleteProfileRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return ArchiveProfileRequest{
+			return DeleteProfileRequest{
 				Namespace: ns,
 				ID:        id,
 			}, nil
 		},
-		func(ctx context.Context, request ArchiveProfileRequest) (ArchiveProfileResponse, error) {
+		func(ctx context.Context, request DeleteProfileRequest) (DeleteProfileResponse, error) {
 			if err := h.service.DeleteProfile(ctx, request); err != nil {
-				return ArchiveProfileResponse{}, fmt.Errorf("failed to archive profile: %w", err)
+				return DeleteProfileResponse{}, fmt.Errorf("failed to archive profile: %w", err)
 			}
 
-			return ArchiveProfileResponse{}, nil
+			return DeleteProfileResponse{}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[ArchiveProfileResponse](http.StatusNoContent),
+		commonhttp.JSONResponseEncoderWithStatus[DeleteProfileResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("billingArchiveProfile"),
+			httptransport.WithOperationName("DeleteBillingProfile"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
@@ -170,7 +170,7 @@ type (
 func (h *handler) UpdateProfile() UpdateProfileHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, id string) (UpdateProfileRequest, error) {
-			body := api.BillingUpdateProfileJSONRequestBody{}
+			body := api.BillingProfileReplaceUpdateWithWorkflow{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateProfileRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
@@ -191,7 +191,6 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 
 				Name:        body.Name,
 				Description: body.Description,
-				UpdatedAt:   body.UpdatedAt,
 
 				Metadata: lo.FromPtrOr(body.Metadata, map[string]string{}),
 
@@ -213,7 +212,7 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 		commonhttp.JSONResponseEncoderWithStatus[UpdateProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("billingArchiveProfile"),
+			httptransport.WithOperationName("UpdateBillingProfiles"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
@@ -221,8 +220,8 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 
 type (
 	ListProfilesRequest  = billing.ListProfilesInput
-	ListProfilesResponse = api.ProfilePaginatedResponse
-	ListProfilesParams   = api.BillingListProfilesParams
+	ListProfilesResponse = api.BillingProfilePaginatedResponse
+	ListProfilesParams   = api.ListBillingProfilesParams
 	ListProfilesHandler  httptransport.HandlerWithArgs[ListProfilesRequest, ListProfilesResponse, ListProfilesParams]
 )
 
@@ -273,13 +272,13 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListProfilesResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("billingListProfile"),
+			httptransport.WithOperationName("ListBillingProfiles"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
 
-func apiBillingPartyCreateToSupplierContact(c api.BillingPartyCreate) billingentity.SupplierContact {
+func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billingentity.SupplierContact {
 	out := billingentity.SupplierContact{
 		Name: lo.FromPtrOr(c.Name, ""),
 	}
@@ -309,7 +308,6 @@ func apiBillingPartyCreateToSupplierContact(c api.BillingPartyCreate) billingent
 
 func apiBillingPartyToSupplierContact(c api.BillingParty) billingentity.SupplierContact {
 	out := billingentity.SupplierContact{
-		ID:   lo.FromPtrOr(c.Id, ""),
 		Name: lo.FromPtrOr(c.Name, ""),
 	}
 
@@ -336,7 +334,7 @@ func apiBillingPartyToSupplierContact(c api.BillingParty) billingentity.Supplier
 	return out
 }
 
-func fromAPIBillingProfileCreateAppsInput(i api.BillingProfileCreateAppsInput) billing.CreateProfileAppsInput {
+func fromAPIBillingProfileCreateAppsInput(i api.BillingProfileAppsCreate) billing.CreateProfileAppsInput {
 	return billing.CreateProfileAppsInput{
 		Tax:       fromAPIBillingAppIdOrType(i.Tax),
 		Invoicing: fromAPIBillingAppIdOrType(i.Invoicing),
@@ -394,7 +392,7 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billingentity.WorkflowConfig
 		DeletedAt: i.DeletedAt,
 
 		Collection: billingentity.CollectionConfig{
-			Alignment: lo.FromPtrOr((*billingentity.AlignmentKind)(i.Collection.Alignment), def.Collection.Alignment),
+			Alignment: def.Collection.Alignment,
 			Interval:  collInterval,
 		},
 
@@ -408,6 +406,14 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billingentity.WorkflowConfig
 			CollectionMethod: lo.FromPtrOr((*billingentity.CollectionMethod)(i.Payment.CollectionMethod), def.Payment.CollectionMethod),
 		},
 	}, nil
+}
+
+func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billingentity.WorkflowConfig, error) {
+	return fromAPIBillingWorkflow(api.BillingWorkflow{
+		Collection: i.Collection,
+		Invoicing:  i.Invoicing,
+		Payment:    i.Payment,
+	})
 }
 
 func parseDurationPtr(d *string, defaultDuration datex.Period) (datex.Period, error) {
@@ -542,6 +548,7 @@ func mapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
 	a := c.Address
 
 	out := api.BillingParty{
+		Id:   lo.EmptyableToPtr(c.ID),
 		Name: lo.EmptyableToPtr(c.Name),
 		Addresses: lo.ToPtr([]api.Address{
 			{
@@ -557,7 +564,7 @@ func mapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
 	}
 
 	if c.TaxCode != nil {
-		out.TaxId = &api.BillingTaxIdentity{
+		out.TaxId = &api.BillingPartyTaxIdentity{
 			Code: c.TaxCode,
 		}
 	}
@@ -573,8 +580,10 @@ func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow 
 		DeletedAt: c.DeletedAt,
 
 		Collection: &api.BillingWorkflowCollectionSettings{
-			Alignment: (*api.BillingWorkflowCollectionAlignment)(lo.EmptyableToPtr(c.Collection.Alignment)),
-			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
+			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{
+				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Collection.Alignment),
+			},
+			Interval: lo.EmptyableToPtr(c.Collection.Interval.String()),
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
@@ -584,7 +593,7 @@ func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow 
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
-			CollectionMethod: (*api.BillingWorkflowCollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+			CollectionMethod: (*api.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
 		},
 	}
 }
@@ -592,8 +601,10 @@ func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow 
 func mapWorkflowConfigSettingsToAPI(c billingentity.WorkflowConfig) api.BillingWorkflowSettings {
 	return api.BillingWorkflowSettings{
 		Collection: &api.BillingWorkflowCollectionSettings{
-			Alignment: (*api.BillingWorkflowCollectionAlignment)(lo.EmptyableToPtr(c.Collection.Alignment)),
-			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
+			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{
+				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Collection.Alignment),
+			},
+			Interval: lo.EmptyableToPtr(c.Collection.Interval.String()),
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
@@ -603,7 +614,7 @@ func mapWorkflowConfigSettingsToAPI(c billingentity.WorkflowConfig) api.BillingW
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
-			CollectionMethod: (*api.BillingWorkflowCollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+			CollectionMethod: (*api.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
 		},
 	}
 }

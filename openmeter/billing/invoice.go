@@ -72,7 +72,7 @@ type ListInvoicesInput struct {
 
 	Expand billingentity.InvoiceExpand
 
-	OrderBy api.BillingInvoiceOrderBy
+	OrderBy api.InvoiceOrderBy
 	Order   sortx.Order
 }
 
@@ -144,14 +144,14 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 
 type CreateInvoiceAdapterRespone = billingentity.Invoice
 
-type CreateInvoiceInput struct {
+type InvoicePendingLinesInput struct {
 	Customer customerentity.CustomerID
 
 	IncludePendingLines mo.Option[[]string]
 	AsOf                *time.Time
 }
 
-func (i CreateInvoiceInput) Validate() error {
+func (i InvoicePendingLinesInput) Validate() error {
 	if err := i.Customer.Validate(); err != nil {
 		return fmt.Errorf("customer: %w", err)
 	}

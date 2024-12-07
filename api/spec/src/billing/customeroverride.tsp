@@ -11,67 +11,68 @@ interface CustomerOverrides {
    */
   @get
   @summary("List customer overrides")
-  @operationId("billingListCustomerOverrides")
+  @operationId("listBillingProfileCustomerOverrides")
   @extension("x-internal", true)
   list(
     @query
-    billingProfile?: Array<ULID>,
+    billingProfile?: ULID[],
 
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<CustomerOverrideOrderBy>,
-  ): OpenMeter.PaginatedResponse<CustomerOverride> | OpenMeter.CommonErrors;
+    ...OpenMeter.QueryOrdering<BillingProfileCustomerOverrideOrderBy>,
+  ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverride> | OpenMeter.CommonErrors;
 
   /**
-   * Create/update a new customer override.
+   * Create a new or update an existing customer override.
    */
   @post
   @route("/{customerId}")
-  @summary("Create/update a customer override")
-  @operationId("billingUpsertCustomerOverride")
+  @operationId("upsertBillingProfileCustomerOverride")
+  @summary("Create a new or update a customer override")
   @extension("x-internal", true)
   upsert(
     @path
     customerId: ULID,
 
     @body
-    request: CustomerWorkflowOverride,
+    request: BillingProfileCustomerOverrideCreate,
   ):
-    | {
-        // Updated
-        @statusCode _: 200;
-
-        @body body: CustomerOverride;
-      }
     | {
         // Created
         @statusCode _: 201;
 
-        @body body: CustomerOverride;
+        @body body: BillingProfileCustomerOverride;
       }
+    | {
+        // Updated
+        @statusCode _: 200;
+
+        @body body: BillingProfileCustomerOverride;
+      }
+    | BillingProfileCustomerOverride
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
 
   /**
-   * Get a customer override by id.
+   * Get a customer override by customer id.
    */
   @get
   @route("/{customerId}")
   @summary("Get a customer override")
-  @operationId("billingGetCustomerOverrideById")
+  @operationId("getBillingProfileCustomerOverride")
   @extension("x-internal", true)
   get(
     @path
     customerId: ULID,
-  ): CustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfileCustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
-   * Delete a customer override by id.
+   * Delete a customer override by customer id.
    */
   @delete
   @route("/{customerId}")
   @summary("Delete a customer override")
-  @operationId("billingDeleteCustomerOverride")
+  @operationId("deleteBillingProfileCustomerOverride")
   @extension("x-internal", true)
   delete(
     @path
@@ -84,18 +85,33 @@ interface CustomerOverrides {
 /**
  * Order by options for customers.
  */
-@friendlyName("BillingCustomerOverrideOrderBy")
-enum CustomerOverrideOrderBy {
+@friendlyName("BillingProfileCustomerOverrideOrderBy")
+enum BillingProfileCustomerOverrideOrderBy {
   id: "id",
 }
 
 /**
  * Customer specific workflow overrides.
  */
-@friendlyName("BillingCustomerOverride")
-model CustomerOverride {
+@friendlyName("BillingProfileCustomerOverride")
+model BillingProfileCustomerOverride {
   ...ResourceTimestamps;
-  workflow: CustomerWorkflowOverride;
+  workflow?: BillingProfileCustomerWorkflowOverride;
+
+  /**
+   * The billing profile this override is associated with.
+   *
+   * If not provided, the default billing profile is chosen if available.
+   */
+  billingProfile?: ULID;
+}
+
+/**
+ * Payload for creating a new or updating an existing customer override.
+ */
+@friendlyName("BillingProfileCustomerOverrideCreate")
+model BillingProfileCustomerOverrideCreate {
+  workflow?: Rest.Resource.ResourceCreateModel<BillingProfileCustomerWorkflowOverride>;
 
   /**
    * The billing profile this override is associated with.
@@ -108,9 +124,9 @@ model CustomerOverride {
 /**
  * Customer specific workflow overrides.
  */
-@friendlyName("BillingCustomerWorkflowOverride")
-model CustomerWorkflowOverride {
-  ...OmitProperties<Workflow, "taxApp" | "invoicingApp" | "paymentApp">;
+@friendlyName("BillingProfileCustomerWorkflowOverride")
+model BillingProfileCustomerWorkflowOverride {
+  ...BillingWorkflow;
 
   // Note: these are only available for read, as provider override is not supported via the customer override.
   // to do that the customer should be assocatied with a new billing profile instead.

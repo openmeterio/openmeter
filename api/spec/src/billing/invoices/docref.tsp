@@ -9,10 +9,10 @@ using TypeSpec.OpenAPI;
 namespace Invoices;
 
 /**
- * DocumentRefType defines the type of document that is being referenced.
+ * InvoiceDocumentRefType defines the type of document that is being referenced.
  */
-@friendlyName("BillingDocumentRefType")
-enum DocumentRefType {
+@friendlyName("InvoiceDocumentRefType")
+enum InvoiceDocumentRefType {
   creditNoteOriginalInvoice: "credit_node_original_invoice",
 }
 
@@ -22,43 +22,59 @@ enum DocumentRefType {
  *  stamps: Seals of approval from other organisations that may need to be listed.
  *  ext: 	Extensions for additional codes that may be required.
  */
-@summary("DocumentRef is used to describe an existing document or a specific part of it's contents.")
-@friendlyName("BillingGenericDocumentRef")
-model GenericDocumentRef {
-  @summary("Type of the document referenced.")
+@summary("InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.")
+@friendlyName("InvoiceGenericDocumentRef")
+model InvoiceGenericDocumentRef {
+  /**
+   * Type of the document referenced.
+   */
   @visibility("read")
-  type: DocumentRefType;
+  type: InvoiceDocumentRefType;
 
-  @summary("Human readable description on why this reference is here or needs to be used.")
+  /**
+   * Human readable description on why this reference is here or needs to be used.
+   */
+  @visibility("read")
   reason?: string;
 
-  @summary("Additional details about the document.")
+  /**
+   * Additional details about the document.
+   */
+  @visibility("read")
   description?: string;
 }
 
 /**
  * CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is based on.
  */
-@friendlyName("BillingCreditNoteOriginalInvoiceRef")
-model CreditNoteOriginalInvoiceRef extends GenericDocumentRef {
-  type: DocumentRefType.creditNoteOriginalInvoice;
+@friendlyName("CreditNoteOriginalInvoiceRef")
+model InvoiceCreditNoteOriginalInvoiceRef extends InvoiceGenericDocumentRef {
+  type: InvoiceDocumentRefType.creditNoteOriginalInvoice;
 
-  @summary("IssueAt reflects the time the document was issued.")
+  /**
+   * IssueAt reflects the time the document was issued.
+   */
+  @visibility("read")
   issuedAt?: DateTime;
 
-  @summary("(Serial) Number of the referenced document.")
+  /**
+   * (Serial) Number of the referenced document.
+   */
   @visibility("read")
   number?: InvoiceNumber;
 
-  @summary("Link to the source document.")
+  /**
+   * Link to the source document.
+   */
   @format("uri")
+  @visibility("read")
   url: string;
 }
 
 /**
- * DocumentRef is used to describe a reference to an existing document (invoice).
+ * InvoiceDocumentRef is used to describe a reference to an existing document (invoice).
  */
-@friendlyName("BillingDocumentRef")
-union DocumentRef {
-  creditNoteOriginalInvoice: CreditNoteOriginalInvoiceRef,
+@friendlyName("InvoiceDocumentRef")
+union InvoiceDocumentRef {
+  creditNoteOriginalInvoice: InvoiceCreditNoteOriginalInvoiceRef,
 }

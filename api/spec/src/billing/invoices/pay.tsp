@@ -9,24 +9,39 @@ using TypeSpec.OpenAPI;
 namespace Invoices;
 
 /**
- * DueDate contains an amount that should be paid by the given date.
+ * PaymentDueDate contains an amount that should be paid by the given date.
  */
-@friendlyName("BillingDueDate")
-model DueDate {
-  @summary("When the payment is due.")
+@friendlyName("PaymentDueDate")
+model PaymentDueDate {
+  /**
+   * When the payment is due.
+   */
   // Note: This is a date-time, but we should use a date-time string to be more specific. (original schema has a Date field)
+  @visibility("read")
   dueAt: DateTime;
 
-  @summary("Other details to take into account for the due date.")
+  /**
+   * Other details to take into account for the due date.
+   */
+  @visibility("read")
   notes?: string;
 
-  @summary("How much needs to be paid by the date.")
+  /**
+   * How much needs to be paid by the date.
+   */
+  @visibility("read")
   amount: Money;
 
-  @summary("Percentage of the total that should be paid by the date.")
+  /**
+   * Percentage of the total that should be paid by the date.
+   */
+  @visibility("read")
   percent?: Percentage;
 
-  @summary("If different from the parent document's base currency.")
+  /**
+   * If different from the parent document's base currency.
+   */
+  @visibility("read")
   currency?: CurrencyCode;
 }
 
@@ -34,35 +49,47 @@ model DueDate {
  * Most of the allowed values are omited, please see https://docs.gobl.org/draft-0/pay/terms
  */
 /**
- * PaymentPaymentTermType defines the type of terms to be applied.
+ * PaymentTermType defines the type of terms to be applied.
  */
-@friendlyName("BillingPaymentTermType")
+@friendlyName("PaymentTermType")
 enum PaymentTermType {
-  @summary("Due on a specific date")
+  /**
+   * Due on a specific date.
+   */
   dueDate: "due_date",
 
-  @summary("On receipt of invoice")
+  /**
+   * On receipt of invoice
+   */
   instant: "instant",
 }
 
 @summary("Terms defines when we expect the customer to pay, or have paid, for the contents of the document.")
-@friendlyName("BillingGenericPaymentTerms")
+@friendlyName("GenericPaymentTerms")
 @discriminator("type")
 model GenericPaymentTerms<T extends PaymentTermType> {
-  @summary("Type of terms to be applied.")
+  /**
+   * Type of terms to be applied.
+   */
   type: T;
 
-  @summary("Text detail of the chosen payment terms.")
+  /**
+   * Text detail of the chosen payment terms.
+   */
+  @visibility("read")
   detail?: string;
 
-  @summary("Description of the conditions for payment.")
+  /**
+   * Description of the conditions for payment.
+   */
+  @visibility("read")
   notes?: string;
 }
 
 /**
  * PaymentTermInstant defines the terms for payment on receipt of invoice.
  */
-@friendlyName("BillingPaymentTermInstant")
+@friendlyName("PaymentTermInstant")
 model PaymentTermInstant {
   ...GenericPaymentTerms<PaymentTermType.instant>;
 }
@@ -70,19 +97,22 @@ model PaymentTermInstant {
 /**
  * PaymentTermDueDate defines the terms for payment on a specific date.
  */
-@friendlyName("BillingPaymentTermDueDate")
+@friendlyName("PaymentTermDueDate")
 model PaymentTermDueDate {
   ...GenericPaymentTerms<PaymentTermType.dueDate>;
 
-  @summary("When the payment is due.")
+  /**
+   * When the payment is due.
+   */
   @minItems(1)
-  dueAt: DueDate[];
+  @visibility("read")
+  dueAt: PaymentDueDate[];
 }
 
 /**
  * PaymentTerms defines the terms for payment.
  */
-@friendlyName("BillingPaymentTerms")
+@friendlyName("PaymentTerms")
 union PaymentTerms {
   instant: PaymentTermInstant,
   dueDate: PaymentTermDueDate,

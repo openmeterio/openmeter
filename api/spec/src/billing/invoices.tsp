@@ -15,12 +15,12 @@ interface InvoiceEndpoints {
    */
   @get
   @summary("List invoices")
-  @operationId("billingListInvoices")
+  @operationId("listInvoices")
   @extension("x-internal", true)
   list(
     @query
     @summary("Filter by the customer ID or key")
-    customers?: Array<ULID>,
+    customers?: ULID[],
 
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
@@ -48,15 +48,16 @@ interface CustomerInvoicesEndpoints {
    * The call can return multiple invoices if the pending line items are in different currencies.
    */
   @post
-  @summary("Create an invoice")
-  @operationId("billingCreateInvoice")
+  @route("/invoice")
+  @summary("Invoice a customer based on the pending line items")
+  @operationId("invoicePendingLinesAction")
   @extension("x-internal", true)
-  create(
+  invoicePendingLinesAction(
     @path
     customerId: ULID,
 
     @body
-    request: InvoiceCreate,
+    request: InvoicePendingLinesActionInput,
   ): {
     @statusCode _: 201;
 
@@ -69,7 +70,7 @@ interface CustomerInvoicesEndpoints {
    */
   @get
   @summary("List invoices")
-  @operationId("billingListInvoicesByCustomer")
+  @operationId("listInvoicesByCustomer")
   @extension("x-internal", true)
   listInvoicesByCustomer(
     @path customerId: ULID,
@@ -95,17 +96,17 @@ interface CustomerInvoicesEndpoints {
   @post
   @route("/lines")
   @summary("Create line items")
-  @operationId("billingCreateLineByCustomer")
+  @operationId("createInvoiceLineByCustomer")
   @extension("x-internal", true)
-  createLine(
+  createInvoiceLine(
     @path
     customerId: ULID,
 
     @body
-    request: TypeSpec.Rest.Resource.ResourceCreateOrUpdateModel<Lines>,
+    request: Invoices.InvoiceLineCreate[],
   ): {
     @statusCode _: 201;
-    @body body: Lines;
+    @body body: Invoices.InvoiceLine[];
   } | OpenMeter.CommonErrors;
 }
 
@@ -120,7 +121,7 @@ interface CustomerInvoiceEndpoints {
    */
   @get
   @summary("Get an invoice")
-  @operationId("billingGetInvoiceByCustomerInvoiceId")
+  @operationId("getInvoice")
   @extension("x-internal", true)
   getInvoice(
     @path
@@ -131,6 +132,9 @@ interface CustomerInvoiceEndpoints {
 
     @query
     expand: InvoiceExpand[] = #[InvoiceExpand.lines],
+
+    @query
+    includeDeletedLines: boolean = false,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -140,7 +144,7 @@ interface CustomerInvoiceEndpoints {
    */
   @delete
   @summary("Delete an invoice")
-  @operationId("billingDeleteInvoiceByCustomerInvoiceId")
+  @operationId("deleteInvoice")
   @extension("x-internal", true)
   deleteInvoice(
     @path
@@ -156,23 +160,19 @@ interface CustomerInvoiceEndpoints {
    * Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
    *
    * Note: charges might apply, depending on the tax provider.
-   *
    */
   @post
   @route("/tax/recalculate")
   @summary("Recalculate an invoice's tax amounts")
-  @operationId("billingRecalculateInvoiceTax")
+  @operationId("recalculateInvoiceTaxAction")
   @extension("x-internal", true)
-  recalculateTax(
+  recalculateTaxAction(
     @path
     customerId: ULID,
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Approve an invoice and start executing the payment workflow.
@@ -186,18 +186,15 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/approve")
   @summary("Send the invoice to the customer")
-  @operationId("billingApproveInvoice")
+  @operationId("approveInvoiceAction")
   @extension("x-internal", true)
-  approve(
+  approveAction(
     @path
     customerId: ULID,
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Void an invoice
@@ -209,9 +206,9 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/void")
   @summary("Void an invoice")
-  @operationId("billingVoidInvoice")
+  @operationId("voidInvoiceAction")
   @extension("x-internal", true)
-  voidInvoice(
+  voidInvoiceAction(
     @path
     customerId: ULID,
 
@@ -219,11 +216,8 @@ interface CustomerInvoiceEndpoints {
     invoiceId: ULID,
 
     @body
-    request: VoidInvoiceInput,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    request: VoidInvoiceActionInput,
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Advance the invoice's state to the next status.
@@ -235,18 +229,15 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/advance")
   @summary("Advance the invoice's state to the next status")
-  @operationId("billingInvoiceAdvance")
+  @operationId("advanceInvoiceAction")
   @extension("x-internal", true)
-  advance(
+  advanceAction(
     @path
     customerId: ULID,
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Retry advancing the invoice after a failed attempt.
@@ -256,18 +247,15 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/retry")
   @summary("Retry advancing the invoice after a failed attempt.")
-  @operationId("billingInvoiceRetry")
+  @operationId("retryInvoiceAction")
   @extension("x-internal", true)
-  retry(
+  retryAction(
     @path
     customerId: ULID,
 
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.Invoice;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   // Line management
 
@@ -277,16 +265,13 @@ interface CustomerInvoiceEndpoints {
   @get
   @route("/lines/{lineId}")
   @summary("Get an invoice line")
-  @operationId("billingGetInvoiceLine")
+  @operationId("getInvoiceLine")
   @extension("x-internal", true)
   getInvoiceLine(
     @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
-  ): {
-    @statusCode _: 204;
-    @body body: Invoices.InvoiceLine;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete an invoice line
@@ -294,7 +279,7 @@ interface CustomerInvoiceEndpoints {
   @delete
   @route("/lines/{lineId}")
   @summary("Delete an invoice line")
-  @operationId("billingDeleteInvoiceLine")
+  @operationId("deleteInvoiceLine")
   @extension("x-internal", true)
   deleteInvoiceLine(
     @path customerId: ULID,
@@ -310,7 +295,7 @@ interface CustomerInvoiceEndpoints {
   @post
   @route("/lines/{lineId}")
   @summary("Update an invoice line")
-  @operationId("billingUpdateInvoiceLine")
+  @operationId("updateInvoiceLine")
   @extension("x-internal", true)
   updateInvoiceLine(
     @path customerId: ULID,
@@ -318,11 +303,8 @@ interface CustomerInvoiceEndpoints {
     @path lineId: ULID,
 
     @body
-    request: Invoices.InvoiceLine,
-  ): {
-    @statusCode _: 200;
-    @body body: Invoices.InvoiceLine;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+    request: Invoices.InvoiceLineReplaceUpdate,
+  ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * TODOs:
@@ -335,7 +317,7 @@ interface CustomerInvoiceEndpoints {
 /**
  * InvoiceOrderBy specifies the ordering options for invoice listing.
  */
-@friendlyName("BillingInvoiceOrderBy")
+@friendlyName("InvoiceOrderBy")
 enum InvoiceOrderBy {
   customerName: "customer.name",
   issuedAt: "issuedAt",
@@ -345,29 +327,20 @@ enum InvoiceOrderBy {
 }
 
 /**
- * CreateLinesRequest is the request for creating manual line items.
- */
-@friendlyName("BillingInvoiceLines")
-model Lines {
-  @summary("The line to create")
-  lines: Invoices.InvoiceLine[];
-}
-
-/**
  * Request to void an invoice
  */
-@friendlyName("BillingVoidInvoiceInput")
-model VoidInvoiceInput {
+@friendlyName("VoidInvoiceActionInput")
+model VoidInvoiceActionInput {
   /**
    * The action to take on the voided line items.
    */
-  @summary("The action to take on the voided lines.")
+  @visibility("create")
   action: VoidInvoiceAction;
 
   /**
    * The reason for voiding the invoice.
    */
-  @summary("The reason for voiding the invoice")
+  @visibility("create")
   reason: string;
 
   /**
@@ -375,104 +348,155 @@ model VoidInvoiceInput {
    *
    * If not specified, the `action` will be applied to all line items.
    */
-  overrides: VoidInvoiceLineOverride[] | null;
+  @visibility("create")
+  overrides?: VoidInvoiceActionLineOverride[] | null;
 }
 
 /**
  * InvoiceVoidAction describes how to handle the voided line items.
  */
-@friendlyName("BillingVoidInvoiceAction")
+@friendlyName("VoidInvoiceAction")
 model VoidInvoiceAction {
-  @summary("How much of the total line items to be voided? (e.g. 100% means all charges are voided)")
+  /**
+   * How much of the total line items to be voided? (e.g. 100% means all charges are voided)
+   */
+  @visibility("create")
   percentage: Percentage;
 
-  @summary("How to handle the voided line items, default: pending")
   action: VoidInvoiceLineAction;
 }
 
 /**
- * VoidInvoiceLineAction describes how to handle the voidied line item in the invoice.
+ * VoidInvoiceLineActionType describes how to handle the voidied line item in the invoice.
  */
-@friendlyName("BillingVoidInvoiceLineAction")
-enum VoidInvoiceLineAction {
-  @summary("The line items will never be charged for again")
+@friendlyName("VoidInvoiceLineActionType")
+enum VoidInvoiceLineActionType {
+  /**
+   * The line items will never be charged for again
+   */
   discard: "discard",
 
-  @summary("Queue the line items into the pending state, they will be included in the next invoice. (We want to generate an invoice right now)")
+  /**
+   * Queue the line items into the pending state, they will be included in the next invoice. (We want to generate an invoice right now)
+   */
   pending: "pending",
+}
 
-  @summary("Queue the line items into the pending state, they will be included in the next invoice, but not in the current one")
-  pendingNextCycle: "pending_next_cycle",
+/**
+ * VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding.
+ */
+@friendlyName("VoidInvoiceLineAction")
+@discriminator("type")
+union VoidInvoiceLineAction {
+  discard: VoidInvoiceLineDiscardAction,
+  pending: VoidInvoiceLinePendingAction,
+}
+
+/**
+ * VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice.
+ */
+@friendlyName("VoidInvoiceLineDiscardAction")
+model VoidInvoiceLineDiscardAction {
+  type: VoidInvoiceLineActionType.discard;
+}
+
+/**
+ * VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice.
+ */
+@friendlyName("VoidInvoiceLinePendingAction")
+model VoidInvoiceLinePendingAction {
+  type: VoidInvoiceLineActionType.pending;
+
+  /**
+   * The time at which the line item should be invoiced again.
+   *
+   * If not provided, the line item will be re-invoiced now.
+   */
+  @visibility("create")
+  nextInvoiceAt?: DateTime;
 }
 
 /**
  * VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when voiding.
  */
-@friendlyName("BillingVoidInvoiceLineOverride")
-model VoidInvoiceLineOverride {
-  @summary("The line item ID to override")
+@friendlyName("VoidInvoiceActionLineOverride")
+model VoidInvoiceActionLineOverride {
+  /**
+   * The line item ID to override.
+   */
+  @visibility("create")
   lineId: ULID;
 
-  @summary("The action to take on the line item")
+  /**
+   * The action to take on the line item.
+   */
+  @visibility("create")
   action: VoidInvoiceAction;
 }
 
 /**
  * Common parameters for listing invoices
  */
-@friendlyName("BillingInvoiceListParams")
+@friendlyName("InvoiceListParams")
 model InvoiceListParams {
+  /**
+   * Filter by the invoice status.
+   */
   @query
-  @summary("Filter by the invoice status")
-  statuses?: Array<Invoices.InvoiceStatus>;
+  statuses?: Invoices.InvoiceStatus[];
 
+  /**
+   * Filter by invoice extended statuses
+   */
   @query
-  @summary("Filter by invoice extended statuses")
-  extendedStatuses?: Array<Invoices.InvoiceExtendedStatus>;
+  extendedStatuses?: Invoices.InvoiceExtendedStatus[];
 
+  /**
+   * Filter by invoice creation time
+   */
   @query
-  @summary("Filter by invoice creation time")
   issuedAfter?: DateTime;
 
+  /**
+   * Filter by invoice creation time
+   */
   @query
-  @summary("Filter by invoice creation time")
   issuedBefore?: DateTime;
 
+  /**
+   * What parts of the list output to expand in listings
+   */
   @query
-  @summary("What parts of the list output to expand in listings")
-  expand?: Array<InvoiceExpand>;
+  expand?: InvoiceExpand[];
 }
 
 /**
  * InvoiceExpand specifies the parts of the invoice to expand in the list output.
  */
-@friendlyName("BillingInvoiceExpand")
-@extension(
-  "x-enum-varnames",
-  ["all", "lines", "preceding", "workflow", "workflowApps"]
-)
+@friendlyName("InvoiceExpand")
+@extension("x-enum-varnames", ["all", "lines", "preceding", "workflowApps"])
 enum InvoiceExpand {
   all: "*",
   lines: "lines",
   preceding: "preceding",
-  workflow: "workflow",
   workflowApps: "workflow.apps",
 }
 
 /**
- * BillingInvoiceCreate is the input for creating an invoice.
+ * BillingInvoiceActionInput is the input for creating an invoice.
  *
  * Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
  * operation. Empty invoices are not allowed.
  */
-@friendlyName("BillingInvoiceCreate")
-model InvoiceCreate {
+@friendlyName("InvoicePendingLinesActionInput")
+model InvoicePendingLinesActionInput {
   /**
    * The pending line items to include in the invoice, if not provided:
    * - all line items that have invoice_at < asOf will be included
    * - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
    *   of the billing cycle
    */
+  @visibility("create")
   includePendingLines?: ULID[];
 
   /**
@@ -480,5 +504,6 @@ model InvoiceCreate {
    *
    * If not provided, the current time is used.
    */
+  @visibility("create")
   asOf?: DateTime;
 }

@@ -21,7 +21,7 @@ namespace Invoices;
 @example("INV-2024-01-01-01")
 @minLength(1)
 @maxLength(256)
-@friendlyName("BillingInvoiceNumber")
+@friendlyName("InvoiceNumber")
 scalar InvoiceNumber extends string;
 
 /* Omitted fields (not required yet, from GOBL schema):
@@ -43,30 +43,33 @@ scalar InvoiceNumber extends string;
 /**
  * Invoice represents an invoice in the system.
  */
-@friendlyName("BillingInvoice")
+@friendlyName("Invoice")
 model Invoice {
-  ...OmitProperties<global.Resource, "updatedAt" | "name">;
+  ...OmitProperties<global.Resource, "name">;
 
   /**
-   * Timestamp of when the resource was last updated.
+   * Type of the invoice.
    *
-   * For updates the updatedAt field is used to detect conflicts.
+   * The type of invoice determines the purpose of the invoice and how it should be handled.
+   *
+   * Supported types:
+   * - standard: A regular commercial invoice document between a supplier and customer.
+   * - credit_note: Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.
    */
-  @summary("Last Update Time")
-  @visibility("read", "update")
-  @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
-  updatedAt: DateTime;
-
   @visibility("read")
   type: InvoiceType;
 
-  @summary("The taxable entity supplying the goods or services.")
-  @visibility("read", "update")
-  supplier: Party;
+  /**
+   * The taxable entity supplying the goods or services.
+   */
+  @visibility("read", "update", "create")
+  supplier: BillingParty;
 
-  @summary("Legal entity receiving the goods or services.")
-  @visibility("read", "update")
-  customer: Party;
+  /**
+   * Legal entity receiving the goods or services.
+   */
+  @visibility("read", "update", "create")
+  customer: BillingParty;
 
   /**
    * Number specifies the human readable key used to reference this Invoice.
@@ -77,28 +80,41 @@ model Invoice {
    * whole organization or unique for the customer, or in multi (stripe) account setups unique for the
    * account.
    */
-  @summary("(Serial) Number of the invoice")
   @visibility("read")
   number?: InvoiceNumber;
 
-  @summary("Currency for all invoice totals.")
-  @visibility("read")
+  /**
+   * Currency for all invoice line items.
+   *
+   * Multi currency invoices are not supported yet.
+   */
+  @visibility("read", "create")
   currency: CurrencyCode;
 
-  @summary("Key information regarding previous invoices and potentially details as to why they were corrected.")
-  @visibility("read") // We only populate this for voided invoices
-  preceding?: DocumentRef[];
-
-  @summary("Summary of all the invoice totals, including taxes (calculated).")
+  /**
+   * Key information regarding previous invoices and potentially details as to why they were corrected.
+   */
   @visibility("read")
-  totals: Totals;
+  preceding?: InvoiceDocumentRef[];
 
+  /**
+   * Summary of all the invoice totals, including taxes (calculated).
+   */
   @visibility("read")
-  @summary("The status of the invoice.")
+  totals: InvoiceTotals;
+
+  /**
+   * The status of the invoice.
+   *
+   * This field only conatins a simplified status, for more detailed information use the statusDetails field.
+   */
+  @visibility("read")
   status: InvoiceStatus;
 
+  /**
+   * The details of the current invoice status.
+   */
   @visibility("read")
-  @summary("The details of the current invoice status")
   statusDetails: InvoiceStatusDetails;
 
   /**
@@ -108,7 +124,6 @@ model Invoice {
    * - draft, gathering: The time the invoice will be issued based on the workflow settings.
    * - issued: The time the invoice was issued.
    */
-  @summary("The time the invoice was issued.")
   @visibility("read")
   issuedAt?: DateTime;
 
@@ -119,15 +134,19 @@ model Invoice {
    *
    * If manual approval is required, the draftUntil time is set.
    */
-  @summary("The time until the invoice is in draft status.")
   @visibility("read", "update")
   draftUntil?: DateTime;
 
-  @summary("Due time of the fulfillment of the invoice.")
+  /**
+   * Due time of the fulfillment of the invoice (if available).
+   */
   @visibility("read")
   dueAt?: DateTime;
 
-  @summary("The period the invoice covers. If the invoice has no line items, it's not set.")
+  /**
+   * The period the invoice covers. If the invoice has no line items, it's not set.
+   */
+  @visibility("read", "create", "update")
   period?: Period;
 
   /**
@@ -135,7 +154,6 @@ model Invoice {
    *
    * If the invoice was voided, this field will be set to the time the invoice was voided.
    */
-  @summary("The time the invoice was voided.")
   @visibility("read")
   voidedAt?: DateTime;
 
@@ -145,45 +163,62 @@ model Invoice {
    * It is always a snapshot of the workflow settings at the time of invoice creation. The
    * field is optional as it should be explicitly requested with expand options.
    */
-  @summary("The workflow settings associated with this invoice")
-  @visibility("read", "update")
+  @visibility("read", "create", "update")
   workflow?: InvoiceWorkflowSettings;
 
-  @summary("List of invoice lines representing each of the items sold to the customer.")
+  /**
+   * List of invoice lines representing each of the items sold to the customer.
+   */
   @visibility("read") // Seperate API endpoint is available for updating
   lines?: InvoiceLine[];
 
-  @summary("Discounts or allowances applied to the complete invoice.")
-  @visibility("read") // Seperate API endpoint is available for updating
+  /**
+   * Discounts or allowances applied to the complete invoice.
+   */
+  @visibility("read", "create") // Updates and later deletions are handled by the restful API
   discounts?: Discount[];
 
-  @summary("Information on when, how, and to whom the invoice should be paid.")
-  @visibility("read") // Seperate API endpoint is available for updating
-  payment?: Payment;
+  /**
+   * Information on when, how, and to whom the invoice should be paid.
+   */
+  @visibility("read", "create", "update")
+  payment?: InvoicePaymentTerms;
 
-  @summary("Validation issues reported by the invoice workflow.")
+  /**
+   * Validation issues reported by the invoice workflow.
+   */
   @visibility("read")
   validationIssues?: ValidationIssue[];
 }
 
 /**
- * BillingInvoiceAction represents the actions that can be performed on an invoice.
+ * InvoiceAction represents the actions that can be performed on an invoice.
  */
-@friendlyName("BillingInvoiceAction")
+@friendlyName("InvoiceAction")
 enum InvoiceAction {
-  @summary("Advance the invoice to the next status.")
+  /**
+   * Advance the invoice to the next status.
+   */
   advance: "advance",
 
-  @summary("Approve an invoice that requires manual approval.")
+  /**
+   * Approve an invoice that requires manual approval.
+   */
   approve: "approve",
 
-  @summary("Delete the invoice (only non-issued invoices can be deleted).")
+  /**
+   * Delete the invoice (only non-issued invoices can be deleted).
+   */
   delete: "delete",
 
-  @summary("Retry an invoice issuing step that failed.")
+  /**
+   * Retry an invoice issuing step that failed.
+   */
   retry: "retry",
 
-  @summary("Void an already issued invoice.")
+  /**
+   * Void an already issued invoice.
+   */
   `void`: "void",
 }
 
@@ -193,20 +228,34 @@ enum InvoiceAction {
  * API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
  * the next steps of the invoice instead of the extendedStatus field.
  */
-@friendlyName("BillingInvoiceStatusDetails")
+@friendlyName("InvoiceStatusDetails")
 model InvoiceStatusDetails {
-  @summary("Is the invoice editable?")
+  /**
+   * Is the invoice editable?
+   */
+  @visibility("read")
   immutable: boolean;
 
-  @summary("Is the invoice in a failed state?")
+  /**
+   * Is the invoice in a failed state?
+   */
+  @visibility("read")
   failed: boolean;
 
-  @summary("Extended status information for the invoice.")
+  /**
+   * Extended status information for the invoice.
+   */
+  @visibility("read")
   extendedStatus: InvoiceExtendedStatus;
 
-  @summary("The actions that can be performed on the invoice.")
+  /**
+   * The actions that can be performed on the invoice.
+   */
   availableActions: InvoiceAction[];
 }
+
+// TODO[later]: we can make this an enum, but only if we have reached a stable state with the statuses.
+scalar InvoiceExtendedStatus extends string;
 
 /**
  * InvoiceWorkflowSettings represents the workflow settings used by the invoice.
@@ -214,10 +263,13 @@ model InvoiceStatusDetails {
  * This is a clone of the billing profile's workflow settings at the time of invoice creation
  * with customer overrides considered.
  */
-@friendlyName("BillingInvoiceWorkflowSettings")
+@friendlyName("InvoiceWorkflowSettings")
 model InvoiceWorkflowSettings {
-  @summary("The apps that will be used to orchestrate the invoice's workflow.")
-  apps?: OpenMeter.Billing.ProfileAppsOrReference;
+  /**
+   * The apps that will be used to orchestrate the invoice's workflow.
+   */
+  @visibility("read")
+  apps?: OpenMeter.Billing.BillingProfileAppsOrReference;
 
   /**
    * sourceBillingProfileID is the billing profile on which the workflow was based on.
@@ -225,13 +277,18 @@ model InvoiceWorkflowSettings {
    * The profile is snapshotted on invoice creation, after which it can be altered independently
    * of the profile itself.
    */
-  @summary("The billing profile on which the workflow was based on.")
+  @visibility("read")
   sourceBillingProfileID: ULID;
 
-  @summary("The workflow details used by this invoice.")
-  workflow: OpenMeter.Billing.WorkflowSettings;
+  /**
+   * The workflow details used by this invoice.
+   */
+  @visibility("read")
+  workflow: OpenMeter.Billing.BillingWorkflowSettings;
 
-  @summary("Timezone of the invoice's date fields.")
+  /**
+   * Timezone of the invoice's date fields.
+   */
   @visibility("read")
   timezone: string;
 }
@@ -239,7 +296,7 @@ model InvoiceWorkflowSettings {
 /**
  * InvoiceStatus describes the status of an invoice.
  */
-@friendlyName("BillingInvoiceStatus")
+@friendlyName("InvoiceStatus")
 enum InvoiceStatus {
   /**
    * The list of line items for the next invoice is being gathered.
@@ -262,47 +319,6 @@ enum InvoiceStatus {
   issued: "issued",
 }
 
-/**
- * InvoiceExtendedStatus describes the extended status of an invoice.
- *
- * This is used to provide more detailed information about the status of the invoice. Useful for
- * troubelshooting invoice workflow issues.
- */
-@friendlyName("BillingInvoiceExtendedStatus")
-enum InvoiceExtendedStatus {
-  ...InvoiceStatus,
-
-  @summary("The draft is available for processing.")
-  draftCreated: "draft_created",
-
-  @summary("The draft is waiting for manual approval.")
-  draftManualApprovalNeeded: "draft_manual_approval_needed",
-
-  @summary("The draft is being validated.")
-  draftValidating: "draft_validating",
-
-  @summary("The draft is invalid, needs fixes to apps or contents.")
-  draftInvalid: "draft_invalid",
-
-  @summary("The draft is syncing with external systems.")
-  draftSyncing: "draft_syncing",
-
-  @summary("The draft failed to sync with external systems.")
-  draftSyncFailed: "draft_sync_failed",
-
-  @summary("The draft is waiting for auto-approval.")
-  draftWaitingAutoApproval: "draft_waiting_auto_approval",
-
-  @summary("The draft is ready to be issued.")
-  draftReadyToIssue: "draft_ready_to_issue",
-
-  @summary("The draft is being issued.")
-  issuingSyncing: "issuing_syncing",
-
-  @summary("The draft failed to issue.")
-  issuingSyncFailed: "issuing_sync_failed",
-}
-
 /*
  * Omitted types: proforma, corrected, debit-note, other
  */
@@ -311,30 +327,46 @@ enum InvoiceExtendedStatus {
  *
  * The type of invoice determines the purpose of the invoice and how it should be handled.
  */
-@friendlyName("BillingInvoiceType")
+@friendlyName("InvoiceType")
 enum InvoiceType {
-  @summary("A regular commercial invoice document between a supplier and customer.")
+  /**
+   * A regular commercial invoice document between a supplier and customer.
+   */
   standard: "standard",
 
-  @summary("Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.")
+  /**
+   * Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.
+   */
   creditNote: "credit_note",
 }
 
 /**
  * Discount represents an allowance applied to the complete document independent from the individual lines.
  */
-@friendlyName("BillingInvoiceDiscount")
-model Discount {
-  @summary("Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.")
+@friendlyName("InvoiceDiscount")
+model InvoiceDiscount {
+  /**
+   * Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.
+   */
+  @visibility("read", "create", "update")
   base?: Numeric;
 
-  @summary("Percentage to apply to the base or invoice's sum.")
+  /**
+   * Percentage to apply to the base or invoice's sum.
+   */
+  @visibility("read", "create", "update")
   percent?: Percentage;
 
-  @summary("Amount to apply (calculated if percent present).")
+  /**
+   * Fixed discount amount to apply (calculated if percent present).
+   */
+  @visibility("read", "create", "update")
   amount: Numeric;
 
-  @summary("Text description as to why the discount was applied")
+  /**
+   * Text description as to why the discount was applied.
+   */
+  @visibility("read", "create", "update")
   reason?: string;
 
   // TODO: Add reference fields to plan/subscriptions if the discount is coming from there.
@@ -343,197 +375,292 @@ model Discount {
 /**
  * BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
  */
-@friendlyName("BillingInvoiceLine")
+@friendlyName("InvoiceLine")
 @discriminator("type")
 union InvoiceLine {
-  usageBased: UsageBasedLine,
-  flatFee: FlatFeeLine,
+  usageBased: InvoiceUsageBasedLine,
+  flatFee: InvoiceFlatFeeLine,
+}
+
+/**
+ * InvoiceLineReplaceUpdate represents the update model for an invoice line.
+ */
+@friendlyName("InvoiceLineReplaceUpdate")
+@discriminator("type")
+union InvoiceLineReplaceUpdate {
+  usageBased: Rest.Resource.ResourceReplaceModel<InvoiceUsageBasedLine>,
+  flatFee: Rest.Resource.ResourceReplaceModel<InvoiceFlatFeeLine>,
+}
+
+/**
+ * InvoiceLineCreate represents the create model for an invoice line.
+ */
+@friendlyName("InvoiceLineCreate")
+@discriminator("type")
+union InvoiceLineCreate {
+  usageBased: Rest.Resource.ResourceCreateModel<InvoiceUsageBasedLine>,
+  flatFee: Rest.Resource.ResourceCreateModel<InvoiceFlatFeeLine>,
 }
 
 /**
  * LineTypes represents the different types of lines that can be used in an invoice.
  */
-@friendlyName("BillingLineTypes")
-enum LineTypes {
-  // TODO: Implement when we have support for subscriptions
-  // subscriptionFlatFee: "subs_flat_fee",
-  // subscriptionUsageBased: "subs_usage_based",
-
+@friendlyName("InvoiceLineTypes")
+enum InvoiceLineTypes {
   flatFee: "flat_fee",
-
   usageBased: "usage_based",
 }
 
 /**
  * Line status specifies the status of the line.
  */
-@friendlyName("BillingLineStatus")
-enum LineStatus {
+@friendlyName("InvoiceLineStatus")
+enum InvoiceLineStatus {
+  /**
+   * The line is valid and can be used in the invoice.
+   */
   valid: "valid",
-  deleted: "deleted",
+
+  /**
+   * The line is a detail line which is used to detail the individual
+   * charges and discounts of a valid line.
+   */
+  detail: "detail",
+
+  /**
+   * The line has been split into multiple valid lines due to progressive
+   * billing.
+   */
   split: "split",
 }
 
 /**
- * Line represents a single item or service sold to the customer.
+ * InvoiceLine represents a single item or service sold to the customer.
  *
  * This is a base class for all line types, and should not be used directly.
  * */
 @discriminator("type")
-@friendlyName("BillingLine")
-model Line {
+@friendlyName("InvoiceLine")
+model InvoiceLineBase {
+  // Note: ID has updated visibility as we support batch line creations and upserts
   ...OmitProperties<global.Resource, "id">;
 
   @visibility("read", "update")
   id: ULID;
 
-  type: LineTypes;
+  /**
+   * Type of the line.
+   *
+   * A line's type cannot be changed after creation.
+   */
+  @visibility("read", "create")
+  type: InvoiceLineTypes;
 
+  /**
+   * Status of the line.
+   *
+   * External calls always create valid lines, other line types are managed by the
+   * billing engine of OpenMeter.
+   */
   @visibility("read")
-  status: LineStatus;
+  status: InvoiceLineStatus;
 
-  @summary("Discounts applied to this line.")
+  /**
+   * Discounts detailes applied to this line.
+   *
+   * New discounts can be added via the invoice's discounts API, to facilitate
+   * discounts that are affecting multiple lines.
+   */
   @visibility("read")
-  discounts?: LineDiscount[];
+  discounts?: InvoiceLineDiscount[];
 
-  @summary("Charges applied to this line.")
+  /**
+   * Charges applied to this line. (like minimum spend)
+   *
+   * New charges can be added via the invoice's charges API, to facilitate
+   * charges that are affecting multiple lines.
+   */
   @visibility("read")
-  charges?: LineCharge[];
+  charges?: InvoiceLineCharge[];
 
-  @summary("The invoice this item belongs to.")
+  /**
+   * The invoice this item belongs to.
+   */
+  @visibility("read", "create")
   invoice?: InvoiceReference;
 
-  @summary("The currency of this line")
+  /**
+   * The currency of this line.
+   */
+  @visibility("read", "create")
   currency: CurrencyCode;
 
-  @summary("Map of taxes to be applied and used in the invoice totals.")
+  /**
+   * Taxes applied to the invoice totals.
+   */
   @visibility("read") // Tax is handled by the tax provider, we only need to show the output of that here
-  taxes?: TaxItem[];
+  taxes?: InvoiceLineTaxItem[];
 
-  @summary("Tax config specify the tax configuration for this line.")
-  taxConfig?: OpenMeter.ProductCatalog.TaxConfig | null;
+  /**
+   * Tax config specify the tax configuration for this line.
+   */
+  @visibility("read", "create", "update")
+  taxConfig?: OpenMeter.ProductCatalog.TaxConfig;
 
+  /**
+   * The lines detailing the item or service sold.
+   */
   @visibility("read")
-  @summary("The lines detailing the item or service sold.")
-  children?: InvoiceLine[] | null;
+  children?: InvoiceLine[];
 
+  /**
+   * Totals for this line.
+   */
   @visibility("read")
-  @summary("Totals for this line.")
-  totals: Totals;
+  totals: InvoiceTotals;
 
-  @summary("Period of the line item applies to for revenue recognition pruposes.")
+  /**
+   * Period of the line item applies to for revenue recognition pruposes.
+   *
+   * Billing always treats periods as start being inclusive and end being exclusive.
+   */
+  @visibility("read", "create", "update")
   period: Period;
 
-  @summary("The time this line item should be invoiced.")
+  /**
+   * The time this line item should be invoiced.
+   */
+  @visibility("read", "create", "update")
   invoiceAt: DateTime;
 }
 
 /**
  * Reference to an invoice.
  */
-@friendlyName("BillingInvoiceReference")
+@friendlyName("InvoiceReference")
 model InvoiceReference {
-  @summary("The ID of the invoice.")
+  /**
+   * The ID of the invoice.
+   */
+  @visibility("read")
   id: ULID;
 
+  /**
+   * The number of the invoice.
+   */
   @visibility("read")
-  @summary("The number of the invoice.")
   number?: InvoiceNumber;
 }
 
 /**
- * Period represents a time range.
- *
- * Billing always treats periods as start being inclusive and end being exclusive.
+ * InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
  */
-@friendlyName("BillingPeriod")
-model Period {
-  @summary("Start of the period.")
-  start: DateTime;
-
-  @summary("End of the period.")
-  end: DateTime;
-}
-
-/**
- * UsageBasedLine represents a line item that is sold to the customer based on usage.
- */
-@friendlyName("BillingUsageBasedLine")
-model UsageBasedLine {
-  ...OmitProperties<Line, "type">;
-  type: LineTypes.usageBased;
+@friendlyName("InvoiceUsageBasedLine")
+model InvoiceUsageBasedLine {
+  ...OmitProperties<InvoiceLineBase, "type">;
+  type: InvoiceLineTypes.usageBased;
   price: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
 
-  @summary("The feature that the usage is based on.")
+  /**
+   * The feature that the usage is based on.
+   */
+  @visibility("read", "create")
   featureKey: Key;
 
-  @summary("Quantity of the item being sold.")
+  /**
+   * The quantity of the item being sold.
+   */
   @visibility("read")
   quantity?: Numeric;
+
+  /**
+   * The quantity of the item used in before this line's period.
+   *
+   * It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+   */
+  @visibility("read")
+  preLinePeriodQuantity?: Numeric;
 }
 
 /**
- * BillingFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
+ * InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
  */
-@friendlyName("BillingFlatFeeLine")
-model FlatFeeLine {
-  ...OmitProperties<Line, "type">;
-  type: LineTypes.flatFee;
+@friendlyName("InvoiceFlatFeeLine")
+model InvoiceFlatFeeLine {
+  ...OmitProperties<InvoiceLineBase, "type">;
+  type: InvoiceLineTypes.flatFee;
 
-  @summary("Price of the item being sold.")
+  /**
+   * Price of the item being sold.
+   */
+  @visibility("read", "create", "update")
   perUnitAmount: Money;
 
-  @summary("Payment term of the line.")
+  /**
+   * Payment term of the line.
+   */
+  @visibility("read", "create", "update")
   paymentTerm?: OpenMeter.ProductCatalog.PricePaymentTerm = OpenMeter.ProductCatalog.PricePaymentTerm.inAdvance;
 
-  @summary("Quantity of the item being sold.")
+  /**
+   * Quantity of the item being sold.
+   */
+  @visibility("read", "create", "update")
   quantity: Numeric;
 }
 
 /**
- * GenericCharge represents a charge or discount that can be applied to a line or the entire invoice.
+ * InvoiceGenericCharge represents a charge or discount that can be applied to a line or the entire invoice.
  */
-@friendlyName("BillingGenericCharge")
-model GenericCharge {
+@friendlyName("InvoiceGenericCharge")
+model InvoiceGenericCharge {
   ...ResourceTimestamps;
 
-  @summary("ID of the entity")
+  /**
+   * ID of the charge or discount.
+   */
   @visibility("read")
   id: ULID;
 
   /**
    * Percentage if fixed amount not applied
    */
-  @summary("Percent")
+  @visibility("read", "create", "update")
   percent?: Percentage;
 
   /**
    * Fixed discount amount to apply (calculated if percent present).
    */
-  @summary("Amount")
+  @visibility("read", "create", "update")
   amount: Numeric;
 
-  @summary("Reason code.")
+  /**
+   * Reason code.
+   */
+  @visibility("read", "create", "update")
   code?: string;
 
-  @summary("Text description as to why the discount was applied.")
+  /**
+   * Text description as to why the discount was applied.
+   */
+  @visibility("read", "create", "update")
   description?: string;
 }
 
 /**
- * LineDiscount represents an amount deducted from the line, and will be applied before taxes.
+ * InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
  */
-@friendlyName("BillingLineDiscount")
-model LineDiscount {
-  ...GenericCharge;
+@friendlyName("InvoiceLineDiscount")
+model InvoiceLineDiscount {
+  ...InvoiceGenericCharge;
 }
 
 /**
- * LineCharge represents an amount added to the line, and will be applied before taxes.
+ * InvoiceLineCharge represents an amount added to the line, and will be applied before taxes.
  */
 @friendlyName("BillingLineCharge")
-model LineCharge {
-  ...GenericCharge;
+model InvoiceLineCharge {
+  ...InvoiceGenericCharge;
 }
 
 /*
@@ -544,27 +671,48 @@ model LineCharge {
 /**
  * Totals contains the summaries of all calculations for the invoice.
  */
-@friendlyName("BillingInvoiceTotals")
-model Totals {
-  @summary("The total value of the line before taxes, discounts and commitments.")
+@friendlyName("InvoiceTotals")
+model InvoiceTotals {
+  /**
+   * The total value of the line before taxes, discounts and commitments.
+   */
+  @visibility("read")
   amount: Numeric;
 
-  @summary("The amount of value of the line that are due to additional charges.")
+  /**
+   * The amount of value of the line that are due to additional charges.
+   */
+  @visibility("read")
   chargesTotal: Numeric;
 
-  @summary("The amount of value of the line that are due to discounts.")
+  /**
+   * The amount of value of the line that are due to discounts.
+   */
+  @visibility("read")
   discountsTotal: Numeric;
 
-  @summary("The total amount of taxes that are included in the line.")
+  /**
+   * The total amount of taxes that are included in the line.
+   */
+  @visibility("read")
   taxesInclusiveTotal: Numeric;
 
-  @summary("The total amount of taxes that are added on top of amount from the line.")
+  /**
+   * The total amount of taxes that are added on top of amount from the line.
+   */
+  @visibility("read")
   taxesExclusiveTotal: Numeric;
 
-  @summary("The total amount of taxes for this line.")
+  /**
+   * The total amount of taxes for this line.
+   */
+  @visibility("read")
   taxesTotal: Numeric;
 
-  @summary("The total amount value of the line after taxes, discounts and commitments.")
+  /**
+   * The total amount value of the line after taxes, discounts and commitments.
+   */
+  @visibility("read")
   total: Numeric;
 }
 
@@ -581,8 +729,12 @@ model Totals {
 /**
  * Payment contains details as to how the invoice should be paid.
  */
-@friendlyName("BillingInvoicePayment")
-model Payment {
+@friendlyName("InvoicePaymentTerms")
+model InvoicePaymentTerms {
+  /**
+   * The terms of payment for the invoice.
+   */
+  @visibility("read", "create", "update")
   terms?: PaymentTerms;
 }
 
@@ -591,7 +743,7 @@ model Payment {
  *
  * Issues with severity "critical" will prevent the invoice from being issued.
  */
-@friendlyName("BillingValidationIssueSeverity")
+@friendlyName("ValidationIssueSeverity")
 enum ValidationIssueSeverity {
   critical: "critical",
   warning: "warning",
@@ -602,25 +754,49 @@ enum ValidationIssueSeverity {
  *
  * Issues with severity "critical" will prevent the invoice from being issued.
  */
-@friendlyName("BillingValidationIssue")
+@friendlyName("ValidationIssue")
 model ValidationIssue {
-  @summary("The severity of the issue.")
+  ...ResourceTimestamps;
+
+  /**
+   * ID of the charge or discount.
+   */
+  @visibility("read")
+  id: ULID;
+
+  /**
+   * The severity of the issue.
+   */
+  @visibility("read")
   severity: ValidationIssueSeverity;
 
-  @summary("The field that the issue is related to, if available in JSON path format.")
+  /**
+   * The field that the issue is related to, if available in JSON path format.
+   */
+  @visibility("read")
   field?: string;
 
-  @summary("Machine indentifiable code for the issue, if available.")
-  // NOTE: on the long run we might make this an enum, but for now, let's keep it as a string, as
-  // we would need to extract the codes from go code and maybe external systems too.
+  /**
+   * Machine indentifiable code for the issue, if available.
+   */
+  @visibility("read")
   code?: string;
 
-  @summary("Component reporting the issue.")
+  /**
+   * Component reporting the issue.
+   */
+  @visibility("read")
   component: string;
 
-  @summary("A human-readable description of the issue.")
+  /**
+   * A human-readable description of the issue.
+   */
+  @visibility("read")
   message: string;
 
-  @summary("Metadata")
+  /**
+   * Additional context for the issue.
+   */
+  @visibility("read")
   metadata?: Metadata;
 }
