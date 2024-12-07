@@ -416,7 +416,7 @@ func mapUpdateFlatFeeLineToEntity(ns string, params UpdateLineParams, line api.I
 		FlatFee: billing.UpdateInvoiceLineFlatFeeInput{
 			PerUnitAmount: mo.Some(perUnitAmount),
 			Quantity:      mo.Some(qty),
-			PaymentTerm:   mo.Some(plan.PaymentTermType(lo.FromPtrOr(line.PaymentTerm, api.PricePaymentTermInArrears))),
+			PaymentTerm:   mo.Some(productcatalog.PaymentTermType(lo.FromPtrOr(line.PaymentTerm, api.PricePaymentTermInArrears))),
 		},
 	}, nil
 }
@@ -446,7 +446,7 @@ func mapUpdateUsageBasedLineToEntity(ns string, params UpdateLineParams, line ap
 		},
 
 		UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-			Price: mo.Some(price),
+			Price: price,
 		},
 	}, nil
 }

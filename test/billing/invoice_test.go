@@ -1567,9 +1567,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 				Type: billingentity.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-					Price: mo.Some(*productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(250),
-					})),
+					}),
 				},
 			})
 			require.NoError(s.T(), err)
@@ -1609,7 +1609,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				},
 				Type: billingentity.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-					Price: mo.Some(*productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 						Mode: productcatalog.VolumeTieredPrice,
 						Tiers: []productcatalog.PriceTier{
 							{
@@ -1618,7 +1618,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 								},
 							},
 						},
-					})),
+					}),
 				},
 			})
 

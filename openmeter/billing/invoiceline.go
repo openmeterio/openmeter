@@ -242,15 +242,14 @@ func (u UpdateInvoiceLineBaseInput) Apply(l *billingentity.Line) error {
 }
 
 type UpdateInvoiceLineUsageBasedInput struct {
-	Price mo.Option[billingentity.Price]
+	Price *billingentity.Price
 }
 
 func (u UpdateInvoiceLineUsageBasedInput) Validate() error {
 	var outErr error
 
-	if u.Price.IsPresent() {
-		price := u.Price.OrEmpty()
-		if err := price.Validate(); err != nil {
+	if u.Price != nil {
+		if err := u.Price.Validate(); err != nil {
 			outErr = errors.Join(outErr, billingentity.ValidationWithFieldPrefix("price", err))
 		}
 	}
@@ -259,8 +258,8 @@ func (u UpdateInvoiceLineUsageBasedInput) Validate() error {
 }
 
 func (u UpdateInvoiceLineUsageBasedInput) Apply(l *billingentity.UsageBasedLine) error {
-	if u.Price.IsPresent() {
-		l.Price = u.Price.OrEmpty()
+	if u.Price != nil {
+		l.Price = *u.Price
 	}
 
 	return nil
