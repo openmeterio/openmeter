@@ -4,11 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+)
+
+const (
+	InvoiceTSFormat = "20060102-150405"
 )
 
 var (
@@ -28,7 +34,31 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	return nil
 }
 
+// InvoicingApp implementation
+
 func (a App) ValidateInvoice(ctx context.Context, invoice billingentity.Invoice) error {
+	return nil
+}
+
+func (a App) UpsertInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.UpsertInvoiceResult, error) {
+	id, err := ulid.Parse(invoice.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse invoice ID: %w", err)
+	}
+
+	idTime := ulid.Time(id.Time())
+
+	out := billingentity.NewUpsertInvoiceResult()
+	out.SetInvoiceNumber(fmt.Sprintf("SANDBOX-%s", idTime.Format(InvoiceTSFormat)))
+
+	return billingentity.NewUpsertInvoiceResult(), nil
+}
+
+func (a App) FinalizeInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.FinalizeInvoiceResult, error) {
+	return nil, nil
+}
+
+func (a App) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) error {
 	return nil
 }
 

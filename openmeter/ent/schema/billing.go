@@ -325,6 +325,11 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			}).
 			Optional(),
 
+		// App IDs
+		field.String("invoicing_app_external_id").
+			Optional().
+			Nillable(),
+
 		// child_unique_reference_id is uniqe per parent line, can be used for upserting
 		// and identifying lines created for the same reason (e.g. tiered price tier)
 		// between different invoices.
@@ -596,6 +601,15 @@ func (BillingInvoice) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
+
+		// App IDs
+		field.String("invoicing_app_external_id").
+			Optional().
+			Nillable(),
+
+		field.String("payment_app_external_id").
+			Optional().
+			Nillable(),
 
 		// These fields are optional as they are calculated from the invoice lines, which might not
 		// be present on an invoice.

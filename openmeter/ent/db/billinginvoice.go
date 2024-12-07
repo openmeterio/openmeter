@@ -119,6 +119,10 @@ type BillingInvoice struct {
 	InvoicingAppID string `json:"invoicing_app_id,omitempty"`
 	// PaymentAppID holds the value of the "payment_app_id" field.
 	PaymentAppID string `json:"payment_app_id,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
+	// PaymentAppExternalID holds the value of the "payment_app_external_id" field.
+	PaymentAppExternalID *string `json:"payment_app_external_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
 	PeriodStart *time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
@@ -245,7 +249,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldCustomerTimezone, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldCustomerTimezone, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -573,6 +577,20 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.PaymentAppID = value.String
 			}
+		case billinginvoice.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				bi.InvoicingAppExternalID = new(string)
+				*bi.InvoicingAppExternalID = value.String
+			}
+		case billinginvoice.FieldPaymentAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_app_external_id", values[i])
+			} else if value.Valid {
+				bi.PaymentAppExternalID = new(string)
+				*bi.PaymentAppExternalID = value.String
+			}
 		case billinginvoice.FieldPeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field period_start", values[i])
@@ -846,6 +864,16 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("payment_app_id=")
 	builder.WriteString(bi.PaymentAppID)
+	builder.WriteString(", ")
+	if v := bi.InvoicingAppExternalID; v != nil {
+		builder.WriteString("invoicing_app_external_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bi.PaymentAppExternalID; v != nil {
+		builder.WriteString("payment_app_external_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := bi.PeriodStart; v != nil {
 		builder.WriteString("period_start=")

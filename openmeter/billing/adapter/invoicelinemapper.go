@@ -159,6 +159,9 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 				TaxesTotal:          dbLine.TaxesTotal,
 				Total:               dbLine.Total,
 			},
+			ExternalIDs: billingentity.LineExternalIDs{
+				Invoicing: lo.FromPtrOr(dbLine.InvoicingAppExternalID, ""),
+			},
 		},
 	}
 

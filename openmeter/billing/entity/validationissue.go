@@ -82,8 +82,8 @@ func NewValidationError(code, message string) ValidationIssue {
 
 type ComponentName string
 
-func AppTypeCapabilityToComponent(appType appentitybase.AppType, cap appentitybase.CapabilityType) ComponentName {
-	return ComponentName(fmt.Sprintf("app/%s/%s", appType, cap))
+func AppTypeCapabilityToComponent(appType appentitybase.AppType, cap appentitybase.CapabilityType, op string) ComponentName {
+	return ComponentName(fmt.Sprintf("app.%s.%s.%s", appType, cap, op))
 }
 
 type componentWrapper struct {
@@ -182,6 +182,10 @@ func (v ValidationIssues) AsError() error {
 	return errors.Join(lo.Map(v, func(issue ValidationIssue, _ int) error {
 		return issue
 	})...)
+}
+
+func (v ValidationIssues) Map(f func(ValidationIssue, int) ValidationIssue) ValidationIssues {
+	return lo.Map(v, f)
 }
 
 type errorsUnwrap interface {

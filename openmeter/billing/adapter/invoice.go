@@ -458,6 +458,11 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetOrClearCustomerAddressPhoneNumber(in.Customer.BillingAddress.PhoneNumber).
 			SetOrClearCustomerTimezone(in.Customer.Timezone)
 
+		// ExternalIDs
+		updateQuery = updateQuery.
+			SetOrClearInvoicingAppExternalID(lo.EmptyableToPtr(in.ExternalIDs.Invoicing)).
+			SetOrClearPaymentAppExternalID(lo.EmptyableToPtr(in.ExternalIDs.Payment))
+
 		_, err = updateQuery.Save(ctx)
 		if err != nil {
 			return in, err
@@ -605,6 +610,11 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			CreatedAt: invoice.CreatedAt.In(time.UTC),
 			UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 			DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+
+			ExternalIDs: billingentity.InvoiceExternalIDs{
+				Invoicing: lo.FromPtrOr(invoice.InvoicingAppExternalID, ""),
+				Payment:   lo.FromPtrOr(invoice.PaymentAppExternalID, ""),
+			},
 		},
 
 		Totals: billingentity.Totals{

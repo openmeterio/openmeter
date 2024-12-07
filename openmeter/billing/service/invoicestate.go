@@ -41,6 +41,13 @@ var (
 	// e.g. the invoice needs to be synced to an external system such as stripe)
 )
 
+const (
+	opValidate = "validate"
+	opSync     = "sync"
+	opDelete   = "delete"
+	opFinalize = "finalize"
+)
+
 var invoiceStateMachineCache = sync.Pool{
 	New: func() interface{} {
 		return allocateStateMachine()
@@ -190,7 +197,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(triggerNext, billingentity.InvoiceStatusIssued).
 		Permit(triggerFailed, billingentity.InvoiceStatusIssuingSyncFailed).
 		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		OnActive(out.issueInvoice)
+		OnActive(out.finalizeInvoice)
 
 	stateMachine.Configure(billingentity.InvoiceStatusIssuingSyncFailed).
 		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
@@ -338,8 +345,7 @@ func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger state
 	return nil
 }
 
-// validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
-func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
+func (m *InvoiceStateMachine) withInvoicingApp(op string, cb func(billingentity.InvoicingApp) error) error {
 	invocingBase := m.Invoice.Workflow.Apps.Invoicing
 	invoicingApp, ok := invocingBase.(billingentity.InvoicingApp)
 	if !ok {
@@ -349,17 +355,53 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 			m.Invoice.Workflow.Apps.Invoicing.GetID().ID)
 	}
 
-	component := billingentity.AppTypeCapabilityToComponent(invocingBase.GetType(), appentitybase.CapabilityTypeInvoiceCustomers)
+	component := billingentity.AppTypeCapabilityToComponent(invocingBase.GetType(), appentitybase.CapabilityTypeInvoiceCustomers, op)
+	result := cb(invoicingApp)
 
 	// Anything returned by the validation is considered a validation issue, thus in case of an error
 	// we wouldn't roll back the state transitions.
 	return m.Invoice.MergeValidationIssues(
 		billingentity.ValidationWithComponent(
 			component,
-			invoicingApp.ValidateInvoice(ctx, m.Invoice),
+			result,
 		),
 		component,
 	)
+}
+
+func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billingentity.UpsertInvoiceResult) error {
+	// Let's merge the results into the invoice
+	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
+		m.Invoice.Number = lo.ToPtr(invoiceNumber)
+	}
+
+	if externalID, ok := result.GetExternalID(); ok {
+		m.Invoice.ExternalIDs.Invoicing = externalID
+	}
+
+	var outErr error
+
+	// Let's merge the line IDs
+	if len(result.GetLineExternalIDs()) > 0 {
+		flattenedLines := m.Invoice.FlattenLinesByID()
+
+		for lineID, externalID := range result.GetLineExternalIDs() {
+			if line, ok := flattenedLines[lineID]; ok {
+				line.ExternalIDs.Invoicing = externalID
+			} else {
+				outErr = errors.Join(outErr, fmt.Errorf("line not found in invoice: %s", lineID))
+			}
+		}
+	}
+
+	return outErr
+}
+
+// validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
+func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
+	return m.withInvoicingApp(opValidate, func(app billingentity.InvoicingApp) error {
+		return app.ValidateInvoice(ctx, m.Invoice.Clone())
+	})
 }
 
 func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
@@ -368,17 +410,56 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 
 // syncDraftInvoice syncs the draft invoice with the external system.
 func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
-	return nil
+	return m.withInvoicingApp(opSync, func(app billingentity.InvoicingApp) error {
+		results, err := app.UpsertInvoice(ctx, m.Invoice.Clone())
+		if err != nil {
+			return err
+		}
+
+		if results == nil {
+			return nil
+		}
+
+		return m.mergeUpsertInvoiceResult(results)
+	})
 }
 
-// issueInvoice issues the invoice using the invoicing app
-func (m *InvoiceStateMachine) issueInvoice(ctx context.Context) error {
-	return nil
+// finalizeInvoice finalizes the invoice using the invoicing app and payment app (later).
+func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
+	return m.withInvoicingApp(opFinalize, func(app billingentity.InvoicingApp) error {
+		clonedInvoice := m.Invoice.Clone()
+		// First we sync the invoice
+		upsertResults, err := app.UpsertInvoice(ctx, clonedInvoice)
+		if err != nil {
+			return err
+		}
+
+		if upsertResults != nil {
+			if err := m.mergeUpsertInvoiceResult(upsertResults); err != nil {
+				return err
+			}
+		}
+
+		results, err := app.FinalizeInvoice(ctx, clonedInvoice)
+		if err != nil {
+			return err
+		}
+
+		if results != nil {
+			if paymentExternalID, ok := results.GetPaymentExternalID(); ok {
+				m.Invoice.ExternalIDs.Payment = paymentExternalID
+			}
+		}
+
+		return nil
+	})
 }
 
 // syncDeletedInvoice syncs the deleted invoice with the external system
 func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
-	return nil
+	return m.withInvoicingApp(opDelete, func(app billingentity.InvoicingApp) error {
+		return app.DeleteInvoice(ctx, m.Invoice.Clone())
+	})
 }
 
 // deleteInvoice deletes the invoice

@@ -127,6 +127,8 @@ type LineBase struct {
 
 	TaxConfig *TaxConfig `json:"taxOverrides,omitempty"`
 
+	ExternalIDs LineExternalIDs `json:"externalIDs,omitempty"`
+
 	Totals Totals `json:"totals"`
 }
 
@@ -183,6 +185,10 @@ func (i LineBase) Clone(line *Line) LineBase {
 	}
 
 	return out
+}
+
+type LineExternalIDs struct {
+	Invoicing string `json:"invoicing,omitempty"`
 }
 
 type FlatFeeCategory string
@@ -508,6 +514,12 @@ func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
 	}
 
 	return NewLineChildren(clonedNewLines)
+}
+
+func (c LineChildren) Clone() LineChildren {
+	return c.Map(func(l *Line) *Line {
+		return l.Clone()
+	})
 }
 
 type Price = productcatalog.Price

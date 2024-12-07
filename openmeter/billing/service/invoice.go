@@ -392,7 +392,32 @@ func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoi
 }
 
 func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billingentity.Invoice, error) {
-	return s.executeTriggerOnInvoice(ctx, input, triggerRetry)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billingentity.Invoice, error) {
+		invoice, err := s.adapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: input,
+			Expand:  billingentity.InvoiceExpandAll,
+		})
+		if err != nil {
+			return billingentity.Invoice{}, err
+		}
+
+		// let's clean up all critical validation issues first (as it would prevent advancing the invoice further)
+		if len(invoice.ValidationIssues) > 0 {
+			invoice.ValidationIssues = invoice.ValidationIssues.Map(func(issue billingentity.ValidationIssue, _ int) billingentity.ValidationIssue {
+				if issue.Severity == billingentity.ValidationIssueSeverityCritical {
+					issue.Severity = billingentity.ValidationIssueSeverityWarning
+				}
+
+				return issue
+			})
+		}
+
+		if _, err := s.adapter.UpdateInvoice(ctx, invoice); err != nil {
+			return billingentity.Invoice{}, fmt.Errorf("updating invoice: %w", err)
+		}
+
+		return s.executeTriggerOnInvoice(ctx, input, triggerRetry)
+	})
 }
 
 type (
@@ -524,6 +549,14 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 	}
 
 	if invoice.Status != billingentity.InvoiceStatusDeleted {
+		// If we have validation issues we return them as the deletion sync handler
+		// yields validation errors
+		if len(invoice.ValidationIssues) > 0 {
+			return billingentity.ValidationError{
+				Err: invoice.ValidationIssues.AsError(),
+			}
+		}
+
 		return billingentity.ValidationError{
 			Err: fmt.Errorf("%w [status=%s]", billingentity.ErrInvoiceDeleteFailed, invoice.Status),
 		}

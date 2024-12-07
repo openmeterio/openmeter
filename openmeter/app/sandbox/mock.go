@@ -17,12 +17,23 @@ type AppFactory interface {
 	NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error)
 }
 
+type InvoiceUpsertCallback func(billingentity.Invoice) *billingentity.UpsertInvoiceResult
+
 type MockApp struct {
 	validateCustomerResponse mo.Option[error]
 	validateCustomerCalled   bool
 
 	validateInvoiceResponse       mo.Option[error]
 	validateInvoiceResponseCalled bool
+
+	upsertInvoiceCallback mo.Option[InvoiceUpsertCallback]
+	upsertInvoiceCalled   bool
+
+	finalizeInvoiceResponse mo.Option[*billingentity.FinalizeInvoiceResult]
+	finalizeInvoiceCalled   bool
+
+	deleteInvoiceResponse mo.Option[error]
+	deleteInvoiceCalled   bool
 }
 
 func NewMockApp(_ *testing.T) *MockApp {
@@ -38,6 +49,8 @@ func (m *MockApp) OnValidateCustomer(err error) {
 	m.validateCustomerResponse = mo.Some(err)
 }
 
+// InvoicingApp
+
 func (m *MockApp) ValidateInvoice(appID string, invoice billingentity.Invoice) error {
 	m.validateInvoiceResponseCalled = true
 	return m.validateInvoiceResponse.MustGet()
@@ -45,6 +58,38 @@ func (m *MockApp) ValidateInvoice(appID string, invoice billingentity.Invoice) e
 
 func (m *MockApp) OnValidateInvoice(err error) {
 	m.validateInvoiceResponse = mo.Some(err)
+}
+
+func (m *MockApp) UpsertInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.UpsertInvoiceResult, error) {
+	m.upsertInvoiceCalled = true
+
+	if m.upsertInvoiceCallback.IsPresent() && m.upsertInvoiceCallback.MustGet() != nil {
+		return m.upsertInvoiceCallback.MustGet()(invoice), nil
+	}
+
+	return billingentity.NewUpsertInvoiceResult(), nil
+}
+
+func (m *MockApp) OnUpsertInvoice(cb InvoiceUpsertCallback) {
+	m.upsertInvoiceCallback = mo.Some(cb)
+}
+
+func (m *MockApp) FinalizeInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.FinalizeInvoiceResult, error) {
+	m.finalizeInvoiceCalled = true
+	return m.finalizeInvoiceResponse.MustGet(), nil
+}
+
+func (m *MockApp) OnFinalizeInvoice(result *billingentity.FinalizeInvoiceResult) {
+	m.finalizeInvoiceResponse = mo.Some(result)
+}
+
+func (m *MockApp) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) error {
+	m.deleteInvoiceCalled = true
+	return m.deleteInvoiceResponse.MustGet()
+}
+
+func (m *MockApp) OnDeleteInvoice(err error) {
+	m.deleteInvoiceResponse = mo.Some(err)
 }
 
 func (m *MockApp) Reset(t *testing.T) {
@@ -57,6 +102,15 @@ func (m *MockApp) Reset(t *testing.T) {
 
 	m.validateInvoiceResponse = mo.None[error]()
 	m.validateInvoiceResponseCalled = false
+
+	m.upsertInvoiceCallback = mo.None[InvoiceUpsertCallback]()
+	m.upsertInvoiceCalled = false
+
+	m.finalizeInvoiceResponse = mo.None[*billingentity.FinalizeInvoiceResult]()
+	m.finalizeInvoiceCalled = false
+
+	m.deleteInvoiceResponse = mo.None[error]()
+	m.deleteInvoiceCalled = false
 }
 
 func (m *MockApp) AssertExpectations(t *testing.T) {
@@ -68,6 +122,18 @@ func (m *MockApp) AssertExpectations(t *testing.T) {
 
 	if m.validateInvoiceResponse.IsPresent() && !m.validateInvoiceResponseCalled {
 		t.Errorf("expected ValidateInvoice to be called")
+	}
+
+	if m.upsertInvoiceCallback.IsPresent() && !m.upsertInvoiceCalled {
+		t.Errorf("expected UpsertInvoice to be called")
+	}
+
+	if m.finalizeInvoiceResponse.IsPresent() && !m.finalizeInvoiceCalled {
+		t.Errorf("expected FinalizeInvoice to be called")
+	}
+
+	if m.deleteInvoiceResponse.IsPresent() && !m.deleteInvoiceCalled {
+		t.Errorf("expected DeleteInvoice to be called")
 	}
 }
 
@@ -95,6 +161,18 @@ func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *custom
 
 func (m *mockAppInstance) ValidateInvoice(ctx context.Context, invoice billingentity.Invoice) error {
 	return m.parent.ValidateInvoice(m.GetID().ID, invoice)
+}
+
+func (m *mockAppInstance) UpsertInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.UpsertInvoiceResult, error) {
+	return m.parent.UpsertInvoice(ctx, invoice)
+}
+
+func (m *mockAppInstance) FinalizeInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.FinalizeInvoiceResult, error) {
+	return m.parent.FinalizeInvoice(ctx, invoice)
+}
+
+func (m *mockAppInstance) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) error {
+	return m.parent.DeleteInvoice(ctx, invoice)
 }
 
 type MockableFactory struct {

@@ -574,6 +574,34 @@ func (u *BillingInvoiceUpdateOne) SetOrClearDueAt(value *time.Time) *BillingInvo
 	return u.SetDueAt(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearPaymentAppExternalID(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearPaymentAppExternalID()
+	}
+	return u.SetPaymentAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearPaymentAppExternalID(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearPaymentAppExternalID()
+	}
+	return u.SetPaymentAppExternalID(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearPeriodStart(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearPeriodStart()
@@ -684,6 +712,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
 }
 
 func (u *BillingInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingInvoiceLineUpdate {

@@ -99,7 +99,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetTaxesTotal(line.Totals.TaxesTotal).
 					SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
 					SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
-					SetTotal(line.Totals.Total)
+					SetTotal(line.Totals.Total).
+					// ExternalIDs
+					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
 
 				if line.TaxConfig != nil {
 					create = create.SetTaxConfig(*line.TaxConfig)
