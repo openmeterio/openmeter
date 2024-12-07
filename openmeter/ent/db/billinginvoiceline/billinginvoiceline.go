@@ -64,6 +64,8 @@ const (
 	FieldQuantity = "quantity"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
+	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldChildUniqueReferenceID holds the string denoting the child_unique_reference_id field in the database.
 	FieldChildUniqueReferenceID = "child_unique_reference_id"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
@@ -145,6 +147,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldQuantity,
 	FieldTaxConfig,
+	FieldInvoicingAppExternalID,
 	FieldChildUniqueReferenceID,
 }
 
@@ -321,6 +324,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByQuantity orders the results by the quantity field.
 func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
+}
+
+// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
+func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
 }
 
 // ByChildUniqueReferenceID orders the results by the child_unique_reference_id field.

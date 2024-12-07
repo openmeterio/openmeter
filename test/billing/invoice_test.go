@@ -932,7 +932,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Severity:  billingentity.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
-						Component: "app/sandbox/invoiceCustomers",
+						Component: "app.sandbox.invoiceCustomers.validate",
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
@@ -948,7 +948,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Severity:  billingentity.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
-						Component: "app/sandbox/invoiceCustomers",
+						Component: "app.sandbox.invoiceCustomers.validate",
 					},
 					issues[0].ValidationIssue,
 				)
@@ -988,13 +988,14 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
-				// Then we have the new issues captured in the database, the old one deleted
+				// Then we have the new issues captured in the database, the old one deleted, as Retry changes the severity
+				// we will have a new validation issue
 				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
 					Namespace: ns,
 					ID:        invoice.ID,
 				})
 				require.NoError(t, err)
-				require.Len(t, issues, 2)
+				require.Len(t, issues, 3)
 
 				// The old issue should be deleted
 				invoiceIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
@@ -1007,17 +1008,32 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Severity:  billingentity.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
-						Component: "app/sandbox/invoiceCustomers",
+						Component: "app.sandbox.invoiceCustomers.validate",
 					},
 					invoiceIssue.ValidationIssue,
 				)
 
+				// A new version of the issue is present with downgraded severity, to facilitate the retry
+				downgradedIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+					return i.Code == "test1" && i.Severity == billingentity.ValidationIssueSeverityWarning
+				})
+				require.True(t, ok, "the issue should be present")
+				require.NotNil(t, downgradedIssue.DeletedAt)
+				require.Equal(t,
+					billingentity.ValidationIssue{
+						Severity:  billingentity.ValidationIssueSeverityWarning,
+						Code:      "test1",
+						Message:   "validation error",
+						Component: "app.sandbox.invoiceCustomers.validate",
+					},
+					downgradedIssue.ValidationIssue,
+				)
+
 				// The new issue should not be deleted
 				calculationErrorIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
-					return i.ID != customerValidationIssueID
+					return i.Code == "test2"
 				})
 				require.True(t, ok, "new issue should be present")
-				require.Nil(t, calculationErrorIssue.DeletedAt)
 				require.Equal(t,
 					billingentity.ValidationIssue{
 						Severity:  billingentity.ValidationIssueSeverityCritical,
@@ -1056,7 +1072,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Severity:  billingentity.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
-						Component: "app/sandbox/invoiceCustomers",
+						Component: "app.sandbox.invoiceCustomers.validate",
 					},
 					{
 						Severity:  billingentity.ValidationIssueSeverityCritical,
@@ -1066,15 +1082,18 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
-				// The database now has both issues active (but no new ones are created)
+				// The database now has both  critical issues active (but no new ones are created)
 				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
 					Namespace: ns,
 					ID:        invoice.ID,
 				})
 				require.NoError(t, err)
-				require.Len(t, issues, 2)
+				criticalIssues := lo.Filter(issues, func(i billingadapter.ValidationIssueWithDBMeta, _ int) bool {
+					return i.Severity == billingentity.ValidationIssueSeverityCritical
+				})
+				require.Len(t, criticalIssues, 2)
 
-				_, deletedIssueFound := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+				_, deletedIssueFound := lo.Find(criticalIssues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
 					return i.DeletedAt != nil
 				})
 				require.False(t, deletedIssueFound, "no issues should be deleted")
@@ -1104,6 +1123,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				// Given that the app will return a validation error
 				mockApp.OnValidateInvoice(billingentity.NewValidationWarning("test1", "validation warning"))
+				mockApp.OnUpsertInvoice(nil)
+				mockApp.OnFinalizeInvoice(nil)
 				calcMock.OnCalculate(nil)
 
 				// When we create a draft invoice
@@ -1123,7 +1144,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Severity:  billingentity.ValidationIssueSeverityWarning,
 						Code:      "test1",
 						Message:   "validation warning",
-						Component: "app/sandbox/invoiceCustomers",
+						Component: "app.sandbox.invoiceCustomers.validate",
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
@@ -1658,19 +1679,93 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		})
 
 		s.Run("invoice deletion works", func() {
-			err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
-			require.NoError(s.T(), err)
+			// Mock invoicing app
+			mockApp := s.SandboxApp.EnableMock(s.T())
+			defer s.SandboxApp.DisableMock()
 
-			deletedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: out[0].InvoiceID(),
-				Expand:  billingentity.InvoiceExpandAll,
+			s.Run("when a validation error occurs, the error is returned", func() {
+				// InvoiceDeletion fails
+				validationError := billingentity.NewValidationError("delete-failed", "invoice cannot be deleted")
+				mockApp.OnDeleteInvoice(validationError)
+
+				err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
+				require.Error(s.T(), err)
+				require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+
+				validationIssue := billingentity.ValidationIssue{}
+				require.True(s.T(), errors.As(err, &validationIssue))
+				require.Equal(s.T(), validationIssue.Code, validationError.Code)
+				require.Equal(s.T(), validationIssue.Message, validationError.Message)
+
+				deletedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+					Invoice: out[0].InvoiceID(),
+					Expand:  billingentity.InvoiceExpandAll,
+				})
+				require.NoError(s.T(), err)
+				require.NotNil(s.T(), deletedInvoice.DeletedAt)
+				require.Equal(s.T(), billingentity.InvoiceStatusDeleteFailed, deletedInvoice.Status)
+
+				mockApp.AssertExpectations(s.T())
 			})
-			require.NoError(s.T(), err)
-			require.NotNil(s.T(), deletedInvoice.DeletedAt)
+
+			s.Run("when a generic error occurs, the error is added to the validation errors", func() {
+				mockApp.Reset(s.T())
+
+				// InvoiceDeletion fails
+				mockApp.OnDeleteInvoice(errors.New("generic error"))
+
+				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].InvoiceID())
+				require.NotNil(s.T(), invoice)
+				require.NoError(s.T(), err)
+				require.Len(s.T(), invoice.ValidationIssues, 1)
+				require.Equal(s.T(), billingentity.InvoiceStatusDeleteFailed, invoice.Status)
+
+				validationIssue := invoice.ValidationIssues[0]
+				require.Empty(s.T(), validationIssue.Code)
+				require.Equal(s.T(), "generic error", validationIssue.Message)
+				require.Equal(s.T(), billingentity.ValidationIssueSeverityCritical, validationIssue.Severity)
+
+				mockApp.AssertExpectations(s.T())
+			})
+
+			s.Run("when the sync passes, the invoice is deleted", func() {
+				mockApp.Reset(s.T())
+
+				mockApp.OnDeleteInvoice(nil)
+
+				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].InvoiceID())
+				require.NotNil(s.T(), invoice)
+				require.NoError(s.T(), err)
+				require.Len(s.T(), invoice.ValidationIssues, 0)
+				require.Equal(s.T(), billingentity.InvoiceStatusDeleted, invoice.Status)
+
+				mockApp.AssertExpectations(s.T())
+			})
 		})
 	})
 
 	s.Run("create mid period invoice - pt2", func() {
+		// Mock invoicing app
+		mockApp := s.SandboxApp.EnableMock(s.T())
+		defer s.SandboxApp.DisableMock()
+
+		mockApp.OnValidateInvoice(nil)
+		mockApp.OnUpsertInvoice(func(i billingentity.Invoice) *billingentity.UpsertInvoiceResult {
+			lines := i.FlattenLinesByID()
+
+			out := billingentity.NewUpsertInvoiceResult()
+
+			for _, line := range lines {
+				if line.Type == billingentity.InvoiceLineTypeFee {
+					out.AddLineExternalID(line.ID, line.ID)
+				}
+			}
+
+			out.SetInvoiceNumber("INV-123")
+
+			return out
+		})
+
 		// Usage
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 20, periodStart.Add(time.Minute*100))
 		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*100))
@@ -1774,6 +1869,63 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			DiscountsTotal: 1000,
 			Total:          2450,
 		}, out[0].Totals)
+
+		// Invoice app testing
+
+		require.Equal(s.T(), "INV-123", *out[0].Number)
+
+		for _, line := range out[0].FlattenLinesByID() {
+			switch {
+			case line.Type == billingentity.InvoiceLineTypeFee:
+				require.Equal(s.T(), line.ID, line.ExternalIDs.Invoicing)
+			case line.Type == billingentity.InvoiceLineTypeUsageBased:
+				require.Empty(s.T(), line.ExternalIDs.Invoicing)
+			default:
+				s.T().Errorf("unexpected line type: %s", line.Type)
+			}
+		}
+
+		mockApp.AssertExpectations(s.T())
+
+		s.Run("validate invoice finalization", func() {
+			mockApp.OnUpsertInvoice(func(i billingentity.Invoice) *billingentity.UpsertInvoiceResult {
+				lines := i.FlattenLinesByID()
+
+				out := billingentity.NewUpsertInvoiceResult()
+
+				for _, line := range lines {
+					if line.Type == billingentity.InvoiceLineTypeFee {
+						out.AddLineExternalID(line.ID, "final_upsert_"+line.ID)
+					}
+				}
+
+				return out
+			})
+
+			finalizedInvoiceResult := billingentity.NewFinalizeInvoiceResult()
+			finalizedInvoiceResult.SetPaymentExternalID("payment_external_id")
+			mockApp.OnFinalizeInvoice(finalizedInvoiceResult)
+
+			// Let's finalize the invoice
+			finalizedInvoice, err := s.BillingService.ApproveInvoice(ctx, out[0].InvoiceID())
+			require.NoError(s.T(), err)
+			require.NotNil(s.T(), finalizedInvoice)
+
+			require.Equal(s.T(), "payment_external_id", finalizedInvoice.ExternalIDs.Payment)
+			// Invoice app testing
+			for _, line := range finalizedInvoice.FlattenLinesByID() {
+				switch {
+				case line.Type == billingentity.InvoiceLineTypeFee:
+					require.Equal(s.T(), "final_upsert_"+line.ID, line.ExternalIDs.Invoicing)
+				case line.Type == billingentity.InvoiceLineTypeUsageBased:
+					require.Empty(s.T(), line.ExternalIDs.Invoicing)
+				default:
+					s.T().Errorf("unexpected line type: %s", line.Type)
+				}
+			}
+
+			mockApp.AssertExpectations(s.T())
+		})
 	})
 
 	s.Run("create end of period invoice", func() {

@@ -187,6 +187,8 @@ type InvoiceBase struct {
 	Customer InvoiceCustomer  `json:"customer"`
 	Supplier SupplierContact  `json:"supplier"`
 	Workflow *InvoiceWorkflow `json:"workflow,omitempty"`
+
+	ExternalIDs InvoiceExternalIDs `json:"externalIds,omitempty"`
 }
 
 type Invoice struct {
@@ -241,6 +243,35 @@ func (i Invoice) RemoveMetaForCompare() Invoice {
 	})
 
 	return invoice
+}
+
+func (i *Invoice) FlattenLinesByID() map[string]*Line {
+	out := make(map[string]*Line, len(i.Lines.OrEmpty()))
+
+	for _, line := range i.Lines.OrEmpty() {
+		out[line.ID] = line
+
+		for _, child := range line.Children.OrEmpty() {
+			out[child.ID] = child
+		}
+	}
+
+	return out
+}
+
+func (i Invoice) Clone() Invoice {
+	clone := i
+
+	clone.Lines = i.Lines.Clone()
+	clone.ValidationIssues = i.ValidationIssues.Clone()
+	clone.Totals = i.Totals
+
+	return clone
+}
+
+type InvoiceExternalIDs struct {
+	Invoicing string `json:"invoicing,omitempty"`
+	Payment   string `json:"payment,omitempty"`
 }
 
 type InvoiceAction string

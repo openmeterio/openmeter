@@ -687,6 +687,46 @@ func (biu *BillingInvoiceUpdate) SetNillableWorkflowConfigID(s *string) *Billing
 	return biu
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (biu *BillingInvoiceUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetInvoicingAppExternalID(s)
+	return biu
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetInvoicingAppExternalID(*s)
+	}
+	return biu
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (biu *BillingInvoiceUpdate) ClearInvoicingAppExternalID() *BillingInvoiceUpdate {
+	biu.mutation.ClearInvoicingAppExternalID()
+	return biu
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (biu *BillingInvoiceUpdate) SetPaymentAppExternalID(s string) *BillingInvoiceUpdate {
+	biu.mutation.SetPaymentAppExternalID(s)
+	return biu
+}
+
+// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillablePaymentAppExternalID(s *string) *BillingInvoiceUpdate {
+	if s != nil {
+		biu.SetPaymentAppExternalID(*s)
+	}
+	return biu
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (biu *BillingInvoiceUpdate) ClearPaymentAppExternalID() *BillingInvoiceUpdate {
+	biu.mutation.ClearPaymentAppExternalID()
+	return biu
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (biu *BillingInvoiceUpdate) SetPeriodStart(t time.Time) *BillingInvoiceUpdate {
 	biu.mutation.SetPeriodStart(t)
@@ -1109,6 +1149,18 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if value, ok := biu.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := biu.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if biu.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString)
+	}
+	if value, ok := biu.mutation.PaymentAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
+	}
+	if biu.mutation.PaymentAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldPaymentAppExternalID, field.TypeString)
 	}
 	if value, ok := biu.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)
@@ -1913,6 +1965,46 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableWorkflowConfigID(s *string) *Bil
 	return biuo
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (biuo *BillingInvoiceUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetInvoicingAppExternalID(s)
+	return biuo
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetInvoicingAppExternalID(*s)
+	}
+	return biuo
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (biuo *BillingInvoiceUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearInvoicingAppExternalID()
+	return biuo
+}
+
+// SetPaymentAppExternalID sets the "payment_app_external_id" field.
+func (biuo *BillingInvoiceUpdateOne) SetPaymentAppExternalID(s string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetPaymentAppExternalID(s)
+	return biuo
+}
+
+// SetNillablePaymentAppExternalID sets the "payment_app_external_id" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillablePaymentAppExternalID(s *string) *BillingInvoiceUpdateOne {
+	if s != nil {
+		biuo.SetPaymentAppExternalID(*s)
+	}
+	return biuo
+}
+
+// ClearPaymentAppExternalID clears the value of the "payment_app_external_id" field.
+func (biuo *BillingInvoiceUpdateOne) ClearPaymentAppExternalID() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearPaymentAppExternalID()
+	return biuo
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (biuo *BillingInvoiceUpdateOne) SetPeriodStart(t time.Time) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetPeriodStart(t)
@@ -2365,6 +2457,18 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if value, ok := biuo.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := biuo.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if biuo.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString)
+	}
+	if value, ok := biuo.mutation.PaymentAppExternalID(); ok {
+		_spec.SetField(billinginvoice.FieldPaymentAppExternalID, field.TypeString, value)
+	}
+	if biuo.mutation.PaymentAppExternalIDCleared() {
+		_spec.ClearField(billinginvoice.FieldPaymentAppExternalID, field.TypeString)
 	}
 	if value, ok := biuo.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodStart, field.TypeTime, value)

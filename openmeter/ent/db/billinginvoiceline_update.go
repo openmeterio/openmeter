@@ -335,6 +335,26 @@ func (bilu *BillingInvoiceLineUpdate) ClearTaxConfig() *BillingInvoiceLineUpdate
 	return bilu
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetInvoicingAppExternalID(s)
+	return bilu
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetInvoicingAppExternalID(*s)
+	}
+	return bilu
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearInvoicingAppExternalID()
+	return bilu
+}
+
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
 func (bilu *BillingInvoiceLineUpdate) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetChildUniqueReferenceID(s)
@@ -644,6 +664,12 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if bilu.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := bilu.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if bilu.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString)
 	}
 	if value, ok := bilu.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
@@ -1177,6 +1203,26 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearTaxConfig() *BillingInvoiceLineUp
 	return biluo
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetInvoicingAppExternalID(s)
+	return biluo
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetInvoicingAppExternalID(*s)
+	}
+	return biluo
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearInvoicingAppExternalID()
+	return biluo
+}
+
 // SetChildUniqueReferenceID sets the "child_unique_reference_id" field.
 func (biluo *BillingInvoiceLineUpdateOne) SetChildUniqueReferenceID(s string) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetChildUniqueReferenceID(s)
@@ -1516,6 +1562,12 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if biluo.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := biluo.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if biluo.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoiceline.FieldInvoicingAppExternalID, field.TypeString)
 	}
 	if value, ok := biluo.mutation.ChildUniqueReferenceID(); ok {
 		_spec.SetField(billinginvoiceline.FieldChildUniqueReferenceID, field.TypeString, value)
