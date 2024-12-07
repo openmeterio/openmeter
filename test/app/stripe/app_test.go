@@ -46,8 +46,8 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestUninstall(ctx, t)
 		})
 
-		t.Run("CustomerCreate", func(t *testing.T) {
-			testSuite.TestCustomerCreate(ctx, t)
+		t.Run("CustomerData", func(t *testing.T) {
+			testSuite.TestCustomerData(ctx, t)
 		})
 
 		t.Run("TestCustomerValidate", func(t *testing.T) {

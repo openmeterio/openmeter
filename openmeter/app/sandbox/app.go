@@ -10,6 +10,7 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -18,8 +19,9 @@ const (
 )
 
 var (
-	_ customerentity.App         = (*App)(nil)
+	_ customerapp.App            = (*App)(nil)
 	_ billingentity.InvoicingApp = (*App)(nil)
+	_ appentity.CustomerData     = (*CustomerData)(nil)
 )
 
 type App struct {
@@ -34,7 +36,17 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	return nil
 }
 
-// InvoicingApp implementation
+func (a App) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+	return CustomerData{}, nil
+}
+
+func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+	return nil
+}
+
+func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+	return nil
+}
 
 func (a App) ValidateInvoice(ctx context.Context, invoice billingentity.Invoice) error {
 	return nil
@@ -59,6 +71,12 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billingentity.Invoice)
 }
 
 func (a App) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) error {
+	return nil
+}
+
+type CustomerData struct{}
+
+func (c CustomerData) Validate() error {
 	return nil
 }
 
@@ -120,7 +138,7 @@ func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	return appBase, nil
+	return a.NewApp(ctx, appBase)
 }
 
 func (a *Factory) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {

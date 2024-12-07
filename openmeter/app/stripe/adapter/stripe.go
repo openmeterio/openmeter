@@ -10,7 +10,6 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
@@ -21,15 +20,20 @@ import (
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
 
+// GetStripeClientFactory gets the stripe client factory
+func (a adapter) GetStripeClientFactory() stripeclient.StripeClientFactory {
+	return a.stripeClientFactory
+}
+
 // CreateApp creates a new app
-func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentityapp.App, error) {
+func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentityapp.App{}, appstripe.ValidationError{
+		return appstripeentity.AppBase{}, appstripe.ValidationError{
 			Err: fmt.Errorf("error create stripe app: %w", err),
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripeentityapp.App, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripeentity.AppBase, error) {
 		// Create the base app
 		appBase, err := repo.appService.CreateApp(ctx, appentity.CreateAppInput{
 			Namespace:   input.Namespace,
@@ -38,7 +42,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			Type:        appentitybase.AppTypeStripe,
 		})
 		if err != nil {
-			return appstripeentityapp.App{}, fmt.Errorf("failed to create app: %w", err)
+			return appstripeentity.AppBase{}, fmt.Errorf("failed to create app: %w", err)
 		}
 
 		// Create the stripe app in the database
@@ -53,19 +57,16 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 		dbApp, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
-			return appstripeentityapp.App{}, fmt.Errorf("failed to create stripe app: %w", err)
+			return appstripeentity.AppBase{}, fmt.Errorf("failed to create stripe app: %w", err)
 		}
 
 		// Map the database stripe app to an app entity
 		appData := mapAppStripeData(appBase.GetID(), dbApp)
 
-		// Map the database stripe app to an app entity
-		app, err := repo.mapAppStripeFromDB(appBase, appData)
-		if err != nil {
-			return appstripeentityapp.App{}, err
-		}
-
-		return app, nil
+		return appstripeentity.AppBase{
+			AppBase: appBase,
+			AppData: appData,
+		}, nil
 	})
 }
 
@@ -364,29 +365,6 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			ReturnURL:     checkoutSession.ReturnURL,
 		}, nil
 	})
-}
-
-// mapAppStripeFromDB maps a database stripe app to an app entity
-func (a adapter) mapAppStripeFromDB(
-	appBase appentitybase.AppBase,
-	stripeApp appstripeentity.AppData,
-) (appstripeentityapp.App, error) {
-	app := appstripeentityapp.App{
-		AppBase: appBase,
-		AppData: stripeApp,
-
-		// TODO: fixme, it should be a service not an adapter
-		// But the factory (this) is is in the adapter that the service depends on
-		StripeAppService:    a,
-		SecretService:       a.secretService,
-		StripeClientFactory: a.stripeClientFactory,
-	}
-
-	if err := app.Validate(); err != nil {
-		return appstripeentityapp.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
-	}
-
-	return app, nil
 }
 
 // mapAppStripeData maps stripe app data from the database

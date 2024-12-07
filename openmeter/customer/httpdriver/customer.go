@@ -68,7 +68,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			for _, customer := range resp.Items {
 				var item api.Customer
 
-				item, err = customer.AsAPICustomer()
+				item, err = customerToAPI(customer)
 				if err != nil {
 					return ListCustomersResponse{}, fmt.Errorf("failed to cast customer customer: %w", err)
 				}
@@ -112,7 +112,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerRequest{}, err
 			}
 
-			return CreateCustomerRequest{
+			req := CreateCustomerRequest{
 				Namespace: ns,
 				CustomerMutate: customerentity.CustomerMutate{
 					Name:             body.Name,
@@ -123,7 +123,9 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 					Currency:         mapCurrency(body.Currency),
 					Timezone:         mapTimezone(body.Timezone),
 				},
-			}, nil
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {
 			customer, err := h.service.CreateCustomer(ctx, request)
@@ -131,7 +133,11 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerResponse{}, err
 			}
 
-			return customer.AsAPICustomer()
+			if customer == nil {
+				return CreateCustomerResponse{}, fmt.Errorf("failed to create customer")
+			}
+
+			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -162,7 +168,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerRequest{}, err
 			}
 
-			return UpdateCustomerRequest{
+			req := UpdateCustomerRequest{
 				CustomerID: customerentity.CustomerID{
 					Namespace: ns,
 					ID:        customerID,
@@ -176,7 +182,9 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 					Currency:         mapCurrency(body.Currency),
 					Timezone:         mapTimezone(body.Timezone),
 				},
-			}, nil
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request UpdateCustomerRequest) (UpdateCustomerResponse, error) {
 			customer, err := h.service.UpdateCustomer(ctx, request)
@@ -184,7 +192,11 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerResponse{}, err
 			}
 
-			return customer.AsAPICustomer()
+			if customer == nil {
+				return UpdateCustomerResponse{}, fmt.Errorf("failed to update customer")
+			}
+
+			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -258,7 +270,11 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 				return GetCustomerResponse{}, err
 			}
 
-			return customer.AsAPICustomer()
+			if customer == nil {
+				return GetCustomerResponse{}, fmt.Errorf("failed to get customer")
+			}
+
+			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -7,11 +7,8 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripeobserver "github.com/openmeterio/openmeter/openmeter/app/stripe/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -68,30 +65,6 @@ func New(config Config) (appstripe.Adapter, error) {
 		stripeClientFactory: stripeClientFactory,
 	}
 
-	// Create app stripe customer observer
-	appStripeObserver, err := appstripeobserver.NewCustomerObserver(appstripeobserver.CustomerObserverConfig{
-		AppService:       config.AppService,
-		AppStripeService: adapter,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create app stripe observer: %w", err)
-	}
-
-	// Register app stripe observer on customer service
-	err = config.CustomerService.Register(appStripeObserver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to register app stripe observer on custoemr service: %w", err)
-	}
-
-	// Register stripe app in marketplace
-	err = config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
-		Listing: appstripeentity.StripeMarketplaceListing,
-		Factory: adapter,
-	})
-	if err != nil {
-		return adapter, fmt.Errorf("failed to register stripe app: %w", err)
-	}
-
 	return adapter, nil
 }
 
@@ -119,7 +92,6 @@ func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, e
 
 func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	// Should we re-register the observers? Adapter is overloaded, does too much
 	return &adapter{
 		db:                  txClient.Client(),
 		appService:          a.appService,

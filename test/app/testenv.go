@@ -11,6 +11,7 @@ import (
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
+	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
@@ -109,7 +110,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	// App Stripe
-	_, err = appstripeadapter.New(appstripeadapter.Config{
+	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          entClient,
 		AppService:      appService,
 		CustomerService: customerService,
@@ -117,6 +118,15 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)
+	}
+
+	_, err = appstripeservice.New(appstripeservice.Config{
+		Adapter:       appStripeAdapter,
+		AppService:    appService,
+		SecretService: secretService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create appstripe service: %w", err)
 	}
 
 	closerFunc := func() error {

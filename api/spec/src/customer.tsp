@@ -73,6 +73,44 @@ interface Customers {
   delete(@path id: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
+
+  /**
+   * List customers app data.
+   */
+  @get
+  @route("/{customerId}/apps")
+  @operationId("listCustomerAppData")
+  @summary("List customer app data")
+  @extension("x-internal", true)
+  listAppData(
+    @path customerId: ULID,
+    ...ListCustomerAppDataParams,
+  ): PaginatedResponse<App.CustomerAppData> | NotFoundError | CommonErrors;
+
+  /**
+   * Upsert customer app data.
+   */
+  @put
+  @route("/{customerId}/apps")
+  @operationId("upsertCustomerAppData")
+  @summary("Upsert customer app data")
+  @extension("x-internal", true)
+  upsertAppData(
+    @path customerId: ULID,
+    @body appData: App.CustomerAppData[],
+  ): App.CustomerAppData[] | NotFoundError | CommonErrors;
+
+  /**
+   * Delete customer app data.
+   */
+  @delete
+  @route("/{customerId}/apps/{appId}")
+  @operationId("deleteCustomerAppData")
+  @summary("Delete customer app data")
+  @extension("x-internal", true)
+  deleteAppData(@path customerId: ULID, @path appId: ULID): {
+    @statusCode _: 204;
+  } | NotFoundError | CommonErrors;
 }
 
 /**
@@ -120,6 +158,21 @@ model ListCustomersParams {
 }
 
 /**
+ * Query params for listing customers.
+ */
+@friendlyName("queryCustomerList")
+model ListCustomerAppDataParams {
+  ...PaginatedQuery;
+
+  /**
+   * Filter customer data by app type.
+   */
+  @query
+  @example(App.Type.Stripe)
+  type?: App.Type;
+}
+
+/**
  * Order by options for customers.
  */
 @friendlyName("CustomerOrderBy")
@@ -137,7 +190,6 @@ enum CustomerOrderBy {
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   name: "ACME Inc.",
   usageAttribution: #{ subjectKeys: #["my_subject_key"] },
-  external: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
   createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
 })
@@ -177,12 +229,6 @@ model Customer {
    */
   @summary("Billing Address")
   billingAddress?: Address;
-
-  /**
-   * External mappings for the customer.
-   */
-  @summary("External Mappings")
-  external?: CustomerExternalMapping;
 }
 
 /**
@@ -200,18 +246,4 @@ model CustomerUsageAttribution {
   @minItems(1)
   @maxItems(1)
   subjectKeys: string[];
-}
-
-/**
- * External mappings for the customer.
- */
-@friendlyName("CustomerExternalMapping")
-model CustomerExternalMapping {
-  /**
-   * The Stripe customer ID.
-   * Mapping to a Stripe Customer object.
-   * Required to use Stripe as an invocing provider.
-   */
-  @summary("Stripe Customer")
-  stripeCustomerId?: string;
 }

@@ -21,6 +21,11 @@ type AppHandler interface {
 	GetApp() GetAppHandler
 	UninstallApp() UninstallAppHandler
 
+	// Customer Data handlers
+	ListCustomerData() ListCustomerDataHandler
+	UpsertCustomerData() UpsertCustomerDataHandler
+	DeleteCustomerData() DeleteCustomerDataHandler
+
 	// Marketplace handlers
 	ListMarketplaceListings() ListMarketplaceListingsHandler
 	GetMarketplaceListing() GetMarketplaceListingHandler

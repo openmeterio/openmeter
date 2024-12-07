@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	appobserver "github.com/openmeterio/openmeter/openmeter/app/observer"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -39,22 +37,15 @@ func New(config Config) (customer.Adapter, error) {
 	}
 
 	return &adapter{
-		db:        config.Client,
-		logger:    config.Logger,
-		observers: &[]appobserver.Observer[customerentity.Customer]{},
+		db:     config.Client,
+		logger: config.Logger,
 	}, nil
 }
 
-var (
-	_ customer.Adapter                               = (*adapter)(nil)
-	_ appobserver.Publisher[customerentity.Customer] = (*adapter)(nil)
-)
+var _ customer.Adapter = (*adapter)(nil)
 
 type adapter struct {
-	db *entdb.Client
-	// It is a reference so we can pass it down in WithTx
-	observers *[]appobserver.Observer[customerentity.Customer]
-
+	db     *entdb.Client
 	logger *slog.Logger
 }
 
@@ -72,8 +63,7 @@ func (a adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, e
 func (a adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
-		db:        txClient.Client(),
-		logger:    a.logger,
-		observers: a.observers,
+		db:     txClient.Client(),
+		logger: a.logger,
 	}
 }

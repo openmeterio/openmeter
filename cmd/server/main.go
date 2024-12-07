@@ -241,7 +241,9 @@ func main() {
 		}
 
 		appStripeService, err = appstripeservice.New(appstripeservice.Config{
-			Adapter: appStripeAdapter,
+			Adapter:       appStripeAdapter,
+			AppService:    appService,
+			SecretService: secretService,
 		})
 		if err != nil {
 			logger.Error("failed to initialize app stripe service", "error", err)

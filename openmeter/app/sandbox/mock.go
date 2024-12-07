@@ -10,6 +10,7 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -38,6 +39,18 @@ type MockApp struct {
 
 func NewMockApp(_ *testing.T) *MockApp {
 	return &MockApp{}
+}
+
+func (m *MockApp) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+	return nil, nil
+}
+
+func (m *MockApp) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+	return nil
+}
+
+func (m *MockApp) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+	return nil
 }
 
 func (m *MockApp) ValidateCustomer(appID string, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
@@ -152,8 +165,20 @@ type mockAppInstance struct {
 
 var (
 	_ billingentity.InvoicingApp = (*mockAppInstance)(nil)
-	_ customerentity.App         = (*mockAppInstance)(nil)
+	_ customerapp.App            = (*mockAppInstance)(nil)
 )
+
+func (m *mockAppInstance) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+	return m.parent.GetCustomerData(ctx, input)
+}
+
+func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+	return m.parent.UpsertCustomerData(ctx, input)
+}
+
+func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+	return m.parent.DeleteCustomerData(ctx, input)
+}
 
 func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
 	return m.parent.ValidateCustomer(m.GetID().ID, customer, capabilities)

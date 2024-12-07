@@ -143,9 +143,10 @@ func (o CreateStripeCustomerOutput) Validate() error {
 }
 
 type UpsertStripeCustomerDataInput struct {
-	AppID            appentitybase.AppID
-	CustomerID       customerentity.CustomerID
-	StripeCustomerID string
+	AppID                        appentitybase.AppID
+	CustomerID                   customerentity.CustomerID
+	StripeCustomerID             string
+	StripeDefaultPaymentMethodID *string
 }
 
 func (i UpsertStripeCustomerDataInput) Validate() error {
@@ -163,6 +164,10 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 
 	if i.StripeCustomerID == "" {
 		return errors.New("stripe customer id is required")
+	}
+
+	if i.StripeDefaultPaymentMethodID != nil && !strings.HasPrefix(*i.StripeDefaultPaymentMethodID, "pm_") {
+		return errors.New("stripe default payment method must start with pm_")
 	}
 
 	return nil
@@ -323,6 +328,11 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 	return nil
 }
 
+type AppBase struct {
+	appentitybase.AppBase
+	AppData
+}
+
 // AppData represents the Stripe associated data for the app
 type AppData struct {
 	StripeAccountID string
@@ -347,24 +357,6 @@ func (d AppData) Validate() error {
 
 	if err := d.WebhookSecret.Validate(); err != nil {
 		return fmt.Errorf("error validating webhook secret: %w", err)
-	}
-
-	return nil
-}
-
-// CustomerAppData represents the Stripe associated data for an app used by a customer
-type CustomerAppData struct {
-	StripeCustomerID             string
-	StripeDefaultPaymentMethodID *string
-}
-
-func (d CustomerAppData) Validate() error {
-	if d.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
-	}
-
-	if d.StripeDefaultPaymentMethodID != nil && *d.StripeDefaultPaymentMethodID == "" {
-		return errors.New("stripe default payment method id cannot be empty if provided")
 	}
 
 	return nil

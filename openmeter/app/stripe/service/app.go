@@ -21,7 +21,7 @@ func (s *Service) GetStripeAppData(ctx context.Context, input appstripeentity.Ge
 	return s.adapter.GetStripeAppData(ctx, input)
 }
 
-func (s *Service) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerAppData, error) {
+func (s *Service) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
 	return s.adapter.GetStripeCustomerData(ctx, input)
 }
 

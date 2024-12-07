@@ -1,10 +1,12 @@
 package appentity
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -21,6 +23,52 @@ type App interface {
 
 	// ValidateCapabilities validates if the app can run for the given capabilities
 	ValidateCapabilities(capabilities ...appentitybase.CapabilityType) error
+
+	// Customer data
+	GetCustomerData(ctx context.Context, input GetAppInstanceCustomerDataInput) (CustomerData, error)
+	UpsertCustomerData(ctx context.Context, input UpsertAppInstanceCustomerDataInput) error
+	DeleteCustomerData(ctx context.Context, input DeleteAppInstanceCustomerDataInput) error
+}
+
+type GetAppInstanceCustomerDataInput struct {
+	CustomerID customerentity.CustomerID
+}
+
+func (i GetAppInstanceCustomerDataInput) Validate() error {
+	if err := i.CustomerID.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type UpsertAppInstanceCustomerDataInput struct {
+	CustomerID customerentity.CustomerID
+	Data       CustomerData
+}
+
+func (i UpsertAppInstanceCustomerDataInput) Validate() error {
+	if err := i.CustomerID.Validate(); err != nil {
+		return err
+	}
+
+	if err := i.Data.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type DeleteAppInstanceCustomerDataInput struct {
+	CustomerID customerentity.CustomerID
+}
+
+func (i DeleteAppInstanceCustomerDataInput) Validate() error {
+	if err := i.CustomerID.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetAppInput is the input for getting an installed app
@@ -70,6 +118,8 @@ type ListAppInput struct {
 
 	Type           *appentitybase.AppType
 	IncludeDeleted bool
+	// Only list apps that has data for the given customer
+	CustomerID *customerentity.CustomerID
 }
 
 func (i ListAppInput) Validate() error {
@@ -79,6 +129,16 @@ func (i ListAppInput) Validate() error {
 
 	if err := i.Page.Validate(); err != nil {
 		return fmt.Errorf("error validating page: %w", err)
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			return fmt.Errorf("error validating customer ID: %w", err)
+		}
+
+		if i.CustomerID.Namespace != i.Namespace {
+			return fmt.Errorf("customer ID namespace %s does not match app namespace %s", i.CustomerID.Namespace, i.Namespace)
+		}
 	}
 
 	return nil

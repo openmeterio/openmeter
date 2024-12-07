@@ -140,13 +140,20 @@ func (s *BaseSuite) SetupSuite() {
 
 func (s *BaseSuite) installSandboxApp(t *testing.T, ns string) appentity.App {
 	ctx := context.Background()
-	defaultApp, err := s.AppService.CreateApp(ctx,
+	_, err := s.AppService.CreateApp(ctx,
 		appentity.CreateAppInput{
 			Name:        "Sandbox",
 			Description: "Sandbox app",
 			Type:        appentitybase.AppTypeSandbox,
 			Namespace:   ns,
 		})
+
+	require.NoError(t, err)
+
+	defaultApp, err := s.AppService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: ns,
+		Type:      appentitybase.AppTypeSandbox,
+	})
 
 	require.NoError(t, err)
 	return defaultApp
