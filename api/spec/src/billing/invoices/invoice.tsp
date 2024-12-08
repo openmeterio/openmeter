@@ -189,6 +189,12 @@ model Invoice {
    */
   @visibility("read")
   validationIssues?: ValidationIssue[];
+
+  /**
+   * External IDs of the invoice in other apps such as Stripe.
+   */
+  @visibility("read")
+  externalIDs?: InvoiceAppExternalIDs;
 }
 
 /**
@@ -568,6 +574,12 @@ model InvoiceLineBase {
    */
   @visibility("read", "create", "update")
   invoiceAt: DateTime;
+
+  /**
+   * External IDs of the invoice in other apps such as Stripe.
+   */
+  @visibility("read")
+  externalIDs?: InvoiceLineAppExternalIDs;
 }
 
 /**
@@ -835,4 +847,46 @@ model ValidationIssue {
    */
   @visibility("read")
   metadata?: Metadata;
+}
+
+/**
+ * InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
+ */
+@friendlyName("InvoiceAppExternalIDs")
+model InvoiceAppExternalIDs {
+  /**
+   * The external ID of the invoice in the invoicing app if available.
+   */
+  @visibility("read")
+  Invoicing?: string;
+
+  /**
+   * The external ID of the invoice in the tax app if available.
+   */
+  @visibility("read")
+  Tax?: string;
+
+  /**
+   * The external ID of the invoice in the payment app if available.
+   */
+  @visibility("read")
+  Payment?: string;
+}
+
+/**
+ * InvoiceLineAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
+ */
+@friendlyName("InvoiceLineAppExternalIDs")
+model InvoiceLineAppExternalIDs {
+  /**
+   * The external ID of the invoice in the invoicing app if available.
+   */
+  @visibility("read")
+  Invoicing?: string;
+
+  /**
+   * The external ID of the invoice in the tax app if available.
+   */
+  @visibility("read")
+  Tax?: string;
 }

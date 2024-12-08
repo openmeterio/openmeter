@@ -11139,6 +11139,11 @@ components:
             $ref: '#/components/schemas/ValidationIssue'
           description: Validation issues reported by the invoice workflow.
           readOnly: true
+        externalIDs:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceAppExternalIDs'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
       description: Invoice represents an invoice in the system.
     InvoiceAction:
       type: string
@@ -11149,6 +11154,22 @@ components:
         - retry
         - void
       description: InvoiceAction represents the actions that can be performed on an invoice.
+    InvoiceAppExternalIDs:
+      type: object
+      properties:
+        Invoicing:
+          type: string
+          description: The external ID of the invoice in the invoicing app if available.
+          readOnly: true
+        Tax:
+          type: string
+          description: The external ID of the invoice in the tax app if available.
+          readOnly: true
+        Payment:
+          type: string
+          description: The external ID of the invoice in the payment app if available.
+          readOnly: true
+      description: InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
     InvoiceDocumentRef:
       type: object
       allOf:
@@ -11302,6 +11323,11 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+        externalIDs:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
         type:
           type: string
           enum:
@@ -11489,6 +11515,18 @@ components:
           usage_based: '#/components/schemas/InvoiceUsageBasedLine'
           flat_fee: '#/components/schemas/InvoiceFlatFeeLine'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
+    InvoiceLineAppExternalIDs:
+      type: object
+      properties:
+        Invoicing:
+          type: string
+          description: The external ID of the invoice in the invoicing app if available.
+          readOnly: true
+        Tax:
+          type: string
+          description: The external ID of the invoice in the tax app if available.
+          readOnly: true
+      description: InvoiceLineAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
     InvoiceLineDiscount:
       type: object
       required:
@@ -11934,6 +11972,11 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+        externalIDs:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
         type:
           type: string
           enum:

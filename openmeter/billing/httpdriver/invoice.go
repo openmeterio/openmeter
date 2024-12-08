@@ -385,6 +385,10 @@ func mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 					Field:     lo.EmptyableToPtr(v.Path),
 				}
 			})),
+		ExternalIDs: lo.EmptyableToPtr(api.InvoiceAppExternalIDs{
+			Invoicing: lo.EmptyableToPtr(invoice.ExternalIDs.Invoicing),
+			Payment:   lo.EmptyableToPtr(invoice.ExternalIDs.Payment),
+		}),
 	}
 
 	if invoice.Workflow != nil {
