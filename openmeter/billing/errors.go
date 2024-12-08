@@ -1,4 +1,4 @@
-package billingentity
+package billing
 
 import "fmt"
 

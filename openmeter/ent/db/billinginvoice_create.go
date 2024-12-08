@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -367,7 +367,7 @@ func (bic *BillingInvoiceCreate) SetNillableCustomerTimezone(t *timezone.Timezon
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (bic *BillingInvoiceCreate) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceCreate {
+func (bic *BillingInvoiceCreate) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) *BillingInvoiceCreate {
 	bic.mutation.SetCustomerUsageAttribution(bcua)
 	return bic
 }
@@ -387,7 +387,7 @@ func (bic *BillingInvoiceCreate) SetNillableNumber(s *string) *BillingInvoiceCre
 }
 
 // SetType sets the "type" field.
-func (bic *BillingInvoiceCreate) SetType(bt billingentity.InvoiceType) *BillingInvoiceCreate {
+func (bic *BillingInvoiceCreate) SetType(bt billing.InvoiceType) *BillingInvoiceCreate {
 	bic.mutation.SetType(bt)
 	return bic
 }
@@ -481,7 +481,7 @@ func (bic *BillingInvoiceCreate) SetNillableDueAt(t *time.Time) *BillingInvoiceC
 }
 
 // SetStatus sets the "status" field.
-func (bic *BillingInvoiceCreate) SetStatus(bs billingentity.InvoiceStatus) *BillingInvoiceCreate {
+func (bic *BillingInvoiceCreate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceCreate {
 	bic.mutation.SetStatus(bs)
 	return bic
 }
@@ -1685,7 +1685,7 @@ func (u *BillingInvoiceUpsert) ClearCustomerTimezone() *BillingInvoiceUpsert {
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (u *BillingInvoiceUpsert) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetCustomerUsageAttribution(v *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldCustomerUsageAttribution, v)
 	return u
 }
@@ -1715,7 +1715,7 @@ func (u *BillingInvoiceUpsert) ClearNumber() *BillingInvoiceUpsert {
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceUpsert) SetType(v billingentity.InvoiceType) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetType(v billing.InvoiceType) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldType, v)
 	return u
 }
@@ -1817,7 +1817,7 @@ func (u *BillingInvoiceUpsert) ClearDueAt() *BillingInvoiceUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsert) SetStatus(v billingentity.InvoiceStatus) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldStatus, v)
 	return u
 }
@@ -2503,7 +2503,7 @@ func (u *BillingInvoiceUpsertOne) ClearCustomerTimezone() *BillingInvoiceUpsertO
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (u *BillingInvoiceUpsertOne) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetCustomerUsageAttribution(v *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetCustomerUsageAttribution(v)
 	})
@@ -2538,7 +2538,7 @@ func (u *BillingInvoiceUpsertOne) ClearNumber() *BillingInvoiceUpsertOne {
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceUpsertOne) SetType(v billingentity.InvoiceType) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetType(v billing.InvoiceType) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetType(v)
 	})
@@ -2657,7 +2657,7 @@ func (u *BillingInvoiceUpsertOne) ClearDueAt() *BillingInvoiceUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertOne) SetStatus(v billingentity.InvoiceStatus) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})
@@ -3526,7 +3526,7 @@ func (u *BillingInvoiceUpsertBulk) ClearCustomerTimezone() *BillingInvoiceUpsert
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (u *BillingInvoiceUpsertBulk) SetCustomerUsageAttribution(v *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetCustomerUsageAttribution(v *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetCustomerUsageAttribution(v)
 	})
@@ -3561,7 +3561,7 @@ func (u *BillingInvoiceUpsertBulk) ClearNumber() *BillingInvoiceUpsertBulk {
 }
 
 // SetType sets the "type" field.
-func (u *BillingInvoiceUpsertBulk) SetType(v billingentity.InvoiceType) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetType(v billing.InvoiceType) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetType(v)
 	})
@@ -3680,7 +3680,7 @@ func (u *BillingInvoiceUpsertBulk) ClearDueAt() *BillingInvoiceUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertBulk) SetStatus(v billingentity.InvoiceStatus) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})

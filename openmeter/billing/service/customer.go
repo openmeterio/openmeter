@@ -3,13 +3,13 @@ package billingservice
 import (
 	"context"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 func (s *Service) validateCustomerForUpdate(ctx context.Context, customerID customerentity.CustomerID) error {
 	if err := customerID.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -20,8 +20,8 @@ func (s *Service) validateCustomerForUpdate(ctx context.Context, customerID cust
 	}
 
 	if cust.DeletedAt != nil {
-		return billingentity.ValidationError{
-			Err: billingentity.ErrCustomerDeleted,
+		return billing.ValidationError{
+			Err: billing.ErrCustomerDeleted,
 		}
 	}
 

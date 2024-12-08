@@ -9,22 +9,21 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type UpdateInput struct {
-	ParentLine  mo.Option[*billingentity.Line]
+	ParentLine  mo.Option[*billing.Line]
 	PeriodStart time.Time
 	PeriodEnd   time.Time
 	InvoiceAt   time.Time
-	Status      billingentity.InvoiceLineStatus
+	Status      billing.InvoiceLineStatus
 
 	// PreventChildChanges is used to prevent any child changes to the line by the adapter.
 	PreventChildChanges bool
 }
 
-func (i UpdateInput) apply(line *billingentity.Line) {
+func (i UpdateInput) apply(line *billing.Line) {
 	if !i.PeriodStart.IsZero() {
 		line.Period.Start = i.PeriodStart
 	}
@@ -42,7 +41,7 @@ func (i UpdateInput) apply(line *billingentity.Line) {
 	}
 
 	if i.PreventChildChanges {
-		line.Children = billingentity.LineChildren{}
+		line.Children = billing.LineChildren{}
 	}
 }
 
@@ -52,12 +51,12 @@ type SplitResult struct {
 }
 
 type LineBase interface {
-	ToEntity() *billingentity.Line
+	ToEntity() *billing.Line
 	ID() string
 	InvoiceID() string
 	Currency() currencyx.Code
-	Period() billingentity.Period
-	Status() billingentity.InvoiceLineStatus
+	Period() billing.Period
+	Status() billing.InvoiceLineStatus
 	HasParent() bool
 	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
 	IsLastInPeriod() bool
@@ -82,12 +81,12 @@ type LineBase interface {
 var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
-	line     *billingentity.Line
+	line     *billing.Line
 	service  *Service
 	currency currencyx.Calculator
 }
 
-func (l lineBase) ToEntity() *billingentity.Line {
+func (l lineBase) ToEntity() *billing.Line {
 	return l.line
 }
 
@@ -103,11 +102,11 @@ func (l lineBase) Currency() currencyx.Code {
 	return l.line.Currency
 }
 
-func (l lineBase) Period() billingentity.Period {
+func (l lineBase) Period() billing.Period {
 	return l.line.Period
 }
 
-func (l lineBase) Status() billingentity.InvoiceLineStatus {
+func (l lineBase) Status() billing.InvoiceLineStatus {
 	return l.line.Status
 }
 
@@ -115,10 +114,10 @@ func (l lineBase) HasParent() bool {
 	return l.line.ParentLineID != nil
 }
 
-func (l lineBase) Validate(ctx context.Context, invoice *billingentity.Invoice) error {
+func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error {
 	if l.line.Currency != invoice.Currency || l.line.Currency == "" {
-		return billingentity.ValidationError{
-			Err: billingentity.ErrInvoiceLineCurrencyMismatch,
+		return billing.ValidationError{
+			Err: billing.ErrInvoiceLineCurrencyMismatch,
 		}
 	}
 
@@ -126,13 +125,13 @@ func (l lineBase) Validate(ctx context.Context, invoice *billingentity.Invoice) 
 }
 
 func (l lineBase) IsLastInPeriod() bool {
-	return (l.line.Status == billingentity.InvoiceLineStatusValid && // We only care about valid lines
+	return (l.line.Status == billing.InvoiceLineStatusValid && // We only care about valid lines
 		(l.line.ParentLineID == nil || // Either we haven't split the line
 			l.line.Period.End.Equal(l.line.ParentLine.Period.End))) // Or we have split the line and this is the last split
 }
 
 func (l lineBase) IsFirstInPeriod() bool {
-	return (l.line.Status == billingentity.InvoiceLineStatusValid && // We only care about valid lines
+	return (l.line.Status == billing.InvoiceLineStatusValid && // We only care about valid lines
 		(l.line.ParentLineID == nil || // Either we haven't split the line
 			l.line.Period.Start.Equal(l.line.ParentLine.Period.Start))) // Or we have split the line and this is the last split
 }
@@ -145,7 +144,7 @@ func (l lineBase) Save(ctx context.Context) (Line, error) {
 	lines, err := l.service.BillingAdapter.UpsertInvoiceLines(ctx,
 		billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: l.line.Namespace,
-			Lines:     []*billingentity.Line{l.line},
+			Lines:     []*billing.Line{l.line},
 		})
 	if err != nil {
 		return nil, fmt.Errorf("updating invoice line: %w", err)
@@ -197,7 +196,7 @@ func (l lineBase) update(in UpdateInput) Line {
 // TODO[later]: We should rely on UpsertInvoiceLines and do this in bulk.
 func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, error) {
 	// We only split valid lines; split etc. lines are not supported
-	if l.line.Status != billingentity.InvoiceLineStatusValid {
+	if l.line.Status != billing.InvoiceLineStatusValid {
 		return SplitResult{}, fmt.Errorf("line[%s]: line is not valid", l.line.ID)
 	}
 
@@ -207,7 +206,7 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 	if !l.HasParent() {
 		parentLine, err := l.Update(UpdateInput{
-			Status:              billingentity.InvoiceLineStatusSplit,
+			Status:              billing.InvoiceLineStatusSplit,
 			PreventChildChanges: true,
 		}).Save(ctx)
 		if err != nil {
@@ -217,14 +216,14 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 		// Let's create the child lines
 		preSplitAtLine := l.CloneForCreate(UpdateInput{
 			ParentLine: mo.Some(parentLine.ToEntity()),
-			Status:     billingentity.InvoiceLineStatusValid,
+			Status:     billing.InvoiceLineStatusValid,
 			PeriodEnd:  splitAt,
 			InvoiceAt:  splitAt,
 		})
 
 		postSplitAtLine := l.CloneForCreate(UpdateInput{
 			ParentLine:  mo.Some(parentLine.ToEntity()),
-			Status:      billingentity.InvoiceLineStatusValid,
+			Status:      billing.InvoiceLineStatusValid,
 			PeriodStart: splitAt,
 		})
 
@@ -241,7 +240,7 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 	// We have alredy split the line once, we just need to create a new line and update the existing line
 	postSplitAtLine, err := l.CloneForCreate(UpdateInput{
-		Status:      billingentity.InvoiceLineStatusValid,
+		Status:      billing.InvoiceLineStatusValid,
 		PeriodStart: splitAt,
 		ParentLine:  mo.Some(l.line.ParentLine),
 	}).Save(ctx)
@@ -264,5 +263,5 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 }
 
 func (l lineBase) ResetTotals() {
-	l.line.Totals = billingentity.Totals{}
+	l.line.Totals = billing.Totals{}
 }

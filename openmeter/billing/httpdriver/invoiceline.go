@@ -11,7 +11,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -44,12 +43,12 @@ func (h *handler) CreateLineByCustomer() CreateLineByCustomerHandler {
 			}
 
 			if len(lines) == 0 {
-				return CreateLineByCustomerRequest{}, billingentity.ValidationError{
+				return CreateLineByCustomerRequest{}, billing.ValidationError{
 					Err: fmt.Errorf("no lines provided"),
 				}
 			}
 
-			lineEntities := make([]billingentity.Line, 0, len(lines))
+			lineEntities := make([]billing.Line, 0, len(lines))
 			for _, line := range lines {
 				lineEntity, err := mapCreateLineToEntity(line, ns)
 				if err != nil {
@@ -119,7 +118,7 @@ func (h *handler) GetLine() GetLineHandler {
 				LineID:     params.LineID,
 				InvoiceID:  params.InvoiceID,
 			}); err != nil {
-				return GetLineRequest{}, billingentity.NotFoundError{Err: err}
+				return GetLineRequest{}, billing.NotFoundError{Err: err}
 			}
 
 			return GetLineRequest{
@@ -171,7 +170,7 @@ func (h *handler) DeleteLine() DeleteLineHandler {
 				LineID:     params.LineID,
 				InvoiceID:  params.InvoiceID,
 			}); err != nil {
-				return DeleteLineRequest{}, billingentity.NotFoundError{Err: err}
+				return DeleteLineRequest{}, billing.NotFoundError{Err: err}
 			}
 
 			return DeleteLineRequest{
@@ -220,7 +219,7 @@ func (h *handler) UpdateLine() UpdateLineHandler {
 				LineID:     params.LineID,
 				InvoiceID:  params.InvoiceID,
 			}); err != nil {
-				return UpdateLineRequest{}, billingentity.NotFoundError{Err: err}
+				return UpdateLineRequest{}, billing.NotFoundError{Err: err}
 			}
 
 			line := api.InvoiceLineReplaceUpdate{}
@@ -248,40 +247,40 @@ func (h *handler) UpdateLine() UpdateLineHandler {
 	)
 }
 
-func mapCreateLineToEntity(line api.InvoiceLineCreate, ns string) (billingentity.Line, error) {
+func mapCreateLineToEntity(line api.InvoiceLineCreate, ns string) (billing.Line, error) {
 	// This should not fail, and we would have at least the discriminator unmarshaled
 	discriminator, err := line.Discriminator()
 	if err != nil {
-		return billingentity.Line{}, fmt.Errorf("failed to get type discriminator: %w", err)
+		return billing.Line{}, fmt.Errorf("failed to get type discriminator: %w", err)
 	}
 
 	switch discriminator {
 	case string(api.InvoiceFlatFeeLineTypeFlatFee):
 		fee, err := line.AsInvoiceFlatFeeLineCreate()
 		if err != nil {
-			return billingentity.Line{}, fmt.Errorf("failed to map fee line: %w", err)
+			return billing.Line{}, fmt.Errorf("failed to map fee line: %w", err)
 		}
 		return mapCreateFlatFeeLineToEntity(fee, ns)
 	case string(api.InvoiceUsageBasedLineTypeUsageBased):
 		usageBased, err := line.AsInvoiceUsageBasedLineCreate()
 		if err != nil {
-			return billingentity.Line{}, fmt.Errorf("failed to map usage based line: %w", err)
+			return billing.Line{}, fmt.Errorf("failed to map usage based line: %w", err)
 		}
 		return mapCreateUsageBasedLineToEntity(usageBased, ns)
 	default:
-		return billingentity.Line{}, fmt.Errorf("unsupported type: %s", discriminator)
+		return billing.Line{}, fmt.Errorf("unsupported type: %s", discriminator)
 	}
 }
 
-func mapCreateFlatFeeLineToEntity(line api.InvoiceFlatFeeLineCreate, ns string) (billingentity.Line, error) {
+func mapCreateFlatFeeLineToEntity(line api.InvoiceFlatFeeLineCreate, ns string) (billing.Line, error) {
 	qty, err := alpacadecimal.NewFromString(line.Quantity)
 	if err != nil {
-		return billingentity.Line{}, fmt.Errorf("failed to map quantity: %w", err)
+		return billing.Line{}, fmt.Errorf("failed to map quantity: %w", err)
 	}
 
 	perUnitAmount, err := alpacadecimal.NewFromString(line.PerUnitAmount)
 	if err != nil {
-		return billingentity.Line{}, fmt.Errorf("failed to parse price: %w", err)
+		return billing.Line{}, fmt.Errorf("failed to parse price: %w", err)
 	}
 
 	invoiceId := ""
@@ -289,19 +288,19 @@ func mapCreateFlatFeeLineToEntity(line api.InvoiceFlatFeeLineCreate, ns string) 
 		invoiceId = line.Invoice.Id
 	}
 
-	return billingentity.Line{
-		LineBase: billingentity.LineBase{
+	return billing.Line{
+		LineBase: billing.LineBase{
 			Namespace: ns,
 
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
-			Type:        billingentity.InvoiceLineTypeFee,
+			Type:        billing.InvoiceLineTypeFee,
 			Description: line.Description,
 
 			InvoiceID: invoiceId,
-			Status:    billingentity.InvoiceLineStatusValid, // This is not settable from outside
+			Status:    billing.InvoiceLineStatusValid, // This is not settable from outside
 			Currency:  currencyx.Code(line.Currency),
-			Period: billingentity.Period{
+			Period: billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
 			},
@@ -309,7 +308,7 @@ func mapCreateFlatFeeLineToEntity(line api.InvoiceFlatFeeLineCreate, ns string) 
 			InvoiceAt: line.InvoiceAt,
 			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 		},
-		FlatFee: billingentity.FlatFeeLine{
+		FlatFee: billing.FlatFeeLine{
 			PerUnitAmount: perUnitAmount,
 			PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
 			Quantity:      qty,
@@ -317,7 +316,7 @@ func mapCreateFlatFeeLineToEntity(line api.InvoiceFlatFeeLineCreate, ns string) 
 	}, nil
 }
 
-func mapCreateUsageBasedLineToEntity(line api.InvoiceUsageBasedLineCreate, ns string) (billingentity.Line, error) {
+func mapCreateUsageBasedLineToEntity(line api.InvoiceUsageBasedLineCreate, ns string) (billing.Line, error) {
 	invoiceId := ""
 	if line.Invoice != nil {
 		invoiceId = line.Invoice.Id
@@ -325,22 +324,22 @@ func mapCreateUsageBasedLineToEntity(line api.InvoiceUsageBasedLineCreate, ns st
 
 	price, err := planhttpdriver.AsPrice(line.Price)
 	if err != nil {
-		return billingentity.Line{}, fmt.Errorf("failed to map price: %w", err)
+		return billing.Line{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	return billingentity.Line{
-		LineBase: billingentity.LineBase{
+	return billing.Line{
+		LineBase: billing.LineBase{
 			Namespace: ns,
 
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
-			Type:        billingentity.InvoiceLineTypeUsageBased,
+			Type:        billing.InvoiceLineTypeUsageBased,
 			Description: line.Description,
 
 			InvoiceID: invoiceId,
-			Status:    billingentity.InvoiceLineStatusValid, // This is not settable from outside
+			Status:    billing.InvoiceLineStatusValid, // This is not settable from outside
 			Currency:  currencyx.Code(line.Currency),
-			Period: billingentity.Period{
+			Period: billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
 			},
@@ -348,7 +347,7 @@ func mapCreateUsageBasedLineToEntity(line api.InvoiceUsageBasedLineCreate, ns st
 			InvoiceAt: line.InvoiceAt,
 			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 		},
-		UsageBased: billingentity.UsageBasedLine{
+		UsageBased: billing.UsageBasedLine{
 			Price:      lo.FromPtr(price),
 			FeatureKey: line.FeatureKey,
 		},
@@ -383,30 +382,30 @@ func mapUpdateLineRequestToEntity(ns string, params UpdateLineParams, line api.I
 func mapUpdateFlatFeeLineToEntity(ns string, params UpdateLineParams, line api.InvoiceFlatFeeLineReplaceUpdate) (billing.UpdateInvoiceLineInput, error) {
 	perUnitAmount, err := alpacadecimal.NewFromString(line.PerUnitAmount)
 	if err != nil {
-		return billing.UpdateInvoiceLineInput{}, billingentity.ValidationError{
+		return billing.UpdateInvoiceLineInput{}, billing.ValidationError{
 			Err: fmt.Errorf("failed to parse perUnitAmount: %w", err),
 		}
 	}
 
 	qty, err := alpacadecimal.NewFromString(line.Quantity)
 	if err != nil {
-		return billing.UpdateInvoiceLineInput{}, billingentity.ValidationError{
+		return billing.UpdateInvoiceLineInput{}, billing.ValidationError{
 			Err: fmt.Errorf("failed to parse quantity: %w", err),
 		}
 	}
 
 	return billing.UpdateInvoiceLineInput{
-		Line: billingentity.LineID{
+		Line: billing.LineID{
 			Namespace: ns,
 			ID:        params.LineID,
 		},
-		Type: billingentity.InvoiceLineTypeFee,
+		Type: billing.InvoiceLineTypeFee,
 
 		LineBase: billing.UpdateInvoiceLineBaseInput{
 			InvoiceAt: mo.Some(line.InvoiceAt),
 			Metadata:  mo.Some(lo.FromPtrOr(line.Metadata, map[string]string{})),
 			Name:      mo.Some(line.Name),
-			Period: mo.Some(billingentity.Period{
+			Period: mo.Some(billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
 			}),
@@ -428,17 +427,17 @@ func mapUpdateUsageBasedLineToEntity(ns string, params UpdateLineParams, line ap
 	}
 
 	return billing.UpdateInvoiceLineInput{
-		Line: billingentity.LineID{
+		Line: billing.LineID{
 			Namespace: ns,
 			ID:        params.LineID,
 		},
-		Type: billingentity.InvoiceLineTypeUsageBased,
+		Type: billing.InvoiceLineTypeUsageBased,
 
 		LineBase: billing.UpdateInvoiceLineBaseInput{
 			InvoiceAt: mo.Some(line.InvoiceAt),
 			Metadata:  mo.Some(lo.FromPtrOr(line.Metadata, map[string]string{})),
 			Name:      mo.Some(line.Name),
-			Period: mo.Some(billingentity.Period{
+			Period: mo.Some(billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
 			}),
@@ -451,7 +450,7 @@ func mapUpdateUsageBasedLineToEntity(ns string, params UpdateLineParams, line ap
 	}, nil
 }
 
-func mapTaxConfigToEntity(tc *api.TaxConfig) *billingentity.TaxConfig {
+func mapTaxConfigToEntity(tc *api.TaxConfig) *billing.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -459,7 +458,7 @@ func mapTaxConfigToEntity(tc *api.TaxConfig) *billingentity.TaxConfig {
 	return lo.ToPtr(planhttpdriver.AsTaxConfig(*tc))
 }
 
-func mapTaxConfigToAPI(to *billingentity.TaxConfig) *api.TaxConfig {
+func mapTaxConfigToAPI(to *billing.TaxConfig) *api.TaxConfig {
 	if to == nil {
 		return nil
 	}
@@ -467,18 +466,18 @@ func mapTaxConfigToAPI(to *billingentity.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(planhttpdriver.FromTaxConfig(*to))
 }
 
-func mapBillingLineToAPI(line *billingentity.Line) (api.InvoiceLine, error) {
+func mapBillingLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 	switch line.Type {
-	case billingentity.InvoiceLineTypeFee:
+	case billing.InvoiceLineTypeFee:
 		return mapFeeLineToAPI(line)
-	case billingentity.InvoiceLineTypeUsageBased:
+	case billing.InvoiceLineTypeUsageBased:
 		return mapUsageBasedLineToAPI(line)
 	default:
 		return api.InvoiceLine{}, fmt.Errorf("unsupported type: %s", line.Type)
 	}
 }
 
-func mapChildLinesToAPI(optChildren billingentity.LineChildren) (*[]api.InvoiceLine, error) {
+func mapChildLinesToAPI(optChildren billing.LineChildren) (*[]api.InvoiceLine, error) {
 	if optChildren.IsAbsent() {
 		return nil, nil
 	}
@@ -498,7 +497,7 @@ func mapChildLinesToAPI(optChildren billingentity.LineChildren) (*[]api.InvoiceL
 	return &out, nil
 }
 
-func mapFeeLineToAPI(line *billingentity.Line) (api.InvoiceLine, error) {
+func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 	children, err := mapChildLinesToAPI(line.Children)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
@@ -547,7 +546,7 @@ func mapFeeLineToAPI(line *billingentity.Line) (api.InvoiceLine, error) {
 	return out, nil
 }
 
-func mapUsageBasedLineToAPI(line *billingentity.Line) (api.InvoiceLine, error) {
+func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 	price, err := mapPriceToAPI(line.UsageBased.Price)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
@@ -603,7 +602,7 @@ func mapUsageBasedLineToAPI(line *billingentity.Line) (api.InvoiceLine, error) {
 	return out, nil
 }
 
-func mapDiscountsToAPI(optDiscounts billingentity.LineDiscounts) *[]api.InvoiceLineDiscount {
+func mapDiscountsToAPI(optDiscounts billing.LineDiscounts) *[]api.InvoiceLineDiscount {
 	if optDiscounts.IsAbsent() {
 		return nil
 	}
@@ -619,7 +618,7 @@ func mapDiscountsToAPI(optDiscounts billingentity.LineDiscounts) *[]api.InvoiceL
 	return &out
 }
 
-func mapDiscountToAPI(discount billingentity.LineDiscount) api.InvoiceLineDiscount {
+func mapDiscountToAPI(discount billing.LineDiscount) api.InvoiceLineDiscount {
 	return api.InvoiceLineDiscount{
 		Id: discount.ID,
 

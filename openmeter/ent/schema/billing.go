@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -113,7 +113,7 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 	return []ent.Field{
 		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
 		field.Enum("collection_alignment").
-			GoType(billingentity.AlignmentKind("")),
+			GoType(billing.AlignmentKind("")),
 
 		field.String("line_collection_period").GoType(datex.ISOString("")),
 
@@ -124,7 +124,7 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.String("invoice_due_after").GoType(datex.ISOString("")),
 
 		field.Enum("invoice_collection_method").
-			GoType(billingentity.CollectionMethod("")),
+			GoType(billing.CollectionMethod("")),
 	}
 }
 
@@ -177,7 +177,7 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 		// Workflow config overrides
 		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
 		field.Enum("collection_alignment").
-			GoType(billingentity.AlignmentKind("")).
+			GoType(billing.AlignmentKind("")).
 			Optional().
 			Nillable(),
 
@@ -201,7 +201,7 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Nillable(),
 
 		field.Enum("invoice_collection_method").
-			GoType(billingentity.CollectionMethod("")).
+			GoType(billing.CollectionMethod("")).
 			Optional().
 			Nillable(),
 	}
@@ -296,11 +296,11 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").
-			GoType(billingentity.InvoiceLineType("")).
+			GoType(billing.InvoiceLineType("")).
 			Immutable(),
 
 		field.Enum("status").
-			GoType(billingentity.InvoiceLineStatus("")),
+			GoType(billing.InvoiceLineStatus("")),
 
 		field.String("currency").
 			GoType(currencyx.Code("")).
@@ -319,7 +319,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				"postgres": "numeric",
 			}),
 
-		field.JSON("tax_config", billingentity.TaxConfig{}).
+		field.JSON("tax_config", billing.TaxConfig{}).
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
 			}).
@@ -393,8 +393,8 @@ func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 				"postgres": "numeric",
 			}),
 		field.Enum("category").
-			GoType(billingentity.FlatFeeCategory("")).
-			Default(string(billingentity.FlatFeeCategoryRegular)),
+			GoType(billing.FlatFeeCategory("")).
+			Default(string(billing.FlatFeeCategoryRegular)),
 	}
 }
 
@@ -525,7 +525,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.JSON("customer_usage_attribution", &billingentity.VersionedCustomerUsageAttribution{}),
+		field.JSON("customer_usage_attribution", &billing.VersionedCustomerUsageAttribution{}),
 
 		// Invoice number
 		field.String("number").
@@ -533,7 +533,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			Nillable(),
 
 		field.Enum("type").
-			GoType(billingentity.InvoiceType("")),
+			GoType(billing.InvoiceType("")),
 
 		field.String("description").
 			Optional().
@@ -578,7 +578,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			Nillable(),
 
 		field.Enum("status").
-			GoType(billingentity.InvoiceStatus("")),
+			GoType(billing.InvoiceStatus("")),
 
 		// Cloned profile settings
 		field.String("workflow_config_id").
@@ -695,7 +695,7 @@ func (BillingInvoiceValidationIssue) Fields() []ent.Field {
 			}),
 
 		field.Enum("severity").
-			GoType(billingentity.ValidationIssueSeverity("")),
+			GoType(billing.ValidationIssueSeverity("")),
 
 		field.String("code").
 			Nillable().

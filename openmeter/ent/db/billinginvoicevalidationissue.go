@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 )
@@ -30,7 +30,7 @@ type BillingInvoiceValidationIssue struct {
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
 	// Severity holds the value of the "severity" field.
-	Severity billingentity.ValidationIssueSeverity `json:"severity,omitempty"`
+	Severity billing.ValidationIssueSeverity `json:"severity,omitempty"`
 	// Code holds the value of the "code" field.
 	Code *string `json:"code,omitempty"`
 	// Message holds the value of the "message" field.
@@ -134,7 +134,7 @@ func (bivi *BillingInvoiceValidationIssue) assignValues(columns []string, values
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field severity", values[i])
 			} else if value.Valid {
-				bivi.Severity = billingentity.ValidationIssueSeverity(value.String)
+				bivi.Severity = billing.ValidationIssueSeverity(value.String)
 			}
 		case billinginvoicevalidationissue.FieldCode:
 			if value, ok := values[i].(*sql.NullString); !ok {

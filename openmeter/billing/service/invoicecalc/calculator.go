@@ -3,7 +3,7 @@ package invoicecalc
 import (
 	"errors"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
@@ -12,10 +12,10 @@ var InvoiceCalculations = []Calculation{
 	RecalculateDetailedLinesAndTotals,
 }
 
-type Calculation func(*billingentity.Invoice, CalculatorDependencies) error
+type Calculation func(*billing.Invoice, CalculatorDependencies) error
 
 type Calculator interface {
-	Calculate(*billingentity.Invoice) error
+	Calculate(*billing.Invoice) error
 }
 
 type CalculatorDependencies interface {
@@ -50,7 +50,7 @@ func New(c Config) (Calculator, error) {
 	}, nil
 }
 
-func (c *calculator) Calculate(invoice *billingentity.Invoice) error {
+func (c *calculator) Calculate(invoice *billing.Invoice) error {
 	var outErr error
 	for _, calc := range InvoiceCalculations {
 		err := calc(invoice, c)
@@ -60,10 +60,10 @@ func (c *calculator) Calculate(invoice *billingentity.Invoice) error {
 	}
 
 	return invoice.MergeValidationIssues(
-		billingentity.ValidationWithComponent(
-			billingentity.ValidationComponentOpenMeter,
+		billing.ValidationWithComponent(
+			billing.ValidationComponentOpenMeter,
 			outErr),
-		billingentity.ValidationComponentOpenMeter)
+		billing.ValidationComponentOpenMeter)
 }
 
 func (c *calculator) LineService() *lineservice.Service {

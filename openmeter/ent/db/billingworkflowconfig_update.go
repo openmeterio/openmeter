@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -59,13 +59,13 @@ func (bwcu *BillingWorkflowConfigUpdate) ClearDeletedAt() *BillingWorkflowConfig
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetCollectionAlignment(bk)
 	return bwcu
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdate {
 	if bk != nil {
 		bwcu.SetCollectionAlignment(*bk)
 	}
@@ -129,13 +129,13 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfter(ds *datex.IS
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetInvoiceCollectionMethod(bm)
 	return bwcu
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingWorkflowConfigUpdate {
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingWorkflowConfigUpdate {
 	if bm != nil {
 		bwcu.SetInvoiceCollectionMethod(*bm)
 	}
@@ -392,13 +392,13 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) ClearDeletedAt() *BillingWorkflowCo
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetCollectionAlignment(bk)
 	return bwcuo
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	if bk != nil {
 		bwcuo.SetCollectionAlignment(*bk)
 	}
@@ -462,13 +462,13 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfter(ds *date
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetInvoiceCollectionMethod(bm)
 	return bwcuo
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingWorkflowConfigUpdateOne {
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingWorkflowConfigUpdateOne {
 	if bm != nil {
 		bwcuo.SetInvoiceCollectionMethod(*bm)
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -24,7 +24,7 @@ const (
 	lastInPeriodSplitLineMode testLineMode = "last_in_period_split"
 )
 
-var ubpTestFullPeriod = billingentity.Period{
+var ubpTestFullPeriod = billing.Period{
 	Start: lo.Must(time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")),
 	End:   lo.Must(time.Parse(time.RFC3339, "2021-01-02T00:00:00Z")),
 }
@@ -44,15 +44,15 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 
 	l := usageBasedLine{
 		lineBase: lineBase{
-			line: &billingentity.Line{
-				LineBase: billingentity.LineBase{
+			line: &billing.Line{
+				LineBase: billing.LineBase{
 					Currency: "USD",
 					ID:       "fake-line",
-					Type:     billingentity.InvoiceLineTypeUsageBased,
-					Status:   billingentity.InvoiceLineStatusValid,
+					Type:     billing.InvoiceLineTypeUsageBased,
+					Status:   billing.InvoiceLineStatusValid,
 					Name:     "feature",
 				},
-				UsageBased: billingentity.UsageBasedLine{
+				UsageBased: billing.UsageBasedLine{
 					Price: tc.price,
 				},
 			},
@@ -60,11 +60,11 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		},
 	}
 
-	fakeParentLine := billingentity.Line{
-		LineBase: billingentity.LineBase{
+	fakeParentLine := billing.Line{
+		LineBase: billing.LineBase{
 			ID:     "fake-parent-line",
 			Period: ubpTestFullPeriod,
-			Status: billingentity.InvoiceLineStatusSplit,
+			Status: billing.InvoiceLineStatusSplit,
 		},
 	}
 
@@ -72,7 +72,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	case singlePerPeriodLineMode:
 		l.line.Period = ubpTestFullPeriod
 	case midPeriodSplitLineMode:
-		l.line.Period = billingentity.Period{
+		l.line.Period = billing.Period{
 			Start: ubpTestFullPeriod.Start.Add(time.Hour * 12),
 			End:   ubpTestFullPeriod.End.Add(-time.Hour),
 		}
@@ -80,7 +80,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		l.line.ParentLineID = &fakeParentLine.ID
 
 	case lastInPeriodSplitLineMode:
-		l.line.Period = billingentity.Period{
+		l.line.Period = billing.Period{
 			Start: ubpTestFullPeriod.Start.Add(time.Hour * 12),
 			End:   ubpTestFullPeriod.End,
 		}
@@ -260,7 +260,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billingentity.FlatFeeCategoryCommitment,
+					Category:               billing.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -300,7 +300,7 @@ func TestUnitPriceCalculation(t *testing.T) {
 					ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 					Period:                 &ubpTestFullPeriod,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billingentity.FlatFeeCategoryCommitment,
+					Category:               billing.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -390,11 +390,11 @@ func TestUnitPriceCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(5),
 					ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: []billingentity.LineDiscount{
+					Discounts: []billing.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 100"),
 							Amount:                 alpacadecimal.NewFromFloat(20),
-							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -647,7 +647,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billingentity.FlatFeeCategoryCommitment,
+					Category:               billing.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -701,7 +701,7 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billingentity.FlatFeeCategoryCommitment,
+					Category:               billing.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -772,11 +772,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: VolumeFlatPriceChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: []billingentity.LineDiscount{
+					Discounts: []billing.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 125"),
 							Amount:                 alpacadecimal.NewFromFloat(25),
-							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -937,7 +937,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billingentity.FlatFeeCategoryCommitment,
+					Category:               billing.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -962,7 +962,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Category:               billingentity.FlatFeeCategoryCommitment,
+					Category:               billing.FlatFeeCategoryCommitment,
 				},
 			},
 		})
@@ -1011,11 +1011,11 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(3),
 					ChildUniqueReferenceID: "graduated-tiered-3-price-usage",
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: []billingentity.LineDiscount{
+					Discounts: []billing.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
 							Amount:                 alpacadecimal.NewFromFloat(5),
-							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -1025,11 +1025,11 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 					Quantity:               alpacadecimal.NewFromFloat(7),
 					ChildUniqueReferenceID: "graduated-tiered-4-price-usage",
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					Discounts: []billingentity.LineDiscount{
+					Discounts: []billing.LineDiscount{
 						{
 							Description:            lo.ToPtr("Maximum spend discount for charges over 170"),
 							Amount:                 alpacadecimal.NewFromFloat(7),
-							ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+							ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 						},
 					},
 				},
@@ -1081,11 +1081,11 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: []billingentity.LineDiscount{
+			Discounts: []billing.LineDiscount{
 				{
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(0.01),
-					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)
@@ -1102,11 +1102,11 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: []billingentity.LineDiscount{
+			Discounts: []billing.LineDiscount{
 				{
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(600),
-					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)
@@ -1123,11 +1123,11 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: []billingentity.LineDiscount{
+			Discounts: []billing.LineDiscount{
 				{
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(1000),
-					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)
@@ -1144,11 +1144,11 @@ func TestAddDiscountForOverage(t *testing.T) {
 		require.Equal(t, newDetailedLineInput{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(10),
-			Discounts: []billingentity.LineDiscount{
+			Discounts: []billing.LineDiscount{
 				{
 					Description:            lo.ToPtr("Maximum spend discount for charges over 10000"),
 					Amount:                 alpacadecimal.NewFromFloat(1000),
-					ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+					ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 				},
 			},
 		}, lineWithDiscount)

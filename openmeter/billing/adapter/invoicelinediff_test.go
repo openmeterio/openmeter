@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
@@ -25,25 +25,25 @@ type lineDiffExpectation struct {
 }
 
 func TestInvoiceLineDiffing(t *testing.T) {
-	template := []*billingentity.Line{
+	template := []*billing.Line{
 		{
-			LineBase: billingentity.LineBase{
+			LineBase: billing.LineBase{
 				ID:   "1",
-				Type: billingentity.InvoiceLineTypeFee,
+				Type: billing.InvoiceLineTypeFee,
 			},
 		},
 		{
-			LineBase: billingentity.LineBase{
+			LineBase: billing.LineBase{
 				ID:   "2",
-				Type: billingentity.InvoiceLineTypeUsageBased,
+				Type: billing.InvoiceLineTypeUsageBased,
 			},
-			Children: billingentity.NewLineChildren([]*billingentity.Line{
+			Children: billing.NewLineChildren([]*billing.Line{
 				{
-					LineBase: billingentity.LineBase{
+					LineBase: billing.LineBase{
 						ID:   "2.1",
-						Type: billingentity.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 					},
-					Discounts: billingentity.NewLineDiscounts([]billingentity.LineDiscount{
+					Discounts: billing.NewLineDiscounts([]billing.LineDiscount{
 						{
 							ID: "D2.1.1",
 						},
@@ -51,9 +51,9 @@ func TestInvoiceLineDiffing(t *testing.T) {
 					),
 				},
 				{
-					LineBase: billingentity.LineBase{
+					LineBase: billing.LineBase{
 						ID:   "2.2",
-						Type: billingentity.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 					},
 				},
 			}),
@@ -177,7 +177,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		discounts := changedLine.Discounts.MustGet()
 		discounts[0].Description = lo.ToPtr("D2.1.3")
-		changedLine.Discounts = billingentity.NewLineDiscounts(discounts)
+		changedLine.Discounts = billing.NewLineDiscounts(discounts)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -206,7 +206,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(base)
 
-		base[1].Children.GetByID("2.1").Discounts = billingentity.NewLineDiscounts(nil)
+		base[1].Children.GetByID("2.1").Discounts = billing.NewLineDiscounts(nil)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -227,7 +227,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 		discounts := base[1].Children.GetByID("2.1").Discounts.MustGet()
 		discounts[0].Amount = alpacadecimal.NewFromFloat(10)
-		base[1].Children.GetByID("2.1").Discounts = billingentity.NewLineDiscounts(discounts)
+		base[1].Children.GetByID("2.1").Discounts = billing.NewLineDiscounts(discounts)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -249,7 +249,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		discounts := base[1].Children.GetByID("2.1").Discounts.MustGet()
 		discounts[0].ID = ""
 		discounts[0].Description = lo.ToPtr("D2.1.2")
-		base[1].Children.GetByID("2.1").Discounts = billingentity.NewLineDiscounts(discounts)
+		base[1].Children.GetByID("2.1").Discounts = billing.NewLineDiscounts(discounts)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -365,8 +365,8 @@ func TestInvoiceLineDiffing(t *testing.T) {
 	})
 }
 
-func mapLinesToIDs(lines []*billingentity.Line) []string {
-	return lo.Map(lines, func(line *billingentity.Line, _ int) string {
+func mapLinesToIDs(lines []*billing.Line) []string {
+	return lo.Map(lines, func(line *billing.Line, _ int) string {
 		// Use description as ID if it's set, so that we can predict the new line's ID for new
 		// line testcases
 		if line.Description != nil {
@@ -376,7 +376,7 @@ func mapLinesToIDs(lines []*billingentity.Line) []string {
 	})
 }
 
-func mapLineDiffToIDs(in diff[*billingentity.Line]) idDiff {
+func mapLineDiffToIDs(in diff[*billing.Line]) idDiff {
 	return idDiff{
 		ToCreate: mapLinesToIDs(in.ToCreate),
 		ToUpdate: mapLinesToIDs(in.ToUpdate),
@@ -433,15 +433,15 @@ func requireDiff(t *testing.T, expected lineDiffExpectation, actual *invoiceLine
 	requireDiffWithoutChildren(t, *childrenExpectation, actual.ChildrenDiff, "children diff")
 }
 
-func cloneLines(lines []*billingentity.Line) []*billingentity.Line {
+func cloneLines(lines []*billing.Line) []*billing.Line {
 	return fixParentReferences(
-		lo.Map(lines, func(line *billingentity.Line, _ int) *billingentity.Line {
+		lo.Map(lines, func(line *billing.Line, _ int) *billing.Line {
 			return line.Clone()
 		}),
 	)
 }
 
-func fixParentReferences(lines []*billingentity.Line) []*billingentity.Line {
+func fixParentReferences(lines []*billing.Line) []*billing.Line {
 	for _, line := range lines {
 		for _, child := range line.Children.OrEmpty() {
 			child.ParentLineID = lo.ToPtr(line.ID)
@@ -453,7 +453,7 @@ func fixParentReferences(lines []*billingentity.Line) []*billingentity.Line {
 }
 
 // snapshotAsDBState saves the current state of the lines as if they were in the database
-func snapshotAsDBState(lines []*billingentity.Line) {
+func snapshotAsDBState(lines []*billing.Line) {
 	for _, line := range lines {
 		line.SaveDBSnapshot()
 	}

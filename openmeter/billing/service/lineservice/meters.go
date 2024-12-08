@@ -7,15 +7,15 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type getFeatureUsageInput struct {
-	Line       *billingentity.Line
-	ParentLine *billingentity.Line
+	Line       *billing.Line
+	ParentLine *billing.Line
 	Meter      models.Meter
 	Feature    feature.Feature
 	Subjects   []string
@@ -35,7 +35,7 @@ func (i getFeatureUsageInput) Validate() error {
 	}
 
 	if i.ParentLine != nil {
-		if i.ParentLine.Status != billingentity.InvoiceLineStatusSplit {
+		if i.ParentLine.Status != billing.InvoiceLineStatusSplit {
 			return fmt.Errorf("parent line is not split")
 		}
 	}

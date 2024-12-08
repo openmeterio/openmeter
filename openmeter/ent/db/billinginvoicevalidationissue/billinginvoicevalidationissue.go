@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -97,7 +97,7 @@ var (
 )
 
 // SeverityValidator is a validator for the "severity" field enum values. It is called by the builders before save.
-func SeverityValidator(s billingentity.ValidationIssueSeverity) error {
+func SeverityValidator(s billing.ValidationIssueSeverity) error {
 	switch s {
 	case "critical", "warning":
 		return nil

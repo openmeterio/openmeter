@@ -9,7 +9,6 @@ import (
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,14 +17,14 @@ import (
 
 var _ billing.ProfileService = (*Service)(nil)
 
-func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billingentity.Profile, error) {
+func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Profile, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Profile, error) {
 		// Given that we have multiple constraints let's validate those here for better error reporting
 		if input.Default {
 			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
@@ -36,8 +35,8 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 
 			if defaultProfile != nil {
-				return nil, billingentity.ValidationError{
-					Err: fmt.Errorf("%w [id=%s]", billingentity.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
+				return nil, billing.ValidationError{
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
 				}
 			}
 		}
@@ -47,7 +46,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			return nil, err
 		}
 
-		input.Apps = billingentity.ProfileAppReferences{
+		input.Apps = billing.ProfileAppReferences{
 			Tax:       resolvedApps.Tax.Reference,
 			Invoicing: resolvedApps.Invoicing.Reference,
 			Payment:   resolvedApps.Payment.Reference,
@@ -59,7 +58,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 
 		if err := profile.Validate(); err != nil {
-			return nil, billingentity.ValidationError{
+			return nil, billing.ValidationError{
 				Err: fmt.Errorf("error validating profile: %w", err),
 			}
 		}
@@ -74,24 +73,24 @@ type resolvedApps struct {
 	Payment   *resolvedAppReference
 }
 
-func (s *Service) resolveApps(ctx context.Context, ns string, apps billingentity.ProfileAppReferences) (*resolvedApps, error) {
+func (s *Service) resolveApps(ctx context.Context, ns string, apps billing.ProfileAppReferences) (*resolvedApps, error) {
 	taxApp, err := s.validateAppReference(ctx, ns, apps.Tax, appentitybase.CapabilityTypeCalculateTax)
 	if err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: fmt.Errorf("error resolving tax app: %w", err),
 		}
 	}
 
 	invocingApp, err := s.validateAppReference(ctx, ns, apps.Invoicing, appentitybase.CapabilityTypeInvoiceCustomers)
 	if err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: fmt.Errorf("error resolving invocing app: %w", err),
 		}
 	}
 
 	paymentsApp, err := s.validateAppReference(ctx, ns, apps.Payment, appentitybase.CapabilityTypeCollectPayments)
 	if err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: fmt.Errorf("error resolving payments app: %w", err),
 		}
 	}
@@ -103,7 +102,7 @@ func (s *Service) resolveApps(ctx context.Context, ns string, apps billingentity
 	}, nil
 }
 
-func (s *Service) validateAppReference(ctx context.Context, ns string, ref billingentity.AppReference, capabilities ...appentitybase.CapabilityType) (*resolvedAppReference, error) {
+func (s *Service) validateAppReference(ctx context.Context, ns string, ref billing.AppReference, capabilities ...appentitybase.CapabilityType) (*resolvedAppReference, error) {
 	if err := ref.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid app reference: %w", err)
 	}
@@ -121,11 +120,11 @@ func (s *Service) validateAppReference(ctx context.Context, ns string, ref billi
 }
 
 type resolvedAppReference struct {
-	Reference billingentity.AppReference
+	Reference billing.AppReference
 	App       appentity.App
 }
 
-func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billingentity.AppReference) (*resolvedAppReference, error) {
+func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billing.AppReference) (*resolvedAppReference, error) {
 	if ref.ID != "" {
 		app, err := s.appService.GetApp(ctx, appentity.GetAppInput{
 			Namespace: ns,
@@ -136,7 +135,7 @@ func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billin
 		}
 
 		return &resolvedAppReference{
-			Reference: billingentity.AppReference{
+			Reference: billing.AppReference{
 				ID: app.GetID().ID,
 			},
 			App: app,
@@ -153,7 +152,7 @@ func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billin
 		}
 
 		return &resolvedAppReference{
-			Reference: billingentity.AppReference{
+			Reference: billing.AppReference{
 				ID: app.GetID().ID,
 			},
 			App: app,
@@ -163,9 +162,9 @@ func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billin
 	return nil, fmt.Errorf("invalid app reference: %v", ref)
 }
 
-func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billingentity.Profile, error) {
+func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -180,9 +179,9 @@ func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 	return s.resolveProfileApps(ctx, profile)
 }
 
-func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billingentity.Profile, error) {
+func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -196,14 +195,14 @@ func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput)
 		return s.resolveProfileApps(ctx, profile)
 	}
 
-	return &billingentity.Profile{
+	return &billing.Profile{
 		BaseProfile: *profile,
 	}, nil
 }
 
 func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -220,14 +219,14 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		}
 
 		if profile == nil {
-			return billingentity.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileNotFound, input.ID),
+			return billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
 			}
 		}
 
 		if profile.DeletedAt != nil {
-			return billingentity.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileAlreadyDeleted, profile.ID),
+			return billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileAlreadyDeleted, profile.ID),
 			}
 		}
 
@@ -237,9 +236,9 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 		}
 
 		if len(referringCustomerIDs) > 0 {
-			return billingentity.ValidationError{
+			return billing.ValidationError{
 				Err: fmt.Errorf("%w [profile_id=%s, customer_ids=%v]",
-					billingentity.ErrProfileReferencedByOverrides,
+					billing.ErrProfileReferencedByOverrides,
 					input.ID,
 					lo.Map(referringCustomerIDs, func(item customerentity.CustomerID, _ int) string {
 						return item.ID
@@ -257,7 +256,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 
 func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (billing.ListProfilesResult, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ListProfilesResult{}, billingentity.ValidationError{
+		return billing.ListProfilesResult{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -267,14 +266,14 @@ func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 		return billing.ListProfilesResult{}, err
 	}
 
-	response := pagination.PagedResponse[billingentity.Profile]{
+	response := pagination.PagedResponse[billing.Profile]{
 		Page:       profiles.Page,
 		TotalCount: profiles.TotalCount,
-		Items:      make([]billingentity.Profile, 0, len(profiles.Items)),
+		Items:      make([]billing.Profile, 0, len(profiles.Items)),
 	}
 
 	for _, profile := range profiles.Items {
-		finalProfile := billingentity.Profile{
+		finalProfile := billing.Profile{
 			BaseProfile: profile,
 		}
 
@@ -291,14 +290,14 @@ func (s *Service) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 	return response, nil
 }
 
-func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfileInput) (*billingentity.Profile, error) {
+func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfileInput) (*billing.Profile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Profile, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Profile, error) {
 		profile, err := s.adapter.GetProfile(ctx, billing.GetProfileInput{
 			Profile: models.NamespacedID{
 				Namespace: input.Namespace,
@@ -310,14 +309,14 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		if profile == nil {
-			return nil, billingentity.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileNotFound, input.ID),
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
 			}
 		}
 
 		if profile.DeletedAt != nil {
-			return nil, billingentity.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billingentity.ErrProfileAlreadyDeleted, input.ID),
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileAlreadyDeleted, input.ID),
 			}
 		}
 
@@ -330,14 +329,14 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 
 			if defaultProfile != nil && defaultProfile.ID != input.ID {
-				return nil, billingentity.ValidationError{
-					Err: fmt.Errorf("%w [id=%s]", billingentity.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
+				return nil, billing.ValidationError{
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
 				}
 			}
 		}
 
 		profile, err = s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
-			TargetState:      billingentity.BaseProfile(input),
+			TargetState:      billing.BaseProfile(input),
 			WorkflowConfigID: profile.WorkflowConfig.ID,
 		})
 		if err != nil {
@@ -345,7 +344,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		if err := profile.Validate(); err != nil {
-			return nil, billingentity.ValidationError{
+			return nil, billing.ValidationError{
 				Err: fmt.Errorf("error validating profile: %w", err),
 			}
 		}
@@ -354,16 +353,16 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 	})
 }
 
-func (s *Service) resolveProfileApps(ctx context.Context, input *billingentity.BaseProfile) (*billingentity.Profile, error) {
+func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BaseProfile) (*billing.Profile, error) {
 	if input == nil {
 		return nil, nil
 	}
 
-	out := billingentity.Profile{
+	out := billing.Profile{
 		BaseProfile: *input,
 	}
 
-	out.Apps = &billingentity.ProfileApps{}
+	out.Apps = &billing.ProfileApps{}
 
 	taxApp, err := s.appService.GetApp(ctx, appentity.GetAppInput{
 		Namespace: out.Namespace,

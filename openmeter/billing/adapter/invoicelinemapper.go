@@ -8,14 +8,14 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.BillingInvoiceLine) ([]*billingentity.Line, error) {
+func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.BillingInvoiceLine) ([]*billing.Line, error) {
 	pendingParentIDs := make([]string, 0, len(invoiceLines))
 	resolvedChildrenOfIDs := make(map[string]struct{}, len(invoiceLines))
 
@@ -24,7 +24,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 			pendingParentIDs = append(pendingParentIDs, *line.ParentLineID)
 		}
 
-		if line.Status != billingentity.InvoiceLineStatusDetailed {
+		if line.Status != billing.InvoiceLineStatusDetailed {
 			resolvedChildrenOfIDs[line.ID] = struct{}{}
 		}
 	}
@@ -41,7 +41,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 
 	references = append(references, invoiceLines...)
 
-	mappedEntities := make(map[string]*billingentity.Line, len(references))
+	mappedEntities := make(map[string]*billing.Line, len(references))
 
 	for _, dbLine := range references {
 		if _, ok := mappedEntities[dbLine.ID]; ok {
@@ -71,7 +71,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 		}
 	}
 
-	result := make([]*billingentity.Line, 0, len(mappedEntities))
+	result := make([]*billing.Line, 0, len(mappedEntities))
 	for _, dbEntity := range invoiceLines {
 		entity, ok := mappedEntities[dbEntity.ID]
 		if !ok {
@@ -82,7 +82,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 		// if it's not present it means that the line has no children, but before we only rely on Append
 		// to set the Present flag implicitly.
 		if !entity.Children.IsPresent() {
-			entity.Children = billingentity.NewLineChildren(nil)
+			entity.Children = billing.NewLineChildren(nil)
 		}
 
 		entity.SaveDBSnapshot()
@@ -119,9 +119,9 @@ func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs [
 	return query.All(ctx)
 }
 
-func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (billingentity.Line, error) {
-	invoiceLine := billingentity.Line{
-		LineBase: billingentity.LineBase{
+func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (billing.Line, error) {
+	invoiceLine := billing.Line{
+		LineBase: billing.LineBase{
 			Namespace: dbLine.Namespace,
 			ID:        dbLine.ID,
 
@@ -133,7 +133,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			InvoiceID: dbLine.InvoiceID,
 			Status:    dbLine.Status,
 
-			Period: billingentity.Period{
+			Period: billing.Period{
 				Start: dbLine.PeriodStart.In(time.UTC),
 				End:   dbLine.PeriodEnd.In(time.UTC),
 			},
@@ -150,7 +150,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Currency: dbLine.Currency,
 
 			TaxConfig: lo.EmptyableToPtr(dbLine.TaxConfig),
-			Totals: billingentity.Totals{
+			Totals: billing.Totals{
 				Amount:              dbLine.Amount,
 				ChargesTotal:        dbLine.ChargesTotal,
 				DiscountsTotal:      dbLine.DiscountsTotal,
@@ -159,25 +159,25 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 				TaxesTotal:          dbLine.TaxesTotal,
 				Total:               dbLine.Total,
 			},
-			ExternalIDs: billingentity.LineExternalIDs{
+			ExternalIDs: billing.LineExternalIDs{
 				Invoicing: lo.FromPtrOr(dbLine.InvoicingAppExternalID, ""),
 			},
 		},
 	}
 
 	switch dbLine.Type {
-	case billingentity.InvoiceLineTypeFee:
-		invoiceLine.FlatFee = billingentity.FlatFeeLine{
+	case billing.InvoiceLineTypeFee:
+		invoiceLine.FlatFee = billing.FlatFeeLine{
 			ConfigID:      dbLine.Edges.FlatFeeLine.ID,
 			PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
 			Quantity:      lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
 		}
-	case billingentity.InvoiceLineTypeUsageBased:
+	case billing.InvoiceLineTypeUsageBased:
 		ubpLine := dbLine.Edges.UsageBasedLine
 		if ubpLine == nil {
 			return invoiceLine, fmt.Errorf("manual usage based line is missing")
 		}
-		invoiceLine.UsageBased = billingentity.UsageBasedLine{
+		invoiceLine.UsageBased = billing.UsageBasedLine{
 			ConfigID:              ubpLine.ID,
 			FeatureKey:            ubpLine.FeatureKey,
 			Price:                 *ubpLine.Price,
@@ -188,8 +188,8 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		return invoiceLine, fmt.Errorf("unsupported line type[%s]: %s", dbLine.ID, dbLine.Type)
 	}
 
-	discounts := lo.Map(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount, _ int) billingentity.LineDiscount {
-		return billingentity.LineDiscount{
+	discounts := lo.Map(dbLine.Edges.LineDiscounts, func(discount *db.BillingInvoiceLineDiscount, _ int) billing.LineDiscount {
+		return billing.LineDiscount{
 			ID:        discount.ID,
 			CreatedAt: discount.CreatedAt.In(time.UTC),
 			UpdatedAt: discount.UpdatedAt.In(time.UTC),
@@ -200,7 +200,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
 		}
 	})
-	invoiceLine.Discounts = billingentity.NewLineDiscounts(discounts)
+	invoiceLine.Discounts = billing.NewLineDiscounts(discounts)
 
 	return invoiceLine, nil
 }

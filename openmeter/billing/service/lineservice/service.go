@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -65,7 +64,7 @@ func New(in Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) FromEntity(line *billingentity.Line) (Line, error) {
+func (s *Service) FromEntity(line *billing.Line) (Line, error) {
 	currencyCalc, err := line.Currency.Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("creating currency calculator: %w", err)
@@ -78,11 +77,11 @@ func (s *Service) FromEntity(line *billingentity.Line) (Line, error) {
 	}
 
 	switch line.Type {
-	case billingentity.InvoiceLineTypeFee:
+	case billing.InvoiceLineTypeFee:
 		return &feeLine{
 			lineBase: base,
 		}, nil
-	case billingentity.InvoiceLineTypeUsageBased:
+	case billing.InvoiceLineTypeUsageBased:
 		return &usageBasedLine{
 			lineBase: base,
 		}, nil
@@ -91,8 +90,8 @@ func (s *Service) FromEntity(line *billingentity.Line) (Line, error) {
 	}
 }
 
-func (s *Service) FromEntities(line []*billingentity.Line) (Lines, error) {
-	return slicesx.MapWithErr(line, func(l *billingentity.Line) (Line, error) {
+func (s *Service) FromEntities(line []*billing.Line) (Lines, error) {
+	return slicesx.MapWithErr(line, func(l *billing.Line) (Line, error) {
 		return s.FromEntity(l)
 	})
 }
@@ -115,8 +114,8 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 	}
 
 	if feat.MeterSlug == nil {
-		return nil, billingentity.ValidationError{
-			Err: billingentity.ErrInvoiceLineFeatureHasNoMeters,
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceLineFeatureHasNoMeters,
 		}
 	}
 
@@ -144,7 +143,7 @@ func (s *Service) UpsertLines(ctx context.Context, ns string, lines ...Line) (Li
 		ctx,
 		billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
-			Lines: lo.Map(lines, func(line Line, _ int) *billingentity.Line {
+			Lines: lo.Map(lines, func(line Line, _ int) *billing.Line {
 				return line.ToEntity()
 			}),
 		},
@@ -153,14 +152,14 @@ func (s *Service) UpsertLines(ctx context.Context, ns string, lines ...Line) (Li
 		return nil, fmt.Errorf("creating invoice lines: %w", err)
 	}
 
-	return slicesx.MapWithErr(newLines, func(line *billingentity.Line) (Line, error) {
+	return slicesx.MapWithErr(newLines, func(line *billing.Line) (Line, error) {
 		return s.FromEntity(line)
 	})
 }
 
-func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billingentity.Invoice, lines Lines) (Lines, error) {
+func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.Invoice, lines Lines) (Lines, error) {
 	lineEntities, err := s.BillingAdapter.AssociateLinesToInvoice(ctx, billing.AssociateLinesToInvoiceAdapterInput{
-		Invoice: billingentity.InvoiceID{
+		Invoice: billing.InvoiceID{
 			ID:        invoice.ID,
 			Namespace: invoice.Namespace,
 		},
@@ -173,7 +172,7 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billinge
 		return nil, err
 	}
 
-	invoice.Lines = billingentity.NewLineChildren(append(invoice.Lines.OrEmpty(), lineEntities...))
+	invoice.Lines = billing.NewLineChildren(append(invoice.Lines.OrEmpty(), lineEntities...))
 
 	return s.FromEntities(lineEntities)
 }
@@ -183,9 +182,9 @@ type Line interface {
 
 	Service() *Service
 
-	Validate(ctx context.Context, invoice *billingentity.Invoice) error
-	CanBeInvoicedAsOf(context.Context, time.Time) (*billingentity.Period, error)
-	SnapshotQuantity(context.Context, *billingentity.Invoice) error
+	Validate(ctx context.Context, invoice *billing.Invoice) error
+	CanBeInvoicedAsOf(context.Context, time.Time) (*billing.Period, error)
+	SnapshotQuantity(context.Context, *billing.Invoice) error
 	CalculateDetailedLines() error
 	PrepareForCreate(context.Context) (Line, error)
 	UpdateTotals() error
@@ -193,15 +192,15 @@ type Line interface {
 
 type Lines []Line
 
-func (s Lines) ToEntities() []*billingentity.Line {
-	return lo.Map(s, func(service Line, _ int) *billingentity.Line {
+func (s Lines) ToEntities() []*billing.Line {
+	return lo.Map(s, func(service Line, _ int) *billing.Line {
 		return service.ToEntity()
 	})
 }
 
 type LineWithBillablePeriod struct {
 	Line
-	BillablePeriod billingentity.Period
+	BillablePeriod billing.Period
 }
 
 func (s Lines) ResolveBillablePeriod(ctx context.Context, asOf time.Time) ([]LineWithBillablePeriod, error) {
@@ -222,8 +221,8 @@ func (s Lines) ResolveBillablePeriod(ctx context.Context, asOf time.Time) ([]Lin
 
 	if len(out) == 0 {
 		// We haven't requested explicit empty invoice, so we should have some pending lines
-		return nil, billingentity.ValidationError{
-			Err: billingentity.ErrInvoiceCreateNoLines,
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceCreateNoLines,
 		}
 	}
 

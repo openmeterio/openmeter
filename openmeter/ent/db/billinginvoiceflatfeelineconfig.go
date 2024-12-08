@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 )
 
@@ -23,7 +23,7 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	// PerUnitAmount holds the value of the "per_unit_amount" field.
 	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
 	// Category holds the value of the "category" field.
-	Category     billingentity.FlatFeeCategory `json:"category,omitempty"`
+	Category     billing.FlatFeeCategory `json:"category,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -73,7 +73,7 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, va
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
-				bifflc.Category = billingentity.FlatFeeCategory(value.String)
+				bifflc.Category = billing.FlatFeeCategory(value.String)
 			}
 		default:
 			bifflc.selectValues.Set(columns[i], values[i])

@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/mo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 type MockableInvoiceCalculator struct {
@@ -20,7 +20,7 @@ type mockCalculator struct {
 	calculateResultCalled bool
 }
 
-func (m *mockCalculator) Calculate(i *billingentity.Invoice) error {
+func (m *mockCalculator) Calculate(i *billing.Invoice) error {
 	m.calculateResultCalled = true
 
 	res := m.calculateResult.MustGet()
@@ -29,10 +29,10 @@ func (m *mockCalculator) Calculate(i *billingentity.Invoice) error {
 	// implementation. This way the mock can be used to inject calculation errors
 	// as if they were coming from a calculate callback.
 	return i.MergeValidationIssues(
-		billingentity.ValidationWithComponent(
-			billingentity.ValidationComponentOpenMeter,
+		billing.ValidationWithComponent(
+			billing.ValidationComponentOpenMeter,
 			res),
-		billingentity.ValidationComponentOpenMeter)
+		billing.ValidationComponentOpenMeter)
 }
 
 func (m *mockCalculator) OnCalculate(err error) {
@@ -62,7 +62,7 @@ func NewMockableCalculator(_ *testing.T, upstream Calculator) *MockableInvoiceCa
 	}
 }
 
-func (m *MockableInvoiceCalculator) Calculate(i *billingentity.Invoice) error {
+func (m *MockableInvoiceCalculator) Calculate(i *billing.Invoice) error {
 	outErr := m.upstream.Calculate(i)
 
 	if m.mock != nil {

@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -78,13 +78,13 @@ func (bcou *BillingCustomerOverrideUpdate) ClearBillingProfileID() *BillingCusto
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bcou *BillingCustomerOverrideUpdate) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingCustomerOverrideUpdate {
+func (bcou *BillingCustomerOverrideUpdate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingCustomerOverrideUpdate {
 	bcou.mutation.SetCollectionAlignment(bk)
 	return bcou
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingCustomerOverrideUpdate {
+func (bcou *BillingCustomerOverrideUpdate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingCustomerOverrideUpdate {
 	if bk != nil {
 		bcou.SetCollectionAlignment(*bk)
 	}
@@ -178,13 +178,13 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDueAfter() *BillingCustom
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingCustomerOverrideUpdate {
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingCustomerOverrideUpdate {
 	bcou.mutation.SetInvoiceCollectionMethod(bm)
 	return bcou
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingCustomerOverrideUpdate {
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingCustomerOverrideUpdate {
 	if bm != nil {
 		bcou.SetInvoiceCollectionMethod(*bm)
 	}
@@ -420,13 +420,13 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearBillingProfileID() *BillingC
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingCustomerOverrideUpdateOne {
+func (bcouo *BillingCustomerOverrideUpdateOne) SetCollectionAlignment(bk billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
 	bcouo.mutation.SetCollectionAlignment(bk)
 	return bcouo
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingCustomerOverrideUpdateOne {
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
 	if bk != nil {
 		bcouo.SetCollectionAlignment(*bk)
 	}
@@ -520,13 +520,13 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDueAfter() *BillingCu
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingCustomerOverrideUpdateOne {
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
 	bcouo.mutation.SetInvoiceCollectionMethod(bm)
 	return bcouo
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingCustomerOverrideUpdateOne {
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
 	if bm != nil {
 		bcouo.SetInvoiceCollectionMethod(*bm)
 	}

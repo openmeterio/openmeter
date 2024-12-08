@@ -11,13 +11,13 @@ import (
 	"github.com/samber/lo"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 type InvoiceStateMachine struct {
-	Invoice      billingentity.Invoice
+	Invoice      billing.Invoice
 	Calculator   invoicecalc.Calculator
 	StateMachine *stateless.StateMachine
 }
@@ -66,7 +66,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 			return out.Invoice.Status, nil
 		},
 		func(ctx context.Context, state stateless.State) error {
-			invState, ok := state.(billingentity.InvoiceStatus)
+			invState, ok := state.(billing.InvoiceStatus)
 			if !ok {
 				return fmt.Errorf("invalid state type: %v", state)
 			}
@@ -91,15 +91,15 @@ func allocateStateMachine() *InvoiceStateMachine {
 	// substate inherits all the parent's state transitions resulting in unexpected behavior (
 	// e.g. allowing triggerNext on the "superstate" causes all substates to have triggerNext).
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftCreated).
-		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
+	stateMachine.Configure(billing.InvoiceStatusDraftCreated).
+		Permit(triggerNext, billing.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating).
 		OnActive(out.calculateInvoice)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftUpdating).
-		Permit(triggerNext, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
+	stateMachine.Configure(billing.InvoiceStatusDraftUpdating).
+		Permit(triggerNext, billing.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
 		OnActive(
 			allOf(
 				out.calculateInvoice,
@@ -107,104 +107,104 @@ func allocateStateMachine() *InvoiceStateMachine {
 			),
 		)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftValidating).
+	stateMachine.Configure(billing.InvoiceStatusDraftValidating).
 		Permit(
 			triggerNext,
-			billingentity.InvoiceStatusDraftSyncing,
+			billing.InvoiceStatusDraftSyncing,
 			boolFn(out.noCriticalValidationErrors),
 		).
-		Permit(triggerFailed, billingentity.InvoiceStatusDraftInvalid).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
+		Permit(triggerFailed, billing.InvoiceStatusDraftInvalid).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
 		// NOTE: we should permit update here, but stateless doesn't allow transitions to the same state
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating).
 		OnActive(allOf(
 			out.calculateInvoice,
 			out.validateDraftInvoice,
 		))
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftInvalid).
-		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
+	stateMachine.Configure(billing.InvoiceStatusDraftInvalid).
+		Permit(triggerRetry, billing.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncing).
+	stateMachine.Configure(billing.InvoiceStatusDraftSyncing).
 		Permit(
 			triggerNext,
-			billingentity.InvoiceStatusDraftManualApprovalNeeded,
+			billing.InvoiceStatusDraftManualApprovalNeeded,
 			boolFn(not(out.isAutoAdvanceEnabled)),
 			boolFn(out.noCriticalValidationErrors),
 		).
 		Permit(
 			triggerNext,
-			billingentity.InvoiceStatusDraftWaitingAutoApproval,
+			billing.InvoiceStatusDraftWaitingAutoApproval,
 			boolFn(out.isAutoAdvanceEnabled),
 			boolFn(out.noCriticalValidationErrors),
 		).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerFailed, billingentity.InvoiceStatusDraftSyncFailed).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerFailed, billing.InvoiceStatusDraftSyncFailed).
 		OnActive(out.syncDraftInvoice)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftSyncFailed).
-		Permit(triggerRetry, billingentity.InvoiceStatusDraftValidating).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
+	stateMachine.Configure(billing.InvoiceStatusDraftSyncFailed).
+		Permit(triggerRetry, billing.InvoiceStatusDraftValidating).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDraftReadyToIssue).
-		Permit(triggerNext, billingentity.InvoiceStatusIssuing).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
+	stateMachine.Configure(billing.InvoiceStatusDraftReadyToIssue).
+		Permit(triggerNext, billing.InvoiceStatusIssuing).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating)
 
 	// Automatic and manual approvals
-	stateMachine.Configure(billingentity.InvoiceStatusDraftWaitingAutoApproval).
+	stateMachine.Configure(billing.InvoiceStatusDraftWaitingAutoApproval).
 		// Manual approval forces the draft invoice to be issued regardless of the review period
-		Permit(triggerApprove, billingentity.InvoiceStatusDraftReadyToIssue).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
+		Permit(triggerApprove, billing.InvoiceStatusDraftReadyToIssue).
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
 		Permit(triggerNext,
-			billingentity.InvoiceStatusDraftReadyToIssue,
+			billing.InvoiceStatusDraftReadyToIssue,
 			boolFn(out.shouldAutoAdvance),
 			boolFn(out.noCriticalValidationErrors),
 		)
 
 	// This state is a pre-issuing state where we can halt the execution and execute issuing in the background
 	// if needed
-	stateMachine.Configure(billingentity.InvoiceStatusDraftManualApprovalNeeded).
+	stateMachine.Configure(billing.InvoiceStatusDraftManualApprovalNeeded).
 		Permit(triggerApprove,
-			billingentity.InvoiceStatusDraftReadyToIssue,
+			billing.InvoiceStatusDraftReadyToIssue,
 			boolFn(out.noCriticalValidationErrors),
 		).
-		Permit(triggerUpdated, billingentity.InvoiceStatusDraftUpdating)
+		Permit(triggerUpdated, billing.InvoiceStatusDraftUpdating)
 
 	// Deletion state
-	stateMachine.Configure(billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerNext, billingentity.InvoiceStatusDeleteSyncing).
-		Permit(triggerFailed, billingentity.InvoiceStatusDeleteFailed).
+	stateMachine.Configure(billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerNext, billing.InvoiceStatusDeleteSyncing).
+		Permit(triggerFailed, billing.InvoiceStatusDeleteFailed).
 		OnActive(out.deleteInvoice)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDeleteSyncing).
-		Permit(triggerNext, billingentity.InvoiceStatusDeleted).
-		Permit(triggerFailed, billingentity.InvoiceStatusDeleteFailed).
+	stateMachine.Configure(billing.InvoiceStatusDeleteSyncing).
+		Permit(triggerNext, billing.InvoiceStatusDeleted).
+		Permit(triggerFailed, billing.InvoiceStatusDeleteFailed).
 		OnActive(out.syncDeletedInvoice)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDeleteFailed).
-		Permit(triggerRetry, billingentity.InvoiceStatusDeleteInProgress)
+	stateMachine.Configure(billing.InvoiceStatusDeleteFailed).
+		Permit(triggerRetry, billing.InvoiceStatusDeleteInProgress)
 
-	stateMachine.Configure(billingentity.InvoiceStatusDeleted)
+	stateMachine.Configure(billing.InvoiceStatusDeleted)
 
 	// Issuing state
 
-	stateMachine.Configure(billingentity.InvoiceStatusIssuing).
-		Permit(triggerNext, billingentity.InvoiceStatusIssued).
-		Permit(triggerFailed, billingentity.InvoiceStatusIssuingSyncFailed).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
+	stateMachine.Configure(billing.InvoiceStatusIssuing).
+		Permit(triggerNext, billing.InvoiceStatusIssued).
+		Permit(triggerFailed, billing.InvoiceStatusIssuingSyncFailed).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
 		OnActive(out.finalizeInvoice)
 
-	stateMachine.Configure(billingentity.InvoiceStatusIssuingSyncFailed).
-		Permit(triggerDelete, billingentity.InvoiceStatusDeleteInProgress).
-		Permit(triggerRetry, billingentity.InvoiceStatusIssuing)
+	stateMachine.Configure(billing.InvoiceStatusIssuingSyncFailed).
+		Permit(triggerDelete, billing.InvoiceStatusDeleteInProgress).
+		Permit(triggerRetry, billing.InvoiceStatusIssuing)
 
 	// Issued state (final)
-	stateMachine.Configure(billingentity.InvoiceStatusIssued)
+	stateMachine.Configure(billing.InvoiceStatusIssued)
 
 	out.StateMachine = stateMachine
 
@@ -213,7 +213,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 type InvoiceStateMachineCallback func(context.Context, *InvoiceStateMachine) error
 
-func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billingentity.Invoice, cb InvoiceStateMachineCallback) (billingentity.Invoice, error) {
+func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.Invoice, cb InvoiceStateMachineCallback) (billing.Invoice, error) {
 	sm := invoiceStateMachineCache.Get().(*InvoiceStateMachine)
 
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
@@ -221,13 +221,13 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billingen
 	sm.Calculator = s.invoiceCalculator
 
 	defer func() {
-		sm.Invoice = billingentity.Invoice{}
+		sm.Invoice = billing.Invoice{}
 		sm.Calculator = nil
 		invoiceStateMachineCache.Put(sm)
 	}()
 
 	if err := cb(ctx, sm); err != nil {
-		return billingentity.Invoice{}, err
+		return billing.Invoice{}, err
 	}
 
 	sd, err := sm.StatusDetails(ctx)
@@ -240,37 +240,37 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billingen
 	return sm.Invoice, nil
 }
 
-func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billingentity.InvoiceStatusDetails, error) {
-	if m.Invoice.Status == billingentity.InvoiceStatusGathering {
+func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.InvoiceStatusDetails, error) {
+	if m.Invoice.Status == billing.InvoiceStatusGathering {
 		// Gathering is a special state that is not part of the state machine, due to
 		// cross invoice operations
-		return billingentity.InvoiceStatusDetails{
+		return billing.InvoiceStatusDetails{
 			Immutable: false,
 		}, nil
 	}
 
 	var outErr error
-	actions := make([]billingentity.InvoiceAction, 0, 4)
+	actions := make([]billing.InvoiceAction, 0, 4)
 
 	ok, err := m.StateMachine.CanFireCtx(ctx, triggerNext)
 	if err != nil {
 		outErr = errors.Join(outErr, err)
 	} else if ok {
-		actions = append(actions, billingentity.InvoiceActionAdvance)
+		actions = append(actions, billing.InvoiceActionAdvance)
 	}
 
 	ok, err = m.StateMachine.CanFireCtx(ctx, triggerRetry)
 	if err != nil {
 		outErr = errors.Join(outErr, err)
 	} else if ok {
-		actions = append(actions, billingentity.InvoiceActionRetry)
+		actions = append(actions, billing.InvoiceActionRetry)
 	}
 
 	ok, err = m.StateMachine.CanFireCtx(ctx, triggerApprove)
 	if err != nil {
 		outErr = errors.Join(outErr, err)
 	} else if ok {
-		actions = append(actions, billingentity.InvoiceActionApprove)
+		actions = append(actions, billing.InvoiceActionApprove)
 	}
 
 	mutable, err := m.StateMachine.CanFireCtx(ctx, triggerUpdated)
@@ -280,7 +280,7 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billingentity.
 
 	// TODO[OM-988]: add more actions (void, delete, etc.)
 
-	return billingentity.InvoiceStatusDetails{
+	return billing.InvoiceStatusDetails{
 		Immutable:        !mutable,
 		Failed:           m.Invoice.Status.IsFailed(),
 		AvailableActions: actions,
@@ -345,9 +345,9 @@ func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger state
 	return nil
 }
 
-func (m *InvoiceStateMachine) withInvoicingApp(op string, cb func(billingentity.InvoicingApp) error) error {
+func (m *InvoiceStateMachine) withInvoicingApp(op string, cb func(billing.InvoicingApp) error) error {
 	invocingBase := m.Invoice.Workflow.Apps.Invoicing
-	invoicingApp, ok := invocingBase.(billingentity.InvoicingApp)
+	invoicingApp, ok := invocingBase.(billing.InvoicingApp)
 	if !ok {
 		// If this happens we are rolling back the state transition (as we are not wrapping this into a validation issue)
 		return fmt.Errorf("app [type=%s, id=%s] does not implement the invoicing interface",
@@ -355,13 +355,13 @@ func (m *InvoiceStateMachine) withInvoicingApp(op string, cb func(billingentity.
 			m.Invoice.Workflow.Apps.Invoicing.GetID().ID)
 	}
 
-	component := billingentity.AppTypeCapabilityToComponent(invocingBase.GetType(), appentitybase.CapabilityTypeInvoiceCustomers, op)
+	component := billing.AppTypeCapabilityToComponent(invocingBase.GetType(), appentitybase.CapabilityTypeInvoiceCustomers, op)
 	result := cb(invoicingApp)
 
 	// Anything returned by the validation is considered a validation issue, thus in case of an error
 	// we wouldn't roll back the state transitions.
 	return m.Invoice.MergeValidationIssues(
-		billingentity.ValidationWithComponent(
+		billing.ValidationWithComponent(
 			component,
 			result,
 		),
@@ -369,7 +369,7 @@ func (m *InvoiceStateMachine) withInvoicingApp(op string, cb func(billingentity.
 	)
 }
 
-func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billingentity.UpsertInvoiceResult) error {
+func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billing.UpsertInvoiceResult) error {
 	// Let's merge the results into the invoice
 	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
 		m.Invoice.Number = lo.ToPtr(invoiceNumber)
@@ -399,7 +399,7 @@ func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billingentity.Ups
 
 // validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
 func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
-	return m.withInvoicingApp(opValidate, func(app billingentity.InvoicingApp) error {
+	return m.withInvoicingApp(opValidate, func(app billing.InvoicingApp) error {
 		return app.ValidateInvoice(ctx, m.Invoice.Clone())
 	})
 }
@@ -410,7 +410,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 
 // syncDraftInvoice syncs the draft invoice with the external system.
 func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
-	return m.withInvoicingApp(opSync, func(app billingentity.InvoicingApp) error {
+	return m.withInvoicingApp(opSync, func(app billing.InvoicingApp) error {
 		results, err := app.UpsertInvoice(ctx, m.Invoice.Clone())
 		if err != nil {
 			return err
@@ -426,7 +426,7 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 // finalizeInvoice finalizes the invoice using the invoicing app and payment app (later).
 func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
-	return m.withInvoicingApp(opFinalize, func(app billingentity.InvoicingApp) error {
+	return m.withInvoicingApp(opFinalize, func(app billing.InvoicingApp) error {
 		clonedInvoice := m.Invoice.Clone()
 		// First we sync the invoice
 		upsertResults, err := app.UpsertInvoice(ctx, clonedInvoice)
@@ -457,7 +457,7 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 
 // syncDeletedInvoice syncs the deleted invoice with the external system
 func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
-	return m.withInvoicingApp(opDelete, func(app billingentity.InvoicingApp) error {
+	return m.withInvoicingApp(opDelete, func(app billing.InvoicingApp) error {
 		return app.DeleteInvoice(ctx, m.Invoice.Clone())
 	})
 }

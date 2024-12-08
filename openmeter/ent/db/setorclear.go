@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -154,14 +154,14 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearBillingProfileID(value *str
 	return u.SetBillingProfileID(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearCollectionAlignment(value *billingentity.AlignmentKind) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearCollectionAlignment(value *billing.AlignmentKind) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearCollectionAlignment()
 	}
 	return u.SetCollectionAlignment(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *billingentity.AlignmentKind) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearCollectionAlignment(value *billing.AlignmentKind) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearCollectionAlignment()
 	}
@@ -224,14 +224,14 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDueAfter(value *date
 	return u.SetInvoiceDueAfter(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceCollectionMethod(value *billingentity.CollectionMethod) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceCollectionMethod(value *billing.CollectionMethod) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearInvoiceCollectionMethod()
 	}
 	return u.SetInvoiceCollectionMethod(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceCollectionMethod(value *billingentity.CollectionMethod) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceCollectionMethod(value *billing.CollectionMethod) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
 		return u.ClearInvoiceCollectionMethod()
 	}

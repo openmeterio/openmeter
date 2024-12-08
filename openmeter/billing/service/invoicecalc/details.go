@@ -6,10 +6,10 @@ import (
 
 	"github.com/samber/lo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-func RecalculateDetailedLinesAndTotals(invoice *billingentity.Invoice, deps CalculatorDependencies) error {
+func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps CalculatorDependencies) error {
 	if invoice.Lines.IsAbsent() {
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
@@ -28,7 +28,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billingentity.Invoice, deps Calc
 
 		if err := line.CalculateDetailedLines(); err != nil {
 			outErr = errors.Join(outErr,
-				billingentity.ValidationWithFieldPrefix(fmt.Sprintf("line[%s]", line.ID()),
+				billing.ValidationWithFieldPrefix(fmt.Sprintf("line[%s]", line.ID()),
 					fmt.Errorf("calculating detailed lines: %w", err)))
 
 			line.ResetTotals()
@@ -37,17 +37,17 @@ func RecalculateDetailedLinesAndTotals(invoice *billingentity.Invoice, deps Calc
 
 		if err := line.UpdateTotals(); err != nil {
 			outErr = errors.Join(outErr,
-				billingentity.ValidationWithFieldPrefix(fmt.Sprintf("line[%s]", line.ID()),
+				billing.ValidationWithFieldPrefix(fmt.Sprintf("line[%s]", line.ID()),
 					fmt.Errorf("updating totals: %w", err)))
 		}
 	}
 
-	totals := billingentity.Totals{}
+	totals := billing.Totals{}
 
-	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billingentity.Line, _ int) billingentity.Totals {
+	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) billing.Totals {
 		// Deleted lines are not contributing to the totals
 		if line.DeletedAt != nil {
-			return billingentity.Totals{}
+			return billing.Totals{}
 		}
 
 		return line.Totals

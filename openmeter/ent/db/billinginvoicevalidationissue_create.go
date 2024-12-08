@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 )
@@ -80,7 +80,7 @@ func (bivic *BillingInvoiceValidationIssueCreate) SetInvoiceID(s string) *Billin
 }
 
 // SetSeverity sets the "severity" field.
-func (bivic *BillingInvoiceValidationIssueCreate) SetSeverity(bis billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueCreate {
+func (bivic *BillingInvoiceValidationIssueCreate) SetSeverity(bis billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueCreate {
 	bivic.mutation.SetSeverity(bis)
 	return bivic
 }
@@ -447,7 +447,7 @@ func (u *BillingInvoiceValidationIssueUpsert) UpdateInvoiceID() *BillingInvoiceV
 }
 
 // SetSeverity sets the "severity" field.
-func (u *BillingInvoiceValidationIssueUpsert) SetSeverity(v billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpsert {
+func (u *BillingInvoiceValidationIssueUpsert) SetSeverity(v billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpsert {
 	u.Set(billinginvoicevalidationissue.FieldSeverity, v)
 	return u
 }
@@ -634,7 +634,7 @@ func (u *BillingInvoiceValidationIssueUpsertOne) UpdateInvoiceID() *BillingInvoi
 }
 
 // SetSeverity sets the "severity" field.
-func (u *BillingInvoiceValidationIssueUpsertOne) SetSeverity(v billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpsertOne {
+func (u *BillingInvoiceValidationIssueUpsertOne) SetSeverity(v billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpsertOne {
 	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
 		s.SetSeverity(v)
 	})
@@ -1002,7 +1002,7 @@ func (u *BillingInvoiceValidationIssueUpsertBulk) UpdateInvoiceID() *BillingInvo
 }
 
 // SetSeverity sets the "severity" field.
-func (u *BillingInvoiceValidationIssueUpsertBulk) SetSeverity(v billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpsertBulk {
+func (u *BillingInvoiceValidationIssueUpsertBulk) SetSeverity(v billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpsertBulk {
 	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
 		s.SetSeverity(v)
 	})

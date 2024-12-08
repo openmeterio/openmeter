@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -15,11 +15,11 @@ import (
 func errorEncoder() httptransport.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		return commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[billingentity.NotFoundError](ctx, http.StatusNotFound, err, w, billingentity.EncodeValidationIssues) ||
-			commonhttp.HandleErrorIfTypeMatches[billingentity.ConflictError](ctx, http.StatusConflict, err, w, billingentity.EncodeValidationIssues) ||
-			commonhttp.HandleErrorIfTypeMatches[billingentity.ValidationError](ctx, http.StatusBadRequest, err, w, billingentity.EncodeValidationIssues) ||
-			commonhttp.HandleErrorIfTypeMatches[billingentity.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w, billingentity.EncodeValidationIssues) ||
-			commonhttp.HandleErrorIfTypeMatches[billingentity.ValidationIssue](ctx, http.StatusBadRequest, err, w, billingentity.EncodeValidationIssues) ||
+			commonhttp.HandleErrorIfTypeMatches[billing.NotFoundError](ctx, http.StatusNotFound, err, w, billing.EncodeValidationIssues) ||
+			commonhttp.HandleErrorIfTypeMatches[billing.ConflictError](ctx, http.StatusConflict, err, w, billing.EncodeValidationIssues) ||
+			commonhttp.HandleErrorIfTypeMatches[billing.ValidationError](ctx, http.StatusBadRequest, err, w, billing.EncodeValidationIssues) ||
+			commonhttp.HandleErrorIfTypeMatches[billing.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w, billing.EncodeValidationIssues) ||
+			commonhttp.HandleErrorIfTypeMatches[billing.ValidationIssue](ctx, http.StatusBadRequest, err, w, billing.EncodeValidationIssues) ||
 			// dependency: customer
 			commonhttp.HandleErrorIfTypeMatches[customerentity.NotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customerentity.ValidationError](ctx, http.StatusBadRequest, err, w) ||

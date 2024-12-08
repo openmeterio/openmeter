@@ -12,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -27,14 +26,14 @@ import (
 
 var _ billing.InvoiceAdapter = (*adapter)(nil)
 
-func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdInput) (billingentity.Invoice, error) {
+func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdInput) (billing.Invoice, error) {
 	if err := in.Validate(); err != nil {
-		return billingentity.Invoice{}, billingentity.ValidationError{
+		return billing.Invoice{}, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billingentity.Invoice, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.Invoice, error) {
 		query := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.Invoice.ID)).
 			Where(billinginvoice.Namespace(in.Invoice.Namespace)).
@@ -50,14 +49,14 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 		invoice, err := query.Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return billingentity.Invoice{}, billingentity.NotFoundError{
-					Entity: billingentity.EntityInvoice,
+				return billing.Invoice{}, billing.NotFoundError{
+					Entity: billing.EntityInvoice,
 					ID:     in.Invoice.ID,
 					Err:    err,
 				}
 			}
 
-			return billingentity.Invoice{}, err
+			return billing.Invoice{}, err
 		}
 
 		return tx.mapInvoiceFromDB(ctx, invoice, in.Expand)
@@ -72,7 +71,7 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, includeD
 
 		q = q.Where(
 			// Detailed lines are sub-lines of a line and should not be included in the top-level invoice
-			billinginvoiceline.StatusIn(billingentity.InvoiceLineStatusValid),
+			billinginvoiceline.StatusIn(billing.InvoiceLineStatusValid),
 		)
 
 		a.expandLineItems(q)
@@ -81,7 +80,7 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, includeD
 
 func (a *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockInvoicesForUpdateInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -99,8 +98,8 @@ func (a *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockI
 
 		missingIds := lo.Without(input.InvoiceIDs, ids...)
 		if len(missingIds) > 0 {
-			return billingentity.NotFoundError{
-				Entity: billingentity.EntityInvoice,
+			return billing.NotFoundError{
+				Entity: billing.EntityInvoice,
 				ID:     strings.Join(missingIds, ","),
 				Err:    fmt.Errorf("cannot select invoices for update"),
 			}
@@ -112,7 +111,7 @@ func (a *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockI
 
 func (a *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoicesAdapterInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -128,7 +127,7 @@ func (a *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoic
 		}
 
 		if nAffected != len(input.InvoiceIDs) {
-			return billingentity.ValidationError{
+			return billing.ValidationError{
 				Err: errors.New("invoices failed to delete"),
 			}
 		}
@@ -139,7 +138,7 @@ func (a *adapter) DeleteInvoices(ctx context.Context, input billing.DeleteInvoic
 
 func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ListInvoicesResponse{}, billingentity.ValidationError{
+		return billing.ListInvoicesResponse{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -209,7 +208,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Order(billinginvoice.ByCreatedAt(order...))
 		}
 
-		response := pagination.PagedResponse[billingentity.Invoice]{
+		response := pagination.PagedResponse[billing.Invoice]{
 			Page: input.Page,
 		}
 
@@ -218,7 +217,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			return response, err
 		}
 
-		result := make([]billingentity.Invoice, 0, len(paged.Items))
+		result := make([]billing.Invoice, 0, len(paged.Items))
 		for _, invoice := range paged.Items {
 			mapped, err := tx.mapInvoiceFromDB(ctx, invoice, input.Expand)
 			if err != nil {
@@ -270,8 +269,8 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableDueAt(input.DueAt).
 			SetNillableCustomerTimezone(customer.Timezone).
 			SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
-			SetCustomerUsageAttribution(&billingentity.VersionedCustomerUsageAttribution{
-				Type:                     billingentity.CustomerUsageAttributionTypeVersion,
+			SetCustomerUsageAttribution(&billing.VersionedCustomerUsageAttribution{
+				Type:                     billing.CustomerUsageAttributionTypeVersion,
 				CustomerUsageAttribution: input.Customer.UsageAttribution,
 			}).
 			// Workflow (cloned)
@@ -316,7 +315,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		// Let's add required edges for mapping
 		newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-		return tx.mapInvoiceFromDB(ctx, newInvoice, billingentity.InvoiceExpandAll)
+		return tx.mapInvoiceFromDB(ctx, newInvoice, billing.InvoiceExpandAll)
 	})
 }
 
@@ -333,7 +332,7 @@ func (a *adapter) AssociatedLineCounts(ctx context.Context, input billing.Associ
 			Where(billinginvoiceline.DeletedAtIsNil()).
 			Where(billinginvoiceline.Namespace(input.Namespace)).
 			Where(billinginvoiceline.InvoiceIDIn(input.InvoiceIDs...)).
-			Where(billinginvoiceline.StatusIn(billingentity.InvoiceLineStatusValid)).
+			Where(billinginvoiceline.StatusIn(billing.InvoiceLineStatusValid)).
 			GroupBy(billinginvoiceline.FieldInvoiceID).
 			Aggregate(
 				db.Count(),
@@ -343,15 +342,15 @@ func (a *adapter) AssociatedLineCounts(ctx context.Context, input billing.Associ
 			return billing.AssociatedLineCountsAdapterResponse{}, err
 		}
 
-		res := lo.Associate(queryOut, func(q lineCountQueryOut) (billingentity.InvoiceID, int64) {
-			return billingentity.InvoiceID{
+		res := lo.Associate(queryOut, func(q lineCountQueryOut) (billing.InvoiceID, int64) {
+			return billing.InvoiceID{
 				Namespace: input.Namespace,
 				ID:        q.InvoiceID,
 			}, q.Count
 		})
 
 		for _, invoiceID := range input.InvoiceIDs {
-			id := billingentity.InvoiceID{
+			id := billing.InvoiceID{
 				Namespace: input.Namespace,
 				ID:        invoiceID,
 			}
@@ -368,19 +367,19 @@ func (a *adapter) AssociatedLineCounts(ctx context.Context, input billing.Associ
 
 func (a *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, existing *db.BillingInvoice) error {
 	if req.Currency != existing.Currency {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: fmt.Errorf("currency cannot be changed"),
 		}
 	}
 
 	if req.Type != existing.Type {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: fmt.Errorf("type cannot be changed"),
 		}
 	}
 
 	if req.Customer.CustomerID != existing.CustomerID {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: fmt.Errorf("customer cannot be changed"),
 		}
 	}
@@ -389,8 +388,8 @@ func (a *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, e
 }
 
 // UpdateInvoice updates the specified invoice.
-func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billingentity.Invoice, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billingentity.Invoice, error) {
+func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billing.Invoice, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.Invoice, error) {
 		existingInvoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.ID)).
 			Where(billinginvoice.Namespace(in.Namespace)).
@@ -469,7 +468,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		}
 
 		err = tx.persistValidationIssues(ctx,
-			billingentity.InvoiceID{
+			billing.InvoiceID{
 				Namespace: in.Namespace,
 				ID:        in.ID,
 			}, in.ValidationIssues)
@@ -483,7 +482,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			return in, err
 		}
 
-		updatedLines := billingentity.LineChildren{}
+		updatedLines := billing.LineChildren{}
 		if in.Lines.IsPresent() {
 			// Note: this only supports adding new lines or setting the DeletedAt field
 			// we don't support moving lines between invoices here, as the cross invoice
@@ -498,7 +497,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 				return in, err
 			}
 
-			updatedLines = billingentity.NewLineChildren(lines)
+			updatedLines = billing.NewLineChildren(lines)
 		}
 
 		// Let's return the updated invoice
@@ -507,7 +506,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		// to look up the lines again.
 		if in.ExpandedFields.Lines && updatedLines.IsPresent() {
 			updatedInvoice, err := tx.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billingentity.InvoiceID{
+				Invoice: billing.InvoiceID{
 					Namespace: in.Namespace,
 					ID:        in.ID,
 				},
@@ -522,7 +521,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		}
 
 		return tx.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-			Invoice: billingentity.InvoiceID{
+			Invoice: billing.InvoiceID{
 				Namespace: in.Namespace,
 				ID:        in.ID,
 			},
@@ -533,7 +532,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 
 func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoiceOwnershipAdapterInput) (billing.GetOwnershipAdapterResponse, error) {
 	if err := in.Validate(); err != nil {
-		return billing.GetOwnershipAdapterResponse{}, billingentity.ValidationError{
+		return billing.GetOwnershipAdapterResponse{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -545,8 +544,8 @@ func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoice
 			First(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return billing.GetOwnershipAdapterResponse{}, billingentity.NotFoundError{
-					Entity: billingentity.EntityInvoice,
+				return billing.GetOwnershipAdapterResponse{}, billing.NotFoundError{
+					Entity: billing.EntityInvoice,
 					ID:     in.ID,
 					Err:    err,
 				}
@@ -563,9 +562,9 @@ func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoice
 	})
 }
 
-func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billingentity.InvoiceExpand) (billingentity.Invoice, error) {
-	res := billingentity.Invoice{
-		InvoiceBase: billingentity.InvoiceBase{
+func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.Invoice, error) {
+	res := billing.Invoice{
+		InvoiceBase: billing.InvoiceBase{
 			ID:          invoice.ID,
 			Namespace:   invoice.Namespace,
 			Metadata:    invoice.Metadata,
@@ -576,7 +575,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			Description: invoice.Description,
 			DueAt:       invoice.DueAt,
 			DraftUntil:  invoice.DraftUntil,
-			Supplier: billingentity.SupplierContact{
+			Supplier: billing.SupplierContact{
 				Name: invoice.SupplierName,
 				Address: models.Address{
 					Country:     invoice.SupplierAddressCountry,
@@ -590,7 +589,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 				TaxCode: invoice.SupplierTaxCode,
 			},
 
-			Customer: billingentity.InvoiceCustomer{
+			Customer: billing.InvoiceCustomer{
 				CustomerID: invoice.CustomerID,
 				Name:       invoice.CustomerName,
 				BillingAddress: &models.Address{
@@ -611,13 +610,13 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 			DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
 
-			ExternalIDs: billingentity.InvoiceExternalIDs{
+			ExternalIDs: billing.InvoiceExternalIDs{
 				Invoicing: lo.FromPtrOr(invoice.InvoicingAppExternalID, ""),
 				Payment:   lo.FromPtrOr(invoice.PaymentAppExternalID, ""),
 			},
 		},
 
-		Totals: billingentity.Totals{
+		Totals: billing.Totals{
 			Amount:              invoice.Amount,
 			ChargesTotal:        invoice.ChargesTotal,
 			DiscountsTotal:      invoice.DiscountsTotal,
@@ -632,21 +631,21 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 
 	workflowConfig, err := mapWorkflowConfigFromDB(invoice.Edges.BillingWorkflowConfig)
 	if err != nil {
-		return billingentity.Invoice{}, err
+		return billing.Invoice{}, err
 	}
 
-	res.Workflow = &billingentity.InvoiceWorkflow{
+	res.Workflow = &billing.InvoiceWorkflow{
 		Config:                 workflowConfig,
 		SourceBillingProfileID: invoice.SourceBillingProfileID,
 
-		AppReferences: billingentity.ProfileAppReferences{
-			Tax: billingentity.AppReference{
+		AppReferences: billing.ProfileAppReferences{
+			Tax: billing.AppReference{
 				ID: invoice.TaxAppID,
 			},
-			Invoicing: billingentity.AppReference{
+			Invoicing: billing.AppReference{
 				ID: invoice.InvoicingAppID,
 			},
-			Payment: billingentity.AppReference{
+			Payment: billing.AppReference{
 				ID: invoice.PaymentAppID,
 			},
 		},
@@ -655,15 +654,15 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 	if expand.Lines {
 		mappedLines, err := a.mapInvoiceLineFromDB(ctx, invoice.Edges.BillingInvoiceLines)
 		if err != nil {
-			return billingentity.Invoice{}, err
+			return billing.Invoice{}, err
 		}
 
-		res.Lines = billingentity.NewLineChildren(mappedLines)
+		res.Lines = billing.NewLineChildren(mappedLines)
 	}
 
 	if len(invoice.Edges.BillingInvoiceValidationIssues) > 0 {
-		res.ValidationIssues = lo.Map(invoice.Edges.BillingInvoiceValidationIssues, func(issue *db.BillingInvoiceValidationIssue, _ int) billingentity.ValidationIssue {
-			return billingentity.ValidationIssue{
+		res.ValidationIssues = lo.Map(invoice.Edges.BillingInvoiceValidationIssues, func(issue *db.BillingInvoiceValidationIssue, _ int) billing.ValidationIssue {
+			return billing.ValidationIssue{
 				ID:        issue.ID,
 				CreatedAt: issue.CreatedAt.In(time.UTC),
 				UpdatedAt: issue.UpdatedAt.In(time.UTC),
@@ -672,7 +671,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 				Severity:  issue.Severity,
 				Message:   issue.Message,
 				Code:      lo.FromPtrOr(issue.Code, ""),
-				Component: billingentity.ComponentName(issue.Component),
+				Component: billing.ComponentName(issue.Component),
 				Path:      lo.FromPtrOr(issue.Path, ""),
 			}
 		})
@@ -681,11 +680,11 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 	return res, nil
 }
 
-func mapPeriodFromDB(start, end *time.Time) *billingentity.Period {
+func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 	if start == nil || end == nil {
 		return nil
 	}
-	return &billingentity.Period{
+	return &billing.Period{
 		Start: start.In(time.UTC),
 		End:   end.In(time.UTC),
 	}

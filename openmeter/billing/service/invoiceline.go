@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -21,14 +20,14 @@ import (
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
-func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billingentity.Line, error) {
+func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billing.Line, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Namespace
-		input.Lines[i].Status = billingentity.InvoiceLineStatusValid
+		input.Lines[i].Status = billing.InvoiceLineStatusValid
 	}
 
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -47,7 +46,7 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
 		},
-		func(ctx context.Context) ([]*billingentity.Line, error) {
+		func(ctx context.Context) ([]*billing.Line, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
 				Namespace:  input.Namespace,
@@ -99,33 +98,33 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 }
 
 type upsertLineInvoiceResponse struct {
-	Line    billingentity.Line
-	Invoice *billingentity.Invoice
+	Line    billing.Line
+	Invoice *billing.Invoice
 }
 
-func (s *Service) upsertLineInvoice(ctx context.Context, line billingentity.Line, input billing.CreateInvoiceLinesInput, customerProfile *billingentity.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
+func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, input billing.CreateInvoiceLinesInput, customerProfile *billing.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
 	if line.InvoiceID != "" {
 		// We would want to attach the line to an existing invoice
 		invoice, err := s.adapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-			Invoice: billingentity.InvoiceID{
+			Invoice: billing.InvoiceID{
 				ID:        line.InvoiceID,
 				Namespace: input.Namespace,
 			},
 		})
 		if err != nil {
-			return nil, billingentity.ValidationError{
+			return nil, billing.ValidationError{
 				Err: fmt.Errorf("fetching invoice [%s]: %w", line.InvoiceID, err),
 			}
 		}
 
 		if !invoice.StatusDetails.Immutable {
-			return nil, billingentity.ValidationError{
+			return nil, billing.ValidationError{
 				Err: fmt.Errorf("invoice [%s] is not mutable", line.InvoiceID),
 			}
 		}
 
 		if invoice.Currency != line.Currency {
-			return nil, billingentity.ValidationError{
+			return nil, billing.ValidationError{
 				Err: fmt.Errorf("currency mismatch: invoice [%s] currency is %s, but line currency is %s", line.InvoiceID, invoice.Currency, line.Currency),
 			}
 		}
@@ -145,7 +144,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billingentity.Line
 		},
 		Customers:        []string{input.CustomerID},
 		Namespace:        input.Namespace,
-		ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 		Currencies:       []currencyx.Code{line.Currency},
 		OrderBy:          api.InvoiceOrderByCreatedAt,
 		Order:            sortx.OrderAsc,
@@ -161,8 +160,8 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billingentity.Line
 			Customer:  customerProfile.Customer,
 			Profile:   customerProfile.Profile,
 			Currency:  line.Currency,
-			Status:    billingentity.InvoiceStatusGathering,
-			Type:      billingentity.InvoiceTypeStandard,
+			Status:    billing.InvoiceStatusGathering,
+			Type:      billing.InvoiceTypeStandard,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("creating invoice: %w", err)
@@ -193,10 +192,10 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billingentity.Line
 	}, nil
 }
 
-func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billingentity.Invoice, lines []lineservice.LineWithBillablePeriod) (billingentity.Invoice, error) {
+func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.Invoice, lines []lineservice.LineWithBillablePeriod) (billing.Invoice, error) {
 	for _, line := range lines {
 		if line.InvoiceID() == invoice.ID {
-			return invoice, billingentity.ValidationError{
+			return invoice, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: line already associated with invoice[%s]", line.ID(), invoice.ID),
 			}
 		}
@@ -252,9 +251,9 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billingen
 	})
 }
 
-func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLineInput) (*billingentity.Line, error) {
+func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLineInput) (*billing.Line, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -267,7 +266,7 @@ func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLi
 
 func (s *Service) ValidateLineOwnership(ctx context.Context, input billing.ValidateLineOwnershipInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -281,21 +280,21 @@ func (s *Service) ValidateLineOwnership(ctx context.Context, input billing.Valid
 	}
 
 	if ownership.CustomerID != input.CustomerID {
-		return billingentity.NotFoundError{
+		return billing.NotFoundError{
 			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
 		}
 	}
 	return nil
 }
 
-func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineInput) (*billingentity.Line, error) {
+func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineInput) (*billing.Line, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	triggeredInvoice, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billingentity.Invoice, error) {
+	triggeredInvoice, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Invoice, error) {
 		existingLine, err := s.adapter.GetInvoiceLine(ctx, input.Line)
 		if err != nil {
 			return nil, err
@@ -303,12 +302,12 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 
 		invoice, err := s.executeTriggerOnInvoice(
 			ctx,
-			billingentity.InvoiceID{
+			billing.InvoiceID{
 				ID:        existingLine.InvoiceID,
 				Namespace: existingLine.Namespace,
 			},
 			triggerUpdated,
-			ExecuteTriggerWithAllowInStates(billingentity.InvoiceStatusDraftUpdating),
+			ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
 			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
 				targetState, err := input.Apply(existingLine)
 				if err != nil {
@@ -316,7 +315,7 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 				}
 
 				if err := targetState.Validate(); err != nil {
-					return billingentity.ValidationError{
+					return billing.ValidationError{
 						Err: err,
 					}
 				}
@@ -332,8 +331,8 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 				}
 
 				if period == nil {
-					return billingentity.ValidationError{
-						Err: fmt.Errorf("line[%s]: %w as of %s", targetState.ID, billingentity.ErrInvoiceLinesNotBillable, targetState.Period.End),
+					return billing.ValidationError{
+						Err: fmt.Errorf("line[%s]: %w as of %s", targetState.ID, billing.ErrInvoiceLinesNotBillable, targetState.Period.End),
 					}
 				}
 
@@ -353,18 +352,18 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 
 	invoice, err := s.AdvanceInvoice(ctx, triggeredInvoice.InvoiceID())
 	// We don't care if we cannot advance the invoice, as most probably we ended up in a failed state
-	if errors.Is(err, billingentity.ErrInvoiceCannotAdvance) {
+	if errors.Is(err, billing.ErrInvoiceCannotAdvance) {
 		invoice = *triggeredInvoice
 	} else if err != nil {
 		return nil, fmt.Errorf("advancing invoice: %w", err)
 	}
 
-	updatedLine := lo.FindOrElse(invoice.Lines.OrEmpty(), nil, func(l *billingentity.Line) bool {
+	updatedLine := lo.FindOrElse(invoice.Lines.OrEmpty(), nil, func(l *billing.Line) bool {
 		return l.ID == input.Line.ID
 	})
 
 	if updatedLine == nil {
-		return nil, billingentity.NotFoundError{
+		return nil, billing.NotFoundError{
 			Err: fmt.Errorf("line[%s]: not found in invoice", input.Line.ID),
 		}
 	}
@@ -374,7 +373,7 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 
 func (s *Service) DeleteInvoiceLine(ctx context.Context, input billing.DeleteInvoiceLineInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -384,25 +383,25 @@ func (s *Service) DeleteInvoiceLine(ctx context.Context, input billing.DeleteInv
 		return err
 	}
 
-	if existingLine.Status != billingentity.InvoiceLineStatusValid {
-		return billingentity.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", existingLine.ID, billingentity.ErrInvoiceLineDeleteInvalidStatus),
+	if existingLine.Status != billing.InvoiceLineStatusValid {
+		return billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", existingLine.ID, billing.ErrInvoiceLineDeleteInvalidStatus),
 		}
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		_, err := s.executeTriggerOnInvoice(
 			ctx,
-			billingentity.InvoiceID{
+			billing.InvoiceID{
 				ID:        existingLine.InvoiceID,
 				Namespace: existingLine.Namespace,
 			},
 			triggerUpdated,
-			ExecuteTriggerWithAllowInStates(billingentity.InvoiceStatusDraftUpdating),
+			ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
 			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
 				line := sm.Invoice.Lines.GetByID(existingLine.ID)
 				if line == nil || line.DeletedAt != nil {
-					return billingentity.NotFoundError{
+					return billing.NotFoundError{
 						Err: fmt.Errorf("line[%s]: not found in invoice", existingLine.ID),
 					}
 				}

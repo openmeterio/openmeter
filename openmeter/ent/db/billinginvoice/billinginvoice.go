@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -285,7 +285,7 @@ var (
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billingentity.InvoiceType) error {
+func TypeValidator(_type billing.InvoiceType) error {
 	switch _type {
 	case "standard", "credit-note":
 		return nil
@@ -295,7 +295,7 @@ func TypeValidator(_type billingentity.InvoiceType) error {
 }
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
-func StatusValidator(s billingentity.InvoiceStatus) error {
+func StatusValidator(s billing.InvoiceStatus) error {
 	switch s {
 	case "gathering", "draft_created", "draft_updating", "draft_manual_approval_needed", "draft_validating", "draft_invalid", "draft_syncing", "draft_sync_failed", "draft_waiting_auto_approval", "draft_ready_to_issue", "delete_in_progress", "delete_syncing", "delete_failed", "deleted", "issuing_syncing", "issuing_sync_failed", "issued":
 		return nil

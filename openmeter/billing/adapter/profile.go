@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -21,14 +20,14 @@ import (
 
 var _ billing.ProfileAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billingentity.BaseProfile, error) {
+func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.BaseProfile, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.BaseProfile, error) {
 		dbWorkflowConfig, err := tx.createWorkflowConfig(ctx, input.Namespace, input.WorkflowConfig)
 		if err != nil {
 			return nil, err
@@ -65,7 +64,7 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 	})
 }
 
-func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
 	return a.db.BillingWorkflowConfig.Create().
 		SetNamespace(ns).
 		SetCollectionAlignment(input.Collection.Alignment).
@@ -77,7 +76,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		Save(ctx)
 }
 
-func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billingentity.BaseProfile, error) {
+func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -97,7 +96,7 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 	return mapProfileFromDB(dbProfile)
 }
 
-func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.PagedResponse[billingentity.BaseProfile], error) {
+func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.PagedResponse[billing.BaseProfile], error) {
 	query := a.db.BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Namespace)).
 		WithWorkflowConfig()
@@ -124,7 +123,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 		query = query.Order(billingprofile.ByCreatedAt(order...))
 	}
 
-	response := pagination.PagedResponse[billingentity.BaseProfile]{
+	response := pagination.PagedResponse[billing.BaseProfile]{
 		Page: input.Page,
 	}
 
@@ -133,7 +132,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 		return response, err
 	}
 
-	result := make([]billingentity.BaseProfile, 0, len(paged.Items))
+	result := make([]billing.BaseProfile, 0, len(paged.Items))
 	for _, item := range paged.Items {
 		if item == nil {
 			a.logger.WarnContext(ctx, "invalid query result: nil billing profile received")
@@ -154,7 +153,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 	return response, nil
 }
 
-func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billingentity.BaseProfile, error) {
+func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -212,14 +211,14 @@ func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 	})
 }
 
-func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billingentity.BaseProfile, error) {
+func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfileAdapterInput) (*billing.BaseProfile, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.BaseProfile, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.BaseProfile, error) {
 		targetState := input.TargetState
 
 		update := tx.db.BillingProfile.UpdateOneID(targetState.ID).
@@ -253,7 +252,7 @@ func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 	})
 }
 
-func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billingentity.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
 	return a.db.BillingWorkflowConfig.UpdateOneID(id).
 		Where(billingworkflowconfig.Namespace(ns)).
 		SetCollectionAlignment(input.Collection.Alignment).
@@ -265,7 +264,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		Save(ctx)
 }
 
-func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile, error) {
+func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.BaseProfile, error) {
 	if dbProfile == nil {
 		return nil, nil
 	}
@@ -275,7 +274,7 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile,
 		return nil, fmt.Errorf("cannot map workflow config: %w", err)
 	}
 
-	return &billingentity.BaseProfile{
+	return &billing.BaseProfile{
 		Namespace:   dbProfile.Namespace,
 		ID:          dbProfile.ID,
 		Default:     dbProfile.Default,
@@ -287,7 +286,7 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile,
 		UpdatedAt: dbProfile.UpdatedAt.In(time.UTC),
 		DeletedAt: convert.TimePtrIn(dbProfile.DeletedAt, time.UTC),
 
-		Supplier: billingentity.SupplierContact{
+		Supplier: billing.SupplierContact{
 			Name: dbProfile.SupplierName,
 			Address: models.Address{
 				Country:     dbProfile.SupplierAddressCountry,
@@ -303,15 +302,15 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billingentity.BaseProfile,
 
 		WorkflowConfig: wfConfig,
 
-		AppReferences: &billingentity.ProfileAppReferences{
-			Tax:       billingentity.AppReference{ID: dbProfile.TaxAppID},
-			Invoicing: billingentity.AppReference{ID: dbProfile.InvoicingAppID},
-			Payment:   billingentity.AppReference{ID: dbProfile.PaymentAppID},
+		AppReferences: &billing.ProfileAppReferences{
+			Tax:       billing.AppReference{ID: dbProfile.TaxAppID},
+			Invoicing: billing.AppReference{ID: dbProfile.InvoicingAppID},
+			Payment:   billing.AppReference{ID: dbProfile.PaymentAppID},
 		},
 	}, nil
 }
 
-func mapWorkflowConfigToDB(wc billingentity.WorkflowConfig) *db.BillingWorkflowConfig {
+func mapWorkflowConfigToDB(wc billing.WorkflowConfig) *db.BillingWorkflowConfig {
 	return &db.BillingWorkflowConfig{
 		ID: wc.ID,
 
@@ -328,41 +327,41 @@ func mapWorkflowConfigToDB(wc billingentity.WorkflowConfig) *db.BillingWorkflowC
 	}
 }
 
-func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billingentity.WorkflowConfig, error) {
+func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowConfig, error) {
 	collectionInterval, err := dbWC.LineCollectionPeriod.Parse()
 	if err != nil {
-		return billingentity.WorkflowConfig{}, fmt.Errorf("cannot parse collection.interval: %w", err)
+		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse collection.interval: %w", err)
 	}
 
 	draftPeriod, err := dbWC.InvoiceDraftPeriod.Parse()
 	if err != nil {
-		return billingentity.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.draftPeriod: %w", err)
+		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.draftPeriod: %w", err)
 	}
 
 	dueAfter, err := dbWC.InvoiceDueAfter.Parse()
 	if err != nil {
-		return billingentity.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.dueAfter: %w", err)
+		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse invoicing.dueAfter: %w", err)
 	}
 
-	return billingentity.WorkflowConfig{
+	return billing.WorkflowConfig{
 		ID: dbWC.ID,
 
 		CreatedAt: dbWC.CreatedAt.In(time.UTC),
 		UpdatedAt: dbWC.UpdatedAt.In(time.UTC),
 		DeletedAt: convert.TimePtrIn(dbWC.DeletedAt, time.UTC),
 
-		Collection: billingentity.CollectionConfig{
+		Collection: billing.CollectionConfig{
 			Alignment: dbWC.CollectionAlignment,
 			Interval:  collectionInterval,
 		},
 
-		Invoicing: billingentity.InvoicingConfig{
+		Invoicing: billing.InvoicingConfig{
 			AutoAdvance: dbWC.InvoiceAutoAdvance,
 			DraftPeriod: draftPeriod,
 			DueAfter:    dueAfter,
 		},
 
-		Payment: billingentity.PaymentConfig{
+		Payment: billing.PaymentConfig{
 			CollectionMethod: dbWC.InvoiceCollectionMethod,
 		},
 	}, nil

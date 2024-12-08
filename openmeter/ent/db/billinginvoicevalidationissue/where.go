@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -377,19 +377,19 @@ func InvoiceIDContainsFold(v string) predicate.BillingInvoiceValidationIssue {
 }
 
 // SeverityEQ applies the EQ predicate on the "severity" field.
-func SeverityEQ(v billingentity.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
+func SeverityEQ(v billing.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
 	vc := v
 	return predicate.BillingInvoiceValidationIssue(sql.FieldEQ(FieldSeverity, vc))
 }
 
 // SeverityNEQ applies the NEQ predicate on the "severity" field.
-func SeverityNEQ(v billingentity.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
+func SeverityNEQ(v billing.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
 	vc := v
 	return predicate.BillingInvoiceValidationIssue(sql.FieldNEQ(FieldSeverity, vc))
 }
 
 // SeverityIn applies the In predicate on the "severity" field.
-func SeverityIn(vs ...billingentity.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
+func SeverityIn(vs ...billing.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -398,7 +398,7 @@ func SeverityIn(vs ...billingentity.ValidationIssueSeverity) predicate.BillingIn
 }
 
 // SeverityNotIn applies the NotIn predicate on the "severity" field.
-func SeverityNotIn(vs ...billingentity.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
+func SeverityNotIn(vs ...billing.ValidationIssueSeverity) predicate.BillingInvoiceValidationIssue {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
