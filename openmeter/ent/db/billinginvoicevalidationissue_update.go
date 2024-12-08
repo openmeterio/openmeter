@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -71,13 +71,13 @@ func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableInvoiceID(s *string
 }
 
 // SetSeverity sets the "severity" field.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetSeverity(bis billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
+func (biviu *BillingInvoiceValidationIssueUpdate) SetSeverity(bis billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
 	biviu.mutation.SetSeverity(bis)
 	return biviu
 }
 
 // SetNillableSeverity sets the "severity" field if the given value is not nil.
-func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableSeverity(bis *billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
+func (biviu *BillingInvoiceValidationIssueUpdate) SetNillableSeverity(bis *billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdate {
 	if bis != nil {
 		biviu.SetSeverity(*bis)
 	}
@@ -379,13 +379,13 @@ func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableInvoiceID(s *st
 }
 
 // SetSeverity sets the "severity" field.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetSeverity(bis billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
+func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetSeverity(bis billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
 	biviuo.mutation.SetSeverity(bis)
 	return biviuo
 }
 
 // SetNillableSeverity sets the "severity" field if the given value is not nil.
-func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableSeverity(bis *billingentity.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
+func (biviuo *BillingInvoiceValidationIssueUpdateOne) SetNillableSeverity(bis *billing.ValidationIssueSeverity) *BillingInvoiceValidationIssueUpdateOne {
 	if bis != nil {
 		biviuo.SetSeverity(*bis)
 	}

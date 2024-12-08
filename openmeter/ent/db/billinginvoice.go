@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -88,11 +88,11 @@ type BillingInvoice struct {
 	// CustomerTimezone holds the value of the "customer_timezone" field.
 	CustomerTimezone *timezone.Timezone `json:"customer_timezone,omitempty"`
 	// CustomerUsageAttribution holds the value of the "customer_usage_attribution" field.
-	CustomerUsageAttribution *billingentity.VersionedCustomerUsageAttribution `json:"customer_usage_attribution,omitempty"`
+	CustomerUsageAttribution *billing.VersionedCustomerUsageAttribution `json:"customer_usage_attribution,omitempty"`
 	// Number holds the value of the "number" field.
 	Number *string `json:"number,omitempty"`
 	// Type holds the value of the "type" field.
-	Type billingentity.InvoiceType `json:"type,omitempty"`
+	Type billing.InvoiceType `json:"type,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
@@ -110,7 +110,7 @@ type BillingInvoice struct {
 	// DueAt holds the value of the "due_at" field.
 	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
-	Status billingentity.InvoiceStatus `json:"status,omitempty"`
+	Status billing.InvoiceStatus `json:"status,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// TaxAppID holds the value of the "tax_app_id" field.
@@ -492,7 +492,7 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bi.Type = billingentity.InvoiceType(value.String)
+				bi.Type = billing.InvoiceType(value.String)
 			}
 		case billinginvoice.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -551,7 +551,7 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				bi.Status = billingentity.InvoiceStatus(value.String)
+				bi.Status = billing.InvoiceStatus(value.String)
 			}
 		case billinginvoice.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {

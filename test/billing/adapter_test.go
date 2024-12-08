@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -30,7 +29,7 @@ func TestBillingAdapter(t *testing.T) {
 	suite.Run(t, new(BillingAdapterTestSuite))
 }
 
-func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billingentity.Invoice {
+func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billing.Invoice {
 	s.T().Helper()
 	// Given we have a customer
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
@@ -69,12 +68,12 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 		Customer:  *customerEntity,
 
 		Currency: currencyx.Code(currency.USD),
-		Status:   billingentity.InvoiceStatusGathering,
+		Status:   billing.InvoiceStatusGathering,
 
 		Profile:  *profile,
 		IssuedAt: time.Now(),
 
-		Type: billingentity.InvoiceTypeStandard,
+		Type: billing.InvoiceTypeStandard,
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), invoice)
@@ -86,22 +85,22 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 	ctx := context.Background()
 	ns := "ns-adapter-line-split"
 
-	period := billingentity.Period{
+	period := billing.Period{
 		Start: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
 		End:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
 	}
 
 	invoice := s.setupInvoice(ctx, ns)
 
-	var parentLine *billingentity.Line
+	var parentLine *billing.Line
 
 	s.Run("Create a parent line", func() {
 		// When we create a line
-		parentLineIn := &billingentity.Line{
-			LineBase: billingentity.LineBase{
+		parentLineIn := &billing.Line{
+			LineBase: billing.LineBase{
 				Namespace: ns,
 
-				Type:        billingentity.InvoiceLineTypeUsageBased,
+				Type:        billing.InvoiceLineTypeUsageBased,
 				InvoiceID:   invoice.ID,
 				Name:        "Test Line Parent",
 				Description: lo.ToPtr("Test Line Description"),
@@ -110,9 +109,9 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 				Period:    period,
 				InvoiceAt: period.End,
 
-				Status: billingentity.InvoiceLineStatusValid,
+				Status: billing.InvoiceLineStatusValid,
 			},
-			UsageBased: billingentity.UsageBasedLine{
+			UsageBased: billing.UsageBasedLine{
 				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(1),
 				}),
@@ -121,7 +120,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		}
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
-			Lines: []*billingentity.Line{
+			Lines: []*billing.Line{
 				parentLineIn,
 			},
 		})
@@ -138,8 +137,8 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		parentLineIn.CreatedAt = parentLine.CreatedAt
 		parentLineIn.UpdatedAt = parentLine.UpdatedAt
 		parentLineIn.UsageBased.ConfigID = parentLine.UsageBased.ConfigID
-		parentLineIn.Children = billingentity.NewLineChildren(nil)
-		parentLineIn.Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{})
+		parentLineIn.Children = billing.NewLineChildren(nil)
+		parentLineIn.Discounts = billing.NewLineDiscounts([]billing.LineDiscount{})
 
 		require.Equal(s.T(), parentLineIn, parentLine.WithoutDBState())
 
@@ -157,12 +156,12 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 	parentLineID := parentLine.ID
 
 	// When we split the line, and submit the split as a single upsert, then the changes must be reflected in the database
-	var splitPost *billingentity.Line
+	var splitPost *billing.Line
 	s.Run("Split the line", func() {
 		asOf := period.Start.Add(time.Hour)
 		splitPre := parentLine.CloneWithoutDependencies()
 		splitPre.Name = "Test Line Split 1"
-		splitPre.Period = billingentity.Period{
+		splitPre.Period = billing.Period{
 			Start: period.Start,
 			End:   asOf,
 		}
@@ -171,22 +170,22 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 
 		splitPost = parentLine.CloneWithoutDependencies()
 		splitPost.Name = "Test Line Split 2"
-		splitPost.Period = billingentity.Period{
+		splitPost.Period = billing.Period{
 			Start: asOf,
 			End:   period.End,
 		}
 		splitPost.InvoiceAt = period.End
 		splitPost.ParentLineID = lo.ToPtr(parentLine.ID)
 
-		parentLine.Status = billingentity.InvoiceLineStatusSplit
+		parentLine.Status = billing.InvoiceLineStatusSplit
 		parentLine.Description = nil
 		// TODO[later]: this is only required until we don't support child line updates
-		parentLine.Children = billingentity.LineChildren{}
+		parentLine.Children = billing.LineChildren{}
 
 		// TODO[later]: We should allow for partial child syncs instead of specifying all children
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
-			Lines: []*billingentity.Line{
+			Lines: []*billing.Line{
 				splitPre,
 				splitPost,
 				parentLine,
@@ -209,14 +208,14 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 
 		splitPre = mergeDBFields(splitPre, lines[0])
 		splitPre.ParentLine = lines[0].ParentLine
-		splitPre.Children = billingentity.NewLineChildren(nil)
-		splitPre.Discounts = billingentity.NewLineDiscounts(nil)
+		splitPre.Children = billing.NewLineChildren(nil)
+		splitPre.Discounts = billing.NewLineDiscounts(nil)
 		require.Equal(s.T(), splitPre, lines[0].WithoutDBState(), "preMatches")
 
 		splitPost = mergeDBFields(splitPost, lines[1])
 		splitPost.ParentLine = lines[1].ParentLine
-		splitPost.Children = billingentity.NewLineChildren(nil)
-		splitPost.Discounts = billingentity.NewLineDiscounts(nil)
+		splitPost.Children = billing.NewLineChildren(nil)
+		splitPost.Discounts = billing.NewLineDiscounts(nil)
 		require.Equal(s.T(), splitPost, lines[1].WithoutDBState(), "postMatches")
 
 		splitPost = lines[1]
@@ -229,7 +228,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		splitPost.InvoiceAt = asOf
 
 		newLastLine := splitPost.CloneWithoutDependencies()
-		newLastLine.Period = billingentity.Period{
+		newLastLine.Period = billing.Period{
 			Start: asOf,
 			End:   period.End,
 		}
@@ -241,7 +240,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		// Let's upsert
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
-			Lines: []*billingentity.Line{
+			Lines: []*billing.Line{
 				splitPost,
 				newLastLine,
 			},
@@ -258,7 +257,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 		// Then the returned lines match the input
 		splitPost.UpdatedAt = lines[0].UpdatedAt
 		splitPost.ParentLine = splitPost.ParentLine.WithoutDBState()
-		splitPost.ParentLine.Children = billingentity.LineChildren{}
+		splitPost.ParentLine.Children = billing.LineChildren{}
 		splitPost.ParentLine.CreatedAt = lines[0].ParentLine.CreatedAt
 		splitPost.ParentLine.UpdatedAt = lines[0].ParentLine.UpdatedAt
 
@@ -266,14 +265,14 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 
 		newLastLine = mergeDBFields(newLastLine, lines[1])
 		newLastLine.ParentLine = nil
-		newLastLine.Children = billingentity.NewLineChildren(nil)
-		newLastLine.Discounts = billingentity.NewLineDiscounts(nil)
+		newLastLine.Children = billing.NewLineChildren(nil)
+		newLastLine.Discounts = billing.NewLineDiscounts(nil)
 		lines[1].ParentLine = nil
 		require.Equal(s.T(), newLastLine.WithoutDBState(), lines[1].WithoutDBState())
 	})
 }
 
-func mergeDBFields(in *billingentity.Line, dbInput *billingentity.Line) *billingentity.Line {
+func mergeDBFields(in *billing.Line, dbInput *billing.Line) *billing.Line {
 	in.ID = dbInput.ID
 	in.CreatedAt = dbInput.CreatedAt
 	in.UpdatedAt = dbInput.UpdatedAt
@@ -285,19 +284,19 @@ func mergeDBFields(in *billingentity.Line, dbInput *billingentity.Line) *billing
 
 type usageBasedLineInput struct {
 	Namespace              string
-	Period                 billingentity.Period
-	Invoice                *billingentity.Invoice
+	Period                 billing.Period
+	Invoice                *billing.Invoice
 	Name                   string
 	ChildUniqueReferenceID string
 	DetailedLines          mo.Option[[]usageBasedLineInput]
 }
 
-func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
-	out := &billingentity.Line{
-		LineBase: billingentity.LineBase{
+func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
+	out := &billing.Line{
+		LineBase: billing.LineBase{
 			Namespace: in.Namespace,
 
-			Type:      billingentity.InvoiceLineTypeUsageBased,
+			Type:      billing.InvoiceLineTypeUsageBased,
 			InvoiceID: in.Invoice.ID,
 			Name:      in.Name,
 			Currency:  in.Invoice.Currency,
@@ -305,10 +304,10 @@ func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
 			Period:    in.Period,
 			InvoiceAt: in.Period.End,
 
-			Status:                 billingentity.InvoiceLineStatusValid,
+			Status:                 billing.InvoiceLineStatusValid,
 			ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
 		},
-		UsageBased: billingentity.UsageBasedLine{
+		UsageBased: billing.UsageBasedLine{
 			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(1),
 			}),
@@ -318,15 +317,15 @@ func newUsageBasedLine(in usageBasedLineInput) *billingentity.Line {
 
 	if in.DetailedLines.IsPresent() {
 		// Make the line present, but empty (so that it's present even if DetailedLines is only present)
-		out.Children = billingentity.LineChildren{}
+		out.Children = billing.LineChildren{}
 
 		for _, d := range in.DetailedLines.OrEmpty() {
 			line := newUsageBasedLine(d)
 			line.ParentLineID = lo.ToPtr(out.ID)
 			line.ParentLine = out
-			line.Status = billingentity.InvoiceLineStatusDetailed
-			line.Type = billingentity.InvoiceLineTypeFee
-			line.FlatFee = billingentity.FlatFeeLine{
+			line.Status = billing.InvoiceLineStatusDetailed
+			line.Type = billing.InvoiceLineTypeFee
+			line.FlatFee = billing.FlatFeeLine{
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
 				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -344,7 +343,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	ns := "ns-adapter-detailed-line"
 	// Given we have an invoice
 
-	period := billingentity.Period{
+	period := billing.Period{
 		Start: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
 		End:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
 	}
@@ -352,7 +351,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	invoice := s.setupInvoice(ctx, ns)
 
 	// When we create a line with detailed fields those get persisted
-	linesIn := []*billingentity.Line{
+	linesIn := []*billing.Line{
 		newUsageBasedLine(usageBasedLineInput{
 			Namespace: ns,
 			Period:    period,
@@ -441,9 +440,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 	// When we execute an upsert the detailed lines are updated, but not duplicated
 	s.Run("Detailed line upserting", func() {
-		unchangedDetailedLineUpdatedAt := lo.FindOrElse[*billingentity.Line](lines[0].Children.MustGet(),
-			&billingentity.Line{},
-			func(l *billingentity.Line) bool {
+		unchangedDetailedLineUpdatedAt := lo.FindOrElse[*billing.Line](lines[0].Children.MustGet(),
+			&billing.Line{},
+			func(l *billing.Line) bool {
 				return *l.ChildUniqueReferenceID == "ref1"
 			},
 		).UpdatedAt
@@ -455,9 +454,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			Name:                   "Test Line 1.3",
 			ChildUniqueReferenceID: "ref3",
 		})
-		newLine.Status = billingentity.InvoiceLineStatusDetailed
-		newLine.Type = billingentity.InvoiceLineTypeFee
-		newLine.FlatFee = billingentity.FlatFeeLine{
+		newLine.Status = billing.InvoiceLineStatusDetailed
+		newLine.Type = billing.InvoiceLineTypeFee
+		newLine.FlatFee = billing.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -465,7 +464,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 		lineChildren := lines[0].Children.MustGet()
 		lineChildren = append(lineChildren, newLine)
-		lo.ForEach(lineChildren, func(l *billingentity.Line, _ int) {
+		lo.ForEach(lineChildren, func(l *billing.Line, _ int) {
 			l.ParentLineID = lo.ToPtr(lines[0].ID)
 		})
 
@@ -474,9 +473,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		)
 
 		// Not set => should be ignored
-		lines[1].Children = billingentity.LineChildren{}
+		lines[1].Children = billing.LineChildren{}
 		// Set to empty array => detailed lines should be deleted
-		lines[2].Children = billingentity.NewLineChildren([]*billingentity.Line{})
+		lines[2].Children = billing.NewLineChildren([]*billing.Line{})
 
 		// When we persist the changes
 		lines, err = s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
@@ -492,14 +491,14 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			getUniqReferenceNames(lineChildren),
 			getUniqReferenceNames(lines[0].Children.MustGet()))
 
-		require.Equal(s.T(), lo.CountBy(lines[0].Children.MustGet(), func(l *billingentity.Line) bool {
+		require.Equal(s.T(), lo.CountBy(lines[0].Children.MustGet(), func(l *billing.Line) bool {
 			return l.ID != ""
 		}), 3, "all lines must have IDs set")
 
 		// Then ref1 has not been changed
 		require.Equal(s.T(), unchangedDetailedLineUpdatedAt, lo.FindOrElse(lines[0].Children.MustGet(),
-			&billingentity.Line{},
-			func(l *billingentity.Line) bool {
+			&billing.Line{},
+			func(l *billing.Line) bool {
 				return *l.ChildUniqueReferenceID == "ref1"
 			}).UpdatedAt)
 
@@ -516,7 +515,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	s.Run("Detailed line update (still a removal case)", func() {
 		detailedLines := lines[0].Children.MustGet()
 
-		slices.SortFunc(detailedLines, func(a, b *billingentity.Line) int {
+		slices.SortFunc(detailedLines, func(a, b *billing.Line) int {
 			return strings.Compare(*a.ChildUniqueReferenceID, *b.ChildUniqueReferenceID)
 		})
 
@@ -531,9 +530,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			Name:                   "Test Line 1.4",
 			ChildUniqueReferenceID: "ref4",
 		})
-		newLine.Status = billingentity.InvoiceLineStatusDetailed
-		newLine.Type = billingentity.InvoiceLineTypeFee
-		newLine.FlatFee = billingentity.FlatFeeLine{
+		newLine.Status = billing.InvoiceLineStatusDetailed
+		newLine.Type = billing.InvoiceLineTypeFee
+		newLine.FlatFee = billing.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -547,7 +546,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		// When we persist the changes
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: ns,
-			Lines:     []*billingentity.Line{lines[0]},
+			Lines:     []*billing.Line{lines[0]},
 		})
 
 		// Then we only get three lines
@@ -576,7 +575,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			[]string{"ref1", "ref2", "ref3", "ref4"},
 			getUniqReferenceNames(lines))
 
-		deleted, found := lo.Find(lines, func(l *billingentity.Line) bool {
+		deleted, found := lo.Find(lines, func(l *billing.Line) bool {
 			return l.DeletedAt != nil
 		})
 		require.True(s.T(), found)
@@ -584,14 +583,14 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	})
 }
 
-func getUniqReferenceNames(lines []*billingentity.Line) []string {
-	return lo.Map(lines, func(l *billingentity.Line, _ int) string {
+func getUniqReferenceNames(lines []*billing.Line) []string {
+	return lo.Map(lines, func(l *billing.Line, _ int) string {
 		return *l.ChildUniqueReferenceID
 	})
 }
 
-func getLineNames(lines []*billingentity.Line) []string {
-	return lo.Map(lines, func(l *billingentity.Line, _ int) string {
+func getLineNames(lines []*billing.Line) []string {
+	return lo.Map(lines, func(l *billing.Line, _ int) string {
 		return l.Name
 	})
 }
@@ -604,7 +603,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	ns := "ns-adapter-discount-handling"
 	// Given we have an invoice
 
-	period := billingentity.Period{
+	period := billing.Period{
 		Start: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
 		End:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
 	}
@@ -632,11 +631,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	manualDiscountName := "Test Discount 3 - manual"
 
-	lineIn.Children.MustGet()[0].Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
+	lineIn.Children.MustGet()[0].Discounts = billing.NewLineDiscounts([]billing.LineDiscount{
 		{
 			Amount:                 alpacadecimal.NewFromFloat(10),
 			Description:            lo.ToPtr("Test Discount 1"),
-			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 		},
 		{
 			Amount:                 alpacadecimal.NewFromFloat(20),
@@ -651,7 +650,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
-		Lines:     []*billingentity.Line{lineIn},
+		Lines:     []*billing.Line{lineIn},
 	})
 
 	// Then the lines are persisted as expected
@@ -668,20 +667,20 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	// Let's update the discounts
 	childLine := lines[0].Children.MustGet()[0].Clone()
-	childLine.Discounts = billingentity.NewLineDiscounts([]billingentity.LineDiscount{
+	childLine.Discounts = billing.NewLineDiscounts([]billing.LineDiscount{
 		// Should get the ID from the original discount by calling the ChildrenWithIDReuse
 		{
 			Amount:                 alpacadecimal.NewFromFloat(30),
 			Description:            lo.ToPtr("Test Discount 1 v2"),
-			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 		},
 		// Maximum spend is deleted
 		{
 			ID: lo.FindOrElse(persistedDiscounts,
-				billingentity.LineDiscount{
+				billing.LineDiscount{
 					ID: "maxspendnotfound",
 				},
-				func(d billingentity.LineDiscount) bool {
+				func(d billing.LineDiscount) bool {
 					return d.Description != nil && *d.Description == manualDiscountName
 				}).ID,
 			Amount:      alpacadecimal.NewFromFloat(40),
@@ -695,12 +694,12 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 
 	updateLineIn := lines[0].Clone()
 	updateLineIn.Children = updateLineIn.ChildrenWithIDReuse(
-		[]*billingentity.Line{childLine},
+		[]*billing.Line{childLine},
 	)
 
 	updatedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: ns,
-		Lines:     []*billingentity.Line{updateLineIn},
+		Lines:     []*billing.Line{updateLineIn},
 	})
 
 	// Then the discounts are persisted as expected
@@ -715,11 +714,11 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	// Line 0: we expect that the ID is set to the same value
 	previousVersion := lo.FindOrElse(
 		previousVersionDiscounts,
-		billingentity.LineDiscount{
+		billing.LineDiscount{
 			ID: "notfound",
 		},
-		func(d billingentity.LineDiscount) bool {
-			return d.ChildUniqueReferenceID != nil && *d.ChildUniqueReferenceID == billingentity.LineMaximumSpendReferenceID
+		func(d billing.LineDiscount) bool {
+			return d.ChildUniqueReferenceID != nil && *d.ChildUniqueReferenceID == billing.LineMaximumSpendReferenceID
 		},
 	)
 	currentVersion := findDiscountByDescritpion(persistedDiscounts, "Test Discount 1 v2")
@@ -750,8 +749,8 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 		persistedDiscounts)
 }
 
-func removeDiscountAdapterFields(discounts []billingentity.LineDiscount) []billingentity.LineDiscount {
-	return lo.Map(discounts, func(d billingentity.LineDiscount, _ int) billingentity.LineDiscount {
+func removeDiscountAdapterFields(discounts []billing.LineDiscount) []billing.LineDiscount {
+	return lo.Map(discounts, func(d billing.LineDiscount, _ int) billing.LineDiscount {
 		d.ID = ""
 		d.CreatedAt = time.Time{}
 		d.UpdatedAt = time.Time{}
@@ -760,13 +759,13 @@ func removeDiscountAdapterFields(discounts []billingentity.LineDiscount) []billi
 	})
 }
 
-func findDiscountByDescritpion(discounts []billingentity.LineDiscount, description string) billingentity.LineDiscount {
+func findDiscountByDescritpion(discounts []billing.LineDiscount, description string) billing.LineDiscount {
 	return lo.FindOrElse(
 		discounts,
-		billingentity.LineDiscount{
+		billing.LineDiscount{
 			Description: lo.ToPtr("notfound"),
 		},
-		func(d billingentity.LineDiscount) bool {
+		func(d billing.LineDiscount) bool {
 			return d.Description != nil && *d.Description == description
 		})
 }

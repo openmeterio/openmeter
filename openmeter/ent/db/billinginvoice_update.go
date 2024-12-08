@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -520,7 +520,7 @@ func (biu *BillingInvoiceUpdate) ClearCustomerTimezone() *BillingInvoiceUpdate {
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (biu *BillingInvoiceUpdate) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpdate {
 	biu.mutation.SetCustomerUsageAttribution(bcua)
 	return biu
 }
@@ -546,13 +546,13 @@ func (biu *BillingInvoiceUpdate) ClearNumber() *BillingInvoiceUpdate {
 }
 
 // SetType sets the "type" field.
-func (biu *BillingInvoiceUpdate) SetType(bt billingentity.InvoiceType) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetType(bt billing.InvoiceType) *BillingInvoiceUpdate {
 	biu.mutation.SetType(bt)
 	return biu
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableType(bt *billingentity.InvoiceType) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetNillableType(bt *billing.InvoiceType) *BillingInvoiceUpdate {
 	if bt != nil {
 		biu.SetType(*bt)
 	}
@@ -660,13 +660,13 @@ func (biu *BillingInvoiceUpdate) ClearDueAt() *BillingInvoiceUpdate {
 }
 
 // SetStatus sets the "status" field.
-func (biu *BillingInvoiceUpdate) SetStatus(bs billingentity.InvoiceStatus) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceUpdate {
 	biu.mutation.SetStatus(bs)
 	return biu
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableStatus(bs *billingentity.InvoiceStatus) *BillingInvoiceUpdate {
+func (biu *BillingInvoiceUpdate) SetNillableStatus(bs *billing.InvoiceStatus) *BillingInvoiceUpdate {
 	if bs != nil {
 		biu.SetStatus(*bs)
 	}
@@ -1798,7 +1798,7 @@ func (biuo *BillingInvoiceUpdateOne) ClearCustomerTimezone() *BillingInvoiceUpda
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (biuo *BillingInvoiceUpdateOne) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetCustomerUsageAttribution(bcua)
 	return biuo
 }
@@ -1824,13 +1824,13 @@ func (biuo *BillingInvoiceUpdateOne) ClearNumber() *BillingInvoiceUpdateOne {
 }
 
 // SetType sets the "type" field.
-func (biuo *BillingInvoiceUpdateOne) SetType(bt billingentity.InvoiceType) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetType(bt billing.InvoiceType) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetType(bt)
 	return biuo
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableType(bt *billingentity.InvoiceType) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetNillableType(bt *billing.InvoiceType) *BillingInvoiceUpdateOne {
 	if bt != nil {
 		biuo.SetType(*bt)
 	}
@@ -1938,13 +1938,13 @@ func (biuo *BillingInvoiceUpdateOne) ClearDueAt() *BillingInvoiceUpdateOne {
 }
 
 // SetStatus sets the "status" field.
-func (biuo *BillingInvoiceUpdateOne) SetStatus(bs billingentity.InvoiceStatus) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetStatus(bs billing.InvoiceStatus) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetStatus(bs)
 	return biuo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(bs *billingentity.InvoiceStatus) *BillingInvoiceUpdateOne {
+func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(bs *billing.InvoiceStatus) *BillingInvoiceUpdateOne {
 	if bs != nil {
 		biuo.SetStatus(*bs)
 	}

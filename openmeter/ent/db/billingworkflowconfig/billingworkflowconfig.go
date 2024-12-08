@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -97,7 +97,7 @@ var (
 )
 
 // CollectionAlignmentValidator is a validator for the "collection_alignment" field enum values. It is called by the builders before save.
-func CollectionAlignmentValidator(ca billingentity.AlignmentKind) error {
+func CollectionAlignmentValidator(ca billing.AlignmentKind) error {
 	switch ca {
 	case "subscription":
 		return nil
@@ -107,7 +107,7 @@ func CollectionAlignmentValidator(ca billingentity.AlignmentKind) error {
 }
 
 // InvoiceCollectionMethodValidator is a validator for the "invoice_collection_method" field enum values. It is called by the builders before save.
-func InvoiceCollectionMethodValidator(icm billingentity.CollectionMethod) error {
+func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 	switch icm {
 	case "charge_automatically", "send_invoice":
 		return nil

@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -5006,12 +5006,12 @@ type BillingCustomerOverrideMutation struct {
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
-	collection_alignment      *billingentity.AlignmentKind
+	collection_alignment      *billing.AlignmentKind
 	line_collection_period    *datex.ISOString
 	invoice_auto_advance      *bool
 	invoice_draft_period      *datex.ISOString
 	invoice_due_after         *datex.ISOString
-	invoice_collection_method *billingentity.CollectionMethod
+	invoice_collection_method *billing.CollectionMethod
 	clearedFields             map[string]struct{}
 	customer                  *string
 	clearedcustomer           bool
@@ -5369,12 +5369,12 @@ func (m *BillingCustomerOverrideMutation) ResetBillingProfileID() {
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (m *BillingCustomerOverrideMutation) SetCollectionAlignment(bk billingentity.AlignmentKind) {
+func (m *BillingCustomerOverrideMutation) SetCollectionAlignment(bk billing.AlignmentKind) {
 	m.collection_alignment = &bk
 }
 
 // CollectionAlignment returns the value of the "collection_alignment" field in the mutation.
-func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billingentity.AlignmentKind, exists bool) {
+func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billing.AlignmentKind, exists bool) {
 	v := m.collection_alignment
 	if v == nil {
 		return
@@ -5385,7 +5385,7 @@ func (m *BillingCustomerOverrideMutation) CollectionAlignment() (r billingentity
 // OldCollectionAlignment returns the old "collection_alignment" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldCollectionAlignment(ctx context.Context) (v *billingentity.AlignmentKind, err error) {
+func (m *BillingCustomerOverrideMutation) OldCollectionAlignment(ctx context.Context) (v *billing.AlignmentKind, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCollectionAlignment is only allowed on UpdateOne operations")
 	}
@@ -5614,12 +5614,12 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceDueAfter() {
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) {
+func (m *BillingCustomerOverrideMutation) SetInvoiceCollectionMethod(bm billing.CollectionMethod) {
 	m.invoice_collection_method = &bm
 }
 
 // InvoiceCollectionMethod returns the value of the "invoice_collection_method" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billingentity.CollectionMethod, exists bool) {
+func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billing.CollectionMethod, exists bool) {
 	v := m.invoice_collection_method
 	if v == nil {
 		return
@@ -5630,7 +5630,7 @@ func (m *BillingCustomerOverrideMutation) InvoiceCollectionMethod() (r billingen
 // OldInvoiceCollectionMethod returns the old "invoice_collection_method" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceCollectionMethod(ctx context.Context) (v *billingentity.CollectionMethod, err error) {
+func (m *BillingCustomerOverrideMutation) OldInvoiceCollectionMethod(ctx context.Context) (v *billing.CollectionMethod, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceCollectionMethod is only allowed on UpdateOne operations")
 	}
@@ -5904,7 +5904,7 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		m.SetBillingProfileID(v)
 		return nil
 	case billingcustomeroverride.FieldCollectionAlignment:
-		v, ok := value.(billingentity.AlignmentKind)
+		v, ok := value.(billing.AlignmentKind)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -5939,7 +5939,7 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		m.SetInvoiceDueAfter(v)
 		return nil
 	case billingcustomeroverride.FieldInvoiceCollectionMethod:
-		v, ok := value.(billingentity.CollectionMethod)
+		v, ok := value.(billing.CollectionMethod)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -6213,16 +6213,16 @@ type BillingInvoiceMutation struct {
 	supplier_tax_code                        *string
 	customer_name                            *string
 	customer_timezone                        *timezone.Timezone
-	customer_usage_attribution               **billingentity.VersionedCustomerUsageAttribution
+	customer_usage_attribution               **billing.VersionedCustomerUsageAttribution
 	number                                   *string
-	_type                                    *billingentity.InvoiceType
+	_type                                    *billing.InvoiceType
 	description                              *string
 	voided_at                                *time.Time
 	issued_at                                *time.Time
 	draft_until                              *time.Time
 	currency                                 *currencyx.Code
 	due_at                                   *time.Time
-	status                                   *billingentity.InvoiceStatus
+	status                                   *billing.InvoiceStatus
 	invoicing_app_external_id                *string
 	payment_app_external_id                  *string
 	period_start                             *time.Time
@@ -7670,12 +7670,12 @@ func (m *BillingInvoiceMutation) ResetCustomerTimezone() {
 }
 
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
-func (m *BillingInvoiceMutation) SetCustomerUsageAttribution(bcua *billingentity.VersionedCustomerUsageAttribution) {
+func (m *BillingInvoiceMutation) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) {
 	m.customer_usage_attribution = &bcua
 }
 
 // CustomerUsageAttribution returns the value of the "customer_usage_attribution" field in the mutation.
-func (m *BillingInvoiceMutation) CustomerUsageAttribution() (r *billingentity.VersionedCustomerUsageAttribution, exists bool) {
+func (m *BillingInvoiceMutation) CustomerUsageAttribution() (r *billing.VersionedCustomerUsageAttribution, exists bool) {
 	v := m.customer_usage_attribution
 	if v == nil {
 		return
@@ -7686,7 +7686,7 @@ func (m *BillingInvoiceMutation) CustomerUsageAttribution() (r *billingentity.Ve
 // OldCustomerUsageAttribution returns the old "customer_usage_attribution" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldCustomerUsageAttribution(ctx context.Context) (v *billingentity.VersionedCustomerUsageAttribution, err error) {
+func (m *BillingInvoiceMutation) OldCustomerUsageAttribution(ctx context.Context) (v *billing.VersionedCustomerUsageAttribution, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCustomerUsageAttribution is only allowed on UpdateOne operations")
 	}
@@ -7755,12 +7755,12 @@ func (m *BillingInvoiceMutation) ResetNumber() {
 }
 
 // SetType sets the "type" field.
-func (m *BillingInvoiceMutation) SetType(bt billingentity.InvoiceType) {
+func (m *BillingInvoiceMutation) SetType(bt billing.InvoiceType) {
 	m._type = &bt
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceMutation) GetType() (r billingentity.InvoiceType, exists bool) {
+func (m *BillingInvoiceMutation) GetType() (r billing.InvoiceType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -7771,7 +7771,7 @@ func (m *BillingInvoiceMutation) GetType() (r billingentity.InvoiceType, exists 
 // OldType returns the old "type" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldType(ctx context.Context) (v billingentity.InvoiceType, err error) {
+func (m *BillingInvoiceMutation) OldType(ctx context.Context) (v billing.InvoiceType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -8144,12 +8144,12 @@ func (m *BillingInvoiceMutation) ResetDueAt() {
 }
 
 // SetStatus sets the "status" field.
-func (m *BillingInvoiceMutation) SetStatus(bs billingentity.InvoiceStatus) {
+func (m *BillingInvoiceMutation) SetStatus(bs billing.InvoiceStatus) {
 	m.status = &bs
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *BillingInvoiceMutation) Status() (r billingentity.InvoiceStatus, exists bool) {
+func (m *BillingInvoiceMutation) Status() (r billing.InvoiceStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -8160,7 +8160,7 @@ func (m *BillingInvoiceMutation) Status() (r billingentity.InvoiceStatus, exists
 // OldStatus returns the old "status" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billingentity.InvoiceStatus, err error) {
+func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billing.InvoiceStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -9437,7 +9437,7 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		m.SetCustomerTimezone(v)
 		return nil
 	case billinginvoice.FieldCustomerUsageAttribution:
-		v, ok := value.(*billingentity.VersionedCustomerUsageAttribution)
+		v, ok := value.(*billing.VersionedCustomerUsageAttribution)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -9451,7 +9451,7 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		m.SetNumber(v)
 		return nil
 	case billinginvoice.FieldType:
-		v, ok := value.(billingentity.InvoiceType)
+		v, ok := value.(billing.InvoiceType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -9514,7 +9514,7 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		m.SetDueAt(v)
 		return nil
 	case billinginvoice.FieldStatus:
-		v, ok := value.(billingentity.InvoiceStatus)
+		v, ok := value.(billing.InvoiceStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -10176,7 +10176,7 @@ type BillingInvoiceFlatFeeLineConfigMutation struct {
 	id              *string
 	namespace       *string
 	per_unit_amount *alpacadecimal.Decimal
-	category        *billingentity.FlatFeeCategory
+	category        *billing.FlatFeeCategory
 	clearedFields   map[string]struct{}
 	done            bool
 	oldValue        func(context.Context) (*BillingInvoiceFlatFeeLineConfig, error)
@@ -10360,12 +10360,12 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetPerUnitAmount() {
 }
 
 // SetCategory sets the "category" field.
-func (m *BillingInvoiceFlatFeeLineConfigMutation) SetCategory(bfc billingentity.FlatFeeCategory) {
+func (m *BillingInvoiceFlatFeeLineConfigMutation) SetCategory(bfc billing.FlatFeeCategory) {
 	m.category = &bfc
 }
 
 // Category returns the value of the "category" field in the mutation.
-func (m *BillingInvoiceFlatFeeLineConfigMutation) Category() (r billingentity.FlatFeeCategory, exists bool) {
+func (m *BillingInvoiceFlatFeeLineConfigMutation) Category() (r billing.FlatFeeCategory, exists bool) {
 	v := m.category
 	if v == nil {
 		return
@@ -10376,7 +10376,7 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Category() (r billingentity.Fl
 // OldCategory returns the old "category" field's value of the BillingInvoiceFlatFeeLineConfig entity.
 // If the BillingInvoiceFlatFeeLineConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceFlatFeeLineConfigMutation) OldCategory(ctx context.Context) (v billingentity.FlatFeeCategory, err error) {
+func (m *BillingInvoiceFlatFeeLineConfigMutation) OldCategory(ctx context.Context) (v billing.FlatFeeCategory, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
 	}
@@ -10492,7 +10492,7 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) SetField(name string, value en
 		m.SetPerUnitAmount(v)
 		return nil
 	case billinginvoiceflatfeelineconfig.FieldCategory:
-		v, ok := value.(billingentity.FlatFeeCategory)
+		v, ok := value.(billing.FlatFeeCategory)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -10631,8 +10631,8 @@ type BillingInvoiceLineMutation struct {
 	period_start              *time.Time
 	period_end                *time.Time
 	invoice_at                *time.Time
-	_type                     *billingentity.InvoiceLineType
-	status                    *billingentity.InvoiceLineStatus
+	_type                     *billing.InvoiceLineType
+	status                    *billing.InvoiceLineStatus
 	currency                  *currencyx.Code
 	quantity                  *alpacadecimal.Decimal
 	tax_config                *productcatalog.TaxConfig
@@ -11499,12 +11499,12 @@ func (m *BillingInvoiceLineMutation) ResetInvoiceAt() {
 }
 
 // SetType sets the "type" field.
-func (m *BillingInvoiceLineMutation) SetType(blt billingentity.InvoiceLineType) {
+func (m *BillingInvoiceLineMutation) SetType(blt billing.InvoiceLineType) {
 	m._type = &blt
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceLineMutation) GetType() (r billingentity.InvoiceLineType, exists bool) {
+func (m *BillingInvoiceLineMutation) GetType() (r billing.InvoiceLineType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -11515,7 +11515,7 @@ func (m *BillingInvoiceLineMutation) GetType() (r billingentity.InvoiceLineType,
 // OldType returns the old "type" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldType(ctx context.Context) (v billingentity.InvoiceLineType, err error) {
+func (m *BillingInvoiceLineMutation) OldType(ctx context.Context) (v billing.InvoiceLineType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -11535,12 +11535,12 @@ func (m *BillingInvoiceLineMutation) ResetType() {
 }
 
 // SetStatus sets the "status" field.
-func (m *BillingInvoiceLineMutation) SetStatus(bls billingentity.InvoiceLineStatus) {
+func (m *BillingInvoiceLineMutation) SetStatus(bls billing.InvoiceLineStatus) {
 	m.status = &bls
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *BillingInvoiceLineMutation) Status() (r billingentity.InvoiceLineStatus, exists bool) {
+func (m *BillingInvoiceLineMutation) Status() (r billing.InvoiceLineStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -11551,7 +11551,7 @@ func (m *BillingInvoiceLineMutation) Status() (r billingentity.InvoiceLineStatus
 // OldStatus returns the old "status" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldStatus(ctx context.Context) (v billingentity.InvoiceLineStatus, err error) {
+func (m *BillingInvoiceLineMutation) OldStatus(ctx context.Context) (v billing.InvoiceLineStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -12432,14 +12432,14 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetInvoiceAt(v)
 		return nil
 	case billinginvoiceline.FieldType:
-		v, ok := value.(billingentity.InvoiceLineType)
+		v, ok := value.(billing.InvoiceLineType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
 		return nil
 	case billinginvoiceline.FieldStatus:
-		v, ok := value.(billingentity.InvoiceLineStatus)
+		v, ok := value.(billing.InvoiceLineStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -14261,7 +14261,7 @@ type BillingInvoiceValidationIssueMutation struct {
 	created_at             *time.Time
 	updated_at             *time.Time
 	deleted_at             *time.Time
-	severity               *billingentity.ValidationIssueSeverity
+	severity               *billing.ValidationIssueSeverity
 	code                   *string
 	message                *string
 	_path                  *string
@@ -14573,12 +14573,12 @@ func (m *BillingInvoiceValidationIssueMutation) ResetInvoiceID() {
 }
 
 // SetSeverity sets the "severity" field.
-func (m *BillingInvoiceValidationIssueMutation) SetSeverity(bis billingentity.ValidationIssueSeverity) {
+func (m *BillingInvoiceValidationIssueMutation) SetSeverity(bis billing.ValidationIssueSeverity) {
 	m.severity = &bis
 }
 
 // Severity returns the value of the "severity" field in the mutation.
-func (m *BillingInvoiceValidationIssueMutation) Severity() (r billingentity.ValidationIssueSeverity, exists bool) {
+func (m *BillingInvoiceValidationIssueMutation) Severity() (r billing.ValidationIssueSeverity, exists bool) {
 	v := m.severity
 	if v == nil {
 		return
@@ -14589,7 +14589,7 @@ func (m *BillingInvoiceValidationIssueMutation) Severity() (r billingentity.Vali
 // OldSeverity returns the old "severity" field's value of the BillingInvoiceValidationIssue entity.
 // If the BillingInvoiceValidationIssue object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceValidationIssueMutation) OldSeverity(ctx context.Context) (v billingentity.ValidationIssueSeverity, err error) {
+func (m *BillingInvoiceValidationIssueMutation) OldSeverity(ctx context.Context) (v billing.ValidationIssueSeverity, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSeverity is only allowed on UpdateOne operations")
 	}
@@ -15028,7 +15028,7 @@ func (m *BillingInvoiceValidationIssueMutation) SetField(name string, value ent.
 		m.SetInvoiceID(v)
 		return nil
 	case billinginvoicevalidationissue.FieldSeverity:
-		v, ok := value.(billingentity.ValidationIssueSeverity)
+		v, ok := value.(billing.ValidationIssueSeverity)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -17244,12 +17244,12 @@ type BillingWorkflowConfigMutation struct {
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
-	collection_alignment      *billingentity.AlignmentKind
+	collection_alignment      *billing.AlignmentKind
 	line_collection_period    *datex.ISOString
 	invoice_auto_advance      *bool
 	invoice_draft_period      *datex.ISOString
 	invoice_due_after         *datex.ISOString
-	invoice_collection_method *billingentity.CollectionMethod
+	invoice_collection_method *billing.CollectionMethod
 	clearedFields             map[string]struct{}
 	billing_invoices          *string
 	clearedbilling_invoices   bool
@@ -17522,12 +17522,12 @@ func (m *BillingWorkflowConfigMutation) ResetDeletedAt() {
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (m *BillingWorkflowConfigMutation) SetCollectionAlignment(bk billingentity.AlignmentKind) {
+func (m *BillingWorkflowConfigMutation) SetCollectionAlignment(bk billing.AlignmentKind) {
 	m.collection_alignment = &bk
 }
 
 // CollectionAlignment returns the value of the "collection_alignment" field in the mutation.
-func (m *BillingWorkflowConfigMutation) CollectionAlignment() (r billingentity.AlignmentKind, exists bool) {
+func (m *BillingWorkflowConfigMutation) CollectionAlignment() (r billing.AlignmentKind, exists bool) {
 	v := m.collection_alignment
 	if v == nil {
 		return
@@ -17538,7 +17538,7 @@ func (m *BillingWorkflowConfigMutation) CollectionAlignment() (r billingentity.A
 // OldCollectionAlignment returns the old "collection_alignment" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldCollectionAlignment(ctx context.Context) (v billingentity.AlignmentKind, err error) {
+func (m *BillingWorkflowConfigMutation) OldCollectionAlignment(ctx context.Context) (v billing.AlignmentKind, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCollectionAlignment is only allowed on UpdateOne operations")
 	}
@@ -17702,12 +17702,12 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceDueAfter() {
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) {
+func (m *BillingWorkflowConfigMutation) SetInvoiceCollectionMethod(bm billing.CollectionMethod) {
 	m.invoice_collection_method = &bm
 }
 
 // InvoiceCollectionMethod returns the value of the "invoice_collection_method" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceCollectionMethod() (r billingentity.CollectionMethod, exists bool) {
+func (m *BillingWorkflowConfigMutation) InvoiceCollectionMethod() (r billing.CollectionMethod, exists bool) {
 	v := m.invoice_collection_method
 	if v == nil {
 		return
@@ -17718,7 +17718,7 @@ func (m *BillingWorkflowConfigMutation) InvoiceCollectionMethod() (r billingenti
 // OldInvoiceCollectionMethod returns the old "invoice_collection_method" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceCollectionMethod(ctx context.Context) (v billingentity.CollectionMethod, err error) {
+func (m *BillingWorkflowConfigMutation) OldInvoiceCollectionMethod(ctx context.Context) (v billing.CollectionMethod, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceCollectionMethod is only allowed on UpdateOne operations")
 	}
@@ -17975,7 +17975,7 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		m.SetDeletedAt(v)
 		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
-		v, ok := value.(billingentity.AlignmentKind)
+		v, ok := value.(billing.AlignmentKind)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -18010,7 +18010,7 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		m.SetInvoiceDueAfter(v)
 		return nil
 	case billingworkflowconfig.FieldInvoiceCollectionMethod:
-		v, ok := value.(billingentity.CollectionMethod)
+		v, ok := value.(billing.CollectionMethod)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

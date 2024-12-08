@@ -11,7 +11,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -41,14 +40,14 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 	return invoices, nil
 }
 
-func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billingentity.Invoice) (billingentity.Invoice, error) {
+func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
 	if invoice.ExpandedFields.WorkflowApps {
 		resolvedApps, err := s.resolveApps(ctx, invoice.Namespace, invoice.Workflow.AppReferences)
 		if err != nil {
 			return invoice, fmt.Errorf("error resolving apps for invoice [%s]: %w", invoice.ID, err)
 		}
 
-		invoice.Workflow.Apps = &billingentity.ProfileApps{
+		invoice.Workflow.Apps = &billing.ProfileApps{
 			Tax:       resolvedApps.Tax.App,
 			Invoicing: resolvedApps.Invoicing.App,
 			Payment:   resolvedApps.Payment.App,
@@ -58,7 +57,7 @@ func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billingentity
 	return invoice, nil
 }
 
-func (s *Service) resolveStatusDetails(ctx context.Context, invoice billingentity.Invoice) (billingentity.Invoice, error) {
+func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
 	// let's resolve the statatus details
 	_, err := s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, sm *InvoiceStateMachine) error {
 		sd, err := sm.StatusDetails(ctx)
@@ -76,28 +75,28 @@ func (s *Service) resolveStatusDetails(ctx context.Context, invoice billingentit
 	return invoice, nil
 }
 
-func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billingentity.Invoice, error) {
+func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
 	invoice, err := s.adapter.GetInvoiceById(ctx, input)
 	if err != nil {
-		return billingentity.Invoice{}, err
+		return billing.Invoice{}, err
 	}
 
 	invoice, err = s.resolveWorkflowApps(ctx, invoice)
 	if err != nil {
-		return billingentity.Invoice{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoice.ID, err)
+		return billing.Invoice{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoice.ID, err)
 	}
 
 	invoice, err = s.resolveStatusDetails(ctx, invoice)
 	if err != nil {
-		return billingentity.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+		return billing.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
 	}
 
 	return invoice, nil
 }
 
-func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billingentity.Invoice, error) {
+func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.Invoice, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billingentity.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -106,7 +105,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		ctx,
 		s,
 		input.Customer,
-		func(ctx context.Context) ([]billingentity.Invoice, error) {
+		func(ctx context.Context) ([]billing.Invoice, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
 				Namespace:  input.Customer.Namespace,
@@ -129,7 +128,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}))
 
 			if len(sourceInvoiceIDs) == 0 {
-				return nil, billingentity.ValidationError{
+				return nil, billing.ValidationError{
 					Err: fmt.Errorf("no source lines found"),
 				}
 			}
@@ -147,7 +146,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return line.Currency()
 			})
 
-			createdInvoices := make([]billingentity.InvoiceID, 0, len(linesByCurrency))
+			createdInvoices := make([]billing.InvoiceID, 0, len(linesByCurrency))
 
 			for currency, lines := range linesByCurrency {
 				// let's create the invoice
@@ -157,15 +156,15 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					Profile:   customerProfile.Profile,
 
 					Currency: currency,
-					Status:   billingentity.InvoiceStatusDraftCreated,
+					Status:   billing.InvoiceStatusDraftCreated,
 
-					Type: billingentity.InvoiceTypeStandard,
+					Type: billing.InvoiceTypeStandard,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("creating invoice: %w", err)
 				}
 
-				createdInvoices = append(createdInvoices, billingentity.InvoiceID{
+				createdInvoices = append(createdInvoices, billing.InvoiceID{
 					Namespace: invoice.Namespace,
 					ID:        invoice.ID,
 				})
@@ -197,7 +196,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			invoicesWithoutLines := lo.Filter(sourceInvoiceIDs, func(id string, _ int) bool {
-				return invoiceLineCounts.Counts[billingentity.InvoiceID{
+				return invoiceLineCounts.Counts[billing.InvoiceID{
 					Namespace: input.Customer.Namespace,
 					ID:        id,
 				}] == 0
@@ -215,10 +214,10 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			// Assemble output: we need to refetch as the association call will have side-effects of updating
 			// invoice objects (e.g. totals, period, etc.)
-			out := make([]billingentity.Invoice, 0, len(createdInvoices))
+			out := make([]billing.Invoice, 0, len(createdInvoices))
 			for _, invoiceID := range createdInvoices {
 				invoice, err := s.withLockedInvoiceStateMachine(ctx, invoiceID, func(ctx context.Context, sm *InvoiceStateMachine) error {
-					validationIssues, err := billingentity.ToValidationIssues(
+					validationIssues, err := billing.ToValidationIssues(
 						sm.AdvanceUntilStateStable(ctx),
 					)
 					if err != nil {
@@ -249,8 +248,8 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 		lineIDs := input.IncludePendingLines.OrEmpty()
 
 		if len(lineIDs) == 0 {
-			return nil, billingentity.ValidationError{
-				Err: billingentity.ErrInvoiceEmpty,
+			return nil, billing.ValidationError{
+				Err: billing.ErrInvoiceEmpty,
 			}
 		}
 
@@ -284,10 +283,10 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 
 			missingIDs := lo.Without(lineIDs, includedLines...)
 
-			return nil, billingentity.NotFoundError{
+			return nil, billing.NotFoundError{
 				ID:     strings.Join(missingIDs, ","),
-				Entity: billingentity.EntityInvoiceLine,
-				Err:    billingentity.ErrInvoiceLinesNotBillable,
+				Entity: billing.EntityInvoiceLine,
+				Err:    billing.ErrInvoiceLinesNotBillable,
 			}
 		}
 
@@ -299,11 +298,11 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 			Namespace:  input.Customer.Namespace,
 			CustomerID: input.Customer.ID,
 
-			InvoiceStatuses: []billingentity.InvoiceStatus{
-				billingentity.InvoiceStatusGathering,
+			InvoiceStatuses: []billing.InvoiceStatus{
+				billing.InvoiceStatusGathering,
 			},
-			Statuses: []billingentity.InvoiceLineStatus{
-				billingentity.InvoiceLineStatusValid,
+			Statuses: []billing.InvoiceLineStatus{
+				billing.InvoiceLineStatusValid,
 			},
 		})
 	if err != nil {
@@ -320,37 +319,37 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 
 func (s *Service) withLockedInvoiceStateMachine(
 	ctx context.Context,
-	invoiceID billingentity.InvoiceID,
+	invoiceID billing.InvoiceID,
 	cb InvoiceStateMachineCallback,
-) (billingentity.Invoice, error) {
+) (billing.Invoice, error) {
 	// let's lock the invoice for update, we are using the dedicated call, so that
 	// edges won't end up having SELECT FOR UPDATE locks
 	if err := s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
 		Namespace:  invoiceID.Namespace,
 		InvoiceIDs: []string{invoiceID.ID},
 	}); err != nil {
-		return billingentity.Invoice{}, fmt.Errorf("locking invoice: %w", err)
+		return billing.Invoice{}, fmt.Errorf("locking invoice: %w", err)
 	}
 
 	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 		Invoice: invoiceID,
-		Expand:  billingentity.InvoiceExpandAll,
+		Expand:  billing.InvoiceExpandAll,
 	})
 	if err != nil {
-		return billingentity.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
+		return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
 	return s.WithInvoiceStateMachine(ctx, invoice, cb)
 }
 
-func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billingentity.Invoice, error) {
+func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.Invoice, error) {
 	if err := input.Validate(); err != nil {
-		return billingentity.Invoice{}, billingentity.ValidationError{
+		return billing.Invoice{}, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billingentity.Invoice, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
 		invoice, err := s.withLockedInvoiceStateMachine(ctx, input, func(ctx context.Context, sm *InvoiceStateMachine) error {
 			preActivationStatus := sm.Invoice.Status
 
@@ -360,12 +359,12 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 			}
 
 			if !canAdvance {
-				return billingentity.ValidationError{
-					Err: fmt.Errorf("cannot advance invoice in status [%s]: %w", sm.Invoice.Status, billingentity.ErrInvoiceCannotAdvance),
+				return billing.ValidationError{
+					Err: fmt.Errorf("cannot advance invoice in status [%s]: %w", sm.Invoice.Status, billing.ErrInvoiceCannotAdvance),
 				}
 			}
 
-			validationIssues, err := billingentity.ToValidationIssues(
+			validationIssues, err := billing.ToValidationIssues(
 				sm.AdvanceUntilStateStable(ctx),
 			)
 			if err != nil {
@@ -378,7 +377,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 			return nil
 		})
 		if err != nil {
-			return billingentity.Invoice{}, err
+			return billing.Invoice{}, err
 		}
 
 		// Given the amount of state transitions, we are only saving the invoice after the whole chain
@@ -387,25 +386,25 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 	})
 }
 
-func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billingentity.Invoice, error) {
+func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.Invoice, error) {
 	return s.executeTriggerOnInvoice(ctx, input, triggerApprove)
 }
 
-func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billingentity.Invoice, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billingentity.Invoice, error) {
+func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.Invoice, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
 		invoice, err := s.adapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
 			Invoice: input,
-			Expand:  billingentity.InvoiceExpandAll,
+			Expand:  billing.InvoiceExpandAll,
 		})
 		if err != nil {
-			return billingentity.Invoice{}, err
+			return billing.Invoice{}, err
 		}
 
 		// let's clean up all critical validation issues first (as it would prevent advancing the invoice further)
 		if len(invoice.ValidationIssues) > 0 {
-			invoice.ValidationIssues = invoice.ValidationIssues.Map(func(issue billingentity.ValidationIssue, _ int) billingentity.ValidationIssue {
-				if issue.Severity == billingentity.ValidationIssueSeverityCritical {
-					issue.Severity = billingentity.ValidationIssueSeverityWarning
+			invoice.ValidationIssues = invoice.ValidationIssues.Map(func(issue billing.ValidationIssue, _ int) billing.ValidationIssue {
+				if issue.Severity == billing.ValidationIssueSeverityCritical {
+					issue.Severity = billing.ValidationIssueSeverityWarning
 				}
 
 				return issue
@@ -413,7 +412,7 @@ func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceIn
 		}
 
 		if _, err := s.adapter.UpdateInvoice(ctx, invoice); err != nil {
-			return billingentity.Invoice{}, fmt.Errorf("updating invoice: %w", err)
+			return billing.Invoice{}, fmt.Errorf("updating invoice: %w", err)
 		}
 
 		return s.executeTriggerOnInvoice(ctx, input, triggerRetry)
@@ -427,7 +426,7 @@ type (
 
 type executeTriggerOnInvoiceOptions struct {
 	editCallback  func(sm *InvoiceStateMachine) error
-	allowInStates []billingentity.InvoiceStatus
+	allowInStates []billing.InvoiceStatus
 }
 
 func ExecuteTriggerWithEditCallback(cb editCallbackFunc) executeTriggerApplyOptionFunc {
@@ -436,15 +435,15 @@ func ExecuteTriggerWithEditCallback(cb editCallbackFunc) executeTriggerApplyOpti
 	}
 }
 
-func ExecuteTriggerWithAllowInStates(states ...billingentity.InvoiceStatus) executeTriggerApplyOptionFunc {
+func ExecuteTriggerWithAllowInStates(states ...billing.InvoiceStatus) executeTriggerApplyOptionFunc {
 	return func(opts *executeTriggerOnInvoiceOptions) {
 		opts.allowInStates = states
 	}
 }
 
-func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billingentity.InvoiceID, trigger stateless.Trigger, opts ...executeTriggerApplyOptionFunc) (billingentity.Invoice, error) {
+func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing.InvoiceID, trigger stateless.Trigger, opts ...executeTriggerApplyOptionFunc) (billing.Invoice, error) {
 	if err := invoiceID.Validate(); err != nil {
-		return billingentity.Invoice{}, billingentity.ValidationError{
+		return billing.Invoice{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -454,7 +453,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 		opt(&options)
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billingentity.Invoice, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
 		invoice, err := s.withLockedInvoiceStateMachine(ctx, invoiceID, func(ctx context.Context, sm *InvoiceStateMachine) error {
 			canFire, err := sm.CanFire(ctx, trigger)
 			if err != nil {
@@ -462,8 +461,8 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 			}
 
 			if !canFire && !slices.Contains(options.allowInStates, sm.Invoice.Status) {
-				return billingentity.ValidationError{
-					Err: fmt.Errorf("cannot %s invoice in status [%s]: %w", trigger, sm.Invoice.Status, billingentity.ErrInvoiceActionNotAvailable),
+				return billing.ValidationError{
+					Err: fmt.Errorf("cannot %s invoice in status [%s]: %w", trigger, sm.Invoice.Status, billing.ErrInvoiceActionNotAvailable),
 				}
 			}
 
@@ -474,7 +473,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 			}
 
 			if err := sm.FireAndActivate(ctx, trigger); err != nil {
-				validationIssues, err := billingentity.ToValidationIssues(err)
+				validationIssues, err := billing.ToValidationIssues(err)
 				sm.Invoice.ValidationIssues = validationIssues
 
 				if err != nil {
@@ -489,7 +488,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 				return nil
 			}
 
-			validationIssues, err := billingentity.ToValidationIssues(
+			validationIssues, err := billing.ToValidationIssues(
 				sm.AdvanceUntilStateStable(ctx),
 			)
 			if err != nil {
@@ -515,7 +514,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 
 func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.ValidateInvoiceOwnershipInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -529,7 +528,7 @@ func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.Va
 	}
 
 	if ownership.CustomerID != input.CustomerID {
-		return billingentity.NotFoundError{
+		return billing.NotFoundError{
 			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
 		}
 	}
@@ -538,7 +537,7 @@ func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.Va
 
 func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
 	if err := input.Validate(); err != nil {
-		return billingentity.ValidationError{
+		return billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -548,17 +547,17 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 		return err
 	}
 
-	if invoice.Status != billingentity.InvoiceStatusDeleted {
+	if invoice.Status != billing.InvoiceStatusDeleted {
 		// If we have validation issues we return them as the deletion sync handler
 		// yields validation errors
 		if len(invoice.ValidationIssues) > 0 {
-			return billingentity.ValidationError{
+			return billing.ValidationError{
 				Err: invoice.ValidationIssues.AsError(),
 			}
 		}
 
-		return billingentity.ValidationError{
-			Err: fmt.Errorf("%w [status=%s]", billingentity.ErrInvoiceDeleteFailed, invoice.Status),
+		return billing.ValidationError{
+			Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
 		}
 	}
 

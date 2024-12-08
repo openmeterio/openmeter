@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
@@ -456,19 +456,19 @@ func BillingProfileIDContainsFold(v string) predicate.BillingCustomerOverride {
 }
 
 // CollectionAlignmentEQ applies the EQ predicate on the "collection_alignment" field.
-func CollectionAlignmentEQ(v billingentity.AlignmentKind) predicate.BillingCustomerOverride {
+func CollectionAlignmentEQ(v billing.AlignmentKind) predicate.BillingCustomerOverride {
 	vc := v
 	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldCollectionAlignment, vc))
 }
 
 // CollectionAlignmentNEQ applies the NEQ predicate on the "collection_alignment" field.
-func CollectionAlignmentNEQ(v billingentity.AlignmentKind) predicate.BillingCustomerOverride {
+func CollectionAlignmentNEQ(v billing.AlignmentKind) predicate.BillingCustomerOverride {
 	vc := v
 	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldCollectionAlignment, vc))
 }
 
 // CollectionAlignmentIn applies the In predicate on the "collection_alignment" field.
-func CollectionAlignmentIn(vs ...billingentity.AlignmentKind) predicate.BillingCustomerOverride {
+func CollectionAlignmentIn(vs ...billing.AlignmentKind) predicate.BillingCustomerOverride {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -477,7 +477,7 @@ func CollectionAlignmentIn(vs ...billingentity.AlignmentKind) predicate.BillingC
 }
 
 // CollectionAlignmentNotIn applies the NotIn predicate on the "collection_alignment" field.
-func CollectionAlignmentNotIn(vs ...billingentity.AlignmentKind) predicate.BillingCustomerOverride {
+func CollectionAlignmentNotIn(vs ...billing.AlignmentKind) predicate.BillingCustomerOverride {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -798,19 +798,19 @@ func InvoiceDueAfterContainsFold(v datex.ISOString) predicate.BillingCustomerOve
 }
 
 // InvoiceCollectionMethodEQ applies the EQ predicate on the "invoice_collection_method" field.
-func InvoiceCollectionMethodEQ(v billingentity.CollectionMethod) predicate.BillingCustomerOverride {
+func InvoiceCollectionMethodEQ(v billing.CollectionMethod) predicate.BillingCustomerOverride {
 	vc := v
 	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldInvoiceCollectionMethod, vc))
 }
 
 // InvoiceCollectionMethodNEQ applies the NEQ predicate on the "invoice_collection_method" field.
-func InvoiceCollectionMethodNEQ(v billingentity.CollectionMethod) predicate.BillingCustomerOverride {
+func InvoiceCollectionMethodNEQ(v billing.CollectionMethod) predicate.BillingCustomerOverride {
 	vc := v
 	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldInvoiceCollectionMethod, vc))
 }
 
 // InvoiceCollectionMethodIn applies the In predicate on the "invoice_collection_method" field.
-func InvoiceCollectionMethodIn(vs ...billingentity.CollectionMethod) predicate.BillingCustomerOverride {
+func InvoiceCollectionMethodIn(vs ...billing.CollectionMethod) predicate.BillingCustomerOverride {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -819,7 +819,7 @@ func InvoiceCollectionMethodIn(vs ...billingentity.CollectionMethod) predicate.B
 }
 
 // InvoiceCollectionMethodNotIn applies the NotIn predicate on the "invoice_collection_method" field.
-func InvoiceCollectionMethodNotIn(vs ...billingentity.CollectionMethod) predicate.BillingCustomerOverride {
+func InvoiceCollectionMethodNotIn(vs ...billing.CollectionMethod) predicate.BillingCustomerOverride {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

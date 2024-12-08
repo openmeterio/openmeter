@@ -8,7 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -37,12 +37,12 @@ type usageBasedLine struct {
 }
 
 func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
-	l.line.Period = l.line.Period.Truncate(billingentity.DefaultMeterResolution)
+	l.line.Period = l.line.Period.Truncate(billing.DefaultMeterResolution)
 
 	return &l, nil
 }
 
-func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billingentity.Invoice) error {
+func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Invoice) error {
 	if _, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey); err != nil {
 		return err
 	}
@@ -52,21 +52,21 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billingenti
 	}
 
 	if len(targetInvoice.Customer.UsageAttribution.SubjectKeys) == 0 {
-		return billingentity.ValidationError{
-			Err: billingentity.ErrInvoiceCreateUBPLineCustomerHasNoSubjects,
+		return billing.ValidationError{
+			Err: billing.ErrInvoiceCreateUBPLineCustomerHasNoSubjects,
 		}
 	}
 
-	if l.line.LineBase.Period.Truncate(billingentity.DefaultMeterResolution).IsEmpty() {
-		return billingentity.ValidationError{
-			Err: billingentity.ErrInvoiceCreateUBPLinePeriodIsEmpty,
+	if l.line.LineBase.Period.Truncate(billing.DefaultMeterResolution).IsEmpty() {
+		return billing.ValidationError{
+			Err: billing.ErrInvoiceCreateUBPLinePeriodIsEmpty,
 		}
 	}
 
 	return nil
 }
 
-func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billingentity.Period, error) {
+func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billing.Period, error) {
 	if l.line.UsageBased.Price.Type() == productcatalog.TieredPriceType {
 		tiered, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
@@ -98,19 +98,19 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 
 	meter := meterAndFactory.meter
 
-	asOfTruncated := asof.Truncate(billingentity.DefaultMeterResolution)
+	asOfTruncated := asof.Truncate(billing.DefaultMeterResolution)
 
 	switch meter.Aggregation {
 	case models.MeterAggregationSum, models.MeterAggregationCount,
 		models.MeterAggregationMax, models.MeterAggregationUniqueCount:
 
-		periodStartTrucated := l.line.Period.Start.Truncate(billingentity.DefaultMeterResolution)
+		periodStartTrucated := l.line.Period.Start.Truncate(billing.DefaultMeterResolution)
 
 		if !periodStartTrucated.Before(asOfTruncated) {
 			return nil, nil
 		}
 
-		candidatePeriod := billingentity.Period{
+		candidatePeriod := billing.Period{
 			Start: periodStartTrucated,
 			End:   asOfTruncated,
 		}
@@ -153,12 +153,12 @@ func (l *usageBasedLine) UpdateTotals() error {
 	// any custom logic implemented here to be carried over to the external systems.
 
 	// UBP line's value is the sum of all the children
-	res := billingentity.Totals{}
+	res := billing.Totals{}
 
-	res = res.Add(lo.Map(l.line.Children.OrEmpty(), func(l *billingentity.Line, _ int) billingentity.Totals {
+	res = res.Add(lo.Map(l.line.Children.OrEmpty(), func(l *billing.Line, _ int) billing.Totals {
 		// Deleted lines are not contributing to the totals
 		if l.DeletedAt != nil {
-			return billingentity.Totals{}
+			return billing.Totals{}
 		}
 
 		return l.Totals
@@ -169,7 +169,7 @@ func (l *usageBasedLine) UpdateTotals() error {
 	return nil
 }
 
-func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billingentity.Invoice) error {
+func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, invoice *billing.Invoice) error {
 	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
 	if err != nil {
 		return err
@@ -326,7 +326,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 				Period:                 &period,
 				ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				Category:               billingentity.FlatFeeCategoryCommitment,
+				Category:               billing.FlatFeeCategoryCommitment,
 			})
 		}
 	}
@@ -336,7 +336,7 @@ func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageRespo
 
 func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUsageResponse, price productcatalog.TieredPrice) (newDetailedLinesInput, error) {
 	if !usage.PreLinePeriodQty.IsZero() {
-		return nil, billingentity.ErrInvoiceLineVolumeSplitNotSupported
+		return nil, billing.ErrInvoiceLineVolumeSplitNotSupported
 	}
 
 	if !l.IsLastInPeriod() {
@@ -404,7 +404,7 @@ func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUs
 				PerUnitAmount:          normalizedMinimumAmount.Sub(total),
 				ChildUniqueReferenceID: VolumeMinSpendChildUniqueReferenceID,
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				Category:               billingentity.FlatFeeCategoryCommitment,
+				Category:               billing.FlatFeeCategoryCommitment,
 			})
 		}
 	}
@@ -428,7 +428,7 @@ func findTierForQuantity(price productcatalog.TieredPrice, quantity alpacadecima
 	}
 
 	// Technically this should not happen, as the last tier should have an upper limit of infinity
-	return findTierForQuantityResult{}, fmt.Errorf("could not find tier for quantity %s: %w", quantity, billingentity.ErrInvoiceLineMissingOpenEndedTier)
+	return findTierForQuantityResult{}, fmt.Errorf("could not find tier for quantity %s: %w", quantity, billing.ErrInvoiceLineMissingOpenEndedTier)
 }
 
 func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featureUsageResponse, price productcatalog.TieredPrice) (newDetailedLinesInput, error) {
@@ -499,7 +499,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 						PerUnitAmount:          normalizedMinimumAmount.Sub(periodTotal),
 						ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 						PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-						Category:               billingentity.FlatFeeCategoryCommitment,
+						Category:               billing.FlatFeeCategoryCommitment,
 					})
 				}
 			}
@@ -739,12 +739,12 @@ type newDetailedLineInput struct {
 	Quantity               alpacadecimal.Decimal `json:"quantity"`
 	PerUnitAmount          alpacadecimal.Decimal `json:"perUnitAmount"`
 	ChildUniqueReferenceID string                `json:"childUniqueReferenceID"`
-	Period                 *billingentity.Period `json:"period,omitempty"`
+	Period                 *billing.Period       `json:"period,omitempty"`
 	// PaymentTerm is the payment term for the detailed line, defaults to arrears
 	PaymentTerm productcatalog.PaymentTermType `json:"paymentTerm,omitempty"`
-	Category    billingentity.FlatFeeCategory  `json:"category,omitempty"`
+	Category    billing.FlatFeeCategory        `json:"category,omitempty"`
 
-	Discounts []billingentity.LineDiscount `json:"discounts,omitempty"`
+	Discounts []billing.LineDiscount `json:"discounts,omitempty"`
 }
 
 func (i newDetailedLineInput) Validate() error {
@@ -787,26 +787,26 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 
 	if totalBillableAmount.GreaterThanOrEqual(normalizedMaxSpend) && in.BilledAmountBeforeLine.GreaterThanOrEqual(normalizedMaxSpend) {
 		// 100% discount
-		i.Discounts = append(i.Discounts, billingentity.LineDiscount{
+		i.Discounts = append(i.Discounts, billing.LineDiscount{
 			Amount:                 lineTotal,
 			Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-			ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+			ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 		})
 		return i
 	}
 
 	discountAmount := totalBillableAmount.Sub(normalizedMaxSpend)
-	i.Discounts = append(i.Discounts, billingentity.LineDiscount{
+	i.Discounts = append(i.Discounts, billing.LineDiscount{
 		Amount:                 discountAmount,
 		Description:            formatMaximumSpendDiscountDescription(normalizedMaxSpend),
-		ChildUniqueReferenceID: lo.ToPtr(billingentity.LineMaximumSpendReferenceID),
+		ChildUniqueReferenceID: lo.ToPtr(billing.LineMaximumSpendReferenceID),
 	})
 
 	return i
 }
 
-func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*billingentity.Line, error) {
-	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (*billingentity.Line, error) {
+func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*billing.Line, error) {
+	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (*billing.Line, error) {
 		if err := in.Validate(); err != nil {
 			return nil, err
 		}
@@ -817,14 +817,14 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 		}
 
 		if in.Category == "" {
-			in.Category = billingentity.FlatFeeCategoryRegular
+			in.Category = billing.FlatFeeCategoryRegular
 		}
 
-		line := &billingentity.Line{
-			LineBase: billingentity.LineBase{
+		line := &billing.Line{
+			LineBase: billing.LineBase{
 				Namespace:              l.line.Namespace,
-				Type:                   billingentity.InvoiceLineTypeFee,
-				Status:                 billingentity.InvoiceLineStatusDetailed,
+				Type:                   billing.InvoiceLineTypeFee,
+				Status:                 billing.InvoiceLineStatusDetailed,
 				Period:                 period,
 				Name:                   in.Name,
 				InvoiceAt:              l.line.InvoiceAt,
@@ -834,13 +834,13 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 				ParentLineID:           lo.ToPtr(l.line.ID),
 				TaxConfig:              l.line.TaxConfig,
 			},
-			FlatFee: billingentity.FlatFeeLine{
+			FlatFee: billing.FlatFeeLine{
 				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount: in.PerUnitAmount,
 				Quantity:      in.Quantity,
 				Category:      in.Category,
 			},
-			Discounts: billingentity.NewLineDiscounts(in.Discounts),
+			Discounts: billing.NewLineDiscounts(in.Discounts),
 		}
 
 		if err := line.Validate(); err != nil {

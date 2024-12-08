@@ -14,7 +14,6 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appshttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -278,8 +277,8 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 	)
 }
 
-func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billingentity.SupplierContact {
-	out := billingentity.SupplierContact{
+func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billing.SupplierContact {
+	out := billing.SupplierContact{
 		Name: lo.FromPtrOr(c.Name, ""),
 	}
 
@@ -306,8 +305,8 @@ func apiBillingPartyCreateToSupplierContact(c api.BillingParty) billingentity.Su
 	return out
 }
 
-func apiBillingPartyToSupplierContact(c api.BillingParty) billingentity.SupplierContact {
-	out := billingentity.SupplierContact{
+func apiBillingPartyToSupplierContact(c api.BillingParty) billing.SupplierContact {
+	out := billing.SupplierContact{
 		Name: lo.FromPtrOr(c.Name, ""),
 	}
 
@@ -342,20 +341,20 @@ func fromAPIBillingProfileCreateAppsInput(i api.BillingProfileAppsCreate) billin
 	}
 }
 
-func fromAPIBillingAppIdOrType(i string) billingentity.AppReference {
+func fromAPIBillingAppIdOrType(i string) billing.AppReference {
 	_, err := ulid.Parse(i)
 	if err != nil {
-		return billingentity.AppReference{
+		return billing.AppReference{
 			Type: appentitybase.AppType(i),
 		}
 	}
 
-	return billingentity.AppReference{
+	return billing.AppReference{
 		ID: i,
 	}
 }
 
-func fromAPIBillingWorkflow(i api.BillingWorkflow) (billingentity.WorkflowConfig, error) {
+func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, error) {
 	def := defaultWorkflowConfig
 
 	if i.Collection == nil {
@@ -372,43 +371,43 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billingentity.WorkflowConfig
 
 	collInterval, err := parseDurationPtr(i.Collection.Interval, def.Collection.Interval)
 	if err != nil {
-		return billingentity.WorkflowConfig{}, fmt.Errorf("failed to parse collection interval: %w", err)
+		return billing.WorkflowConfig{}, fmt.Errorf("failed to parse collection interval: %w", err)
 	}
 
 	draftPeriod, err := parseDurationPtr(i.Invoicing.DraftPeriod, def.Invoicing.DraftPeriod)
 	if err != nil {
-		return billingentity.WorkflowConfig{}, fmt.Errorf("failed to parse draft period: %w", err)
+		return billing.WorkflowConfig{}, fmt.Errorf("failed to parse draft period: %w", err)
 	}
 
 	dueAfter, err := parseDurationPtr(i.Invoicing.DueAfter, def.Invoicing.DueAfter)
 	if err != nil {
-		return billingentity.WorkflowConfig{}, fmt.Errorf("failed to parse due after: %w", err)
+		return billing.WorkflowConfig{}, fmt.Errorf("failed to parse due after: %w", err)
 	}
 
-	return billingentity.WorkflowConfig{
+	return billing.WorkflowConfig{
 		ID:        i.Id,
 		CreatedAt: i.CreatedAt,
 		UpdatedAt: i.UpdatedAt,
 		DeletedAt: i.DeletedAt,
 
-		Collection: billingentity.CollectionConfig{
+		Collection: billing.CollectionConfig{
 			Alignment: def.Collection.Alignment,
 			Interval:  collInterval,
 		},
 
-		Invoicing: billingentity.InvoicingConfig{
+		Invoicing: billing.InvoicingConfig{
 			AutoAdvance: lo.FromPtrOr(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
 			DraftPeriod: draftPeriod,
 			DueAfter:    dueAfter,
 		},
 
-		Payment: billingentity.PaymentConfig{
-			CollectionMethod: lo.FromPtrOr((*billingentity.CollectionMethod)(i.Payment.CollectionMethod), def.Payment.CollectionMethod),
+		Payment: billing.PaymentConfig{
+			CollectionMethod: lo.FromPtrOr((*billing.CollectionMethod)(i.Payment.CollectionMethod), def.Payment.CollectionMethod),
 		},
 	}, nil
 }
 
-func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billingentity.WorkflowConfig, error) {
+func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billing.WorkflowConfig, error) {
 	return fromAPIBillingWorkflow(api.BillingWorkflow{
 		Collection: i.Collection,
 		Invoicing:  i.Invoicing,
@@ -424,7 +423,7 @@ func parseDurationPtr(d *string, defaultDuration datex.Period) (datex.Period, er
 	return datex.ISOString(*d).Parse()
 }
 
-func MapProfileToApi(p *billingentity.Profile) (api.BillingProfile, error) {
+func MapProfileToApi(p *billing.Profile) (api.BillingProfile, error) {
 	if p == nil {
 		return api.BillingProfile{}, errors.New("profile is nil")
 	}
@@ -467,7 +466,7 @@ func MapProfileToApi(p *billingentity.Profile) (api.BillingProfile, error) {
 	return out, nil
 }
 
-func mapProfileAppsToAPI(a *billingentity.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
+func mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}
@@ -502,7 +501,7 @@ func mapProfileAppsToAPI(a *billingentity.ProfileApps) (*api.BillingProfileAppsO
 	return &out, nil
 }
 
-func mapProfileAppReferencesToAPI(a *billingentity.ProfileAppReferences) (*api.BillingProfileAppsOrReference, error) {
+func mapProfileAppReferencesToAPI(a *billing.ProfileAppReferences) (*api.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}
@@ -544,7 +543,7 @@ func mapProfileExpandToEntity(expand []api.BillingProfileExpand) billing.Profile
 	}
 }
 
-func mapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
+func mapSupplierContactToAPI(c billing.SupplierContact) api.BillingParty {
 	a := c.Address
 
 	out := api.BillingParty{
@@ -572,7 +571,7 @@ func mapSupplierContactToAPI(c billingentity.SupplierContact) api.BillingParty {
 	return out
 }
 
-func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow {
+func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
 	return api.BillingWorkflow{
 		Id:        c.ID,
 		CreatedAt: c.CreatedAt,
@@ -598,7 +597,7 @@ func mapWorkflowConfigToAPI(c billingentity.WorkflowConfig) api.BillingWorkflow 
 	}
 }
 
-func mapWorkflowConfigSettingsToAPI(c billingentity.WorkflowConfig) api.BillingWorkflowSettings {
+func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflowSettings {
 	return api.BillingWorkflowSettings{
 		Collection: &api.BillingWorkflowCollectionSettings{
 			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{

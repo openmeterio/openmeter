@@ -3,7 +3,7 @@ package httpdriver
 import (
 	"github.com/samber/lo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -14,17 +14,17 @@ const (
 	DefaultInvoiceTimezone = "UTC"
 )
 
-var defaultWorkflowConfig = billingentity.WorkflowConfig{
-	Collection: billingentity.CollectionConfig{
-		Alignment: billingentity.AlignmentKindSubscription,
+var defaultWorkflowConfig = billing.WorkflowConfig{
+	Collection: billing.CollectionConfig{
+		Alignment: billing.AlignmentKindSubscription,
 		Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
 	},
-	Invoicing: billingentity.InvoicingConfig{
+	Invoicing: billing.InvoicingConfig{
 		AutoAdvance: true,
 		DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
 		DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 	},
-	Payment: billingentity.PaymentConfig{
-		CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+	Payment: billing.PaymentConfig{
+		CollectionMethod: billing.CollectionMethodChargeAutomatically,
 	},
 }

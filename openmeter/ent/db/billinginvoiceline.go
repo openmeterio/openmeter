@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -64,9 +64,9 @@ type BillingInvoiceLine struct {
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// Type holds the value of the "type" field.
-	Type billingentity.InvoiceLineType `json:"type,omitempty"`
+	Type billing.InvoiceLineType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
-	Status billingentity.InvoiceLineStatus `json:"status,omitempty"`
+	Status billing.InvoiceLineStatus `json:"status,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// Quantity holds the value of the "quantity" field.
@@ -329,13 +329,13 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bil.Type = billingentity.InvoiceLineType(value.String)
+				bil.Type = billing.InvoiceLineType(value.String)
 			}
 		case billinginvoiceline.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				bil.Status = billingentity.InvoiceLineStatus(value.String)
+				bil.Status = billing.InvoiceLineStatus(value.String)
 			}
 		case billinginvoiceline.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {

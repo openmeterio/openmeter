@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -34,7 +34,7 @@ type BillingCustomerOverride struct {
 	// BillingProfileID holds the value of the "billing_profile_id" field.
 	BillingProfileID *string `json:"billing_profile_id,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
-	CollectionAlignment *billingentity.AlignmentKind `json:"collection_alignment,omitempty"`
+	CollectionAlignment *billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// LineCollectionPeriod holds the value of the "line_collection_period" field.
 	LineCollectionPeriod *datex.ISOString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
@@ -44,7 +44,7 @@ type BillingCustomerOverride struct {
 	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
 	InvoiceDueAfter *datex.ISOString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
-	InvoiceCollectionMethod *billingentity.CollectionMethod `json:"invoice_collection_method,omitempty"`
+	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -158,8 +158,8 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_alignment", values[i])
 			} else if value.Valid {
-				bco.CollectionAlignment = new(billingentity.AlignmentKind)
-				*bco.CollectionAlignment = billingentity.AlignmentKind(value.String)
+				bco.CollectionAlignment = new(billing.AlignmentKind)
+				*bco.CollectionAlignment = billing.AlignmentKind(value.String)
 			}
 		case billingcustomeroverride.FieldLineCollectionPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -193,8 +193,8 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_collection_method", values[i])
 			} else if value.Valid {
-				bco.InvoiceCollectionMethod = new(billingentity.CollectionMethod)
-				*bco.InvoiceCollectionMethod = billingentity.CollectionMethod(value.String)
+				bco.InvoiceCollectionMethod = new(billing.CollectionMethod)
+				*bco.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
 			}
 		default:
 			bco.selectValues.Set(columns[i], values[i])

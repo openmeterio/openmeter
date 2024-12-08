@@ -18,7 +18,6 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -95,7 +94,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	// Given we have a default profile for the namespace
 
-	var billingProfile billingentity.Profile
+	var billingProfile billing.Profile
 	s.T().Run("create default profile", func(t *testing.T) {
 		minimalCreateProfileInput := minimalCreateProfileInputTemplate
 		minimalCreateProfileInput.Namespace = namespace
@@ -107,8 +106,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		billingProfile = *profile
 	})
 
-	var items []*billingentity.Line
-	var HUFItem *billingentity.Line
+	var items []*billing.Line
+	var HUFItem *billing.Line
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
@@ -117,15 +116,15 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			billing.CreateInvoiceLinesInput{
 				Namespace:  namespace,
 				CustomerID: customerEntity.ID,
-				Lines: []billingentity.Line{
+				Lines: []billing.Line{
 					{
-						LineBase: billingentity.LineBase{
+						LineBase: billing.LineBase{
 							Namespace: namespace,
-							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: issueAt,
 
-							Type: billingentity.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
 							Name:     "Test item - USD",
 							Currency: currencyx.Code(currency.USD),
@@ -134,39 +133,39 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								"key": "value",
 							},
 						},
-						FlatFee: billingentity.FlatFeeLine{
+						FlatFee: billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(100),
 							Quantity:      alpacadecimal.NewFromFloat(1),
 						},
 					},
 					{
-						LineBase: billingentity.LineBase{
-							Period: billingentity.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: issueAt,
 
-							Type: billingentity.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
 							Name:     "Test item - HUF",
 							Currency: currencyx.Code(currency.HUF),
 						},
-						FlatFee: billingentity.FlatFeeLine{
+						FlatFee: billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(200),
 							Quantity:      alpacadecimal.NewFromFloat(3),
 						},
 					},
 					{
-						LineBase: billingentity.LineBase{
-							Period: billingentity.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period: billing.Period{Start: periodStart, End: periodEnd},
 
 							InvoiceAt: issueAt,
 
-							Type: billingentity.InvoiceLineTypeUsageBased,
+							Type: billing.InvoiceLineTypeUsageBased,
 
 							Name:     "Test item - HUF",
 							Currency: currencyx.Code(currency.HUF),
 						},
-						UsageBased: billingentity.UsageBasedLine{
+						UsageBased: billing.UsageBasedLine{
 							Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
@@ -202,8 +201,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			Namespace:        namespace,
 			Customers:        []string{customerEntity.ID},
-			Expand:           billingentity.InvoiceExpandAll,
-			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Expand:           billing.InvoiceExpandAll,
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
@@ -211,22 +210,22 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		usdInvoice := usdInvoices.Items[0]
 
 		usdInvoiceLine := usdInvoice.Lines.MustGet()[0]
-		expectedUSDLine := &billingentity.Line{
-			LineBase: billingentity.LineBase{
+		expectedUSDLine := &billing.Line{
+			LineBase: billing.LineBase{
 				ID:        items[0].ID,
 				Namespace: namespace,
 
-				Period: billingentity.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
+				Period: billing.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
 
 				InvoiceID: usdInvoice.ID,
 				InvoiceAt: issueAt.In(time.UTC),
 
-				Type: billingentity.InvoiceLineTypeFee,
+				Type: billing.InvoiceLineTypeFee,
 
 				Name:     "Test item - USD",
 				Currency: currencyx.Code(currency.USD),
 
-				Status: billingentity.InvoiceLineStatusValid,
+				Status: billing.InvoiceLineStatusValid,
 
 				CreatedAt: usdInvoiceLine.CreatedAt.In(time.UTC),
 				UpdatedAt: usdInvoiceLine.UpdatedAt.In(time.UTC),
@@ -235,7 +234,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					"key": "value",
 				},
 			},
-			FlatFee: billingentity.FlatFeeLine{
+			FlatFee: billing.FlatFeeLine{
 				ConfigID:      usdInvoiceLine.FlatFee.ConfigID,
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
@@ -243,21 +242,21 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		}
 		// Let's make sure that the workflow config is cloned
 		require.NotEqual(s.T(), usdInvoice.Workflow.Config.ID, billingProfile.WorkflowConfig.ID)
-		expectedInvoice := billingentity.Invoice{
-			InvoiceBase: billingentity.InvoiceBase{
+		expectedInvoice := billing.Invoice{
+			InvoiceBase: billing.InvoiceBase{
 				Namespace: namespace,
 				ID:        usdInvoice.ID,
 
-				Type:          billingentity.InvoiceTypeStandard,
+				Type:          billing.InvoiceTypeStandard,
 				Currency:      currencyx.Code(currency.USD),
-				Status:        billingentity.InvoiceStatusGathering,
-				StatusDetails: billingentity.InvoiceStatusDetails{},
+				Status:        billing.InvoiceStatusGathering,
+				StatusDetails: billing.InvoiceStatusDetails{},
 
 				CreatedAt: usdInvoice.CreatedAt,
 				UpdatedAt: usdInvoice.UpdatedAt,
 
-				Workflow: &billingentity.InvoiceWorkflow{
-					Config: billingentity.WorkflowConfig{
+				Workflow: &billing.InvoiceWorkflow{
+					Config: billing.WorkflowConfig{
 						ID:        usdInvoice.Workflow.Config.ID,
 						CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
 						UpdatedAt: usdInvoice.Workflow.Config.UpdatedAt,
@@ -272,21 +271,21 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					Apps:                   billingProfile.Apps,
 				},
 
-				Customer: billingentity.InvoiceCustomer{
+				Customer: billing.InvoiceCustomer{
 					CustomerID: customerEntity.ID,
 
 					Name:           customerEntity.Name,
 					BillingAddress: customerEntity.BillingAddress,
-					UsageAttribution: billingentity.CustomerUsageAttribution{
+					UsageAttribution: billing.CustomerUsageAttribution{
 						SubjectKeys: []string{"test"},
 					},
 				},
 				Supplier: billingProfile.Supplier,
 			},
 
-			Lines: billingentity.NewLineChildren([]*billingentity.Line{expectedUSDLine}),
+			Lines: billing.NewLineChildren([]*billing.Line{expectedUSDLine}),
 
-			ExpandedFields: billingentity.InvoiceExpandAll,
+			ExpandedFields: billing.InvoiceExpandAll,
 		}
 
 		require.Equal(s.T(),
@@ -316,8 +315,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			Namespace:        namespace,
 			Customers:        []string{customerEntity.ID},
-			Expand:           billingentity.InvoiceExpandAll,
-			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Expand:           billing.InvoiceExpandAll,
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Currencies:       []currencyx.Code{currencyx.Code(currency.HUF)},
 		})
 		require.NoError(s.T(), err)
@@ -328,14 +327,14 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		// Then we have two line items for the invoice
 		require.Len(s.T(), hufInvoiceLines, 2)
 
-		_, found := lo.Find(hufInvoiceLines, func(l *billingentity.Line) bool {
-			return l.Type == billingentity.InvoiceLineTypeFee
+		_, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
+			return l.Type == billing.InvoiceLineTypeFee
 		})
 		require.True(s.T(), found, "manual fee item is present")
 
 		// Then we should have the tiered price present
-		tieredLine, found := lo.Find(hufInvoiceLines, func(l *billingentity.Line) bool {
-			return l.Type == billingentity.InvoiceLineTypeUsageBased
+		tieredLine, found := lo.Find(hufInvoiceLines, func(l *billing.Line) bool {
+			return l.Type == billing.InvoiceLineTypeUsageBased
 		})
 
 		require.True(s.T(), found, "tiered price item is present")
@@ -373,8 +372,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			Namespace:        namespace,
 			Customers:        []string{customerEntity.ID},
-			Expand:           billingentity.InvoiceExpand{},
-			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			Expand:           billing.InvoiceExpand{},
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
@@ -395,10 +394,10 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			Namespace: namespace,
 			Customers: []string{customerEntity.ID},
-			Expand: billingentity.InvoiceExpand{
+			Expand: billing.InvoiceExpand{
 				WorkflowApps: true,
 			},
-			ExtendedStatuses: []billingentity.InvoiceStatus{billingentity.InvoiceStatusGathering},
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
@@ -458,15 +457,15 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		billing.CreateInvoiceLinesInput{
 			Namespace:  namespace,
 			CustomerID: customerEntity.ID,
-			Lines: []billingentity.Line{
+			Lines: []billing.Line{
 				{
-					LineBase: billingentity.LineBase{
+					LineBase: billing.LineBase{
 						Namespace: namespace,
-						Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: line1IssueAt,
 
-						Type: billingentity.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 
 						Name:     "Test item1",
 						Currency: currencyx.Code(currency.USD),
@@ -475,24 +474,24 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 							"key": "value",
 						},
 					},
-					FlatFee: billingentity.FlatFeeLine{
+					FlatFee: billing.FlatFeeLine{
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
 						Quantity:      alpacadecimal.NewFromFloat(1),
 					},
 				},
 				{
-					LineBase: billingentity.LineBase{
+					LineBase: billing.LineBase{
 						Namespace: namespace,
-						Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: line2IssueAt,
 
-						Type: billingentity.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 
 						Name:     "Test item2",
 						Currency: currencyx.Code(currency.USD),
 					},
-					FlatFee: billingentity.FlatFeeLine{
+					FlatFee: billing.FlatFeeLine{
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
 						Quantity:      alpacadecimal.NewFromFloat(3),
 					},
@@ -510,7 +509,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	// Expect that a single gathering invoice has been created
 	require.Equal(s.T(), res[0].InvoiceID, res[1].InvoiceID)
-	gatheringInvoiceID := billingentity.InvoiceID{
+	gatheringInvoiceID := billing.InvoiceID{
 		Namespace: namespace,
 		ID:        res[0].InvoiceID,
 	}
@@ -525,7 +524,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		})
 
 		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
 	})
 
 	s.Run("Creating invoice without any pending lines being available fails", func() {
@@ -539,7 +538,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		})
 
 		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
 	})
 
 	s.Run("Number of pending invoice lines is reported correctly by the adapter", func() {
@@ -573,7 +572,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		// Then we expect that the gathering invoice is still present, with item2
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billingentity.InvoiceExpandAll,
+			Expand:  billing.InvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
@@ -593,7 +592,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// Then we should receive a validation error
 		require.Error(s.T(), err)
-		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
 	})
 
 	s.Run("When creating an invoice with only item2 included", func() {
@@ -617,7 +616,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		// Then we expect that the gathering invoice is deleted and empty
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billingentity.InvoiceExpandAll,
+			Expand:  billing.InvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
@@ -642,7 +641,7 @@ func (i draftInvoiceInput) Validate() error {
 	return nil
 }
 
-func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Context, in draftInvoiceInput) billingentity.Invoice {
+func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Context, in draftInvoiceInput) billing.Invoice {
 	namespace := in.Customer.Namespace
 
 	now := time.Now()
@@ -655,15 +654,15 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 		billing.CreateInvoiceLinesInput{
 			Namespace:  in.Customer.Namespace,
 			CustomerID: in.Customer.ID,
-			Lines: []billingentity.Line{
+			Lines: []billing.Line{
 				{
-					LineBase: billingentity.LineBase{
+					LineBase: billing.LineBase{
 						Namespace: namespace,
-						Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: invoiceAt,
 
-						Type: billingentity.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 
 						Name:     "Test item1",
 						Currency: currencyx.Code(currency.USD),
@@ -672,24 +671,24 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 							"key": "value",
 						},
 					},
-					FlatFee: billingentity.FlatFeeLine{
+					FlatFee: billing.FlatFeeLine{
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
 						Quantity:      alpacadecimal.NewFromFloat(1),
 					},
 				},
 				{
-					LineBase: billingentity.LineBase{
+					LineBase: billing.LineBase{
 						Namespace: namespace,
-						Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						Period:    billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: invoiceAt,
 
-						Type: billingentity.InvoiceLineTypeFee,
+						Type: billing.InvoiceLineTypeFee,
 
 						Name:     "Test item2",
 						Currency: currencyx.Code(currency.USD),
 					},
-					FlatFee: billingentity.FlatFeeLine{
+					FlatFee: billing.FlatFeeLine{
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
 						Quantity:      alpacadecimal.NewFromFloat(3),
 					},
@@ -722,54 +721,54 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 func (s *InvoicingTestSuite) TestInvoicingFlow() {
 	cases := []struct {
 		name           string
-		workflowConfig billingentity.WorkflowConfig
-		advance        func(t *testing.T, ctx context.Context, invoice billingentity.Invoice)
-		expectedState  billingentity.InvoiceStatus
+		workflowConfig billing.WorkflowConfig
+		advance        func(t *testing.T, ctx context.Context, invoice billing.Invoice)
+		expectedState  billing.InvoiceStatus
 	}{
 		{
 			name: "instant issue",
-			workflowConfig: billingentity.WorkflowConfig{
-				Collection: billingentity.CollectionConfig{
-					Alignment: billingentity.AlignmentKindSubscription,
+			workflowConfig: billing.WorkflowConfig{
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
 				},
-				Invoicing: billingentity.InvoicingConfig{
+				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
 					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
 					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 				},
-				Payment: billingentity.PaymentConfig{
-					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
+			advance: func(t *testing.T, ctx context.Context, invoice billing.Invoice) {
 				// When trying to advance an issued invoice, we get an error
 				_, err := s.BillingService.AdvanceInvoice(ctx, billing.AdvanceInvoiceInput{
 					ID:        invoice.ID,
 					Namespace: invoice.Namespace,
 				})
 
-				require.ErrorIs(t, err, billingentity.ErrInvoiceCannotAdvance)
-				require.ErrorAs(t, err, &billingentity.ValidationError{})
+				require.ErrorIs(t, err, billing.ErrInvoiceCannotAdvance)
+				require.ErrorAs(t, err, &billing.ValidationError{})
 			},
-			expectedState: billingentity.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusIssued,
 		},
 		{
 			name: "draft period bypass with manual approve",
-			workflowConfig: billingentity.WorkflowConfig{
-				Collection: billingentity.CollectionConfig{
-					Alignment: billingentity.AlignmentKindSubscription,
+			workflowConfig: billing.WorkflowConfig{
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
 				},
-				Invoicing: billingentity.InvoicingConfig{
+				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
 					DraftPeriod: lo.Must(datex.ISOString("PT1H").Parse()),
 					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 				},
-				Payment: billingentity.PaymentConfig{
-					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+			advance: func(t *testing.T, ctx context.Context, invoice billing.Invoice) {
+				require.Equal(s.T(), billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 
 				// Approve the invoice, should become DraftReadyToIssue
 				invoice, err := s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
@@ -778,29 +777,29 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
 			},
-			expectedState: billingentity.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusIssued,
 		},
 		{
 			name: "manual approvement flow",
-			workflowConfig: billingentity.WorkflowConfig{
-				Collection: billingentity.CollectionConfig{
-					Alignment: billingentity.AlignmentKindSubscription,
+			workflowConfig: billing.WorkflowConfig{
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
 				},
-				Invoicing: billingentity.InvoicingConfig{
+				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: false,
 					DraftPeriod: lo.Must(datex.ISOString("PT0H").Parse()),
 					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 				},
-				Payment: billingentity.PaymentConfig{
-					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, invoice billingentity.Invoice) {
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
-				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
-					AvailableActions: []billingentity.InvoiceAction{billingentity.InvoiceActionApprove},
+			advance: func(t *testing.T, ctx context.Context, invoice billing.Invoice) {
+				require.Equal(s.T(), billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDetails{
+					AvailableActions: []billing.InvoiceAction{billing.InvoiceActionApprove},
 				}, invoice.StatusDetails)
 
 				// Approve the invoice, should become Issued
@@ -810,9 +809,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
 			},
-			expectedState: billingentity.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusIssued,
 		},
 	}
 
@@ -861,11 +860,11 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			tc.advance(t, ctx, invoice)
 
 			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billingentity.InvoiceID{
+				Invoice: billing.InvoiceID{
 					Namespace: namespace,
 					ID:        invoice.ID,
 				},
-				Expand: billingentity.InvoiceExpandAll,
+				Expand: billing.InvoiceExpandAll,
 			})
 
 			require.NoError(s.T(), err)
@@ -876,32 +875,32 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 }
 
 type ValidationIssueIntrospector interface {
-	IntrospectValidationIssues(ctx context.Context, invoice billingentity.InvoiceID) ([]billingadapter.ValidationIssueWithDBMeta, error)
+	IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) ([]billingadapter.ValidationIssueWithDBMeta, error)
 }
 
 func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 	cases := []struct {
 		name           string
-		workflowConfig billingentity.WorkflowConfig
-		advance        func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice
-		expectedState  billingentity.InvoiceStatus
+		workflowConfig billing.WorkflowConfig
+		advance        func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billing.Invoice
+		expectedState  billing.InvoiceStatus
 	}{
 		{
 			name: "validation issue - different sources",
-			workflowConfig: billingentity.WorkflowConfig{
-				Collection: billingentity.CollectionConfig{
-					Alignment: billingentity.AlignmentKindSubscription,
+			workflowConfig: billing.WorkflowConfig{
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
 				},
-				Invoicing: billingentity.InvoicingConfig{
+				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
 					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
 					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 				},
-				Payment: billingentity.PaymentConfig{
-					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice {
+			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billing.Invoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
 				defer s.InvoiceCalculator.DisableMock(t)
 
@@ -909,7 +908,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.True(t, ok)
 
 				// Given that the app will return a validation error
-				mockApp.OnValidateInvoice(billingentity.NewValidationError("test1", "validation error"))
+				mockApp.OnValidateInvoice(billing.NewValidationError("test1", "validation error"))
 				calcMock.OnCalculate(nil)
 
 				// When we create a draft invoice
@@ -920,16 +919,16 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.NotNil(s.T(), invoice)
 
 				// Then we should end up in draft_invalid state
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftInvalid, invoice.Status)
-				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
-					AvailableActions: []billingentity.InvoiceAction{
-						billingentity.InvoiceActionRetry,
+				require.Equal(s.T(), billing.InvoiceStatusDraftInvalid, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDetails{
+					AvailableActions: []billing.InvoiceAction{
+						billing.InvoiceActionRetry,
 					},
 					Immutable: false,
 				}, invoice.StatusDetails)
-				require.Equal(s.T(), billingentity.ValidationIssues{
+				require.Equal(s.T(), billing.ValidationIssues{
 					{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
 						Component: "app.sandbox.invoiceCustomers.validate",
@@ -937,15 +936,15 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				// Then we have the issues captured in the database
-				issues, err := validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
+				issues, err := validationIssueGetter.IntrospectValidationIssues(ctx, billing.InvoiceID{
 					Namespace: ns,
 					ID:        invoice.ID,
 				})
 				require.NoError(t, err)
 				require.Len(t, issues, 1)
 				require.Equal(t,
-					billingentity.ValidationIssue{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+					billing.ValidationIssue{
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
 						Component: "app.sandbox.invoiceCustomers.validate",
@@ -961,7 +960,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				// Given that the issue is fixed, but a new one is introduced by editing the invoice
 				mockApp.OnValidateInvoice(nil)
-				calcMock.OnCalculate(billingentity.NewValidationError("test2", "validation error"))
+				calcMock.OnCalculate(billing.NewValidationError("test2", "validation error"))
 
 				// regardless the state transition will be the same for now.
 				invoice, err = s.BillingService.RetryInvoice(ctx, billing.RetryInvoiceInput{
@@ -972,25 +971,25 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.NotNil(s.T(), invoice)
 
 				// Then we should end up in draft_invalid state
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftInvalid, invoice.Status)
-				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
-					AvailableActions: []billingentity.InvoiceAction{
-						billingentity.InvoiceActionRetry,
+				require.Equal(s.T(), billing.InvoiceStatusDraftInvalid, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDetails{
+					AvailableActions: []billing.InvoiceAction{
+						billing.InvoiceActionRetry,
 					},
 					Immutable: false,
 				}, invoice.StatusDetails)
-				require.Equal(s.T(), billingentity.ValidationIssues{
+				require.Equal(s.T(), billing.ValidationIssues{
 					{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test2",
 						Message:   "validation error",
-						Component: billingentity.ValidationComponentOpenMeter,
+						Component: billing.ValidationComponentOpenMeter,
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				// Then we have the new issues captured in the database, the old one deleted, as Retry changes the severity
 				// we will have a new validation issue
-				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
+				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billing.InvoiceID{
 					Namespace: ns,
 					ID:        invoice.ID,
 				})
@@ -1004,8 +1003,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.True(t, ok, "old issue should be present")
 				require.NotNil(t, invoiceIssue.DeletedAt)
 				require.Equal(t,
-					billingentity.ValidationIssue{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+					billing.ValidationIssue{
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
 						Component: "app.sandbox.invoiceCustomers.validate",
@@ -1015,13 +1014,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				// A new version of the issue is present with downgraded severity, to facilitate the retry
 				downgradedIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
-					return i.Code == "test1" && i.Severity == billingentity.ValidationIssueSeverityWarning
+					return i.Code == "test1" && i.Severity == billing.ValidationIssueSeverityWarning
 				})
 				require.True(t, ok, "the issue should be present")
 				require.NotNil(t, downgradedIssue.DeletedAt)
 				require.Equal(t,
-					billingentity.ValidationIssue{
-						Severity:  billingentity.ValidationIssueSeverityWarning,
+					billing.ValidationIssue{
+						Severity:  billing.ValidationIssueSeverityWarning,
 						Code:      "test1",
 						Message:   "validation error",
 						Component: "app.sandbox.invoiceCustomers.validate",
@@ -1035,8 +1034,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.True(t, ok, "new issue should be present")
 				require.Equal(t,
-					billingentity.ValidationIssue{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+					billing.ValidationIssue{
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test2",
 						Message:   "validation error",
 						Component: "openmeter",
@@ -1048,8 +1047,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				calcMock.Reset(t)
 
 				// Given that both issues are present, both will be reported
-				mockApp.OnValidateInvoice(billingentity.NewValidationError("test1", "validation error"))
-				calcMock.OnCalculate(billingentity.NewValidationError("test2", "validation error"))
+				mockApp.OnValidateInvoice(billing.NewValidationError("test1", "validation error"))
+				calcMock.OnCalculate(billing.NewValidationError("test2", "validation error"))
 
 				// regardless the state transition will be the same for now.
 				invoice, err = s.BillingService.RetryInvoice(ctx, billing.RetryInvoiceInput{
@@ -1060,36 +1059,36 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.NotNil(s.T(), invoice)
 
 				// Then we should end up in draft_invalid state
-				require.Equal(s.T(), billingentity.InvoiceStatusDraftInvalid, invoice.Status)
-				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
-					AvailableActions: []billingentity.InvoiceAction{
-						billingentity.InvoiceActionRetry,
+				require.Equal(s.T(), billing.InvoiceStatusDraftInvalid, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDetails{
+					AvailableActions: []billing.InvoiceAction{
+						billing.InvoiceActionRetry,
 					},
 					Immutable: false,
 				}, invoice.StatusDetails)
-				require.ElementsMatch(s.T(), billingentity.ValidationIssues{
+				require.ElementsMatch(s.T(), billing.ValidationIssues{
 					{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test1",
 						Message:   "validation error",
 						Component: "app.sandbox.invoiceCustomers.validate",
 					},
 					{
-						Severity:  billingentity.ValidationIssueSeverityCritical,
+						Severity:  billing.ValidationIssueSeverityCritical,
 						Code:      "test2",
 						Message:   "validation error",
-						Component: billingentity.ValidationComponentOpenMeter,
+						Component: billing.ValidationComponentOpenMeter,
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
 				// The database now has both  critical issues active (but no new ones are created)
-				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billingentity.InvoiceID{
+				issues, err = validationIssueGetter.IntrospectValidationIssues(ctx, billing.InvoiceID{
 					Namespace: ns,
 					ID:        invoice.ID,
 				})
 				require.NoError(t, err)
 				criticalIssues := lo.Filter(issues, func(i billingadapter.ValidationIssueWithDBMeta, _ int) bool {
-					return i.Severity == billingentity.ValidationIssueSeverityCritical
+					return i.Severity == billing.ValidationIssueSeverityCritical
 				})
 				require.Len(t, criticalIssues, 2)
 
@@ -1100,29 +1099,29 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				return &invoice
 			},
-			expectedState: billingentity.InvoiceStatusDraftInvalid,
+			expectedState: billing.InvoiceStatusDraftInvalid,
 		},
 		{
 			name: "validation issue - warnings allow state transitions",
-			workflowConfig: billingentity.WorkflowConfig{
-				Collection: billingentity.CollectionConfig{
-					Alignment: billingentity.AlignmentKindSubscription,
+			workflowConfig: billing.WorkflowConfig{
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
 				},
-				Invoicing: billingentity.InvoicingConfig{
+				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
 					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
 					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 				},
-				Payment: billingentity.PaymentConfig{
-					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billingentity.Invoice {
+			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billing.Invoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
 				defer s.InvoiceCalculator.DisableMock(t)
 
 				// Given that the app will return a validation error
-				mockApp.OnValidateInvoice(billingentity.NewValidationWarning("test1", "validation warning"))
+				mockApp.OnValidateInvoice(billing.NewValidationWarning("test1", "validation warning"))
 				mockApp.OnUpsertInvoice(nil)
 				mockApp.OnFinalizeInvoice(nil)
 				calcMock.OnCalculate(nil)
@@ -1134,14 +1133,14 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.NotNil(s.T(), invoice)
 
-				require.Equal(s.T(), billingentity.InvoiceStatusIssued, invoice.Status)
-				require.Equal(s.T(), billingentity.InvoiceStatusDetails{
-					AvailableActions: []billingentity.InvoiceAction{},
+				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDetails{
+					AvailableActions: []billing.InvoiceAction{},
 					Immutable:        true,
 				}, invoice.StatusDetails)
-				require.Equal(s.T(), billingentity.ValidationIssues{
+				require.Equal(s.T(), billing.ValidationIssues{
 					{
-						Severity:  billingentity.ValidationIssueSeverityWarning,
+						Severity:  billing.ValidationIssueSeverityWarning,
 						Code:      "test1",
 						Message:   "validation warning",
 						Component: "app.sandbox.invoiceCustomers.validate",
@@ -1150,7 +1149,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				return &invoice
 			},
-			expectedState: billingentity.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusIssued,
 		},
 	}
 
@@ -1198,11 +1197,11 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			mockApp.AssertExpectations(t)
 
 			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billingentity.InvoiceID{
+				Invoice: billing.InvoiceID{
 					Namespace: namespace,
 					ID:        invoice.ID,
 				},
-				Expand: billingentity.InvoiceExpandAll,
+				Expand: billing.InvoiceExpandAll,
 			})
 
 			require.NoError(s.T(), err)
@@ -1330,16 +1329,16 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			billing.CreateInvoiceLinesInput{
 				Namespace:  namespace,
 				CustomerID: customerEntity.ID,
-				Lines: []billingentity.Line{
+				Lines: []billing.Line{
 					{
-						LineBase: billingentity.LineBase{
-							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeUsageBased,
+							Type:      billing.InvoiceLineTypeUsageBased,
 							Name:      "UBP - FLAT per unit",
 						},
-						UsageBased: billingentity.UsageBasedLine{
+						UsageBased: billing.UsageBasedLine{
 							FeatureKey: features.flatPerUnit.Key,
 							Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount:        alpacadecimal.NewFromFloat(100),
@@ -1348,14 +1347,14 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 					},
 					{
-						LineBase: billingentity.LineBase{
-							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeUsageBased,
+							Type:      billing.InvoiceLineTypeUsageBased,
 							Name:      "UBP - FLAT per any usage",
 						},
-						UsageBased: billingentity.UsageBasedLine{
+						UsageBased: billing.UsageBasedLine{
 							FeatureKey: features.flatPerUsage.Key,
 							Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
@@ -1364,14 +1363,14 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 					},
 					{
-						LineBase: billingentity.LineBase{
-							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeUsageBased,
+							Type:      billing.InvoiceLineTypeUsageBased,
 							Name:      "UBP - Tiered graduated",
 						},
-						UsageBased: billingentity.UsageBasedLine{
+						UsageBased: billing.UsageBasedLine{
 							FeatureKey: features.tieredGraduated.Key,
 							Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
@@ -1398,14 +1397,14 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 						},
 					},
 					{
-						LineBase: billingentity.LineBase{
-							Period:    billingentity.Period{Start: periodStart, End: periodEnd},
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 							InvoiceAt: periodEnd,
 							Currency:  currencyx.Code(currency.USD),
-							Type:      billingentity.InvoiceLineTypeUsageBased,
+							Type:      billing.InvoiceLineTypeUsageBased,
 							Name:      "UBP - Tiered volume",
 						},
-						UsageBased: billingentity.UsageBasedLine{
+						UsageBased: billing.UsageBasedLine{
 							FeatureKey: features.tieredVolume.Key,
 							Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.VolumeTieredPrice,
@@ -1441,7 +1440,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
 		for _, line := range pendingLines {
 			require.Equal(s.T(),
-				billingentity.Period{
+				billing.Period{
 					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
 					End:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:00Z")),
 				},
@@ -1471,8 +1470,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			AsOf:     &asOf,
 		})
 
-		require.ErrorIs(s.T(), err, billingentity.ErrInvoiceCreateNoLines)
-		require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+		require.ErrorIs(s.T(), err, billing.ErrInvoiceCreateNoLines)
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
 	})
 
 	s.Run("create mid period invoice", func() {
@@ -1501,7 +1500,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
@@ -1509,7 +1508,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			tieredGraduated.ID,
 		})
 
-		expectedPeriod := billingentity.Period{
+		expectedPeriod := billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}
@@ -1521,14 +1520,14 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
 		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
-		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.Equal(s.T(), billing.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
 		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 2, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
 		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].InvoiceAt.Equal(periodStart.Add(time.Hour).Truncate(time.Minute)), "first child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "second child period should be until the end of parent's period")
@@ -1561,11 +1560,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		s.Run("update line item", func() {
 			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
-				Line: billingentity.LineID{
+				Line: billing.LineID{
 					Namespace: namespace,
 					ID:        flatPerUnit.ID,
 				},
-				Type: billingentity.InvoiceLineTypeUsageBased,
+				Type: billing.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
 					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(250),
@@ -1587,11 +1586,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			}, line.Totals)
 
 			invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billingentity.InvoiceID{
+				Invoice: billing.InvoiceID{
 					Namespace: namespace,
 					ID:        out[0].ID,
 				},
-				Expand: billingentity.InvoiceExpand{},
+				Expand: billing.InvoiceExpand{},
 			})
 			require.NoError(s.T(), err)
 
@@ -1603,11 +1602,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		s.Run("invalid update of a line item", func() {
 			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
-				Line: billingentity.LineID{
+				Line: billing.LineID{
 					Namespace: namespace,
 					ID:        flatPerUnit.ID,
 				},
-				Type: billingentity.InvoiceLineTypeUsageBased,
+				Type: billing.InvoiceLineTypeUsageBased,
 				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
 					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 						Mode: productcatalog.VolumeTieredPrice,
@@ -1623,8 +1622,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			})
 
 			require.Error(s.T(), err)
-			require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
-			require.ErrorIs(s.T(), err, billingentity.ErrInvoiceLinesNotBillable)
+			require.ErrorAs(s.T(), err, &billing.ValidationError{})
+			require.ErrorIs(s.T(), err, billing.ErrInvoiceLinesNotBillable)
 			require.Nil(s.T(), line)
 		})
 
@@ -1633,8 +1632,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 			err := s.BillingService.DeleteInvoiceLine(ctx, detailedLine.LineID())
 			require.Error(s.T(), err)
-			require.ErrorIs(s.T(), err, billingentity.ErrInvoiceLineDeleteInvalidStatus)
-			require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+			require.ErrorIs(s.T(), err, billing.ErrInvoiceLineDeleteInvalidStatus)
+			require.ErrorAs(s.T(), err, &billing.ValidationError{})
 		})
 
 		s.Run("deleting a valid line item worked", func() {
@@ -1642,11 +1641,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			require.NoError(s.T(), err)
 
 			invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billingentity.InvoiceID{
+				Invoice: billing.InvoiceID{
 					Namespace: namespace,
 					ID:        out[0].ID,
 				},
-				Expand: billingentity.InvoiceExpandAll.SetDeletedLines(true),
+				Expand: billing.InvoiceExpandAll.SetDeletedLines(true),
 			})
 			require.NoError(s.T(), err)
 
@@ -1664,11 +1663,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			// Let's validate without deleted line fetching
 			invoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: out[0].InvoiceID(),
-				Expand:  billingentity.InvoiceExpandAll.SetDeletedLines(false),
+				Expand:  billing.InvoiceExpandAll.SetDeletedLines(false),
 			})
 			require.NoError(s.T(), err)
 
-			require.NotContains(s.T(), lo.Map(invoice.Lines.MustGet(), func(l *billingentity.Line, _ int) string {
+			require.NotContains(s.T(), lo.Map(invoice.Lines.MustGet(), func(l *billing.Line, _ int) string {
 				return l.ID
 			}), []string{flatPerUnit.ID})
 
@@ -1685,25 +1684,25 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 			s.Run("when a validation error occurs, the error is returned", func() {
 				// InvoiceDeletion fails
-				validationError := billingentity.NewValidationError("delete-failed", "invoice cannot be deleted")
+				validationError := billing.NewValidationError("delete-failed", "invoice cannot be deleted")
 				mockApp.OnDeleteInvoice(validationError)
 
 				err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
 				require.Error(s.T(), err)
-				require.ErrorAs(s.T(), err, &billingentity.ValidationError{})
+				require.ErrorAs(s.T(), err, &billing.ValidationError{})
 
-				validationIssue := billingentity.ValidationIssue{}
+				validationIssue := billing.ValidationIssue{}
 				require.True(s.T(), errors.As(err, &validationIssue))
 				require.Equal(s.T(), validationIssue.Code, validationError.Code)
 				require.Equal(s.T(), validationIssue.Message, validationError.Message)
 
 				deletedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 					Invoice: out[0].InvoiceID(),
-					Expand:  billingentity.InvoiceExpandAll,
+					Expand:  billing.InvoiceExpandAll,
 				})
 				require.NoError(s.T(), err)
 				require.NotNil(s.T(), deletedInvoice.DeletedAt)
-				require.Equal(s.T(), billingentity.InvoiceStatusDeleteFailed, deletedInvoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDeleteFailed, deletedInvoice.Status)
 
 				mockApp.AssertExpectations(s.T())
 			})
@@ -1718,12 +1717,12 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 1)
-				require.Equal(s.T(), billingentity.InvoiceStatusDeleteFailed, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDeleteFailed, invoice.Status)
 
 				validationIssue := invoice.ValidationIssues[0]
 				require.Empty(s.T(), validationIssue.Code)
 				require.Equal(s.T(), "generic error", validationIssue.Message)
-				require.Equal(s.T(), billingentity.ValidationIssueSeverityCritical, validationIssue.Severity)
+				require.Equal(s.T(), billing.ValidationIssueSeverityCritical, validationIssue.Severity)
 
 				mockApp.AssertExpectations(s.T())
 			})
@@ -1737,7 +1736,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 0)
-				require.Equal(s.T(), billingentity.InvoiceStatusDeleted, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusDeleted, invoice.Status)
 
 				mockApp.AssertExpectations(s.T())
 			})
@@ -1750,13 +1749,13 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		defer s.SandboxApp.DisableMock()
 
 		mockApp.OnValidateInvoice(nil)
-		mockApp.OnUpsertInvoice(func(i billingentity.Invoice) *billingentity.UpsertInvoiceResult {
+		mockApp.OnUpsertInvoice(func(i billing.Invoice) *billing.UpsertInvoiceResult {
 			lines := i.FlattenLinesByID()
 
-			out := billingentity.NewUpsertInvoiceResult()
+			out := billing.NewUpsertInvoiceResult()
 
 			for _, line := range lines {
-				if line.Type == billingentity.InvoiceLineTypeFee {
+				if line.Type == billing.InvoiceLineTypeFee {
 					out.AddLineExternalID(line.ID, line.ID)
 				}
 			}
@@ -1791,7 +1790,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		// The invoice should not have:
 		// - the volume item as that must be invoiced in arreas
-		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
@@ -1799,7 +1798,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			tieredGraduated.ID,
 		})
 
-		expectedPeriod := billingentity.Period{
+		expectedPeriod := billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}
@@ -1810,18 +1809,18 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// Let's validate the output of the split itself
 		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
 		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
-		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.Equal(s.T(), billing.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
 		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}), "second child period should be between the first and the third child's period")
 		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billing.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
@@ -1833,7 +1832,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 					Quantity:      20,
 					PerUnitAmount: 100,
 					Discounts: map[string]float64{
-						billingentity.LineMaximumSpendReferenceID: 1000,
+						billing.LineMaximumSpendReferenceID: 1000,
 					},
 				},
 			},
@@ -1876,9 +1875,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 		for _, line := range out[0].FlattenLinesByID() {
 			switch {
-			case line.Type == billingentity.InvoiceLineTypeFee:
+			case line.Type == billing.InvoiceLineTypeFee:
 				require.Equal(s.T(), line.ID, line.ExternalIDs.Invoicing)
-			case line.Type == billingentity.InvoiceLineTypeUsageBased:
+			case line.Type == billing.InvoiceLineTypeUsageBased:
 				require.Empty(s.T(), line.ExternalIDs.Invoicing)
 			default:
 				s.T().Errorf("unexpected line type: %s", line.Type)
@@ -1888,13 +1887,13 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		mockApp.AssertExpectations(s.T())
 
 		s.Run("validate invoice finalization", func() {
-			mockApp.OnUpsertInvoice(func(i billingentity.Invoice) *billingentity.UpsertInvoiceResult {
+			mockApp.OnUpsertInvoice(func(i billing.Invoice) *billing.UpsertInvoiceResult {
 				lines := i.FlattenLinesByID()
 
-				out := billingentity.NewUpsertInvoiceResult()
+				out := billing.NewUpsertInvoiceResult()
 
 				for _, line := range lines {
-					if line.Type == billingentity.InvoiceLineTypeFee {
+					if line.Type == billing.InvoiceLineTypeFee {
 						out.AddLineExternalID(line.ID, "final_upsert_"+line.ID)
 					}
 				}
@@ -1902,7 +1901,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				return out
 			})
 
-			finalizedInvoiceResult := billingentity.NewFinalizeInvoiceResult()
+			finalizedInvoiceResult := billing.NewFinalizeInvoiceResult()
 			finalizedInvoiceResult.SetPaymentExternalID("payment_external_id")
 			mockApp.OnFinalizeInvoice(finalizedInvoiceResult)
 
@@ -1915,9 +1914,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			// Invoice app testing
 			for _, line := range finalizedInvoice.FlattenLinesByID() {
 				switch {
-				case line.Type == billingentity.InvoiceLineTypeFee:
+				case line.Type == billing.InvoiceLineTypeFee:
 					require.Equal(s.T(), "final_upsert_"+line.ID, line.ExternalIDs.Invoicing)
-				case line.Type == billingentity.InvoiceLineTypeUsageBased:
+				case line.Type == billing.InvoiceLineTypeUsageBased:
 					require.Empty(s.T(), line.ExternalIDs.Invoicing)
 				default:
 					s.T().Errorf("unexpected line type: %s", line.Type)
@@ -1951,13 +1950,13 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		flatPerUnit := s.lineWithParent(invoiceLines, lines.flatPerUnit.ID)
 		flatPerUsage := s.lineWithParent(invoiceLines, lines.flatPerUsage.ID)
 		tieredGraduated := s.lineWithParent(invoiceLines, lines.tieredGraduated.ID)
-		tieredVolume, tieredVolumeFound := lo.Find(invoiceLines, func(l *billingentity.Line) bool {
+		tieredVolume, tieredVolumeFound := lo.Find(invoiceLines, func(l *billing.Line) bool {
 			return l.ID == lines.tieredVolume.ID
 		})
 		require.True(s.T(), tieredVolumeFound, "tiered volume line should be present")
 		require.Equal(s.T(), tieredVolume.ID, lines.tieredVolume.ID, "tiered volume line should be the same (no split occurred)")
 
-		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billingentity.Line, _ int) string {
+		require.NotContains(s.T(), lo.Map(invoiceLines, func(l *billing.Line, _ int) string {
 			return l.ID
 		}), []string{
 			flatPerUnit.ID,
@@ -1966,11 +1965,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			lines.tieredVolume.ID,
 		})
 
-		expectedPeriod := billingentity.Period{
+		expectedPeriod := billing.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}
-		for _, line := range []*billingentity.Line{flatPerUnit, flatPerUsage, tieredGraduated} {
+		for _, line := range []*billing.Line{flatPerUnit, flatPerUsage, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
 		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.Period), "period should be unchanged for the tiered volume line")
@@ -1978,18 +1977,18 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		// Let's validate the output of the split itself: no new split should have occurred
 		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, lines.tieredGraduated.ID)
 		require.True(s.T(), tieredGraduatedChildren.ParentLine.Period.Equal(lines.tieredGraduated.Period))
-		require.Equal(s.T(), billingentity.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
+		require.Equal(s.T(), billing.InvoiceLineStatusSplit, tieredGraduatedChildren.ParentLine.Status, "parent should be split [id=%s]", tieredGraduatedChildren.ParentLine.ID)
 		require.Len(s.T(), tieredGraduatedChildren.ChildLines, 3, "there should be to child lines [id=%s]", tieredGraduatedChildren.ParentLine.ID)
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[0].Period.Equal(billing.Period{
 			Start: periodStart.Truncate(time.Minute),
 			End:   periodStart.Add(time.Hour).Truncate(time.Minute),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].Period.Equal(billing.Period{
 			Start: periodStart.Add(time.Hour).Truncate(time.Minute),
 			End:   periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 		}), "second child period should be between the first and the third child's period")
 		require.True(s.T(), tieredGraduatedChildren.ChildLines[1].InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(time.Minute)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billingentity.Period{
+		require.True(s.T(), tieredGraduatedChildren.ChildLines[2].Period.Equal(billing.Period{
 			Start: periodStart.Add(2 * time.Hour).Truncate(time.Minute),
 			End:   periodEnd.Truncate(time.Minute),
 		}), "third child period should be until the end of parent's period")
@@ -2055,7 +2054,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	})
 }
 
-func (s *InvoicingTestSuite) lineWithParent(lines []*billingentity.Line, parentID string) *billingentity.Line {
+func (s *InvoicingTestSuite) lineWithParent(lines []*billing.Line, parentID string) *billing.Line {
 	s.T().Helper()
 	for _, line := range lines {
 		if line.ParentLineID != nil && *line.ParentLineID == parentID {
@@ -2068,8 +2067,8 @@ func (s *InvoicingTestSuite) lineWithParent(lines []*billingentity.Line, parentI
 }
 
 type getChlildLinesResponse struct {
-	ParentLine *billingentity.Line
-	ChildLines []*billingentity.Line
+	ParentLine *billing.Line
+	ChildLines []*billing.Line
 }
 
 func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, parentID string) getChlildLinesResponse {
@@ -2094,7 +2093,7 @@ func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, p
 		}
 	}
 
-	slices.SortFunc(response.ChildLines, func(a, b *billingentity.Line) int {
+	slices.SortFunc(response.ChildLines, func(a, b *billing.Line) int {
 		switch {
 		case a.Period.Start.Equal(b.Period.Start):
 			return 0
@@ -2110,10 +2109,10 @@ func (s *InvoicingTestSuite) getLineChildLines(ctx context.Context, ns string, p
 }
 
 type ubpPendingLines struct {
-	flatPerUnit     *billingentity.Line
-	flatPerUsage    *billingentity.Line
-	tieredGraduated *billingentity.Line
-	tieredVolume    *billingentity.Line
+	flatPerUnit     *billing.Line
+	flatPerUsage    *billing.Line
+	tieredGraduated *billing.Line
+	tieredVolume    *billing.Line
 }
 
 type ubpFeatures struct {
@@ -2133,14 +2132,14 @@ type feeLineExpect struct {
 	Discounts     map[string]float64
 }
 
-func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations lineExpectations) {
+func requireDetailedLines(t *testing.T, line *billing.Line, expectations lineExpectations) {
 	t.Helper()
 	require.NotNil(t, line)
 	children := line.Children.MustGet()
 
 	require.Len(t, children, len(expectations.Details))
 
-	detailsById := lo.GroupBy(children, func(l *billingentity.Line) string {
+	detailsById := lo.GroupBy(children, func(l *billing.Line) string {
 		return *l.ChildUniqueReferenceID
 	})
 
@@ -2148,14 +2147,14 @@ func requireDetailedLines(t *testing.T, line *billingentity.Line, expectations l
 		require.Contains(t, detailsById, key, "detail %s should be present", key)
 		detail := detailsById[key][0]
 
-		require.Equal(t, detail.Type, billingentity.InvoiceLineTypeFee, "line type should be fee")
+		require.Equal(t, detail.Type, billing.InvoiceLineTypeFee, "line type should be fee")
 		require.Equal(t, expect.Quantity, detail.FlatFee.Quantity.InexactFloat64(), "quantity should match")
 		require.Equal(t, expect.PerUnitAmount, detail.FlatFee.PerUnitAmount.InexactFloat64(), "per unit amount should match")
 
 		discounts := detail.Discounts.MustGet()
 		require.Len(t, discounts, len(expect.Discounts), "discounts should match")
 
-		discountsById := lo.GroupBy(discounts, func(d billingentity.LineDiscount) string {
+		discountsById := lo.GroupBy(discounts, func(d billing.LineDiscount) string {
 			return *d.ChildUniqueReferenceID
 		})
 
@@ -2187,7 +2186,7 @@ type expectedTotals struct {
 	Total float64 `json:"total"`
 }
 
-func requireTotals(t *testing.T, expected expectedTotals, totals billingentity.Totals) {
+func requireTotals(t *testing.T, expected expectedTotals, totals billing.Totals) {
 	t.Helper()
 	totalsFloat := expectedTotals{
 		Amount:              totals.Amount.InexactFloat64(),

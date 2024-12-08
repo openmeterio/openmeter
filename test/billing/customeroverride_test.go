@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -64,12 +63,12 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 			Namespace:  ns,
 			CustomerID: customerID,
 		})
-		require.ErrorIs(t, err, billingentity.ErrDefaultProfileNotFound)
-		require.ErrorAs(t, err, &billingentity.NotFoundError{})
+		require.ErrorIs(t, err, billing.ErrDefaultProfileNotFound)
+		require.ErrorAs(t, err, &billing.NotFoundError{})
 		require.Nil(t, profileWithOverride)
 	})
 
-	var defaultProfile *billingentity.Profile
+	var defaultProfile *billing.Profile
 
 	s.T().Run("customer with default profile, no override", func(t *testing.T) {
 		// Given having a default profile
@@ -104,16 +103,16 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 			Namespace:  ns,
 			CustomerID: customerID,
 
-			Collection: billingentity.CollectionOverrideConfig{
+			Collection: billing.CollectionOverrideConfig{
 				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 			},
-			Invoicing: billingentity.InvoicingOverrideConfig{
+			Invoicing: billing.InvoicingOverrideConfig{
 				AutoAdvance: lo.ToPtr(false),
 				DraftPeriod: lo.ToPtr(datex.MustParse(s.T(), "PT2H")),
 				DueAfter:    lo.ToPtr(datex.MustParse(s.T(), "PT3H")),
 			},
-			Payment: billingentity.PaymentOverrideConfig{
-				CollectionMethod: lo.ToPtr(billingentity.CollectionMethodSendInvoice),
+			Payment: billing.PaymentOverrideConfig{
+				CollectionMethod: lo.ToPtr(billing.CollectionMethodSendInvoice),
 			},
 		})
 
@@ -135,7 +134,7 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 		require.Equal(t, wfConfig.Invoicing.AutoAdvance, false)
 		require.Equal(t, wfConfig.Invoicing.DraftPeriod, datex.MustParse(t, "PT2H"))
 		require.Equal(t, wfConfig.Invoicing.DueAfter, datex.MustParse(t, "PT3H"))
-		require.Equal(t, wfConfig.Payment.CollectionMethod, billingentity.CollectionMethodSendInvoice)
+		require.Equal(t, wfConfig.Payment.CollectionMethod, billing.CollectionMethodSendInvoice)
 	})
 }
 
@@ -172,8 +171,8 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 			Namespace:  ns,
 			CustomerID: customerID,
 		})
-		require.ErrorIs(t, err, billingentity.ErrDefaultProfileNotFound)
-		require.ErrorAs(t, err, &billingentity.NotFoundError{})
+		require.ErrorIs(t, err, billing.ErrDefaultProfileNotFound)
+		require.ErrorAs(t, err, &billing.NotFoundError{})
 		require.Nil(t, profileWithOverride)
 	})
 
@@ -184,7 +183,7 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 			CustomerID: customerID,
 			ProfileID:  pinnedProfile.ID,
 
-			Collection: billingentity.CollectionOverrideConfig{
+			Collection: billing.CollectionOverrideConfig{
 				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 			},
 		})
@@ -207,7 +206,7 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 		require.Equal(t, wfConfig.Invoicing.AutoAdvance, true)
 		require.Equal(t, wfConfig.Invoicing.DraftPeriod, lo.Must(datex.ISOString("P1D").Parse()))
 		require.Equal(t, wfConfig.Invoicing.DueAfter, lo.Must(datex.ISOString("P1W").Parse()))
-		require.Equal(t, wfConfig.Payment.CollectionMethod, billingentity.CollectionMethodChargeAutomatically)
+		require.Equal(t, wfConfig.Payment.CollectionMethod, billing.CollectionMethodChargeAutomatically)
 	})
 }
 
@@ -235,7 +234,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 		})
 
 		// Then we get a NotFoundError
-		require.ErrorAs(t, err, &billingentity.NotFoundError{})
+		require.ErrorAs(t, err, &billing.NotFoundError{})
 	})
 
 	profileInput := minimalCreateProfileInputTemplate
@@ -251,7 +250,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 			Namespace:  ns,
 			CustomerID: customer.ID,
 
-			Collection: billingentity.CollectionOverrideConfig{
+			Collection: billing.CollectionOverrideConfig{
 				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1234H")),
 			},
 		})
@@ -286,7 +285,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 		})
 
 		// Then we get a NotFoundError
-		require.ErrorAs(t, err, &billingentity.NotFoundError{})
+		require.ErrorAs(t, err, &billing.NotFoundError{})
 
 		// When creating the override again
 		// Note: this is an implicit update test
@@ -294,7 +293,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 			Namespace:  ns,
 			CustomerID: customer.ID,
 
-			Collection: billingentity.CollectionOverrideConfig{
+			Collection: billing.CollectionOverrideConfig{
 				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT48H")),
 			},
 		})
@@ -381,7 +380,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 		Namespace:  ns,
 		CustomerID: customer.ID,
 
-		Collection: billingentity.CollectionOverrideConfig{
+		Collection: billing.CollectionOverrideConfig{
 			Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
 		},
 	})
@@ -394,7 +393,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 		CustomerID: customer.ID,
 		UpdatedAt:  createdCustomerOverride.UpdatedAt,
 
-		Collection: billingentity.CollectionOverrideConfig{
+		Collection: billing.CollectionOverrideConfig{
 			Interval: nil,
 		},
 	})

@@ -2,8 +2,6 @@ package billing
 
 import (
 	"context"
-
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 )
 
 type Service interface {
@@ -14,27 +12,27 @@ type Service interface {
 }
 
 type ProfileService interface {
-	CreateProfile(ctx context.Context, param CreateProfileInput) (*billingentity.Profile, error)
-	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*billingentity.Profile, error)
-	GetProfile(ctx context.Context, input GetProfileInput) (*billingentity.Profile, error)
+	CreateProfile(ctx context.Context, param CreateProfileInput) (*Profile, error)
+	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*Profile, error)
+	GetProfile(ctx context.Context, input GetProfileInput) (*Profile, error)
 	ListProfiles(ctx context.Context, input ListProfilesInput) (ListProfilesResult, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
-	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*billingentity.Profile, error)
+	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*Profile, error)
 }
 
 type CustomerOverrideService interface {
-	CreateCustomerOverride(ctx context.Context, input CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error)
-	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideInput) (*billingentity.CustomerOverride, error)
-	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (*billingentity.CustomerOverride, error)
+	CreateCustomerOverride(ctx context.Context, input CreateCustomerOverrideInput) (*CustomerOverride, error)
+	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideInput) (*CustomerOverride, error)
+	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (*CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
-	GetProfileWithCustomerOverride(ctx context.Context, input GetProfileWithCustomerOverrideInput) (*billingentity.ProfileWithCustomerDetails, error)
+	GetProfileWithCustomerOverride(ctx context.Context, input GetProfileWithCustomerOverrideInput) (*ProfileWithCustomerDetails, error)
 }
 
 type InvoiceLineService interface {
-	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*billingentity.Line, error)
-	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*billingentity.Line, error)
-	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*billingentity.Line, error)
+	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*Line, error)
+	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*Line, error)
+	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*Line, error)
 	DeleteInvoiceLine(ctx context.Context, input DeleteInvoiceLineInput) error
 
 	ValidateLineOwnership(ctx context.Context, input ValidateLineOwnershipInput) error
@@ -42,15 +40,15 @@ type InvoiceLineService interface {
 
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
-	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (billingentity.Invoice, error)
-	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]billingentity.Invoice, error)
+	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
+	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]Invoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
 	// - an error is occurred
 	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
 	// - the invoice is advanced to the final state
-	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (billingentity.Invoice, error)
-	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (billingentity.Invoice, error)
-	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (billingentity.Invoice, error)
+	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (Invoice, error)
+	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (Invoice, error)
+	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
 
 	ValidateInvoiceOwnership(ctx context.Context, input ValidateInvoiceOwnershipInput) error

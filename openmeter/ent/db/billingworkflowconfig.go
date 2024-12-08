@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -30,7 +30,7 @@ type BillingWorkflowConfig struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
-	CollectionAlignment billingentity.AlignmentKind `json:"collection_alignment,omitempty"`
+	CollectionAlignment billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// LineCollectionPeriod holds the value of the "line_collection_period" field.
 	LineCollectionPeriod datex.ISOString `json:"line_collection_period,omitempty"`
 	// InvoiceAutoAdvance holds the value of the "invoice_auto_advance" field.
@@ -40,7 +40,7 @@ type BillingWorkflowConfig struct {
 	// InvoiceDueAfter holds the value of the "invoice_due_after" field.
 	InvoiceDueAfter datex.ISOString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
-	InvoiceCollectionMethod billingentity.CollectionMethod `json:"invoice_collection_method,omitempty"`
+	InvoiceCollectionMethod billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingWorkflowConfigQuery when eager-loading is set.
 	Edges        BillingWorkflowConfigEdges `json:"edges"`
@@ -141,7 +141,7 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_alignment", values[i])
 			} else if value.Valid {
-				bwc.CollectionAlignment = billingentity.AlignmentKind(value.String)
+				bwc.CollectionAlignment = billing.AlignmentKind(value.String)
 			}
 		case billingworkflowconfig.FieldLineCollectionPeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -171,7 +171,7 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_collection_method", values[i])
 			} else if value.Valid {
-				bwc.InvoiceCollectionMethod = billingentity.CollectionMethod(value.String)
+				bwc.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
 			}
 		default:
 			bwc.selectValues.Set(columns[i], values[i])

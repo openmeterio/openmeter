@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -44,13 +44,13 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillablePerUnitAmount(a
 }
 
 // SetCategory sets the "category" field.
-func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetCategory(bfc billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetCategory(bfc billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
 	bifflcu.mutation.SetCategory(bfc)
 	return bifflcu
 }
 
 // SetNillableCategory sets the "category" field if the given value is not nil.
-func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableCategory(bfc *billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableCategory(bfc *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdate {
 	if bfc != nil {
 		bifflcu.SetCategory(*bfc)
 	}
@@ -152,13 +152,13 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillablePerUnitAmou
 }
 
 // SetCategory sets the "category" field.
-func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetCategory(bfc billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetCategory(bfc billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	bifflcuo.mutation.SetCategory(bfc)
 	return bifflcuo
 }
 
 // SetNillableCategory sets the "category" field if the given value is not nil.
-func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableCategory(bfc *billingentity.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableCategory(bfc *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	if bfc != nil {
 		bifflcuo.SetCategory(*bfc)
 	}

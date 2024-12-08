@@ -8,18 +8,18 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 type validationIssueWithDedupe struct {
-	issue billingentity.ValidationIssue
+	issue billing.ValidationIssue
 	hash  []byte
 }
 
-func issueDedupeHash(issue billingentity.ValidationIssue) []byte {
+func issueDedupeHash(issue billing.ValidationIssue) []byte {
 	algo := sha256.New()
 
 	algo.Write([]byte(issue.Severity))
@@ -33,8 +33,8 @@ func issueDedupeHash(issue billingentity.ValidationIssue) []byte {
 // persistValidationIssues persists the validation issues for the given invoice, it will remove any
 // existing issues that are not present in the new list. It relies on consistent hashing to deduplicate
 // issues.
-func (a *adapter) persistValidationIssues(ctx context.Context, invoice billingentity.InvoiceID, issues []billingentity.ValidationIssue) error {
-	hashedIssues := lo.Map(issues, func(issue billingentity.ValidationIssue, _ int) validationIssueWithDedupe {
+func (a *adapter) persistValidationIssues(ctx context.Context, invoice billing.InvoiceID, issues []billing.ValidationIssue) error {
+	hashedIssues := lo.Map(issues, func(issue billing.ValidationIssue, _ int) validationIssueWithDedupe {
 		return validationIssueWithDedupe{
 			issue: issue,
 			hash:  issueDedupeHash(issue),
@@ -87,7 +87,7 @@ func (a *adapter) persistValidationIssues(ctx context.Context, invoice billingen
 }
 
 type ValidationIssueWithDBMeta struct {
-	billingentity.ValidationIssue
+	billing.ValidationIssue
 
 	ID        string
 	DeletedAt *time.Time
@@ -96,7 +96,7 @@ type ValidationIssueWithDBMeta struct {
 // IntropectValidationIssues returns the validation issues for the given invoice, this is not
 // exposed via the adpter interface, as it's only used by tests to validate the state of the
 // database.
-func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billingentity.InvoiceID) ([]ValidationIssueWithDBMeta, error) {
+func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) ([]ValidationIssueWithDBMeta, error) {
 	issues, err := a.db.BillingInvoiceValidationIssue.Query().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).
 		Where(billinginvoicevalidationissue.Namespace(invoice.Namespace)).
@@ -108,11 +108,11 @@ func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billin
 
 	return lo.Map(issues, func(issue *db.BillingInvoiceValidationIssue, _ int) ValidationIssueWithDBMeta {
 		return ValidationIssueWithDBMeta{
-			ValidationIssue: billingentity.ValidationIssue{
+			ValidationIssue: billing.ValidationIssue{
 				Severity:  issue.Severity,
 				Message:   issue.Message,
 				Code:      lo.FromPtrOr(issue.Code, ""),
-				Component: billingentity.ComponentName(issue.Component),
+				Component: billing.ComponentName(issue.Component),
 				Path:      lo.FromPtrOr(issue.Path, ""),
 			},
 			ID:        issue.ID,

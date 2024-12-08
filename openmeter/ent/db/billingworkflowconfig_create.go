@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -76,7 +76,7 @@ func (bwcc *BillingWorkflowConfigCreate) SetNillableDeletedAt(t *time.Time) *Bil
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bwcc *BillingWorkflowConfigCreate) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingWorkflowConfigCreate {
+func (bwcc *BillingWorkflowConfigCreate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetCollectionAlignment(bk)
 	return bwcc
 }
@@ -106,7 +106,7 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDueAfter(ds datex.ISOString) 
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bwcc *BillingWorkflowConfigCreate) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingWorkflowConfigCreate {
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetInvoiceCollectionMethod(bm)
 	return bwcc
 }
@@ -447,7 +447,7 @@ func (u *BillingWorkflowConfigUpsert) ClearDeletedAt() *BillingWorkflowConfigUps
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (u *BillingWorkflowConfigUpsert) SetCollectionAlignment(v billingentity.AlignmentKind) *BillingWorkflowConfigUpsert {
+func (u *BillingWorkflowConfigUpsert) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldCollectionAlignment, v)
 	return u
 }
@@ -507,7 +507,7 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDueAfter() *BillingWorkflowCo
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceCollectionMethod(v billingentity.CollectionMethod) *BillingWorkflowConfigUpsert {
+func (u *BillingWorkflowConfigUpsert) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldInvoiceCollectionMethod, v)
 	return u
 }
@@ -608,7 +608,7 @@ func (u *BillingWorkflowConfigUpsertOne) ClearDeletedAt() *BillingWorkflowConfig
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (u *BillingWorkflowConfigUpsertOne) SetCollectionAlignment(v billingentity.AlignmentKind) *BillingWorkflowConfigUpsertOne {
+func (u *BillingWorkflowConfigUpsertOne) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetCollectionAlignment(v)
 	})
@@ -678,7 +678,7 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDueAfter() *BillingWorkflo
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceCollectionMethod(v billingentity.CollectionMethod) *BillingWorkflowConfigUpsertOne {
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetInvoiceCollectionMethod(v)
 	})
@@ -948,7 +948,7 @@ func (u *BillingWorkflowConfigUpsertBulk) ClearDeletedAt() *BillingWorkflowConfi
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetCollectionAlignment(v billingentity.AlignmentKind) *BillingWorkflowConfigUpsertBulk {
+func (u *BillingWorkflowConfigUpsertBulk) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetCollectionAlignment(v)
 	})
@@ -1018,7 +1018,7 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDueAfter() *BillingWorkfl
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceCollectionMethod(v billingentity.CollectionMethod) *BillingWorkflowConfigUpsertBulk {
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.SetInvoiceCollectionMethod(v)
 	})

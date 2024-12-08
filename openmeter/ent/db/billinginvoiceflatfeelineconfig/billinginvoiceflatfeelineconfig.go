@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 const (
@@ -49,10 +49,10 @@ var (
 	DefaultID func() string
 )
 
-const DefaultCategory billingentity.FlatFeeCategory = "regular"
+const DefaultCategory billing.FlatFeeCategory = "regular"
 
 // CategoryValidator is a validator for the "category" field enum values. It is called by the builders before save.
-func CategoryValidator(c billingentity.FlatFeeCategory) error {
+func CategoryValidator(c billing.FlatFeeCategory) error {
 	switch c {
 	case "regular", "commitment":
 		return nil

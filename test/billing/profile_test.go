@@ -11,7 +11,6 @@ import (
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -20,22 +19,22 @@ var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	Name:    "Awesome Profile",
 	Default: true,
 
-	WorkflowConfig: billingentity.WorkflowConfig{
-		Collection: billingentity.CollectionConfig{
-			Alignment: billingentity.AlignmentKindSubscription,
+	WorkflowConfig: billing.WorkflowConfig{
+		Collection: billing.CollectionConfig{
+			Alignment: billing.AlignmentKindSubscription,
 			Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
 		},
-		Invoicing: billingentity.InvoicingConfig{
+		Invoicing: billing.InvoicingConfig{
 			AutoAdvance: true,
 			DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
 			DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
 		},
-		Payment: billingentity.PaymentConfig{
-			CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+		Payment: billing.PaymentConfig{
+			CollectionMethod: billing.CollectionMethodChargeAutomatically,
 		},
 	},
 
-	Supplier: billingentity.SupplierContact{
+	Supplier: billing.SupplierContact{
 		Name: "Awesome Supplier",
 		Address: models.Address{
 			Country: lo.ToPtr(models.CountryCode("US")),
@@ -43,13 +42,13 @@ var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	},
 
 	Apps: billing.CreateProfileAppsInput{
-		Invoicing: billingentity.AppReference{
+		Invoicing: billing.AppReference{
 			Type: appentitybase.AppTypeSandbox,
 		},
-		Payment: billingentity.AppReference{
+		Payment: billing.AppReference{
 			Type: appentitybase.AppTypeSandbox,
 		},
-		Tax: billingentity.AppReference{
+		Tax: billing.AppReference{
 			Type: appentitybase.AppTypeSandbox,
 		},
 	},
@@ -77,7 +76,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.Nil(t, defaultProfile)
 	})
 
-	var profile *billingentity.Profile
+	var profile *billing.Profile
 	var err error
 
 	minimalCreateProfileInput := minimalCreateProfileInputTemplate
@@ -107,7 +106,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	s.T().Run("creating a second default profile fails", func(t *testing.T) {
 		_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 		require.Error(t, err)
-		require.ErrorIs(t, err, billingentity.ErrDefaultProfileAlreadyExists)
+		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
 	})
 
 	s.T().Run("fetching the profile by id", func(t *testing.T) {
@@ -135,7 +134,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 			require.ErrorIs(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
 				Namespace: ns,
 				ID:        profile.ID,
-			}), billingentity.ErrProfileAlreadyDeleted)
+			}), billing.ErrProfileAlreadyDeleted)
 		})
 
 		t.Run("fetching a deleted profile by id returns the profile", func(t *testing.T) {
@@ -175,22 +174,22 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 			"key": "value",
 		},
 
-		WorkflowConfig: billingentity.WorkflowConfig{
-			Collection: billingentity.CollectionConfig{
-				Alignment: billingentity.AlignmentKindSubscription,
+		WorkflowConfig: billing.WorkflowConfig{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
 				Interval:  datex.MustParse(t, "PT30M"),
 			},
-			Invoicing: billingentity.InvoicingConfig{
+			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
 				DraftPeriod: datex.MustParse(t, "PT1H"),
 				DueAfter:    datex.MustParse(t, "PT24H"),
 			},
-			Payment: billingentity.PaymentConfig{
-				CollectionMethod: billingentity.CollectionMethodSendInvoice,
+			Payment: billing.PaymentConfig{
+				CollectionMethod: billing.CollectionMethodSendInvoice,
 			},
 		},
 
-		Supplier: billingentity.SupplierContact{
+		Supplier: billing.SupplierContact{
 			Name: "Awesome Supplier",
 			Address: models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),
@@ -204,13 +203,13 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		},
 
 		Apps: billing.CreateProfileAppsInput{
-			Invoicing: billingentity.AppReference{
+			Invoicing: billing.AppReference{
 				Type: appentitybase.AppTypeSandbox,
 			},
-			Payment: billingentity.AppReference{
+			Payment: billing.AppReference{
 				Type: appentitybase.AppTypeSandbox,
 			},
-			Tax: billingentity.AppReference{
+			Tax: billing.AppReference{
 				Type: appentitybase.AppTypeSandbox,
 			},
 		},
@@ -239,8 +238,8 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	require.Equal(s.T(), profile, fetchedProfile)
 
 	// let's add the db derived fields to the input
-	expectedProfile := billingentity.Profile{
-		BaseProfile: billingentity.BaseProfile{
+	expectedProfile := billing.Profile{
+		BaseProfile: billing.BaseProfile{
 			ID: profile.ID,
 
 			Namespace:   input.Namespace,
@@ -288,22 +287,22 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		Apps: minimalCreateProfileInputTemplate.Apps,
 
-		WorkflowConfig: billingentity.WorkflowConfig{
-			Collection: billingentity.CollectionConfig{
-				Alignment: billingentity.AlignmentKindSubscription,
+		WorkflowConfig: billing.WorkflowConfig{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
 				Interval:  datex.MustParse(s.T(), "PT30M"),
 			},
-			Invoicing: billingentity.InvoicingConfig{
+			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
 				DraftPeriod: datex.MustParse(s.T(), "PT1H"),
 				DueAfter:    datex.MustParse(s.T(), "PT24H"),
 			},
-			Payment: billingentity.PaymentConfig{
-				CollectionMethod: billingentity.CollectionMethodSendInvoice,
+			Payment: billing.PaymentConfig{
+				CollectionMethod: billing.CollectionMethodSendInvoice,
 			},
 		},
 
-		Supplier: billingentity.SupplierContact{
+		Supplier: billing.SupplierContact{
 			Name: "Awesome Supplier",
 			Address: models.Address{
 				Country:     lo.ToPtr(models.CountryCode("US")),
@@ -351,23 +350,23 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 			UpdatedAt: profile.UpdatedAt,
 
-			WorkflowConfig: billingentity.WorkflowConfig{
+			WorkflowConfig: billing.WorkflowConfig{
 				CreatedAt: profile.WorkflowConfig.CreatedAt,
-				Collection: billingentity.CollectionConfig{
-					Alignment: billingentity.AlignmentKindSubscription,
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
 					Interval:  datex.MustParse(s.T(), "PT30M"),
 				},
-				Invoicing: billingentity.InvoicingConfig{
+				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
 					DraftPeriod: datex.MustParse(s.T(), "PT2H"),
 					DueAfter:    datex.MustParse(s.T(), "PT48H"),
 				},
-				Payment: billingentity.PaymentConfig{
-					CollectionMethod: billingentity.CollectionMethodChargeAutomatically,
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
 
-			Supplier: billingentity.SupplierContact{
+			Supplier: billing.SupplierContact{
 				Name: "Awesome Supplier [update]",
 				Address: models.Address{
 					Country:     lo.ToPtr(models.CountryCode("HU")),
@@ -391,8 +390,8 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		require.NotEqual(t, fetchedProfile.UpdatedAt, updatedProfile.UpdatedAt, "the new updated at is returned")
 
 		// Set up DB only fields
-		expectedOutput := billingentity.Profile{
-			BaseProfile: billingentity.BaseProfile{
+		expectedOutput := billing.Profile{
+			BaseProfile: billing.BaseProfile{
 				ID:          updateInput.ID,
 				Namespace:   updateInput.Namespace,
 				CreatedAt:   fetchedProfile.CreatedAt,

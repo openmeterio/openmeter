@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -2252,19 +2252,19 @@ func NumberContainsFold(v string) predicate.BillingInvoice {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billingentity.InvoiceType) predicate.BillingInvoice {
+func TypeEQ(v billing.InvoiceType) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billingentity.InvoiceType) predicate.BillingInvoice {
+func TypeNEQ(v billing.InvoiceType) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billingentity.InvoiceType) predicate.BillingInvoice {
+func TypeIn(vs ...billing.InvoiceType) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -2273,7 +2273,7 @@ func TypeIn(vs ...billingentity.InvoiceType) predicate.BillingInvoice {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billingentity.InvoiceType) predicate.BillingInvoice {
+func TypeNotIn(vs ...billing.InvoiceType) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -2771,19 +2771,19 @@ func DueAtNotNil() predicate.BillingInvoice {
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v billingentity.InvoiceStatus) predicate.BillingInvoice {
+func StatusEQ(v billing.InvoiceStatus) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v billingentity.InvoiceStatus) predicate.BillingInvoice {
+func StatusNEQ(v billing.InvoiceStatus) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...billingentity.InvoiceStatus) predicate.BillingInvoice {
+func StatusIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -2792,7 +2792,7 @@ func StatusIn(vs ...billingentity.InvoiceStatus) predicate.BillingInvoice {
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...billingentity.InvoiceStatus) predicate.BillingInvoice {
+func StatusNotIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -186,13 +186,13 @@ func (bilc *BillingInvoiceLineCreate) SetInvoiceAt(t time.Time) *BillingInvoiceL
 }
 
 // SetType sets the "type" field.
-func (bilc *BillingInvoiceLineCreate) SetType(blt billingentity.InvoiceLineType) *BillingInvoiceLineCreate {
+func (bilc *BillingInvoiceLineCreate) SetType(blt billing.InvoiceLineType) *BillingInvoiceLineCreate {
 	bilc.mutation.SetType(blt)
 	return bilc
 }
 
 // SetStatus sets the "status" field.
-func (bilc *BillingInvoiceLineCreate) SetStatus(bls billingentity.InvoiceLineStatus) *BillingInvoiceLineCreate {
+func (bilc *BillingInvoiceLineCreate) SetStatus(bls billing.InvoiceLineStatus) *BillingInvoiceLineCreate {
 	bilc.mutation.SetStatus(bls)
 	return bilc
 }
@@ -1003,7 +1003,7 @@ func (u *BillingInvoiceLineUpsert) UpdateInvoiceAt() *BillingInvoiceLineUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceLineUpsert) SetStatus(v billingentity.InvoiceLineStatus) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldStatus, v)
 	return u
 }
@@ -1413,7 +1413,7 @@ func (u *BillingInvoiceLineUpsertOne) UpdateInvoiceAt() *BillingInvoiceLineUpser
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceLineUpsertOne) SetStatus(v billingentity.InvoiceLineStatus) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetStatus(v)
 	})
@@ -2004,7 +2004,7 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateInvoiceAt() *BillingInvoiceLineUpse
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceLineUpsertBulk) SetStatus(v billingentity.InvoiceLineStatus) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetStatus(v)
 	})

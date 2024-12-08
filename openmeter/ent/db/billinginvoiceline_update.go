@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -282,13 +282,13 @@ func (bilu *BillingInvoiceLineUpdate) SetNillableInvoiceAt(t *time.Time) *Billin
 }
 
 // SetStatus sets the "status" field.
-func (bilu *BillingInvoiceLineUpdate) SetStatus(bls billingentity.InvoiceLineStatus) *BillingInvoiceLineUpdate {
+func (bilu *BillingInvoiceLineUpdate) SetStatus(bls billing.InvoiceLineStatus) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetStatus(bls)
 	return bilu
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (bilu *BillingInvoiceLineUpdate) SetNillableStatus(bls *billingentity.InvoiceLineStatus) *BillingInvoiceLineUpdate {
+func (bilu *BillingInvoiceLineUpdate) SetNillableStatus(bls *billing.InvoiceLineStatus) *BillingInvoiceLineUpdate {
 	if bls != nil {
 		bilu.SetStatus(*bls)
 	}
@@ -1150,13 +1150,13 @@ func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoiceAt(t *time.Time) *Bi
 }
 
 // SetStatus sets the "status" field.
-func (biluo *BillingInvoiceLineUpdateOne) SetStatus(bls billingentity.InvoiceLineStatus) *BillingInvoiceLineUpdateOne {
+func (biluo *BillingInvoiceLineUpdateOne) SetStatus(bls billing.InvoiceLineStatus) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetStatus(bls)
 	return biluo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (biluo *BillingInvoiceLineUpdateOne) SetNillableStatus(bls *billingentity.InvoiceLineStatus) *BillingInvoiceLineUpdateOne {
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableStatus(bls *billing.InvoiceLineStatus) *BillingInvoiceLineUpdateOne {
 	if bls != nil {
 		biluo.SetStatus(*bls)
 	}

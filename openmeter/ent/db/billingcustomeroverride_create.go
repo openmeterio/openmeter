@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -96,13 +96,13 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableBillingProfileID(s *string
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (bcoc *BillingCustomerOverrideCreate) SetCollectionAlignment(bk billingentity.AlignmentKind) *BillingCustomerOverrideCreate {
+func (bcoc *BillingCustomerOverrideCreate) SetCollectionAlignment(bk billing.AlignmentKind) *BillingCustomerOverrideCreate {
 	bcoc.mutation.SetCollectionAlignment(bk)
 	return bcoc
 }
 
 // SetNillableCollectionAlignment sets the "collection_alignment" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(bk *billingentity.AlignmentKind) *BillingCustomerOverrideCreate {
+func (bcoc *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(bk *billing.AlignmentKind) *BillingCustomerOverrideCreate {
 	if bk != nil {
 		bcoc.SetCollectionAlignment(*bk)
 	}
@@ -166,13 +166,13 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfter(ds *datex.
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceCollectionMethod(bm billingentity.CollectionMethod) *BillingCustomerOverrideCreate {
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceCollectionMethod(bm billing.CollectionMethod) *BillingCustomerOverrideCreate {
 	bcoc.mutation.SetInvoiceCollectionMethod(bm)
 	return bcoc
 }
 
 // SetNillableInvoiceCollectionMethod sets the "invoice_collection_method" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceCollectionMethod(bm *billingentity.CollectionMethod) *BillingCustomerOverrideCreate {
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceCollectionMethod(bm *billing.CollectionMethod) *BillingCustomerOverrideCreate {
 	if bm != nil {
 		bcoc.SetInvoiceCollectionMethod(*bm)
 	}
@@ -495,7 +495,7 @@ func (u *BillingCustomerOverrideUpsert) ClearBillingProfileID() *BillingCustomer
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (u *BillingCustomerOverrideUpsert) SetCollectionAlignment(v billingentity.AlignmentKind) *BillingCustomerOverrideUpsert {
+func (u *BillingCustomerOverrideUpsert) SetCollectionAlignment(v billing.AlignmentKind) *BillingCustomerOverrideUpsert {
 	u.Set(billingcustomeroverride.FieldCollectionAlignment, v)
 	return u
 }
@@ -585,7 +585,7 @@ func (u *BillingCustomerOverrideUpsert) ClearInvoiceDueAfter() *BillingCustomerO
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (u *BillingCustomerOverrideUpsert) SetInvoiceCollectionMethod(v billingentity.CollectionMethod) *BillingCustomerOverrideUpsert {
+func (u *BillingCustomerOverrideUpsert) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingCustomerOverrideUpsert {
 	u.Set(billingcustomeroverride.FieldInvoiceCollectionMethod, v)
 	return u
 }
@@ -716,7 +716,7 @@ func (u *BillingCustomerOverrideUpsertOne) ClearBillingProfileID() *BillingCusto
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (u *BillingCustomerOverrideUpsertOne) SetCollectionAlignment(v billingentity.AlignmentKind) *BillingCustomerOverrideUpsertOne {
+func (u *BillingCustomerOverrideUpsertOne) SetCollectionAlignment(v billing.AlignmentKind) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetCollectionAlignment(v)
 	})
@@ -821,7 +821,7 @@ func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDueAfter() *BillingCustom
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (u *BillingCustomerOverrideUpsertOne) SetInvoiceCollectionMethod(v billingentity.CollectionMethod) *BillingCustomerOverrideUpsertOne {
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetInvoiceCollectionMethod(v)
 	})
@@ -1122,7 +1122,7 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearBillingProfileID() *BillingCust
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetCollectionAlignment(v billingentity.AlignmentKind) *BillingCustomerOverrideUpsertBulk {
+func (u *BillingCustomerOverrideUpsertBulk) SetCollectionAlignment(v billing.AlignmentKind) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetCollectionAlignment(v)
 	})
@@ -1227,7 +1227,7 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDueAfter() *BillingCusto
 }
 
 // SetInvoiceCollectionMethod sets the "invoice_collection_method" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceCollectionMethod(v billingentity.CollectionMethod) *BillingCustomerOverrideUpsertBulk {
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceCollectionMethod(v billing.CollectionMethod) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetInvoiceCollectionMethod(v)
 	})

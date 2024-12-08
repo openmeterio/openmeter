@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
@@ -19,9 +19,9 @@ const (
 )
 
 var (
-	_ customerapp.App            = (*App)(nil)
-	_ billingentity.InvoicingApp = (*App)(nil)
-	_ appentity.CustomerData     = (*CustomerData)(nil)
+	_ customerapp.App        = (*App)(nil)
+	_ billing.InvoicingApp   = (*App)(nil)
+	_ appentity.CustomerData = (*CustomerData)(nil)
 )
 
 type App struct {
@@ -48,11 +48,11 @@ func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppIn
 	return nil
 }
 
-func (a App) ValidateInvoice(ctx context.Context, invoice billingentity.Invoice) error {
+func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
 	return nil
 }
 
-func (a App) UpsertInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.UpsertInvoiceResult, error) {
+func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
 	id, err := ulid.Parse(invoice.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse invoice ID: %w", err)
@@ -60,17 +60,17 @@ func (a App) UpsertInvoice(ctx context.Context, invoice billingentity.Invoice) (
 
 	idTime := ulid.Time(id.Time())
 
-	out := billingentity.NewUpsertInvoiceResult()
+	out := billing.NewUpsertInvoiceResult()
 	out.SetInvoiceNumber(fmt.Sprintf("SANDBOX-%s", idTime.Format(InvoiceTSFormat)))
 
-	return billingentity.NewUpsertInvoiceResult(), nil
+	return billing.NewUpsertInvoiceResult(), nil
 }
 
-func (a App) FinalizeInvoice(ctx context.Context, invoice billingentity.Invoice) (*billingentity.FinalizeInvoiceResult, error) {
+func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
 	return nil, nil
 }
 
-func (a App) DeleteInvoice(ctx context.Context, invoice billingentity.Invoice) error {
+func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 	return nil
 }
 

@@ -7,7 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 var _ Line = (*feeLine)(nil)
@@ -20,7 +20,7 @@ func (l feeLine) PrepareForCreate(context.Context) (Line, error) {
 	return &l, nil
 }
 
-func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billingentity.Period, error) {
+func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billing.Period, error) {
 	if !t.Before(l.line.InvoiceAt) {
 		return &l.line.Period, nil
 	}
@@ -28,7 +28,7 @@ func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billingenti
 	return nil, nil
 }
 
-func (l feeLine) SnapshotQuantity(context.Context, *billingentity.Invoice) error {
+func (l feeLine) SnapshotQuantity(context.Context, *billing.Invoice) error {
 	return nil
 }
 
@@ -44,10 +44,10 @@ func (l *feeLine) UpdateTotals() error {
 	}
 
 	// Calculate the line totals
-	totals := billingentity.Totals{
+	totals := billing.Totals{
 		DiscountsTotal: calc.RoundToPrecision(
 			alpacadecimal.Sum(alpacadecimal.Zero,
-				lo.Map(l.line.Discounts.OrEmpty(), func(d billingentity.LineDiscount, _ int) alpacadecimal.Decimal {
+				lo.Map(l.line.Discounts.OrEmpty(), func(d billing.LineDiscount, _ int) alpacadecimal.Decimal {
 					return d.Amount
 				})...,
 			),
@@ -62,7 +62,7 @@ func (l *feeLine) UpdateTotals() error {
 	amount := calc.RoundToPrecision(l.line.FlatFee.PerUnitAmount.Mul(l.line.FlatFee.Quantity))
 
 	switch l.line.FlatFee.Category {
-	case billingentity.FlatFeeCategoryCommitment:
+	case billing.FlatFeeCategoryCommitment:
 		totals.ChargesTotal = amount
 	default:
 		totals.Amount = amount

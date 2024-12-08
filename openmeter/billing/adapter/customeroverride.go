@@ -9,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingentity "github.com/openmeterio/openmeter/openmeter/billing/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -19,8 +18,8 @@ import (
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billingentity.CustomerOverride, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.CustomerOverride, error) {
+func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billing.CustomerOverride, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
 		_, err := tx.db.BillingCustomerOverride.Create().
 			SetNamespace(input.Namespace).
 			SetCustomerID(input.CustomerID).
@@ -46,17 +45,17 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 	})
 }
 
-func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billingentity.CustomerOverride, error) {
+func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
 		if input.ProfileID == "" {
 			// Let's resolve the default profile
 			defaultProfile, err := tx.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 				Namespace: input.Namespace,
 			})
 			if err != nil {
-				return nil, billingentity.NotFoundError{
-					Entity: billingentity.EntityDefaultProfile,
-					Err:    billingentity.ErrDefaultProfileNotFound,
+				return nil, billing.NotFoundError{
+					Entity: billing.EntityDefaultProfile,
+					Err:    billing.ErrDefaultProfileNotFound,
 				}
 			}
 
@@ -82,10 +81,10 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 		}
 
 		if linesAffected == 0 {
-			return nil, billingentity.NotFoundError{
+			return nil, billing.NotFoundError{
 				ID:     input.CustomerID,
-				Entity: billingentity.EntityCustomerOverride,
-				Err:    billingentity.ErrCustomerOverrideNotFound,
+				Entity: billing.EntityCustomerOverride,
+				Err:    billing.ErrCustomerOverrideNotFound,
 			}
 		}
 
@@ -98,7 +97,7 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 	})
 }
 
-func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billingentity.CustomerOverride, error) {
+func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
 	query := a.db.BillingCustomerOverride.Query().
 		Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 		Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
@@ -121,10 +120,10 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	if dbCustomerOverride.Edges.Customer == nil {
-		return nil, billingentity.NotFoundError{
+		return nil, billing.NotFoundError{
 			ID:     input.Customer.ID,
-			Entity: billingentity.EntityCustomer,
-			Err:    billingentity.ErrCustomerNotFound,
+			Entity: billing.EntityCustomer,
+			Err:    billing.ErrCustomerNotFound,
 		}
 	}
 
@@ -140,10 +139,10 @@ func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 		Save(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return billingentity.NotFoundError{
+			return billing.NotFoundError{
 				ID:     input.CustomerID,
-				Entity: billingentity.EntityCustomerOverride,
-				Err:    billingentity.ErrCustomerOverrideNotFound,
+				Entity: billing.EntityCustomerOverride,
+				Err:    billing.ErrCustomerOverrideNotFound,
 			}
 		}
 
@@ -151,10 +150,10 @@ func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	}
 
 	if rowsAffected == 0 {
-		return billingentity.NotFoundError{
+		return billing.NotFoundError{
 			ID:     input.CustomerID,
-			Entity: billingentity.EntityCustomerOverride,
-			Err:    billingentity.ErrCustomerOverrideNotFound,
+			Entity: billing.EntityCustomerOverride,
+			Err:    billing.ErrCustomerOverrideNotFound,
 		}
 	}
 
@@ -216,7 +215,7 @@ func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockC
 	})
 }
 
-func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billingentity.CustomerOverride, error) {
+func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing.CustomerOverride, error) {
 	collectionInterval, err := dbOverride.LineCollectionPeriod.ParsePtrOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse collection.interval: %w", err)
@@ -237,14 +236,14 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 		return nil, fmt.Errorf("cannot map profile: %w", err)
 	}
 
-	var profile *billingentity.Profile
+	var profile *billing.Profile
 	if baseProfile != nil {
-		profile = &billingentity.Profile{
+		profile = &billing.Profile{
 			BaseProfile: *baseProfile,
 		}
 	}
 
-	return &billingentity.CustomerOverride{
+	return &billing.CustomerOverride{
 		ID:        dbOverride.ID,
 		Namespace: dbOverride.Namespace,
 
@@ -252,18 +251,18 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 		UpdatedAt: dbOverride.UpdatedAt,
 
 		CustomerID: dbOverride.CustomerID,
-		Collection: billingentity.CollectionOverrideConfig{
+		Collection: billing.CollectionOverrideConfig{
 			Alignment: dbOverride.CollectionAlignment,
 			Interval:  collectionInterval,
 		},
 
-		Invoicing: billingentity.InvoicingOverrideConfig{
+		Invoicing: billing.InvoicingOverrideConfig{
 			AutoAdvance: dbOverride.InvoiceAutoAdvance,
 			DraftPeriod: draftPeriod,
 			DueAfter:    dueAfter,
 		},
 
-		Payment: billingentity.PaymentOverrideConfig{
+		Payment: billing.PaymentOverrideConfig{
 			CollectionMethod: dbOverride.InvoiceCollectionMethod,
 		},
 
