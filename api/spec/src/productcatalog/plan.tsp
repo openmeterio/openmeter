@@ -19,6 +19,22 @@ enum PlanStatus {
 }
 
 /**
+ * References an exact plan defaulting to the current active version.
+ */
+@friendlyName("PlanReferenceInput")
+model PlanReferenceInput {
+  /**
+   * The plan key.
+   */
+  key: Key;
+
+  /**
+   * The plan version.
+   */
+  version?: integer;
+}
+
+/**
  * References an exact plan.
  */
 @friendlyName("PlanReference")

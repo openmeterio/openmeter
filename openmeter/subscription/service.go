@@ -35,5 +35,5 @@ type CreateFromPlanInput struct {
 	Description *string
 	models.AnnotatedModel
 
-	Plan PlanRef
+	Plan PlanRefInput
 }

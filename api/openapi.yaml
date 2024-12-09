@@ -13399,6 +13399,21 @@ components:
           type: integer
           description: The plan version.
       description: References an exact plan.
+    PlanReferenceInput:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The plan key.
+        version:
+          type: integer
+          description: The plan version.
+      description: References an exact plan defaulting to the current active version.
     PlanReplaceUpdate:
       type: object
       required:
@@ -13451,7 +13466,7 @@ components:
         metadata:
           $ref: '#/components/schemas/Metadata'
         plan:
-          $ref: '#/components/schemas/PlanReference'
+          $ref: '#/components/schemas/PlanReferenceInput'
         activeFrom:
           type: string
           format: date-time
@@ -13473,7 +13488,7 @@ components:
         metadata:
           $ref: '#/components/schemas/Metadata'
         plan:
-          $ref: '#/components/schemas/PlanReference'
+          $ref: '#/components/schemas/PlanReferenceInput'
         activeFrom:
           type: string
           format: date-time

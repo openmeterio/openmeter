@@ -52,7 +52,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				Namespace:  ns,
 				ActiveFrom: planSubBody.ActiveFrom,
 				CustomerID: planSubBody.CustomerId,
-				Plan: subscription.PlanRef{
+				Plan: subscription.PlanRefInput{
 					Key:     planSubBody.Plan.Key,
 					Version: planSubBody.Plan.Version,
 				},

@@ -42,7 +42,10 @@ func TestCreateFromPlan(t *testing.T) {
 					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 					ActiveFrom: deps.CurrentTime,
-					Plan:       subscriptiontestutils.ExamplePlanRef,
+					Plan: subscription.PlanRefInput{
+						Key:     subscriptiontestutils.ExamplePlanRef.Key,
+						Version: &subscriptiontestutils.ExamplePlanRef.Version,
+					},
 				})
 
 				assert.ErrorAs(t, err, &customerentity.NotFoundError{}, "expected customer not found error, got %T", err)
@@ -58,7 +61,7 @@ func TestCreateFromPlan(t *testing.T) {
 					CustomerID: deps.Customer.ID,
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 					ActiveFrom: deps.CurrentTime,
-					Plan:       subscription.PlanRef{Key: "nonexistent-plan", Version: 1},
+					Plan:       subscription.PlanRefInput{Key: "nonexistent-plan", Version: lo.ToPtr(1)},
 				})
 
 				// assert.ErrorAs does not recognize this error
@@ -485,8 +488,11 @@ func TestEditRunning(t *testing.T) {
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
 				ActiveFrom: tcDeps.CurrentTime,
-				Plan:       subscriptiontestutils.ExamplePlanRef,
-				Name:       "Example Subscription",
+				Plan: subscription.PlanRefInput{
+					Key:     subscriptiontestutils.ExamplePlanRef.Key,
+					Version: &subscriptiontestutils.ExamplePlanRef.Version,
+				},
+				Name: "Example Subscription",
 			})
 			require.Nil(t, err)
 

@@ -219,9 +219,9 @@ func TestPlan(t *testing.T) {
 			CustomerId:  *customer.Id,
 			Name:        "Test Subscription",
 			Description: lo.ToPtr("Test Subscription Description"),
-			Plan: api.PlanReference{
+			Plan: api.PlanReferenceInput{
 				Key:     PlanKey,
-				Version: 1,
+				Version: lo.ToPtr(1),
 			},
 		})
 		require.Nil(t, err)

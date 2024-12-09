@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,7 +27,10 @@ func NewSubscriptionPlanAdapter(config PlanSubscriptionAdapterConfig) subscripti
 	return &PlanSubscriptionAdapter{config}
 }
 
-func (a *PlanSubscriptionAdapter) GetVersion(ctx context.Context, namespace string, planKey string, version int) (subscription.Plan, error) {
+func (a *PlanSubscriptionAdapter) GetVersion(ctx context.Context, namespace string, ref subscription.PlanRefInput) (subscription.Plan, error) {
+	planKey := ref.Key
+	version := defaultx.WithDefault(ref.Version, 0) // plan service treats 0 as special case
+
 	p, err := a.PlanService.GetPlan(ctx, plan.GetPlanInput{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,

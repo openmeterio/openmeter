@@ -270,7 +270,7 @@ model PlanSubscriptionCreate {
 @friendlyName("PlanSubscriptionChange")
 model PlanSubscriptionChange {
   metadata?: global.Metadata;
-  plan: PlanReference;
+  plan: PlanReferenceInput;
   activeFrom: DateTime;
   name: string;
   description?: string;

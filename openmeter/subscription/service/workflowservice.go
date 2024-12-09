@@ -53,7 +53,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	}
 
 	// Let's validate the plan exists
-	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Namespace, inp.Plan.Key, inp.Plan.Version)
+	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Namespace, inp.Plan)
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch plan: %w", err)
 	}
