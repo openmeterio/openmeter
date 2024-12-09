@@ -1010,20 +1010,12 @@ func init() {
 	subscription.DefaultName = subscriptionDescName.Default.(string)
 	// subscription.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	subscription.NameValidator = subscriptionDescName.Validators[0].(func(string) error)
-	// subscriptionDescPlanKey is the schema descriptor for plan_key field.
-	subscriptionDescPlanKey := subscriptionFields[2].Descriptor()
-	// subscription.PlanKeyValidator is a validator for the "plan_key" field. It is called by the builders before save.
-	subscription.PlanKeyValidator = subscriptionDescPlanKey.Validators[0].(func(string) error)
-	// subscriptionDescPlanVersion is the schema descriptor for plan_version field.
-	subscriptionDescPlanVersion := subscriptionFields[3].Descriptor()
-	// subscription.PlanVersionValidator is a validator for the "plan_version" field. It is called by the builders before save.
-	subscription.PlanVersionValidator = subscriptionDescPlanVersion.Validators[0].(func(int) error)
 	// subscriptionDescCustomerID is the schema descriptor for customer_id field.
-	subscriptionDescCustomerID := subscriptionFields[4].Descriptor()
+	subscriptionDescCustomerID := subscriptionFields[3].Descriptor()
 	// subscription.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	subscription.CustomerIDValidator = subscriptionDescCustomerID.Validators[0].(func(string) error)
 	// subscriptionDescCurrency is the schema descriptor for currency field.
-	subscriptionDescCurrency := subscriptionFields[5].Descriptor()
+	subscriptionDescCurrency := subscriptionFields[4].Descriptor()
 	// subscription.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	subscription.CurrencyValidator = func() func(string) error {
 		validators := subscriptionDescCurrency.Validators

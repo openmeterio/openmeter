@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -77,7 +78,7 @@ func (r *subscriptionRepo) GetAllForCustomerSince(ctx context.Context, customerI
 
 func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
-		res, err := repo.db.Subscription.Query().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).First(ctx)
+		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).First(ctx)
 
 		if db.IsNotFound(err) {
 			return subscription.Subscription{}, &subscription.NotFoundError{
@@ -97,8 +98,7 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
 		command := repo.db.Subscription.Create().
 			SetNamespace(sub.Namespace).
-			SetPlanKey(sub.Plan.Key).
-			SetPlanVersion(sub.Plan.Version).
+			SetPlanID(sub.Plan.Id).
 			SetCustomerID(sub.CustomerId).
 			SetCurrency(sub.Currency).
 			SetActiveFrom(sub.ActiveFrom).
@@ -117,6 +117,19 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 
 		if res == nil {
 			return subscription.Subscription{}, fmt.Errorf("unexpected nil subscription")
+		}
+
+		if res.PlanID != nil {
+			plan, err := repo.db.Plan.Query().Where(dbplan.ID(*res.PlanID)).First(ctx)
+			if err != nil {
+				return subscription.Subscription{}, fmt.Errorf("failed to fetch plan: %w", err)
+			}
+
+			if plan == nil {
+				return subscription.Subscription{}, fmt.Errorf("unexpected nil plan")
+			}
+
+			res.Edges.Plan = plan
 		}
 
 		return MapDBSubscription(res)

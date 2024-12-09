@@ -106,14 +106,9 @@ func Description(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldDescription, v))
 }
 
-// PlanKey applies equality check predicate on the "plan_key" field. It's identical to PlanKeyEQ.
-func PlanKey(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldEQ(FieldPlanKey, v))
-}
-
-// PlanVersion applies equality check predicate on the "plan_version" field. It's identical to PlanVersionEQ.
-func PlanVersion(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldEQ(FieldPlanVersion, v))
+// PlanID applies equality check predicate on the "plan_id" field. It's identical to PlanIDEQ.
+func PlanID(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldPlanID, v))
 }
 
 // CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
@@ -562,109 +557,79 @@ func DescriptionContainsFold(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldContainsFold(FieldDescription, v))
 }
 
-// PlanKeyEQ applies the EQ predicate on the "plan_key" field.
-func PlanKeyEQ(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldEQ(FieldPlanKey, v))
+// PlanIDEQ applies the EQ predicate on the "plan_id" field.
+func PlanIDEQ(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldPlanID, v))
 }
 
-// PlanKeyNEQ applies the NEQ predicate on the "plan_key" field.
-func PlanKeyNEQ(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldNEQ(FieldPlanKey, v))
+// PlanIDNEQ applies the NEQ predicate on the "plan_id" field.
+func PlanIDNEQ(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldPlanID, v))
 }
 
-// PlanKeyIn applies the In predicate on the "plan_key" field.
-func PlanKeyIn(vs ...string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldIn(FieldPlanKey, vs...))
+// PlanIDIn applies the In predicate on the "plan_id" field.
+func PlanIDIn(vs ...string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldIn(FieldPlanID, vs...))
 }
 
-// PlanKeyNotIn applies the NotIn predicate on the "plan_key" field.
-func PlanKeyNotIn(vs ...string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldNotIn(FieldPlanKey, vs...))
+// PlanIDNotIn applies the NotIn predicate on the "plan_id" field.
+func PlanIDNotIn(vs ...string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotIn(FieldPlanID, vs...))
 }
 
-// PlanKeyGT applies the GT predicate on the "plan_key" field.
-func PlanKeyGT(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldGT(FieldPlanKey, v))
+// PlanIDGT applies the GT predicate on the "plan_id" field.
+func PlanIDGT(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGT(FieldPlanID, v))
 }
 
-// PlanKeyGTE applies the GTE predicate on the "plan_key" field.
-func PlanKeyGTE(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldGTE(FieldPlanKey, v))
+// PlanIDGTE applies the GTE predicate on the "plan_id" field.
+func PlanIDGTE(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGTE(FieldPlanID, v))
 }
 
-// PlanKeyLT applies the LT predicate on the "plan_key" field.
-func PlanKeyLT(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldLT(FieldPlanKey, v))
+// PlanIDLT applies the LT predicate on the "plan_id" field.
+func PlanIDLT(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLT(FieldPlanID, v))
 }
 
-// PlanKeyLTE applies the LTE predicate on the "plan_key" field.
-func PlanKeyLTE(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldLTE(FieldPlanKey, v))
+// PlanIDLTE applies the LTE predicate on the "plan_id" field.
+func PlanIDLTE(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLTE(FieldPlanID, v))
 }
 
-// PlanKeyContains applies the Contains predicate on the "plan_key" field.
-func PlanKeyContains(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldContains(FieldPlanKey, v))
+// PlanIDContains applies the Contains predicate on the "plan_id" field.
+func PlanIDContains(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldContains(FieldPlanID, v))
 }
 
-// PlanKeyHasPrefix applies the HasPrefix predicate on the "plan_key" field.
-func PlanKeyHasPrefix(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldHasPrefix(FieldPlanKey, v))
+// PlanIDHasPrefix applies the HasPrefix predicate on the "plan_id" field.
+func PlanIDHasPrefix(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldHasPrefix(FieldPlanID, v))
 }
 
-// PlanKeyHasSuffix applies the HasSuffix predicate on the "plan_key" field.
-func PlanKeyHasSuffix(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldHasSuffix(FieldPlanKey, v))
+// PlanIDHasSuffix applies the HasSuffix predicate on the "plan_id" field.
+func PlanIDHasSuffix(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldHasSuffix(FieldPlanID, v))
 }
 
-// PlanKeyEqualFold applies the EqualFold predicate on the "plan_key" field.
-func PlanKeyEqualFold(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldEqualFold(FieldPlanKey, v))
+// PlanIDIsNil applies the IsNil predicate on the "plan_id" field.
+func PlanIDIsNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldIsNull(FieldPlanID))
 }
 
-// PlanKeyContainsFold applies the ContainsFold predicate on the "plan_key" field.
-func PlanKeyContainsFold(v string) predicate.Subscription {
-	return predicate.Subscription(sql.FieldContainsFold(FieldPlanKey, v))
+// PlanIDNotNil applies the NotNil predicate on the "plan_id" field.
+func PlanIDNotNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotNull(FieldPlanID))
 }
 
-// PlanVersionEQ applies the EQ predicate on the "plan_version" field.
-func PlanVersionEQ(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldEQ(FieldPlanVersion, v))
+// PlanIDEqualFold applies the EqualFold predicate on the "plan_id" field.
+func PlanIDEqualFold(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEqualFold(FieldPlanID, v))
 }
 
-// PlanVersionNEQ applies the NEQ predicate on the "plan_version" field.
-func PlanVersionNEQ(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldNEQ(FieldPlanVersion, v))
-}
-
-// PlanVersionIn applies the In predicate on the "plan_version" field.
-func PlanVersionIn(vs ...int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldIn(FieldPlanVersion, vs...))
-}
-
-// PlanVersionNotIn applies the NotIn predicate on the "plan_version" field.
-func PlanVersionNotIn(vs ...int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldNotIn(FieldPlanVersion, vs...))
-}
-
-// PlanVersionGT applies the GT predicate on the "plan_version" field.
-func PlanVersionGT(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldGT(FieldPlanVersion, v))
-}
-
-// PlanVersionGTE applies the GTE predicate on the "plan_version" field.
-func PlanVersionGTE(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldGTE(FieldPlanVersion, v))
-}
-
-// PlanVersionLT applies the LT predicate on the "plan_version" field.
-func PlanVersionLT(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldLT(FieldPlanVersion, v))
-}
-
-// PlanVersionLTE applies the LTE predicate on the "plan_version" field.
-func PlanVersionLTE(v int) predicate.Subscription {
-	return predicate.Subscription(sql.FieldLTE(FieldPlanVersion, v))
+// PlanIDContainsFold applies the ContainsFold predicate on the "plan_id" field.
+func PlanIDContainsFold(v string) predicate.Subscription {
+	return predicate.Subscription(sql.FieldContainsFold(FieldPlanID, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
@@ -814,6 +779,29 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// HasPlan applies the HasEdge predicate on the "plan" edge.
+func HasPlan() predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PlanTable, PlanColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPlanWith applies the HasEdge predicate on the "plan" edge with a given conditions (other predicates).
+func HasPlanWith(preds ...predicate.Plan) predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := newPlanStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasCustomer applies the HasEdge predicate on the "customer" edge.

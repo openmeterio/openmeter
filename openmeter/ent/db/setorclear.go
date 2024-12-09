@@ -1792,6 +1792,20 @@ func (u *SubscriptionUpdateOne) SetOrClearDescription(value *string) *Subscripti
 	return u.SetDescription(*value)
 }
 
+func (u *SubscriptionUpdate) SetOrClearPlanID(value *string) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearPlanID()
+	}
+	return u.SetPlanID(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearPlanID(value *string) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearPlanID()
+	}
+	return u.SetPlanID(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

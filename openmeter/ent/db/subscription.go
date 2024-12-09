@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -38,10 +39,8 @@ type Subscription struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
-	// PlanKey holds the value of the "plan_key" field.
-	PlanKey string `json:"plan_key,omitempty"`
-	// PlanVersion holds the value of the "plan_version" field.
-	PlanVersion int `json:"plan_version,omitempty"`
+	// PlanID holds the value of the "plan_id" field.
+	PlanID *string `json:"plan_id,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// Currency holds the value of the "currency" field.
@@ -54,13 +53,26 @@ type Subscription struct {
 
 // SubscriptionEdges holds the relations/edges for other nodes in the graph.
 type SubscriptionEdges struct {
+	// Plan holds the value of the plan edge.
+	Plan *Plan `json:"plan,omitempty"`
 	// Customer holds the value of the customer edge.
 	Customer *Customer `json:"customer,omitempty"`
 	// Phases holds the value of the phases edge.
 	Phases []*SubscriptionPhase `json:"phases,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
+}
+
+// PlanOrErr returns the Plan value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SubscriptionEdges) PlanOrErr() (*Plan, error) {
+	if e.Plan != nil {
+		return e.Plan, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: plan.Label}
+	}
+	return nil, &NotLoadedError{edge: "plan"}
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
@@ -68,7 +80,7 @@ type SubscriptionEdges struct {
 func (e SubscriptionEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -77,7 +89,7 @@ func (e SubscriptionEdges) CustomerOrErr() (*Customer, error) {
 // PhasesOrErr returns the Phases value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) PhasesOrErr() ([]*SubscriptionPhase, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Phases, nil
 	}
 	return nil, &NotLoadedError{edge: "phases"}
@@ -90,9 +102,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscription.FieldMetadata:
 			values[i] = new([]byte)
-		case subscription.FieldPlanVersion:
-			values[i] = new(sql.NullInt64)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanKey, subscription.FieldCustomerID, subscription.FieldCurrency:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
 			values[i] = new(sql.NullTime)
@@ -176,17 +186,12 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 				s.Description = new(string)
 				*s.Description = value.String
 			}
-		case subscription.FieldPlanKey:
+		case subscription.FieldPlanID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field plan_key", values[i])
+				return fmt.Errorf("unexpected type %T for field plan_id", values[i])
 			} else if value.Valid {
-				s.PlanKey = value.String
-			}
-		case subscription.FieldPlanVersion:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field plan_version", values[i])
-			} else if value.Valid {
-				s.PlanVersion = int(value.Int64)
+				s.PlanID = new(string)
+				*s.PlanID = value.String
 			}
 		case subscription.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -211,6 +216,11 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (s *Subscription) Value(name string) (ent.Value, error) {
 	return s.selectValues.Get(name)
+}
+
+// QueryPlan queries the "plan" edge of the Subscription entity.
+func (s *Subscription) QueryPlan() *PlanQuery {
+	return NewSubscriptionClient(s.config).QueryPlan(s)
 }
 
 // QueryCustomer queries the "customer" edge of the Subscription entity.
@@ -279,11 +289,10 @@ func (s *Subscription) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("plan_key=")
-	builder.WriteString(s.PlanKey)
-	builder.WriteString(", ")
-	builder.WriteString("plan_version=")
-	builder.WriteString(fmt.Sprintf("%v", s.PlanVersion))
+	if v := s.PlanID; v != nil {
+		builder.WriteString("plan_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(s.CustomerID)

@@ -13641,9 +13641,15 @@ components:
     PlanReference:
       type: object
       required:
+        - id
         - key
         - version
       properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The plan ID.
         key:
           type: string
           minLength: 1
@@ -14661,7 +14667,6 @@ components:
         - activeFrom
         - status
         - customerId
-        - plan
         - currency
       properties:
         id:
@@ -14733,7 +14738,7 @@ components:
         plan:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
-          description: The base plan of the subscription.
+          description: The plan of the subscription.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -14792,7 +14797,6 @@ components:
         - activeFrom
         - status
         - customerId
-        - plan
         - currency
         - phases
       properties:
@@ -14865,7 +14869,7 @@ components:
         plan:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
-          description: The base plan of the subscription.
+          description: The plan of the subscription.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'

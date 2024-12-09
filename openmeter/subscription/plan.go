@@ -13,11 +13,15 @@ type PlanRefInput struct {
 }
 
 type PlanRef struct {
+	Id      string `json:"id"`
 	Key     string `json:"key"`
 	Version int    `json:"version"`
 }
 
 func (p PlanRef) Equals(p2 PlanRef) bool {
+	if p.Id != p2.Id {
+		return false
+	}
 	if p.Key != p2.Key {
 		return false
 	}
@@ -50,10 +54,11 @@ type PlanPhase interface {
 // All methods are expected to return stable values.
 type Plan interface {
 	ToCreateSubscriptionPlanInput() CreateSubscriptionPlanInput
+
+	GetRef() PlanRef
+
 	// Phases are expected to be returned in the order they activate.
 	GetPhases() []PlanPhase
-	GetKey() string
-	GetVersionNumber() int
 
 	// Will not make sense on the long term
 	Currency() currencyx.Code

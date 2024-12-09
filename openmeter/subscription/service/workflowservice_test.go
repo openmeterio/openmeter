@@ -22,6 +22,7 @@ import (
 
 func TestCreateFromPlan(t *testing.T) {
 	type testCaseDeps struct {
+		Plan            subscription.Plan
 		CurrentTime     time.Time
 		Customer        customerentity.Customer
 		WorkflowService subscription.WorkflowService
@@ -43,8 +44,8 @@ func TestCreateFromPlan(t *testing.T) {
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 					ActiveFrom: deps.CurrentTime,
 					Plan: subscription.PlanRefInput{
-						Key:     subscriptiontestutils.ExamplePlanRef.Key,
-						Version: &subscriptiontestutils.ExamplePlanRef.Version,
+						Key:     deps.Plan.GetRef().Key,
+						Version: lo.ToPtr(deps.Plan.GetRef().Version),
 					},
 				})
 
@@ -65,7 +66,7 @@ func TestCreateFromPlan(t *testing.T) {
 				})
 
 				// assert.ErrorAs does not recognize this error
-				_, isErr := lo.ErrorsAs[*subscription.PlanNotFoundError](err)
+				_, isErr := lo.ErrorsAs[subscription.PlanNotFoundError](err)
 				assert.True(t, isErr, "expected plan not found error, got %T", err)
 			},
 		},
@@ -284,11 +285,13 @@ func TestCreateFromPlan(t *testing.T) {
 			defer dbDeps.Cleanup()
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.PlanAdapter.AddPlan(t, subscriptiontestutils.GetExamplePlan())
+			deps.FeatureConnector.CreateExampleFeature(t)
+			plan := deps.PlanAdapter.CreateExamplePlan(t, context.Background())
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
 			tcDeps.Customer = *cust
+			tcDeps.Plan = plan
 
 			tcDeps.DBDeps = dbDeps
 
@@ -307,6 +310,7 @@ func TestEditRunning(t *testing.T) {
 		WorkflowService subscription.WorkflowService
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
+		Plan            subscription.Plan
 	}
 
 	testCases := []struct {
@@ -414,7 +418,7 @@ func TestEditRunning(t *testing.T) {
 
 				returnedSpec := deps.SubView.AsSpec()
 
-				pKey := "test-phase-1"
+				pKey := "test_phase_1"
 
 				require.Contains(t, returnedSpec.Phases, pKey, "expected %s to be present in the starting spec", pKey)
 				returnedSpec.Phases[pKey].Name = "New Phase 1 Name"
@@ -449,7 +453,6 @@ func TestEditRunning(t *testing.T) {
 				}
 
 				_, tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
-				tuDeps.PlanAdapter.AddPlan(t, subscriptiontestutils.GetExamplePlan())
 
 				workflowService := service.NewWorkflowService(service.WorkflowServiceConfig{
 					Service:            &mSvc,
@@ -478,8 +481,8 @@ func TestEditRunning(t *testing.T) {
 			defer dbDeps.Cleanup()
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.PlanAdapter.AddPlan(t, subscriptiontestutils.GetExamplePlan())
 			deps.FeatureConnector.CreateExampleFeature(t)
+			plan := deps.PlanAdapter.CreateExamplePlan(t, context.Background())
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
@@ -489,8 +492,8 @@ func TestEditRunning(t *testing.T) {
 				Namespace:  subscriptiontestutils.ExampleNamespace,
 				ActiveFrom: tcDeps.CurrentTime,
 				Plan: subscription.PlanRefInput{
-					Key:     subscriptiontestutils.ExamplePlanRef.Key,
-					Version: &subscriptiontestutils.ExamplePlanRef.Version,
+					Key:     plan.GetRef().Key,
+					Version: lo.ToPtr(plan.GetRef().Version),
 				},
 				Name: "Example Subscription",
 			})
@@ -501,6 +504,7 @@ func TestEditRunning(t *testing.T) {
 			tcDeps.DBDeps = dbDeps
 			tcDeps.Service = services.Service
 			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Plan = plan
 
 			tc.Handler(t, tcDeps)
 		})

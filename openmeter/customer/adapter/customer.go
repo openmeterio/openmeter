@@ -39,6 +39,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 				}).
 				WithSubscription(func(sq *entdb.SubscriptionQuery) {
 					applyActiveSubscriptionFilter(sq, clock.Now().UTC())
+					sq.WithPlan()
 				}).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -265,6 +266,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 				}).
 				WithSubscription(func(query *entdb.SubscriptionQuery) {
 					applyActiveSubscriptionFilter(query, clock.Now().UTC())
+					query.WithPlan()
 				}).
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace))
@@ -443,6 +445,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			subsQuery := repo.db.Subscription.Query()
 			applyActiveSubscriptionFilter(subsQuery, clock.Now().UTC())
 			subsEnt, err := subsQuery.
+				WithPlan().
 				Where(subscriptiondb.CustomerID(entity.ID)).
 				Only(ctx)
 			if err == nil && subsEnt != nil {

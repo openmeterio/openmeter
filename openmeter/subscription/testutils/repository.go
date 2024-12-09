@@ -22,10 +22,10 @@ type testSubscriptionRepo struct {
 	subscription.SubscriptionRepository
 }
 
-func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerId string) subscription.Subscription {
+func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerId string, planRef subscription.PlanRef) subscription.Subscription {
 	t.Helper()
 
-	input := getExampleCreateSubscriptionInput(customerId)
+	input := getExampleCreateSubscriptionInput(customerId, planRef)
 	s, err := r.Create(context.Background(), input)
 	if err != nil {
 		t.Fatalf("failed to create example subscription: %v", err)
@@ -33,9 +33,9 @@ func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerI
 	return s
 }
 
-func getExampleCreateSubscriptionInput(customerId string) subscription.CreateSubscriptionEntityInput {
+func getExampleCreateSubscriptionInput(customerId string, planRef subscription.PlanRef) subscription.CreateSubscriptionEntityInput {
 	return subscription.CreateSubscriptionEntityInput{
-		Plan:       ExamplePlanRef,
+		Plan:       planRef,
 		CustomerId: customerId,
 		Currency:   "USD",
 		CadencedModel: models.CadencedModel{

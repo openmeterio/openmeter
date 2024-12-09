@@ -42,10 +42,10 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 		if view.Subscription.CustomerId != newSpec.CustomerId {
 			return def, fmt.Errorf("cannot change customer id")
 		}
-		if view.Subscription.Plan.Key != newSpec.Plan.Key {
+		if view.Subscription.PlanRef.Key != newSpec.Plan.Key {
 			return def, fmt.Errorf("cannot change plan key")
 		}
-		if view.Subscription.Plan.Version != newSpec.Plan.Version {
+		if view.Subscription.PlanRef.Version != newSpec.Plan.Version {
 			return def, fmt.Errorf("cannot change plan version")
 		}
 		if !view.Subscription.ActiveFrom.Equal(newSpec.ActiveFrom) {

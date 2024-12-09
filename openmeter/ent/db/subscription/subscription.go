@@ -32,20 +32,27 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
-	// FieldPlanKey holds the string denoting the plan_key field in the database.
-	FieldPlanKey = "plan_key"
-	// FieldPlanVersion holds the string denoting the plan_version field in the database.
-	FieldPlanVersion = "plan_version"
+	// FieldPlanID holds the string denoting the plan_id field in the database.
+	FieldPlanID = "plan_id"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// EdgePlan holds the string denoting the plan edge name in mutations.
+	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// EdgePhases holds the string denoting the phases edge name in mutations.
 	EdgePhases = "phases"
 	// Table holds the table name of the subscription in the database.
 	Table = "subscriptions"
+	// PlanTable is the table that holds the plan relation/edge.
+	PlanTable = "subscriptions"
+	// PlanInverseTable is the table name for the Plan entity.
+	// It exists in this package in order to avoid circular dependency with the "plan" package.
+	PlanInverseTable = "plans"
+	// PlanColumn is the table column denoting the plan relation/edge.
+	PlanColumn = "plan_id"
 	// CustomerTable is the table that holds the customer relation/edge.
 	CustomerTable = "subscriptions"
 	// CustomerInverseTable is the table name for the Customer entity.
@@ -74,8 +81,7 @@ var Columns = []string{
 	FieldActiveTo,
 	FieldName,
 	FieldDescription,
-	FieldPlanKey,
-	FieldPlanVersion,
+	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
 }
@@ -103,10 +109,6 @@ var (
 	DefaultName string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
-	// PlanKeyValidator is a validator for the "plan_key" field. It is called by the builders before save.
-	PlanKeyValidator func(string) error
-	// PlanVersionValidator is a validator for the "plan_version" field. It is called by the builders before save.
-	PlanVersionValidator func(int) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
@@ -163,14 +165,9 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
-// ByPlanKey orders the results by the plan_key field.
-func ByPlanKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPlanKey, opts...).ToFunc()
-}
-
-// ByPlanVersion orders the results by the plan_version field.
-func ByPlanVersion(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPlanVersion, opts...).ToFunc()
+// ByPlanID orders the results by the plan_id field.
+func ByPlanID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlanID, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.
@@ -181,6 +178,13 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByPlanField orders the results by plan field.
+func ByPlanField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlanStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByCustomerField orders the results by customer field.
@@ -202,6 +206,13 @@ func ByPhases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newPhasesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
+}
+func newPlanStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PlanInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PlanTable, PlanColumn),
+	)
 }
 func newCustomerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

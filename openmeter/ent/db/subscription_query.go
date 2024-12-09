@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -26,6 +27,7 @@ type SubscriptionQuery struct {
 	order        []subscription.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.Subscription
+	withPlan     *PlanQuery
 	withCustomer *CustomerQuery
 	withPhases   *SubscriptionPhaseQuery
 	modifiers    []func(*sql.Selector)
@@ -63,6 +65,28 @@ func (sq *SubscriptionQuery) Unique(unique bool) *SubscriptionQuery {
 func (sq *SubscriptionQuery) Order(o ...subscription.OrderOption) *SubscriptionQuery {
 	sq.order = append(sq.order, o...)
 	return sq
+}
+
+// QueryPlan chains the current query on the "plan" edge.
+func (sq *SubscriptionQuery) QueryPlan() *PlanQuery {
+	query := (&PlanClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscription.PlanTable, subscription.PlanColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryCustomer chains the current query on the "customer" edge.
@@ -301,12 +325,24 @@ func (sq *SubscriptionQuery) Clone() *SubscriptionQuery {
 		order:        append([]subscription.OrderOption{}, sq.order...),
 		inters:       append([]Interceptor{}, sq.inters...),
 		predicates:   append([]predicate.Subscription{}, sq.predicates...),
+		withPlan:     sq.withPlan.Clone(),
 		withCustomer: sq.withCustomer.Clone(),
 		withPhases:   sq.withPhases.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
 	}
+}
+
+// WithPlan tells the query-builder to eager-load the nodes that are connected to
+// the "plan" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SubscriptionQuery) WithPlan(opts ...func(*PlanQuery)) *SubscriptionQuery {
+	query := (&PlanClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withPlan = query
+	return sq
 }
 
 // WithCustomer tells the query-builder to eager-load the nodes that are connected to
@@ -409,7 +445,8 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = sq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
+			sq.withPlan != nil,
 			sq.withCustomer != nil,
 			sq.withPhases != nil,
 		}
@@ -435,6 +472,12 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := sq.withPlan; query != nil {
+		if err := sq.loadPlan(ctx, query, nodes, nil,
+			func(n *Subscription, e *Plan) { n.Edges.Plan = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := sq.withCustomer; query != nil {
 		if err := sq.loadCustomer(ctx, query, nodes, nil,
 			func(n *Subscription, e *Customer) { n.Edges.Customer = e }); err != nil {
@@ -451,6 +494,38 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	return nodes, nil
 }
 
+func (sq *SubscriptionQuery) loadPlan(ctx context.Context, query *PlanQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *Plan)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Subscription)
+	for i := range nodes {
+		if nodes[i].PlanID == nil {
+			continue
+		}
+		fk := *nodes[i].PlanID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(plan.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "plan_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (sq *SubscriptionQuery) loadCustomer(ctx context.Context, query *CustomerQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *Customer)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*Subscription)
@@ -538,6 +613,9 @@ func (sq *SubscriptionQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != subscription.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if sq.withPlan != nil {
+			_spec.Node.AddColumnOnce(subscription.FieldPlanID)
 		}
 		if sq.withCustomer != nil {
 			_spec.Node.AddColumnOnce(subscription.FieldCustomerID)

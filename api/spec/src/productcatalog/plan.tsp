@@ -40,6 +40,11 @@ model PlanReferenceInput {
 @friendlyName("PlanReference")
 model PlanReference {
   /**
+   * The plan ID.
+   */
+  id: ULID;
+
+  /**
    * The plan key.
    */
   key: Key;

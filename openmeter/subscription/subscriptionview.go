@@ -41,8 +41,8 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 	if spec.Currency != s.Subscription.Currency {
 		return fmt.Errorf("subscription currency %s does not match spec currency %s", s.Subscription.Currency, spec.Currency)
 	}
-	if !spec.Plan.Equals(s.Subscription.Plan) {
-		return fmt.Errorf("subscription plan %v does not match spec plan %v", s.Subscription.Plan, spec.Plan)
+	if !spec.Plan.Equals(s.Subscription.PlanRef) {
+		return fmt.Errorf("subscription plan %v does not match spec plan %v", s.Subscription.PlanRef, spec.Plan)
 	}
 
 	if includePhases {

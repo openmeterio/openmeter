@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -97,13 +98,12 @@ func TestEdit(t *testing.T) {
 			require.NotNil(t, cust)
 
 			_ = deps.FeatureConnector.CreateExampleFeature(t)
-			examplePlan := subscriptiontestutils.GetExamplePlan()
-			deps.PlanAdapter.AddPlan(t, examplePlan)
+			plan := deps.PlanAdapter.CreateExamplePlan(t, context.Background())
 
 			tc.Handler(t, TDeps{
 				CurrentTime: currentTime,
 				Customer:    *cust,
-				ExamplePlan: examplePlan,
+				ExamplePlan: plan,
 				ServiceDeps: deps,
 				Service:     service,
 			})

@@ -57,9 +57,9 @@ model Subscription {
   customerId: ULID;
 
   /**
-   * The base plan of the subscription.
+   * The plan of the subscription.
    */
-  plan: PlanReference;
+  plan?: PlanReference;
 
   /**
    * The currency code of the subscription.

@@ -28804,29 +28804,32 @@ func (m *NotificationRuleMutation) ResetEdge(name string) error {
 // PlanMutation represents an operation that mutates the Plan nodes in the graph.
 type PlanMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *string
-	namespace      *string
-	metadata       *map[string]string
-	created_at     *time.Time
-	updated_at     *time.Time
-	deleted_at     *time.Time
-	name           *string
-	description    *string
-	key            *string
-	version        *int
-	addversion     *int
-	currency       *string
-	effective_from *time.Time
-	effective_to   *time.Time
-	clearedFields  map[string]struct{}
-	phases         map[string]struct{}
-	removedphases  map[string]struct{}
-	clearedphases  bool
-	done           bool
-	oldValue       func(context.Context) (*Plan, error)
-	predicates     []predicate.Plan
+	op                   Op
+	typ                  string
+	id                   *string
+	namespace            *string
+	metadata             *map[string]string
+	created_at           *time.Time
+	updated_at           *time.Time
+	deleted_at           *time.Time
+	name                 *string
+	description          *string
+	key                  *string
+	version              *int
+	addversion           *int
+	currency             *string
+	effective_from       *time.Time
+	effective_to         *time.Time
+	clearedFields        map[string]struct{}
+	phases               map[string]struct{}
+	removedphases        map[string]struct{}
+	clearedphases        bool
+	subscriptions        map[string]struct{}
+	removedsubscriptions map[string]struct{}
+	clearedsubscriptions bool
+	done                 bool
+	oldValue             func(context.Context) (*Plan, error)
+	predicates           []predicate.Plan
 }
 
 var _ ent.Mutation = (*PlanMutation)(nil)
@@ -29504,6 +29507,60 @@ func (m *PlanMutation) ResetPhases() {
 	m.removedphases = nil
 }
 
+// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by ids.
+func (m *PlanMutation) AddSubscriptionIDs(ids ...string) {
+	if m.subscriptions == nil {
+		m.subscriptions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscriptions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscriptions clears the "subscriptions" edge to the Subscription entity.
+func (m *PlanMutation) ClearSubscriptions() {
+	m.clearedsubscriptions = true
+}
+
+// SubscriptionsCleared reports if the "subscriptions" edge to the Subscription entity was cleared.
+func (m *PlanMutation) SubscriptionsCleared() bool {
+	return m.clearedsubscriptions
+}
+
+// RemoveSubscriptionIDs removes the "subscriptions" edge to the Subscription entity by IDs.
+func (m *PlanMutation) RemoveSubscriptionIDs(ids ...string) {
+	if m.removedsubscriptions == nil {
+		m.removedsubscriptions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscriptions, ids[i])
+		m.removedsubscriptions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptions returns the removed IDs of the "subscriptions" edge to the Subscription entity.
+func (m *PlanMutation) RemovedSubscriptionsIDs() (ids []string) {
+	for id := range m.removedsubscriptions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionsIDs returns the "subscriptions" edge IDs in the mutation.
+func (m *PlanMutation) SubscriptionsIDs() (ids []string) {
+	for id := range m.subscriptions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscriptions resets all changes to the "subscriptions" edge.
+func (m *PlanMutation) ResetSubscriptions() {
+	m.subscriptions = nil
+	m.clearedsubscriptions = false
+	m.removedsubscriptions = nil
+}
+
 // Where appends a list predicates to the PlanMutation builder.
 func (m *PlanMutation) Where(ps ...predicate.Plan) {
 	m.predicates = append(m.predicates, ps...)
@@ -29872,9 +29929,12 @@ func (m *PlanMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.phases != nil {
 		edges = append(edges, plan.EdgePhases)
+	}
+	if m.subscriptions != nil {
+		edges = append(edges, plan.EdgeSubscriptions)
 	}
 	return edges
 }
@@ -29889,15 +29949,24 @@ func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case plan.EdgeSubscriptions:
+		ids := make([]ent.Value, 0, len(m.subscriptions))
+		for id := range m.subscriptions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedphases != nil {
 		edges = append(edges, plan.EdgePhases)
+	}
+	if m.removedsubscriptions != nil {
+		edges = append(edges, plan.EdgeSubscriptions)
 	}
 	return edges
 }
@@ -29912,15 +29981,24 @@ func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case plan.EdgeSubscriptions:
+		ids := make([]ent.Value, 0, len(m.removedsubscriptions))
+		for id := range m.removedsubscriptions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedphases {
 		edges = append(edges, plan.EdgePhases)
+	}
+	if m.clearedsubscriptions {
+		edges = append(edges, plan.EdgeSubscriptions)
 	}
 	return edges
 }
@@ -29931,6 +30009,8 @@ func (m *PlanMutation) EdgeCleared(name string) bool {
 	switch name {
 	case plan.EdgePhases:
 		return m.clearedphases
+	case plan.EdgeSubscriptions:
+		return m.clearedsubscriptions
 	}
 	return false
 }
@@ -29949,6 +30029,9 @@ func (m *PlanMutation) ResetEdge(name string) error {
 	switch name {
 	case plan.EdgePhases:
 		m.ResetPhases()
+		return nil
+	case plan.EdgeSubscriptions:
+		m.ResetSubscriptions()
 		return nil
 	}
 	return fmt.Errorf("unknown Plan edge %s", name)
@@ -32488,11 +32571,10 @@ type SubscriptionMutation struct {
 	active_to       *time.Time
 	name            *string
 	description     *string
-	plan_key        *string
-	plan_version    *int
-	addplan_version *int
 	currency        *currencyx.Code
 	clearedFields   map[string]struct{}
+	plan            *string
+	clearedplan     bool
 	customer        *string
 	clearedcustomer bool
 	phases          map[string]struct{}
@@ -32983,96 +33065,53 @@ func (m *SubscriptionMutation) ResetDescription() {
 	delete(m.clearedFields, subscription.FieldDescription)
 }
 
-// SetPlanKey sets the "plan_key" field.
-func (m *SubscriptionMutation) SetPlanKey(s string) {
-	m.plan_key = &s
+// SetPlanID sets the "plan_id" field.
+func (m *SubscriptionMutation) SetPlanID(s string) {
+	m.plan = &s
 }
 
-// PlanKey returns the value of the "plan_key" field in the mutation.
-func (m *SubscriptionMutation) PlanKey() (r string, exists bool) {
-	v := m.plan_key
+// PlanID returns the value of the "plan_id" field in the mutation.
+func (m *SubscriptionMutation) PlanID() (r string, exists bool) {
+	v := m.plan
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldPlanKey returns the old "plan_key" field's value of the Subscription entity.
+// OldPlanID returns the old "plan_id" field's value of the Subscription entity.
 // If the Subscription object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionMutation) OldPlanKey(ctx context.Context) (v string, err error) {
+func (m *SubscriptionMutation) OldPlanID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPlanKey is only allowed on UpdateOne operations")
+		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPlanKey requires an ID field in the mutation")
+		return v, errors.New("OldPlanID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPlanKey: %w", err)
+		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
 	}
-	return oldValue.PlanKey, nil
+	return oldValue.PlanID, nil
 }
 
-// ResetPlanKey resets all changes to the "plan_key" field.
-func (m *SubscriptionMutation) ResetPlanKey() {
-	m.plan_key = nil
+// ClearPlanID clears the value of the "plan_id" field.
+func (m *SubscriptionMutation) ClearPlanID() {
+	m.plan = nil
+	m.clearedFields[subscription.FieldPlanID] = struct{}{}
 }
 
-// SetPlanVersion sets the "plan_version" field.
-func (m *SubscriptionMutation) SetPlanVersion(i int) {
-	m.plan_version = &i
-	m.addplan_version = nil
+// PlanIDCleared returns if the "plan_id" field was cleared in this mutation.
+func (m *SubscriptionMutation) PlanIDCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldPlanID]
+	return ok
 }
 
-// PlanVersion returns the value of the "plan_version" field in the mutation.
-func (m *SubscriptionMutation) PlanVersion() (r int, exists bool) {
-	v := m.plan_version
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPlanVersion returns the old "plan_version" field's value of the Subscription entity.
-// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionMutation) OldPlanVersion(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPlanVersion is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPlanVersion requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPlanVersion: %w", err)
-	}
-	return oldValue.PlanVersion, nil
-}
-
-// AddPlanVersion adds i to the "plan_version" field.
-func (m *SubscriptionMutation) AddPlanVersion(i int) {
-	if m.addplan_version != nil {
-		*m.addplan_version += i
-	} else {
-		m.addplan_version = &i
-	}
-}
-
-// AddedPlanVersion returns the value that was added to the "plan_version" field in this mutation.
-func (m *SubscriptionMutation) AddedPlanVersion() (r int, exists bool) {
-	v := m.addplan_version
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetPlanVersion resets all changes to the "plan_version" field.
-func (m *SubscriptionMutation) ResetPlanVersion() {
-	m.plan_version = nil
-	m.addplan_version = nil
+// ResetPlanID resets all changes to the "plan_id" field.
+func (m *SubscriptionMutation) ResetPlanID() {
+	m.plan = nil
+	delete(m.clearedFields, subscription.FieldPlanID)
 }
 
 // SetCustomerID sets the "customer_id" field.
@@ -33145,6 +33184,33 @@ func (m *SubscriptionMutation) OldCurrency(ctx context.Context) (v currencyx.Cod
 // ResetCurrency resets all changes to the "currency" field.
 func (m *SubscriptionMutation) ResetCurrency() {
 	m.currency = nil
+}
+
+// ClearPlan clears the "plan" edge to the Plan entity.
+func (m *SubscriptionMutation) ClearPlan() {
+	m.clearedplan = true
+	m.clearedFields[subscription.FieldPlanID] = struct{}{}
+}
+
+// PlanCleared reports if the "plan" edge to the Plan entity was cleared.
+func (m *SubscriptionMutation) PlanCleared() bool {
+	return m.PlanIDCleared() || m.clearedplan
+}
+
+// PlanIDs returns the "plan" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PlanID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionMutation) PlanIDs() (ids []string) {
+	if id := m.plan; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlan resets all changes to the "plan" edge.
+func (m *SubscriptionMutation) ResetPlan() {
+	m.plan = nil
+	m.clearedplan = false
 }
 
 // ClearCustomer clears the "customer" edge to the Customer entity.
@@ -33262,7 +33328,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -33290,11 +33356,8 @@ func (m *SubscriptionMutation) Fields() []string {
 	if m.description != nil {
 		fields = append(fields, subscription.FieldDescription)
 	}
-	if m.plan_key != nil {
-		fields = append(fields, subscription.FieldPlanKey)
-	}
-	if m.plan_version != nil {
-		fields = append(fields, subscription.FieldPlanVersion)
+	if m.plan != nil {
+		fields = append(fields, subscription.FieldPlanID)
 	}
 	if m.customer != nil {
 		fields = append(fields, subscription.FieldCustomerID)
@@ -33328,10 +33391,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case subscription.FieldDescription:
 		return m.Description()
-	case subscription.FieldPlanKey:
-		return m.PlanKey()
-	case subscription.FieldPlanVersion:
-		return m.PlanVersion()
+	case subscription.FieldPlanID:
+		return m.PlanID()
 	case subscription.FieldCustomerID:
 		return m.CustomerID()
 	case subscription.FieldCurrency:
@@ -33363,10 +33424,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldName(ctx)
 	case subscription.FieldDescription:
 		return m.OldDescription(ctx)
-	case subscription.FieldPlanKey:
-		return m.OldPlanKey(ctx)
-	case subscription.FieldPlanVersion:
-		return m.OldPlanVersion(ctx)
+	case subscription.FieldPlanID:
+		return m.OldPlanID(ctx)
 	case subscription.FieldCustomerID:
 		return m.OldCustomerID(ctx)
 	case subscription.FieldCurrency:
@@ -33443,19 +33502,12 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDescription(v)
 		return nil
-	case subscription.FieldPlanKey:
+	case subscription.FieldPlanID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetPlanKey(v)
-		return nil
-	case subscription.FieldPlanVersion:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPlanVersion(v)
+		m.SetPlanID(v)
 		return nil
 	case subscription.FieldCustomerID:
 		v, ok := value.(string)
@@ -33478,21 +33530,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *SubscriptionMutation) AddedFields() []string {
-	var fields []string
-	if m.addplan_version != nil {
-		fields = append(fields, subscription.FieldPlanVersion)
-	}
-	return fields
+	return nil
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *SubscriptionMutation) AddedField(name string) (ent.Value, bool) {
-	switch name {
-	case subscription.FieldPlanVersion:
-		return m.AddedPlanVersion()
-	}
 	return nil, false
 }
 
@@ -33501,13 +33545,6 @@ func (m *SubscriptionMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SubscriptionMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case subscription.FieldPlanVersion:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddPlanVersion(v)
-		return nil
 	}
 	return fmt.Errorf("unknown Subscription numeric field %s", name)
 }
@@ -33527,6 +33564,9 @@ func (m *SubscriptionMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(subscription.FieldDescription) {
 		fields = append(fields, subscription.FieldDescription)
+	}
+	if m.FieldCleared(subscription.FieldPlanID) {
+		fields = append(fields, subscription.FieldPlanID)
 	}
 	return fields
 }
@@ -33553,6 +33593,9 @@ func (m *SubscriptionMutation) ClearField(name string) error {
 		return nil
 	case subscription.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case subscription.FieldPlanID:
+		m.ClearPlanID()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription nullable field %s", name)
@@ -33589,11 +33632,8 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 	case subscription.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case subscription.FieldPlanKey:
-		m.ResetPlanKey()
-		return nil
-	case subscription.FieldPlanVersion:
-		m.ResetPlanVersion()
+	case subscription.FieldPlanID:
+		m.ResetPlanID()
 		return nil
 	case subscription.FieldCustomerID:
 		m.ResetCustomerID()
@@ -33607,7 +33647,10 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.plan != nil {
+		edges = append(edges, subscription.EdgePlan)
+	}
 	if m.customer != nil {
 		edges = append(edges, subscription.EdgeCustomer)
 	}
@@ -33621,6 +33664,10 @@ func (m *SubscriptionMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case subscription.EdgePlan:
+		if id := m.plan; id != nil {
+			return []ent.Value{*id}
+		}
 	case subscription.EdgeCustomer:
 		if id := m.customer; id != nil {
 			return []ent.Value{*id}
@@ -33637,7 +33684,7 @@ func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedphases != nil {
 		edges = append(edges, subscription.EdgePhases)
 	}
@@ -33660,7 +33707,10 @@ func (m *SubscriptionMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.clearedplan {
+		edges = append(edges, subscription.EdgePlan)
+	}
 	if m.clearedcustomer {
 		edges = append(edges, subscription.EdgeCustomer)
 	}
@@ -33674,6 +33724,8 @@ func (m *SubscriptionMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *SubscriptionMutation) EdgeCleared(name string) bool {
 	switch name {
+	case subscription.EdgePlan:
+		return m.clearedplan
 	case subscription.EdgeCustomer:
 		return m.clearedcustomer
 	case subscription.EdgePhases:
@@ -33686,6 +33738,9 @@ func (m *SubscriptionMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *SubscriptionMutation) ClearEdge(name string) error {
 	switch name {
+	case subscription.EdgePlan:
+		m.ClearPlan()
+		return nil
 	case subscription.EdgeCustomer:
 		m.ClearCustomer()
 		return nil
@@ -33697,6 +33752,9 @@ func (m *SubscriptionMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SubscriptionMutation) ResetEdge(name string) error {
 	switch name {
+	case subscription.EdgePlan:
+		m.ResetPlan()
+		return nil
 	case subscription.EdgeCustomer:
 		m.ResetCustomer()
 		return nil

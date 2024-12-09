@@ -166,9 +166,10 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Description: sub.Description,
 		Name:        sub.Name,
 		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
-		Plan: api.PlanReference{
-			Key:     sub.Plan.Key,
-			Version: sub.Plan.Version,
+		Plan: &api.PlanReference{
+			Id:      sub.PlanRef.Id,
+			Key:     sub.PlanRef.Key,
+			Version: sub.PlanRef.Version,
 		},
 		Metadata:  &sub.Metadata,
 		CreatedAt: sub.CreatedAt,

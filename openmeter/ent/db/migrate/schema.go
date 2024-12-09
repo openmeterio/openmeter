@@ -1432,10 +1432,9 @@ var (
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString, Default: "Subscription"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "plan_key", Type: field.TypeString},
-		{Name: "plan_version", Type: field.TypeInt},
 		{Name: "currency", Type: field.TypeString, Size: 3},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "plan_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionsTable holds the schema information for the "subscriptions" table.
 	SubscriptionsTable = &schema.Table{
@@ -1445,9 +1444,15 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[13]},
+				Columns:    []*schema.Column{SubscriptionsColumns[11]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "subscriptions_plans_subscriptions",
+				Columns:    []*schema.Column{SubscriptionsColumns[12]},
+				RefColumns: []*schema.Column{PlansColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1469,7 +1474,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[13]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[11]},
 			},
 		},
 	}
@@ -1759,6 +1764,7 @@ func init() {
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
+	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
 	SubscriptionItemsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	SubscriptionItemsTable.ForeignKeys[1].RefTable = SubscriptionPhasesTable
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
