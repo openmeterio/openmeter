@@ -104,7 +104,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 			ev := cloudevents.New()
 			ev.SetID(gofakeit.UUID())
 			ev.SetSource("my-app")
-			ev.SetType("credit_event")
+			ev.SetType("credit_event_uc")
 			ev.SetSubject(subject)
 			ev.SetTime(timestamp)
 			_ = ev.SetData("application/json", map[string]string{
