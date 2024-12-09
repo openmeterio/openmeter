@@ -20,10 +20,16 @@ import (
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
-func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billing.Line, error) {
+func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billing.Line, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Namespace
 		input.Lines[i].Status = billing.InvoiceLineStatusValid
+
+		if input.Lines[i].InvoiceID != "" {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: invoice ID is not allowed for pending lines", input.Lines[i].ID),
+			}
+		}
 	}
 
 	if err := input.Validate(); err != nil {
@@ -32,69 +38,87 @@ func (s *Service) CreateInvoiceLines(ctx context.Context, input billing.CreateIn
 		}
 	}
 
-	if err := s.validateCustomerForUpdate(ctx, customerentity.CustomerID{
-		Namespace: input.Namespace,
-		ID:        input.CustomerID,
-	}); err != nil {
-		return nil, err
-	}
+	// Let's execute the change on a by customer basis. Later we can optimize this to be done in a single batch, but
+	// first we need to see if multiple customer staging of invoices is a common use case.
 
-	return TranscationForGatheringInvoiceManipulation(
-		ctx,
-		s,
-		customerentity.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
-		func(ctx context.Context) ([]*billing.Line, error) {
-			// let's resolve the customer's settings
-			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-				Namespace:  input.Namespace,
-				CustomerID: input.CustomerID,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("fetching customer profile: %w", err)
-			}
+	createByCustomerID := lo.GroupBy(input.Lines, func(line billing.LineWithCustomer) string {
+		return line.CustomerID
+	})
 
-			lines := make(lineservice.Lines, 0, len(input.Lines))
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]*billing.Line, error) {
+		out := make([]*billing.Line, 0, len(input.Lines))
 
-			// TODO[OM-949]: we should optimize this as this does O(n) queries for invoices per line
-			for i, line := range input.Lines {
-				line.Namespace = input.Namespace
-
-				updateResult, err := s.upsertLineInvoice(ctx, line, input, customerProfile)
-				if err != nil {
-					return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
-				}
-
-				lineService, err := s.lineService.FromEntity(&updateResult.Line)
-				if err != nil {
-					return nil, fmt.Errorf("creating line service[%d]: %w", i, err)
-				}
-
-				if err := lineService.Validate(ctx, updateResult.Invoice); err != nil {
-					return nil, fmt.Errorf("validating line[%s]: %w", input.Lines[i].ID, err)
-				}
-
-				lineService, err = lineService.PrepareForCreate(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("modifying line[%s]: %w", input.Lines[i].ID, err)
-				}
-
-				lines = append(lines, lineService)
-			}
-
-			// Create the invoice Lines
-			createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		for customerID, lineByCustomer := range createByCustomerID {
+			if err := s.validateCustomerForUpdate(ctx, customerentity.CustomerID{
 				Namespace: input.Namespace,
-				Lines:     lines.ToEntities(),
-			})
-			if err != nil {
-				return nil, fmt.Errorf("creating invoice Line: %w", err)
+				ID:        customerID,
+			}); err != nil {
+				return nil, err
 			}
 
-			return createdLines, nil
-		})
+			createdLines, err := TranscationForGatheringInvoiceManipulation(
+				ctx,
+				s,
+				customerentity.CustomerID{
+					Namespace: input.Namespace,
+					ID:        customerID,
+				},
+				func(ctx context.Context) ([]*billing.Line, error) {
+					// let's resolve the customer's settings
+					customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+						Namespace:  input.Namespace,
+						CustomerID: customerID,
+					})
+					if err != nil {
+						return nil, fmt.Errorf("fetching customer profile: %w", err)
+					}
+
+					lines := make(lineservice.Lines, 0, len(lineByCustomer))
+
+					// TODO[OM-949]: we should optimize this as this does O(n) queries for invoices per line
+					for i, line := range lineByCustomer {
+						updateResult, err := s.upsertLineInvoice(ctx, line.Line, input, customerProfile)
+						if err != nil {
+							return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
+						}
+
+						lineService, err := s.lineService.FromEntity(&updateResult.Line)
+						if err != nil {
+							return nil, fmt.Errorf("creating line service[%d]: %w", i, err)
+						}
+
+						if err := lineService.Validate(ctx, updateResult.Invoice); err != nil {
+							return nil, fmt.Errorf("validating line[%s]: %w", input.Lines[i].ID, err)
+						}
+
+						lineService, err = lineService.PrepareForCreate(ctx)
+						if err != nil {
+							return nil, fmt.Errorf("modifying line[%s]: %w", input.Lines[i].ID, err)
+						}
+
+						lines = append(lines, lineService)
+					}
+
+					// Create the invoice Lines
+					createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+						Namespace: input.Namespace,
+						Lines:     lines.ToEntities(),
+					})
+					if err != nil {
+						return nil, fmt.Errorf("creating invoice Line: %w", err)
+					}
+
+					return createdLines, nil
+				})
+			if err != nil {
+				return nil, err
+			}
+
+			out = append(out, createdLines...)
+		}
+
+		return out, nil
+	})
 }
 
 type upsertLineInvoiceResponse struct {
@@ -103,46 +127,13 @@ type upsertLineInvoiceResponse struct {
 }
 
 func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, input billing.CreateInvoiceLinesInput, customerProfile *billing.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
-	if line.InvoiceID != "" {
-		// We would want to attach the line to an existing invoice
-		invoice, err := s.adapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-			Invoice: billing.InvoiceID{
-				ID:        line.InvoiceID,
-				Namespace: input.Namespace,
-			},
-		})
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("fetching invoice [%s]: %w", line.InvoiceID, err),
-			}
-		}
-
-		if !invoice.StatusDetails.Immutable {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("invoice [%s] is not mutable", line.InvoiceID),
-			}
-		}
-
-		if invoice.Currency != line.Currency {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("currency mismatch: invoice [%s] currency is %s, but line currency is %s", line.InvoiceID, invoice.Currency, line.Currency),
-			}
-		}
-
-		line.InvoiceID = invoice.ID
-		return &upsertLineInvoiceResponse{
-			Line:    line,
-			Invoice: &invoice,
-		}, nil
-	}
-
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
 		Page: pagination.Page{
 			PageNumber: 1,
 			PageSize:   10,
 		},
-		Customers:        []string{input.CustomerID},
+		Customers:        []string{customerProfile.Customer.ID},
 		Namespace:        input.Namespace,
 		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 		Currencies:       []currencyx.Code{line.Currency},
@@ -183,7 +174,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 		// have multiple gathering invoices for the same customer.
 		// This is a rare case, but we should log it at least, later we can implement a call that
 		// merges these invoices (it's fine to just move the Lines to the first invoice)
-		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", input.CustomerID, "namespace", input.Namespace)
+		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", customerProfile.Customer.ID, "namespace", input.Namespace)
 	}
 
 	return &upsertLineInvoiceResponse{
@@ -262,29 +253,6 @@ func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLi
 		Namespace: input.Namespace,
 		ID:        input.ID,
 	})
-}
-
-func (s *Service) ValidateLineOwnership(ctx context.Context, input billing.ValidateLineOwnershipInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
-		Namespace: input.Namespace,
-		ID:        input.InvoiceID,
-	})
-	if err != nil {
-		return err
-	}
-
-	if ownership.CustomerID != input.CustomerID {
-		return billing.NotFoundError{
-			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
-		}
-	}
-	return nil
 }
 
 func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineInput) (*billing.Line, error) {

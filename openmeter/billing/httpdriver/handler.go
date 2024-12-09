@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -27,7 +26,7 @@ type ProfileHandler interface {
 }
 
 type InvoiceLineHandler interface {
-	CreateLineByCustomer() CreateLineByCustomerHandler
+	CreatePendingLine() CreatePendingLineHandler
 	GetLine() GetLineHandler
 	DeleteLine() DeleteLineHandler
 	UpdateLine() UpdateLineHandler
@@ -39,10 +38,6 @@ type InvoiceHandler interface {
 	DeleteInvoice() DeleteInvoiceHandler
 	GetInvoice() GetInvoiceHandler
 	ProgressInvoice(ProgressAction) ProgressInvoiceHandler
-
-	// ConvertListInvoicesByCustomerToListInvoices converts the input parameters for listing invoices by customer, so that we
-	// can use the same handler for both listing all invoices and listing invoices by customer.
-	ConvertListInvoicesByCustomerToListInvoices(customerID string, params api.ListInvoicesByCustomerParams) api.ListInvoicesParams
 }
 
 type handler struct {

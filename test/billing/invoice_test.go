@@ -112,78 +112,86 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
 
-		res, err := s.BillingService.CreateInvoiceLines(ctx,
+		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreateInvoiceLinesInput{
-				Namespace:  namespace,
-				CustomerID: customerEntity.ID,
-				Lines: []billing.Line{
+				Namespace: namespace,
+				Lines: []billing.LineWithCustomer{
 					{
-						LineBase: billing.LineBase{
-							Namespace: namespace,
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Namespace: namespace,
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: issueAt,
+								InvoiceAt: issueAt,
 
-							Type: billing.InvoiceLineTypeFee,
+								Type: billing.InvoiceLineTypeFee,
 
-							Name:     "Test item - USD",
-							Currency: currencyx.Code(currency.USD),
+								Name:     "Test item - USD",
+								Currency: currencyx.Code(currency.USD),
 
-							Metadata: map[string]string{
-								"key": "value",
+								Metadata: map[string]string{
+									"key": "value",
+								},
+							},
+							FlatFee: billing.FlatFeeLine{
+								PerUnitAmount: alpacadecimal.NewFromFloat(100),
+								Quantity:      alpacadecimal.NewFromFloat(1),
 							},
 						},
-						FlatFee: billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(100),
-							Quantity:      alpacadecimal.NewFromFloat(1),
-						},
+						CustomerID: customerEntity.ID,
 					},
 					{
-						LineBase: billing.LineBase{
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period: billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: issueAt,
+								InvoiceAt: issueAt,
 
-							Type: billing.InvoiceLineTypeFee,
+								Type: billing.InvoiceLineTypeFee,
 
-							Name:     "Test item - HUF",
-							Currency: currencyx.Code(currency.HUF),
+								Name:     "Test item - HUF",
+								Currency: currencyx.Code(currency.HUF),
+							},
+							FlatFee: billing.FlatFeeLine{
+								PerUnitAmount: alpacadecimal.NewFromFloat(200),
+								Quantity:      alpacadecimal.NewFromFloat(3),
+							},
 						},
-						FlatFee: billing.FlatFeeLine{
-							PerUnitAmount: alpacadecimal.NewFromFloat(200),
-							Quantity:      alpacadecimal.NewFromFloat(3),
-						},
+						CustomerID: customerEntity.ID,
 					},
 					{
-						LineBase: billing.LineBase{
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period: billing.Period{Start: periodStart, End: periodEnd},
 
-							InvoiceAt: issueAt,
+								InvoiceAt: issueAt,
 
-							Type: billing.InvoiceLineTypeUsageBased,
+								Type: billing.InvoiceLineTypeUsageBased,
 
-							Name:     "Test item - HUF",
-							Currency: currencyx.Code(currency.HUF),
-						},
-						UsageBased: billing.UsageBasedLine{
-							Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.GraduatedTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(10),
+								Name:     "Test item - HUF",
+								Currency: currencyx.Code(currency.HUF),
+							},
+							UsageBased: billing.UsageBasedLine{
+								Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.GraduatedTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(10),
+											},
+										},
+										{
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(100),
+											},
 										},
 									},
-									{
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(100),
-										},
-									},
-								},
-							}),
-							FeatureKey: "test",
+								}),
+								FeatureKey: "test",
+							},
 						},
+						CustomerID: customerEntity.ID,
 					},
 				},
 			})
@@ -453,48 +461,53 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), profile)
 
-	res, err := s.BillingService.CreateInvoiceLines(ctx,
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreateInvoiceLinesInput{
-			Namespace:  namespace,
-			CustomerID: customerEntity.ID,
-			Lines: []billing.Line{
+			Namespace: namespace,
+			Lines: []billing.LineWithCustomer{
 				{
-					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-						InvoiceAt: line1IssueAt,
+							InvoiceAt: line1IssueAt,
 
-						Type: billing.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
-						Name:     "Test item1",
-						Currency: currencyx.Code(currency.USD),
+							Name:     "Test item1",
+							Currency: currencyx.Code(currency.USD),
 
-						Metadata: map[string]string{
-							"key": "value",
+							Metadata: map[string]string{
+								"key": "value",
+							},
+						},
+						FlatFee: billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(100),
+							Quantity:      alpacadecimal.NewFromFloat(1),
 						},
 					},
-					FlatFee: billing.FlatFeeLine{
-						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Quantity:      alpacadecimal.NewFromFloat(1),
-					},
+					CustomerID: customerEntity.ID,
 				},
 				{
-					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-						InvoiceAt: line2IssueAt,
+							InvoiceAt: line2IssueAt,
 
-						Type: billing.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
-						Name:     "Test item2",
-						Currency: currencyx.Code(currency.USD),
+							Name:     "Test item2",
+							Currency: currencyx.Code(currency.USD),
+						},
+						FlatFee: billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(200),
+							Quantity:      alpacadecimal.NewFromFloat(3),
+						},
 					},
-					FlatFee: billing.FlatFeeLine{
-						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(3),
-					},
+					CustomerID: customerEntity.ID,
 				},
 			},
 		})
@@ -650,48 +663,53 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 	periodStart := periodEnd.Add(-24 * 30 * time.Hour)
 	// Given we have a default profile for the namespace
 
-	res, err := s.BillingService.CreateInvoiceLines(ctx,
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreateInvoiceLinesInput{
-			Namespace:  in.Customer.Namespace,
-			CustomerID: in.Customer.ID,
-			Lines: []billing.Line{
+			Namespace: in.Customer.Namespace,
+			Lines: []billing.LineWithCustomer{
 				{
-					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-						InvoiceAt: invoiceAt,
+							InvoiceAt: invoiceAt,
 
-						Type: billing.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
-						Name:     "Test item1",
-						Currency: currencyx.Code(currency.USD),
+							Name:     "Test item1",
+							Currency: currencyx.Code(currency.USD),
 
-						Metadata: map[string]string{
-							"key": "value",
+							Metadata: map[string]string{
+								"key": "value",
+							},
+						},
+						FlatFee: billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(100),
+							Quantity:      alpacadecimal.NewFromFloat(1),
 						},
 					},
-					FlatFee: billing.FlatFeeLine{
-						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Quantity:      alpacadecimal.NewFromFloat(1),
-					},
+					CustomerID: in.Customer.ID,
 				},
 				{
-					LineBase: billing.LineBase{
-						Namespace: namespace,
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Namespace: namespace,
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
 
-						InvoiceAt: invoiceAt,
+							InvoiceAt: invoiceAt,
 
-						Type: billing.InvoiceLineTypeFee,
+							Type: billing.InvoiceLineTypeFee,
 
-						Name:     "Test item2",
-						Currency: currencyx.Code(currency.USD),
+							Name:     "Test item2",
+							Currency: currencyx.Code(currency.USD),
+						},
+						FlatFee: billing.FlatFeeLine{
+							PerUnitAmount: alpacadecimal.NewFromFloat(200),
+							Quantity:      alpacadecimal.NewFromFloat(3),
+						},
 					},
-					FlatFee: billing.FlatFeeLine{
-						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Quantity:      alpacadecimal.NewFromFloat(3),
-					},
+					CustomerID: in.Customer.ID,
 				},
 			},
 		})
@@ -1325,111 +1343,122 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
-		pendingLines, err := s.BillingService.CreateInvoiceLines(ctx,
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreateInvoiceLinesInput{
-				Namespace:  namespace,
-				CustomerID: customerEntity.ID,
-				Lines: []billing.Line{
+				Namespace: namespace,
+				Lines: []billing.LineWithCustomer{
 					{
-						LineBase: billing.LineBase{
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							Currency:  currencyx.Code(currency.USD),
-							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per unit",
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - FLAT per unit",
+							},
+							UsageBased: billing.UsageBasedLine{
+								FeatureKey: features.flatPerUnit.Key,
+								Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount:        alpacadecimal.NewFromFloat(100),
+									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+								}),
+							},
 						},
-						UsageBased: billing.UsageBasedLine{
-							FeatureKey: features.flatPerUnit.Key,
-							Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount:        alpacadecimal.NewFromFloat(100),
-								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
-							}),
-						},
+						CustomerID: customerEntity.ID,
 					},
 					{
-						LineBase: billing.LineBase{
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							Currency:  currencyx.Code(currency.USD),
-							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - FLAT per any usage",
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - FLAT per any usage",
+							},
+							UsageBased: billing.UsageBasedLine{
+								FeatureKey: features.flatPerUsage.Key,
+								Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(100),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
 						},
-						UsageBased: billing.UsageBasedLine{
-							FeatureKey: features.flatPerUsage.Key,
-							Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      alpacadecimal.NewFromFloat(100),
-								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
-						},
+						CustomerID: customerEntity.ID,
 					},
 					{
-						LineBase: billing.LineBase{
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							Currency:  currencyx.Code(currency.USD),
-							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered graduated",
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - Tiered graduated",
+							},
+							UsageBased: billing.UsageBasedLine{
+								FeatureKey: features.tieredGraduated.Key,
+								Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.GraduatedTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(100),
+											},
+										},
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(90),
+											},
+										},
+										{
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(80),
+											},
+										},
+									},
+								}),
+							},
 						},
-						UsageBased: billing.UsageBasedLine{
-							FeatureKey: features.tieredGraduated.Key,
-							Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.GraduatedTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(100),
-										},
-									},
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(90),
-										},
-									},
-									{
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(80),
-										},
-									},
-								},
-							}),
-						},
+						CustomerID: customerEntity.ID,
 					},
 					{
-						LineBase: billing.LineBase{
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							Currency:  currencyx.Code(currency.USD),
-							Type:      billing.InvoiceLineTypeUsageBased,
-							Name:      "UBP - Tiered volume",
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - Tiered volume",
+							},
+							UsageBased: billing.UsageBasedLine{
+								FeatureKey: features.tieredVolume.Key,
+								Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.VolumeTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(100),
+											},
+										},
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(90),
+											},
+										},
+										{
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(80),
+											},
+										},
+									},
+									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+								}),
+							},
 						},
-						UsageBased: billing.UsageBasedLine{
-							FeatureKey: features.tieredVolume.Key,
-							Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-								Mode: productcatalog.VolumeTieredPrice,
-								Tiers: []productcatalog.PriceTier{
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(100),
-										},
-									},
-									{
-										UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(90),
-										},
-									},
-									{
-										UnitPrice: &productcatalog.PriceTierUnitPrice{
-											Amount: alpacadecimal.NewFromFloat(80),
-										},
-									},
-								},
-								MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
-							}),
-						},
+						CustomerID: customerEntity.ID,
 					},
 				},
 			},

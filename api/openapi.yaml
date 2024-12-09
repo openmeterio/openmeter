@@ -554,95 +554,14 @@ paths:
     get:
       operationId: listInvoices
       summary: List invoices
-      description: List invoices
-      parameters:
-        - name: customers
-          in: query
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-            title: Filter by the customer ID or key
-          explode: false
-        - $ref: '#/components/parameters/InvoiceListParams.statuses'
-        - $ref: '#/components/parameters/InvoiceListParams.extendedStatuses'
-        - $ref: '#/components/parameters/InvoiceListParams.issuedAfter'
-        - $ref: '#/components/parameters/InvoiceListParams.issuedBefore'
-        - $ref: '#/components/parameters/InvoiceListParams.expand'
-        - $ref: '#/components/parameters/Pagination.page'
-        - $ref: '#/components/parameters/Pagination.pageSize'
-        - $ref: '#/components/parameters/LimitOffset.offset'
-        - $ref: '#/components/parameters/LimitOffset.limit'
-        - $ref: '#/components/parameters/InvoiceOrderByOrdering.order'
-        - $ref: '#/components/parameters/InvoiceOrderByOrdering.orderBy'
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InvoicePaginatedResponse'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Billing (Experimental)
-      x-internal: true
-  /api/v1/billing/invoices/{customerId}:
-    get:
-      operationId: listInvoicesByCustomer
-      summary: List invoices
       description: List invoices for a specific customer
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - $ref: '#/components/parameters/InvoiceListParams.statuses'
         - $ref: '#/components/parameters/InvoiceListParams.extendedStatuses'
         - $ref: '#/components/parameters/InvoiceListParams.issuedAfter'
         - $ref: '#/components/parameters/InvoiceListParams.issuedBefore'
         - $ref: '#/components/parameters/InvoiceListParams.expand'
+        - $ref: '#/components/parameters/InvoiceListParams.customers'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -695,7 +614,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoice:
+  /api/v1/billing/invoices/invoice:
     post:
       operationId: invoicePendingLinesAction
       summary: Invoice a customer based on the pending line items
@@ -709,14 +628,7 @@ paths:
         New pending line items will be created for the period between now() and the next billing cycle's begining date for any metered item.
 
         The call can return multiple invoices if the pending line items are in different currencies.
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      parameters: []
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -771,19 +683,82 @@ paths:
             schema:
               $ref: '#/components/schemas/InvoicePendingLinesActionInput'
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}:
+  /api/v1/billing/invoices/lines:
+    post:
+      operationId: createPendingInvoiceLine
+      summary: Create pending line items
+      description: |-
+        Create a new pending line item (charge).
+
+        This call is used to create a new pending line item for the customer if required a new
+        gathering invoice will be created.
+
+        A new invoice will be created if:
+        - there is no invoice in gathering state
+        - the currency of the line item doesn't match the currency of any invoices in gathering state
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceLine'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Experimental)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/InvoicePendingLineCreate'
+      x-internal: true
+  /api/v1/billing/invoices/{invoiceId}:
     get:
       operationId: getInvoice
       summary: Get an invoice
       description: Get an invoice by ID.
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -868,13 +843,6 @@ paths:
 
         Only invoices that are in the draft (or earlier) status can be deleted.
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -930,7 +898,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/advance:
+  /api/v1/billing/invoices/{invoiceId}/advance:
     post:
       operationId: advanceInvoiceAction
       summary: Advance the invoice's state to the next status
@@ -941,13 +909,6 @@ paths:
 
         The action can be called when the invoice's statusDetails' actions field contain the "advance" action.
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1007,7 +968,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/approve:
+  /api/v1/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approveInvoiceAction
       summary: Send the invoice to the customer
@@ -1020,13 +981,6 @@ paths:
         - `draft`: the invoice will be sent to the customer, the invluce state becomes issued
         - `manual_approval_needed`: the invoice will be sent to the customer, the invoice state becomes issued
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1086,19 +1040,12 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/lines/{lineId}:
+  /api/v1/billing/invoices/{invoiceId}/lines/{lineId}:
     get:
       operationId: getInvoiceLine
       summary: Get an invoice line
       description: Get an invoice line
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1170,13 +1117,6 @@ paths:
       summary: Delete an invoice line
       description: Delete an invoice line
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1244,13 +1184,6 @@ paths:
       summary: Update an invoice line
       description: Update an invoice line
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1323,7 +1256,7 @@ paths:
             schema:
               $ref: '#/components/schemas/InvoiceLineReplaceUpdate'
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/retry:
+  /api/v1/billing/invoices/{invoiceId}/retry:
     post:
       operationId: retryInvoiceAction
       summary: Retry advancing the invoice after a failed attempt.
@@ -1332,13 +1265,6 @@ paths:
 
         The action can be called when the invoice's statusDetails' actions field contain the "retry" action.
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1398,7 +1324,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/tax/recalculate:
+  /api/v1/billing/invoices/{invoiceId}/tax/recalculate:
     post:
       operationId: recalculateInvoiceTaxAction
       summary: Recalculate an invoice's tax amounts
@@ -1407,13 +1333,6 @@ paths:
 
         Note: charges might apply, depending on the tax provider.
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1473,7 +1392,7 @@ paths:
       tags:
         - Billing (Experimental)
       x-internal: true
-  /api/v1/billing/invoices/{customerId}/invoices/{invoiceId}/void:
+  /api/v1/billing/invoices/{invoiceId}/void:
     post:
       operationId: voidInvoiceAction
       summary: Void an invoice
@@ -1484,13 +1403,6 @@ paths:
 
         Voiding an invoice will mark it as voided, the user can specify how to handle the voided line items.
       parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
         - name: invoiceId
           in: path
           required: true
@@ -1555,86 +1467,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidInvoiceActionInput'
-      x-internal: true
-  /api/v1/billing/invoices/{customerId}/lines:
-    post:
-      operationId: createInvoiceLineByCustomer
-      summary: Create line items
-      description: |-
-        Create a new pending line item (charge).
-
-        This call is used to create a new pending line item for the customer without explicitly
-        assigning it to an invoice.
-
-        The line item will be either allocated to an existing invoice in gathering state or a new invoice is
-        created for the line item.
-
-        A new invoice will be created if:
-        - there is no invoice in gathering state
-        - the currency of the line item doesn't match the currency of any invoices in gathering state
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-      responses:
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InvoiceLine'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Billing (Experimental)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/InvoiceLineCreate'
       x-internal: true
   /api/v1/billing/profile:
     get:
@@ -7460,6 +7292,19 @@ components:
       schema:
         $ref: '#/components/schemas/GrantOrderBy'
       explode: false
+    InvoiceListParams.customers:
+      name: customers
+      in: query
+      required: false
+      description: Filter by customer ID
+      schema:
+        type: array
+        items:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      explode: false
     InvoiceListParams.expand:
       name: expand
       in: query
@@ -11165,77 +11010,6 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
       description: InvoiceFlatFeeLine represents a line item that is sold to the customer as a manually added fee.
-    InvoiceFlatFeeLineCreate:
-      type: object
-      required:
-        - name
-        - currency
-        - period
-        - invoiceAt
-        - type
-        - perUnitAmount
-        - quantity
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        invoice:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceReference'
-          description: The invoice this item belongs to.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of this line.
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: The time this line item should be invoiced.
-        type:
-          type: string
-          enum:
-            - flat_fee
-        perUnitAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Price of the item being sold.
-        paymentTerm:
-          allOf:
-            - $ref: '#/components/schemas/PricePaymentTerm'
-          description: Payment term of the line.
-          default: in_advance
-        quantity:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Quantity of the item being sold.
-      description: Resource create operation model.
     InvoiceFlatFeeLineReplaceUpdate:
       type: object
       required:
@@ -11298,6 +11072,79 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
       description: Resource update operation model.
+    InvoiceFlatFeePendingLineCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - period
+        - invoiceAt
+        - type
+        - perUnitAmount
+        - quantity
+        - customerId
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of this line.
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - flat_fee
+        perUnitAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Price of the item being sold.
+        paymentTerm:
+          allOf:
+            - $ref: '#/components/schemas/PricePaymentTerm'
+          description: Payment term of the line.
+          default: in_advance
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Quantity of the item being sold.
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer this line item belongs to.
+      description: InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.
     InvoiceGenericDocumentRef:
       type: object
       required:
@@ -11332,16 +11179,6 @@ components:
           usage_based: '#/components/schemas/InvoiceUsageBasedLine'
           flat_fee: '#/components/schemas/InvoiceFlatFeeLine'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
-    InvoiceLineCreate:
-      anyOf:
-        - $ref: '#/components/schemas/InvoiceUsageBasedLineCreate'
-        - $ref: '#/components/schemas/InvoiceFlatFeeLineCreate'
-      discriminator:
-        propertyName: type
-        mapping:
-          usage_based: '#/components/schemas/InvoiceUsageBasedLineCreate'
-          flat_fee: '#/components/schemas/InvoiceFlatFeeLineCreate'
-      description: InvoiceLineCreate represents the create model for an invoice line.
     InvoiceLineDiscount:
       type: object
       required:
@@ -11501,8 +11338,20 @@ components:
             - $ref: '#/components/schemas/PaymentTerms'
           description: The terms of payment for the invoice.
       description: Payment contains details as to how the invoice should be paid.
+    InvoicePendingLineCreate:
+      anyOf:
+        - $ref: '#/components/schemas/InvoiceUsageBasedPendingLineCreate'
+        - $ref: '#/components/schemas/InvoiceFlatFeePendingLineCreate'
+      discriminator:
+        propertyName: type
+        mapping:
+          usage_based: '#/components/schemas/InvoiceUsageBasedPendingLineCreate'
+          flat_fee: '#/components/schemas/InvoiceFlatFeePendingLineCreate'
+      description: InvoiceLineCreate represents the create model for an invoice line.
     InvoicePendingLinesActionInput:
       type: object
+      required:
+        - customerId
       properties:
         includePendingLines:
           type: array
@@ -11524,6 +11373,11 @@ components:
             The time as of which the invoice is created.
 
             If not provided, the current time is used.
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer ID for which to create the invoice.
       description: |-
         BillingInvoiceActionInput is the input for creating an invoice.
 
@@ -11796,72 +11650,6 @@ components:
             It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
           readOnly: true
       description: InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
-    InvoiceUsageBasedLineCreate:
-      type: object
-      required:
-        - name
-        - currency
-        - period
-        - invoiceAt
-        - type
-        - price
-        - featureKey
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        invoice:
-          allOf:
-            - $ref: '#/components/schemas/InvoiceReference'
-          description: The invoice this item belongs to.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of this line.
-        taxConfig:
-          allOf:
-            - $ref: '#/components/schemas/TaxConfig'
-          description: Tax config specify the tax configuration for this line.
-        period:
-          allOf:
-            - $ref: '#/components/schemas/Period'
-          description: |-
-            Period of the line item applies to for revenue recognition pruposes.
-
-            Billing always treats periods as start being inclusive and end being exclusive.
-        invoiceAt:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: The time this line item should be invoiced.
-        type:
-          type: string
-          enum:
-            - usage_based
-        price:
-          $ref: '#/components/schemas/RateCardUsageBasedPrice'
-        featureKey:
-          type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-          description: The feature that the usage is based on.
-      description: Resource create operation model.
     InvoiceUsageBasedLineReplaceUpdate:
       type: object
       required:
@@ -11912,6 +11700,74 @@ components:
         price:
           $ref: '#/components/schemas/RateCardUsageBasedPrice'
       description: Resource update operation model.
+    InvoiceUsageBasedPendingLineCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - period
+        - invoiceAt
+        - type
+        - price
+        - featureKey
+        - customerId
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of this line.
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - usage_based
+        price:
+          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature that the usage is based on.
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer this line item belongs to.
+      description: InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.
     InvoiceWorkflowSettings:
       type: object
       required:
