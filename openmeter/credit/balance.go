@@ -68,7 +68,13 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	// This is only possible in case the grant becomes active exactly at the start of the current period
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
-	eng, err := m.buildEngineForOwner(ctx, owner)
+	// Let's define the period the engine will be queried for
+	queriedPeriod := recurrence.Period{
+		From: bal.At,
+		To:   at,
+	}
+
+	eng, err := m.buildEngineForOwner(ctx, owner, queriedPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -78,10 +84,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		grants,
 		bal.Balances,
 		bal.Overage,
-		recurrence.Period{
-			From: bal.At,
-			To:   at,
-		},
+		queriedPeriod,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, at, err)
@@ -170,7 +173,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			return engine.GrantBurnDownHistory{}, err
 		}
 
-		eng, err := m.buildEngineForOwner(ctx, owner)
+		eng, err := m.buildEngineForOwner(ctx, owner, period)
 		if err != nil {
 			return engine.GrantBurnDownHistory{}, err
 		}
@@ -246,7 +249,13 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	}
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
-	eng, err := m.buildEngineForOwner(ctx, owner)
+	// Let's define the period the engine will be queried for
+	queriedPeriod := recurrence.Period{
+		From: bal.At,
+		To:   at,
+	}
+
+	eng, err := m.buildEngineForOwner(ctx, owner, queriedPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -256,10 +265,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		grants,
 		bal.Balances,
 		bal.Overage,
-		recurrence.Period{
-			From: bal.At,
-			To:   at,
-		},
+		queriedPeriod,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)

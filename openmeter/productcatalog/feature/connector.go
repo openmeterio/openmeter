@@ -90,6 +90,7 @@ func NewFeatureConnector(
 		validMeterAggregations: []models.MeterAggregation{
 			models.MeterAggregationSum,
 			models.MeterAggregationCount,
+			models.MeterAggregationUniqueCount,
 		},
 	}
 }
