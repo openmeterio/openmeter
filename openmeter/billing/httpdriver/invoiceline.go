@@ -22,8 +22,8 @@ var _ InvoiceLineHandler = (*handler)(nil)
 
 type (
 	CreatePendingLineRequest  = billing.CreateInvoiceLinesInput
-	CraetePendingLineResponse = []api.InvoiceLine
-	CreatePendingLineHandler  = httptransport.Handler[CreatePendingLineRequest, CraetePendingLineResponse]
+	CreatePendingLineResponse = []api.InvoiceLine
+	CreatePendingLineHandler  = httptransport.Handler[CreatePendingLineRequest, CreatePendingLineResponse]
 )
 
 func (h *handler) CreatePendingLine() CreatePendingLineHandler {
@@ -63,25 +63,25 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				Lines:     lineEntities,
 			}, nil
 		},
-		func(ctx context.Context, request CreatePendingLineRequest) (CraetePendingLineResponse, error) {
+		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {
 			lines, err := h.service.CreatePendingInvoiceLines(ctx, request)
 			if err != nil {
-				return CraetePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
+				return CreatePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
 			}
 
-			res := make(CraetePendingLineResponse, 0, len(lines))
+			res := make(CreatePendingLineResponse, 0, len(lines))
 
 			for _, line := range lines {
 				line, err := mapBillingLineToAPI(line)
 				if err != nil {
-					return CraetePendingLineResponse{}, fmt.Errorf("failed to map line: %w", err)
+					return CreatePendingLineResponse{}, fmt.Errorf("failed to map line: %w", err)
 				}
 				res = append(res, line)
 			}
 
 			return res, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[CraetePendingLineResponse](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[CreatePendingLineResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("CreateInvoiceLineByCustomer"),
