@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -128,15 +129,17 @@ func (sc *SubscriptionCreate) SetNillableDescription(s *string) *SubscriptionCre
 	return sc
 }
 
-// SetPlanKey sets the "plan_key" field.
-func (sc *SubscriptionCreate) SetPlanKey(s string) *SubscriptionCreate {
-	sc.mutation.SetPlanKey(s)
+// SetPlanID sets the "plan_id" field.
+func (sc *SubscriptionCreate) SetPlanID(s string) *SubscriptionCreate {
+	sc.mutation.SetPlanID(s)
 	return sc
 }
 
-// SetPlanVersion sets the "plan_version" field.
-func (sc *SubscriptionCreate) SetPlanVersion(i int) *SubscriptionCreate {
-	sc.mutation.SetPlanVersion(i)
+// SetNillablePlanID sets the "plan_id" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillablePlanID(s *string) *SubscriptionCreate {
+	if s != nil {
+		sc.SetPlanID(*s)
+	}
 	return sc
 }
 
@@ -164,6 +167,11 @@ func (sc *SubscriptionCreate) SetNillableID(s *string) *SubscriptionCreate {
 		sc.SetID(*s)
 	}
 	return sc
+}
+
+// SetPlan sets the "plan" edge to the Plan entity.
+func (sc *SubscriptionCreate) SetPlan(p *Plan) *SubscriptionCreate {
+	return sc.SetPlanID(p.ID)
 }
 
 // SetCustomer sets the "customer" edge to the Customer entity.
@@ -266,22 +274,6 @@ func (sc *SubscriptionCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Subscription.name": %w`, err)}
 		}
 	}
-	if _, ok := sc.mutation.PlanKey(); !ok {
-		return &ValidationError{Name: "plan_key", err: errors.New(`db: missing required field "Subscription.plan_key"`)}
-	}
-	if v, ok := sc.mutation.PlanKey(); ok {
-		if err := subscription.PlanKeyValidator(v); err != nil {
-			return &ValidationError{Name: "plan_key", err: fmt.Errorf(`db: validator failed for field "Subscription.plan_key": %w`, err)}
-		}
-	}
-	if _, ok := sc.mutation.PlanVersion(); !ok {
-		return &ValidationError{Name: "plan_version", err: errors.New(`db: missing required field "Subscription.plan_version"`)}
-	}
-	if v, ok := sc.mutation.PlanVersion(); ok {
-		if err := subscription.PlanVersionValidator(v); err != nil {
-			return &ValidationError{Name: "plan_version", err: fmt.Errorf(`db: validator failed for field "Subscription.plan_version": %w`, err)}
-		}
-	}
 	if _, ok := sc.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "Subscription.customer_id"`)}
 	}
@@ -373,17 +365,26 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 		_spec.SetField(subscription.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := sc.mutation.PlanKey(); ok {
-		_spec.SetField(subscription.FieldPlanKey, field.TypeString, value)
-		_node.PlanKey = value
-	}
-	if value, ok := sc.mutation.PlanVersion(); ok {
-		_spec.SetField(subscription.FieldPlanVersion, field.TypeInt, value)
-		_node.PlanVersion = value
-	}
 	if value, ok := sc.mutation.Currency(); ok {
 		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if nodes := sc.mutation.PlanIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.PlanTable,
+			Columns: []string{subscription.PlanColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PlanID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := sc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -566,6 +567,24 @@ func (u *SubscriptionUpsert) ClearDescription() *SubscriptionUpsert {
 	return u
 }
 
+// SetPlanID sets the "plan_id" field.
+func (u *SubscriptionUpsert) SetPlanID(v string) *SubscriptionUpsert {
+	u.Set(subscription.FieldPlanID, v)
+	return u
+}
+
+// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdatePlanID() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldPlanID)
+	return u
+}
+
+// ClearPlanID clears the value of the "plan_id" field.
+func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
+	u.SetNull(subscription.FieldPlanID)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -591,12 +610,6 @@ func (u *SubscriptionUpsertOne) UpdateNewValues() *SubscriptionUpsertOne {
 		}
 		if _, exists := u.create.mutation.ActiveFrom(); exists {
 			s.SetIgnore(subscription.FieldActiveFrom)
-		}
-		if _, exists := u.create.mutation.PlanKey(); exists {
-			s.SetIgnore(subscription.FieldPlanKey)
-		}
-		if _, exists := u.create.mutation.PlanVersion(); exists {
-			s.SetIgnore(subscription.FieldPlanVersion)
 		}
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(subscription.FieldCustomerID)
@@ -744,6 +757,27 @@ func (u *SubscriptionUpsertOne) UpdateDescription() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearDescription() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetPlanID sets the "plan_id" field.
+func (u *SubscriptionUpsertOne) SetPlanID(v string) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPlanID(v)
+	})
+}
+
+// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdatePlanID() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePlanID()
+	})
+}
+
+// ClearPlanID clears the value of the "plan_id" field.
+func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearPlanID()
 	})
 }
 
@@ -939,12 +973,6 @@ func (u *SubscriptionUpsertBulk) UpdateNewValues() *SubscriptionUpsertBulk {
 			if _, exists := b.mutation.ActiveFrom(); exists {
 				s.SetIgnore(subscription.FieldActiveFrom)
 			}
-			if _, exists := b.mutation.PlanKey(); exists {
-				s.SetIgnore(subscription.FieldPlanKey)
-			}
-			if _, exists := b.mutation.PlanVersion(); exists {
-				s.SetIgnore(subscription.FieldPlanVersion)
-			}
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(subscription.FieldCustomerID)
 			}
@@ -1092,6 +1120,27 @@ func (u *SubscriptionUpsertBulk) UpdateDescription() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearDescription() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetPlanID sets the "plan_id" field.
+func (u *SubscriptionUpsertBulk) SetPlanID(v string) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPlanID(v)
+	})
+}
+
+// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePlanID()
+	})
+}
+
+// ClearPlanID clears the value of the "plan_id" field.
+func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearPlanID()
 	})
 }
 

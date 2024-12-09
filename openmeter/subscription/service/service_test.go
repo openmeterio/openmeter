@@ -34,8 +34,9 @@ func TestCreation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		plan := deps.PlanAdapter.CreateExamplePlan(t, ctx)
 
-		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(subscriptiontestutils.GetExamplePlan(), subscription.CreateSubscriptionCustomerInput{
+		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId: cust.ID,
 			Currency:   "USD",
 			ActiveFrom: currentTime,
@@ -46,7 +47,7 @@ func TestCreation(t *testing.T) {
 		sub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, defaultSpecFromPlan)
 
 		require.Nil(t, err)
-		require.Equal(t, subscriptiontestutils.ExamplePlanRef, sub.Plan)
+		require.Equal(t, plan.GetRef(), sub.PlanRef)
 		require.Equal(t, subscriptiontestutils.ExampleNamespace, sub.Namespace)
 		require.Equal(t, cust.ID, sub.CustomerId)
 		require.Equal(t, currencyx.Code("USD"), sub.Currency)
@@ -59,7 +60,7 @@ func TestCreation(t *testing.T) {
 
 			assert.Nil(t, err)
 			assert.Equal(t, sub.ID, found.ID)
-			assert.Equal(t, sub.Plan, found.Plan)
+			assert.Equal(t, sub.PlanRef, found.PlanRef)
 			assert.Equal(t, sub.Namespace, found.Namespace)
 			assert.Equal(t, sub.CustomerId, found.CustomerId)
 			assert.Equal(t, sub.Currency, found.Currency)
@@ -73,7 +74,7 @@ func TestCreation(t *testing.T) {
 			foundSub := found.Subscription
 
 			assert.Equal(t, sub.ID, foundSub.ID)
-			assert.Equal(t, sub.Plan, foundSub.Plan)
+			assert.Equal(t, sub.PlanRef, foundSub.PlanRef)
 			assert.Equal(t, sub.Namespace, foundSub.Namespace)
 			assert.Equal(t, sub.CustomerId, foundSub.CustomerId)
 			assert.Equal(t, sub.Currency, foundSub.Currency)
@@ -174,9 +175,10 @@ func TestCancellation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		plan := deps.PlanAdapter.CreateExamplePlan(t, ctx)
 
 		// First, let's create a subscription
-		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(subscriptiontestutils.GetExamplePlan(), subscription.CreateSubscriptionCustomerInput{
+		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId: cust.ID,
 			Currency:   "USD",
 			ActiveFrom: currentTime,
@@ -194,7 +196,7 @@ func TestCancellation(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, sub.ID, cancelledSub.ID)
-		assert.Equal(t, sub.Plan, cancelledSub.Plan)
+		assert.Equal(t, sub.PlanRef, cancelledSub.PlanRef)
 		assert.Equal(t, sub.Namespace, cancelledSub.Namespace)
 		assert.Equal(t, sub.CustomerId, cancelledSub.CustomerId)
 		assert.Equal(t, sub.Currency, cancelledSub.Currency)
@@ -287,9 +289,10 @@ func TestContinuing(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		plan := deps.PlanAdapter.CreateExamplePlan(t, ctx)
 
 		// First, let's create a subscription
-		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(subscriptiontestutils.GetExamplePlan(), subscription.CreateSubscriptionCustomerInput{
+		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId: cust.ID,
 			Currency:   "USD",
 			ActiveFrom: currentTime,

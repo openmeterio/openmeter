@@ -16,7 +16,7 @@ type Subscription struct {
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 
-	Plan PlanRef
+	PlanRef PlanRef `json:"planRef"`
 
 	CustomerId string `json:"customerId,omitempty"`
 	Currency   currencyx.Code

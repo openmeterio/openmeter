@@ -16,17 +16,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 )
 
 // PlanQuery is the builder for querying Plan entities.
 type PlanQuery struct {
 	config
-	ctx        *QueryContext
-	order      []plan.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Plan
-	withPhases *PlanPhaseQuery
-	modifiers  []func(*sql.Selector)
+	ctx               *QueryContext
+	order             []plan.OrderOption
+	inters            []Interceptor
+	predicates        []predicate.Plan
+	withPhases        *PlanPhaseQuery
+	withSubscriptions *SubscriptionQuery
+	modifiers         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +80,28 @@ func (pq *PlanQuery) QueryPhases() *PlanPhaseQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, selector),
 			sqlgraph.To(planphase.Table, planphase.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, plan.PhasesTable, plan.PhasesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubscriptions chains the current query on the "subscriptions" edge.
+func (pq *PlanQuery) QuerySubscriptions() *SubscriptionQuery {
+	query := (&SubscriptionClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, plan.SubscriptionsTable, plan.SubscriptionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -272,12 +296,13 @@ func (pq *PlanQuery) Clone() *PlanQuery {
 		return nil
 	}
 	return &PlanQuery{
-		config:     pq.config,
-		ctx:        pq.ctx.Clone(),
-		order:      append([]plan.OrderOption{}, pq.order...),
-		inters:     append([]Interceptor{}, pq.inters...),
-		predicates: append([]predicate.Plan{}, pq.predicates...),
-		withPhases: pq.withPhases.Clone(),
+		config:            pq.config,
+		ctx:               pq.ctx.Clone(),
+		order:             append([]plan.OrderOption{}, pq.order...),
+		inters:            append([]Interceptor{}, pq.inters...),
+		predicates:        append([]predicate.Plan{}, pq.predicates...),
+		withPhases:        pq.withPhases.Clone(),
+		withSubscriptions: pq.withSubscriptions.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
@@ -292,6 +317,17 @@ func (pq *PlanQuery) WithPhases(opts ...func(*PlanPhaseQuery)) *PlanQuery {
 		opt(query)
 	}
 	pq.withPhases = query
+	return pq
+}
+
+// WithSubscriptions tells the query-builder to eager-load the nodes that are connected to
+// the "subscriptions" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithSubscriptions(opts ...func(*SubscriptionQuery)) *PlanQuery {
+	query := (&SubscriptionClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withSubscriptions = query
 	return pq
 }
 
@@ -373,8 +409,9 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 	var (
 		nodes       = []*Plan{}
 		_spec       = pq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			pq.withPhases != nil,
+			pq.withSubscriptions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -402,6 +439,13 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 		if err := pq.loadPhases(ctx, query, nodes,
 			func(n *Plan) { n.Edges.Phases = []*PlanPhase{} },
 			func(n *Plan, e *PlanPhase) { n.Edges.Phases = append(n.Edges.Phases, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withSubscriptions; query != nil {
+		if err := pq.loadSubscriptions(ctx, query, nodes,
+			func(n *Plan) { n.Edges.Subscriptions = []*Subscription{} },
+			func(n *Plan, e *Subscription) { n.Edges.Subscriptions = append(n.Edges.Subscriptions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -433,6 +477,39 @@ func (pq *PlanQuery) loadPhases(ctx context.Context, query *PlanPhaseQuery, node
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "plan_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (pq *PlanQuery) loadSubscriptions(ctx context.Context, query *SubscriptionQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Subscription)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Plan)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscription.FieldPlanID)
+	}
+	query.Where(predicate.Subscription(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(plan.SubscriptionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PlanID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "plan_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "plan_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

@@ -61,7 +61,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 	customer := NewCustomerService(t, dbDeps)
 
-	planAdapter := NewMockPlanAdapter(t)
+	planAdapter := NewPlanAdapter(t, dbDeps, logger, entitlementRegistry.Feature)
 
 	svc := service.New(service.ServiceConfig{
 		SubscriptionRepo:      subRepo,

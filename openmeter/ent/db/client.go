@@ -4598,6 +4598,22 @@ func (c *PlanClient) QueryPhases(pl *Plan) *PlanPhaseQuery {
 	return query
 }
 
+// QuerySubscriptions queries the subscriptions edge of a Plan.
+func (c *PlanClient) QuerySubscriptions(pl *Plan) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, plan.SubscriptionsTable, plan.SubscriptionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PlanClient) Hooks() []Hook {
 	return c.hooks.Plan
@@ -5059,6 +5075,22 @@ func (c *SubscriptionClient) GetX(ctx context.Context, id string) *Subscription 
 		panic(err)
 	}
 	return obj
+}
+
+// QueryPlan queries the plan edge of a Subscription.
+func (c *SubscriptionClient) QueryPlan(s *Subscription) *PlanQuery {
+	query := (&PlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscription.PlanTable, subscription.PlanColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // QueryCustomer queries the customer edge of a Subscription.

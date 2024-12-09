@@ -62,14 +62,15 @@ func mapAddress(apiAddress *api.Address) *models.Address {
 // customerToAPI converts a Customer to an API Customer
 func customerToAPI(c customerentity.Customer) (api.Customer, error) {
 	apiCustomer := api.Customer{
-		Id:               c.ManagedResource.ID,
-		Name:             c.Name,
-		UsageAttribution: api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
-		PrimaryEmail:     c.PrimaryEmail,
-		Description:      c.Description,
-		CreatedAt:        c.CreatedAt,
-		UpdatedAt:        c.UpdatedAt,
-		DeletedAt:        c.DeletedAt,
+		Id:                    c.ManagedResource.ID,
+		Name:                  c.Name,
+		UsageAttribution:      api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
+		PrimaryEmail:          c.PrimaryEmail,
+		Description:           c.Description,
+		CreatedAt:             c.CreatedAt,
+		UpdatedAt:             c.UpdatedAt,
+		DeletedAt:             c.DeletedAt,
+		CurrentSubscriptionId: c.CurrentSubscriptionID,
 	}
 
 	if c.BillingAddress != nil {

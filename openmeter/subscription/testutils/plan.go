@@ -2,219 +2,130 @@ package subscriptiontestutils
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
+	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
+	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var ExamplePlanRef subscription.PlanRef = subscription.PlanRef{
-	Key:     "test-plan",
-	Version: 1,
-}
-
-var (
-	oneMonthISO, _ = datex.ISOString("P1M").Parse()
-	twoMonthISO, _ = datex.ISOString("P2M").Parse()
-	sixMonthISO, _ = datex.ISOString("P6M").Parse()
-)
-
-// GetExamplePlan has to be a function to allow for initialization of the rate cards
-func GetExamplePlan() *Plan {
-	return &Plan{
-		PlanInput: subscription.CreateSubscriptionPlanInput{
-			Plan: ExamplePlanRef,
+func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
+	return plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: ExampleNamespace,
 		},
-		Phases: []*PlanPhase{
-			{
-				PhaseInput: subscription.CreateSubscriptionPhasePlanInput{
-					PhaseKey:    "test-phase-1",
-					StartAfter:  oneMonthISO,
-					Name:        "Test Phase 1",
-					Description: lo.ToPtr("Test Phase 1 Description"),
-				},
-				RateCards: []*RateCard{
-					{
-						RateCardKey: "test-feature-1",
-						SubscriptionItemCreateInput: subscription.CreateSubscriptionItemPlanInput{
-							PhaseKey: "test-phase-1",
-							ItemKey:  "test-feature-1",
-							RateCard: ExampleRateCard1,
-						},
-					},
-				},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test_plan",
+				Version:  1,
+				Currency: currency.USD,
 			},
-			{
-				PhaseInput: subscription.CreateSubscriptionPhasePlanInput{
-					PhaseKey:    "test-phase-2",
-					StartAfter:  twoMonthISO,
-					Name:        "Test Phase 2",
-					Description: lo.ToPtr("Test Phase 2 Description"),
-				},
-				RateCards: []*RateCard{
-					{
-						RateCardKey: "test-feature-1",
-						SubscriptionItemCreateInput: subscription.CreateSubscriptionItemPlanInput{
-							PhaseKey: "test-phase-2",
-							ItemKey:  "test-feature-1",
-							RateCard: ExampleRateCard1,
-						},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "test_phase_1",
+						Name:        "Test Phase 1",
+						Description: lo.ToPtr("Test Phase 1 Description"),
+						StartAfter:  testutils.GetISODuration(t, "P0M"),
 					},
-					{
-						RateCardKey: "non-price-rc",
-						SubscriptionItemCreateInput: subscription.CreateSubscriptionItemPlanInput{
-							PhaseKey: "test-phase-2",
-							ItemKey:  "non-price-rc",
-							RateCard: ExampleRateCard2,
-						},
+					RateCards: productcatalog.RateCards{
+						&ExampleRateCard1,
 					},
 				},
-			},
-			{
-				PhaseInput: subscription.CreateSubscriptionPhasePlanInput{
-					PhaseKey:    "test-phase-3",
-					StartAfter:  sixMonthISO,
-					Name:        "Test Phase 3",
-					Description: lo.ToPtr("Test Phase 3 Description"),
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "test_phase_2",
+						Name:        "Test Phase 2",
+						Description: lo.ToPtr("Test Phase 2 Description"),
+						StartAfter:  testutils.GetISODuration(t, "P1M"),
+					},
+					RateCards: productcatalog.RateCards{
+						&ExampleRateCard1,
+						&ExampleRateCard2,
+					},
 				},
-				RateCards: []*RateCard{
-					{
-						RateCardKey: "test-feature-1",
-						SubscriptionItemCreateInput: subscription.CreateSubscriptionItemPlanInput{
-							PhaseKey: "test-phase-3",
-							ItemKey:  "test-feature-1",
-							RateCard: ExampleRateCard1,
-						},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "test_phase_3",
+						Name:        "Test Phase 3",
+						Description: lo.ToPtr("Test Phase 3 Description"),
+						StartAfter:  testutils.GetISODuration(t, "P3M"),
+					},
+					RateCards: productcatalog.RateCards{
+						&ExampleRateCard1,
 					},
 				},
 			},
 		},
 	}
-}
-
-func NewMockPlanAdapter(t *testing.T) *planAdapter {
-	return &planAdapter{}
 }
 
 type planAdapter struct {
-	store map[string]map[int]*Plan
+	subscription.PlanAdapter
+	planService plan.Service
 }
 
-var _ subscription.PlanAdapter = &planAdapter{}
-
-func (a *planAdapter) GetVersion(ctx context.Context, _ string, ref subscription.PlanRefInput) (subscription.Plan, error) {
-	k := ref.Key
-	v := defaultx.WithDefault(ref.Version, 1) // this defaulting is incorrect in princple
-
-	versions, ok := a.store[k]
-	if !ok {
-		return nil, &subscription.PlanNotFoundError{Key: k, Version: v}
-	}
-	version, ok := versions[v]
-	if !ok {
-		return nil, &subscription.PlanNotFoundError{Key: k, Version: v}
-	}
-
-	return version, nil
-}
-
-func (a *planAdapter) AddPlan(t *testing.T, plan *Plan) {
+func NewPlanAdapter(t *testing.T, dbDeps *DBDeps, logger *slog.Logger, featureConnector feature.FeatureConnector) *planAdapter {
 	t.Helper()
 
-	if a.store == nil {
-		a.store = make(map[string]map[int]*Plan)
-	}
+	planRepo, err := planrepo.New(planrepo.Config{
+		Client: dbDeps.dbClient,
+		Logger: logger,
+	})
 
-	if _, ok := a.store[plan.PlanInput.Plan.Key]; !ok {
-		a.store[plan.PlanInput.Plan.Key] = make(map[int]*Plan)
-	}
+	require.Nil(t, err)
 
-	a.store[plan.PlanInput.Plan.Key][plan.PlanInput.Plan.Version] = plan
+	planService, err := planservice.New(planservice.Config{
+		Feature: featureConnector,
+		Adapter: planRepo,
+		Logger:  testutils.NewLogger(t),
+	})
+
+	require.Nil(t, err)
+
+	return &planAdapter{
+		planService: planService,
+		PlanAdapter: subscriptionplan.NewSubscriptionPlanAdapter(
+			subscriptionplan.PlanSubscriptionAdapterConfig{
+				PlanService: planService,
+				Logger:      logger,
+			},
+		),
+	}
 }
 
-func (a *planAdapter) RemovePlan(t *testing.T, ref subscription.PlanRef) {
+func (a *planAdapter) CreateExamplePlan(t *testing.T, ctx context.Context) subscription.Plan {
 	t.Helper()
 
-	if _, ok := a.store[ref.Key]; !ok {
-		return
+	p, err := a.planService.CreatePlan(ctx, GetExamplePlanInput(t))
+	require.Nil(t, err)
+	require.NotNil(t, p)
+
+	p, err = a.planService.PublishPlan(ctx, plan.PublishPlanInput{
+		NamespacedID: p.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(clock.Now()),
+			EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2030-01-01T00:00:00Z")),
+		},
+	})
+
+	require.Nil(t, err)
+	require.NotNil(t, p)
+
+	return &subscriptionplan.SubscriptionPlan{
+		Plan: *p,
 	}
-
-	delete(a.store[ref.Key], ref.Version)
-}
-
-type Plan struct {
-	PlanInput subscription.CreateSubscriptionPlanInput
-	Phases    []*PlanPhase
-}
-
-var _ subscription.Plan = &Plan{}
-
-func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
-	return p.PlanInput
-}
-
-func (p *Plan) GetPhases() []subscription.PlanPhase {
-	// convert to subscription.PlanPhase
-	phases := make([]subscription.PlanPhase, len(p.Phases))
-	for i, phase := range p.Phases {
-		phases[i] = phase
-	}
-
-	return phases
-}
-
-func (p *Plan) GetKey() string {
-	return p.PlanInput.Plan.Key
-}
-
-func (p *Plan) GetVersionNumber() int {
-	return p.PlanInput.Plan.Version
-}
-
-func (p *Plan) Currency() currencyx.Code {
-	return currencyx.Code("USD")
-}
-
-type PlanPhase struct {
-	RateCards  []*RateCard
-	PhaseInput subscription.CreateSubscriptionPhasePlanInput
-}
-
-var _ subscription.PlanPhase = &PlanPhase{}
-
-func (p *PlanPhase) ToCreateSubscriptionPhasePlanInput() subscription.CreateSubscriptionPhasePlanInput {
-	return p.PhaseInput
-}
-
-func (p *PlanPhase) GetRateCards() []subscription.PlanRateCard {
-	// convert
-	rateCards := make([]subscription.PlanRateCard, len(p.RateCards))
-	for i, rateCard := range p.RateCards {
-		rateCards[i] = rateCard
-	}
-
-	return rateCards
-}
-
-func (p *PlanPhase) GetKey() string {
-	return p.PhaseInput.PhaseKey
-}
-
-type RateCard struct {
-	RateCardKey                 string
-	SubscriptionItemCreateInput subscription.CreateSubscriptionItemPlanInput
-}
-
-var _ subscription.PlanRateCard = &RateCard{}
-
-func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscriptionItemPlanInput {
-	return r.SubscriptionItemCreateInput
-}
-
-func (r *RateCard) GetKey() string {
-	return r.RateCardKey
 }

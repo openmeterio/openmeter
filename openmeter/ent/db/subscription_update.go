@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -121,6 +122,31 @@ func (su *SubscriptionUpdate) ClearDescription() *SubscriptionUpdate {
 	return su
 }
 
+// SetPlanID sets the "plan_id" field.
+func (su *SubscriptionUpdate) SetPlanID(s string) *SubscriptionUpdate {
+	su.mutation.SetPlanID(s)
+	return su
+}
+
+// SetNillablePlanID sets the "plan_id" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillablePlanID(s *string) *SubscriptionUpdate {
+	if s != nil {
+		su.SetPlanID(*s)
+	}
+	return su
+}
+
+// ClearPlanID clears the value of the "plan_id" field.
+func (su *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
+	su.mutation.ClearPlanID()
+	return su
+}
+
+// SetPlan sets the "plan" edge to the Plan entity.
+func (su *SubscriptionUpdate) SetPlan(p *Plan) *SubscriptionUpdate {
+	return su.SetPlanID(p.ID)
+}
+
 // AddPhaseIDs adds the "phases" edge to the SubscriptionPhase entity by IDs.
 func (su *SubscriptionUpdate) AddPhaseIDs(ids ...string) *SubscriptionUpdate {
 	su.mutation.AddPhaseIDs(ids...)
@@ -139,6 +165,12 @@ func (su *SubscriptionUpdate) AddPhases(s ...*SubscriptionPhase) *SubscriptionUp
 // Mutation returns the SubscriptionMutation object of the builder.
 func (su *SubscriptionUpdate) Mutation() *SubscriptionMutation {
 	return su.mutation
+}
+
+// ClearPlan clears the "plan" edge to the Plan entity.
+func (su *SubscriptionUpdate) ClearPlan() *SubscriptionUpdate {
+	su.mutation.ClearPlan()
+	return su
 }
 
 // ClearPhases clears all "phases" edges to the SubscriptionPhase entity.
@@ -252,6 +284,35 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if su.mutation.PlanCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.PlanTable,
+			Columns: []string{subscription.PlanColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.PlanIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.PlanTable,
+			Columns: []string{subscription.PlanColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if su.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -410,6 +471,31 @@ func (suo *SubscriptionUpdateOne) ClearDescription() *SubscriptionUpdateOne {
 	return suo
 }
 
+// SetPlanID sets the "plan_id" field.
+func (suo *SubscriptionUpdateOne) SetPlanID(s string) *SubscriptionUpdateOne {
+	suo.mutation.SetPlanID(s)
+	return suo
+}
+
+// SetNillablePlanID sets the "plan_id" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillablePlanID(s *string) *SubscriptionUpdateOne {
+	if s != nil {
+		suo.SetPlanID(*s)
+	}
+	return suo
+}
+
+// ClearPlanID clears the value of the "plan_id" field.
+func (suo *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
+	suo.mutation.ClearPlanID()
+	return suo
+}
+
+// SetPlan sets the "plan" edge to the Plan entity.
+func (suo *SubscriptionUpdateOne) SetPlan(p *Plan) *SubscriptionUpdateOne {
+	return suo.SetPlanID(p.ID)
+}
+
 // AddPhaseIDs adds the "phases" edge to the SubscriptionPhase entity by IDs.
 func (suo *SubscriptionUpdateOne) AddPhaseIDs(ids ...string) *SubscriptionUpdateOne {
 	suo.mutation.AddPhaseIDs(ids...)
@@ -428,6 +514,12 @@ func (suo *SubscriptionUpdateOne) AddPhases(s ...*SubscriptionPhase) *Subscripti
 // Mutation returns the SubscriptionMutation object of the builder.
 func (suo *SubscriptionUpdateOne) Mutation() *SubscriptionMutation {
 	return suo.mutation
+}
+
+// ClearPlan clears the "plan" edge to the Plan entity.
+func (suo *SubscriptionUpdateOne) ClearPlan() *SubscriptionUpdateOne {
+	suo.mutation.ClearPlan()
+	return suo
 }
 
 // ClearPhases clears all "phases" edges to the SubscriptionPhase entity.
@@ -571,6 +663,35 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if suo.mutation.PlanCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.PlanTable,
+			Columns: []string{subscription.PlanColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.PlanIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.PlanTable,
+			Columns: []string{subscription.PlanColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if suo.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -62,11 +62,6 @@ func (r RateCard) Validate() error {
 
 	// Let's validate that everything around the Price is configured correctly
 	if r.Price != nil {
-		// If a Price is configured, so must be the Tax Config
-		if r.TaxConfig == nil {
-			return fmt.Errorf("missing tax config")
-		}
-
 		// If the price is usage based, feature must also be configured
 		switch r.Price.Type() {
 		case productcatalog.TieredPriceType, productcatalog.UnitPriceType:

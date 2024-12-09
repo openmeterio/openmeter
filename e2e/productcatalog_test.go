@@ -235,6 +235,8 @@ func TestPlan(t *testing.T) {
 		subscription := apiRes.JSON201
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
+		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
+		assert.Equal(t, planId, subscription.Plan.Id)
 
 		subscriptionId = *subscription.Id
 	})

@@ -1,4 +1,4 @@
-h1:FDc9pyvuEB4iTn6WNpv4U2JUmCtmzptmKZMhFY0kD/A=
+h1:oAaMfZ2jOE21Wt+MxLrno40n94cjqAM1+4YmtTxI0zA=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -63,3 +63,5 @@ h1:FDc9pyvuEB4iTn6WNpv4U2JUmCtmzptmKZMhFY0kD/A=
 20241207103019_billing-app-external-ids.up.sql h1:GjOVHfuHkWpB3FJ0Rv+MCxD7YD0hoMPAMBacBr41rjk=
 20241209085334_subscription_fields.down.sql h1:YPpXa04RpQ/rkMILK4RgP/OXmEZ3nRq4vgxSCAYw3VE=
 20241209085334_subscription_fields.up.sql h1:ddtZpsd8Ze/pMmAbAATyIt6YGWemgaqoNvFt3yLeGPg=
+20241209152120_subs-plan-linking.down.sql h1:B87C+qL1kzR8tBKVDezlo+Tf2Wp70VYCv942IN1ERHo=
+20241209152120_subs-plan-linking.up.sql h1:d9IRJhsRZ2PLRMqfGo20Rr8+EQZJYiIw/9hvn9DKVXE=

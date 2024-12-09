@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 )
 
 // PlanCreate is the builder for creating a Plan entity.
@@ -179,6 +180,21 @@ func (pc *PlanCreate) AddPhases(p ...*PlanPhase) *PlanCreate {
 		ids[i] = p[i].ID
 	}
 	return pc.AddPhaseIDs(ids...)
+}
+
+// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
+func (pc *PlanCreate) AddSubscriptionIDs(ids ...string) *PlanCreate {
+	pc.mutation.AddSubscriptionIDs(ids...)
+	return pc
+}
+
+// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
+func (pc *PlanCreate) AddSubscriptions(s ...*Subscription) *PlanCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return pc.AddSubscriptionIDs(ids...)
 }
 
 // Mutation returns the PlanMutation object of the builder.
@@ -370,6 +386,22 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(planphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.SubscriptionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   plan.SubscriptionsTable,
+			Columns: []string{plan.SubscriptionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

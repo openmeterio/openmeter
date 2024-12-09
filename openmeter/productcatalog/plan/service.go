@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -262,7 +263,7 @@ func (i PublishPlanInput) Validate() error {
 		errs = append(errs, err)
 	}
 
-	now := time.Now()
+	now := clock.Now()
 
 	from := lo.FromPtrOr(i.EffectiveFrom, time.Time{})
 

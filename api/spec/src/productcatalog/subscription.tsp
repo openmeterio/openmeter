@@ -28,6 +28,16 @@ model SubscriptionExpanded {
 }
 
 /**
+ * Subscription status.
+ */
+@friendlyName("SubscriptionStatus")
+enum SubscriptionStatus {
+  Active: "active",
+  Inactive: "inactive",
+  Canceled: "canceled",
+}
+
+/**
  * Subscription is an exact subscription instance.
  */
 @friendlyName("Subscription")
@@ -36,14 +46,20 @@ model Subscription {
   ...global.CadencedResource;
 
   /**
+   * The status of the subscription.
+   */
+  @visibility("read")
+  status: SubscriptionStatus;
+
+  /**
    * The customer ID of the subscription.
    */
   customerId: ULID;
 
   /**
-   * The base plan of the subscription.
+   * The plan of the subscription.
    */
-  plan: PlanReference;
+  plan?: PlanReference;
 
   /**
    * The currency code of the subscription.

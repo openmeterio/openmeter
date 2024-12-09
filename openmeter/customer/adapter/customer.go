@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -11,6 +12,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
+	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -34,6 +36,10 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 				Query().
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
 					query.Where(customersubjectsdb.IsDeletedEQ(false))
+				}).
+				WithSubscription(func(sq *entdb.SubscriptionQuery) {
+					applyActiveSubscriptionFilter(sq, clock.Now().UTC())
+					sq.WithPlan()
 				}).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -88,8 +94,15 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 					a.logger.Warn("invalid query result: nil customer received")
 					continue
 				}
+				cust, err := CustomerFromDBEntity(*item)
+				if err != nil {
+					return response, fmt.Errorf("failed to convert customer: %w", err)
+				}
+				if cust == nil {
+					return response, fmt.Errorf("invalid query result: nil customer received")
+				}
 
-				result = append(result, *CustomerFromDBEntity(*item))
+				result = append(result, *cust)
 			}
 
 			response.TotalCount = paged.TotalCount
@@ -167,8 +180,17 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 				return nil, fmt.Errorf("invalid query result: nil customer received")
 			}
 
+			// When creating a customer it's not possible for it to have a subscription,
+			// so we don't need to fetch it here.
+
 			customerEntity.Edges.Subjects = customerSubjects
-			customer := CustomerFromDBEntity(*customerEntity)
+			customer, err := CustomerFromDBEntity(*customerEntity)
+			if err != nil {
+				return customer, fmt.Errorf("failed to convert customer: %w", err)
+			}
+			if customer == nil {
+				return customer, fmt.Errorf("invalid query result: nil customer received")
+			}
 
 			return customer, nil
 		},
@@ -242,6 +264,10 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
 					query.Where(customersubjectsdb.IsDeletedEQ(false))
 				}).
+				WithSubscription(func(query *entdb.SubscriptionQuery) {
+					applyActiveSubscriptionFilter(query, clock.Now().UTC())
+					query.WithPlan()
+				}).
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace))
 
@@ -260,9 +286,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 				return nil, fmt.Errorf("invalid query result: nil customer received")
 			}
 
-			customer := CustomerFromDBEntity(*entity)
-
-			return customer, nil
+			return CustomerFromDBEntity(*entity)
 		},
 	)
 }
@@ -417,6 +441,19 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				return nil, fmt.Errorf("invalid query result: nil customer received")
 			}
 
+			// Let's fetch the Subscription if present
+			subsQuery := repo.db.Subscription.Query()
+			applyActiveSubscriptionFilter(subsQuery, clock.Now().UTC())
+			subsEnt, err := subsQuery.
+				WithPlan().
+				Where(subscriptiondb.CustomerID(entity.ID)).
+				Only(ctx)
+			if err == nil && subsEnt != nil {
+				entity.Edges.Subscription = []*entdb.Subscription{subsEnt}
+			} else if !entdb.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to fetch customer subscription: %w", err)
+			}
+
 			// Final subject keys
 			entity.Edges.Subjects = []*entdb.CustomerSubjects{}
 
@@ -442,9 +479,17 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				})
 			}
 
-			customer := CustomerFromDBEntity(*entity)
-
-			return customer, nil
+			return CustomerFromDBEntity(*entity)
 		},
+	)
+}
+
+func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time) {
+	query.Where(
+		subscriptiondb.ActiveFromLTE(at),
+		subscriptiondb.Or(
+			subscriptiondb.ActiveToIsNil(),
+			subscriptiondb.ActiveToGT(at),
+		),
 	)
 }

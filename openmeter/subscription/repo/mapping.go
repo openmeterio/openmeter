@@ -14,6 +14,15 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		return subscription.Subscription{}, fmt.Errorf("unexpected nil subscription")
 	}
 
+	ref := subscription.PlanRef{
+		Id: *sub.PlanID,
+	}
+
+	if sub.Edges.Plan != nil {
+		ref.Key = sub.Edges.Plan.Key
+		ref.Version = sub.Edges.Plan.Version
+	}
+
 	return subscription.Subscription{
 		NamespacedID: models.NamespacedID{
 			ID:        sub.ID,
@@ -31,10 +40,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		AnnotatedModel: models.AnnotatedModel{
 			Metadata: sub.Metadata,
 		},
-		Plan: subscription.PlanRef{
-			Key:     sub.PlanKey,
-			Version: sub.PlanVersion,
-		},
+		PlanRef:     ref,
 		Name:        sub.Name,
 		Description: sub.Description,
 		CustomerId:  sub.CustomerID,

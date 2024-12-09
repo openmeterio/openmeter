@@ -14,17 +14,18 @@ type SubscriptionPlan struct {
 
 var _ subscription.Plan = &SubscriptionPlan{}
 
-func (p *SubscriptionPlan) GetKey() string {
-	return p.Key
-}
-
-func (p *SubscriptionPlan) GetVersionNumber() int {
-	return p.Version
+func (p *SubscriptionPlan) GetRef() subscription.PlanRef {
+	return subscription.PlanRef{
+		Id:      p.ID,
+		Key:     p.Key,
+		Version: p.Version,
+	}
 }
 
 func (p *SubscriptionPlan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
 	return subscription.CreateSubscriptionPlanInput{
 		Plan: subscription.PlanRef{
+			Id:      p.ID,
 			Key:     p.Key,
 			Version: p.Version,
 		},
