@@ -14659,6 +14659,7 @@ components:
         - createdAt
         - updatedAt
         - activeFrom
+        - status
         - customerId
         - plan
         - currency
@@ -14719,6 +14720,11 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionStatus'
+          description: The status of the subscription.
+          readOnly: true
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -14784,6 +14790,7 @@ components:
         - createdAt
         - updatedAt
         - activeFrom
+        - status
         - customerId
         - plan
         - currency
@@ -14845,6 +14852,11 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionStatus'
+          description: The status of the subscription.
+          readOnly: true
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -15129,6 +15141,13 @@ components:
           items:
             $ref: '#/components/schemas/SubscriptionItem'
       description: Expanded subscription phase
+    SubscriptionStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - canceled
+      description: Subscription status.
     SvixOperationalWebhookRequest:
       type: object
       required:

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -164,6 +165,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Currency:    string(sub.Currency),
 		Description: sub.Description,
 		Name:        sub.Name,
+		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
 		Plan: api.PlanReference{
 			Key:     sub.Plan.Key,
 			Version: sub.Plan.Version,

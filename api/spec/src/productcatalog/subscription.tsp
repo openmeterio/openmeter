@@ -28,12 +28,28 @@ model SubscriptionExpanded {
 }
 
 /**
+ * Subscription status.
+ */
+@friendlyName("SubscriptionStatus")
+enum SubscriptionStatus {
+  Active: "active",
+  Inactive: "inactive",
+  Canceled: "canceled",
+}
+
+/**
  * Subscription is an exact subscription instance.
  */
 @friendlyName("Subscription")
 model Subscription {
   ...global.Resource;
   ...global.CadencedResource;
+
+  /**
+   * The status of the subscription.
+   */
+  @visibility("read")
+  status: SubscriptionStatus;
 
   /**
    * The customer ID of the subscription.
