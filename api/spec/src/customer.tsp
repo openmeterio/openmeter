@@ -229,6 +229,13 @@ model Customer {
    */
   @summary("Billing Address")
   billingAddress?: Address;
+
+  /**
+   * The ID of the Subscription if the customer has one.
+   */
+  @summary("Current Subscription ID")
+  @visibility("read")
+  currentSubscriptionId?: ULID;
 }
 
 /**

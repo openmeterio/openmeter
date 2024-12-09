@@ -8967,6 +8967,13 @@ components:
             The billing address of the customer.
             Used for tax and invoicing.
           title: Billing Address
+        currentSubscriptionId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The ID of the Subscription if the customer has one.
+          title: Current Subscription ID
+          readOnly: true
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         name: ACME Inc.

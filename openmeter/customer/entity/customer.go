@@ -20,6 +20,8 @@ type Customer struct {
 	PrimaryEmail     *string                  `json:"primaryEmail"`
 	Currency         *currencyx.Code          `json:"currency"`
 	BillingAddress   *models.Address          `json:"billingAddress"`
+
+	CurrentSubscriptionID *string `json:"currentSubscriptionId"`
 }
 
 func (c Customer) Validate() error {
