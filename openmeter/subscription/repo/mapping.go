@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -14,11 +15,13 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		return subscription.Subscription{}, fmt.Errorf("unexpected nil subscription")
 	}
 
+	// TODO: Once PlanRef is properly optional we can remove this hackery
 	ref := subscription.PlanRef{
-		Id: *sub.PlanID,
+		Id: defaultx.WithDefault(sub.PlanID, ""),
 	}
 
 	if sub.Edges.Plan != nil {
+		ref.Id = sub.Edges.Plan.ID
 		ref.Key = sub.Edges.Plan.Key
 		ref.Version = sub.Edges.Plan.Version
 	}
