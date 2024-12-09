@@ -93,7 +93,13 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	}
 
 	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts...)
+
 	periodCache := SortedPeriodsFromDedupedTimes(times)
+
+	if len(periodCache) == 0 {
+		// If we didn't have at least 2 different timestamps, we need to create a period from the first start time and the bound
+		periodCache = []recurrence.Period{{From: firstPeriodStart, To: queryBounds.To}}
+	}
 
 	// Let's write a function that replaces GetUsagePeriodStartAt with a cache lookup
 	getUsagePeriodStartAtFromCache := func(at time.Time) (time.Time, error) {
@@ -258,11 +264,14 @@ func (m *connector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *b
 
 // Returns a list of non-overlapping periods between the sorted times.
 func SortedPeriodsFromDedupedTimes(ts []time.Time) []recurrence.Period {
-	if len(ts) < 2 {
+	times := lo.UniqBy(ts, func(t time.Time) int64 {
+		// We unique by unixnano because time.Time == time.Time comparison is finicky
+		return t.UnixNano()
+	})
+
+	if len(times) < 2 {
 		return nil
 	}
-
-	times := lo.Uniq(ts)
 
 	// sort
 	sort.Slice(times, func(i, j int) bool {
