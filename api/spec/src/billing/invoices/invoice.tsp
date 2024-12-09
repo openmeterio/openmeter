@@ -395,11 +395,47 @@ union InvoiceLineReplaceUpdate {
 /**
  * InvoiceLineCreate represents the create model for an invoice line.
  */
-@friendlyName("InvoiceLineCreate")
+@friendlyName("InvoicePendingLineCreate")
 @discriminator("type")
-union InvoiceLineCreate {
-  usageBased: Rest.Resource.ResourceCreateModel<InvoiceUsageBasedLine>,
-  flatFee: Rest.Resource.ResourceCreateModel<InvoiceFlatFeeLine>,
+union InvoicePendingLineCreate {
+  usageBased: InvoiceUsageBasedPendingLineCreate,
+  flatFee: InvoiceFlatFeePendingLineCreate,
+}
+
+/**
+ * InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.
+ */
+@friendlyName("InvoiceUsageBasedPendingLineCreate")
+model InvoiceUsageBasedPendingLineCreate {
+  // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
+  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+    InvoiceUsageBasedLine,
+    "invoice"
+  >>;
+
+  /**
+   * The customer this line item belongs to.
+   */
+  @visibility("create")
+  customerId: ULID;
+}
+
+/**
+ * InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.
+ */
+@friendlyName("InvoiceFlatFeePendingLineCreate")
+model InvoiceFlatFeePendingLineCreate {
+  // Note: invoice is omitted as the line is assigned a new or existing gathering invoice
+  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+    InvoiceFlatFeeLine,
+    "invoice"
+  >>;
+
+  /**
+   * The customer this line item belongs to.
+   */
+  @visibility("create")
+  customerId: ULID;
 }
 
 /**

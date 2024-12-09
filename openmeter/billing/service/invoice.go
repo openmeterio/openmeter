@@ -512,29 +512,6 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 	})
 }
 
-func (s *Service) ValidateInvoiceOwnership(ctx context.Context, input billing.ValidateInvoiceOwnershipInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	ownership, err := s.adapter.GetInvoiceOwnership(ctx, billing.GetInvoiceOwnershipAdapterInput{
-		Namespace: input.Namespace,
-		ID:        input.InvoiceID,
-	})
-	if err != nil {
-		return err
-	}
-
-	if ownership.CustomerID != input.CustomerID {
-		return billing.NotFoundError{
-			Err: fmt.Errorf("customer [%s] does not own invoice [%s]", input.CustomerID, input.InvoiceID),
-		}
-	}
-	return nil
-}
-
 func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{

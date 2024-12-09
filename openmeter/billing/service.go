@@ -30,12 +30,10 @@ type CustomerOverrideService interface {
 }
 
 type InvoiceLineService interface {
-	CreateInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*Line, error)
+	CreatePendingInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*Line, error)
 	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*Line, error)
 	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*Line, error)
 	DeleteInvoiceLine(ctx context.Context, input DeleteInvoiceLineInput) error
-
-	ValidateLineOwnership(ctx context.Context, input ValidateLineOwnershipInput) error
 }
 
 type InvoiceService interface {
@@ -50,6 +48,4 @@ type InvoiceService interface {
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (Invoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
-
-	ValidateInvoiceOwnership(ctx context.Context, input ValidateInvoiceOwnershipInput) error
 }

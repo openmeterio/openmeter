@@ -638,18 +638,13 @@ func (c LineDiscounts) ChildrenWithIDReuse(l LineDiscounts) LineDiscounts {
 }
 
 type CreateInvoiceLinesInput struct {
-	CustomerID string
-	Namespace  string
-	Lines      []Line
+	Namespace string
+	Lines     []LineWithCustomer
 }
 
 func (c CreateInvoiceLinesInput) Validate() error {
 	if c.Namespace == "" {
 		return errors.New("namespace is required")
-	}
-
-	if c.CustomerID == "" {
-		return errors.New("customer key or ID is required")
 	}
 
 	for _, line := range c.Lines {
@@ -659,6 +654,20 @@ func (c CreateInvoiceLinesInput) Validate() error {
 	}
 
 	return nil
+}
+
+type LineWithCustomer struct {
+	Line
+
+	CustomerID string
+}
+
+func (l LineWithCustomer) Validate() error {
+	if l.CustomerID == "" {
+		return errors.New("customer id is required")
+	}
+
+	return l.Line.Validate()
 }
 
 type UpsertInvoiceLinesAdapterInput struct {
@@ -934,32 +943,5 @@ type GetInvoiceLineAdapterInput = LineID
 type GetInvoiceLineInput = LineID
 
 type GetInvoiceLineOwnershipAdapterInput = LineID
-
-type ValidateLineOwnershipInput struct {
-	Namespace  string
-	LineID     string
-	InvoiceID  string
-	CustomerID string
-}
-
-func (v ValidateLineOwnershipInput) Validate() error {
-	if v.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if v.LineID == "" {
-		return errors.New("line id is required")
-	}
-
-	if v.InvoiceID == "" {
-		return errors.New("invoice id is required")
-	}
-
-	if v.CustomerID == "" {
-		return errors.New("customer id is required")
-	}
-
-	return nil
-}
 
 type DeleteInvoiceLineInput = LineID

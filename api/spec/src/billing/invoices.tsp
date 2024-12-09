@@ -4,38 +4,12 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Billing;
 
 /**
- * Invoices is a collection of endpoints that allow invoice operations without prior
- * knowledge of the customer ID.
+ * InvoicesEndpoints is a collection of endpoints that allow invoice operations without prior
+ * knowledge of the invoice ID.
  */
 @route("/api/v1/billing/invoices")
 @tag("Billing (Experimental)")
-interface InvoiceEndpoints {
-  /**
-   * List invoices
-   */
-  @get
-  @summary("List invoices")
-  @operationId("listInvoices")
-  @extension("x-internal", true)
-  list(
-    @query
-    @summary("Filter by the customer ID or key")
-    customers?: ULID[],
-
-    ...InvoiceListParams,
-    ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
-  ): OpenMeter.PaginatedResponse<Invoices.Invoice> | OpenMeter.CommonErrors;
-}
-
-/**
- * CustomerInvoices is a collection of endpoints that allow invoice operations without prior
- * knowledge of the invoice ID.
- */
-@route("/api/v1/billing/invoices/{customerId}")
-@tag("Billing (Experimental)")
-interface CustomerInvoicesEndpoints {
+interface InvoicesEndpoints {
   /**
    * Create a new invoice from the pending line items.
    *
@@ -53,9 +27,6 @@ interface CustomerInvoicesEndpoints {
   @operationId("invoicePendingLinesAction")
   @extension("x-internal", true)
   invoicePendingLinesAction(
-    @path
-    customerId: ULID,
-
     @body
     request: InvoicePendingLinesActionInput,
   ): {
@@ -70,10 +41,9 @@ interface CustomerInvoicesEndpoints {
    */
   @get
   @summary("List invoices")
-  @operationId("listInvoicesByCustomer")
+  @operationId("listInvoices")
   @extension("x-internal", true)
-  listInvoicesByCustomer(
-    @path customerId: ULID,
+  list(
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
@@ -83,11 +53,8 @@ interface CustomerInvoicesEndpoints {
   /**
    * Create a new pending line item (charge).
    *
-   * This call is used to create a new pending line item for the customer without explicitly
-   * assigning it to an invoice.
-   *
-   * The line item will be either allocated to an existing invoice in gathering state or a new invoice is
-   * created for the line item.
+   * This call is used to create a new pending line item for the customer if required a new
+   * gathering invoice will be created.
    *
    * A new invoice will be created if:
    * - there is no invoice in gathering state
@@ -95,15 +62,12 @@ interface CustomerInvoicesEndpoints {
    */
   @post
   @route("/lines")
-  @summary("Create line items")
-  @operationId("createInvoiceLineByCustomer")
+  @summary("Create pending line items")
+  @operationId("createPendingInvoiceLine")
   @extension("x-internal", true)
-  createInvoiceLine(
-    @path
-    customerId: ULID,
-
+  createPendingInvoiceLine(
     @body
-    request: Invoices.InvoiceLineCreate[],
+    request: Invoices.InvoicePendingLineCreate[],
   ): {
     @statusCode _: 201;
     @body body: Invoices.InvoiceLine[];
@@ -113,9 +77,9 @@ interface CustomerInvoicesEndpoints {
 /**
  * CustomerInvoice is a collection of endpoints that allow operations on a specific invoice.
  */
-@route("/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}")
+@route("/api/v1/billing/invoices/{invoiceId}")
 @tag("Billing (Experimental)")
-interface CustomerInvoiceEndpoints {
+interface InvoiceEndpoints {
   /**
    * Get an invoice by ID.
    */
@@ -124,9 +88,6 @@ interface CustomerInvoiceEndpoints {
   @operationId("getInvoice")
   @extension("x-internal", true)
   getInvoice(
-    @path
-    customerId: ULID,
-
     @path
     invoiceId: ULID,
 
@@ -148,9 +109,6 @@ interface CustomerInvoiceEndpoints {
   @extension("x-internal", true)
   deleteInvoice(
     @path
-    customerId: ULID,
-
-    @path
     invoiceId: ULID,
   ): {
     @statusCode _: 204;
@@ -167,9 +125,6 @@ interface CustomerInvoiceEndpoints {
   @operationId("recalculateInvoiceTaxAction")
   @extension("x-internal", true)
   recalculateTaxAction(
-    @path
-    customerId: ULID,
-
     @path
     invoiceId: ULID,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -190,9 +145,6 @@ interface CustomerInvoiceEndpoints {
   @extension("x-internal", true)
   approveAction(
     @path
-    customerId: ULID,
-
-    @path
     invoiceId: ULID,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -209,9 +161,6 @@ interface CustomerInvoiceEndpoints {
   @operationId("voidInvoiceAction")
   @extension("x-internal", true)
   voidInvoiceAction(
-    @path
-    customerId: ULID,
-
     @path
     invoiceId: ULID,
 
@@ -233,9 +182,6 @@ interface CustomerInvoiceEndpoints {
   @extension("x-internal", true)
   advanceAction(
     @path
-    customerId: ULID,
-
-    @path
     invoiceId: ULID,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -251,9 +197,6 @@ interface CustomerInvoiceEndpoints {
   @extension("x-internal", true)
   retryAction(
     @path
-    customerId: ULID,
-
-    @path
     invoiceId: ULID,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -268,7 +211,6 @@ interface CustomerInvoiceEndpoints {
   @operationId("getInvoiceLine")
   @extension("x-internal", true)
   getInvoiceLine(
-    @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
   ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -281,11 +223,7 @@ interface CustomerInvoiceEndpoints {
   @summary("Delete an invoice line")
   @operationId("deleteInvoiceLine")
   @extension("x-internal", true)
-  deleteInvoiceLine(
-    @path customerId: ULID,
-    @path invoiceId: ULID,
-    @path lineId: ULID,
-  ): {
+  deleteInvoiceLine(@path invoiceId: ULID, @path lineId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
@@ -298,7 +236,6 @@ interface CustomerInvoiceEndpoints {
   @operationId("updateInvoiceLine")
   @extension("x-internal", true)
   updateInvoiceLine(
-    @path customerId: ULID,
     @path invoiceId: ULID,
     @path lineId: ULID,
 
@@ -468,6 +405,12 @@ model InvoiceListParams {
    */
   @query
   expand?: InvoiceExpand[];
+
+  /**
+   * Filter by customer ID
+   */
+  @query
+  customers?: ULID[];
 }
 
 /**
@@ -506,4 +449,10 @@ model InvoicePendingLinesActionInput {
    */
   @visibility("create")
   asOf?: DateTime;
+
+  /**
+   * The customer ID for which to create the invoice.
+   */
+  @visibility("create")
+  customerId: ULID;
 }

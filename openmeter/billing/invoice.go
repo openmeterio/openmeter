@@ -488,28 +488,6 @@ type (
 
 type UpdateInvoiceAdapterInput = Invoice
 
-type ValidateInvoiceOwnershipInput struct {
-	Namespace  string
-	InvoiceID  string
-	CustomerID string
-}
-
-func (i ValidateInvoiceOwnershipInput) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if i.InvoiceID == "" {
-		return errors.New("invoice ID is required")
-	}
-
-	if i.CustomerID == "" {
-		return errors.New("customer ID is required")
-	}
-
-	return nil
-}
-
 type GetInvoiceOwnershipAdapterInput = InvoiceID
 
 type GetOwnershipAdapterResponse struct {

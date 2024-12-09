@@ -198,17 +198,11 @@ namespace OpenMeterCloud.Billing {
 
   @route("/api/v1/billing/invoices")
   @tag("Billing (Experimental)")
-  interface Invoices extends OpenMeter.Billing.InvoiceEndpoints {}
+  interface InvoicesEndpoints extends OpenMeter.Billing.InvoicesEndpoints {}
 
-  @route("/api/v1/billing/invoices/{customerId}")
+  @route("/api/v1/billing/invoices/{invoiceId}")
   @tag("Billing (Experimental)")
-  interface CustomerInvoicesEndpoints
-    extends OpenMeter.Billing.CustomerInvoicesEndpoints {}
-
-  @route("/api/v1/billing/invoices/{customerId}/invoices/{invoiceId}")
-  @tag("Billing (Experimental)")
-  interface CustomerInvoiceEndpoints
-    extends OpenMeter.Billing.CustomerInvoiceEndpoints {}
+  interface InvoiceEndpoints extends OpenMeter.Billing.InvoiceEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {

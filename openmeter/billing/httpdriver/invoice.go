@@ -98,12 +98,12 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 type (
 	InvoicePendingLinesActionRequest  = billing.InvoicePendingLinesInput
 	InvoicePendingLinesActionResponse = []api.Invoice
-	InvoicePendingLinesActionHandler  httptransport.HandlerWithArgs[InvoicePendingLinesActionRequest, InvoicePendingLinesActionResponse, string]
+	InvoicePendingLinesActionHandler  httptransport.Handler[InvoicePendingLinesActionRequest, InvoicePendingLinesActionResponse]
 )
 
 func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID string) (InvoicePendingLinesActionRequest, error) {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (InvoicePendingLinesActionRequest, error) {
 			body := api.InvoicePendingLinesActionInput{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
@@ -117,7 +117,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 
 			return InvoicePendingLinesActionRequest{
 				Customer: customerentity.CustomerID{
-					ID:        customerID,
+					ID:        body.CustomerId,
 					Namespace: ns,
 				},
 
@@ -157,7 +157,6 @@ type (
 	GetInvoiceRequest  = billing.GetInvoiceByIdInput
 	GetInvoiceResponse = api.Invoice
 	GetInvoiceParams   struct {
-		CustomerID          string
 		InvoiceID           string
 		Expand              []api.InvoiceExpand
 		IncludeDeletedLines bool
@@ -171,13 +170,6 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
-			}
-			if err := h.service.ValidateInvoiceOwnership(ctx, billing.ValidateInvoiceOwnershipInput{
-				Namespace:  ns,
-				InvoiceID:  params.InvoiceID,
-				CustomerID: params.CustomerID,
-			}); err != nil {
-				return GetInvoiceRequest{}, billing.NotFoundError{Err: err}
 			}
 
 			return GetInvoiceRequest{
@@ -232,8 +224,7 @@ type (
 	}
 	ProgressInvoiceResponse = api.Invoice
 	ProgressInvoiceParams   struct {
-		CustomerID string
-		InvoiceID  string
+		InvoiceID string
 	}
 	ProgressInvoiceHandler httptransport.HandlerWithArgs[ProgressInvoiceRequest, ProgressInvoiceResponse, ProgressInvoiceParams]
 )
@@ -244,14 +235,6 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return ProgressInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
-			}
-
-			if err := h.service.ValidateInvoiceOwnership(ctx, billing.ValidateInvoiceOwnershipInput{
-				Namespace:  ns,
-				InvoiceID:  params.InvoiceID,
-				CustomerID: params.CustomerID,
-			}); err != nil {
-				return ProgressInvoiceRequest{}, billing.NotFoundError{Err: err}
 			}
 
 			if !slices.Contains(InvoiceProgressActions, action) {
@@ -299,8 +282,7 @@ type (
 	DeleteInvoiceRequest  = billing.DeleteInvoiceInput
 	DeleteInvoiceResponse = struct{}
 	DeleteInvoiceParams   struct {
-		CustomerID string
-		InvoiceID  string
+		InvoiceID string
 	}
 	DeleteInvoiceHandler httptransport.HandlerWithArgs[DeleteInvoiceRequest, DeleteInvoiceResponse, DeleteInvoiceParams]
 )
@@ -311,14 +293,6 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeleteInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
-			}
-
-			if err := h.service.ValidateInvoiceOwnership(ctx, billing.ValidateInvoiceOwnershipInput{
-				Namespace:  ns,
-				InvoiceID:  params.InvoiceID,
-				CustomerID: params.CustomerID,
-			}); err != nil {
-				return DeleteInvoiceRequest{}, billing.NotFoundError{Err: err}
 			}
 
 			return billing.InvoiceID{
@@ -340,26 +314,6 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
-}
-
-func (h *handler) ConvertListInvoicesByCustomerToListInvoices(customerID string, params api.ListInvoicesByCustomerParams) api.ListInvoicesParams {
-	return api.ListInvoicesParams{
-		Customers: lo.ToPtr([]string{customerID}),
-
-		Statuses:         params.Statuses,
-		ExtendedStatuses: params.ExtendedStatuses,
-		IssuedAfter:      params.IssuedAfter,
-		IssuedBefore:     params.IssuedBefore,
-
-		Expand: params.Expand,
-
-		Page:     params.Page,
-		PageSize: params.PageSize,
-		Offset:   params.Offset,
-		Limit:    params.Limit,
-		Order:    params.Order,
-		OrderBy:  params.OrderBy,
-	}
 }
 
 func mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
