@@ -42,8 +42,10 @@ func TestCreateFromPlan(t *testing.T) {
 					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 					ActiveFrom: deps.CurrentTime,
-					Currency:   "USD",
-					Plan:       subscriptiontestutils.ExamplePlanRef,
+					Plan: subscription.PlanRefInput{
+						Key:     subscriptiontestutils.ExamplePlanRef.Key,
+						Version: &subscriptiontestutils.ExamplePlanRef.Version,
+					},
 				})
 
 				assert.ErrorAs(t, err, &customerentity.NotFoundError{}, "expected customer not found error, got %T", err)
@@ -59,8 +61,7 @@ func TestCreateFromPlan(t *testing.T) {
 					CustomerID: deps.Customer.ID,
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 					ActiveFrom: deps.CurrentTime,
-					Currency:   "USD",
-					Plan:       subscription.PlanRef{Key: "nonexistent-plan", Version: 1},
+					Plan:       subscription.PlanRefInput{Key: "nonexistent-plan", Version: lo.ToPtr(1)},
 				})
 
 				// assert.ErrorAs does not recognize this error
@@ -68,206 +69,207 @@ func TestCreateFromPlan(t *testing.T) {
 				assert.True(t, isErr, "expected plan not found error, got %T", err)
 			},
 		},
-		{
-			Name: "Should error if a patch is invalid",
-			Handler: func(t *testing.T, deps testCaseDeps) {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				errorMsg := "this is an invalid patch"
+		// TODO: validate patches separately
+		// {
+		// 	Name: "Should error if a patch is invalid",
+		// 	Handler: func(t *testing.T, deps testCaseDeps) {
+		// 		ctx, cancel := context.WithCancel(context.Background())
+		// 		defer cancel()
+		// 		errorMsg := "this is an invalid patch"
 
-				invalidPatch := subscriptiontestutils.TestPatch{
-					ValdiateFn: func() error {
-						return errors.New(errorMsg)
-					},
-				}
+		// 		invalidPatch := subscriptiontestutils.TestPatch{
+		// 			ValdiateFn: func() error {
+		// 				return errors.New(errorMsg)
+		// 			},
+		// 		}
 
-				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
-					CustomerID:    deps.Customer.ID,
-					Namespace:     subscriptiontestutils.ExampleNamespace,
-					ActiveFrom:    deps.CurrentTime,
-					Currency:      "USD",
-					Plan:          subscriptiontestutils.ExamplePlanRef,
-					Customization: []subscription.Patch{&invalidPatch},
-				})
+		// 		_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
+		// 			CustomerID:    deps.Customer.ID,
+		// 			Namespace:     subscriptiontestutils.ExampleNamespace,
+		// 			ActiveFrom:    deps.CurrentTime,
+		// 			Currency:      "USD",
+		// 			Plan:          subscriptiontestutils.ExamplePlanRef,
+		// 			Customization: []subscription.Patch{&invalidPatch},
+		// 		})
 
-				assert.ErrorContains(t, err, errorMsg, "expected error message to contain %q, got %v", errorMsg, err)
-			},
-		},
-		{
-			Name: "Should apply the patch to the specs based on the plan",
-			Handler: func(t *testing.T, deps testCaseDeps) {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+		// 		assert.ErrorContains(t, err, errorMsg, "expected error message to contain %q, got %v", errorMsg, err)
+		// 	},
+		// },
+		// {
+		// 	Name: "Should apply the patch to the specs based on the plan",
+		// 	Handler: func(t *testing.T, deps testCaseDeps) {
+		// 		ctx, cancel := context.WithCancel(context.Background())
+		// 		defer cancel()
 
-				// As we assert for the contextual time, we need to freeze the clock
-				clock.FreezeTime(deps.CurrentTime)
-				defer clock.UnFreeze()
+		// 		// As we assert for the contextual time, we need to freeze the clock
+		// 		clock.FreezeTime(deps.CurrentTime)
+		// 		defer clock.UnFreeze()
 
-				errMsg := "this custom patch apply failed"
+		// 		errMsg := "this custom patch apply failed"
 
-				expectedPlanSpec, err := subscription.NewSpecFromPlan(subscriptiontestutils.GetExamplePlan(), subscription.CreateSubscriptionCustomerInput{
-					CustomerId: deps.Customer.ID,
-					Currency:   "USD",
-					ActiveFrom: deps.CurrentTime,
-				})
-				require.Nil(t, err)
+		// 		expectedPlanSpec, err := subscription.NewSpecFromPlan(subscriptiontestutils.GetExamplePlan(), subscription.CreateSubscriptionCustomerInput{
+		// 			CustomerId: deps.Customer.ID,
+		// 			Currency:   "USD",
+		// 			ActiveFrom: deps.CurrentTime,
+		// 		})
+		// 		require.Nil(t, err)
 
-				patch1 := subscriptiontestutils.TestPatch{
-					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
-						// Let's assert that the correct spec is passed to the patch
-						assert.Equal(t, &expectedPlanSpec, spec, "expected spec to be equal to the plan spec")
-						assert.Equal(t, subscription.ApplyContext{
-							CurrentTime: deps.CurrentTime,
-							Operation:   subscription.SpecOperationCreate,
-						}, c, "apply context is incorrect")
+		// 		patch1 := subscriptiontestutils.TestPatch{
+		// 			ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
+		// 				// Let's assert that the correct spec is passed to the patch
+		// 				assert.Equal(t, &expectedPlanSpec, spec, "expected spec to be equal to the plan spec")
+		// 				assert.Equal(t, subscription.ApplyContext{
+		// 					CurrentTime: deps.CurrentTime,
+		// 					Operation:   subscription.SpecOperationCreate,
+		// 				}, c, "apply context is incorrect")
 
-						// Lets modify the spec to see if its passed to the next
-						spec.Plan.Key = "modified-plan"
+		// 				// Lets modify the spec to see if its passed to the next
+		// 				spec.Plan.Key = "modified-plan"
 
-						return nil
-					},
-				}
+		// 				return nil
+		// 			},
+		// 		}
 
-				patch2 := subscriptiontestutils.TestPatch{
-					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
-						// Let's see if the modification is passed along
-						assert.Equal(t, "modified-plan", spec.Plan.Key, "expected plan key to be modified")
+		// 		patch2 := subscriptiontestutils.TestPatch{
+		// 			ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
+		// 				// Let's see if the modification is passed along
+		// 				assert.Equal(t, "modified-plan", spec.Plan.Key, "expected plan key to be modified")
 
-						return nil
-					},
-				}
+		// 				return nil
+		// 			},
+		// 		}
 
-				patch3 := subscriptiontestutils.TestPatch{
-					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
-						// And let's test if errors are passed correctly
-						return errors.New(errMsg)
-					},
-				}
+		// 		patch3 := subscriptiontestutils.TestPatch{
+		// 			ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
+		// 				// And let's test if errors are passed correctly
+		// 				return errors.New(errMsg)
+		// 			},
+		// 		}
 
-				_, err = deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
-					CustomerID: deps.Customer.ID,
-					Namespace:  subscriptiontestutils.ExampleNamespace,
-					ActiveFrom: deps.CurrentTime,
-					Currency:   "USD",
-					Plan:       subscriptiontestutils.ExamplePlanRef,
-					Customization: []subscription.Patch{
-						&patch1,
-						&patch2,
-						&patch3,
-					},
-				})
+		// 		_, err = deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
+		// 			CustomerID: deps.Customer.ID,
+		// 			Namespace:  subscriptiontestutils.ExampleNamespace,
+		// 			ActiveFrom: deps.CurrentTime,
+		// 			Currency:   "USD",
+		// 			Plan:       subscriptiontestutils.ExamplePlanRef,
+		// 			Customization: []subscription.Patch{
+		// 				&patch1,
+		// 				&patch2,
+		// 				&patch3,
+		// 			},
+		// 		})
 
-				// Let's validate the error is surfaced
-				assert.ErrorContains(t, err, errMsg, "expected error message to contain %q, got %v", errMsg, err)
-			},
-		},
-		{
-			Name: "Should use the output of patches without modifications",
-			Handler: func(t *testing.T, deps testCaseDeps) {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+		// 		// Let's validate the error is surfaced
+		// 		assert.ErrorContains(t, err, errMsg, "expected error message to contain %q, got %v", errMsg, err)
+		// 	},
+		// },
+		// {
+		// 	Name: "Should use the output of patches without modifications",
+		// 	Handler: func(t *testing.T, deps testCaseDeps) {
+		// 		ctx, cancel := context.WithCancel(context.Background())
+		// 		defer cancel()
 
-				returnedSpec := subscription.SubscriptionSpec{
-					CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
-						Plan: subscription.PlanRef{
-							Key:     "returned-plan",
-							Version: 1,
-						},
-					},
-					CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-						CustomerId: "new-customer-id",
-					},
-					Phases: map[string]*subscription.SubscriptionPhaseSpec{
-						"phase-1": {
-							CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
-								PhaseKey:   "phase-1",
-								StartAfter: testutils.GetISODuration(t, "P1D"),
-								Name:       "Phase 1",
-							},
-							ItemsByKey: map[string][]subscription.SubscriptionItemSpec{
-								"item-1": {
-									{
-										CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
-											CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
-												ItemKey:  "item-1",
-												PhaseKey: "phase-1",
-												RateCard: subscription.RateCard{
-													Name: "rate-card-1",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				}
+		// 		returnedSpec := subscription.SubscriptionSpec{
+		// 			CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
+		// 				Plan: subscription.PlanRef{
+		// 					Key:     "returned-plan",
+		// 					Version: 1,
+		// 				},
+		// 			},
+		// 			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+		// 				CustomerId: "new-customer-id",
+		// 			},
+		// 			Phases: map[string]*subscription.SubscriptionPhaseSpec{
+		// 				"phase-1": {
+		// 					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+		// 						PhaseKey:   "phase-1",
+		// 						StartAfter: testutils.GetISODuration(t, "P1D"),
+		// 						Name:       "Phase 1",
+		// 					},
+		// 					ItemsByKey: map[string][]subscription.SubscriptionItemSpec{
+		// 						"item-1": {
+		// 							{
+		// 								CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+		// 									CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+		// 										ItemKey:  "item-1",
+		// 										PhaseKey: "phase-1",
+		// 										RateCard: subscription.RateCard{
+		// 											Name: "rate-card-1",
+		// 										},
+		// 									},
+		// 								},
+		// 							},
+		// 						},
+		// 					},
+		// 				},
+		// 			},
+		// 		}
 
-				patch1 := subscriptiontestutils.TestPatch{
-					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
-						// Let's set the new values
+		// 		patch1 := subscriptiontestutils.TestPatch{
+		// 			ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
+		// 				// Let's set the new values
 
-						spec.CreateSubscriptionPlanInput = returnedSpec.CreateSubscriptionPlanInput
-						spec.CreateSubscriptionCustomerInput = returnedSpec.CreateSubscriptionCustomerInput
-						spec.Phases = returnedSpec.Phases
+		// 				spec.CreateSubscriptionPlanInput = returnedSpec.CreateSubscriptionPlanInput
+		// 				spec.CreateSubscriptionCustomerInput = returnedSpec.CreateSubscriptionCustomerInput
+		// 				spec.Phases = returnedSpec.Phases
 
-						return nil
-					},
-				}
+		// 				return nil
+		// 			},
+		// 		}
 
-				sID := models.NamespacedID{
-					Namespace: subscriptiontestutils.ExampleNamespace,
-					ID:        "new-subscription-id",
-				}
+		// 		sID := models.NamespacedID{
+		// 			Namespace: subscriptiontestutils.ExampleNamespace,
+		// 			ID:        "new-subscription-id",
+		// 		}
 
-				rView := subscription.SubscriptionView{
-					Subscription: subscription.Subscription{
-						CustomerId: "bogus-id",
-					},
-				}
+		// 		rView := subscription.SubscriptionView{
+		// 			Subscription: subscription.Subscription{
+		// 				CustomerId: "bogus-id",
+		// 			},
+		// 		}
 
-				mSvc := subscriptiontestutils.MockService{
-					CreateFn: func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
-						// Let's validate that the spec is passed as is
-						assert.Equal(t, returnedSpec, spec, "expected spec to be equal to the returned spec")
+		// 		mSvc := subscriptiontestutils.MockService{
+		// 			CreateFn: func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+		// 				// Let's validate that the spec is passed as is
+		// 				assert.Equal(t, returnedSpec, spec, "expected spec to be equal to the returned spec")
 
-						return subscription.Subscription{
-							NamespacedID: sID,
-						}, nil
-					},
-					GetViewFn: func(ctx context.Context, id models.NamespacedID) (subscription.SubscriptionView, error) {
-						assert.Equal(t, sID, id, "expected id to be equal to the returned id")
+		// 				return subscription.Subscription{
+		// 					NamespacedID: sID,
+		// 				}, nil
+		// 			},
+		// 			GetViewFn: func(ctx context.Context, id models.NamespacedID) (subscription.SubscriptionView, error) {
+		// 				assert.Equal(t, sID, id, "expected id to be equal to the returned id")
 
-						return rView, nil
-					},
-				}
+		// 				return rView, nil
+		// 			},
+		// 		}
 
-				_, tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
-				tuDeps.PlanAdapter.AddPlan(t, subscriptiontestutils.GetExamplePlan())
+		// 		_, tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
+		// 		tuDeps.PlanAdapter.AddPlan(t, subscriptiontestutils.GetExamplePlan())
 
-				workflowService := service.NewWorkflowService(service.WorkflowServiceConfig{
-					Service:            &mSvc,
-					CustomerService:    tuDeps.CustomerService,
-					PlanAdapter:        tuDeps.PlanAdapter,
-					TransactionManager: tuDeps.CustomerAdapter,
-				})
+		// 		workflowService := service.NewWorkflowService(service.WorkflowServiceConfig{
+		// 			Service:            &mSvc,
+		// 			CustomerService:    tuDeps.CustomerService,
+		// 			PlanAdapter:        tuDeps.PlanAdapter,
+		// 			TransactionManager: tuDeps.CustomerAdapter,
+		// 		})
 
-				res, err := workflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
-					CustomerID: deps.Customer.ID,
-					Namespace:  subscriptiontestutils.ExampleNamespace,
-					ActiveFrom: deps.CurrentTime,
-					Currency:   "USD",
-					Plan:       subscriptiontestutils.ExamplePlanRef,
-					Customization: []subscription.Patch{
-						&patch1,
-					},
-				})
+		// 		res, err := workflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
+		// 			CustomerID: deps.Customer.ID,
+		// 			Namespace:  subscriptiontestutils.ExampleNamespace,
+		// 			ActiveFrom: deps.CurrentTime,
+		// 			Currency:   "USD",
+		// 			Plan:       subscriptiontestutils.ExamplePlanRef,
+		// 			Customization: []subscription.Patch{
+		// 				&patch1,
+		// 			},
+		// 		})
 
-				assert.Nil(t, err)
+		// 		assert.Nil(t, err)
 
-				assert.Equal(t, rView, res)
-			},
-		},
+		// 		assert.Equal(t, rView, res)
+		// 	},
+		// },
 	}
 
 	for _, tc := range testCases {
@@ -486,8 +488,11 @@ func TestEditRunning(t *testing.T) {
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
 				ActiveFrom: tcDeps.CurrentTime,
-				Currency:   "USD",
-				Plan:       subscriptiontestutils.ExamplePlanRef,
+				Plan: subscription.PlanRefInput{
+					Key:     subscriptiontestutils.ExamplePlanRef.Key,
+					Version: &subscriptiontestutils.ExamplePlanRef.Version,
+				},
+				Name: "Example Subscription",
 			})
 			require.Nil(t, err)
 

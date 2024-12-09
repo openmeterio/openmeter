@@ -7,7 +7,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 )
 
 var ExamplePlanRef subscription.PlanRef = subscription.PlanRef{
@@ -104,7 +106,10 @@ type planAdapter struct {
 
 var _ subscription.PlanAdapter = &planAdapter{}
 
-func (a *planAdapter) GetVersion(ctx context.Context, k string, v int) (subscription.Plan, error) {
+func (a *planAdapter) GetVersion(ctx context.Context, _ string, ref subscription.PlanRefInput) (subscription.Plan, error) {
+	k := ref.Key
+	v := defaultx.WithDefault(ref.Version, 1) // this defaulting is incorrect in princple
+
 	versions, ok := a.store[k]
 	if !ok {
 		return nil, &subscription.PlanNotFoundError{Key: k, Version: v}
@@ -168,6 +173,10 @@ func (p *Plan) GetKey() string {
 
 func (p *Plan) GetVersionNumber() int {
 	return p.PlanInput.Plan.Version
+}
+
+func (p *Plan) Currency() currencyx.Code {
+	return currencyx.Code("USD")
 }
 
 type PlanPhase struct {

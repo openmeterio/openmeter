@@ -23,7 +23,7 @@ type EntitlementSubscriptionAdapter struct {
 
 var _ subscription.EntitlementAdapter = &EntitlementSubscriptionAdapter{}
 
-func NewEntitlementSubscriptionAdapter(
+func NewSubscriptionEntitlementAdapter(
 	entitlementConnector entitlement.Connector,
 	itemRepo subscription.SubscriptionItemRepository,
 	txCreator transaction.Creator,
@@ -35,7 +35,7 @@ func NewEntitlementSubscriptionAdapter(
 	}
 }
 
-// FIXME: implement usageMigration as needed
+// TODO: implement usageMigration as needed
 func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context, input subscription.ScheduleSubscriptionEntitlementInput) (*subscription.SubscriptionEntitlement, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)

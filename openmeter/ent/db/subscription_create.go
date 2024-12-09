@@ -100,6 +100,34 @@ func (sc *SubscriptionCreate) SetNillableActiveTo(t *time.Time) *SubscriptionCre
 	return sc
 }
 
+// SetName sets the "name" field.
+func (sc *SubscriptionCreate) SetName(s string) *SubscriptionCreate {
+	sc.mutation.SetName(s)
+	return sc
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillableName(s *string) *SubscriptionCreate {
+	if s != nil {
+		sc.SetName(*s)
+	}
+	return sc
+}
+
+// SetDescription sets the "description" field.
+func (sc *SubscriptionCreate) SetDescription(s string) *SubscriptionCreate {
+	sc.mutation.SetDescription(s)
+	return sc
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillableDescription(s *string) *SubscriptionCreate {
+	if s != nil {
+		sc.SetDescription(*s)
+	}
+	return sc
+}
+
 // SetPlanKey sets the "plan_key" field.
 func (sc *SubscriptionCreate) SetPlanKey(s string) *SubscriptionCreate {
 	sc.mutation.SetPlanKey(s)
@@ -201,6 +229,10 @@ func (sc *SubscriptionCreate) defaults() {
 		v := subscription.DefaultUpdatedAt()
 		sc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := sc.mutation.Name(); !ok {
+		v := subscription.DefaultName
+		sc.mutation.SetName(v)
+	}
 	if _, ok := sc.mutation.ID(); !ok {
 		v := subscription.DefaultID()
 		sc.mutation.SetID(v)
@@ -225,6 +257,14 @@ func (sc *SubscriptionCreate) check() error {
 	}
 	if _, ok := sc.mutation.ActiveFrom(); !ok {
 		return &ValidationError{Name: "active_from", err: errors.New(`db: missing required field "Subscription.active_from"`)}
+	}
+	if _, ok := sc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Subscription.name"`)}
+	}
+	if v, ok := sc.mutation.Name(); ok {
+		if err := subscription.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Subscription.name": %w`, err)}
+		}
 	}
 	if _, ok := sc.mutation.PlanKey(); !ok {
 		return &ValidationError{Name: "plan_key", err: errors.New(`db: missing required field "Subscription.plan_key"`)}
@@ -324,6 +364,14 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := sc.mutation.ActiveTo(); ok {
 		_spec.SetField(subscription.FieldActiveTo, field.TypeTime, value)
 		_node.ActiveTo = &value
+	}
+	if value, ok := sc.mutation.Name(); ok {
+		_spec.SetField(subscription.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := sc.mutation.Description(); ok {
+		_spec.SetField(subscription.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := sc.mutation.PlanKey(); ok {
 		_spec.SetField(subscription.FieldPlanKey, field.TypeString, value)
@@ -488,6 +536,36 @@ func (u *SubscriptionUpsert) ClearActiveTo() *SubscriptionUpsert {
 	return u
 }
 
+// SetName sets the "name" field.
+func (u *SubscriptionUpsert) SetName(v string) *SubscriptionUpsert {
+	u.Set(subscription.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateName() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *SubscriptionUpsert) SetDescription(v string) *SubscriptionUpsert {
+	u.Set(subscription.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateDescription() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *SubscriptionUpsert) ClearDescription() *SubscriptionUpsert {
+	u.SetNull(subscription.FieldDescription)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -631,6 +709,41 @@ func (u *SubscriptionUpsertOne) UpdateActiveTo() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearActiveTo() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearActiveTo()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *SubscriptionUpsertOne) SetName(v string) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateName() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *SubscriptionUpsertOne) SetDescription(v string) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateDescription() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *SubscriptionUpsertOne) ClearDescription() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearDescription()
 	})
 }
 
@@ -944,6 +1057,41 @@ func (u *SubscriptionUpsertBulk) UpdateActiveTo() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearActiveTo() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearActiveTo()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *SubscriptionUpsertBulk) SetName(v string) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateName() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *SubscriptionUpsertBulk) SetDescription(v string) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateDescription() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *SubscriptionUpsertBulk) ClearDescription() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearDescription()
 	})
 }
 

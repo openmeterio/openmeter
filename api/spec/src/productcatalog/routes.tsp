@@ -238,24 +238,8 @@ interface Subscriptions {
   @operationId("getSubscription")
   @summary("Get subscription")
   @extension("x-internal", true)
-  get(
-    @path subscriptionId: ULID,
-    @query expand?: false,
-
-    /**
-     * The time at which the subscription should be queried. If not provided the current time is used.
-     */
-    @query at?: DateTime,
-  ): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  @get
-  @sharedRoute
-  @operationId("getSubscription")
-  @summary("Get subscription")
-  @extension("x-internal", true)
   getExpanded(
     @path subscriptionId: ULID,
-    @query expand: true,
 
     /**
      * The time at which the subscription should be queried. If not provided the current time is used.
@@ -267,9 +251,10 @@ interface Subscriptions {
   @operationId("createSubscription")
   @summary("Create subscription")
   @extension("x-internal", true)
-  create(
-    @body body: SubscriptionCreate,
-  ): Subscription | OpenMeter.ConflictError | OpenMeter.CommonErrors;
+  create(@body body: SubscriptionCreate): {
+    @statusCode _: 201;
+    @body body: Subscription;
+  } | OpenMeter.ConflictError | OpenMeter.CommonErrors;
 
   /**
    * Batch processing commands for manipulating running subscriptions.
@@ -279,13 +264,13 @@ interface Subscriptions {
   @operationId("editSubscription")
   @summary("Edit subscription")
   @route("/{subscriptionId}")
+  @parameterVisibility("create")
   @extension("x-internal", true)
   edit(
     @path subscriptionId: ULID,
 
     @body
-    @maxItems(100)
-    body: SubscriptionPatch[],
+    body: SubscriptionEdit,
   ):
     | Subscription
     | OpenMeter.ConflictError

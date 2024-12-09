@@ -23,7 +23,6 @@ type ServiceConfig struct {
 	CustomerService customer.Service
 	// adapters
 	EntitlementAdapter subscription.EntitlementAdapter
-	DiscountAdapter    subscription.DiscountAdapter
 	// framework
 	TransactionManager transaction.Creator
 }

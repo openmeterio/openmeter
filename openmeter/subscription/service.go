@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -29,13 +28,12 @@ type WorkflowService interface {
 }
 
 type CreateFromPlanInput struct {
-	Namespace  string
-	ActiveFrom time.Time
-	CustomerID string
-	Currency   currencyx.Code
+	Namespace   string
+	ActiveFrom  time.Time
+	CustomerID  string
+	Name        string
+	Description *string
+	models.AnnotatedModel
 
-	Plan PlanRef
-
-	// Allowed customizations via Patches
-	Customization []Patch
+	Plan PlanRefInput
 }

@@ -34,7 +34,6 @@ type EntitlementQuery struct {
 	withBalanceSnapshot  *BalanceSnapshotQuery
 	withSubscriptionItem *SubscriptionItemQuery
 	withFeature          *FeatureQuery
-	withFKs              bool
 	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -152,7 +151,7 @@ func (eq *EntitlementQuery) QuerySubscriptionItem() *SubscriptionItemQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, entitlement.SubscriptionItemTable, entitlement.SubscriptionItemColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.SubscriptionItemTable, entitlement.SubscriptionItemColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
@@ -517,7 +516,6 @@ func (eq *EntitlementQuery) prepareQuery(ctx context.Context) error {
 func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Entitlement, error) {
 	var (
 		nodes       = []*Entitlement{}
-		withFKs     = eq.withFKs
 		_spec       = eq.querySpec()
 		loadedTypes = [5]bool{
 			eq.withUsageReset != nil,
@@ -527,12 +525,6 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 			eq.withFeature != nil,
 		}
 	)
-	if eq.withSubscriptionItem != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, entitlement.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Entitlement).scanValues(nil, columns)
 	}
@@ -576,8 +568,11 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 		}
 	}
 	if query := eq.withSubscriptionItem; query != nil {
-		if err := eq.loadSubscriptionItem(ctx, query, nodes, nil,
-			func(n *Entitlement, e *SubscriptionItem) { n.Edges.SubscriptionItem = e }); err != nil {
+		if err := eq.loadSubscriptionItem(ctx, query, nodes,
+			func(n *Entitlement) { n.Edges.SubscriptionItem = []*SubscriptionItem{} },
+			func(n *Entitlement, e *SubscriptionItem) {
+				n.Edges.SubscriptionItem = append(n.Edges.SubscriptionItem, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -681,34 +676,35 @@ func (eq *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *Bala
 	return nil
 }
 func (eq *EntitlementQuery) loadSubscriptionItem(ctx context.Context, query *SubscriptionItemQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *SubscriptionItem)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*Entitlement)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Entitlement)
 	for i := range nodes {
-		if nodes[i].entitlement_subscription_item == nil {
-			continue
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
 		}
-		fk := *nodes[i].entitlement_subscription_item
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(ids) == 0 {
-		return nil
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscriptionitem.FieldEntitlementID)
 	}
-	query.Where(subscriptionitem.IDIn(ids...))
+	query.Where(predicate.SubscriptionItem(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(entitlement.SubscriptionItemColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.EntitlementID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "entitlement_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "entitlement_subscription_item" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "entitlement_id" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }

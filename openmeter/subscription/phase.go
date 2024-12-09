@@ -9,6 +9,7 @@ import (
 type SubscriptionPhase struct {
 	models.NamespacedID
 	models.ManagedModel
+	models.AnnotatedModel
 
 	ActiveFrom time.Time `json:"activeFrom"`
 
@@ -23,7 +24,4 @@ type SubscriptionPhase struct {
 
 	// Description
 	Description *string `json:"description,omitempty"`
-
-	// Metadata
-	Metadata map[string]string `json:"metadata,omitempty"`
 }

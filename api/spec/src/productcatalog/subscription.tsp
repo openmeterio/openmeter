@@ -33,6 +33,7 @@ model SubscriptionExpanded {
 @friendlyName("Subscription")
 model Subscription {
   ...global.Resource;
+  ...global.CadencedResource;
 
   /**
    * The customer ID of the subscription.
@@ -50,11 +51,6 @@ model Subscription {
    */
   @summary("Currency")
   currency: CurrencyCode = "USD";
-
-  /**
-   * If the subscription is canceled or otherwise have to end activeTo denotes the end date.
-   */
-  activeTo?: DateTime;
 }
 
 /**
@@ -73,12 +69,22 @@ model SubscriptionPhaseExpanded {
 model SubscriptionPhase {
   ...global.Resource;
   ...Keyed;
-  ...OmitProperties<SubscriptionPhaseCreate, "startAfter">;
+
+  // TODO: lets try this with visibility
+  ...OmitProperties<
+    SubscriptionPhaseCreate,
+    "startAfter" | "duration" | "key" | "name" | "description"
+  >;
 
   /**
    * The time from which the phase is active.
    */
   activeFrom: DateTime;
+
+  /**
+   * The until which the Phase is active.
+   */
+  activeTo?: DateTime;
 }
 
 /**
@@ -97,17 +103,33 @@ model SubscriptionPhaseCreate {
 
   /**
    * The intended duration of the new phase.
+   * Duration is required when the phase will not be the last phase.
    */
   @summary("Duration")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1M"))
-  duration: duration;
+  duration?: duration;
 
   /**
    * The discounts on the plan.
    */
   @summary("Discounts")
   discounts?: Discount[];
+
+  /**
+   * A locally unique identifier for the phase.
+   */
+  key: Key;
+
+  /**
+   * The name of the phase.
+   */
+  name: string;
+
+  /**
+   * The description of the phase.
+   */
+  description?: string;
 }
 
 /**
@@ -116,6 +138,7 @@ model SubscriptionPhaseCreate {
 @friendlyName("SubscriptionItem")
 model SubscriptionItem {
   ...global.Resource;
+  ...global.CadencedResource;
 
   /**
    * The identifier of the RateCard.
@@ -149,23 +172,12 @@ model SubscriptionItem {
     | FlatPriceWithPaymentTerm
     | UnitPriceWithCommitments
     | TieredPriceWithCommitments
-    | FlatPriceWithPaymentTerm
     | null;
 
   /**
    * Describes what access is gained via the SubscriptionItem
    */
-  included?: {
-    /**
-     * The feature the customer is entitled to use.
-     */
-    feature: Entitlements.Feature;
-
-    /*
-     * The entitlement of the Subscription Item.
-     */
-    entitlement?: Entitlements.Entitlement;
-  };
+  included?: SubscriptionItemIncluded;
 
   /**
    * The tax config of the Subscription Item.
@@ -174,6 +186,35 @@ model SubscriptionItem {
   @visibility("read", "create", "update")
   @summary("Tax config")
   taxConfig?: TaxConfig;
+}
+
+/**
+ * Included contents like Entitlement, or the Feature.
+ */
+@friendlyName("SubscriptionItemIncluded")
+model SubscriptionItemIncluded {
+  /**
+   * The feature the customer is entitled to use.
+   */
+  feature: Entitlements.Feature;
+
+  /*
+   * The entitlement of the Subscription Item.
+   */
+  entitlement?: Entitlements.Entitlement;
+}
+
+/**
+ * Subscription edit input.
+ */
+@friendlyName("SubscriptionEdit")
+model SubscriptionEdit {
+  /**
+   * Batch processing commands for manipulating running subscriptions.
+   * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+   */
+  @maxItems(100)
+  customizations: SubscriptionEditOperation[];
 }
 
 /**
@@ -199,7 +240,7 @@ union SubscriptionChange {
 /**
  * Create a custom subscription.
  */
-@friendlyName("CreateCustomSubscriptionRequestBody")
+@friendlyName("CustomSubscriptionCreate")
 model CustomSubscriptionCreate {
   ...CustomSubscriptionChange;
   customerId: ULID;
@@ -210,7 +251,6 @@ model CustomSubscriptionCreate {
  */
 @friendlyName("CustomSubscriptionChange")
 model CustomSubscriptionChange {
-  currency: CurrencyCode;
   activeFrom: DateTime;
   customPlan: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>;
 }
@@ -229,28 +269,81 @@ model PlanSubscriptionCreate {
  */
 @friendlyName("PlanSubscriptionChange")
 model PlanSubscriptionChange {
-  plan: {
-    key: Key;
-    version: integer;
-  };
-  currency: CurrencyCode;
+  metadata?: global.Metadata;
+  plan: PlanReferenceInput;
   activeFrom: DateTime;
-
-  /**
-   * Batch processing commands for customizing the susbcription.
-   * The key format is `/phases/{phaseKey}/items/{itemKey}`.
-   *
-   * Add operations insert a new member based on the creation input without altering the existing members.
-   *
-   * Remove operations remove the member from the document.
-   *
-   */
-  @maxItems(100)
-  customizations: SubscriptionItemPatch[];
+  name: string;
+  description?: string;
 }
 
-@pattern("^\\/phases\\/[a-zA-Z0-9\\-]+$")
-scalar SubscriptionPhasePatchKey extends string;
+@friendlyName("SubscriptionEditOperation")
+@oneOf
+@discriminator("op")
+union SubscriptionEditOperation {
+  EditSubscriptionAddItem,
+  EditSubscriptionRemoveItem,
+  EditSubscriptionAddPhase,
+  EditSubscriptionRemovePhase,
+  EditSubscriptionStretchPhase,
+}
+
+@friendlyName("EditOp")
+enum EditOp {
+  AddItem: "add_item",
+  RemoveItem: "remove_item",
+  AddPhase: "add_phase",
+  RemovePhase: "remove_phase",
+  StretchPhase: "stretch_phase",
+}
+
+/**
+ * Add a new item to a phase.
+ */
+@friendlyName("EditSubscriptionAddItem")
+model EditSubscriptionAddItem {
+  `op`: EditOp.AddItem;
+  phaseKey: string;
+  rateCard: RateCard;
+}
+
+/**
+ * Remove an item from a phase.
+ */
+@friendlyName("EditSubscriptionRemoveItem")
+model EditSubscriptionRemoveItem {
+  `op`: EditOp.RemoveItem;
+  phaseKey: string;
+  itemKey: string;
+}
+
+/**
+ * Add a new phase
+ */
+@friendlyName("EditSubscriptionAddPhase")
+model EditSubscriptionAddPhase {
+  `op`: EditOp.AddPhase;
+  phase: SubscriptionPhaseCreate;
+}
+
+/**
+ * Remove a phase
+ */
+@friendlyName("EditSubscriptionRemovePhase")
+model EditSubscriptionRemovePhase {
+  `op`: EditOp.RemovePhase;
+  phaseKey: string;
+  shift: RemovePhaseShifting;
+}
+
+/**
+ * Stretch a phase
+ */
+@friendlyName("EditSubscriptionStretchPhase")
+model EditSubscriptionStretchPhase {
+  `op`: EditOp.StretchPhase;
+  phaseKey: string;
+  extendBy: duration;
+}
 
 /**
  * The direction of the phase shift when a phase is removed.
@@ -260,78 +353,10 @@ enum RemovePhaseShifting {
   /**
    * Shifts all subsequent phases to start sooner by the deleted phase's length
    */
-  Next,
+  Next: "next",
 
   /**
    * Extends the previous phase to end later by the deleted phase's length
    */
-  Prev,
-}
-
-alias SubscriptionPhasePatch = SubscriptionEditAdd<
-  SubscriptionPhaseCreate,
-  SubscriptionPhasePatchKey
-> | SubscriptionPhaseStretch<
-  {
-    /**
-     * The signed duration to extend or shrink the phase by.
-     */
-    @encode(DurationKnownEncoding.ISO8601)
-    extendBy: duration;
-  },
-  SubscriptionPhasePatchKey
-> | SubscriptionEditRemoveWithValue<
-  {
-    shift: RemovePhaseShifting;
-  },
-  SubscriptionPhasePatchKey
->;
-
-@pattern("^\\/phases\\/[a-zA-Z0-9\\-]+\\/items\\/[a-zA-Z0-9\\-]+$")
-scalar SubscriptionItemPatchKey extends string;
-
-alias SubscriptionPatch = SubscriptionItemPatch | SubscriptionPhasePatch;
-
-alias SubscriptionItemPatch = SubscriptionEditAdd<
-  RateCard,
-  SubscriptionItemPatchKey
-> | SubscriptionEditRemove<SubscriptionItemPatchKey>;
-
-/**
- * Subscription item add operation.
- */
-@friendlyName("SubscriptionEditAdd")
-model SubscriptionEditAdd<T, K extends string> {
-  `op`: "add";
-  path: K;
-  value: T;
-}
-
-/**
- * Subscription phase stretch operation.
- */
-@friendlyName("SubscriptionEditStretch")
-model SubscriptionPhaseStretch<T, K extends string> {
-  `op`: "extend";
-  path: K;
-  value: T;
-}
-
-/**
- * Subscription phase remove operation.
- */
-@friendlyName("SubscriptionEditRemove")
-model SubscriptionEditRemove<K extends string> {
-  `op`: "remove";
-  path: K;
-}
-
-/**
- * Subscription item remove operation with a value.
- */
-@friendlyName("SubscriptionEditRemoveWithValue")
-model SubscriptionEditRemoveWithValue<T, K extends string> {
-  `op`: "remove";
-  path: K;
-  value: T;
+  Prev: "prev",
 }

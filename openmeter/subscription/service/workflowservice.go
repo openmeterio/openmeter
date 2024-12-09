@@ -53,35 +53,22 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	}
 
 	// Let's validate the plan exists
-	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Plan.Key, inp.Plan.Version)
+	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Namespace, inp.Plan)
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch plan: %w", err)
 	}
 
-	// Let's validate the patches
-	for i, patch := range inp.Customization {
-		if err := patch.Validate(); err != nil {
-			return def, fmt.Errorf("invalid patch at index %d: %w", i, err)
-		}
-	}
-
 	// Let's create the new Spec
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-		CustomerId: cust.ID,
-		Currency:   inp.Currency,
-		ActiveFrom: inp.ActiveFrom,
+		CustomerId:     cust.ID,
+		Currency:       plan.Currency(),
+		ActiveFrom:     inp.ActiveFrom,
+		AnnotatedModel: inp.AnnotatedModel,
+		Name:           inp.Name,
+		Description:    inp.Description,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to create spec from plan: %w", err)
-	}
-
-	// Let's apply the customizations
-	err = spec.ApplyPatches(lo.Map(inp.Customization, subscription.ToApplies), subscription.ApplyContext{
-		Operation:   subscription.SpecOperationCreate,
-		CurrentTime: clock.Now(),
-	})
-	if err != nil {
-		return def, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
 	// Finally, let's create the subscription
@@ -105,7 +92,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	// Let's validate the patches
 	for i, patch := range customizations {
 		if err := patch.Validate(); err != nil {
-			return subscription.SubscriptionView{}, fmt.Errorf("invalid patch at index %d: %w", i, err)
+			return subscription.SubscriptionView{}, &models.GenericUserError{Message: fmt.Sprintf("invalid patch at index %d: %s", i, err.Error())}
 		}
 	}
 
@@ -116,7 +103,10 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		Operation:   subscription.SpecOperationEdit,
 		CurrentTime: clock.Now(),
 	})
-	if err != nil {
+	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
+		// FIXME: error details are lost here
+		return subscription.SubscriptionView{}, &models.GenericUserError{Message: sErr.Error()}
+	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 

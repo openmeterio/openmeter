@@ -28,6 +28,10 @@ const (
 	FieldActiveFrom = "active_from"
 	// FieldActiveTo holds the string denoting the active_to field in the database.
 	FieldActiveTo = "active_to"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// FieldPlanKey holds the string denoting the plan_key field in the database.
 	FieldPlanKey = "plan_key"
 	// FieldPlanVersion holds the string denoting the plan_version field in the database.
@@ -68,6 +72,8 @@ var Columns = []string{
 	FieldMetadata,
 	FieldActiveFrom,
 	FieldActiveTo,
+	FieldName,
+	FieldDescription,
 	FieldPlanKey,
 	FieldPlanVersion,
 	FieldCustomerID,
@@ -93,6 +99,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultName holds the default value on creation for the "name" field.
+	DefaultName string
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
 	// PlanKeyValidator is a validator for the "plan_key" field. It is called by the builders before save.
 	PlanKeyValidator func(string) error
 	// PlanVersionValidator is a validator for the "plan_version" field. It is called by the builders before save.
@@ -141,6 +151,16 @@ func ByActiveFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByActiveTo orders the results by the active_to field.
 func ByActiveTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldActiveTo, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
 // ByPlanKey orders the results by the plan_key field.

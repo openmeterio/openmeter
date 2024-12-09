@@ -462,7 +462,6 @@ func (fq *FeatureQuery) loadEntitlement(ctx context.Context, query *EntitlementQ
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(entitlement.FieldFeatureID)
 	}

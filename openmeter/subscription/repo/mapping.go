@@ -28,12 +28,17 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 			ActiveFrom: sub.ActiveFrom.UTC(),
 			ActiveTo:   convert.SafeToUTC(sub.ActiveTo),
 		},
+		AnnotatedModel: models.AnnotatedModel{
+			Metadata: sub.Metadata,
+		},
 		Plan: subscription.PlanRef{
 			Key:     sub.PlanKey,
 			Version: sub.PlanVersion,
 		},
-		CustomerId: sub.CustomerID,
-		Currency:   sub.Currency,
+		Name:        sub.Name,
+		Description: sub.Description,
+		CustomerId:  sub.CustomerID,
+		Currency:    sub.Currency,
 	}, nil
 }
 
@@ -52,12 +57,14 @@ func MapDBSubscripitonPhase(phase *db.SubscriptionPhase) (subscription.Subscript
 			UpdatedAt: phase.UpdatedAt.UTC(),
 			DeletedAt: convert.SafeToUTC(phase.DeletedAt),
 		},
+		AnnotatedModel: models.AnnotatedModel{
+			Metadata: phase.Metadata,
+		},
 		ActiveFrom:     phase.ActiveFrom.UTC(),
 		SubscriptionID: phase.SubscriptionID,
 		Key:            phase.Key,
 		Name:           phase.Name,
 		Description:    phase.Description,
-		Metadata:       phase.Metadata,
 	}, nil
 }
 
@@ -107,6 +114,8 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		AnnotatedModel: models.AnnotatedModel{
 			Metadata: item.Metadata,
 		},
+		Name:                                   item.Name,
+		Description:                            item.Description,
 		ActiveFromOverrideRelativeToPhaseStart: sa,
 		ActiveToOverrideRelativeToPhaseStart:   ea,
 		SubscriptionId:                         phase.SubscriptionID,
@@ -116,10 +125,10 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		RateCard: subscription.RateCard{
 			Name:                item.Name,
 			Description:         item.Description,
-			Price:               item.Price,
 			FeatureKey:          item.FeatureKey,
 			EntitlementTemplate: item.EntitlementTemplate,
 			TaxConfig:           item.TaxConfig,
+			Price:               item.Price,
 			BillingCadence:      cadence,
 		},
 	}, nil

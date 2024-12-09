@@ -912,7 +912,6 @@ var (
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
 		{Name: "subscription_managed", Type: field.TypeBool, Nullable: true},
-		{Name: "entitlement_subscription_item", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
@@ -922,14 +921,8 @@ var (
 		PrimaryKey: []*schema.Column{EntitlementsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "entitlements_subscription_items_subscription_item",
-				Columns:    []*schema.Column{EntitlementsColumns[22]},
-				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[23]},
+				Columns:    []*schema.Column{EntitlementsColumns[22]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -963,7 +956,7 @@ var (
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[23], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[22], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
@@ -1437,6 +1430,8 @@ var (
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "active_from", Type: field.TypeTime},
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString, Default: "Subscription"},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "plan_key", Type: field.TypeString},
 		{Name: "plan_version", Type: field.TypeInt},
 		{Name: "currency", Type: field.TypeString, Size: 3},
@@ -1450,7 +1445,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[11]},
+				Columns:    []*schema.Column{SubscriptionsColumns[13]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1474,7 +1469,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[11]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[13]},
 			},
 		},
 	}
@@ -1508,7 +1503,7 @@ var (
 		PrimaryKey: []*schema.Column{SubscriptionItemsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "subscription_items_entitlements_entitlement",
+				Symbol:     "subscription_items_entitlements_subscription_item",
 				Columns:    []*schema.Column{SubscriptionItemsColumns[18]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.SetNull,
@@ -1757,8 +1752,7 @@ func init() {
 	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
-	EntitlementsTable.ForeignKeys[0].RefTable = SubscriptionItemsTable
-	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
+	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable

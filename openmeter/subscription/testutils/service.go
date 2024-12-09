@@ -52,7 +52,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		Publisher:          eventbus.NewMock(t),
 	})
 
-	entitlementAdapter := subscriptionentitlement.NewEntitlementSubscriptionAdapter(
+	entitlementAdapter := subscriptionentitlement.NewSubscriptionEntitlementAdapter(
 		entitlementRegistry.Entitlement,
 		subItemRepo,
 		subPhaseRepo,

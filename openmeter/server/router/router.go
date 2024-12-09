@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -38,6 +39,8 @@ import (
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -68,6 +71,7 @@ type Config struct {
 	PortalCORSEnabled   bool
 	PortalTokenStrategy *authenticator.PortalTokenStrategy
 	ErrorHandler        errorsx.Handler
+	Logger              *slog.Logger
 
 	// deps
 	App                         app.Service
@@ -75,6 +79,8 @@ type Config struct {
 	Customer                    customer.Service
 	Billing                     billing.Service
 	Plan                        plan.Service
+	SubscriptionService         subscription.Service
+	SubscriptionWorkflowService subscription.WorkflowService
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
@@ -84,10 +90,11 @@ type Config struct {
 	Notification                notification.Service
 
 	// FIXME: implement generic module management, loading, etc...
-	EntitlementsEnabled bool
-	NotificationEnabled bool
-	BillingEnabled      bool
-	AppsEnabled         bool
+	EntitlementsEnabled   bool
+	NotificationEnabled   bool
+	BillingEnabled        bool
+	ProductCatalogEnabled bool
+	AppsEnabled           bool
 }
 
 func (c Config) Validate() error {
@@ -172,6 +179,7 @@ type Router struct {
 	billingHandler            billinghttpdriver.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
+	subscriptionHandler       subscriptionhttpdriver.Handler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
 	customerHandler           customerhttpdriver.CustomerHandler
@@ -265,10 +273,32 @@ func NewRouter(config Config) (*Router, error) {
 		)
 	}
 
-	if config.Plan != nil {
+	if config.ProductCatalogEnabled {
+		if config.Plan == nil {
+			return nil, errors.New("plan service is required when productcatalog is enabled")
+		}
+
 		router.planHandler = planhttpdriver.New(
 			staticNamespaceDecoder,
 			config.Plan,
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+
+		if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil {
+			return nil, errors.New("subscription service and workflow service are required when productcatalog is enabled")
+		}
+
+		if config.Logger == nil {
+			return nil, errors.New("logger is required when productcatalog is enabled")
+		}
+
+		router.subscriptionHandler = subscriptionhttpdriver.NewHandler(
+			subscriptionhttpdriver.HandlerConfig{
+				SubscriptionWorkflowService: config.SubscriptionWorkflowService,
+				SubscriptionService:         config.SubscriptionService,
+				NamespaceDecoder:            staticNamespaceDecoder,
+				Logger:                      config.Logger,
+			},
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}

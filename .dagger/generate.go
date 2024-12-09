@@ -112,9 +112,11 @@ func (m *Generate) WebSdk() *dagger.Directory {
 
 func (m *Generate) Server() *dagger.Directory {
 	openapi := m.Openapi()
+	cloud := m.Openapicloud()
 
 	source := m.Source.
-		WithFile("api/openapi.yaml", openapi)
+		WithFile("api/openapi.yaml", openapi).
+		WithFile("api/openapi.cloud.yaml", cloud)
 
 	return goModule().
 		WithSource(source).

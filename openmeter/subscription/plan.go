@@ -3,7 +3,14 @@ package subscription
 import (
 	"context"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
+
+type PlanRefInput struct {
+	Key     string `json:"key"`
+	Version *int   `json:"version,omitempty"`
+}
 
 type PlanRef struct {
 	Key     string `json:"key"`
@@ -24,7 +31,7 @@ type PlanAdapter interface {
 	// GetPlan returns the plan with the given key and version with all it's dependent resources.
 	//
 	// If the Plan is Not Found, it should return a PlanNotFoundError.
-	GetVersion(ctx context.Context, planKey string, version int) (Plan, error)
+	GetVersion(ctx context.Context, namespace string, ref PlanRefInput) (Plan, error)
 }
 
 // All methods are expected to return stable values.
@@ -47,6 +54,9 @@ type Plan interface {
 	GetPhases() []PlanPhase
 	GetKey() string
 	GetVersionNumber() int
+
+	// Will not make sense on the long term
+	Currency() currencyx.Code
 }
 
 type PlanNotFoundError struct {

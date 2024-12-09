@@ -76,7 +76,7 @@ func (Entitlement) Edges() []ent.Edge {
 		edge.To("usage_reset", UsageReset.Type),
 		edge.To("grant", Grant.Type),
 		edge.To("balance_snapshot", BalanceSnapshot.Type),
-		edge.To("subscription_item", SubscriptionItem.Type).Unique(),
+		edge.To("subscription_item", SubscriptionItem.Type),
 		edge.From("feature", Feature.Type).
 			Ref("entitlement").
 			Field("feature_id").

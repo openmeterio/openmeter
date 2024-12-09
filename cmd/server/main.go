@@ -49,6 +49,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
+	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
+	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
@@ -327,7 +332,7 @@ func main() {
 		}()
 	}
 
-	// Initialize plans
+	// Initialize plans & subscriptions
 	var planService plan.Service
 	if conf.ProductCatalog.Enabled {
 		adapter, err := planadapter.New(planadapter.Config{
@@ -348,6 +353,42 @@ func main() {
 			logger.Error("failed to initialize plan service", "error", err)
 			os.Exit(1)
 		}
+	}
+
+	// Initialize subscriptions
+	var subscriptionService subscription.Service
+	var subscriptionWorkflowService subscription.WorkflowService
+	if conf.ProductCatalog.Enabled {
+		subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(app.EntClient)
+		subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(app.EntClient)
+		subscriptionItemRepo := subscriptionrepo.NewSubscriptionItemRepo(app.EntClient)
+
+		subscriptionEntitlementAdapter := subscriptionentitlement.NewSubscriptionEntitlementAdapter(
+			entitlementConnRegistry.Entitlement,
+			subscriptionItemRepo,
+			subscriptionItemRepo,
+		)
+
+		subscriptionPlanAdapter := subscriptionplan.NewSubscriptionPlanAdapter(subscriptionplan.PlanSubscriptionAdapterConfig{
+			PlanService: planService,
+			Logger:      logger.With("subsystem", "subscription.plan.adapter"),
+		})
+
+		subscriptionService = subscriptionservice.New(subscriptionservice.ServiceConfig{
+			SubscriptionRepo:      subscriptionRepo,
+			SubscriptionPhaseRepo: subscriptionPhaseRepo,
+			SubscriptionItemRepo:  subscriptionItemRepo,
+			CustomerService:       customerService,
+			EntitlementAdapter:    subscriptionEntitlementAdapter,
+			TransactionManager:    subscriptionRepo,
+		})
+
+		subscriptionWorkflowService = subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
+			Service:            subscriptionService,
+			CustomerService:    customerService,
+			PlanAdapter:        subscriptionPlanAdapter,
+			TransactionManager: subscriptionRepo,
+		})
 	}
 
 	// Initialize billing
@@ -394,16 +435,20 @@ func main() {
 			DebugConnector:              debugConnector,
 			EntitlementBalanceConnector: entitlementConnRegistry.MeteredEntitlement,
 			EntitlementConnector:        entitlementConnRegistry.Entitlement,
+			SubscriptionService:         subscriptionService,
+			SubscriptionWorkflowService: subscriptionWorkflowService,
+			Logger:                      logger,
 			FeatureConnector:            entitlementConnRegistry.Feature,
 			GrantConnector:              entitlementConnRegistry.Grant,
 			GrantRepo:                   entitlementConnRegistry.GrantRepo,
 			Notification:                notificationService,
 			Plan:                        planService,
 			// modules
-			EntitlementsEnabled: conf.Entitlements.Enabled,
-			NotificationEnabled: conf.Notification.Enabled,
-			AppsEnabled:         conf.Apps.Enabled,
-			BillingEnabled:      conf.Billing.Enabled,
+			EntitlementsEnabled:   conf.Entitlements.Enabled,
+			NotificationEnabled:   conf.Notification.Enabled,
+			ProductCatalogEnabled: conf.ProductCatalog.Enabled,
+			AppsEnabled:           conf.Apps.Enabled,
+			BillingEnabled:        conf.Billing.Enabled,
 		},
 		RouterHook: app.RouterHook,
 	})
