@@ -500,6 +500,10 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		Discounts: mapDiscountsToAPI(line.Discounts),
 		Totals:    mapTotalsToAPI(line.Totals),
 		Children:  children,
+
+		ExternalIDs: &api.InvoiceLineAppExternalIDs{
+			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
+		},
 	}
 
 	out := api.InvoiceLine{}
@@ -556,6 +560,10 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		Discounts: mapDiscountsToAPI(line.Discounts),
 		Children:  children,
 		Totals:    mapTotalsToAPI(line.Totals),
+
+		ExternalIDs: lo.EmptyableToPtr(api.InvoiceLineAppExternalIDs{
+			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
+		}),
 	}
 
 	out := api.InvoiceLine{}
