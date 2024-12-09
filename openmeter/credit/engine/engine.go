@@ -25,21 +25,24 @@ type Engine interface {
 
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
 
-func NewEngine(getFeatureUsage QueryUsageFn, granuality models.WindowSize) Engine {
+type EngineConfig struct {
+	Granularity models.WindowSize
+	QueryUsage  QueryUsageFn
+}
+
+func NewEngine(conf EngineConfig) Engine {
 	return &engine{
-		getFeatureUsage: getFeatureUsage,
-		granularity:     granuality.Duration(),
+		EngineConfig: conf,
 	}
 }
 
 // engine burns down grants based on usage following the rules of Grant BurnDown.
 type engine struct {
-	// List of all grants that are active at the relevant period at some point.
-	grants []grant.Grant
-	// Returns the total feature usage in the queried period
-	getFeatureUsage QueryUsageFn
+	EngineConfig
 
-	granularity time.Duration
+	// List of all grants that are active at the relevant period at some point.
+	// Changes during execution, runtime state.
+	grants []grant.Grant
 }
 
 // Ensure engine implements Engine
@@ -129,7 +132,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 		}
 
 		// query feature usage in the burning phase
-		usage, err := e.getFeatureUsage(ctx, phase.from, phase.to)
+		usage, err := e.QueryUsage(ctx, phase.from, phase.to)
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
 		}
@@ -284,7 +287,7 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
 	for i, t := range activityChanges {
-		activityChanges[i] = t.Truncate(e.granularity).In(time.UTC)
+		activityChanges[i] = t.Truncate(e.Granularity.Duration()).In(time.UTC)
 	}
 
 	sort.Slice(activityChanges, func(i, j int) bool {

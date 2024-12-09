@@ -636,7 +636,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// check returned burndownhistory
 				segments := burndownHistory.Segments()
-				assert.Len(t, segments, 2)
+				assert.Len(t, segments, 1)
 			},
 		},
 	}

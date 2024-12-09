@@ -814,7 +814,10 @@ func TestEngine(t *testing.T) {
 				}
 				return rows[0].Value, nil
 			}
-			tc.run(t, engine.NewEngine(queryFeatureUsage, models.WindowSizeMinute), func(usage float64, at time.Time) {
+			tc.run(t, engine.NewEngine(engine.EngineConfig{
+				QueryUsage:  queryFeatureUsage,
+				Granularity: models.WindowSizeMinute,
+			}), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
 			})
 		})
@@ -853,9 +856,18 @@ func TestEngine(t *testing.T) {
 					g2.ID: 82.0,
 				}
 
-				engine1 := engine.NewEngine(queryFn, models.WindowSizeMinute) // runs for first part
-				engine2 := engine.NewEngine(queryFn, models.WindowSizeMinute) // runs for second part
-				engine3 := engine.NewEngine(queryFn, models.WindowSizeMinute) // runs for both parts
+				engine1 := engine.NewEngine(engine.EngineConfig{
+					QueryUsage:  queryFn,
+					Granularity: models.WindowSizeMinute,
+				}) // runs for first part
+				engine2 := engine.NewEngine(engine.EngineConfig{
+					QueryUsage:  queryFn,
+					Granularity: models.WindowSizeMinute,
+				}) // runs for second part
+				engine3 := engine.NewEngine(engine.EngineConfig{
+					QueryUsage:  queryFn,
+					Granularity: models.WindowSizeMinute,
+				}) // runs for both parts
 
 				intermediateBalance, overage, _, err := engine1.Run(
 					context.Background(),
@@ -950,7 +962,10 @@ func TestEngine(t *testing.T) {
 				balances := startingBalances.Copy()
 				results := make([]balance.Map, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
-					engine := engine.NewEngine(queryFn, models.WindowSizeMinute)
+					engine := engine.NewEngine(engine.EngineConfig{
+						QueryUsage:  queryFn,
+						Granularity: models.WindowSizeMinute,
+					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
 					result, _, _, err := engine.Run(
@@ -1030,7 +1045,10 @@ func TestEngine(t *testing.T) {
 				}
 
 				// run calculation on single engine
-				singleEngine := engine.NewEngine(queryFn, models.WindowSizeMinute)
+				singleEngine := engine.NewEngine(engine.EngineConfig{
+					QueryUsage:  queryFn,
+					Granularity: models.WindowSizeMinute,
+				})
 				gCp := make([]grant.Grant, len(grants))
 				copy(gCp, grants)
 				singleEngineResult, _, _, err := singleEngine.Run(
@@ -1066,7 +1084,10 @@ func TestEngine(t *testing.T) {
 					// 	To:   pEnd,
 					// })
 
-					engine := engine.NewEngine(queryFn, models.WindowSizeMinute)
+					engine := engine.NewEngine(engine.EngineConfig{
+						QueryUsage:  queryFn,
+						Granularity: models.WindowSizeMinute,
+					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
 					balances, overage, _, err = engine.Run(
