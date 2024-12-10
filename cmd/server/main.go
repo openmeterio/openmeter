@@ -358,6 +358,7 @@ func main() {
 	// Initialize subscriptions
 	var subscriptionService subscription.Service
 	var subscriptionWorkflowService subscription.WorkflowService
+	var subscriptionPlanAdapter subscription.PlanAdapter
 	if conf.ProductCatalog.Enabled {
 		subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(app.EntClient)
 		subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(app.EntClient)
@@ -369,7 +370,7 @@ func main() {
 			subscriptionItemRepo,
 		)
 
-		subscriptionPlanAdapter := subscriptionplan.NewSubscriptionPlanAdapter(subscriptionplan.PlanSubscriptionAdapterConfig{
+		subscriptionPlanAdapter = subscriptionplan.NewSubscriptionPlanAdapter(subscriptionplan.PlanSubscriptionAdapterConfig{
 			PlanService: planService,
 			Logger:      logger.With("subsystem", "subscription.plan.adapter"),
 		})
@@ -386,7 +387,6 @@ func main() {
 		subscriptionWorkflowService = subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
 			Service:            subscriptionService,
 			CustomerService:    customerService,
-			PlanAdapter:        subscriptionPlanAdapter,
 			TransactionManager: subscriptionRepo,
 		})
 	}
@@ -437,6 +437,7 @@ func main() {
 			EntitlementConnector:        entitlementConnRegistry.Entitlement,
 			SubscriptionService:         subscriptionService,
 			SubscriptionWorkflowService: subscriptionWorkflowService,
+			SubscriptionPlanAdapter:     subscriptionPlanAdapter,
 			Logger:                      logger,
 			FeatureConnector:            entitlementConnRegistry.Feature,
 			GrantConnector:              entitlementConnRegistry.Grant,

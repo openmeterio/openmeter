@@ -15,7 +15,10 @@ import (
 
 type (
 	// TODO: might need or not need a single interface for using the multiple workflow methods
-	CreateSubscriptionRequest  = subscription.CreateFromPlanInput
+	CreateSubscriptionRequest = struct {
+		inp  subscription.CreateSubscriptionWorkflowInput
+		plan subscription.PlanRefInput
+	}
 	CreateSubscriptionResponse = api.Subscription
 	// CreateSubscriptionParams   = api.CreateSubscriptionParams
 	// CreateSubscriptionHandler  httptransport.HandlerWithArgs[ListPlansRequest, ListPlansResponse, ListPlansParams]
@@ -49,22 +52,30 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			return CreateSubscriptionRequest{
-				Namespace:  ns,
-				ActiveFrom: planSubBody.ActiveFrom,
-				CustomerID: planSubBody.CustomerId,
-				Plan: subscription.PlanRefInput{
+				inp: subscription.CreateSubscriptionWorkflowInput{
+					Namespace:   ns,
+					ActiveFrom:  planSubBody.ActiveFrom,
+					CustomerID:  planSubBody.CustomerId,
+					Name:        planSubBody.Name,
+					Description: planSubBody.Description,
+					AnnotatedModel: models.AnnotatedModel{
+						Metadata: convert.DerefHeaderPtr[string](planSubBody.Metadata),
+					},
+				},
+				plan: subscription.PlanRefInput{
 					Key:     planSubBody.Plan.Key,
 					Version: planSubBody.Plan.Version,
-				},
-				Name:        planSubBody.Name,
-				Description: planSubBody.Description,
-				AnnotatedModel: models.AnnotatedModel{
-					Metadata: convert.DerefHeaderPtr[string](planSubBody.Metadata),
 				},
 			}, nil
 		},
 		func(ctx context.Context, request CreateSubscriptionRequest) (CreateSubscriptionResponse, error) {
-			subView, err := h.SubscriptionWorkflowService.CreateFromPlan(ctx, request)
+			// TODO: move to new driver
+			plan, err := h.SubscrpiptionPlanAdapter.GetVersion(ctx, request.inp.Namespace, request.plan)
+			if err != nil {
+				return CreateSubscriptionResponse{}, err
+			}
+
+			subView, err := h.SubscriptionWorkflowService.CreateFromPlan(ctx, request.inp, plan)
 			if err != nil {
 				return CreateSubscriptionResponse{}, err
 			}

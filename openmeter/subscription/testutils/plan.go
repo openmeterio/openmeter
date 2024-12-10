@@ -2,7 +2,6 @@ package subscriptiontestutils
 
 import (
 	"context"
-	"log/slog"
 	"testing"
 
 	"github.com/invopop/gobl/currency"
@@ -10,10 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
-	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -73,48 +69,26 @@ func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 	}
 }
 
-type planAdapter struct {
-	subscription.PlanAdapter
+// PlanHelper simply creates and returns a plan
+type planHelper struct {
 	planService plan.Service
 }
 
-func NewPlanAdapter(t *testing.T, dbDeps *DBDeps, logger *slog.Logger, featureConnector feature.FeatureConnector) *planAdapter {
-	t.Helper()
-
-	planRepo, err := planrepo.New(planrepo.Config{
-		Client: dbDeps.dbClient,
-		Logger: logger,
-	})
-
-	require.Nil(t, err)
-
-	planService, err := planservice.New(planservice.Config{
-		Feature: featureConnector,
-		Adapter: planRepo,
-		Logger:  testutils.NewLogger(t),
-	})
-
-	require.Nil(t, err)
-
-	return &planAdapter{
+func NewPlanHelper(planService plan.Service) *planHelper {
+	return &planHelper{
 		planService: planService,
-		PlanAdapter: subscriptionplan.NewSubscriptionPlanAdapter(
-			subscriptionplan.PlanSubscriptionAdapterConfig{
-				PlanService: planService,
-				Logger:      logger,
-			},
-		),
 	}
 }
 
-func (a *planAdapter) CreateExamplePlan(t *testing.T, ctx context.Context) subscription.Plan {
+func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscription.Plan {
 	t.Helper()
+	ctx := context.Background()
 
-	p, err := a.planService.CreatePlan(ctx, GetExamplePlanInput(t))
+	p, err := h.planService.CreatePlan(ctx, GetExamplePlanInput(t))
 	require.Nil(t, err)
 	require.NotNil(t, p)
 
-	p, err = a.planService.PublishPlan(ctx, plan.PublishPlanInput{
+	p, err = h.planService.PublishPlan(ctx, plan.PublishPlanInput{
 		NamespacedID: p.NamespacedID,
 		EffectivePeriod: productcatalog.EffectivePeriod{
 			EffectiveFrom: lo.ToPtr(clock.Now()),

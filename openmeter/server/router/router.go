@@ -40,7 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/httpdriver"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/http"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -81,6 +81,7 @@ type Config struct {
 	Plan                        plan.Service
 	SubscriptionService         subscription.Service
 	SubscriptionWorkflowService subscription.WorkflowService
+	SubscriptionPlanAdapter     subscription.PlanAdapter
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
@@ -284,8 +285,8 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil {
-			return nil, errors.New("subscription service and workflow service are required when productcatalog is enabled")
+		if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.SubscriptionPlanAdapter == nil {
+			return nil, errors.New("subscription services are required when productcatalog is enabled")
 		}
 
 		if config.Logger == nil {
@@ -296,6 +297,7 @@ func NewRouter(config Config) (*Router, error) {
 			subscriptionhttpdriver.HandlerConfig{
 				SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 				SubscriptionService:         config.SubscriptionService,
+				SubscrpiptionPlanAdapter:    config.SubscriptionPlanAdapter,
 				NamespaceDecoder:            staticNamespaceDecoder,
 				Logger:                      config.Logger,
 			},
