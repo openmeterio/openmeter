@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -38,6 +37,7 @@ func (Plan) Fields() []ent.Field {
 		field.Time("effective_to").
 			Optional().
 			Nillable(),
+		field.Strings("phase_order"),
 	}
 }
 
@@ -70,9 +70,10 @@ func (PlanPhase) Mixin() []ent.Mixin {
 
 func (PlanPhase) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("start_after").
+		field.String("duration").
 			GoType(datex.ISOString("")).
-			Default(plan.DefaultStartAfter),
+			Optional().
+			Nillable(),
 		field.String("discounts").
 			GoType([]productcatalog.Discount{}).
 			ValueScanner(DiscountsValueScanner).

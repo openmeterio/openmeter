@@ -38,6 +38,8 @@ const (
 	FieldEffectiveFrom = "effective_from"
 	// FieldEffectiveTo holds the string denoting the effective_to field in the database.
 	FieldEffectiveTo = "effective_to"
+	// FieldPhaseOrder holds the string denoting the phase_order field in the database.
+	FieldPhaseOrder = "phase_order"
 	// EdgePhases holds the string denoting the phases edge name in mutations.
 	EdgePhases = "phases"
 	// EdgeSubscriptions holds the string denoting the subscriptions edge name in mutations.
@@ -75,6 +77,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldEffectiveFrom,
 	FieldEffectiveTo,
+	FieldPhaseOrder,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

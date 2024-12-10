@@ -107,16 +107,16 @@ func (ppc *PlanPhaseCreate) SetKey(s string) *PlanPhaseCreate {
 	return ppc
 }
 
-// SetStartAfter sets the "start_after" field.
-func (ppc *PlanPhaseCreate) SetStartAfter(ds datex.ISOString) *PlanPhaseCreate {
-	ppc.mutation.SetStartAfter(ds)
+// SetDuration sets the "duration" field.
+func (ppc *PlanPhaseCreate) SetDuration(ds datex.ISOString) *PlanPhaseCreate {
+	ppc.mutation.SetDuration(ds)
 	return ppc
 }
 
-// SetNillableStartAfter sets the "start_after" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableStartAfter(ds *datex.ISOString) *PlanPhaseCreate {
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (ppc *PlanPhaseCreate) SetNillableDuration(ds *datex.ISOString) *PlanPhaseCreate {
 	if ds != nil {
-		ppc.SetStartAfter(*ds)
+		ppc.SetDuration(*ds)
 	}
 	return ppc
 }
@@ -210,10 +210,6 @@ func (ppc *PlanPhaseCreate) defaults() {
 		v := planphase.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := ppc.mutation.StartAfter(); !ok {
-		v := planphase.DefaultStartAfter
-		ppc.mutation.SetStartAfter(v)
-	}
 	if _, ok := ppc.mutation.ID(); !ok {
 		v := planphase.DefaultID()
 		ppc.mutation.SetID(v)
@@ -246,9 +242,6 @@ func (ppc *PlanPhaseCreate) check() error {
 		if err := planphase.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "PlanPhase.key": %w`, err)}
 		}
-	}
-	if _, ok := ppc.mutation.StartAfter(); !ok {
-		return &ValidationError{Name: "start_after", err: errors.New(`db: missing required field "PlanPhase.start_after"`)}
 	}
 	if _, ok := ppc.mutation.PlanID(); !ok {
 		return &ValidationError{Name: "plan_id", err: errors.New(`db: missing required field "PlanPhase.plan_id"`)}
@@ -332,9 +325,9 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec, erro
 		_spec.SetField(planphase.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := ppc.mutation.StartAfter(); ok {
-		_spec.SetField(planphase.FieldStartAfter, field.TypeString, value)
-		_node.StartAfter = value
+	if value, ok := ppc.mutation.Duration(); ok {
+		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
+		_node.Duration = &value
 	}
 	if value, ok := ppc.mutation.Discounts(); ok {
 		vv, err := planphase.ValueScanner.Discounts.Value(value)
@@ -507,15 +500,21 @@ func (u *PlanPhaseUpsert) ClearDescription() *PlanPhaseUpsert {
 	return u
 }
 
-// SetStartAfter sets the "start_after" field.
-func (u *PlanPhaseUpsert) SetStartAfter(v datex.ISOString) *PlanPhaseUpsert {
-	u.Set(planphase.FieldStartAfter, v)
+// SetDuration sets the "duration" field.
+func (u *PlanPhaseUpsert) SetDuration(v datex.ISOString) *PlanPhaseUpsert {
+	u.Set(planphase.FieldDuration, v)
 	return u
 }
 
-// UpdateStartAfter sets the "start_after" field to the value that was provided on create.
-func (u *PlanPhaseUpsert) UpdateStartAfter() *PlanPhaseUpsert {
-	u.SetExcluded(planphase.FieldStartAfter)
+// UpdateDuration sets the "duration" field to the value that was provided on create.
+func (u *PlanPhaseUpsert) UpdateDuration() *PlanPhaseUpsert {
+	u.SetExcluded(planphase.FieldDuration)
+	return u
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (u *PlanPhaseUpsert) ClearDuration() *PlanPhaseUpsert {
+	u.SetNull(planphase.FieldDuration)
 	return u
 }
 
@@ -697,17 +696,24 @@ func (u *PlanPhaseUpsertOne) ClearDescription() *PlanPhaseUpsertOne {
 	})
 }
 
-// SetStartAfter sets the "start_after" field.
-func (u *PlanPhaseUpsertOne) SetStartAfter(v datex.ISOString) *PlanPhaseUpsertOne {
+// SetDuration sets the "duration" field.
+func (u *PlanPhaseUpsertOne) SetDuration(v datex.ISOString) *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.SetStartAfter(v)
+		s.SetDuration(v)
 	})
 }
 
-// UpdateStartAfter sets the "start_after" field to the value that was provided on create.
-func (u *PlanPhaseUpsertOne) UpdateStartAfter() *PlanPhaseUpsertOne {
+// UpdateDuration sets the "duration" field to the value that was provided on create.
+func (u *PlanPhaseUpsertOne) UpdateDuration() *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.UpdateStartAfter()
+		s.UpdateDuration()
+	})
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (u *PlanPhaseUpsertOne) ClearDuration() *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.ClearDuration()
 	})
 }
 
@@ -1064,17 +1070,24 @@ func (u *PlanPhaseUpsertBulk) ClearDescription() *PlanPhaseUpsertBulk {
 	})
 }
 
-// SetStartAfter sets the "start_after" field.
-func (u *PlanPhaseUpsertBulk) SetStartAfter(v datex.ISOString) *PlanPhaseUpsertBulk {
+// SetDuration sets the "duration" field.
+func (u *PlanPhaseUpsertBulk) SetDuration(v datex.ISOString) *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.SetStartAfter(v)
+		s.SetDuration(v)
 	})
 }
 
-// UpdateStartAfter sets the "start_after" field to the value that was provided on create.
-func (u *PlanPhaseUpsertBulk) UpdateStartAfter() *PlanPhaseUpsertBulk {
+// UpdateDuration sets the "duration" field to the value that was provided on create.
+func (u *PlanPhaseUpsertBulk) UpdateDuration() *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.UpdateStartAfter()
+		s.UpdateDuration()
+	})
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (u *PlanPhaseUpsertBulk) ClearDuration() *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.ClearDuration()
 	})
 }
 
