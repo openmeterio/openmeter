@@ -99,6 +99,10 @@ func (p Period) Contains(t time.Time) bool {
 	return t.After(p.Start) && t.Before(p.End)
 }
 
+func (p Period) Duration() time.Duration {
+	return p.End.Sub(p.Start)
+}
+
 // LineBase represents the common fields for an invoice item.
 type LineBase struct {
 	Namespace string `json:"namespace"`
@@ -409,6 +413,21 @@ func (i Line) ValidateUsageBased() error {
 	return nil
 }
 
+// DissacociateChildren removes the Children both from the DBState and the current line, so that the
+// line can be safely persisted/managed without the children.
+//
+// The childrens receive DBState objects, so that they can be safely persisted/managed without the parent.
+func (i *Line) DisassociateChildren() {
+	if i.Children.IsAbsent() {
+		return
+	}
+
+	i.Children = LineChildren{}
+	if i.DBState != nil {
+		i.DBState.Children = LineChildren{}
+	}
+}
+
 // TODO[OM-1016]: For events we need a json marshaler
 type LineChildren struct {
 	mo.Option[[]*Line]
@@ -471,7 +490,11 @@ func (c *LineChildren) ReplaceByID(id string, newLine *Line) bool {
 
 	for i, line := range lines {
 		if line.ID == id {
+			// Let's preserve the DB state of the original line (as we are only replacing the current state)
+			originalDBState := line.DBState
+
 			lines[i] = newLine
+			lines[i].DBState = originalDBState
 			return true
 		}
 	}
@@ -952,3 +975,20 @@ type GetInvoiceLineInput = LineID
 type GetInvoiceLineOwnershipAdapterInput = LineID
 
 type DeleteInvoiceLineInput = LineID
+
+type GetLinesForSubscriptionInput struct {
+	Namespace      string
+	SubscriptionID string
+}
+
+func (i GetLinesForSubscriptionInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.SubscriptionID == "" {
+		return errors.New("subscription id is required")
+	}
+
+	return nil
+}

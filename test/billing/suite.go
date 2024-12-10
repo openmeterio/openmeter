@@ -62,6 +62,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	// init db
 	dbClient := db.NewClient(db.Driver(s.TestDB.EntDriver.Driver()))
+	s.DBClient = dbClient
 
 	if os.Getenv("TEST_DISABLE_ATLAS") != "" {
 		s.Require().NoError(dbClient.Schema.Create(context.Background()))
@@ -140,7 +141,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.BillingService = billingService.WithInvoiceCalculator(s.InvoiceCalculator)
 }
 
-func (s *BaseSuite) installSandboxApp(t *testing.T, ns string) appentity.App {
+func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) appentity.App {
 	ctx := context.Background()
 	_, err := s.AppService.CreateApp(ctx,
 		appentity.CreateAppInput{

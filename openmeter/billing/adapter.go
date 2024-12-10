@@ -45,6 +45,7 @@ type InvoiceLineAdapter interface {
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*Line, error)
 	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) ([]*Line, error)
 	GetInvoiceLine(ctx context.Context, input GetInvoiceLineAdapterInput) (*Line, error)
+	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]*Line, error)
 
 	GetInvoiceLineOwnership(ctx context.Context, input GetInvoiceLineOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
 }

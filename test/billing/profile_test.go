@@ -15,45 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var minimalCreateProfileInputTemplate = billing.CreateProfileInput{
-	Name:    "Awesome Profile",
-	Default: true,
-
-	WorkflowConfig: billing.WorkflowConfig{
-		Collection: billing.CollectionConfig{
-			Alignment: billing.AlignmentKindSubscription,
-			Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
-		},
-		Invoicing: billing.InvoicingConfig{
-			AutoAdvance: true,
-			DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
-			DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
-		},
-		Payment: billing.PaymentConfig{
-			CollectionMethod: billing.CollectionMethodChargeAutomatically,
-		},
-	},
-
-	Supplier: billing.SupplierContact{
-		Name: "Awesome Supplier",
-		Address: models.Address{
-			Country: lo.ToPtr(models.CountryCode("US")),
-		},
-	},
-
-	Apps: billing.CreateProfileAppsInput{
-		Invoicing: billing.AppReference{
-			Type: appentitybase.AppTypeSandbox,
-		},
-		Payment: billing.AppReference{
-			Type: appentitybase.AppTypeSandbox,
-		},
-		Tax: billing.AppReference{
-			Type: appentitybase.AppTypeSandbox,
-		},
-	},
-}
-
 type ProfileTestSuite struct {
 	BaseSuite
 }
@@ -66,7 +27,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	ctx := context.Background()
 	ns := "test_create_billing_profile"
 
-	_ = s.installSandboxApp(s.T(), ns)
+	_ = s.InstallSandboxApp(s.T(), ns)
 
 	s.T().Run("missing default profile", func(t *testing.T) {
 		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
@@ -79,7 +40,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	var profile *billing.Profile
 	var err error
 
-	minimalCreateProfileInput := minimalCreateProfileInputTemplate
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = ns
 
 	s.T().Run("create default profile", func(t *testing.T) {
@@ -163,7 +124,7 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	t := s.T()
 	ns := "test_profile_field_setting"
 
-	app := s.installSandboxApp(s.T(), ns)
+	app := s.InstallSandboxApp(s.T(), ns)
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
@@ -277,7 +238,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 	ctx := context.Background()
 	ns := "test_profile_updates"
 
-	_ = s.installSandboxApp(s.T(), ns)
+	_ = s.InstallSandboxApp(s.T(), ns)
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
@@ -285,7 +246,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		Name: "Awesome Default Profile",
 
-		Apps: minimalCreateProfileInputTemplate.Apps,
+		Apps: MinimalCreateProfileInputTemplate.Apps,
 
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{

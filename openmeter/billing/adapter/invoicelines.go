@@ -103,7 +103,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
 
 				if line.Subscription != nil {
-					create = create.SetSubscriptionID(line.Subscription.ItemID).
+					create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
 						SetSubscriptionPhaseID(line.Subscription.PhaseID).
 						SetSubscriptionItemID(line.Subscription.ItemID)
 				}
@@ -490,5 +490,30 @@ func (a *adapter) GetInvoiceLineOwnership(ctx context.Context, in billing.GetInv
 			InvoiceID:  dbInvoice.InvoiceID,
 			CustomerID: dbInvoice.Edges.BillingInvoice.CustomerID,
 		}, nil
+	})
+}
+
+func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
+	if err := in.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.Line, error) {
+		query := tx.db.BillingInvoiceLine.Query().
+			Where(billinginvoiceline.Namespace(in.Namespace)).
+			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
+			// TODO[OM-1038]: document issues with deleted lines
+			Where(billinginvoiceline.ParentLineIDIsNil()) // This one is required so that we are not fetching split line's children directly, the mapper will handle that
+
+		query = tx.expandLineItems(query)
+
+		dbLines, err := query.All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lines: %w", err)
+		}
+
+		return tx.mapInvoiceLineFromDB(ctx, dbLines)
 	})
 }

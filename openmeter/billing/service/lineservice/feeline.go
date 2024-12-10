@@ -21,6 +21,8 @@ func (l feeLine) PrepareForCreate(context.Context) (Line, error) {
 }
 
 func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billing.Period, error) {
+	// TODO[later]: Prorate can be implemented here for progressive billing/pro-rating of the fee
+
 	if !t.Before(l.line.InvoiceAt) {
 		return &l.line.Period, nil
 	}

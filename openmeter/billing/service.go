@@ -32,7 +32,9 @@ type CustomerOverrideService interface {
 type InvoiceLineService interface {
 	CreatePendingInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*Line, error)
 	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*Line, error)
+	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]*Line, error)
 	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*Line, error)
+
 	DeleteInvoiceLine(ctx context.Context, input DeleteInvoiceLineInput) error
 }
 
@@ -48,4 +50,11 @@ type InvoiceService interface {
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (Invoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
+
+	// UpdateInvoiceLinesInternal updates the specified invoice lines and ensures that invoice states are properly syncronized
+	// This method is intended to be used by OpenMeter internal services only, as it allows for updating invoice line values,
+	// that are not allowed to be updated by external services.
+	//
+	// The call also ensures that the invoice's state is properly updated and invoice immutability is also considered.
+	UpdateInvoiceLinesInternal(ctx context.Context, input UpdateInvoiceLinesInternalInput) error
 }

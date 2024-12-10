@@ -43,7 +43,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
 	issueAt := now.Add(-time.Minute)
 
-	_ = s.installSandboxApp(s.T(), namespace)
+	_ = s.InstallSandboxApp(s.T(), namespace)
 
 	ctx := context.Background()
 
@@ -96,7 +96,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	var billingProfile billing.Profile
 	s.T().Run("create default profile", func(t *testing.T) {
-		minimalCreateProfileInput := minimalCreateProfileInputTemplate
+		minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 		minimalCreateProfileInput.Namespace = namespace
 
 		profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
@@ -429,7 +429,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	line1IssueAt := now.Add(-2 * time.Hour)
 	line2IssueAt := now.Add(-time.Hour)
 
-	_ = s.installSandboxApp(s.T(), namespace)
+	_ = s.InstallSandboxApp(s.T(), namespace)
 
 	ctx := context.Background()
 
@@ -453,7 +453,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	// Given we have a default profile for the namespace
 
-	minimalCreateProfileInput := minimalCreateProfileInputTemplate
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = namespace
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
@@ -839,7 +839,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 		s.T().Run(tc.name, func(t *testing.T) {
 			namespace := fmt.Sprintf("ns-invoicing-flow-happy-path-%d", i)
 
-			_ = s.installSandboxApp(s.T(), namespace)
+			_ = s.InstallSandboxApp(s.T(), namespace)
 
 			// Given we have a test customer
 			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
@@ -859,7 +859,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			require.NotEmpty(s.T(), customerEntity.ID)
 
 			// Given we have a billing profile
-			minimalCreateProfileInput := minimalCreateProfileInputTemplate
+			minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 			minimalCreateProfileInput.Namespace = namespace
 			minimalCreateProfileInput.WorkflowConfig = tc.workflowConfig
 
@@ -1177,7 +1177,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 		s.T().Run(tc.name, func(t *testing.T) {
 			namespace := fmt.Sprintf("ns-invoicing-flow-valid-%d", i)
 
-			_ = s.installSandboxApp(s.T(), namespace)
+			_ = s.InstallSandboxApp(s.T(), namespace)
 
 			mockApp := s.SandboxApp.EnableMock(t)
 			defer s.SandboxApp.DisableMock()
@@ -1200,7 +1200,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			require.NotEmpty(s.T(), customerEntity.ID)
 
 			// Given we have a billing profile
-			minimalCreateProfileInput := minimalCreateProfileInputTemplate
+			minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 			minimalCreateProfileInput.Namespace = namespace
 			minimalCreateProfileInput.WorkflowConfig = tc.workflowConfig
 
@@ -1236,7 +1236,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
 
-	_ = s.installSandboxApp(s.T(), namespace)
+	_ = s.InstallSandboxApp(s.T(), namespace)
 
 	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
 		{
@@ -1332,7 +1332,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	minimalCreateProfileInput := minimalCreateProfileInputTemplate
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = namespace
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
