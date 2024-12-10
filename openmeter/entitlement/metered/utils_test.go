@@ -59,7 +59,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
 		Slug:        "meter1",
 		Namespace:   "ns1",
-		Aggregation: models.MeterAggregationMax,
+		Aggregation: models.MeterAggregationSum,
 		WindowSize:  models.WindowSizeMinute,
 	}})
 

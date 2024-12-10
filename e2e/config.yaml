@@ -83,6 +83,11 @@ meters:
     aggregation: COUNT
     groupBy:
       model: $.model
+  - slug: entitlement_uc_meter
+    description: Meter for testing entitlements with unique count
+    eventType: credit_event_uc
+    valueProperty: $.value
+    aggregation: UNIQUE_COUNT
   - slug: plan_meter
     description: Meter for testing plan metered feature
     eventType: plan_meter
