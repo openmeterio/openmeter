@@ -17,7 +17,7 @@ type CreateSubscriptionEntityInput struct {
 	models.NamespacedModel
 	models.AnnotatedModel
 
-	Plan        PlanRef
+	Plan        *PlanRef
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 

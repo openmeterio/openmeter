@@ -34,7 +34,7 @@ func TestCreation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeature(t)
-		plan := deps.PlanAdapter.CreateExamplePlan(t, ctx)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId: cust.ID,
@@ -47,7 +47,7 @@ func TestCreation(t *testing.T) {
 		sub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, defaultSpecFromPlan)
 
 		require.Nil(t, err)
-		require.Equal(t, plan.GetRef(), sub.PlanRef)
+		require.Equal(t, plan.ToCreateSubscriptionPlanInput().Plan, sub.PlanRef)
 		require.Equal(t, subscriptiontestutils.ExampleNamespace, sub.Namespace)
 		require.Equal(t, cust.ID, sub.CustomerId)
 		require.Equal(t, currencyx.Code("USD"), sub.Currency)
@@ -175,7 +175,7 @@ func TestCancellation(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeature(t)
-		plan := deps.PlanAdapter.CreateExamplePlan(t, ctx)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -289,7 +289,7 @@ func TestContinuing(t *testing.T) {
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 		_ = deps.FeatureConnector.CreateExampleFeature(t)
-		plan := deps.PlanAdapter.CreateExamplePlan(t, ctx)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{

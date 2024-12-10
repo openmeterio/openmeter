@@ -1,41 +1,46 @@
-package subscriptionplan
+package plansubscription
 
 import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type SubscriptionPlan struct {
-	plan.Plan
+type PlanRefInput struct {
+	Key     string `json:"key"`
+	Version *int   `json:"version,omitempty"`
 }
 
-var _ subscription.Plan = &SubscriptionPlan{}
-
-func (p *SubscriptionPlan) GetRef() subscription.PlanRef {
-	return subscription.PlanRef{
-		Id:      p.ID,
-		Key:     p.Key,
-		Version: p.Version,
-	}
+type Plan struct {
+	productcatalog.Plan
+	Ref *models.NamespacedID
 }
 
-func (p *SubscriptionPlan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
-	return subscription.CreateSubscriptionPlanInput{
-		Plan: subscription.PlanRef{
-			Id:      p.ID,
+var _ subscription.Plan = &Plan{}
+
+func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
+	// We only store a reference if the Plan exists
+	var ref *subscription.PlanRef
+
+	if p.Ref != nil {
+		ref = &subscription.PlanRef{
+			Id:      p.Ref.ID,
 			Key:     p.Key,
 			Version: p.Version,
-		},
+		}
+	}
+
+	return subscription.CreateSubscriptionPlanInput{
+		Plan: ref,
 	}
 }
 
-func (p *SubscriptionPlan) GetPhases() []subscription.PlanPhase {
+func (p *Plan) GetPhases() []subscription.PlanPhase {
 	ps := make([]subscription.PlanPhase, 0, len(p.Phases))
 	for _, ph := range p.Phases {
-		ps = append(ps, &SubscriptionPlanPhase{
+		ps = append(ps, &Phase{
 			Phase: ph,
 		})
 	}
@@ -43,17 +48,17 @@ func (p *SubscriptionPlan) GetPhases() []subscription.PlanPhase {
 	return ps
 }
 
-func (p *SubscriptionPlan) Currency() currencyx.Code {
+func (p *Plan) Currency() currencyx.Code {
 	return currencyx.Code(p.Plan.Currency)
 }
 
-type SubscriptionPlanPhase struct {
-	plan.Phase
+type Phase struct {
+	productcatalog.Phase
 }
 
-var _ subscription.PlanPhase = &SubscriptionPlanPhase{}
+var _ subscription.PlanPhase = &Phase{}
 
-func (p *SubscriptionPlanPhase) ToCreateSubscriptionPhasePlanInput() subscription.CreateSubscriptionPhasePlanInput {
+func (p *Phase) ToCreateSubscriptionPhasePlanInput() subscription.CreateSubscriptionPhasePlanInput {
 	return subscription.CreateSubscriptionPhasePlanInput{
 		PhaseKey:    p.Key,
 		StartAfter:  p.StartAfter,
@@ -62,10 +67,10 @@ func (p *SubscriptionPlanPhase) ToCreateSubscriptionPhasePlanInput() subscriptio
 	}
 }
 
-func (p *SubscriptionPlanPhase) GetRateCards() []subscription.PlanRateCard {
+func (p *Phase) GetRateCards() []subscription.PlanRateCard {
 	rcs := make([]subscription.PlanRateCard, 0, len(p.RateCards))
 	for _, rc := range p.RateCards {
-		rcs = append(rcs, &SubscriptionPlanRateCard{
+		rcs = append(rcs, &RateCard{
 			PhaseKey: p.Key,
 			RateCard: rc,
 		})
@@ -74,18 +79,18 @@ func (p *SubscriptionPlanPhase) GetRateCards() []subscription.PlanRateCard {
 	return rcs
 }
 
-func (p *SubscriptionPlanPhase) GetKey() string {
+func (p *Phase) GetKey() string {
 	return p.Key
 }
 
-type SubscriptionPlanRateCard struct {
+type RateCard struct {
 	PhaseKey string
 	productcatalog.RateCard
 }
 
-var _ subscription.PlanRateCard = &SubscriptionPlanRateCard{}
+var _ subscription.PlanRateCard = &RateCard{}
 
-func (r *SubscriptionPlanRateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscriptionItemPlanInput {
+func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscriptionItemPlanInput {
 	m := r.RateCard.AsMeta()
 
 	var fk *string
@@ -122,6 +127,6 @@ func (r *SubscriptionPlanRateCard) ToCreateSubscriptionItemPlanInput() subscript
 	}
 }
 
-func (r *SubscriptionPlanRateCard) GetKey() string {
+func (r *RateCard) GetKey() string {
 	return r.Key()
 }

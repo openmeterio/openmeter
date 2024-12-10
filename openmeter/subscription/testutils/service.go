@@ -5,8 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
+	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -22,7 +26,7 @@ type ExposedServiceDeps struct {
 	CustomerService    customer.Service
 	FeatureConnector   *testFeatureConnector
 	EntitlementAdapter subscription.EntitlementAdapter
-	PlanAdapter        *planAdapter
+	PlanHelper         *planHelper
 	DBDeps             *DBDeps
 }
 
@@ -61,7 +65,20 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 	customer := NewCustomerService(t, dbDeps)
 
-	planAdapter := NewPlanAdapter(t, dbDeps, logger, entitlementRegistry.Feature)
+	planRepo, err := planrepo.New(planrepo.Config{
+		Client: dbDeps.dbClient,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	planService, err := planservice.New(planservice.Config{
+		Feature: entitlementRegistry.Feature,
+		Logger:  logger,
+		Adapter: planRepo,
+	})
+	require.NoError(t, err)
+
+	planHelper := NewPlanHelper(planService)
 
 	svc := service.New(service.ServiceConfig{
 		SubscriptionRepo:      subRepo,
@@ -75,7 +92,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	workflowSvc := service.NewWorkflowService(service.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customer,
-		PlanAdapter:        planAdapter,
 		TransactionManager: subItemRepo,
 	})
 
@@ -87,8 +103,8 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 			CustomerService:    customer,
 			FeatureConnector:   NewTestFeatureConnector(entitlementRegistry.Feature),
 			EntitlementAdapter: entitlementAdapter,
-			PlanAdapter:        planAdapter,
 			DBDeps:             dbDeps,
+			PlanHelper:         planHelper,
 		}
 }
 

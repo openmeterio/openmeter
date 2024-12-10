@@ -42,6 +42,7 @@ import (
 	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
@@ -51,7 +52,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
-	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -358,6 +358,7 @@ func main() {
 	// Initialize subscriptions
 	var subscriptionService subscription.Service
 	var subscriptionWorkflowService subscription.WorkflowService
+	var planSubscriptionAdapter plansubscription.Adapter
 	if conf.ProductCatalog.Enabled {
 		subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(app.EntClient)
 		subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(app.EntClient)
@@ -369,7 +370,7 @@ func main() {
 			subscriptionItemRepo,
 		)
 
-		subscriptionPlanAdapter := subscriptionplan.NewSubscriptionPlanAdapter(subscriptionplan.PlanSubscriptionAdapterConfig{
+		planSubscriptionAdapter = plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
 			PlanService: planService,
 			Logger:      logger.With("subsystem", "subscription.plan.adapter"),
 		})
@@ -386,7 +387,6 @@ func main() {
 		subscriptionWorkflowService = subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
 			Service:            subscriptionService,
 			CustomerService:    customerService,
-			PlanAdapter:        subscriptionPlanAdapter,
 			TransactionManager: subscriptionRepo,
 		})
 	}
@@ -437,6 +437,7 @@ func main() {
 			EntitlementConnector:        entitlementConnRegistry.Entitlement,
 			SubscriptionService:         subscriptionService,
 			SubscriptionWorkflowService: subscriptionWorkflowService,
+			SubscriptionPlanAdapter:     planSubscriptionAdapter,
 			Logger:                      logger,
 			FeatureConnector:            entitlementConnRegistry.Feature,
 			GrantConnector:              entitlementConnRegistry.Grant,

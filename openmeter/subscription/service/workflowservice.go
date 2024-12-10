@@ -18,8 +18,6 @@ type WorkflowServiceConfig struct {
 	Service subscription.Service
 	// connectors
 	CustomerService customer.Service
-	// adapters
-	PlanAdapter subscription.PlanAdapter
 	// framework
 	TransactionManager transaction.Creator
 }
@@ -36,7 +34,7 @@ func NewWorkflowService(cfg WorkflowServiceConfig) subscription.WorkflowService 
 
 var _ subscription.WorkflowService = &workflowService{}
 
-func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateFromPlanInput) (subscription.SubscriptionView, error) {
+func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	var def subscription.SubscriptionView
 
 	// Let's validate the customer exists
@@ -50,12 +48,6 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 
 	if cust == nil {
 		return def, fmt.Errorf("unexpected nil customer")
-	}
-
-	// Let's validate the plan exists
-	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Namespace, inp.Plan)
-	if err != nil {
-		return def, fmt.Errorf("failed to fetch plan: %w", err)
 	}
 
 	// Let's create the new Spec

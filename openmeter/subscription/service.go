@@ -23,17 +23,15 @@ type Service interface {
 }
 
 type WorkflowService interface {
-	CreateFromPlan(ctx context.Context, inp CreateFromPlanInput) (SubscriptionView, error)
+	CreateFromPlan(ctx context.Context, inp CreateSubscriptionWorkflowInput, plan Plan) (SubscriptionView, error)
 	EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []Patch) (SubscriptionView, error)
 }
 
-type CreateFromPlanInput struct {
+type CreateSubscriptionWorkflowInput struct {
+	models.AnnotatedModel
 	Namespace   string
 	ActiveFrom  time.Time
 	CustomerID  string
 	Name        string
 	Description *string
-	models.AnnotatedModel
-
-	Plan PlanRefInput
 }

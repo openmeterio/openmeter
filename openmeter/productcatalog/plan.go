@@ -68,6 +68,25 @@ func (p Plan) Validate() error {
 	return nil
 }
 
+// ValidForCreatingSubscriptions checks if the Plan is valid for creating Subscriptions, a stricter version of Validate
+func (p Plan) ValidForCreatingSubscriptions() error {
+	if err := p.Validate(); err != nil {
+		return err
+	}
+
+	if len(p.Phases) == 0 {
+		return fmt.Errorf("invalid Plan: at least one PlanPhase is required")
+	}
+
+	if !lo.SomeBy(p.Phases, func(phase Phase) bool {
+		return phase.StartAfter.IsZero()
+	}) {
+		return fmt.Errorf("invalid Plan: there has to be a starting phase")
+	}
+
+	return nil
+}
+
 var _ models.Validator = (*PlanMeta)(nil)
 
 type PlanMeta struct {

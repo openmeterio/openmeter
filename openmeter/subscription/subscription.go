@@ -16,7 +16,8 @@ type Subscription struct {
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 
-	PlanRef PlanRef `json:"planRef"`
+	// References the plan (if the Subscription was created form one)
+	PlanRef *PlanRef `json:"planRef"`
 
 	CustomerId string `json:"customerId,omitempty"`
 	Currency   currencyx.Code

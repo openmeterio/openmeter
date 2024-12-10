@@ -39,37 +39,33 @@ func TestCreateFromPlan(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 
-				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
+				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 					ActiveFrom: deps.CurrentTime,
-					Plan: subscription.PlanRefInput{
-						Key:     deps.Plan.GetRef().Key,
-						Version: lo.ToPtr(deps.Plan.GetRef().Version),
-					},
-				})
+				}, deps.Plan)
 
 				assert.ErrorAs(t, err, &customerentity.NotFoundError{}, "expected customer not found error, got %T", err)
 			},
 		},
-		{
-			Name: "Should error if plan is not found",
-			Handler: func(t *testing.T, deps testCaseDeps) {
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+		// {
+		// 	Name: "Should error if plan is not found",
+		// 	Handler: func(t *testing.T, deps testCaseDeps) {
+		// 		ctx, cancel := context.WithCancel(context.Background())
+		// 		defer cancel()
 
-				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateFromPlanInput{
-					CustomerID: deps.Customer.ID,
-					Namespace:  subscriptiontestutils.ExampleNamespace,
-					ActiveFrom: deps.CurrentTime,
-					Plan:       subscription.PlanRefInput{Key: "nonexistent-plan", Version: lo.ToPtr(1)},
-				})
+		// 		_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+		// 			CustomerID: deps.Customer.ID,
+		// 			Namespace:  subscriptiontestutils.ExampleNamespace,
+		// 			ActiveFrom: deps.CurrentTime,
+		// 		}, subscription.PlanRefInput{Key: "nonexistent-plan", Version: lo.ToPtr(1)},
+		// 		)
 
-				// assert.ErrorAs does not recognize this error
-				_, isErr := lo.ErrorsAs[subscription.PlanNotFoundError](err)
-				assert.True(t, isErr, "expected plan not found error, got %T", err)
-			},
-		},
+		// 		// assert.ErrorAs does not recognize this error
+		// 		_, isErr := lo.ErrorsAs[subscription.PlanNotFoundError](err)
+		// 		assert.True(t, isErr, "expected plan not found error, got %T", err)
+		// 	},
+		// },
 		// TODO: validate patches separately
 		// {
 		// 	Name: "Should error if a patch is invalid",
@@ -286,7 +282,7 @@ func TestCreateFromPlan(t *testing.T) {
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeature(t)
-			plan := deps.PlanAdapter.CreateExamplePlan(t, context.Background())
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
@@ -386,7 +382,7 @@ func TestEditRunning(t *testing.T) {
 						}, c, "apply context is incorrect")
 
 						// Lets modify the spec to see if its passed to the next
-						spec.Plan.Key = "modified-plan"
+						spec.Name = "modified-name"
 
 						return nil
 					},
@@ -395,7 +391,7 @@ func TestEditRunning(t *testing.T) {
 				patch2 := subscriptiontestutils.TestPatch{
 					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
 						// Let's see if the modification is passed along
-						assert.Equal(t, "modified-plan", spec.Plan.Key, "expected plan key to be modified")
+						assert.Equal(t, "modified-name", spec.Name, "expected name to be modified")
 
 						// Let's return an error to see if it is surfaced
 						return errors.New(errMSg)
@@ -457,7 +453,6 @@ func TestEditRunning(t *testing.T) {
 				workflowService := service.NewWorkflowService(service.WorkflowServiceConfig{
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
-					PlanAdapter:        tuDeps.PlanAdapter,
 					TransactionManager: tuDeps.CustomerAdapter,
 				})
 
@@ -482,21 +477,17 @@ func TestEditRunning(t *testing.T) {
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeature(t)
-			plan := deps.PlanAdapter.CreateExamplePlan(t, context.Background())
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
 			// Let's create an example subscription
-			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateFromPlanInput{
+			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
 				ActiveFrom: tcDeps.CurrentTime,
-				Plan: subscription.PlanRefInput{
-					Key:     plan.GetRef().Key,
-					Version: lo.ToPtr(plan.GetRef().Version),
-				},
-				Name: "Example Subscription",
-			})
+				Name:       "Example Subscription",
+			}, plan)
 			require.Nil(t, err)
 
 			tcDeps.SubView = sub

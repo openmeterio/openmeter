@@ -1,16 +1,10 @@
 package subscription
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
-
-type PlanRefInput struct {
-	Key     string `json:"key"`
-	Version *int   `json:"version,omitempty"`
-}
 
 type PlanRef struct {
 	Id      string `json:"id"`
@@ -18,7 +12,7 @@ type PlanRef struct {
 	Version int    `json:"version"`
 }
 
-func (p PlanRef) Equals(p2 PlanRef) bool {
+func (p PlanRef) Equal(p2 PlanRef) bool {
 	if p.Id != p2.Id {
 		return false
 	}
@@ -31,11 +25,15 @@ func (p PlanRef) Equals(p2 PlanRef) bool {
 	return true
 }
 
-type PlanAdapter interface {
-	// GetPlan returns the plan with the given key and version with all it's dependent resources.
-	//
-	// If the Plan is Not Found, it should return a PlanNotFoundError.
-	GetVersion(ctx context.Context, namespace string, ref PlanRefInput) (Plan, error)
+func (p *PlanRef) NilEqual(p2 *PlanRef) bool {
+	if p == nil && p2 == nil {
+		return true
+	}
+	if p != nil && p2 != nil {
+		return p.Equal(*p2)
+	}
+
+	return false
 }
 
 // All methods are expected to return stable values.
@@ -54,8 +52,6 @@ type PlanPhase interface {
 // All methods are expected to return stable values.
 type Plan interface {
 	ToCreateSubscriptionPlanInput() CreateSubscriptionPlanInput
-
-	GetRef() PlanRef
 
 	// Phases are expected to be returned in the order they activate.
 	GetPhases() []PlanPhase

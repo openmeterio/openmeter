@@ -11,8 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -38,7 +38,7 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			return nil, fmt.Errorf("failed to cast to RateCard: %w", err)
 		}
 
-		sPRC := &subscriptionplan.SubscriptionPlanRateCard{
+		sPRC := &plansubscription.RateCard{
 			PhaseKey: apiP.PhaseKey,
 			RateCard: planRC,
 		}
@@ -157,6 +157,16 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 }
 
 func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
+	var ref *api.PlanReference
+
+	if sub.PlanRef != nil {
+		ref = &api.PlanReference{
+			Id:      sub.PlanRef.Id,
+			Key:     sub.PlanRef.Key,
+			Version: sub.PlanRef.Version,
+		}
+	}
+
 	return api.Subscription{
 		Id:          sub.ID,
 		ActiveFrom:  sub.ActiveFrom,
@@ -166,15 +176,11 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Description: sub.Description,
 		Name:        sub.Name,
 		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
-		Plan: &api.PlanReference{
-			Id:      sub.PlanRef.Id,
-			Key:     sub.PlanRef.Key,
-			Version: sub.PlanRef.Version,
-		},
-		Metadata:  &sub.Metadata,
-		CreatedAt: sub.CreatedAt,
-		UpdatedAt: sub.UpdatedAt,
-		DeletedAt: sub.DeletedAt,
+		Plan:        ref,
+		Metadata:    &sub.Metadata,
+		CreatedAt:   sub.CreatedAt,
+		UpdatedAt:   sub.UpdatedAt,
+		DeletedAt:   sub.DeletedAt,
 	}
 }
 

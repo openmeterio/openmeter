@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -313,43 +314,36 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
+		pp, err := p.AsProductCatalogPlan(clock.Now())
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert Plan to ProductCatalog Plan: %w", err)
+		}
+
+		// First, let's validate that the a Subscription can successfully be created from this Plan
+
+		if err := pp.ValidForCreatingSubscriptions(); err != nil {
+			return nil, &models.GenericUserError{Message: fmt.Sprintf("invalid Plan for creating subscriptions: %s", err)}
+		}
+
+		// Second, let's validate that the plan status and the version history is correct
 		allowedPlanStatuses := []productcatalog.PlanStatus{
 			productcatalog.DraftStatus,
 			productcatalog.ScheduledStatus,
 		}
-		planStatus := p.Status()
-		if !lo.Contains(allowedPlanStatuses, p.Status()) {
+		planStatus := pp.Status()
+		if !lo.Contains(allowedPlanStatuses, pp.Status()) {
 			return nil, fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
-		}
-
-		// Check if there is at least one Phase available for Plan
-		if len(p.Phases) == 0 {
-			return nil, fmt.Errorf("invalid Plan: at least one PlanPhase is required")
-		}
-
-		// Check if there is at least one Phase with StartAfter set to P0D to ensure there is no leading gap in Plan lifecycle
-		var hasZeroStartAfter bool
-		for _, phase := range p.Phases {
-			if phase.DeletedAt == nil && phase.StartAfter.IsZero() {
-				hasZeroStartAfter = true
-
-				break
-			}
-		}
-
-		if !hasZeroStartAfter {
-			return nil, fmt.Errorf("invalid Plan: at least one PlanPhase with StartAfter set to 0 (P0D) is required")
 		}
 
 		// Find and archive Plan version with plan.ActiveStatus if there is one. Only perform lookup if
 		// the Plan to be published has higher version then 1 meaning that it has previous versions,
 		// otherwise skip this step.
-		if p.Version > 1 {
+		if pp.Version > 1 {
 			activePlan, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: params.Namespace,
 				},
-				Key: p.Key,
+				Key: pp.Key,
 			})
 			if err != nil {
 				if !plan.IsNotFound(err) {
@@ -374,10 +368,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		// Publish new Plan version
 
 		input := plan.UpdatePlanInput{
-			NamespacedID: models.NamespacedID{
-				Namespace: p.Namespace,
-				ID:        p.ID,
-			},
+			NamespacedID: params.NamespacedID,
 		}
 
 		if params.EffectiveFrom != nil {
