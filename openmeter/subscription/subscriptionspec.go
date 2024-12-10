@@ -27,7 +27,7 @@ import (
 // Third is the final spec which is a combination of the above two, it is suffixed with Spec.
 
 type CreateSubscriptionPlanInput struct {
-	Plan PlanRef `json:"plan"`
+	Plan *PlanRef `json:"plan"`
 }
 
 type CreateSubscriptionCustomerInput struct {

@@ -35,7 +35,7 @@ func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerI
 
 func getExampleCreateSubscriptionInput(customerId string, planRef subscription.PlanRef) subscription.CreateSubscriptionEntityInput {
 	return subscription.CreateSubscriptionEntityInput{
-		Plan:       planRef,
+		Plan:       &planRef,
 		CustomerId: customerId,
 		Currency:   "USD",
 		CadencedModel: models.CadencedModel{

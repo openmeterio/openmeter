@@ -18,7 +18,7 @@ type PlanRef struct {
 	Version int    `json:"version"`
 }
 
-func (p PlanRef) Equals(p2 PlanRef) bool {
+func (p PlanRef) Equal(p2 PlanRef) bool {
 	if p.Id != p2.Id {
 		return false
 	}
@@ -29,6 +29,17 @@ func (p PlanRef) Equals(p2 PlanRef) bool {
 		return false
 	}
 	return true
+}
+
+func (p *PlanRef) NilEqual(p2 *PlanRef) bool {
+	if p == nil && p2 == nil {
+		return true
+	}
+	if p != nil && p2 != nil {
+		return p.Equal(*p2)
+	}
+
+	return false
 }
 
 type PlanAdapter interface {

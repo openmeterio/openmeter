@@ -24,7 +24,7 @@ func (p *SubscriptionPlan) GetRef() subscription.PlanRef {
 
 func (p *SubscriptionPlan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
 	return subscription.CreateSubscriptionPlanInput{
-		Plan: subscription.PlanRef{
+		Plan: &subscription.PlanRef{
 			Id:      p.ID,
 			Key:     p.Key,
 			Version: p.Version,

@@ -35,7 +35,7 @@ type RateCard struct {
 	BillingCadence *datex.Period `json:"billingCadence"`
 }
 
-func (r RateCard) Equals(other RateCard) bool {
+func (r RateCard) Equal(other RateCard) bool {
 	return reflect.DeepEqual(r, other)
 }
 

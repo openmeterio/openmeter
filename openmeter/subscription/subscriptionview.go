@@ -41,7 +41,8 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 	if spec.Currency != s.Subscription.Currency {
 		return fmt.Errorf("subscription currency %s does not match spec currency %s", s.Subscription.Currency, spec.Currency)
 	}
-	if !spec.Plan.Equals(s.Subscription.PlanRef) {
+
+	if !spec.Plan.NilEqual(s.Subscription.PlanRef) {
 		return fmt.Errorf("subscription plan %v does not match spec plan %v", s.Subscription.PlanRef, spec.Plan)
 	}
 
@@ -96,7 +97,7 @@ func (s *SubscriptionItemView) AsSpec() SubscriptionItemSpec {
 
 func (s *SubscriptionItemView) Validate() error {
 	// Let's validate that the RateCard contents match in Spec and SubscriptionItem
-	if !s.Spec.RateCard.Equals(s.SubscriptionItem.RateCard) {
+	if !s.Spec.RateCard.Equal(s.SubscriptionItem.RateCard) {
 		return fmt.Errorf("item %s rate card %+v does not match spec rate card %+v", s.Spec.ItemKey, s.SubscriptionItem.RateCard, s.Spec.RateCard)
 	}
 

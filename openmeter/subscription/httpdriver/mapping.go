@@ -157,6 +157,16 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 }
 
 func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
+	var ref *api.PlanReference
+
+	if sub.PlanRef != nil {
+		ref = &api.PlanReference{
+			Id:      sub.PlanRef.Id,
+			Key:     sub.PlanRef.Key,
+			Version: sub.PlanRef.Version,
+		}
+	}
+
 	return api.Subscription{
 		Id:          sub.ID,
 		ActiveFrom:  sub.ActiveFrom,
@@ -166,15 +176,11 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Description: sub.Description,
 		Name:        sub.Name,
 		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
-		Plan: &api.PlanReference{
-			Id:      sub.PlanRef.Id,
-			Key:     sub.PlanRef.Key,
-			Version: sub.PlanRef.Version,
-		},
-		Metadata:  &sub.Metadata,
-		CreatedAt: sub.CreatedAt,
-		UpdatedAt: sub.UpdatedAt,
-		DeletedAt: sub.DeletedAt,
+		Plan:        ref,
+		Metadata:    &sub.Metadata,
+		CreatedAt:   sub.CreatedAt,
+		UpdatedAt:   sub.UpdatedAt,
+		DeletedAt:   sub.DeletedAt,
 	}
 }
 
