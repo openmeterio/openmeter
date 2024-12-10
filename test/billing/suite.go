@@ -62,6 +62,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	// init db
 	dbClient := db.NewClient(db.Driver(s.TestDB.EntDriver.Driver()))
+	s.DBClient = dbClient
 
 	if os.Getenv("TEST_DISABLE_ATLAS") != "" {
 		s.Require().NoError(dbClient.Schema.Create(context.Background()))
