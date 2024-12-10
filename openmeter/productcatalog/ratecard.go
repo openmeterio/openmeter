@@ -34,6 +34,7 @@ type RateCard interface {
 	Feature() *feature.Feature
 	Key() string
 	Merge(RateCard) error
+	GetBillingCadence() *datex.Period
 }
 
 type RateCardSerde struct {
@@ -157,6 +158,10 @@ type FlatFeeRateCard struct {
 	BillingCadence *datex.Period `json:"billingCadence"`
 }
 
+func (r *FlatFeeRateCard) GetBillingCadence() *datex.Period {
+	return r.BillingCadence
+}
+
 func (r *FlatFeeRateCard) Merge(v RateCard) error {
 	if r.Type() != v.Type() {
 		return errors.New("type mismatch")
@@ -238,6 +243,10 @@ type UsageBasedRateCard struct {
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
 	BillingCadence datex.Period `json:"billingCadence"`
+}
+
+func (r *UsageBasedRateCard) GetBillingCadence() *datex.Period {
+	return &r.BillingCadence
 }
 
 func (r *UsageBasedRateCard) Merge(v RateCard) error {

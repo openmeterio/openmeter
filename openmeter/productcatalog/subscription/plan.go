@@ -4,7 +4,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -98,20 +97,6 @@ func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscr
 		fk = &m.Feature.Key
 	}
 
-	var cadence *datex.Period
-
-	// FIXME: BillingCadence could be a method on RateCard
-	switch r.RateCard.Type() {
-	case productcatalog.FlatFeeRateCardType:
-		if rc, ok := r.RateCard.(*productcatalog.FlatFeeRateCard); ok {
-			cadence = rc.BillingCadence
-		}
-	case productcatalog.UsageBasedRateCardType:
-		if rc, ok := r.RateCard.(*productcatalog.UsageBasedRateCard); ok {
-			cadence = &rc.BillingCadence
-		}
-	}
-
 	return subscription.CreateSubscriptionItemPlanInput{
 		PhaseKey: r.PhaseKey,
 		ItemKey:  r.Key(),
@@ -122,7 +107,7 @@ func (r *RateCard) ToCreateSubscriptionItemPlanInput() subscription.CreateSubscr
 			EntitlementTemplate: m.EntitlementTemplate,
 			TaxConfig:           m.TaxConfig,
 			Price:               m.Price,
-			BillingCadence:      cadence,
+			BillingCadence:      r.GetBillingCadence(),
 		},
 	}
 }
