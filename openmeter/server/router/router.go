@@ -37,10 +37,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/http"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -81,7 +82,7 @@ type Config struct {
 	Plan                        plan.Service
 	SubscriptionService         subscription.Service
 	SubscriptionWorkflowService subscription.WorkflowService
-	SubscriptionPlanAdapter     subscription.PlanAdapter
+	SubscriptionPlanAdapter     plansubscription.Adapter
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector

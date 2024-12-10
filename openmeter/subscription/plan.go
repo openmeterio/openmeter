@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -40,13 +39,6 @@ func (p *PlanRef) NilEqual(p2 *PlanRef) bool {
 	}
 
 	return false
-}
-
-type PlanAdapter interface {
-	// GetPlan returns the plan with the given key and version with all it's dependent resources.
-	//
-	// If the Plan is Not Found, it should return a PlanNotFoundError.
-	GetVersion(ctx context.Context, namespace string, ref PlanRefInput) (Plan, error)
 }
 
 // All methods are expected to return stable values.

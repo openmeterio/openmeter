@@ -11,8 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -38,7 +38,7 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			return nil, fmt.Errorf("failed to cast to RateCard: %w", err)
 		}
 
-		sPRC := &subscriptionplan.SubscriptionPlanRateCard{
+		sPRC := &plansubscription.RateCard{
 			PhaseKey: apiP.PhaseKey,
 			RateCard: planRC,
 		}

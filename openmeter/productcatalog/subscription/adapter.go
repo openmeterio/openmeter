@@ -1,4 +1,4 @@
-package subscriptionplan
+package plansubscription
 
 import (
 	"context"
@@ -12,22 +12,29 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type Adapter interface {
+	// GetPlan returns the plan with the given key and version with all it's dependent resources.
+	//
+	// If the Plan is Not Found, it should return a PlanNotFoundError.
+	GetVersion(ctx context.Context, namespace string, ref subscription.PlanRefInput) (subscription.Plan, error)
+}
+
 type PlanSubscriptionAdapterConfig struct {
 	PlanService plan.Service
 	Logger      *slog.Logger
 }
 
-type PlanSubscriptionAdapter struct {
+type adapter struct {
 	PlanSubscriptionAdapterConfig
 }
 
-var _ subscription.PlanAdapter = &PlanSubscriptionAdapter{}
+var _ Adapter = &adapter{}
 
-func NewSubscriptionPlanAdapter(config PlanSubscriptionAdapterConfig) subscription.PlanAdapter {
-	return &PlanSubscriptionAdapter{config}
+func NewPlanSubscriptionAdapter(config PlanSubscriptionAdapterConfig) Adapter {
+	return &adapter{config}
 }
 
-func (a *PlanSubscriptionAdapter) GetVersion(ctx context.Context, namespace string, ref subscription.PlanRefInput) (subscription.Plan, error) {
+func (a *adapter) GetVersion(ctx context.Context, namespace string, ref subscription.PlanRefInput) (subscription.Plan, error) {
 	planKey := ref.Key
 	version := defaultx.WithDefault(ref.Version, 0) // plan service treats 0 as special case
 
@@ -55,7 +62,7 @@ func (a *PlanSubscriptionAdapter) GetVersion(ctx context.Context, namespace stri
 		}
 	}
 
-	return &SubscriptionPlan{
+	return &Plan{
 		Plan: *p,
 	}, nil
 }

@@ -10,8 +10,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionplan "github.com/openmeterio/openmeter/openmeter/subscription/adapters/plan"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -99,7 +99,7 @@ func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscr
 	require.Nil(t, err)
 	require.NotNil(t, p)
 
-	return &subscriptionplan.SubscriptionPlan{
+	return &plansubscription.Plan{
 		Plan: *p,
 	}
 }

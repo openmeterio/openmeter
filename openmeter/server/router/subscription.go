@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/http"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 )
 
 // (POST /api/v1/subscriptions)
