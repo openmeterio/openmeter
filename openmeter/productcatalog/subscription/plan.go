@@ -2,33 +2,38 @@ package plansubscription
 
 import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type PlanRefInput struct {
+	Key     string `json:"key"`
+	Version *int   `json:"version,omitempty"`
+}
+
 type Plan struct {
-	plan.Plan
+	productcatalog.Plan
+	Ref *models.NamespacedID
 }
 
 var _ subscription.Plan = &Plan{}
 
-func (p *Plan) GetRef() subscription.PlanRef {
-	return subscription.PlanRef{
-		Id:      p.ID,
-		Key:     p.Key,
-		Version: p.Version,
-	}
-}
-
 func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
-	return subscription.CreateSubscriptionPlanInput{
-		Plan: &subscription.PlanRef{
-			Id:      p.ID,
+	// We only store a reference if the Plan exists
+	var ref *subscription.PlanRef
+
+	if p.Ref != nil {
+		ref = &subscription.PlanRef{
+			Id:      p.Ref.ID,
 			Key:     p.Key,
 			Version: p.Version,
-		},
+		}
+	}
+
+	return subscription.CreateSubscriptionPlanInput{
+		Plan: ref,
 	}
 }
 
@@ -48,7 +53,7 @@ func (p *Plan) Currency() currencyx.Code {
 }
 
 type Phase struct {
-	plan.Phase
+	productcatalog.Phase
 }
 
 var _ subscription.PlanPhase = &Phase{}

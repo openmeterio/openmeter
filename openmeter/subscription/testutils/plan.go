@@ -99,7 +99,10 @@ func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscr
 	require.Nil(t, err)
 	require.NotNil(t, p)
 
+	pp, err := p.AsProductCatalogPlan(clock.Now())
+	require.Nil(t, err)
+
 	return &plansubscription.Plan{
-		Plan: *p,
+		Plan: pp,
 	}
 }

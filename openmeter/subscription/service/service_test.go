@@ -47,7 +47,7 @@ func TestCreation(t *testing.T) {
 		sub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, defaultSpecFromPlan)
 
 		require.Nil(t, err)
-		require.Equal(t, lo.ToPtr(plan.GetRef()), sub.PlanRef)
+		require.Equal(t, plan.ToCreateSubscriptionPlanInput().Plan, sub.PlanRef)
 		require.Equal(t, subscriptiontestutils.ExampleNamespace, sub.Namespace)
 		require.Equal(t, cust.ID, sub.CustomerId)
 		require.Equal(t, currencyx.Code("USD"), sub.Currency)

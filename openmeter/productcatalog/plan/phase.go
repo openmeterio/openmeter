@@ -107,6 +107,10 @@ func (p Phase) Validate() error {
 	return nil
 }
 
+func (p Phase) AsProductCatalogPhase() productcatalog.Phase {
+	return p.Phase
+}
+
 type SortPhasesFunc = func(left, right Phase) int
 
 var SortPhasesByStartAfter SortPhasesFunc = func(left, right Phase) int {

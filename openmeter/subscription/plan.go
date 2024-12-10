@@ -6,11 +6,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-type PlanRefInput struct {
-	Key     string `json:"key"`
-	Version *int   `json:"version,omitempty"`
-}
-
 type PlanRef struct {
 	Id      string `json:"id"`
 	Key     string `json:"key"`
@@ -57,8 +52,6 @@ type PlanPhase interface {
 // All methods are expected to return stable values.
 type Plan interface {
 	ToCreateSubscriptionPlanInput() CreateSubscriptionPlanInput
-
-	GetRef() PlanRef
 
 	// Phases are expected to be returned in the order they activate.
 	GetPhases() []PlanPhase

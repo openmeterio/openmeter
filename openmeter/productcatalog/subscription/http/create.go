@@ -6,6 +6,9 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	planhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -16,8 +19,9 @@ import (
 type (
 	// TODO: might need or not need a single interface for using the multiple workflow methods
 	CreateSubscriptionRequest = struct {
-		inp  subscription.CreateSubscriptionWorkflowInput
-		plan subscription.PlanRefInput
+		inp     subscription.CreateSubscriptionWorkflowInput
+		planRef *plansubscription.PlanRefInput
+		plan    *plan.CreatePlanInput
 	}
 	CreateSubscriptionResponse = api.Subscription
 	// CreateSubscriptionParams   = api.CreateSubscriptionParams
@@ -40,41 +44,74 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			planSubBody, errAsPlanSub := body.AsPlanSubscriptionCreate()
-			_, errAsCustSub := body.AsCustomSubscriptionCreate()
+			custSubBody, errAsCustSub := body.AsCustomSubscriptionCreate()
 
-			// Custom subscription creation is not currently supported
+			// Custom subscription creation
 			if errAsPlanSub != nil && errAsCustSub == nil {
-				return CreateSubscriptionRequest{}, commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("custom subscription creation is not supported"))
-			}
+				req, err := planhttp.AsCreatePlanRequest(custSubBody.CustomPlan, ns)
+				if err != nil {
+					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
+				}
 
-			if errAsPlanSub != nil {
-				return CreateSubscriptionRequest{}, errAsPlanSub
-			}
-
-			return CreateSubscriptionRequest{
-				inp: subscription.CreateSubscriptionWorkflowInput{
-					Namespace:   ns,
-					ActiveFrom:  planSubBody.ActiveFrom,
-					CustomerID:  planSubBody.CustomerId,
-					Name:        planSubBody.Name,
-					Description: planSubBody.Description,
-					AnnotatedModel: models.AnnotatedModel{
-						Metadata: convert.DerefHeaderPtr[string](planSubBody.Metadata),
+				return CreateSubscriptionRequest{
+					inp: subscription.CreateSubscriptionWorkflowInput{
+						Namespace:   ns,
+						ActiveFrom:  planSubBody.ActiveFrom,
+						CustomerID:  planSubBody.CustomerId,
+						Name:        planSubBody.Name,
+						Description: planSubBody.Description,
+						AnnotatedModel: models.AnnotatedModel{
+							Metadata: convert.DerefHeaderPtr[string](planSubBody.Metadata),
+						},
 					},
-				},
-				plan: subscription.PlanRefInput{
-					Key:     planSubBody.Plan.Key,
-					Version: planSubBody.Plan.Version,
-				},
-			}, nil
+
+					plan: &req,
+				}, nil
+				// Plan subscription creation
+			} else if errAsPlanSub == nil {
+				return CreateSubscriptionRequest{
+					inp: subscription.CreateSubscriptionWorkflowInput{
+						Namespace:   ns,
+						ActiveFrom:  planSubBody.ActiveFrom,
+						CustomerID:  planSubBody.CustomerId,
+						Name:        planSubBody.Name,
+						Description: planSubBody.Description,
+						AnnotatedModel: models.AnnotatedModel{
+							Metadata: convert.DerefHeaderPtr[string](planSubBody.Metadata),
+						},
+					},
+					planRef: &plansubscription.PlanRefInput{
+						Key:     planSubBody.Plan.Key,
+						Version: planSubBody.Plan.Version,
+					},
+				}, nil
+			} else {
+				return CreateSubscriptionRequest{}, fmt.Errorf("failed to decode request body: err1 %w err2 %w", errAsPlanSub, errAsCustSub)
+			}
 		},
 		func(ctx context.Context, request CreateSubscriptionRequest) (CreateSubscriptionResponse, error) {
-			// TODO: move to new driver
-			plan, err := h.SubscrpiptionPlanAdapter.GetVersion(ctx, request.inp.Namespace, request.plan)
-			if err != nil {
-				return CreateSubscriptionResponse{}, err
+			// First, let's map the input to a Plan
+			var plan subscription.Plan
+
+			if request.plan != nil {
+				p, err := h.SubscrpiptionPlanAdapter.FromInput(ctx, request.inp.Namespace, *request.plan)
+				if err != nil {
+					return CreateSubscriptionResponse{}, err
+				}
+
+				plan = p
+			} else if request.planRef != nil {
+				p, err := h.SubscrpiptionPlanAdapter.GetVersion(ctx, request.inp.Namespace, *request.planRef)
+				if err != nil {
+					return CreateSubscriptionResponse{}, err
+				}
+
+				plan = p
+			} else {
+				return CreateSubscriptionResponse{}, fmt.Errorf("plan or plan reference must be provided")
 			}
 
+			// Then let's create the subscription form the plan
 			subView, err := h.SubscriptionWorkflowService.CreateFromPlan(ctx, request.inp, plan)
 			if err != nil {
 				return CreateSubscriptionResponse{}, err

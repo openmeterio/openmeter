@@ -561,8 +561,15 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 		Phases:                          make(map[string]*SubscriptionPhaseSpec),
 	}
 
+	// Let's find an intelligent name by which we can refer to the plan in contextual errors
+	planRefName := "custom plan"
+
+	if ref := p.ToCreateSubscriptionPlanInput().Plan; ref != nil {
+		planRefName = fmt.Sprintf("plan %s version %d", ref.Key, ref.Version)
+	}
+
 	if len(p.GetPhases()) == 0 {
-		return spec, fmt.Errorf("plan %s version %d has no phases", p.GetRef().Key, p.GetRef().Version)
+		return spec, fmt.Errorf("%s has no phases", planRefName)
 	}
 
 	// Validate that the plan phases are returned in order
@@ -572,13 +579,13 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 			continue
 		}
 		if diff, err := planPhases[i].ToCreateSubscriptionPhasePlanInput().StartAfter.Subtract(planPhases[i-1].ToCreateSubscriptionPhasePlanInput().StartAfter); err != nil || diff.IsNegative() {
-			return spec, fmt.Errorf("phases %s and %s of plan %s version %d are in the wrong order", planPhases[i].GetKey(), planPhases[i-1].GetKey(), p.GetRef().Key, p.GetRef().Version)
+			return spec, fmt.Errorf("phases %s and %s of %s are in the wrong order", planPhases[i].GetKey(), planPhases[i-1].GetKey(), planRefName)
 		}
 	}
 
 	for _, planPhase := range planPhases {
 		if _, ok := spec.Phases[planPhase.GetKey()]; ok {
-			return spec, fmt.Errorf("phase %s of plan %s version %d is duplicated", planPhase.GetKey(), p.GetRef().Key, p.GetRef().Version)
+			return spec, fmt.Errorf("phase %s of %s is duplicated", planPhase.GetKey(), planRefName)
 		}
 
 		createSubscriptionPhasePlanInput := planPhase.ToCreateSubscriptionPhasePlanInput()
@@ -592,7 +599,7 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 		}
 
 		if len(planPhase.GetRateCards()) == 0 {
-			return spec, fmt.Errorf("phase %s of plan %s version %d has no rate cards", phase.PhaseKey, p.GetRef().Key, p.GetRef().Version)
+			return spec, fmt.Errorf("phase %s of %s has no rate cards", phase.PhaseKey, planRefName)
 		}
 
 		// We expect that in a plan phase, each rate card is unique by key, so let's validate that
@@ -600,7 +607,7 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 
 		for _, rateCard := range planPhase.GetRateCards() {
 			if _, ok := rcByKey[rateCard.GetKey()]; ok {
-				return spec, fmt.Errorf("rate card %s of phase %s of plan %s version %d is duplicated", rateCard.GetKey(), phase.PhaseKey, p.GetRef().Key, p.GetRef().Version)
+				return spec, fmt.Errorf("rate card %s of phase %s of %s is duplicated", rateCard.GetKey(), phase.PhaseKey, planRefName)
 			}
 			rcByKey[rateCard.GetKey()] = struct{}{}
 

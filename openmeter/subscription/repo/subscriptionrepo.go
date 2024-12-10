@@ -98,7 +98,6 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
 		command := repo.db.Subscription.Create().
 			SetNamespace(sub.Namespace).
-			SetPlanID(sub.Plan.Id).
 			SetCustomerID(sub.CustomerId).
 			SetCurrency(sub.Currency).
 			SetActiveFrom(sub.ActiveFrom).
@@ -108,6 +107,10 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 
 		if sub.ActiveTo != nil {
 			command = command.SetActiveTo(*sub.ActiveTo)
+		}
+
+		if sub.Plan != nil {
+			command = command.SetPlanID(sub.Plan.Id)
 		}
 
 		res, err := command.Save(ctx)

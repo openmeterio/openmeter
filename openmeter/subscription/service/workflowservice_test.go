@@ -382,7 +382,7 @@ func TestEditRunning(t *testing.T) {
 						}, c, "apply context is incorrect")
 
 						// Lets modify the spec to see if its passed to the next
-						spec.Plan.Key = "modified-plan"
+						spec.Name = "modified-name"
 
 						return nil
 					},
@@ -391,7 +391,7 @@ func TestEditRunning(t *testing.T) {
 				patch2 := subscriptiontestutils.TestPatch{
 					ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
 						// Let's see if the modification is passed along
-						assert.Equal(t, "modified-plan", spec.Plan.Key, "expected plan key to be modified")
+						assert.Equal(t, "modified-name", spec.Name, "expected name to be modified")
 
 						// Let's return an error to see if it is surfaced
 						return errors.New(errMSg)
