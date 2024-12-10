@@ -42,6 +42,8 @@ type Plan struct {
 	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 	// EffectiveTo holds the value of the "effective_to" field.
 	EffectiveTo *time.Time `json:"effective_to,omitempty"`
+	// PhaseOrder holds the value of the "phase_order" field.
+	PhaseOrder []string `json:"phase_order,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanQuery when eager-loading is set.
 	Edges        PlanEdges `json:"edges"`
@@ -82,7 +84,7 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case plan.FieldMetadata:
+		case plan.FieldMetadata, plan.FieldPhaseOrder:
 			values[i] = new([]byte)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
@@ -189,6 +191,14 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 				pl.EffectiveTo = new(time.Time)
 				*pl.EffectiveTo = value.Time
 			}
+		case plan.FieldPhaseOrder:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field phase_order", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &pl.PhaseOrder); err != nil {
+					return fmt.Errorf("unmarshal field phase_order: %w", err)
+				}
+			}
 		default:
 			pl.selectValues.Set(columns[i], values[i])
 		}
@@ -278,6 +288,9 @@ func (pl *Plan) String() string {
 		builder.WriteString("effective_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("phase_order=")
+	builder.WriteString(fmt.Sprintf("%v", pl.PhaseOrder))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -13122,7 +13122,7 @@ components:
         - key
         - name
         - rateCards
-        - startAfter
+        - duration
       properties:
         key:
           type: string
@@ -13155,13 +13155,13 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
+        duration:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: The time after which the plan starts compared to subscription start
-          title: Start after
+          description: The duration of the phase.
+          title: Duration
         discounts:
           type: array
           items:
@@ -13175,7 +13175,7 @@ components:
         - key
         - name
         - rateCards
-        - startAfter
+        - duration
       properties:
         key:
           type: string
@@ -13208,13 +13208,13 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
+        duration:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: The time after which the plan starts compared to subscription start
-          title: Start after
+          description: The duration of the phase.
+          title: Duration
         discounts:
           type: array
           items:
@@ -13275,13 +13275,13 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
+        duration:
           type: string
           format: duration
           nullable: true
           example: P1Y1D
-          description: The time after which the plan starts compared to subscription start
-          title: Start after
+          description: The duration of the phase.
+          title: Duration
         discounts:
           type: array
           items:

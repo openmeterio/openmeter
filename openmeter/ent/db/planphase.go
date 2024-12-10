@@ -37,8 +37,8 @@ type PlanPhase struct {
 	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
-	// StartAfter holds the value of the "start_after" field.
-	StartAfter datex.ISOString `json:"start_after,omitempty"`
+	// Duration holds the value of the "duration" field.
+	Duration *datex.ISOString `json:"duration,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
 	// The plan identifier the phase is assigned to.
@@ -87,7 +87,7 @@ func (*PlanPhase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planphase.FieldMetadata:
 			values[i] = new([]byte)
-		case planphase.FieldID, planphase.FieldNamespace, planphase.FieldName, planphase.FieldDescription, planphase.FieldKey, planphase.FieldStartAfter, planphase.FieldPlanID:
+		case planphase.FieldID, planphase.FieldNamespace, planphase.FieldName, planphase.FieldDescription, planphase.FieldKey, planphase.FieldDuration, planphase.FieldPlanID:
 			values[i] = new(sql.NullString)
 		case planphase.FieldCreatedAt, planphase.FieldUpdatedAt, planphase.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -166,11 +166,12 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				pp.Key = value.String
 			}
-		case planphase.FieldStartAfter:
+		case planphase.FieldDuration:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field start_after", values[i])
+				return fmt.Errorf("unexpected type %T for field duration", values[i])
 			} else if value.Valid {
-				pp.StartAfter = datex.ISOString(value.String)
+				pp.Duration = new(datex.ISOString)
+				*pp.Duration = datex.ISOString(value.String)
 			}
 		case planphase.FieldDiscounts:
 			if value, err := planphase.ValueScanner.Discounts.FromValue(values[i]); err != nil {
@@ -258,8 +259,10 @@ func (pp *PlanPhase) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(pp.Key)
 	builder.WriteString(", ")
-	builder.WriteString("start_after=")
-	builder.WriteString(fmt.Sprintf("%v", pp.StartAfter))
+	if v := pp.Duration; v != nil {
+		builder.WriteString("duration=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("discounts=")
 	builder.WriteString(fmt.Sprintf("%v", pp.Discounts))

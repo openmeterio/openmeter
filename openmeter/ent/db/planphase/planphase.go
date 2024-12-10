@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 const (
@@ -33,8 +32,8 @@ const (
 	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
-	// FieldStartAfter holds the string denoting the start_after field in the database.
-	FieldStartAfter = "start_after"
+	// FieldDuration holds the string denoting the duration field in the database.
+	FieldDuration = "duration"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
 	// FieldPlanID holds the string denoting the plan_id field in the database.
@@ -72,7 +71,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldKey,
-	FieldStartAfter,
+	FieldDuration,
 	FieldDiscounts,
 	FieldPlanID,
 }
@@ -98,8 +97,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
-	// DefaultStartAfter holds the default value on creation for the "start_after" field.
-	DefaultStartAfter datex.ISOString
 	// PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
 	PlanIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -153,9 +150,9 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
-// ByStartAfter orders the results by the start_after field.
-func ByStartAfter(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStartAfter, opts...).ToFunc()
+// ByDuration orders the results by the duration field.
+func ByDuration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDuration, opts...).ToFunc()
 }
 
 // ByDiscounts orders the results by the discounts field.

@@ -28820,6 +28820,8 @@ type PlanMutation struct {
 	currency             *string
 	effective_from       *time.Time
 	effective_to         *time.Time
+	phase_order          *[]string
+	appendphase_order    []string
 	clearedFields        map[string]struct{}
 	phases               map[string]struct{}
 	removedphases        map[string]struct{}
@@ -29453,6 +29455,57 @@ func (m *PlanMutation) ResetEffectiveTo() {
 	delete(m.clearedFields, plan.FieldEffectiveTo)
 }
 
+// SetPhaseOrder sets the "phase_order" field.
+func (m *PlanMutation) SetPhaseOrder(s []string) {
+	m.phase_order = &s
+	m.appendphase_order = nil
+}
+
+// PhaseOrder returns the value of the "phase_order" field in the mutation.
+func (m *PlanMutation) PhaseOrder() (r []string, exists bool) {
+	v := m.phase_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhaseOrder returns the old "phase_order" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldPhaseOrder(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhaseOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhaseOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhaseOrder: %w", err)
+	}
+	return oldValue.PhaseOrder, nil
+}
+
+// AppendPhaseOrder adds s to the "phase_order" field.
+func (m *PlanMutation) AppendPhaseOrder(s []string) {
+	m.appendphase_order = append(m.appendphase_order, s...)
+}
+
+// AppendedPhaseOrder returns the list of values that were appended to the "phase_order" field in this mutation.
+func (m *PlanMutation) AppendedPhaseOrder() ([]string, bool) {
+	if len(m.appendphase_order) == 0 {
+		return nil, false
+	}
+	return m.appendphase_order, true
+}
+
+// ResetPhaseOrder resets all changes to the "phase_order" field.
+func (m *PlanMutation) ResetPhaseOrder() {
+	m.phase_order = nil
+	m.appendphase_order = nil
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by ids.
 func (m *PlanMutation) AddPhaseIDs(ids ...string) {
 	if m.phases == nil {
@@ -29595,7 +29648,7 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, plan.FieldNamespace)
 	}
@@ -29632,6 +29685,9 @@ func (m *PlanMutation) Fields() []string {
 	if m.effective_to != nil {
 		fields = append(fields, plan.FieldEffectiveTo)
 	}
+	if m.phase_order != nil {
+		fields = append(fields, plan.FieldPhaseOrder)
+	}
 	return fields
 }
 
@@ -29664,6 +29720,8 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.EffectiveFrom()
 	case plan.FieldEffectiveTo:
 		return m.EffectiveTo()
+	case plan.FieldPhaseOrder:
+		return m.PhaseOrder()
 	}
 	return nil, false
 }
@@ -29697,6 +29755,8 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEffectiveFrom(ctx)
 	case plan.FieldEffectiveTo:
 		return m.OldEffectiveTo(ctx)
+	case plan.FieldPhaseOrder:
+		return m.OldPhaseOrder(ctx)
 	}
 	return nil, fmt.Errorf("unknown Plan field %s", name)
 }
@@ -29789,6 +29849,13 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEffectiveTo(v)
+		return nil
+	case plan.FieldPhaseOrder:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhaseOrder(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Plan field %s", name)
@@ -29923,6 +29990,9 @@ func (m *PlanMutation) ResetField(name string) error {
 	case plan.FieldEffectiveTo:
 		m.ResetEffectiveTo()
 		return nil
+	case plan.FieldPhaseOrder:
+		m.ResetPhaseOrder()
+		return nil
 	}
 	return fmt.Errorf("unknown Plan field %s", name)
 }
@@ -30051,7 +30121,7 @@ type PlanPhaseMutation struct {
 	name             *string
 	description      *string
 	key              *string
-	start_after      *datex.ISOString
+	duration         *datex.ISOString
 	discounts        *[]productcatalog.Discount
 	clearedFields    map[string]struct{}
 	plan             *string
@@ -30495,40 +30565,53 @@ func (m *PlanPhaseMutation) ResetKey() {
 	m.key = nil
 }
 
-// SetStartAfter sets the "start_after" field.
-func (m *PlanPhaseMutation) SetStartAfter(ds datex.ISOString) {
-	m.start_after = &ds
+// SetDuration sets the "duration" field.
+func (m *PlanPhaseMutation) SetDuration(ds datex.ISOString) {
+	m.duration = &ds
 }
 
-// StartAfter returns the value of the "start_after" field in the mutation.
-func (m *PlanPhaseMutation) StartAfter() (r datex.ISOString, exists bool) {
-	v := m.start_after
+// Duration returns the value of the "duration" field in the mutation.
+func (m *PlanPhaseMutation) Duration() (r datex.ISOString, exists bool) {
+	v := m.duration
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldStartAfter returns the old "start_after" field's value of the PlanPhase entity.
+// OldDuration returns the old "duration" field's value of the PlanPhase entity.
 // If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanPhaseMutation) OldStartAfter(ctx context.Context) (v datex.ISOString, err error) {
+func (m *PlanPhaseMutation) OldDuration(ctx context.Context) (v *datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStartAfter is only allowed on UpdateOne operations")
+		return v, errors.New("OldDuration is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStartAfter requires an ID field in the mutation")
+		return v, errors.New("OldDuration requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStartAfter: %w", err)
+		return v, fmt.Errorf("querying old value for OldDuration: %w", err)
 	}
-	return oldValue.StartAfter, nil
+	return oldValue.Duration, nil
 }
 
-// ResetStartAfter resets all changes to the "start_after" field.
-func (m *PlanPhaseMutation) ResetStartAfter() {
-	m.start_after = nil
+// ClearDuration clears the value of the "duration" field.
+func (m *PlanPhaseMutation) ClearDuration() {
+	m.duration = nil
+	m.clearedFields[planphase.FieldDuration] = struct{}{}
+}
+
+// DurationCleared returns if the "duration" field was cleared in this mutation.
+func (m *PlanPhaseMutation) DurationCleared() bool {
+	_, ok := m.clearedFields[planphase.FieldDuration]
+	return ok
+}
+
+// ResetDuration resets all changes to the "duration" field.
+func (m *PlanPhaseMutation) ResetDuration() {
+	m.duration = nil
+	delete(m.clearedFields, planphase.FieldDuration)
 }
 
 // SetDiscounts sets the "discounts" field.
@@ -30756,8 +30839,8 @@ func (m *PlanPhaseMutation) Fields() []string {
 	if m.key != nil {
 		fields = append(fields, planphase.FieldKey)
 	}
-	if m.start_after != nil {
-		fields = append(fields, planphase.FieldStartAfter)
+	if m.duration != nil {
+		fields = append(fields, planphase.FieldDuration)
 	}
 	if m.discounts != nil {
 		fields = append(fields, planphase.FieldDiscounts)
@@ -30789,8 +30872,8 @@ func (m *PlanPhaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case planphase.FieldKey:
 		return m.Key()
-	case planphase.FieldStartAfter:
-		return m.StartAfter()
+	case planphase.FieldDuration:
+		return m.Duration()
 	case planphase.FieldDiscounts:
 		return m.Discounts()
 	case planphase.FieldPlanID:
@@ -30820,8 +30903,8 @@ func (m *PlanPhaseMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDescription(ctx)
 	case planphase.FieldKey:
 		return m.OldKey(ctx)
-	case planphase.FieldStartAfter:
-		return m.OldStartAfter(ctx)
+	case planphase.FieldDuration:
+		return m.OldDuration(ctx)
 	case planphase.FieldDiscounts:
 		return m.OldDiscounts(ctx)
 	case planphase.FieldPlanID:
@@ -30891,12 +30974,12 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKey(v)
 		return nil
-	case planphase.FieldStartAfter:
+	case planphase.FieldDuration:
 		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetStartAfter(v)
+		m.SetDuration(v)
 		return nil
 	case planphase.FieldDiscounts:
 		v, ok := value.([]productcatalog.Discount)
@@ -30951,6 +31034,9 @@ func (m *PlanPhaseMutation) ClearedFields() []string {
 	if m.FieldCleared(planphase.FieldDescription) {
 		fields = append(fields, planphase.FieldDescription)
 	}
+	if m.FieldCleared(planphase.FieldDuration) {
+		fields = append(fields, planphase.FieldDuration)
+	}
 	if m.FieldCleared(planphase.FieldDiscounts) {
 		fields = append(fields, planphase.FieldDiscounts)
 	}
@@ -30976,6 +31062,9 @@ func (m *PlanPhaseMutation) ClearField(name string) error {
 		return nil
 	case planphase.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case planphase.FieldDuration:
+		m.ClearDuration()
 		return nil
 	case planphase.FieldDiscounts:
 		m.ClearDiscounts()
@@ -31012,8 +31101,8 @@ func (m *PlanPhaseMutation) ResetField(name string) error {
 	case planphase.FieldKey:
 		m.ResetKey()
 		return nil
-	case planphase.FieldStartAfter:
-		m.ResetStartAfter()
+	case planphase.FieldDuration:
+		m.ResetDuration()
 		return nil
 	case planphase.FieldDiscounts:
 		m.ResetDiscounts()

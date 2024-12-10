@@ -153,6 +153,12 @@ func (pc *PlanCreate) SetNillableEffectiveTo(t *time.Time) *PlanCreate {
 	return pc
 }
 
+// SetPhaseOrder sets the "phase_order" field.
+func (pc *PlanCreate) SetPhaseOrder(s []string) *PlanCreate {
+	pc.mutation.SetPhaseOrder(s)
+	return pc
+}
+
 // SetID sets the "id" field.
 func (pc *PlanCreate) SetID(s string) *PlanCreate {
 	pc.mutation.SetID(s)
@@ -293,6 +299,9 @@ func (pc *PlanCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Plan.currency": %w`, err)}
 		}
 	}
+	if _, ok := pc.mutation.PhaseOrder(); !ok {
+		return &ValidationError{Name: "phase_order", err: errors.New(`db: missing required field "Plan.phase_order"`)}
+	}
 	return nil
 }
 
@@ -376,6 +385,10 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 	if value, ok := pc.mutation.EffectiveTo(); ok {
 		_spec.SetField(plan.FieldEffectiveTo, field.TypeTime, value)
 		_node.EffectiveTo = &value
+	}
+	if value, ok := pc.mutation.PhaseOrder(); ok {
+		_spec.SetField(plan.FieldPhaseOrder, field.TypeJSON, value)
+		_node.PhaseOrder = value
 	}
 	if nodes := pc.mutation.PhasesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -593,6 +606,18 @@ func (u *PlanUpsert) ClearEffectiveTo() *PlanUpsert {
 	return u
 }
 
+// SetPhaseOrder sets the "phase_order" field.
+func (u *PlanUpsert) SetPhaseOrder(v []string) *PlanUpsert {
+	u.Set(plan.FieldPhaseOrder, v)
+	return u
+}
+
+// UpdatePhaseOrder sets the "phase_order" field to the value that was provided on create.
+func (u *PlanUpsert) UpdatePhaseOrder() *PlanUpsert {
+	u.SetExcluded(plan.FieldPhaseOrder)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -804,6 +829,20 @@ func (u *PlanUpsertOne) UpdateEffectiveTo() *PlanUpsertOne {
 func (u *PlanUpsertOne) ClearEffectiveTo() *PlanUpsertOne {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearEffectiveTo()
+	})
+}
+
+// SetPhaseOrder sets the "phase_order" field.
+func (u *PlanUpsertOne) SetPhaseOrder(v []string) *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetPhaseOrder(v)
+	})
+}
+
+// UpdatePhaseOrder sets the "phase_order" field to the value that was provided on create.
+func (u *PlanUpsertOne) UpdatePhaseOrder() *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdatePhaseOrder()
 	})
 }
 
@@ -1185,6 +1224,20 @@ func (u *PlanUpsertBulk) UpdateEffectiveTo() *PlanUpsertBulk {
 func (u *PlanUpsertBulk) ClearEffectiveTo() *PlanUpsertBulk {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearEffectiveTo()
+	})
+}
+
+// SetPhaseOrder sets the "phase_order" field.
+func (u *PlanUpsertBulk) SetPhaseOrder(v []string) *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetPhaseOrder(v)
+	})
+}
+
+// UpdatePhaseOrder sets the "phase_order" field to the value that was provided on create.
+func (u *PlanUpsertBulk) UpdatePhaseOrder() *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdatePhaseOrder()
 	})
 }
 

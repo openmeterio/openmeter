@@ -1253,6 +1253,7 @@ var (
 		{Name: "currency", Type: field.TypeString, Default: "USD"},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
+		{Name: "phase_order", Type: field.TypeJSON},
 	}
 	// PlansTable holds the schema information for the "plans" table.
 	PlansTable = &schema.Table{
@@ -1298,7 +1299,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
-		{Name: "start_after", Type: field.TypeString, Default: "P0D"},
+		{Name: "duration", Type: field.TypeString, Nullable: true},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "plan_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}

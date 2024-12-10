@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -160,6 +161,18 @@ func (pu *PlanUpdate) SetNillableEffectiveTo(t *time.Time) *PlanUpdate {
 // ClearEffectiveTo clears the value of the "effective_to" field.
 func (pu *PlanUpdate) ClearEffectiveTo() *PlanUpdate {
 	pu.mutation.ClearEffectiveTo()
+	return pu
+}
+
+// SetPhaseOrder sets the "phase_order" field.
+func (pu *PlanUpdate) SetPhaseOrder(s []string) *PlanUpdate {
+	pu.mutation.SetPhaseOrder(s)
+	return pu
+}
+
+// AppendPhaseOrder appends s to the "phase_order" field.
+func (pu *PlanUpdate) AppendPhaseOrder(s []string) *PlanUpdate {
+	pu.mutation.AppendPhaseOrder(s)
 	return pu
 }
 
@@ -339,6 +352,14 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pu.mutation.EffectiveToCleared() {
 		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
+	}
+	if value, ok := pu.mutation.PhaseOrder(); ok {
+		_spec.SetField(plan.FieldPhaseOrder, field.TypeJSON, value)
+	}
+	if value, ok := pu.mutation.AppendedPhaseOrder(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, plan.FieldPhaseOrder, value)
+		})
 	}
 	if pu.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -583,6 +604,18 @@ func (puo *PlanUpdateOne) ClearEffectiveTo() *PlanUpdateOne {
 	return puo
 }
 
+// SetPhaseOrder sets the "phase_order" field.
+func (puo *PlanUpdateOne) SetPhaseOrder(s []string) *PlanUpdateOne {
+	puo.mutation.SetPhaseOrder(s)
+	return puo
+}
+
+// AppendPhaseOrder appends s to the "phase_order" field.
+func (puo *PlanUpdateOne) AppendPhaseOrder(s []string) *PlanUpdateOne {
+	puo.mutation.AppendPhaseOrder(s)
+	return puo
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by IDs.
 func (puo *PlanUpdateOne) AddPhaseIDs(ids ...string) *PlanUpdateOne {
 	puo.mutation.AddPhaseIDs(ids...)
@@ -789,6 +822,14 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 	}
 	if puo.mutation.EffectiveToCleared() {
 		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
+	}
+	if value, ok := puo.mutation.PhaseOrder(); ok {
+		_spec.SetField(plan.FieldPhaseOrder, field.TypeJSON, value)
+	}
+	if value, ok := puo.mutation.AppendedPhaseOrder(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, plan.FieldPhaseOrder, value)
+		})
 	}
 	if puo.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -154,13 +154,13 @@ model PlanPhase {
   rateCards: RateCard[];
 
   /**
-   * The time after which the plan starts compared to subscription start
+   * The duration of the phase.
    */
   @visibility("read", "create", "update")
-  @summary("Start after")
+  @summary("Duration")
   @encode(DurationKnownEncoding.ISO8601)
   @example(duration.fromISO("P1Y1D"))
-  startAfter: duration | null;
+  duration: duration | null;
 
   /**
    * The discounts on the plan.
