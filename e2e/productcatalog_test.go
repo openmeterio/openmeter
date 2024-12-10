@@ -344,4 +344,30 @@ func TestPlan(t *testing.T) {
 
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 	})
+
+	t.Run("Should schedule a cancellation for the subscription", func(t *testing.T) {
+		require.NotEmpty(t, subscriptionId)
+
+		apiRes, err := client.CancelSubscriptionWithResponse(ctx, subscriptionId, api.CancelSubscriptionJSONRequestBody{
+			EffectiveDate: lo.ToPtr(time.Now().Add(time.Hour).UTC()),
+		})
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+		require.NotNil(t, apiRes.JSON200)
+		assert.Equal(t, api.SubscriptionStatusCanceled, *apiRes.JSON200.Status)
+	})
+
+	t.Run("Should unschedule cancellation", func(t *testing.T) {
+		require.NotEmpty(t, subscriptionId)
+
+		apiRes, err := client.UnscheduleCancelationWithResponse(ctx, subscriptionId)
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+		require.NotNil(t, apiRes.JSON200)
+		assert.Equal(t, api.SubscriptionStatusActive, *apiRes.JSON200.Status)
+	})
 }

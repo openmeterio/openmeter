@@ -68,7 +68,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 		commonhttp.JSONResponseEncoderWithStatus[EditSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.Options,
-			httptransport.WithOperationName("getSubscription"),
+			httptransport.WithOperationName("editSubscription"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

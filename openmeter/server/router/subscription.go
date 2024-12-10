@@ -45,7 +45,13 @@ func (a *Router) EditSubscription(w http.ResponseWriter, r *http.Request, subscr
 
 // (POST /api/v1/subscriptions/{subscriptionId}/cancel)
 func (a *Router) CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.ProductCatalogEnabled {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	a.subscriptionHandler.CancelSubscription().With(subscriptionhttpdriver.CancelSubscriptionParams{
+		ID: subscriptionId,
+	}).ServeHTTP(w, r)
 }
 
 // (POST /api/v1/subscriptions/{subscriptionId}/migrate)
@@ -55,5 +61,12 @@ func (a *Router) MigrateSubscription(w http.ResponseWriter, r *http.Request, sub
 
 // (POST /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation)
 func (a *Router) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.ProductCatalogEnabled {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+
+	a.subscriptionHandler.ContinueSubscription().With(subscriptionhttpdriver.ContinueSubscriptionParams{
+		ID: subscriptionId,
+	}).ServeHTTP(w, r)
 }
