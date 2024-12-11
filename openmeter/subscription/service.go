@@ -27,6 +27,7 @@ type Service interface {
 type WorkflowService interface {
 	CreateFromPlan(ctx context.Context, inp CreateSubscriptionWorkflowInput, plan Plan) (SubscriptionView, error)
 	EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []Patch) (SubscriptionView, error)
+	ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp CreateSubscriptionWorkflowInput, plan Plan) (current Subscription, new SubscriptionView, err error)
 }
 
 type CreateSubscriptionWorkflowInput struct {
