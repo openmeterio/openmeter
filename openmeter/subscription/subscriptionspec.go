@@ -489,18 +489,20 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get metered entitlement template: %w", err)
 		}
+		truncatedStartTime := cadence.ActiveFrom.Truncate(time.Minute)
+
 		scheduleInput.Metadata = tpl.Metadata
 		scheduleInput.IsSoftLimit = &tpl.IsSoftLimit
 		scheduleInput.IssueAfterReset = tpl.IssueAfterReset
 		scheduleInput.IssueAfterResetPriority = tpl.IssueAfterResetPriority
 		scheduleInput.PreserveOverageAtReset = tpl.PreserveOverageAtReset
-		rec, err := recurrence.FromISODuration(&tpl.UsagePeriod, cadence.ActiveFrom)
+		rec, err := recurrence.FromISODuration(&tpl.UsagePeriod, truncatedStartTime)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 		}
 		scheduleInput.UsagePeriod = lo.ToPtr(entitlement.UsagePeriod(rec))
 		mu := &entitlement.MeasureUsageFromInput{}
-		err = mu.FromTime(cadence.ActiveFrom)
+		err = mu.FromTime(truncatedStartTime)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get measure usage from time: %w", err)
 		}

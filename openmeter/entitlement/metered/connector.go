@@ -140,7 +140,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		},
 	)
 
-	measureUsageFrom = convert.ToPointer(defaultx.WithDefault(measureUsageFrom, clock.Now().Truncate(c.granularity)))
+	measureUsageFrom = convert.ToPointer(defaultx.WithDefault(measureUsageFrom, clock.Now()).Truncate(c.granularity))
 
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
 	model.IssueAfterReset = convert.ToPointer(defaultx.WithDefault(model.IssueAfterReset, 0.0))
