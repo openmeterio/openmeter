@@ -112,6 +112,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 type MockService struct {
 	CreateFn   func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error)
 	UpdateFn   func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error)
+	DeleteFn   func(ctx context.Context, subscriptionID models.NamespacedID) error
 	CancelFn   func(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error)
 	ContinueFn func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetFn      func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
@@ -126,6 +127,10 @@ func (s *MockService) Create(ctx context.Context, namespace string, spec subscri
 
 func (s *MockService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	return s.UpdateFn(ctx, subscriptionID, target)
+}
+
+func (s *MockService) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
+	return s.DeleteFn(ctx, subscriptionID)
 }
 
 func (s *MockService) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error) {

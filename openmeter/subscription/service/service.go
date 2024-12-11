@@ -158,6 +158,39 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 	return s.sync(ctx, view, newSpec)
 }
 
+func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
+	currentTime := clock.Now()
+
+	// First, let's get the subscription
+	view, err := s.GetView(ctx, subscriptionID)
+	if err != nil {
+		return err
+	}
+
+	// Let's make sure Delete is possible based on the transition rules
+	if err := subscription.NewStateMachine(
+		view.Subscription.GetStatusAt(currentTime),
+	).CanTransitionOrErr(ctx, subscription.SubscriptionActionDelete); err != nil {
+		return err
+	}
+
+	return transaction.RunWithNoValue(ctx, s.TransactionManager, func(ctx context.Context) error {
+		// First, let's delete all phases
+		for _, phase := range view.Phases {
+			if err := s.deletePhase(ctx, phase); err != nil {
+				return fmt.Errorf("failed to delete phase: %w", err)
+			}
+		}
+
+		// Then let's delete the subscription itself
+		if err := s.SubscriptionRepo.Delete(ctx, view.Subscription.NamespacedID); err != nil {
+			return fmt.Errorf("failed to delete subscription: %w", err)
+		}
+
+		return nil
+	})
+}
+
 func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error) {
 	// First, let's get the subscription
 	view, err := s.GetView(ctx, subscriptionID)

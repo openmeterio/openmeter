@@ -12,6 +12,8 @@ type Service interface {
 	Create(ctx context.Context, namespace string, spec SubscriptionSpec) (Subscription, error)
 	// Update the subscription with the given ID to the target spec
 	Update(ctx context.Context, subscriptionID models.NamespacedID, target SubscriptionSpec) (Subscription, error)
+	// Delete a scheduled subscription with the given ID
+	Delete(ctx context.Context, subscriptionID models.NamespacedID) error
 	// Cancel a running subscription at the provided time
 	Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (Subscription, error)
 	// Continue a canceled subscription (effectively undoing the cancellation)
