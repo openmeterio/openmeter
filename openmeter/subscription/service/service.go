@@ -124,6 +124,25 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	})
 }
 
+func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	var def subscription.Subscription
+
+	// Get the full view
+	view, err := s.GetView(ctx, subscriptionID)
+	if err != nil {
+		return def, fmt.Errorf("failed to get view: %w", err)
+	}
+
+	// Let's make sure edit is possible based on the transition rules
+	if err := subscription.NewStateMachine(
+		view.Subscription.GetStatusAt(clock.Now()),
+	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
+		return def, err
+	}
+
+	return s.sync(ctx, view, newSpec)
+}
+
 func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error) {
 	// First, let's get the subscription
 	view, err := s.GetView(ctx, subscriptionID)

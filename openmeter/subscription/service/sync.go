@@ -8,50 +8,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
-	var def subscription.Subscription
-
-	// Get the full view
-	view, err := s.GetView(ctx, subscriptionID)
-	if err != nil {
-		return def, fmt.Errorf("failed to get view: %w", err)
-	}
-
-	// Let's make sure edit is possible based on the transition rules
-	if err := subscription.NewStateMachine(
-		view.Subscription.GetStatusAt(clock.Now()),
-	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
-		return def, err
-	}
-
-	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
-		sub, err := s.sync(ctx, view, newSpec)
-		if err != nil {
-			return sub, err
-		}
-
-		// Let's fetch the view for event generation
-		view, err := s.GetView(ctx, sub.NamespacedID)
-		if err != nil {
-			return sub, err
-		}
-
-		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
-			UpdatedView: view,
-		})
-		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
-		}
-
-		return sub, nil
-	})
-}
 
 // TODO: localize error so phase and item keys are always included (alongside subscription reference)
 func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
