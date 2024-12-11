@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func TestCreation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
 		clock.SetTime(currentTime)
 
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
@@ -132,13 +133,15 @@ func TestCreation(t *testing.T) {
 							entInp := ent.ToScheduleSubscriptionEntitlementInput()
 							assert.Equal(t, rcEnt.Type(), entInp.CreateEntitlementInputs.GetType())
 							// To simplify here we expect the ExamplePlan to have UsagePeriodISODuration set to 1 month
-							up, err := recurrence.FromISODuration(&subscriptiontestutils.ISOMonth, ent.Cadence.ActiveFrom)
+							// Unfortunately entitlement usage period can only be aligned to the minute (due to rounding)
+							up, err := recurrence.FromISODuration(&subscriptiontestutils.ISOMonth, ent.Cadence.ActiveFrom.Truncate(time.Minute))
 							require.Nil(t, err)
 
 							require.Equal(t, entInp.CreateEntitlementInputs.UsagePeriod, lo.ToPtr(entitlement.UsagePeriod(up)))
 							assert.Equal(t, recurrence.RecurrencePeriodMonth, ent.Entitlement.UsagePeriod.Interval)
 							// Validate that entitlement UsagePeriod matches expected by anchor which is the phase start time
-							assert.Equal(t, foundPhase.ActiveFrom(found.Subscription.CadencedModel), ent.Entitlement.UsagePeriod.Anchor)
+							// Unfortunately entitlement usage period can only be aligned to the minute (due to rounding)
+							assert.Equal(t, foundPhase.ActiveFrom(found.Subscription.CadencedModel).Truncate(time.Minute), ent.Entitlement.UsagePeriod.Anchor)
 
 							// Validate that entitlement activeFrom is the same as the phase activeFrom
 							require.NotNil(t, ent.Entitlement.ActiveFrom)
