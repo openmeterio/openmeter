@@ -340,6 +340,7 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 			ActiveFrom: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		}
 
+		// Let's validate that the items form a valid non-overlapping timeline
 		cadences := make([]models.CadencedModel, 0, len(items))
 		for i := range items {
 			cadence, err := items[i].GetCadence(somePhaseCadence)
@@ -349,8 +350,14 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 			cadences = append(cadences, cadence)
 		}
 
-		if err := ValidateCadencesAreSortedAndNonOverlapping(cadences); err != nil {
-			errs = append(errs, fmt.Errorf("items for key %s are not sorted or overlapping: %w", key, err))
+		timeline := models.Timeline[models.CadencedModel](cadences)
+
+		if !timeline.IsSorted() {
+			errs = append(errs, fmt.Errorf("items for key %s are not sorted", key))
+		}
+
+		if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
+			errs = append(errs, fmt.Errorf("items for key %s are overlapping: %v", key, overlaps))
 		}
 	}
 

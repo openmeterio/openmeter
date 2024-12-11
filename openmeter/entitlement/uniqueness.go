@@ -5,6 +5,8 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ValidateUniqueConstraint validates the uniqueness constraints of the entitlements
@@ -38,26 +40,27 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 		return fmt.Errorf("entitlements must belong to the same subject, found %v", keys)
 	}
 
-	// For validating the constraint we sort the entitlements by ActiveFromTime ascending.
-	// If any two neighboring entitlements are active at the same time, the constraint is violated.
-	// This is equivalent to the above formal definition.
-	s := make([]Entitlement, len(ents))
-	copy(s, ents)
-	slices.SortStableFunc(s, func(a, b Entitlement) int {
-		return int(a.ActiveFromTime().Sub(b.ActiveFromTime()).Milliseconds())
-	})
-	for i := range s {
-		if i == 0 {
-			continue
-		}
+	type cadencedEnt struct {
+		models.CadencedModel
+		ent Entitlement
+	}
 
-		if s[i-1].ActiveToTime() == nil {
-			return &UniquenessConstraintError{e1: s[i-1], e2: s[i]}
+	// We use models.Timeline to validate the uniqueness constraint.
+	timeline := models.NewSortedTimeLine(lo.Map(ents, func(e Entitlement, _ int) cadencedEnt {
+		return cadencedEnt{
+			CadencedModel: models.CadencedModel{
+				ActiveFrom: e.ActiveFromTime(),
+				ActiveTo:   e.ActiveToTime(),
+			},
+			ent: e,
 		}
+	}))
 
-		if s[i].ActiveFromTime().Before(*s[i-1].ActiveToTime()) {
-			return &UniquenessConstraintError{e1: s[i-1], e2: s[i]}
-		}
+	if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
+		// We only return the first overlap
+		overlap := overlaps[0]
+		items := timeline.Cadences()
+		return &UniquenessConstraintError{e1: items[overlap[0]].ent, e2: items[overlap[1]].ent}
 	}
 
 	return nil
