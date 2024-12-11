@@ -14,13 +14,15 @@ const (
 	SubscriptionStatusActive SubscriptionStatus = "active"
 	// Canceled means the subscription has already been canceled but is still active
 	SubscriptionStatusCanceled SubscriptionStatus = "canceled"
-	// Inactive means the subscription is inactive and the customer is not being billed
+	// Inactive means the subscription is inactive (might have been previously active) and the customer is not being billed
 	SubscriptionStatusInactive SubscriptionStatus = "inactive"
+	// Scheduled means the subscription is scheduled to be active in the future
+	SubscriptionStatusScheduled SubscriptionStatus = "scheduled"
 )
 
 func (s SubscriptionStatus) Validate() error {
 	switch s {
-	case SubscriptionStatusActive, SubscriptionStatusCanceled, SubscriptionStatusInactive:
+	case SubscriptionStatusActive, SubscriptionStatusCanceled, SubscriptionStatusInactive, SubscriptionStatusScheduled:
 		return nil
 	default:
 		return fmt.Errorf("invalid subscription status: %s", s)
@@ -34,6 +36,7 @@ const (
 	SubscriptionActionUpdate   SubscriptionAction = "update"
 	SubscriptionActionCancel   SubscriptionAction = "cancel"
 	SubscriptionActionContinue SubscriptionAction = "continue"
+	SubscriptionActionDelete   SubscriptionAction = "delete"
 )
 
 // SubscriptionStateMachine is a very simple state machine that determines what actions can be taken on a Subscription
@@ -81,6 +84,9 @@ func NewStateMachine(status SubscriptionStatus) SubscriptionStateMachine {
 
 	sm.Configure(SubscriptionStatusCanceled).
 		Permit(SubscriptionActionContinue, SubscriptionStatusActive)
+
+	sm.Configure(SubscriptionStatusScheduled).
+		Permit(SubscriptionActionDelete, nil) // Delete deletes the state too
 
 	return SubscriptionStateMachine{
 		sm: sm,

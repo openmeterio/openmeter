@@ -23,6 +23,21 @@ type Subscription struct {
 	Currency   currencyx.Code `json:"currency,omitempty"`
 }
 
+func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
+	return CreateSubscriptionEntityInput{
+		CadencedModel: s.CadencedModel,
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		AnnotatedModel: s.AnnotatedModel,
+		Plan:           s.PlanRef,
+		Name:           s.Name,
+		Description:    s.Description,
+		CustomerId:     s.CustomerId,
+		Currency:       s.Currency,
+	}
+}
+
 func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 	// Cadence might not be initialized
 	if s.CadencedModel.IsZero() {
@@ -39,6 +54,9 @@ func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 		if s.ActiveTo.After(at) {
 			return SubscriptionStatusCanceled
 		}
+	} else {
+		// If the subscription is scheduled to start in the future, it is scheduled
+		return SubscriptionStatusScheduled
 	}
 
 	// The default status is inactive

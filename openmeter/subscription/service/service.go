@@ -69,9 +69,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, fmt.Errorf("customer is nil")
 	}
 
-	// Subscriptions can be canceled, scheduled to the future, etc...
-	// To avoid difficult to resolve scheduling issues (think of overlapping, canceling, unscheduling cancels, etc...) we enforce a simple limit:
-	// at a time only a single subscription can be scheduled, where scheduled means its either already active, or scheduled to be in the future.
+	// Let's build a timeline of every already schedueld subscription along with the new one
+	// so we can validate the timeline
 	scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
 		ID:        spec.CustomerId,
 		Namespace: namespace,
@@ -79,8 +78,24 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	if err != nil {
 		return def, fmt.Errorf("failed to get scheduled subscriptions: %w", err)
 	}
-	if len(scheduled) > 0 {
-		return def, &models.GenericConflictError{Message: "customer already has subscriptions scheduled"}
+
+	scheduledInps := lo.Map(scheduled, func(i subscription.Subscription, _ int) subscription.CreateSubscriptionEntityInput {
+		return i.AsEntityInput()
+	})
+
+	subscriptionTimeline := models.NewSortedTimeLine(scheduledInps)
+
+	// Sanity check, lets validate that the scheduled timeline is consistent (without the new spec)
+	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
+		return def, fmt.Errorf("inconsistency error: already scheduled subscriptions are overlapping: %v", overlaps)
+	}
+
+	// Now let's check that the new Spec also fits into the timeline
+	subscriptionTimeline = models.NewSortedTimeLine(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
+
+	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
+		// TODO: better error message
+		return def, &models.GenericConflictError{Message: fmt.Sprintf("new subscription overlaps with existing ones: %v", overlaps)}
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
