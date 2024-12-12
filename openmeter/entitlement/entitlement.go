@@ -271,6 +271,10 @@ func (e Entitlement) IsActive(at time.Time) bool {
 		return false
 	}
 
+	if e.ActiveToTime() != nil && e.ActiveFromTime().Equal(*e.ActiveToTime()) {
+		return false
+	}
+
 	return true
 }
 

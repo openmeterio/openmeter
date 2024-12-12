@@ -46,15 +46,25 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 	}
 
 	// We use models.Timeline to validate the uniqueness constraint.
-	timeline := models.NewSortedTimeLine(lo.Map(ents, func(e Entitlement, _ int) cadencedEnt {
-		return cadencedEnt{
-			CadencedModel: models.CadencedModel{
-				ActiveFrom: e.ActiveFromTime(),
-				ActiveTo:   e.ActiveToTime(),
-			},
-			ent: e,
-		}
-	}))
+	timeline := models.NewSortedTimeLine(
+		// As entitlements where e.ActiveFromTime() == e.ActiveToTime() can never be active, we should ignore them.
+		lo.Map(
+			lo.Filter(ents, func(e Entitlement, _ int) bool {
+				if e.ActiveToTime() != nil && e.ActiveFromTime().Equal(*e.ActiveToTime()) {
+					return false
+				}
+
+				return true
+			}),
+			func(e Entitlement, _ int) cadencedEnt {
+				return cadencedEnt{
+					CadencedModel: models.CadencedModel{
+						ActiveFrom: e.ActiveFromTime(),
+						ActiveTo:   e.ActiveToTime(),
+					},
+					ent: e,
+				}
+			}))
 
 	if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 		// We only return the first overlap

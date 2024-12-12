@@ -84,7 +84,7 @@ func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscr
 	t.Helper()
 	ctx := context.Background()
 
-	p, err := h.planService.CreatePlan(ctx, GetExamplePlanInput(t))
+	p, err := h.planService.CreatePlan(ctx, input)
 	require.Nil(t, err)
 	require.NotNil(t, p)
 
@@ -104,5 +104,6 @@ func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscr
 
 	return &plansubscription.Plan{
 		Plan: pp,
+		Ref:  &p.NamespacedID,
 	}
 }
