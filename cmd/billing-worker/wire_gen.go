@@ -10,7 +10,6 @@ import (
 	"context"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"log/slog"
@@ -66,12 +65,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger: logger,
 	}
 	eventsConfiguration := conf.Events
-	balanceWorkerConfiguration := conf.BalanceWorker
+	billingConfiguration := conf.Billing
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
-	subscriber, err := common.BalanceWorkerSubscriber(balanceWorkerConfiguration, brokerOptions)
+	subscriber, err := common.BillingWorkerSubscriber(billingConfiguration, brokerOptions)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -80,7 +79,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v := common.BalanceWorkerProvisionTopics(balanceWorkerConfiguration)
+	v := common.BillingWorkerProvisionTopics(billingConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -115,7 +114,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	consumerConfiguration := balanceWorkerConfiguration.ConsumerConfiguration
+	billingWorkerConfiguration := billingConfiguration.Worker
+	consumerConfiguration := billingWorkerConfiguration.ConsumerConfiguration
 	options := router.Options{
 		Subscriber:  subscriber,
 		Publisher:   publisher,
@@ -124,6 +124,67 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Config:      consumerConfiguration,
 	}
 	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appsConfiguration := conf.Apps
+	service, err := common.NewAppService(logger, client, appsConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	customerService, err := common.NewCustomerService(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	secretService, err := common.NewSecretService(logger, client, appsConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, service, customerService, secretService)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -157,18 +218,41 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlementOptions := registrybuilder.EntitlementOptions{
-		DatabaseClient:     client,
-		StreamingConnector: connector,
-		Logger:             logger,
-		MeterRepository:    inMemoryRepository,
-		Publisher:          eventbusPublisher,
+	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
 	}
-	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)
-	entitlementRepo := common.NewEntitlementRepo(client)
-	subjectResolver := common.SubjectResolver()
-	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, entitlementRepo, subjectResolver, logger)
-	worker, err := common.NewBalanceWorker(workerOptions)
+	app, err := common.NewAppSandbox(ctx, logger, client, service, manager)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureConnector := common.NewFeatureConnector(logger, client, appsConfiguration, inMemoryRepository)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, app, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, logger)
+	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -180,8 +264,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
-	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BalanceWorkerGroup(ctx, worker, v4)
+	v5, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BillingWorkerGroup(ctx, worker, v5)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,
@@ -214,5 +298,5 @@ type Application struct {
 }
 
 func metadata(conf config.Configuration) common.Metadata {
-	return common.NewMetadata(conf, version, "balance-worker")
+	return common.NewMetadata(conf, version, "billing-worker")
 }

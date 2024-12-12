@@ -35,7 +35,6 @@ type Configuration struct {
 	ProductCatalog ProductCatalogConfiguration
 	Billing        BillingConfiguration
 	Apps           AppsConfiguration
-	StripeApp      StripeAppConfig
 	Svix           SvixConfig
 }
 
@@ -111,10 +110,6 @@ func (c Configuration) Validate() error {
 		}
 	}
 
-	if err := c.StripeApp.Validate(); err != nil {
-		errs = append(errs, errorsx.WithPrefix(err, "stripe app"))
-	}
-
 	if err := c.ProductCatalog.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "product catalog"))
 	}
@@ -167,7 +162,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureBalanceWorker(v)
 	ConfigureBillingWorker(v)
 	ConfigureNotification(v)
-	ConfigureStripe(v)
 	ConfigureBilling(v)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v)

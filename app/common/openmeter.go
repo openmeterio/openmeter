@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -13,10 +12,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
-	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestadapter"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
@@ -255,19 +250,4 @@ func NewFlushHandler(
 	flushHandlerMux.AddHandler(ingestNotificationHandler)
 
 	return flushHandlerMux, nil
-}
-
-func NewCustomerService(logger *slog.Logger, db *entdb.Client) (customer.Service, error) {
-	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client: db,
-		Logger: logger.WithGroup("customer.postgres"),
-	})
-	if err != nil {
-		logger.Error("failed to initialize customer repository", "error", err)
-		os.Exit(1)
-	}
-
-	return customerservice.New(customerservice.Config{
-		Adapter: customerAdapter,
-	})
 }

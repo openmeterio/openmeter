@@ -43,7 +43,10 @@ func TestComplete(t *testing.T) {
 		Postgres: PostgresConfig{
 			AutoMigrate: AutoMigrateEnt,
 		},
-		Address:     "127.0.0.1:8888",
+		Address: "127.0.0.1:8888",
+		Apps: AppsConfiguration{
+			BaseURL: "https://example.com",
+		},
 		Environment: "local",
 		Telemetry: TelemetryConfig{
 			Address: "127.0.0.1:10000",
@@ -306,11 +309,6 @@ func TestComplete(t *testing.T) {
 			APIKey:    "test-svix-token",
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
-		},
-		StripeApp: StripeAppConfig{
-			IncomingWebhook: StripeAppIncomingWebhookConfig{
-				BaseURL: "https://example.com",
-			},
 		},
 	}
 

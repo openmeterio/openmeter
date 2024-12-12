@@ -22,6 +22,7 @@ import (
 )
 
 var Config = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "Apps"),
 	wire.FieldsOf(new(config.Configuration), "Aggregation"),
 	wire.FieldsOf(new(config.AggregationConfiguration), "ClickHouse"),
 

@@ -12,6 +12,8 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
@@ -105,9 +107,11 @@ func BillingWorkerGroup(
 func BillingService(
 	logger *slog.Logger,
 	db *entdb.Client,
+	appService app.Service,
+	appStripeService appstripe.Service,
+	appSandbox appsandbox.App,
 	billingConfig config.BillingConfiguration,
 	customerService customer.Service,
-	appService app.Service,
 	featureConnector feature.FeatureConnector,
 	meterRepo meter.Repository,
 	streamingConnector streaming.Connector,
@@ -126,10 +130,10 @@ func BillingService(
 
 	return billingservice.New(billingservice.Config{
 		Adapter:            adapter,
-		CustomerService:    customerService,
 		AppService:         appService,
-		Logger:             logger,
+		CustomerService:    customerService,
 		FeatureService:     featureConnector,
+		Logger:             logger,
 		MeterRepo:          meterRepo,
 		StreamingConnector: streamingConnector,
 	})
@@ -143,6 +147,12 @@ var BillingWorker = wire.NewSet(
 	BillingWorkerSubscriber,
 
 	NewCustomerService,
+	NewAppService,
+	NewAppStripeService,
+	NewAppSandbox,
+	NewFeatureConnector,
+	NewSecretService,
+
 	BillingService,
 
 	NewBillingWorkerOptions,
