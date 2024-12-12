@@ -165,6 +165,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigurePortal(v)
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
+	ConfigureBillingWorker(v)
 	ConfigureNotification(v)
 	ConfigureStripe(v)
 	ConfigureBilling(v)

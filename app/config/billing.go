@@ -4,6 +4,7 @@ import "github.com/spf13/viper"
 
 type BillingConfiguration struct {
 	Enabled bool
+	Worker  BillingWorkerConfiguration
 }
 
 func (c BillingConfiguration) Validate() error {
