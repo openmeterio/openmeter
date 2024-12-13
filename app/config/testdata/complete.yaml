@@ -122,6 +122,9 @@ meters:
       method: $.method
       path: $.path
 
+entitlements:
+  enabled: true
+
 notification:
   enabled: true
 
