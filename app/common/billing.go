@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
@@ -29,7 +28,6 @@ func BillingService(
 	db *entdb.Client,
 	appService app.Service,
 	appStripeService appstripe.Service,
-	appSandbox *appsandbox.App,
 	billingConfig config.BillingConfiguration,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,

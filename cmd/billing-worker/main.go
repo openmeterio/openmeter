@@ -83,9 +83,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Migrate database
 	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
+	}
+
+	// Provision sandbox app
+	if conf.Apps.Enabled {
+		err = app.AppSandboxProvisioner()
+		if err != nil {
+			logger.Error("failed to provision sandbox app", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	app.Run()

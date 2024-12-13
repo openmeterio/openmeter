@@ -26,8 +26,10 @@ var App = wire.NewSet(
 
 	NewAppService,
 	NewAppStripeService,
-	NewAppSandbox,
+	NewAppSandboxProvisioner,
 )
+
+type AppSandboxProvisioner func() error
 
 func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration) (app.Service, error) {
 	// TODO: remove this check after enabled by default
@@ -71,7 +73,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 	})
 }
 
-func NewAppSandbox(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager) (*appsandbox.App, error) {
+func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager) (AppSandboxProvisioner, error) {
 	if !appsConfig.Enabled {
 		return nil, nil
 	}
@@ -83,20 +85,17 @@ func NewAppSandbox(ctx context.Context, logger *slog.Logger, appsConfig config.A
 		return nil, fmt.Errorf("failed to initialize app sandbox factory: %w", err)
 	}
 
-	app, err := appsandbox.AutoProvision(ctx, appsandbox.AutoProvisionInput{
-		Namespace:  namespaceManager.GetDefaultNamespace(),
-		AppService: appService,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to auto-provision sandbox app: %w", err)
-	}
+	return func() error {
+		app, err := appsandbox.AutoProvision(ctx, appsandbox.AutoProvisionInput{
+			Namespace:  namespaceManager.GetDefaultNamespace(),
+			AppService: appService,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to auto-provision sandbox app: %w", err)
+		}
 
-	logger.Info("sandbox app auto-provisioned", "app_id", app.GetID().ID)
+		logger.Info("sandbox app auto-provisioned", "app_id", app.GetID().ID)
 
-	appSandbox, ok := app.(appsandbox.App)
-	if !ok {
-		return nil, fmt.Errorf("failed to cast app to sandbox app")
-	}
-
-	return &appSandbox, nil
+		return nil
+	}, nil
 }

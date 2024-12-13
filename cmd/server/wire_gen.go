@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -195,7 +194,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	app, err := common.NewAppSandbox(ctx, logger, appsConfiguration, service, manager)
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -206,7 +205,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	billingConfiguration := conf.Billing
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, appstripeService, app, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -331,7 +330,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Migrator:                migrator,
 		App:                     service,
 		AppStripe:               appstripeService,
-		AppSandbox:              app,
+		AppSandboxProvisioner:   appSandboxProvisioner,
 		Customer:                customerService,
 		Billing:                 billingService,
 		EntClient:               client,
@@ -375,7 +374,7 @@ type Application struct {
 
 	App                     app.Service
 	AppStripe               appstripe.Service
-	AppSandbox              *appsandbox.App
+	AppSandboxProvisioner   common.AppSandboxProvisioner
 	Customer                customer.Service
 	Billing                 billing.Service
 	EntClient               *db.Client

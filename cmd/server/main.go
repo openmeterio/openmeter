@@ -136,6 +136,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Provision sandbox app
+	if conf.Apps.Enabled {
+		err = app.AppSandboxProvisioner()
+		if err != nil {
+			logger.Error("failed to provision sandbox app", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			NamespaceManager:    app.NamespaceManager,

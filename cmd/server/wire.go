@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -40,7 +39,7 @@ type Application struct {
 
 	App                     app.Service
 	AppStripe               appstripe.Service
-	AppSandbox              *appsandbox.App
+	AppSandboxProvisioner   common.AppSandboxProvisioner
 	Customer                customer.Service
 	Billing                 billing.Service
 	EntClient               *db.Client

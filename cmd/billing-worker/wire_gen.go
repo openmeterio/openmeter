@@ -10,6 +10,8 @@ import (
 	"context"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"log/slog"
@@ -174,29 +176,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
+	v2 := conf.Meters
+	inMemoryRepository := common.NewMeterRepository(v2)
+	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -206,9 +191,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3 := conf.Meters
-	inMemoryRepository := common.NewMeterRepository(v3)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, inMemoryRepository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -218,30 +201,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
-	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	app, err := common.NewAppSandbox(ctx, logger, appsConfiguration, service, manager)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, appstripeService, app, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -264,17 +224,66 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
-	v5, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BillingWorkerGroup(ctx, worker, v5)
+	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BillingWorkerGroup(ctx, worker, v4)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,
 	}
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v5 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(v5, namespaceConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
-		GlobalInitializer: globalInitializer,
-		Migrator:          migrator,
-		Runner:            runner,
-		Logger:            logger,
+		GlobalInitializer:     globalInitializer,
+		Migrator:              migrator,
+		Runner:                runner,
+		App:                   service,
+		AppStripe:             appstripeService,
+		AppSandboxProvisioner: appSandboxProvisioner,
+		Logger:                logger,
 	}
 	return application, func() {
 		cleanup7()
@@ -294,7 +303,10 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	Logger *slog.Logger
+	App                   app.Service
+	AppStripe             appstripe.Service
+	AppSandboxProvisioner common.AppSandboxProvisioner
+	Logger                *slog.Logger
 }
 
 func metadata(conf config.Configuration) common.Metadata {
