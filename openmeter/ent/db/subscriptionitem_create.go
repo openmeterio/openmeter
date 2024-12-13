@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -243,6 +244,21 @@ func (sic *SubscriptionItemCreate) SetPhase(s *SubscriptionPhase) *SubscriptionI
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (sic *SubscriptionItemCreate) SetEntitlement(e *Entitlement) *SubscriptionItemCreate {
 	return sic.SetEntitlementID(e.ID)
+}
+
+// AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
+func (sic *SubscriptionItemCreate) AddBillingLineIDs(ids ...string) *SubscriptionItemCreate {
+	sic.mutation.AddBillingLineIDs(ids...)
+	return sic
+}
+
+// AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
+func (sic *SubscriptionItemCreate) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionItemCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return sic.AddBillingLineIDs(ids...)
 }
 
 // Mutation returns the SubscriptionItemMutation object of the builder.
@@ -506,6 +522,22 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.EntitlementID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sic.mutation.BillingLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.BillingLinesTable,
+			Columns: []string{subscriptionitem.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil

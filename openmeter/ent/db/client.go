@@ -2107,6 +2107,54 @@ func (c *BillingInvoiceLineClient) QueryLineDiscounts(bil *BillingInvoiceLine) *
 	return query
 }
 
+// QuerySubscription queries the subscription edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QuerySubscription(bil *BillingInvoiceLine) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bil.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SubscriptionTable, billinginvoiceline.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPhase queries the subscription_phase edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QuerySubscriptionPhase(bil *BillingInvoiceLine) *SubscriptionPhaseQuery {
+	query := (&SubscriptionPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bil.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SubscriptionPhaseTable, billinginvoiceline.SubscriptionPhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QuerySubscriptionItem(bil *BillingInvoiceLine) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bil.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.SubscriptionItemTable, billinginvoiceline.SubscriptionItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(bil.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BillingInvoiceLineClient) Hooks() []Hook {
 	return c.hooks.BillingInvoiceLine
@@ -5125,6 +5173,22 @@ func (c *SubscriptionClient) QueryPhases(s *Subscription) *SubscriptionPhaseQuer
 	return query
 }
 
+// QueryBillingLines queries the billing_lines edge of a Subscription.
+func (c *SubscriptionClient) QueryBillingLines(s *Subscription) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingLinesTable, subscription.BillingLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SubscriptionClient) Hooks() []Hook {
 	return c.hooks.Subscription
@@ -5290,6 +5354,22 @@ func (c *SubscriptionItemClient) QueryEntitlement(si *SubscriptionItem) *Entitle
 	return query
 }
 
+// QueryBillingLines queries the billing_lines edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryBillingLines(si *SubscriptionItem) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := si.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.BillingLinesTable, subscriptionitem.BillingLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SubscriptionItemClient) Hooks() []Hook {
 	return c.hooks.SubscriptionItem
@@ -5448,6 +5528,22 @@ func (c *SubscriptionPhaseClient) QueryItems(sp *SubscriptionPhase) *Subscriptio
 			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.ItemsTable, subscriptionphase.ItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingLines queries the billing_lines edge of a SubscriptionPhase.
+func (c *SubscriptionPhaseClient) QueryBillingLines(sp *SubscriptionPhase) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingLinesTable, subscriptionphase.BillingLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
 		return fromV, nil

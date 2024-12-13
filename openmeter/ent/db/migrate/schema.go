@@ -472,6 +472,9 @@ var (
 		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "usage_based_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "parent_line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceLinesTable holds the schema information for the "billing_invoice_lines" table.
 	BillingInvoiceLinesTable = &schema.Table{
@@ -501,6 +504,24 @@ var (
 				Symbol:     "billing_invoice_lines_billing_invoice_lines_detailed_lines",
 				Columns:    []*schema.Column{BillingInvoiceLinesColumns[28]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_lines_subscriptions_billing_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[29]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_lines_subscription_items_billing_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[30]},
+				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_lines_subscription_phases_billing_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[31]},
+				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -537,6 +558,11 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "billinginvoiceline_namespace_subscription_id_subscription_phase_id_subscription_item_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[1], BillingInvoiceLinesColumns[29], BillingInvoiceLinesColumns[31], BillingInvoiceLinesColumns[30]},
 			},
 		},
 	}
@@ -1750,6 +1776,9 @@ func init() {
 	BillingInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceFlatFeeLineConfigsTable
 	BillingInvoiceLinesTable.ForeignKeys[2].RefTable = BillingInvoiceUsageBasedLineConfigsTable
 	BillingInvoiceLinesTable.ForeignKeys[3].RefTable = BillingInvoiceLinesTable
+	BillingInvoiceLinesTable.ForeignKeys[4].RefTable = SubscriptionsTable
+	BillingInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionItemsTable
+	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionPhasesTable
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable

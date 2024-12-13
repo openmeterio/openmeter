@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -28,6 +29,7 @@ type SubscriptionPhaseQuery struct {
 	predicates       []predicate.SubscriptionPhase
 	withSubscription *SubscriptionQuery
 	withItems        *SubscriptionItemQuery
+	withBillingLines *BillingInvoiceLineQuery
 	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -102,6 +104,28 @@ func (spq *SubscriptionPhaseQuery) QueryItems() *SubscriptionItemQuery {
 			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, selector),
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.ItemsTable, subscriptionphase.ItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingLines chains the current query on the "billing_lines" edge.
+func (spq *SubscriptionPhaseQuery) QueryBillingLines() *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: spq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := spq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := spq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, selector),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.BillingLinesTable, subscriptionphase.BillingLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
 		return fromU, nil
@@ -303,6 +327,7 @@ func (spq *SubscriptionPhaseQuery) Clone() *SubscriptionPhaseQuery {
 		predicates:       append([]predicate.SubscriptionPhase{}, spq.predicates...),
 		withSubscription: spq.withSubscription.Clone(),
 		withItems:        spq.withItems.Clone(),
+		withBillingLines: spq.withBillingLines.Clone(),
 		// clone intermediate query.
 		sql:  spq.sql.Clone(),
 		path: spq.path,
@@ -328,6 +353,17 @@ func (spq *SubscriptionPhaseQuery) WithItems(opts ...func(*SubscriptionItemQuery
 		opt(query)
 	}
 	spq.withItems = query
+	return spq
+}
+
+// WithBillingLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (spq *SubscriptionPhaseQuery) WithBillingLines(opts ...func(*BillingInvoiceLineQuery)) *SubscriptionPhaseQuery {
+	query := (&BillingInvoiceLineClient{config: spq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	spq.withBillingLines = query
 	return spq
 }
 
@@ -409,9 +445,10 @@ func (spq *SubscriptionPhaseQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	var (
 		nodes       = []*SubscriptionPhase{}
 		_spec       = spq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			spq.withSubscription != nil,
 			spq.withItems != nil,
+			spq.withBillingLines != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -445,6 +482,15 @@ func (spq *SubscriptionPhaseQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		if err := spq.loadItems(ctx, query, nodes,
 			func(n *SubscriptionPhase) { n.Edges.Items = []*SubscriptionItem{} },
 			func(n *SubscriptionPhase, e *SubscriptionItem) { n.Edges.Items = append(n.Edges.Items, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := spq.withBillingLines; query != nil {
+		if err := spq.loadBillingLines(ctx, query, nodes,
+			func(n *SubscriptionPhase) { n.Edges.BillingLines = []*BillingInvoiceLine{} },
+			func(n *SubscriptionPhase, e *BillingInvoiceLine) {
+				n.Edges.BillingLines = append(n.Edges.BillingLines, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -505,6 +551,40 @@ func (spq *SubscriptionPhaseQuery) loadItems(ctx context.Context, query *Subscri
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "phase_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (spq *SubscriptionPhaseQuery) loadBillingLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*SubscriptionPhase, init func(*SubscriptionPhase), assign func(*SubscriptionPhase, *BillingInvoiceLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*SubscriptionPhase)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoiceline.FieldSubscriptionPhaseID)
+	}
+	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscriptionphase.BillingLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionPhaseID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "subscription_phase_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_phase_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

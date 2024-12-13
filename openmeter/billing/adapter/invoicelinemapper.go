@@ -165,6 +165,14 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		},
 	}
 
+	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
+		invoiceLine.Subscription = &billing.SubscriptionReference{
+			SubscriptionID: *dbLine.SubscriptionID,
+			PhaseID:        *dbLine.SubscriptionPhaseID,
+			ItemID:         *dbLine.SubscriptionItemID,
+		}
+	}
+
 	switch dbLine.Type {
 	case billing.InvoiceLineTypeFee:
 		invoiceLine.FlatFee = billing.FlatFeeLine{

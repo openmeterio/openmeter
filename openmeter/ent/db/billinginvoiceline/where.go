@@ -179,6 +179,21 @@ func ChildUniqueReferenceID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChildUniqueReferenceID, v))
 }
 
+// SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
+func SubscriptionID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionPhaseID applies equality check predicate on the "subscription_phase_id" field. It's identical to SubscriptionPhaseIDEQ.
+func SubscriptionPhaseID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionItemID applies equality check predicate on the "subscription_item_id" field. It's identical to SubscriptionItemIDEQ.
+func SubscriptionItemID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionItemID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldNamespace, v))
@@ -1418,6 +1433,231 @@ func ChildUniqueReferenceIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldChildUniqueReferenceID, v))
 }
 
+// SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
+func SubscriptionIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDNEQ applies the NEQ predicate on the "subscription_id" field.
+func SubscriptionIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDIn applies the In predicate on the "subscription_id" field.
+func SubscriptionIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldSubscriptionID, vs...))
+}
+
+// SubscriptionIDNotIn applies the NotIn predicate on the "subscription_id" field.
+func SubscriptionIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldSubscriptionID, vs...))
+}
+
+// SubscriptionIDGT applies the GT predicate on the "subscription_id" field.
+func SubscriptionIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDGTE applies the GTE predicate on the "subscription_id" field.
+func SubscriptionIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDLT applies the LT predicate on the "subscription_id" field.
+func SubscriptionIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDLTE applies the LTE predicate on the "subscription_id" field.
+func SubscriptionIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDContains applies the Contains predicate on the "subscription_id" field.
+func SubscriptionIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDHasPrefix applies the HasPrefix predicate on the "subscription_id" field.
+func SubscriptionIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDHasSuffix applies the HasSuffix predicate on the "subscription_id" field.
+func SubscriptionIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDIsNil applies the IsNil predicate on the "subscription_id" field.
+func SubscriptionIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldSubscriptionID))
+}
+
+// SubscriptionIDNotNil applies the NotNil predicate on the "subscription_id" field.
+func SubscriptionIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldSubscriptionID))
+}
+
+// SubscriptionIDEqualFold applies the EqualFold predicate on the "subscription_id" field.
+func SubscriptionIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDContainsFold applies the ContainsFold predicate on the "subscription_id" field.
+func SubscriptionIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSubscriptionID, v))
+}
+
+// SubscriptionPhaseIDEQ applies the EQ predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDNEQ applies the NEQ predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDIn applies the In predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldSubscriptionPhaseID, vs...))
+}
+
+// SubscriptionPhaseIDNotIn applies the NotIn predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldSubscriptionPhaseID, vs...))
+}
+
+// SubscriptionPhaseIDGT applies the GT predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDGTE applies the GTE predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDLT applies the LT predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDLTE applies the LTE predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDContains applies the Contains predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDHasPrefix applies the HasPrefix predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDHasSuffix applies the HasSuffix predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDIsNil applies the IsNil predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldSubscriptionPhaseID))
+}
+
+// SubscriptionPhaseIDNotNil applies the NotNil predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldSubscriptionPhaseID))
+}
+
+// SubscriptionPhaseIDEqualFold applies the EqualFold predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDContainsFold applies the ContainsFold predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionItemIDEQ applies the EQ predicate on the "subscription_item_id" field.
+func SubscriptionItemIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDNEQ applies the NEQ predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDIn applies the In predicate on the "subscription_item_id" field.
+func SubscriptionItemIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldSubscriptionItemID, vs...))
+}
+
+// SubscriptionItemIDNotIn applies the NotIn predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldSubscriptionItemID, vs...))
+}
+
+// SubscriptionItemIDGT applies the GT predicate on the "subscription_item_id" field.
+func SubscriptionItemIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDGTE applies the GTE predicate on the "subscription_item_id" field.
+func SubscriptionItemIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDLT applies the LT predicate on the "subscription_item_id" field.
+func SubscriptionItemIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDLTE applies the LTE predicate on the "subscription_item_id" field.
+func SubscriptionItemIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDContains applies the Contains predicate on the "subscription_item_id" field.
+func SubscriptionItemIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDHasPrefix applies the HasPrefix predicate on the "subscription_item_id" field.
+func SubscriptionItemIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDHasSuffix applies the HasSuffix predicate on the "subscription_item_id" field.
+func SubscriptionItemIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDIsNil applies the IsNil predicate on the "subscription_item_id" field.
+func SubscriptionItemIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldSubscriptionItemID))
+}
+
+// SubscriptionItemIDNotNil applies the NotNil predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldSubscriptionItemID))
+}
+
+// SubscriptionItemIDEqualFold applies the EqualFold predicate on the "subscription_item_id" field.
+func SubscriptionItemIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
+func SubscriptionItemIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSubscriptionItemID, v))
+}
+
 // HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.
 func HasBillingInvoice() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
@@ -1548,6 +1788,75 @@ func HasLineDiscounts() predicate.BillingInvoiceLine {
 func HasLineDiscountsWith(preds ...predicate.BillingInvoiceLineDiscount) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := newLineDiscountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscription applies the HasEdge predicate on the "subscription" edge.
+func HasSubscription() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionTable, SubscriptionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionWith applies the HasEdge predicate on the "subscription" edge with a given conditions (other predicates).
+func HasSubscriptionWith(preds ...predicate.Subscription) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newSubscriptionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionPhase applies the HasEdge predicate on the "subscription_phase" edge.
+func HasSubscriptionPhase() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionPhaseTable, SubscriptionPhaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionPhaseWith applies the HasEdge predicate on the "subscription_phase" edge with a given conditions (other predicates).
+func HasSubscriptionPhaseWith(preds ...predicate.SubscriptionPhase) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newSubscriptionPhaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionItem applies the HasEdge predicate on the "subscription_item" edge.
+func HasSubscriptionItem() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionItemWith applies the HasEdge predicate on the "subscription_item" edge with a given conditions (other predicates).
+func HasSubscriptionItemWith(preds ...predicate.SubscriptionItem) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newSubscriptionItemStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

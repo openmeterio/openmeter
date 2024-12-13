@@ -742,6 +742,48 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearChildUniqueReferenceID(value *st
 	return u.SetChildUniqueReferenceID(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearSubscriptionID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearSubscriptionID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearSubscriptionPhaseID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingInvoiceLineUpdate) SetOrClearSubscriptionItemID(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearSubscriptionItemID(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

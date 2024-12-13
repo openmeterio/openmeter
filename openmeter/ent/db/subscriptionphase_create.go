@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -149,6 +150,21 @@ func (spc *SubscriptionPhaseCreate) AddItems(s ...*SubscriptionItem) *Subscripti
 		ids[i] = s[i].ID
 	}
 	return spc.AddItemIDs(ids...)
+}
+
+// AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
+func (spc *SubscriptionPhaseCreate) AddBillingLineIDs(ids ...string) *SubscriptionPhaseCreate {
+	spc.mutation.AddBillingLineIDs(ids...)
+	return spc
+}
+
+// AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
+func (spc *SubscriptionPhaseCreate) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return spc.AddBillingLineIDs(ids...)
 }
 
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
@@ -344,6 +360,22 @@ func (spc *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := spc.mutation.BillingLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

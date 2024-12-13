@@ -58,6 +58,8 @@ const (
 	EdgePhase = "phase"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
+	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
+	EdgeBillingLines = "billing_lines"
 	// Table holds the table name of the subscriptionitem in the database.
 	Table = "subscription_items"
 	// PhaseTable is the table that holds the phase relation/edge.
@@ -74,6 +76,13 @@ const (
 	EntitlementInverseTable = "entitlements"
 	// EntitlementColumn is the table column denoting the entitlement relation/edge.
 	EntitlementColumn = "entitlement_id"
+	// BillingLinesTable is the table that holds the billing_lines relation/edge.
+	BillingLinesTable = "billing_invoice_lines"
+	// BillingLinesInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingLinesInverseTable = "billing_invoice_lines"
+	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
+	BillingLinesColumn = "subscription_item_id"
 )
 
 // Columns holds all SQL columns for subscriptionitem fields.
@@ -246,6 +255,20 @@ func ByEntitlementField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEntitlementStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByBillingLinesCount orders the results by billing_lines count.
+func ByBillingLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingLinesStep(), opts...)
+	}
+}
+
+// ByBillingLines orders the results by billing_lines terms.
+func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPhaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -258,5 +281,12 @@ func newEntitlementStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntitlementInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
+	)
+}
+func newBillingLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
 	)
 }

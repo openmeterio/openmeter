@@ -19,6 +19,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -375,6 +378,66 @@ func (bilu *BillingInvoiceLineUpdate) ClearChildUniqueReferenceID() *BillingInvo
 	return bilu
 }
 
+// SetSubscriptionID sets the "subscription_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetSubscriptionID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetSubscriptionID(s)
+	return bilu
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableSubscriptionID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetSubscriptionID(*s)
+	}
+	return bilu
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearSubscriptionID()
+	return bilu
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetSubscriptionPhaseID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetSubscriptionPhaseID(s)
+	return bilu
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableSubscriptionPhaseID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetSubscriptionPhaseID(*s)
+	}
+	return bilu
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionPhaseID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearSubscriptionPhaseID()
+	return bilu
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (bilu *BillingInvoiceLineUpdate) SetSubscriptionItemID(s string) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetSubscriptionItemID(s)
+	return bilu
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableSubscriptionItemID(s *string) *BillingInvoiceLineUpdate {
+	if s != nil {
+		bilu.SetSubscriptionItemID(*s)
+	}
+	return bilu
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionItemID() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearSubscriptionItemID()
+	return bilu
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
 func (bilu *BillingInvoiceLineUpdate) SetBillingInvoiceID(id string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetBillingInvoiceID(id)
@@ -459,6 +522,21 @@ func (bilu *BillingInvoiceLineUpdate) AddLineDiscounts(b ...*BillingInvoiceLineD
 	return bilu.AddLineDiscountIDs(ids...)
 }
 
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (bilu *BillingInvoiceLineUpdate) SetSubscription(s *Subscription) *BillingInvoiceLineUpdate {
+	return bilu.SetSubscriptionID(s.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (bilu *BillingInvoiceLineUpdate) SetSubscriptionPhase(s *SubscriptionPhase) *BillingInvoiceLineUpdate {
+	return bilu.SetSubscriptionPhaseID(s.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (bilu *BillingInvoiceLineUpdate) SetSubscriptionItem(s *SubscriptionItem) *BillingInvoiceLineUpdate {
+	return bilu.SetSubscriptionItemID(s.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (bilu *BillingInvoiceLineUpdate) Mutation() *BillingInvoiceLineMutation {
 	return bilu.mutation
@@ -528,6 +606,24 @@ func (bilu *BillingInvoiceLineUpdate) RemoveLineDiscounts(b ...*BillingInvoiceLi
 		ids[i] = b[i].ID
 	}
 	return bilu.RemoveLineDiscountIDs(ids...)
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (bilu *BillingInvoiceLineUpdate) ClearSubscription() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearSubscription()
+	return bilu
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionPhase() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearSubscriptionPhase()
+	return bilu
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (bilu *BillingInvoiceLineUpdate) ClearSubscriptionItem() *BillingInvoiceLineUpdate {
+	bilu.mutation.ClearSubscriptionItem()
+	return bilu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -876,6 +972,93 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionTable,
+			Columns: []string{billinginvoiceline.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionTable,
+			Columns: []string{billinginvoiceline.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionPhaseTable,
+			Columns: []string{billinginvoiceline.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionPhaseTable,
+			Columns: []string{billinginvoiceline.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bilu.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionItemTable,
+			Columns: []string{billinginvoiceline.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bilu.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionItemTable,
+			Columns: []string{billinginvoiceline.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1243,6 +1426,66 @@ func (biluo *BillingInvoiceLineUpdateOne) ClearChildUniqueReferenceID() *Billing
 	return biluo
 }
 
+// SetSubscriptionID sets the "subscription_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetSubscriptionID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetSubscriptionID(s)
+	return biluo
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableSubscriptionID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetSubscriptionID(*s)
+	}
+	return biluo
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearSubscriptionID()
+	return biluo
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetSubscriptionPhaseID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetSubscriptionPhaseID(s)
+	return biluo
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableSubscriptionPhaseID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetSubscriptionPhaseID(*s)
+	}
+	return biluo
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionPhaseID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearSubscriptionPhaseID()
+	return biluo
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetSubscriptionItemID(s string) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetSubscriptionItemID(s)
+	return biluo
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableSubscriptionItemID(s *string) *BillingInvoiceLineUpdateOne {
+	if s != nil {
+		biluo.SetSubscriptionItemID(*s)
+	}
+	return biluo
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionItemID() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearSubscriptionItemID()
+	return biluo
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
 func (biluo *BillingInvoiceLineUpdateOne) SetBillingInvoiceID(id string) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetBillingInvoiceID(id)
@@ -1327,6 +1570,21 @@ func (biluo *BillingInvoiceLineUpdateOne) AddLineDiscounts(b ...*BillingInvoiceL
 	return biluo.AddLineDiscountIDs(ids...)
 }
 
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetSubscription(s *Subscription) *BillingInvoiceLineUpdateOne {
+	return biluo.SetSubscriptionID(s.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetSubscriptionPhase(s *SubscriptionPhase) *BillingInvoiceLineUpdateOne {
+	return biluo.SetSubscriptionPhaseID(s.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (biluo *BillingInvoiceLineUpdateOne) SetSubscriptionItem(s *SubscriptionItem) *BillingInvoiceLineUpdateOne {
+	return biluo.SetSubscriptionItemID(s.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (biluo *BillingInvoiceLineUpdateOne) Mutation() *BillingInvoiceLineMutation {
 	return biluo.mutation
@@ -1396,6 +1654,24 @@ func (biluo *BillingInvoiceLineUpdateOne) RemoveLineDiscounts(b ...*BillingInvoi
 		ids[i] = b[i].ID
 	}
 	return biluo.RemoveLineDiscountIDs(ids...)
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearSubscription() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearSubscription()
+	return biluo
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionPhase() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearSubscriptionPhase()
+	return biluo
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (biluo *BillingInvoiceLineUpdateOne) ClearSubscriptionItem() *BillingInvoiceLineUpdateOne {
+	biluo.mutation.ClearSubscriptionItem()
+	return biluo
 }
 
 // Where appends a list predicates to the BillingInvoiceLineUpdate builder.
@@ -1774,6 +2050,93 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicelinediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.SubscriptionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionTable,
+			Columns: []string{billinginvoiceline.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionTable,
+			Columns: []string{billinginvoiceline.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionPhaseTable,
+			Columns: []string{billinginvoiceline.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionPhaseTable,
+			Columns: []string{billinginvoiceline.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biluo.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionItemTable,
+			Columns: []string{billinginvoiceline.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biluo.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionItemTable,
+			Columns: []string{billinginvoiceline.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

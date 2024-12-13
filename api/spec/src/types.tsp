@@ -79,6 +79,22 @@ model UniqueResource {
 }
 
 /**
+ * IDResource is a resouce with an ID.
+ */
+// NOTE: this can be used to have a type, that we can later replace with the expanded type if needed without
+// breaking api compatibility
+@friendlyName("IDResource")
+model IDResource {
+  /**
+   * A unique identifier for the resource.
+   */
+  @visibility("read")
+  @example("01G65Z755AFWAKHE12NY0CQ9FH")
+  @summary("ID")
+  id: ULID;
+}
+
+/**
  * Represents common fields of resources.
  */
 @friendlyName("Resource")

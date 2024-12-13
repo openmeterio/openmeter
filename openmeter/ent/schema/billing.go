@@ -336,6 +336,19 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		field.String("child_unique_reference_id").
 			Optional().
 			Nillable(),
+
+		// Subscriptions metadata
+		field.String("subscription_id").
+			Optional().
+			Nillable(),
+
+		field.String("subscription_phase_id").
+			Optional().
+			Nillable(),
+
+		field.String("subscription_item_id").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -347,6 +360,7 @@ func (BillingInvoiceLine) Indexes() []ent.Index {
 			Annotations(
 				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).Unique(),
+		index.Fields("namespace", "subscription_id", "subscription_phase_id", "subscription_item_id"),
 	}
 }
 
@@ -372,6 +386,18 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("line_discounts", BillingInvoiceLineDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("subscription", Subscription.Type).
+			Ref("billing_lines").
+			Field("subscription_id").
+			Unique(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("billing_lines").
+			Field("subscription_phase_id").
+			Unique(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("billing_lines").
+			Field("subscription_item_id").
+			Unique(),
 	}
 }
 
