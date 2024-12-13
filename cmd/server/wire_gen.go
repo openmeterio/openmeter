@@ -28,7 +28,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -311,7 +310,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionService, err := common.NewSubscriptionService(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionService(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -322,18 +321,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workflowService, err := common.NewSubscriptionWorkflowService(logger, client, customerService, subscriptionService)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	adapter := common.NewPLanSubscriptionAdapter(logger, client, planService)
+	adapter := common.NewPlanSubscriptionAdapter(logger, client, planService)
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
@@ -360,8 +348,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Notification:            notificationService,
 		Meter:                   meter,
 		Plan:                    planService,
-		Subscription:            subscriptionService,
-		SubscriptionWorkflow:    workflowService,
+		Subscription:            subscriptionServiceWithWorkflow,
 		SubscriptionPlanAdapter: adapter,
 		RouterHook:              v6,
 		Secret:                  secretService,
@@ -405,8 +392,7 @@ type Application struct {
 	Notification            notification.Service
 	Meter                   metric.Meter
 	Plan                    plan.Service
-	Subscription            subscription.Service
-	SubscriptionWorkflow    subscription.WorkflowService
+	Subscription            common.SubscriptionServiceWithWorkflow
 	SubscriptionPlanAdapter plansubscription.Adapter
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service

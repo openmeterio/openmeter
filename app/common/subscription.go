@@ -20,9 +20,16 @@ import (
 
 var Subscription = wire.NewSet(
 	NewSubscriptionService,
-	NewSubscriptionWorkflowService,
-	NewPLanSubscriptionAdapter,
+	NewPlanSubscriptionAdapter,
 )
+
+// Combine Srvice and WorkflowService into one struct
+// We do this to able to initialize the Service and WorkflowService together
+// and share the same subscriptionRepo.
+type SubscriptionServiceWithWorkflow struct {
+	Service         subscription.Service
+	WorkflowService subscription.WorkflowService
+}
 
 func NewSubscriptionService(
 	logger *slog.Logger,
@@ -33,10 +40,10 @@ func NewSubscriptionService(
 	entitlementRegistry *registry.Entitlement,
 	customerService customer.Service,
 	planService plan.Service,
-) (subscription.Service, error) {
+) (SubscriptionServiceWithWorkflow, error) {
 	// TODO: remove this check after enabled by default
 	if db == nil {
-		return nil, nil
+		return SubscriptionServiceWithWorkflow{}, nil
 	}
 
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
@@ -58,33 +65,19 @@ func NewSubscriptionService(
 		TransactionManager:    subscriptionRepo,
 	})
 
-	return subscriptionService, nil
-}
-
-func NewSubscriptionWorkflowService(
-	logger *slog.Logger,
-	db *entdb.Client,
-	customerService customer.Service,
-	subscriptionService subscription.Service,
-) (subscription.WorkflowService, error) {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return nil, nil
-	}
-
-	// TODO share the same repo with subscriptionService
-	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
-
 	subscriptionWorkflowService := subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
 		Service:            subscriptionService,
 		CustomerService:    customerService,
 		TransactionManager: subscriptionRepo,
 	})
 
-	return subscriptionWorkflowService, nil
+	return SubscriptionServiceWithWorkflow{
+		Service:         subscriptionService,
+		WorkflowService: subscriptionWorkflowService,
+	}, nil
 }
 
-func NewPLanSubscriptionAdapter(
+func NewPlanSubscriptionAdapter(
 	logger *slog.Logger,
 	db *entdb.Client,
 	planService plan.Service,

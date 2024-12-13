@@ -30,7 +30,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -58,8 +57,7 @@ type Application struct {
 	Notification            notification.Service
 	Meter                   metric.Meter
 	Plan                    plan.Service
-	Subscription            subscription.Service
-	SubscriptionWorkflow    subscription.WorkflowService
+	Subscription            common.SubscriptionServiceWithWorkflow
 	SubscriptionPlanAdapter plansubscription.Adapter
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service
