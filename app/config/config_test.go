@@ -132,6 +132,29 @@ func TestComplete(t *testing.T) {
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
 		},
+		Billing: BillingConfiguration{
+			Enabled: false,
+			Worker: BillingWorkerConfiguration{
+				ConsumerConfiguration: ConsumerConfiguration{
+					ProcessingTimeout: 30 * time.Second,
+					Retry: RetryConfiguration{
+						InitialInterval: 10 * time.Millisecond,
+						MaxInterval:     time.Second,
+						MaxElapsedTime:  time.Minute,
+					},
+					DLQ: DLQConfiguration{
+						Enabled: true,
+						Topic:   "om_sys.billing_worker_dlq",
+						AutoProvision: DLQAutoProvisionConfiguration{
+							Enabled:    true,
+							Partitions: 1,
+							Retention:  90 * 24 * time.Hour,
+						},
+					},
+					ConsumerGroupName: "om_billing_worker",
+				},
+			},
+		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
 			MinCommitCount:          500,
