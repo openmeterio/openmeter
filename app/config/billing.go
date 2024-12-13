@@ -13,4 +13,6 @@ func (c BillingConfiguration) Validate() error {
 
 func ConfigureBilling(v *viper.Viper) {
 	v.SetDefault("billing.enabled", false)
+
+	ConfigureBillingWorker(v)
 }

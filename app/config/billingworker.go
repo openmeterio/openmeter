@@ -23,7 +23,8 @@ func (c BillingWorkerConfiguration) Validate() error {
 }
 
 func ConfigureBillingWorker(v *viper.Viper) {
-	ConfigureConsumer(v, "billingWorker")
-	v.SetDefault("billingWorker.dlq.topic", "om_sys.billing_worker_dlq")
-	v.SetDefault("billingWorker.consumerGroupName", "om_billing_worker")
+	v.SetDefault("billing.worker.dlq.topic", "om_sys.billing_worker_dlq")
+	v.SetDefault("billing.worker.consumerGroupName", "om_billing_worker")
+
+	ConfigureConsumer(v, "billing.worker")
 }

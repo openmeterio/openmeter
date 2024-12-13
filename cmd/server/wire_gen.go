@@ -12,10 +12,18 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/sandbox"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -73,6 +81,84 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Client: client,
 		Logger: logger,
 	}
+	appsConfiguration := conf.Apps
+	service, err := common.NewAppService(logger, client, appsConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	customerService, err := common.NewCustomerService(logger, client)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	secretService, err := common.NewSecretService(logger, client)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretService)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	ingestConfiguration := conf.Ingest
+	kafkaIngestConfiguration := ingestConfiguration.Kafka
+	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
+	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
+	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v, err := common.NewClickHouse(clickHouseAggregationConfiguration)
@@ -95,10 +181,85 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	health := common.NewHealthChecker(logger)
-	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
-	v3, cleanup6 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	app, err := common.NewAppSandbox(ctx, logger, appsConfiguration, service, manager)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	billingConfiguration := conf.Billing
+	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, app, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	eventsConfiguration := conf.Events
+	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
+	v4 := common.ServerProvisionTopics(eventsConfiguration)
+	publisherOptions := kafka.PublisherOptions{
+		Broker:           brokerOptions,
+		ProvisionTopics:  v4,
+		TopicProvisioner: topicProvisioner,
+	}
+	publisher, cleanup6, err := common.NewServerPublisher(ctx, eventsConfiguration, publisherOptions, logger)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	producer, err := common.NewKafkaProducer(conf, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	ingestCollector, cleanup7, err := common.NewIngestCollector(conf, collector, logger, meter)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -110,6 +271,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	metrics, err := common.NewKafkaMetrics(meter)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -118,50 +280,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventsConfiguration := conf.Events
-	ingestConfiguration := conf.Ingest
-	kafkaIngestConfiguration := ingestConfiguration.Kafka
-	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
-	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
-	v4 := common.ServerProvisionTopics(eventsConfiguration)
-	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisionerConfig
-	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
-	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	publisherOptions := kafka.PublisherOptions{
-		Broker:           brokerOptions,
-		ProvisionTopics:  v4,
-		TopicProvisioner: topicProvisioner,
-	}
-	publisher, cleanup7, err := common.NewServerPublisher(ctx, eventsConfiguration, publisherOptions, logger)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	productCatalogConfiguration := conf.ProductCatalog
+	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -172,82 +292,34 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	ingestCollector, cleanup8, err := common.NewIngestCollector(conf, collector, logger, meter)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	v5 := common.NewNamespaceHandlers(namespaceHandler, connector)
-	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v5, namespaceConfiguration)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	v5 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	health := common.NewHealthChecker(logger)
+	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
+	v6, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
-		StreamingConnector: connector,
-		MeterRepository:    inMemoryRepository,
+		App:                service,
+		AppStripe:          appstripeService,
+		AppSandbox:         app,
+		Customer:           customerService,
+		Billing:            billingService,
 		EntClient:          client,
-		TelemetryServer:    v3,
+		EventPublisher:     eventbusPublisher,
+		FeatureConnector:   featureConnector,
+		IngestCollector:    ingestCollector,
 		KafkaProducer:      producer,
 		KafkaMetrics:       metrics,
-		EventPublisher:     eventbusPublisher,
-		IngestCollector:    ingestCollector,
-		NamespaceHandlers:  v5,
-		NamespaceManager:   manager,
 		Logger:             logger,
+		MeterRepository:    inMemoryRepository,
+		NamespaceHandlers:  v3,
+		NamespaceManager:   manager,
 		Meter:              meter,
-		RouterHook:         v6,
+		Plan:               planService,
+		RouterHook:         v5,
+		Secret:             secretService,
+		StreamingConnector: connector,
+		TelemetryServer:    v6,
 	}
 	return application, func() {
 		cleanup8()
@@ -267,23 +339,27 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	StreamingConnector streaming.Connector
-	MeterRepository    meter.Repository
+	App                app.Service
+	AppStripe          appstripe.Service
+	AppSandbox         *appsandbox.App
+	Customer           customer.Service
+	Billing            billing.Service
 	EntClient          *db.Client
-	TelemetryServer    common.TelemetryServer
+	EventPublisher     eventbus.Publisher
+	FeatureConnector   feature.FeatureConnector
+	IngestCollector    ingest.Collector
 	KafkaProducer      *kafka2.Producer
 	KafkaMetrics       *metrics.Metrics
-	EventPublisher     eventbus.Publisher
-
-	IngestCollector ingest.Collector
-
-	NamespaceHandlers []namespace.Handler
-	NamespaceManager  *namespace.Manager
-
-	Logger *slog.Logger
-	Meter  metric.Meter
-
-	RouterHook func(chi.Router)
+	Logger             *slog.Logger
+	MeterRepository    meter.Repository
+	NamespaceHandlers  []namespace.Handler
+	NamespaceManager   *namespace.Manager
+	Meter              metric.Meter
+	Plan               plan.Service
+	RouterHook         func(chi.Router)
+	Secret             secret.Service
+	StreamingConnector streaming.Connector
+	TelemetryServer    common.TelemetryServer
 }
 
 func metadata(conf config.Configuration) common.Metadata {

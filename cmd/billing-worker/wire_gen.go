@@ -154,7 +154,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	secretService, err := common.NewSecretService(logger, client, appsConfiguration)
+	secretService, err := common.NewSecretService(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -164,7 +164,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, service, customerService, secretService)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -230,7 +230,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	app, err := common.NewAppSandbox(ctx, logger, client, service, manager)
+	app, err := common.NewAppSandbox(ctx, logger, appsConfiguration, service, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -240,7 +240,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, appsConfiguration, inMemoryRepository)
+	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
 	billingService, err := common.BillingService(logger, client, service, appstripeService, app, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup6()

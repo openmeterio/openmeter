@@ -14,10 +14,18 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -27,40 +35,49 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	StreamingConnector streaming.Connector
-	MeterRepository    meter.Repository
+	App                app.Service
+	AppStripe          appstripe.Service
+	AppSandbox         *appsandbox.App
+	Customer           customer.Service
+	Billing            billing.Service
 	EntClient          *db.Client
-	TelemetryServer    common.TelemetryServer
+	EventPublisher     eventbus.Publisher
+	FeatureConnector   feature.FeatureConnector
+	IngestCollector    ingest.Collector
 	KafkaProducer      *kafka.Producer
 	KafkaMetrics       *kafkametrics.Metrics
-	EventPublisher     eventbus.Publisher
-
-	IngestCollector ingest.Collector
-
-	NamespaceHandlers []namespace.Handler
-	NamespaceManager  *namespace.Manager
-
-	Logger *slog.Logger
-	Meter  metric.Meter
-
-	RouterHook func(chi.Router)
+	Logger             *slog.Logger
+	MeterRepository    meter.Repository
+	NamespaceHandlers  []namespace.Handler
+	NamespaceManager   *namespace.Manager
+	Meter              metric.Meter
+	Plan               plan.Service
+	RouterHook         func(chi.Router)
+	Secret             secret.Service
+	StreamingConnector streaming.Connector
+	TelemetryServer    common.TelemetryServer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
-		common.Config,
-		common.Framework,
-		common.Telemetry,
-		common.NewDefaultTextMapPropagator,
-		common.NewTelemetryRouterHook,
-		common.Database,
+		common.App,
+		common.Billing,
 		common.ClickHouse,
+		common.Config,
+		common.Customer,
+		common.Database,
+		common.Framework,
 		common.Kafka,
-		common.ServerProvisionTopics,
-		common.WatermillNoPublisher,
+		common.NewDefaultTextMapPropagator,
 		common.NewServerPublisher,
+		common.NewTelemetryRouterHook,
 		common.OpenMeter,
+		common.ProductCatalog,
+		common.Secret,
+		common.ServerProvisionTopics,
+		common.Telemetry,
+		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
 	)
 

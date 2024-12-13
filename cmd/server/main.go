@@ -16,19 +16,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/app/config"
-	apppkg "github.com/openmeterio/openmeter/openmeter/app"
-	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
-	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
-	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
-	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
-	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
-	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
@@ -39,14 +26,9 @@ import (
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
-	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
-	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
-	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -174,109 +156,11 @@ func main() {
 		})
 	}
 
-	// Initialize Customer
-	var customerService customer.CustomerService
-
-	if app.EntClient != nil {
-		var customerAdapter customer.Adapter
-		customerAdapter, err = customeradapter.New(customeradapter.Config{
-			Client: app.EntClient,
-			Logger: logger.WithGroup("customer.postgres"),
-		})
-		if err != nil {
-			logger.Error("failed to initialize customer repository", "error", err)
-			os.Exit(1)
-		}
-
-		customerService, err = customerservice.New(customerservice.Config{
-			Adapter: customerAdapter,
-		})
-		if err != nil {
-			logger.Error("failed to initialize customer service", "error", err)
-			os.Exit(1)
-		}
-	}
-
-	// Initialize Secret
-	secretService, err := secretservice.New(secretservice.Config{
-		Adapter: secretadapter.New(),
-	})
-	if err != nil {
-		logger.Error("failed to initialize secret service", "error", err)
-		os.Exit(1)
-	}
-
-	// Initialize App
-	var appService apppkg.Service
-
-	if conf.Apps.Enabled {
-		var appAdapter apppkg.Adapter
-		appAdapter, err = appadapter.New(appadapter.Config{
-			Client:  app.EntClient,
-			BaseURL: conf.Apps.BaseURL,
-		})
-		if err != nil {
-			logger.Error("failed to initialize app repository", "error", err)
-			os.Exit(1)
-		}
-
-		appService, err = appservice.New(appservice.Config{
-			Adapter: appAdapter,
-		})
-		if err != nil {
-			logger.Error("failed to initialize app service", "error", err)
-			os.Exit(1)
-		}
-	}
-
-	// Initialize AppStripe
-	var appStripeService appstripe.Service
-
-	if conf.Apps.Enabled {
-		var appStripeAdapter appstripe.Adapter
-		appStripeAdapter, err = appstripeadapter.New(appstripeadapter.Config{
-			Client:          app.EntClient,
-			AppService:      appService,
-			CustomerService: customerService,
-			SecretService:   secretService,
-		})
-		if err != nil {
-			logger.Error("failed to initialize app stripe repository", "error", err)
-			os.Exit(1)
-		}
-
-		appStripeService, err = appstripeservice.New(appstripeservice.Config{
-			Adapter:       appStripeAdapter,
-			AppService:    appService,
-			SecretService: secretService,
-		})
-		if err != nil {
-			logger.Error("failed to initialize app stripe service", "error", err)
-			os.Exit(1)
-		}
-	}
-
-	// Initialize AppSandbox
-	if conf.Apps.Enabled {
-		_, err = appsandbox.NewFactory(appsandbox.Config{
-			AppService: appService,
-		})
-		if err != nil {
-			logger.Error("failed to initialize app sandbox factory", "error", err)
-			os.Exit(1)
-		}
-
-		app, err := appsandbox.AutoProvision(ctx, appsandbox.AutoProvisionInput{
-			Namespace:  app.NamespaceManager.GetDefaultNamespace(),
-			AppService: appService,
-		})
-		if err != nil {
-			logger.Error("failed to auto-provision sandbox app", "error", err)
-			os.Exit(1)
-		}
-
-		logger.Info("sandbox app auto-provisioned", "app_id", app.GetID().ID)
-	}
+	appService := app.App
+	appStripeService := app.AppStripe
+	customerService := app.Customer
+	billingService := app.Billing
+	planService := app.Plan
 
 	// Initialize Notification
 	var notificationService notification.Service
@@ -332,29 +216,6 @@ func main() {
 		}()
 	}
 
-	// Initialize plans & subscriptions
-	var planService plan.Service
-	if conf.ProductCatalog.Enabled {
-		adapter, err := planadapter.New(planadapter.Config{
-			Client: app.EntClient,
-			Logger: logger.With("subsystem", "productcatalog.plan"),
-		})
-		if err != nil {
-			logger.Error("failed to initialize plan adapter", "error", err)
-			os.Exit(1)
-		}
-
-		planService, err = planservice.New(planservice.Config{
-			Feature: entitlementConnRegistry.Feature,
-			Adapter: adapter,
-			Logger:  logger.With("subsystem", "productcatalog.plan"),
-		})
-		if err != nil {
-			logger.Error("failed to initialize plan service", "error", err)
-			os.Exit(1)
-		}
-	}
-
 	// Initialize subscriptions
 	var subscriptionService subscription.Service
 	var subscriptionWorkflowService subscription.WorkflowService
@@ -389,33 +250,6 @@ func main() {
 			CustomerService:    customerService,
 			TransactionManager: subscriptionRepo,
 		})
-	}
-
-	// Initialize billing
-	var billingService billing.Service
-	if conf.Billing.Enabled {
-		adapter, err := billingadapter.New(billingadapter.Config{
-			Client: app.EntClient,
-			Logger: logger.With("subsystem", "billing.adapter"),
-		})
-		if err != nil {
-			logger.Error("failed to initialize billing adapter", "error", err)
-			os.Exit(1)
-		}
-
-		billingService, err = billingservice.New(billingservice.Config{
-			Adapter:            adapter,
-			CustomerService:    customerService,
-			AppService:         appService,
-			Logger:             logger.With("subsystem", "billing.service"),
-			FeatureService:     entitlementConnRegistry.Feature,
-			MeterRepo:          app.MeterRepository,
-			StreamingConnector: app.StreamingConnector,
-		})
-		if err != nil {
-			logger.Error("failed to initialize billing service", "error", err)
-			os.Exit(1)
-		}
 	}
 
 	s, err := server.NewServer(&server.Config{

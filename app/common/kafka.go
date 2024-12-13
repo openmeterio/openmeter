@@ -8,6 +8,10 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
@@ -82,4 +86,36 @@ func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.To
 	}
 
 	return topicProvisioner, nil
+}
+
+func NewNamespaceHandlers(
+	kafkaHandler *kafkaingest.NamespaceHandler,
+	clickHouseHandler streaming.Connector,
+) []namespace.Handler {
+	return []namespace.Handler{
+		kafkaHandler,
+		clickHouseHandler,
+	}
+}
+
+func NewKafkaNamespaceHandler(
+	topicResolver topicresolver.Resolver,
+	topicProvisioner pkgkafka.TopicProvisioner,
+	conf config.KafkaIngestConfiguration,
+) (*kafkaingest.NamespaceHandler, error) {
+	return &kafkaingest.NamespaceHandler{
+		TopicResolver:    topicResolver,
+		TopicProvisioner: topicProvisioner,
+		Partitions:       conf.Partitions,
+		DeletionEnabled:  conf.NamespaceDeletionEnabled,
+	}, nil
+}
+
+func NewNamespacedTopicResolver(config config.Configuration) (*topicresolver.NamespacedTopicResolver, error) {
+	topicResolver, err := topicresolver.NewNamespacedTopicResolver(config.Ingest.Kafka.EventsTopicTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create topic name resolver: %w", err)
+	}
+
+	return topicResolver, nil
 }

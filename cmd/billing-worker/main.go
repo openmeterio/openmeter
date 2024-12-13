@@ -73,6 +73,11 @@ func main() {
 
 	// Validate service prerequisites
 
+	if !conf.Billing.Enabled {
+		logger.Error("billing are disabled, exiting")
+		os.Exit(1)
+	}
+
 	if !conf.Events.Enabled {
 		logger.Error("events are disabled, exiting")
 		os.Exit(1)

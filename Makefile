@@ -60,6 +60,11 @@ build-balance-worker: ## Build balance-worker binary
 	$(call print-target)
 	go build -o build/balance-worker ./cmd/balance-worker
 
+.PHONY: build-billing-worker
+build-billing-worker: ## Build billing-worker binary
+	$(call print-target)
+	go build -o build/billing-worker ./cmd/billing-worker
+
 .PHONY: build-notification-service
 build-notification-service: ## Build notification-service binary
 	$(call print-target)
@@ -85,6 +90,12 @@ balance-worker: ## Run balance-worker
 	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
 	$(call print-target)
 	air -c ./cmd/balance-worker/.air.toml
+
+.PHONY: billing-worker
+billing-worker: ## Run billing-worker
+	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
+	$(call print-target)
+	air -c ./cmd/billing-worker/.air.toml
 
 .PHONY: notification-service
 notification-service: ## Run notification-service
