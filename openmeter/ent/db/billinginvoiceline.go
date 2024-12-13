@@ -16,6 +16,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -77,6 +80,12 @@ type BillingInvoiceLine struct {
 	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.
 	ChildUniqueReferenceID *string `json:"child_unique_reference_id,omitempty"`
+	// SubscriptionID holds the value of the "subscription_id" field.
+	SubscriptionID *string `json:"subscription_id,omitempty"`
+	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
+	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
+	// SubscriptionItemID holds the value of the "subscription_item_id" field.
+	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`
@@ -99,9 +108,15 @@ type BillingInvoiceLineEdges struct {
 	DetailedLines []*BillingInvoiceLine `json:"detailed_lines,omitempty"`
 	// LineDiscounts holds the value of the line_discounts edge.
 	LineDiscounts []*BillingInvoiceLineDiscount `json:"line_discounts,omitempty"`
+	// Subscription holds the value of the subscription edge.
+	Subscription *Subscription `json:"subscription,omitempty"`
+	// SubscriptionPhase holds the value of the subscription_phase edge.
+	SubscriptionPhase *SubscriptionPhase `json:"subscription_phase,omitempty"`
+	// SubscriptionItem holds the value of the subscription_item edge.
+	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [9]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -166,6 +181,39 @@ func (e BillingInvoiceLineEdges) LineDiscountsOrErr() ([]*BillingInvoiceLineDisc
 	return nil, &NotLoadedError{edge: "line_discounts"}
 }
 
+// SubscriptionOrErr returns the Subscription value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
+	if e.Subscription != nil {
+		return e.Subscription, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: subscription.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription"}
+}
+
+// SubscriptionPhaseOrErr returns the SubscriptionPhase value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
+	if e.SubscriptionPhase != nil {
+		return e.SubscriptionPhase, nil
+	} else if e.loadedTypes[7] {
+		return nil, &NotFoundError{label: subscriptionphase.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_phase"}
+}
+
+// SubscriptionItemOrErr returns the SubscriptionItem value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
+	if e.SubscriptionItem != nil {
+		return e.SubscriptionItem, nil
+	} else if e.loadedTypes[8] {
+		return nil, &NotFoundError{label: subscriptionitem.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_item"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -177,7 +225,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -372,6 +420,27 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				bil.ChildUniqueReferenceID = new(string)
 				*bil.ChildUniqueReferenceID = value.String
 			}
+		case billinginvoiceline.FieldSubscriptionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_id", values[i])
+			} else if value.Valid {
+				bil.SubscriptionID = new(string)
+				*bil.SubscriptionID = value.String
+			}
+		case billinginvoiceline.FieldSubscriptionPhaseID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_phase_id", values[i])
+			} else if value.Valid {
+				bil.SubscriptionPhaseID = new(string)
+				*bil.SubscriptionPhaseID = value.String
+			}
+		case billinginvoiceline.FieldSubscriptionItemID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_item_id", values[i])
+			} else if value.Valid {
+				bil.SubscriptionItemID = new(string)
+				*bil.SubscriptionItemID = value.String
+			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
@@ -427,6 +496,21 @@ func (bil *BillingInvoiceLine) QueryDetailedLines() *BillingInvoiceLineQuery {
 // QueryLineDiscounts queries the "line_discounts" edge of the BillingInvoiceLine entity.
 func (bil *BillingInvoiceLine) QueryLineDiscounts() *BillingInvoiceLineDiscountQuery {
 	return NewBillingInvoiceLineClient(bil.config).QueryLineDiscounts(bil)
+}
+
+// QuerySubscription queries the "subscription" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QuerySubscription() *SubscriptionQuery {
+	return NewBillingInvoiceLineClient(bil.config).QuerySubscription(bil)
+}
+
+// QuerySubscriptionPhase queries the "subscription_phase" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QuerySubscriptionPhase() *SubscriptionPhaseQuery {
+	return NewBillingInvoiceLineClient(bil.config).QuerySubscriptionPhase(bil)
+}
+
+// QuerySubscriptionItem queries the "subscription_item" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QuerySubscriptionItem() *SubscriptionItemQuery {
+	return NewBillingInvoiceLineClient(bil.config).QuerySubscriptionItem(bil)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.
@@ -539,6 +623,21 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	if v := bil.ChildUniqueReferenceID; v != nil {
 		builder.WriteString("child_unique_reference_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bil.SubscriptionID; v != nil {
+		builder.WriteString("subscription_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bil.SubscriptionPhaseID; v != nil {
+		builder.WriteString("subscription_phase_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := bil.SubscriptionItemID; v != nil {
+		builder.WriteString("subscription_item_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')

@@ -72,9 +72,11 @@ type SubscriptionItemEdges struct {
 	Phase *SubscriptionPhase `json:"phase,omitempty"`
 	// Entitlement holds the value of the entitlement edge.
 	Entitlement *Entitlement `json:"entitlement,omitempty"`
+	// BillingLines holds the value of the billing_lines edge.
+	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -97,6 +99,15 @@ func (e SubscriptionItemEdges) EntitlementOrErr() (*Entitlement, error) {
 		return nil, &NotFoundError{label: entitlement.Label}
 	}
 	return nil, &NotLoadedError{edge: "entitlement"}
+}
+
+// BillingLinesOrErr returns the BillingLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionItemEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error) {
+	if e.loadedTypes[2] {
+		return e.BillingLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_lines"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -282,6 +293,11 @@ func (si *SubscriptionItem) QueryPhase() *SubscriptionPhaseQuery {
 // QueryEntitlement queries the "entitlement" edge of the SubscriptionItem entity.
 func (si *SubscriptionItem) QueryEntitlement() *EntitlementQuery {
 	return NewSubscriptionItemClient(si.config).QueryEntitlement(si)
+}
+
+// QueryBillingLines queries the "billing_lines" edge of the SubscriptionItem entity.
+func (si *SubscriptionItem) QueryBillingLines() *BillingInvoiceLineQuery {
+	return NewSubscriptionItemClient(si.config).QueryBillingLines(si)
 }
 
 // Update returns a builder for updating this SubscriptionItem.

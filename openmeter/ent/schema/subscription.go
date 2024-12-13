@@ -49,6 +49,7 @@ func (Subscription) Edges() []ent.Edge {
 		edge.From("plan", Plan.Type).Field("plan_id").Ref("subscriptions").Unique(),
 		edge.From("customer", Customer.Type).Field("customer_id").Ref("subscription").Immutable().Unique().Required(),
 		edge.To("phases", SubscriptionPhase.Type),
+		edge.To("billing_lines", BillingInvoiceLine.Type),
 	}
 }
 
@@ -87,6 +88,7 @@ func (SubscriptionPhase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("subscription", Subscription.Type).Field("subscription_id").Ref("phases").Unique().Immutable().Required(),
 		edge.To("items", SubscriptionItem.Type),
+		edge.To("billing_lines", BillingInvoiceLine.Type),
 	}
 }
 
@@ -163,5 +165,6 @@ func (SubscriptionItem) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("phase", SubscriptionPhase.Type).Field("phase_id").Ref("items").Unique().Immutable().Required(),
 		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique(),
+		edge.To("billing_lines", BillingInvoiceLine.Type),
 	}
 }

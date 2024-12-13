@@ -504,6 +504,7 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		ExternalIDs: &api.InvoiceLineAppExternalIDs{
 			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
 		},
+		Subscriptions: mapSubscriptionReferencesToAPI(line.Subscription),
 	}
 
 	out := api.InvoiceLine{}
@@ -564,6 +565,7 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		ExternalIDs: lo.EmptyableToPtr(api.InvoiceLineAppExternalIDs{
 			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
 		}),
+		Subscriptions: mapSubscriptionReferencesToAPI(line.Subscription),
 	}
 
 	out := api.InvoiceLine{}
@@ -573,6 +575,24 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 	}
 
 	return out, nil
+}
+
+func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.InvoiceLineSubscriptionReference {
+	if optSub == nil {
+		return nil
+	}
+
+	return &api.InvoiceLineSubscriptionReference{
+		Item: api.IDResource{
+			Id: optSub.SubscriptionID,
+		},
+		Phase: api.IDResource{
+			Id: optSub.PhaseID,
+		},
+		Subscription: api.IDResource{
+			Id: optSub.ItemID,
+		},
+	}
 }
 
 func mapDiscountsToAPI(optDiscounts billing.LineDiscounts) *[]api.InvoiceLineDiscount {

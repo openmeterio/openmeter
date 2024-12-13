@@ -44,6 +44,8 @@ const (
 	EdgeCustomer = "customer"
 	// EdgePhases holds the string denoting the phases edge name in mutations.
 	EdgePhases = "phases"
+	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
+	EdgeBillingLines = "billing_lines"
 	// Table holds the table name of the subscription in the database.
 	Table = "subscriptions"
 	// PlanTable is the table that holds the plan relation/edge.
@@ -67,6 +69,13 @@ const (
 	PhasesInverseTable = "subscription_phases"
 	// PhasesColumn is the table column denoting the phases relation/edge.
 	PhasesColumn = "subscription_id"
+	// BillingLinesTable is the table that holds the billing_lines relation/edge.
+	BillingLinesTable = "billing_invoice_lines"
+	// BillingLinesInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingLinesInverseTable = "billing_invoice_lines"
+	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
+	BillingLinesColumn = "subscription_id"
 )
 
 // Columns holds all SQL columns for subscription fields.
@@ -207,6 +216,20 @@ func ByPhases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPhasesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingLinesCount orders the results by billing_lines count.
+func ByBillingLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingLinesStep(), opts...)
+	}
+}
+
+// ByBillingLines orders the results by billing_lines terms.
+func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPlanStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -226,5 +249,12 @@ func newPhasesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PhasesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PhasesTable, PhasesColumn),
+	)
+}
+func newBillingLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
 	)
 }

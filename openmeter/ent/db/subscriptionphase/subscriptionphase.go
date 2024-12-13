@@ -38,6 +38,8 @@ const (
 	EdgeSubscription = "subscription"
 	// EdgeItems holds the string denoting the items edge name in mutations.
 	EdgeItems = "items"
+	// EdgeBillingLines holds the string denoting the billing_lines edge name in mutations.
+	EdgeBillingLines = "billing_lines"
 	// Table holds the table name of the subscriptionphase in the database.
 	Table = "subscription_phases"
 	// SubscriptionTable is the table that holds the subscription relation/edge.
@@ -54,6 +56,13 @@ const (
 	ItemsInverseTable = "subscription_items"
 	// ItemsColumn is the table column denoting the items relation/edge.
 	ItemsColumn = "phase_id"
+	// BillingLinesTable is the table that holds the billing_lines relation/edge.
+	BillingLinesTable = "billing_invoice_lines"
+	// BillingLinesInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingLinesInverseTable = "billing_invoice_lines"
+	// BillingLinesColumn is the table column denoting the billing_lines relation/edge.
+	BillingLinesColumn = "subscription_phase_id"
 )
 
 // Columns holds all SQL columns for subscriptionphase fields.
@@ -173,6 +182,20 @@ func ByItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingLinesCount orders the results by billing_lines count.
+func ByBillingLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingLinesStep(), opts...)
+	}
+}
+
+// ByBillingLines orders the results by billing_lines terms.
+func ByBillingLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSubscriptionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -185,5 +208,12 @@ func newItemsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ItemsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ItemsTable, ItemsColumn),
+	)
+}
+func newBillingLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingLinesTable, BillingLinesColumn),
 	)
 }

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -116,6 +117,21 @@ func (spu *SubscriptionPhaseUpdate) AddItems(s ...*SubscriptionItem) *Subscripti
 	return spu.AddItemIDs(ids...)
 }
 
+// AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
+func (spu *SubscriptionPhaseUpdate) AddBillingLineIDs(ids ...string) *SubscriptionPhaseUpdate {
+	spu.mutation.AddBillingLineIDs(ids...)
+	return spu
+}
+
+// AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
+func (spu *SubscriptionPhaseUpdate) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return spu.AddBillingLineIDs(ids...)
+}
+
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
 func (spu *SubscriptionPhaseUpdate) Mutation() *SubscriptionPhaseMutation {
 	return spu.mutation
@@ -140,6 +156,27 @@ func (spu *SubscriptionPhaseUpdate) RemoveItems(s ...*SubscriptionItem) *Subscri
 		ids[i] = s[i].ID
 	}
 	return spu.RemoveItemIDs(ids...)
+}
+
+// ClearBillingLines clears all "billing_lines" edges to the BillingInvoiceLine entity.
+func (spu *SubscriptionPhaseUpdate) ClearBillingLines() *SubscriptionPhaseUpdate {
+	spu.mutation.ClearBillingLines()
+	return spu
+}
+
+// RemoveBillingLineIDs removes the "billing_lines" edge to BillingInvoiceLine entities by IDs.
+func (spu *SubscriptionPhaseUpdate) RemoveBillingLineIDs(ids ...string) *SubscriptionPhaseUpdate {
+	spu.mutation.RemoveBillingLineIDs(ids...)
+	return spu
+}
+
+// RemoveBillingLines removes "billing_lines" edges to BillingInvoiceLine entities.
+func (spu *SubscriptionPhaseUpdate) RemoveBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return spu.RemoveBillingLineIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -272,6 +309,51 @@ func (spu *SubscriptionPhaseUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if spu.mutation.BillingLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.RemovedBillingLinesIDs(); len(nodes) > 0 && !spu.mutation.BillingLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.BillingLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, spu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionphase.Label}
@@ -379,6 +461,21 @@ func (spuo *SubscriptionPhaseUpdateOne) AddItems(s ...*SubscriptionItem) *Subscr
 	return spuo.AddItemIDs(ids...)
 }
 
+// AddBillingLineIDs adds the "billing_lines" edge to the BillingInvoiceLine entity by IDs.
+func (spuo *SubscriptionPhaseUpdateOne) AddBillingLineIDs(ids ...string) *SubscriptionPhaseUpdateOne {
+	spuo.mutation.AddBillingLineIDs(ids...)
+	return spuo
+}
+
+// AddBillingLines adds the "billing_lines" edges to the BillingInvoiceLine entity.
+func (spuo *SubscriptionPhaseUpdateOne) AddBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return spuo.AddBillingLineIDs(ids...)
+}
+
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
 func (spuo *SubscriptionPhaseUpdateOne) Mutation() *SubscriptionPhaseMutation {
 	return spuo.mutation
@@ -403,6 +500,27 @@ func (spuo *SubscriptionPhaseUpdateOne) RemoveItems(s ...*SubscriptionItem) *Sub
 		ids[i] = s[i].ID
 	}
 	return spuo.RemoveItemIDs(ids...)
+}
+
+// ClearBillingLines clears all "billing_lines" edges to the BillingInvoiceLine entity.
+func (spuo *SubscriptionPhaseUpdateOne) ClearBillingLines() *SubscriptionPhaseUpdateOne {
+	spuo.mutation.ClearBillingLines()
+	return spuo
+}
+
+// RemoveBillingLineIDs removes the "billing_lines" edge to BillingInvoiceLine entities by IDs.
+func (spuo *SubscriptionPhaseUpdateOne) RemoveBillingLineIDs(ids ...string) *SubscriptionPhaseUpdateOne {
+	spuo.mutation.RemoveBillingLineIDs(ids...)
+	return spuo
+}
+
+// RemoveBillingLines removes "billing_lines" edges to BillingInvoiceLine entities.
+func (spuo *SubscriptionPhaseUpdateOne) RemoveBillingLines(b ...*BillingInvoiceLine) *SubscriptionPhaseUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return spuo.RemoveBillingLineIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionPhaseUpdate builder.
@@ -558,6 +676,51 @@ func (spuo *SubscriptionPhaseUpdateOne) sqlSave(ctx context.Context) (_node *Sub
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if spuo.mutation.BillingLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.RemovedBillingLinesIDs(); len(nodes) > 0 && !spuo.mutation.BillingLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.BillingLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.BillingLinesTable,
+			Columns: []string{subscriptionphase.BillingLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

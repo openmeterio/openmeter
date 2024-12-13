@@ -580,6 +580,12 @@ model InvoiceLineBase {
    */
   @visibility("read")
   externalIDs?: InvoiceLineAppExternalIDs;
+
+  /**
+   * Subscription are the references to the subscritpions that this line is related to.
+   */
+  @visibility("read")
+  subscriptions?: InvoiceLineSubscriptionReference;
 }
 
 /**
@@ -889,4 +895,28 @@ model InvoiceLineAppExternalIDs {
    */
   @visibility("read")
   Tax?: string;
+}
+
+/**
+ * InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to.
+ */
+@friendlyName("InvoiceLineSubscriptionReference")
+model InvoiceLineSubscriptionReference {
+  /**
+   * The subscription.
+   */
+  @visibility("read")
+  subscription: IDResource;
+
+  /**
+   * The phase of the subscription.
+   */
+  @visibility("read")
+  phase: IDResource;
+
+  /**
+   * The item this line is related to.
+   */
+  @visibility("read")
+  item: IDResource;
 }

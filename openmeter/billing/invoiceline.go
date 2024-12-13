@@ -128,7 +128,8 @@ type LineBase struct {
 
 	TaxConfig *TaxConfig `json:"taxOverrides,omitempty"`
 
-	ExternalIDs LineExternalIDs `json:"externalIDs,omitempty"`
+	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
+	Subscription *SubscriptionReference `json:"subscription,omitempty"`
 
 	Totals Totals `json:"totals"`
 }
@@ -186,6 +187,12 @@ func (i LineBase) Clone(line *Line) LineBase {
 	}
 
 	return out
+}
+
+type SubscriptionReference struct {
+	SubscriptionID string `json:"subscriptionID"`
+	PhaseID        string `json:"phaseID"`
+	ItemID         string `json:"itemID"`
 }
 
 type LineExternalIDs struct {

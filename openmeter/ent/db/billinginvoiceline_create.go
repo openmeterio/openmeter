@@ -19,6 +19,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -259,6 +262,48 @@ func (bilc *BillingInvoiceLineCreate) SetNillableChildUniqueReferenceID(s *strin
 	return bilc
 }
 
+// SetSubscriptionID sets the "subscription_id" field.
+func (bilc *BillingInvoiceLineCreate) SetSubscriptionID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetSubscriptionID(s)
+	return bilc
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableSubscriptionID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetSubscriptionID(*s)
+	}
+	return bilc
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (bilc *BillingInvoiceLineCreate) SetSubscriptionPhaseID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetSubscriptionPhaseID(s)
+	return bilc
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableSubscriptionPhaseID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetSubscriptionPhaseID(*s)
+	}
+	return bilc
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (bilc *BillingInvoiceLineCreate) SetSubscriptionItemID(s string) *BillingInvoiceLineCreate {
+	bilc.mutation.SetSubscriptionItemID(s)
+	return bilc
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (bilc *BillingInvoiceLineCreate) SetNillableSubscriptionItemID(s *string) *BillingInvoiceLineCreate {
+	if s != nil {
+		bilc.SetSubscriptionItemID(*s)
+	}
+	return bilc
+}
+
 // SetID sets the "id" field.
 func (bilc *BillingInvoiceLineCreate) SetID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetID(s)
@@ -355,6 +400,21 @@ func (bilc *BillingInvoiceLineCreate) AddLineDiscounts(b ...*BillingInvoiceLineD
 		ids[i] = b[i].ID
 	}
 	return bilc.AddLineDiscountIDs(ids...)
+}
+
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (bilc *BillingInvoiceLineCreate) SetSubscription(s *Subscription) *BillingInvoiceLineCreate {
+	return bilc.SetSubscriptionID(s.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (bilc *BillingInvoiceLineCreate) SetSubscriptionPhase(s *SubscriptionPhase) *BillingInvoiceLineCreate {
+	return bilc.SetSubscriptionPhaseID(s.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (bilc *BillingInvoiceLineCreate) SetSubscriptionItem(s *SubscriptionItem) *BillingInvoiceLineCreate {
+	return bilc.SetSubscriptionItemID(s.ID)
 }
 
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
@@ -722,6 +782,57 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := bilc.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionTable,
+			Columns: []string{billinginvoiceline.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionPhaseTable,
+			Columns: []string{billinginvoiceline.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionPhaseID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bilc.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.SubscriptionItemTable,
+			Columns: []string{billinginvoiceline.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionItemID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -1083,6 +1194,60 @@ func (u *BillingInvoiceLineUpsert) UpdateChildUniqueReferenceID() *BillingInvoic
 // ClearChildUniqueReferenceID clears the value of the "child_unique_reference_id" field.
 func (u *BillingInvoiceLineUpsert) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldChildUniqueReferenceID)
+	return u
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (u *BillingInvoiceLineUpsert) SetSubscriptionID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldSubscriptionID, v)
+	return u
+}
+
+// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateSubscriptionID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldSubscriptionID)
+	return u
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (u *BillingInvoiceLineUpsert) ClearSubscriptionID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldSubscriptionID)
+	return u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *BillingInvoiceLineUpsert) SetSubscriptionPhaseID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldSubscriptionPhaseID, v)
+	return u
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateSubscriptionPhaseID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldSubscriptionPhaseID)
+	return u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *BillingInvoiceLineUpsert) ClearSubscriptionPhaseID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldSubscriptionPhaseID)
+	return u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *BillingInvoiceLineUpsert) SetSubscriptionItemID(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldSubscriptionItemID, v)
+	return u
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateSubscriptionItemID() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldSubscriptionItemID)
+	return u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *BillingInvoiceLineUpsert) ClearSubscriptionItemID() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldSubscriptionItemID)
 	return u
 }
 
@@ -1507,6 +1672,69 @@ func (u *BillingInvoiceLineUpsertOne) UpdateChildUniqueReferenceID() *BillingInv
 func (u *BillingInvoiceLineUpsertOne) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearChildUniqueReferenceID()
+	})
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetSubscriptionID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetSubscriptionID(v)
+	})
+}
+
+// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateSubscriptionID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateSubscriptionID()
+	})
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearSubscriptionID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearSubscriptionID()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetSubscriptionPhaseID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateSubscriptionPhaseID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearSubscriptionPhaseID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearSubscriptionPhaseID()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *BillingInvoiceLineUpsertOne) SetSubscriptionItemID(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateSubscriptionItemID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *BillingInvoiceLineUpsertOne) ClearSubscriptionItemID() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -2098,6 +2326,69 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateChildUniqueReferenceID() *BillingIn
 func (u *BillingInvoiceLineUpsertBulk) ClearChildUniqueReferenceID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearChildUniqueReferenceID()
+	})
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetSubscriptionID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetSubscriptionID(v)
+	})
+}
+
+// UpdateSubscriptionID sets the "subscription_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateSubscriptionID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateSubscriptionID()
+	})
+}
+
+// ClearSubscriptionID clears the value of the "subscription_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearSubscriptionID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearSubscriptionID()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetSubscriptionPhaseID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateSubscriptionPhaseID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearSubscriptionPhaseID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearSubscriptionPhaseID()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *BillingInvoiceLineUpsertBulk) SetSubscriptionItemID(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateSubscriptionItemID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearSubscriptionItemID() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 

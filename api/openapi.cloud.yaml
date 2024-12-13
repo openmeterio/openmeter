@@ -10913,6 +10913,19 @@ components:
           example: 100
           description: The usage in the period
       description: Usage Record
+    IDResource:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+      description: IDResource is a resouce with an ID.
     IngestEventsBody:
       anyOf:
         - $ref: '#/components/schemas/Event'
@@ -11335,6 +11348,11 @@ components:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
+        subscriptions:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
+          description: Subscription are the references to the subscritpions that this line is related to.
+          readOnly: true
         type:
           type: string
           enum:
@@ -11601,6 +11619,29 @@ components:
         - detail
         - split
       description: Line status specifies the status of the line.
+    InvoiceLineSubscriptionReference:
+      type: object
+      required:
+        - subscription
+        - phase
+        - item
+      properties:
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/IDResource'
+          description: The subscription.
+          readOnly: true
+        phase:
+          allOf:
+            - $ref: '#/components/schemas/IDResource'
+          description: The phase of the subscription.
+          readOnly: true
+        item:
+          allOf:
+            - $ref: '#/components/schemas/IDResource'
+          description: The item this line is related to.
+          readOnly: true
+      description: InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to.
     InvoiceLineTaxBehavior:
       type: string
       enum:
@@ -11983,6 +12024,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
           description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+        subscriptions:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineSubscriptionReference'
+          description: Subscription are the references to the subscritpions that this line is related to.
           readOnly: true
         type:
           type: string

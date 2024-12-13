@@ -102,6 +102,12 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					// ExternalIDs
 					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
 
+				if line.Subscription != nil {
+					create = create.SetSubscriptionID(line.Subscription.ItemID).
+						SetSubscriptionPhaseID(line.Subscription.PhaseID).
+						SetSubscriptionItemID(line.Subscription.ItemID)
+				}
+
 				if line.TaxConfig != nil {
 					create = create.SetTaxConfig(*line.TaxConfig)
 				}
