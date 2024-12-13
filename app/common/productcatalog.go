@@ -41,7 +41,12 @@ func NewFeatureConnector(logger *slog.Logger, db *entdb.Client, meterRepo meter.
 	return feature.NewFeatureConnector(featureRepo, meterRepo)
 }
 
-func NewPlanService(logger *slog.Logger, db *entdb.Client, productCatalogConf config.ProductCatalogConfiguration, featureConnector feature.FeatureConnector) (plan.Service, error) {
+func NewPlanService(
+	logger *slog.Logger,
+	db *entdb.Client,
+	productCatalogConf config.ProductCatalogConfiguration,
+	featureConnector feature.FeatureConnector,
+) (plan.Service, error) {
 	// TODO: remove this check after enabled by default
 	if db == nil {
 		return nil, nil

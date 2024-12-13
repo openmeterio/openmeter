@@ -33,10 +33,6 @@ func NewEntitlementRegistry(
 		return nil
 	}
 
-	if !entitlementConfig.Enabled {
-		return nil
-	}
-
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     db,
 		StreamingConnector: streamingConnector,
