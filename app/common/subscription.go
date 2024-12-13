@@ -46,6 +46,10 @@ func NewSubscriptionService(
 		return SubscriptionServiceWithWorkflow{}, nil
 	}
 
+	if !productcatalogConfig.Enabled || !entitlementConfig.Enabled {
+		return SubscriptionServiceWithWorkflow{}, nil
+	}
+
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
 	subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(db)
 	subscriptionItemRepo := subscriptionrepo.NewSubscriptionItemRepo(db)
