@@ -61,7 +61,10 @@ func main() {
 	if err != nil {
 		slog.Error("failed to initialize application", "error", err)
 
-		cleanup()
+		// Call cleanup function is may not set yet
+		if cleanup != nil {
+			cleanup()
+		}
 
 		os.Exit(1)
 	}
