@@ -22,20 +22,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
-	"github.com/openmeterio/openmeter/openmeter/notification"
-	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
-	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
-	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	"github.com/openmeterio/openmeter/openmeter/registry"
-	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
-	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
-	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
@@ -138,118 +127,13 @@ func main() {
 		}
 	}
 
+	// Initialize debug connector
 	debugConnector := debug.NewDebugConnector(app.StreamingConnector)
-	entitlementConnRegistry := &registry.Entitlement{}
 
+	// Migrate database
 	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
-	}
-
-	if conf.Entitlements.Enabled {
-		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-			DatabaseClient:     app.EntClient,
-			StreamingConnector: app.StreamingConnector,
-			MeterRepository:    app.MeterRepository,
-			Logger:             logger,
-			Publisher:          app.EventPublisher,
-		})
-	}
-
-	appService := app.App
-	appStripeService := app.AppStripe
-	customerService := app.Customer
-	billingService := app.Billing
-	planService := app.Plan
-
-	// Initialize Notification
-	var notificationService notification.Service
-
-	if conf.Notification.Enabled {
-		if !conf.Entitlements.Enabled {
-			logger.Error("failed to initialize notification service: entitlements must be enabled")
-			os.Exit(1)
-		}
-
-		// CreatingPG client is done as part of entitlements initialization
-		if app.EntClient == nil {
-			logger.Error("failed to initialize notification service: postgres client is not initialized")
-			os.Exit(1)
-		}
-
-		var notificationRepo notification.Repository
-		notificationRepo, err = notificationrepository.New(notificationrepository.Config{
-			Client: app.EntClient,
-			Logger: logger.WithGroup("notification.postgres"),
-		})
-		if err != nil {
-			logger.Error("failed to initialize notification repository", "error", err)
-			os.Exit(1)
-		}
-
-		var notificationWebhook notificationwebhook.Handler
-		notificationWebhook, err = notificationwebhook.New(notificationwebhook.Config{
-			SvixConfig:              conf.Svix,
-			RegistrationTimeout:     conf.Notification.Webhook.EventTypeRegistrationTimeout,
-			SkipRegistrationOnError: conf.Notification.Webhook.SkipEventTypeRegistrationOnError,
-			Logger:                  logger.WithGroup("notification.webhook"),
-		})
-		if err != nil {
-			logger.Error("failed to initialize notification webhook handler", "error", err)
-			os.Exit(1)
-		}
-
-		notificationService, err = notificationservice.New(notificationservice.Config{
-			Repository:       notificationRepo,
-			Webhook:          notificationWebhook,
-			FeatureConnector: entitlementConnRegistry.Feature,
-			Logger:           logger.With(slog.String("subsystem", "notification")),
-		})
-		if err != nil {
-			logger.Error("failed to initialize notification service", "error", err)
-			os.Exit(1)
-		}
-		defer func() {
-			if err = notificationService.Close(); err != nil {
-				logger.Error("failed to close notification service", "error", err)
-			}
-		}()
-	}
-
-	// Initialize subscriptions
-	var subscriptionService subscription.Service
-	var subscriptionWorkflowService subscription.WorkflowService
-	var planSubscriptionAdapter plansubscription.Adapter
-	if conf.ProductCatalog.Enabled {
-		subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(app.EntClient)
-		subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(app.EntClient)
-		subscriptionItemRepo := subscriptionrepo.NewSubscriptionItemRepo(app.EntClient)
-
-		subscriptionEntitlementAdapter := subscriptionentitlement.NewSubscriptionEntitlementAdapter(
-			entitlementConnRegistry.Entitlement,
-			subscriptionItemRepo,
-			subscriptionItemRepo,
-		)
-
-		planSubscriptionAdapter = plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
-			PlanService: planService,
-			Logger:      logger.With("subsystem", "subscription.plan.adapter"),
-		})
-
-		subscriptionService = subscriptionservice.New(subscriptionservice.ServiceConfig{
-			SubscriptionRepo:      subscriptionRepo,
-			SubscriptionPhaseRepo: subscriptionPhaseRepo,
-			SubscriptionItemRepo:  subscriptionItemRepo,
-			CustomerService:       customerService,
-			EntitlementAdapter:    subscriptionEntitlementAdapter,
-			TransactionManager:    subscriptionRepo,
-		})
-
-		subscriptionWorkflowService = subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
-			Service:            subscriptionService,
-			CustomerService:    customerService,
-			TransactionManager: subscriptionRepo,
-		})
 	}
 
 	s, err := server.NewServer(&server.Config{
@@ -262,22 +146,22 @@ func main() {
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewSlogHandler(logger),
 			// deps
-			App:                         appService,
-			AppStripe:                   appStripeService,
-			Billing:                     billingService,
-			Customer:                    customerService,
+			App:                         app.App,
+			AppStripe:                   app.AppStripe,
+			Billing:                     app.Billing,
+			Customer:                    app.Customer,
 			DebugConnector:              debugConnector,
-			EntitlementBalanceConnector: entitlementConnRegistry.MeteredEntitlement,
-			EntitlementConnector:        entitlementConnRegistry.Entitlement,
-			SubscriptionService:         subscriptionService,
-			SubscriptionWorkflowService: subscriptionWorkflowService,
-			SubscriptionPlanAdapter:     planSubscriptionAdapter,
+			EntitlementBalanceConnector: app.EntitlementRegistry.MeteredEntitlement,
+			EntitlementConnector:        app.EntitlementRegistry.Entitlement,
+			SubscriptionService:         app.Subscription,
+			SubscriptionWorkflowService: app.SubscriptionWorkflow,
+			SubscriptionPlanAdapter:     app.SubscriptionPlanAdapter,
 			Logger:                      logger,
-			FeatureConnector:            entitlementConnRegistry.Feature,
-			GrantConnector:              entitlementConnRegistry.Grant,
-			GrantRepo:                   entitlementConnRegistry.GrantRepo,
-			Notification:                notificationService,
-			Plan:                        planService,
+			FeatureConnector:            app.EntitlementRegistry.Feature,
+			GrantConnector:              app.EntitlementRegistry.Grant,
+			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
+			Notification:                app.Notification,
+			Plan:                        app.Plan,
 			// modules
 			EntitlementsEnabled:   conf.Entitlements.Enabled,
 			NotificationEnabled:   conf.Notification.Enabled,
