@@ -101,10 +101,6 @@ func (c Configuration) Validate() error {
 	}
 
 	if c.Notification.Enabled {
-		if !c.Entitlements.Enabled {
-			errs = append(errs, errors.New("entitlements must be enabled if notification is enabled"))
-		}
-
 		if err := c.Notification.Validate(); err != nil {
 			errs = append(errs, errorsx.WithPrefix(err, "notification"))
 		}
