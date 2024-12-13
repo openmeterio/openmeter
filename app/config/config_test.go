@@ -48,9 +48,6 @@ func TestComplete(t *testing.T) {
 			BaseURL: "https://example.com",
 		},
 		Environment: "local",
-		Entitlements: EntitlementsConfiguration{
-			Enabled: true,
-		},
 		Telemetry: TelemetryConfig{
 			Address: "127.0.0.1:10000",
 			Trace: TraceTelemetryConfig{
