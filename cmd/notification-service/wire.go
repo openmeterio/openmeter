@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -27,19 +26,18 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	BrokerOptions       watermillkafka.BrokerOptions
-	EventPublisher      eventbus.Publisher
-	EntClient           *db.Client
-	EntitlementRegistry *registry.Entitlement
-	FeatureConnector    feature.FeatureConnector
-	Logger              *slog.Logger
-	MessagePublisher    message.Publisher
-	Meter               metric.Meter
-	Metadata            common.Metadata
-	MeterRepository     meter.Repository
-	Notification        notification.Service
-	StreamingConnector  streaming.Connector
-	TelemetryServer     common.TelemetryServer
+	BrokerOptions      watermillkafka.BrokerOptions
+	EventPublisher     eventbus.Publisher
+	EntClient          *db.Client
+	FeatureConnector   feature.FeatureConnector
+	Logger             *slog.Logger
+	MessagePublisher   message.Publisher
+	Meter              metric.Meter
+	Metadata           common.Metadata
+	MeterRepository    meter.Repository
+	Notification       notification.Service
+	StreamingConnector streaming.Connector
+	TelemetryServer    common.TelemetryServer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -48,7 +46,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Config,
 		common.ClickHouse,
 		common.Database,
-		common.Entitlement,
 		common.Feature,
 		common.Framework,
 		common.KafkaTopic,
