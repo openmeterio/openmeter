@@ -3720,6 +3720,15 @@ export interface components {
        */
       usage: number
     }
+    /** @description IDResource is a resouce with an ID. */
+    IDResource: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+    }
     /** @description The body of the events request.
      *     Either a single event or a batch of events. */
     IngestEventsBody:
@@ -3992,6 +4001,8 @@ export interface components {
       invoiceAt: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      /** @description Subscription are the references to the subscritpions that this line is related to. */
+      readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
       /** @enum {string} */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
@@ -4165,6 +4176,15 @@ export interface components {
      * @enum {string}
      */
     InvoiceLineStatus: 'valid' | 'detail' | 'split'
+    /** @description InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to. */
+    InvoiceLineSubscriptionReference: {
+      /** @description The subscription. */
+      readonly subscription: components['schemas']['IDResource']
+      /** @description The phase of the subscription. */
+      readonly phase: components['schemas']['IDResource']
+      /** @description The item this line is related to. */
+      readonly item: components['schemas']['IDResource']
+    }
     /**
      * @description InvoiceLineTaxBehavior details how the tax item is applied to the base amount.
      *
@@ -4394,6 +4414,8 @@ export interface components {
       invoiceAt: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      /** @description Subscription are the references to the subscritpions that this line is related to. */
+      readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
       /** @enum {string} */
       type: 'usage_based'
       price: components['schemas']['RateCardUsageBasedPrice']
