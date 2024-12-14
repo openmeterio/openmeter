@@ -18,7 +18,6 @@ import (
 )
 
 var Database = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Postgres"),
 	wire.Struct(new(Migrator), "*"),
 
 	NewPostgresDriver,

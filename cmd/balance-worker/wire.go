@@ -24,13 +24,16 @@ type Application struct {
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
+
+		wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
+		wire.FieldsOf(new(config.BalanceWorkerConfiguration), "ConsumerConfiguration"),
+
 		common.BalanceWorker,
 		common.BalanceWorkerAdapter,
 		common.ClickHouse,
+		common.Config,
 		common.Database,
-		common.Event,
 		common.Framework,
-		common.KafkaConfig,
 		common.KafkaTopic,
 		common.MeterInMemory,
 		common.NewDefaultTextMapPropagator,

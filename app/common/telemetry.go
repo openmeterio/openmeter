@@ -34,11 +34,6 @@ import (
 )
 
 var Telemetry = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Telemetry"),
-	wire.FieldsOf(new(config.TelemetryConfig), "Metrics"),
-	wire.FieldsOf(new(config.TelemetryConfig), "Trace"),
-	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
-
 	NewTelemetryResource,
 
 	NewLoggerProvider,

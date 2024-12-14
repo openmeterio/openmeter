@@ -22,8 +22,6 @@ import (
 )
 
 var App = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Apps"),
-
 	NewAppService,
 	NewAppStripeService,
 	NewAppSandboxProvisioner,

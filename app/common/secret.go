@@ -12,10 +12,12 @@ import (
 )
 
 var Secret = wire.NewSet(
-	NewSecretService,
+	wire.Bind(new(secret.Service), new(*secretservice.Service)),
+
+	NewUnsafeSecretService,
 )
 
-func NewSecretService(logger *slog.Logger, db *entdb.Client) (secret.Service, error) {
+func NewUnsafeSecretService(logger *slog.Logger, db *entdb.Client) (*secretservice.Service, error) {
 	secretAdapter := secretadapter.New()
 
 	return secretservice.New(secretservice.Config{

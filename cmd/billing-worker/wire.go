@@ -32,13 +32,15 @@ type Application struct {
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
+		wire.FieldsOf(new(config.BillingWorkerConfiguration), "ConsumerConfiguration"),
+		wire.FieldsOf(new(config.BillingConfiguration), "Worker"),
+
 		metadata,
 		common.BillingWorker,
 		common.ClickHouse,
+		common.Config,
 		common.Database,
-		common.Event,
 		common.Framework,
-		common.KafkaConfig,
 		common.KafkaTopic,
 		common.KafkaNamespaceResolver,
 		common.MeterInMemory,

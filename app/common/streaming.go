@@ -16,8 +16,6 @@ import (
 )
 
 var Streaming = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Aggregation"),
-
 	NewStreamingConnector,
 )
 

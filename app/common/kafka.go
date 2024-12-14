@@ -17,13 +17,6 @@ import (
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
 
-var KafkaConfig = wire.NewSet(
-	// TODO: refactor to move out Kafka config from ingest and consolidate
-	wire.FieldsOf(new(config.KafkaIngestConfiguration), "KafkaConfiguration"),
-	wire.FieldsOf(new(config.Configuration), "Ingest"),
-	wire.FieldsOf(new(config.IngestConfiguration), "Kafka"),
-)
-
 var Kafka = wire.NewSet(
 	NewKafkaProducer,
 	NewKafkaMetrics,
@@ -32,10 +25,7 @@ var Kafka = wire.NewSet(
 )
 
 var KafkaTopic = wire.NewSet(
-	wire.FieldsOf(new(config.KafkaIngestConfiguration), "TopicProvisionerConfig"),
-
 	NewKafkaAdminClient,
-
 	NewKafkaTopicProvisionerConfig,
 	NewKafkaTopicProvisioner,
 )

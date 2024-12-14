@@ -10,8 +10,6 @@ import (
 )
 
 var ClickHouse = wire.NewSet(
-	wire.FieldsOf(new(config.AggregationConfiguration), "ClickHouse"),
-
 	NewClickHouse,
 )
 

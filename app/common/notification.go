@@ -16,8 +16,6 @@ import (
 )
 
 var Notification = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Notification"),
-
 	NewNotificationService,
 )
 

@@ -158,7 +158,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	secretService, err := common.NewSecretService(logger, client)
+	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -168,7 +168,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretService)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService)
 	if err != nil {
 		cleanup6()
 		cleanup5()

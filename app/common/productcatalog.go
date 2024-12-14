@@ -17,8 +17,6 @@ import (
 )
 
 var ProductCatalog = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "ProductCatalog"),
-
 	Feature,
 	Plan,
 )

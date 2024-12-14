@@ -15,14 +15,7 @@ import (
 )
 
 var Entitlement = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Entitlements"),
-
 	NewEntitlementRegistry,
-)
-
-var Entitlements = wire.NewSet(
-	wire.Struct(new(registrybuilder.EntitlementOptions), "*"),
-	registrybuilder.GetEntitlementRegistry,
 )
 
 func NewEntitlementRegistry(

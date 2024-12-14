@@ -10,8 +10,6 @@ import (
 )
 
 var Namespace = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "Namespace"),
-
 	NewNamespaceManager,
 )
 
