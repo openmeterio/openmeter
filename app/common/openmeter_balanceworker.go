@@ -22,6 +22,27 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
+var BalanceWorker = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
+	wire.FieldsOf(new(config.BalanceWorkerConfiguration), "ConsumerConfiguration"),
+
+	BalanceWorkerProvisionTopics,
+	BalanceWorkerSubscriber,
+
+	Entitlements,
+
+	NewBalanceWorkerOptions,
+	NewBalanceWorker,
+	BalanceWorkerGroup,
+)
+
+var BalanceWorkerAdapter = wire.NewSet(
+	NewBalanceWorkerEntitlementRepo,
+
+	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(BalanceWorkerEntitlementRepo)),
+	BalanceWorkerSubjectResolver,
+)
+
 type BalanceWorkerEntitlementRepo interface {
 	entitlement.EntitlementRepo
 	balanceworker.BalanceWorkerRepository
@@ -111,27 +132,6 @@ func BalanceWorkerGroup(
 	return group
 }
 
-var BalanceWorkerAdapter = wire.NewSet(
-	NewBalanceWorkerEntitlementRepo,
-
-	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(BalanceWorkerEntitlementRepo)),
-	SubjectResolver,
-)
-
-func SubjectResolver() balanceworker.SubjectResolver {
+func BalanceWorkerSubjectResolver() balanceworker.SubjectResolver {
 	return nil
 }
-
-var BalanceWorker = wire.NewSet(
-	wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
-	wire.FieldsOf(new(config.BalanceWorkerConfiguration), "ConsumerConfiguration"),
-
-	BalanceWorkerProvisionTopics,
-	BalanceWorkerSubscriber,
-
-	Entitlements,
-
-	NewBalanceWorkerOptions,
-	NewBalanceWorker,
-	BalanceWorkerGroup,
-)

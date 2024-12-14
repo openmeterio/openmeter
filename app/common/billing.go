@@ -36,6 +36,11 @@ func BillingService(
 	meterRepo meter.Repository,
 	streamingConnector streaming.Connector,
 ) (billing.Service, error) {
+	// TODO: remove this check after enabled by default
+	if db == nil {
+		return nil, nil
+	}
+
 	if !billingConfig.Enabled {
 		return nil, nil
 	}

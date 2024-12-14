@@ -12,10 +12,11 @@ import (
 
 var MeterInMemory = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Meters"),
+	wire.Bind(new(meter.Repository), new(*meter.InMemoryRepository)),
 
 	NewInMemoryRepository,
 )
 
-func NewInMemoryRepository(meters []*models.Meter) meter.Repository {
+func NewInMemoryRepository(meters []*models.Meter) *meter.InMemoryRepository {
 	return meter.NewInMemoryRepository(slicesx.Map(meters, lo.FromPtr[models.Meter]))
 }

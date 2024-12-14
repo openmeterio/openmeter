@@ -179,8 +179,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	repository := common.NewInMemoryRepository(v2)
-	featureConnector := common.NewFeatureConnector(logger, client, repository)
+	inMemoryRepository := common.NewInMemoryRepository(v2)
+	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
@@ -193,7 +193,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, repository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -203,7 +203,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, repository, connector)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -286,7 +286,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		AppStripe:             appstripeService,
 		AppSandboxProvisioner: appSandboxProvisioner,
 		Logger:                logger,
-		Meter:                 repository,
+		Meter:                 inMemoryRepository,
 		Streaming:             connector,
 	}
 	return application, func() {

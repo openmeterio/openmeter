@@ -173,8 +173,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	repository := common.NewInMemoryRepository(v2)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, repository, logger)
+	inMemoryRepository := common.NewInMemoryRepository(v2)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -204,8 +204,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingConfiguration := conf.Billing
-	featureConnector := common.NewFeatureConnector(logger, client, repository)
-	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, repository, connector)
+	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -242,7 +242,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	entitlementsConfiguration := conf.Entitlements
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, repository, eventbusPublisher)
+	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, inMemoryRepository, eventbusPublisher)
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger)
 	if err != nil {
 		cleanup6()
@@ -341,7 +341,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaProducer:           producer,
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
-		MeterRepository:         repository,
+		MeterRepository:         inMemoryRepository,
 		NamespaceHandlers:       v3,
 		NamespaceManager:        manager,
 		Notification:            notificationService,
