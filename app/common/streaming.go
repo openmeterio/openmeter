@@ -6,12 +6,19 @@ import (
 	"log/slog"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/materialized_view"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
+)
+
+var Streaming = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "Aggregation"),
+
+	NewStreamingConnector,
 )
 
 func NewStreamingConnector(

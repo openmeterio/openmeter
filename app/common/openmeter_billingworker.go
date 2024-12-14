@@ -20,6 +20,7 @@ import (
 )
 
 var BillingWorker = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "Billing"),
 	wire.FieldsOf(new(config.BillingWorkerConfiguration), "ConsumerConfiguration"),
 	wire.FieldsOf(new(config.BillingConfiguration), "Worker"),
 

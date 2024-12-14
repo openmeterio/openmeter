@@ -56,10 +56,10 @@ type Application struct {
 	Notification            notification.Service
 	Meter                   metric.Meter
 	Plan                    plan.Service
-	Subscription            common.SubscriptionServiceWithWorkflow
-	SubscriptionPlanAdapter plansubscription.Adapter
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service
+	Subscription            common.SubscriptionServiceWithWorkflow
+	SubscriptionPlanAdapter plansubscription.Adapter
 	StreamingConnector      streaming.Connector
 	TelemetryServer         common.TelemetryServer
 }
@@ -70,17 +70,22 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.App,
 		common.Billing,
 		common.ClickHouse,
-		common.Config,
 		common.Customer,
 		common.Database,
 		common.Entitlement,
+		common.Event,
 		common.Framework,
+		common.Ingest,
+		common.KafkaConfig,
 		common.Kafka,
+		common.KafkaNamespaceResolver,
+		common.MeterInMemory,
+		common.Namespace,
 		common.NewDefaultTextMapPropagator,
 		common.NewServerPublisher,
 		common.NewTelemetryRouterHook,
 		common.Notification,
-		common.OpenMeter,
+		common.Streaming,
 		common.ProductCatalog,
 		common.Subscription,
 		common.Svix,

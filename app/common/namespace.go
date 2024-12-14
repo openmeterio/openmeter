@@ -3,8 +3,16 @@ package common
 import (
 	"fmt"
 
+	"github.com/google/wire"
+
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+)
+
+var Namespace = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "Namespace"),
+
+	NewNamespaceManager,
 )
 
 func NewNamespaceManager(

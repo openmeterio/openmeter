@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 type Application struct {
@@ -24,22 +26,28 @@ type Application struct {
 	AppStripe             appstripe.Service
 	AppSandboxProvisioner common.AppSandboxProvisioner
 	Logger                *slog.Logger
+	Meter                 meter.Repository
+	Streaming             streaming.Connector
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
-		common.Config,
-		common.Framework,
-		common.Telemetry,
-		common.NewDefaultTextMapPropagator,
-		common.Database,
+		common.BillingWorker,
 		common.ClickHouse,
+		common.Database,
+		common.Event,
+		common.Framework,
+		common.KafkaConfig,
 		common.KafkaTopic,
+		common.KafkaNamespaceResolver,
+		common.MeterInMemory,
+		common.Namespace,
+		common.NewDefaultTextMapPropagator,
+		common.Streaming,
+		common.Telemetry,
 		common.Watermill,
 		common.WatermillRouter,
-		common.OpenMeter,
-		common.BillingWorker,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil

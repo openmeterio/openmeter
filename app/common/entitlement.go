@@ -20,6 +20,11 @@ var Entitlement = wire.NewSet(
 	NewEntitlementRegistry,
 )
 
+var Entitlements = wire.NewSet(
+	wire.Struct(new(registrybuilder.EntitlementOptions), "*"),
+	registrybuilder.GetEntitlementRegistry,
+)
+
 func NewEntitlementRegistry(
 	logger *slog.Logger,
 	db *entdb.Client,

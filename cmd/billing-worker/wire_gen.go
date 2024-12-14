@@ -12,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"log/slog"
@@ -177,8 +179,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	inMemoryRepository := common.NewMeterRepository(v2)
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	repository := common.NewInMemoryRepository(v2)
+	featureConnector := common.NewFeatureConnector(logger, client, repository)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
@@ -191,7 +193,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, repository, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -201,7 +203,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, repository, connector)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -230,7 +232,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Group:  group,
 		Logger: logger,
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -284,6 +286,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		AppStripe:             appstripeService,
 		AppSandboxProvisioner: appSandboxProvisioner,
 		Logger:                logger,
+		Meter:                 repository,
+		Streaming:             connector,
 	}
 	return application, func() {
 		cleanup7()
@@ -307,6 +311,8 @@ type Application struct {
 	AppStripe             appstripe.Service
 	AppSandboxProvisioner common.AppSandboxProvisioner
 	Logger                *slog.Logger
+	Meter                 meter.Repository
+	Streaming             streaming.Connector
 }
 
 func metadata(conf config.Configuration) common.Metadata {

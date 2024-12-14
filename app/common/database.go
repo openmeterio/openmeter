@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
@@ -14,6 +15,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/tools/migrate"
+)
+
+var Database = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "Postgres"),
+	wire.Struct(new(Migrator), "*"),
+
+	NewPostgresDriver,
+	NewDB,
+	NewEntPostgresDriver,
+	NewEntClient,
 )
 
 // Migrator executes database migrations.

@@ -20,6 +20,8 @@ import (
 )
 
 var Billing = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "Billing"),
+
 	BillingService,
 )
 

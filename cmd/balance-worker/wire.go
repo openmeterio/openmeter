@@ -24,18 +24,20 @@ type Application struct {
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
-		common.Config,
-		common.Framework,
-		common.Telemetry,
-		common.NewDefaultTextMapPropagator,
-		common.Database,
+		common.BalanceWorker,
+		common.BalanceWorkerAdapter,
 		common.ClickHouse,
+		common.Database,
+		common.Event,
+		common.Framework,
+		common.KafkaConfig,
 		common.KafkaTopic,
+		common.MeterInMemory,
+		common.NewDefaultTextMapPropagator,
+		common.Streaming,
+		common.Telemetry,
 		common.Watermill,
 		common.WatermillRouter,
-		common.OpenMeter,
-		common.BalanceWorkerAdapter,
-		common.BalanceWorker,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil

@@ -7,9 +7,13 @@ import (
 	"syscall"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/google/wire"
 	"github.com/oklog/run"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -17,6 +21,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
+
+type BalanceWorkerEntitlementRepo interface {
+	entitlement.EntitlementRepo
+	balanceworker.BalanceWorkerRepository
+}
+
+func NewBalanceWorkerEntitlementRepo(db *db.Client) BalanceWorkerEntitlementRepo {
+	return entitlementadapter.NewPostgresEntitlementRepo(db)
+}
 
 func BalanceWorkerProvisionTopics(conf config.BalanceWorkerConfiguration) []pkgkafka.TopicConfig {
 	var provisionTopics []pkgkafka.TopicConfig
@@ -97,3 +110,28 @@ func BalanceWorkerGroup(
 
 	return group
 }
+
+var BalanceWorkerAdapter = wire.NewSet(
+	NewBalanceWorkerEntitlementRepo,
+
+	wire.Bind(new(balanceworker.BalanceWorkerRepository), new(BalanceWorkerEntitlementRepo)),
+	SubjectResolver,
+)
+
+func SubjectResolver() balanceworker.SubjectResolver {
+	return nil
+}
+
+var BalanceWorker = wire.NewSet(
+	wire.FieldsOf(new(config.Configuration), "BalanceWorker"),
+	wire.FieldsOf(new(config.BalanceWorkerConfiguration), "ConsumerConfiguration"),
+
+	BalanceWorkerProvisionTopics,
+	BalanceWorkerSubscriber,
+
+	Entitlements,
+
+	NewBalanceWorkerOptions,
+	NewBalanceWorker,
+	BalanceWorkerGroup,
+)

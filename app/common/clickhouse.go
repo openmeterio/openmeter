@@ -4,8 +4,15 @@ import (
 	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+)
+
+var ClickHouse = wire.NewSet(
+	wire.FieldsOf(new(config.AggregationConfiguration), "ClickHouse"),
+
+	NewClickHouse,
 )
 
 // TODO: add closer function?

@@ -120,7 +120,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(conf)
+	ingestConfiguration := conf.Ingest
+	kafkaIngestConfiguration := ingestConfiguration.Kafka
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -129,8 +131,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ingestConfiguration := conf.Ingest
-	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
@@ -173,8 +173,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	inMemoryRepository := common.NewMeterRepository(v2)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	repository := common.NewInMemoryRepository(v2)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, repository, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -204,8 +204,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingConfiguration := conf.Billing
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	featureConnector := common.NewFeatureConnector(logger, client, repository)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, repository, connector)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -242,8 +242,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	entitlementsConfiguration := conf.Entitlements
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, inMemoryRepository, eventbusPublisher)
-	producer, err := common.NewKafkaProducer(conf, logger)
+	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, repository, eventbusPublisher)
+	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -309,6 +309,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	subscriptionServiceWithWorkflow, err := common.NewSubscriptionService(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService)
 	if err != nil {
 		cleanup7()
@@ -321,7 +322,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	adapter := common.NewPlanSubscriptionAdapter(logger, client, planService)
-	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
@@ -341,16 +341,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaProducer:           producer,
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
-		MeterRepository:         inMemoryRepository,
+		MeterRepository:         repository,
 		NamespaceHandlers:       v3,
 		NamespaceManager:        manager,
 		Notification:            notificationService,
 		Meter:                   meter,
 		Plan:                    planService,
-		Subscription:            subscriptionServiceWithWorkflow,
-		SubscriptionPlanAdapter: adapter,
 		RouterHook:              v6,
 		Secret:                  secretService,
+		Subscription:            subscriptionServiceWithWorkflow,
+		SubscriptionPlanAdapter: adapter,
 		StreamingConnector:      connector,
 		TelemetryServer:         v7,
 	}
@@ -391,10 +391,10 @@ type Application struct {
 	Notification            notification.Service
 	Meter                   metric.Meter
 	Plan                    plan.Service
-	Subscription            common.SubscriptionServiceWithWorkflow
-	SubscriptionPlanAdapter plansubscription.Adapter
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service
+	Subscription            common.SubscriptionServiceWithWorkflow
+	SubscriptionPlanAdapter plansubscription.Adapter
 	StreamingConnector      streaming.Connector
 	TelemetryServer         common.TelemetryServer
 }
