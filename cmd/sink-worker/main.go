@@ -8,7 +8,6 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
 	confluentkafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/oklog/run"
 	"github.com/sagikazarmark/slog-shim"
@@ -17,13 +16,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -79,7 +78,10 @@ func main() {
 	if err != nil {
 		slog.Error("failed to initialize application", "error", err)
 
-		cleanup()
+		// Call cleanup function is may not set yet
+		if cleanup != nil {
+			cleanup()
+		}
 
 		os.Exit(1)
 	}
@@ -97,7 +99,16 @@ func main() {
 	var group run.Group
 
 	// Initialize sink worker
-	sink, err := initSink(ctx, conf, logger, app.Meter, app.Tracer, app.MeterRepository, app.FlushHandler)
+	sink, err := initSink(
+		conf,
+		logger,
+		app.Meter,
+		app.MeterRepository,
+		app.Streaming,
+		app.Tracer,
+		app.TopicResolver,
+		app.FlushHandler,
+	)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -136,12 +147,17 @@ func main() {
 	}
 }
 
-func initSink(ctx context.Context, conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {
-	// Initialize ClickHouse client
-	clickhouseClient, err := clickhouse.Open(conf.Aggregation.ClickHouse.GetClientOptions())
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse client: %w", err)
-	}
+func initSink(
+	conf config.Configuration,
+	logger *slog.Logger,
+	metricMeter metric.Meter,
+	meterRepository meter.Repository,
+	streaming streaming.Connector,
+	tracer trace.Tracer,
+	topicResolver *topicresolver.NamespacedTopicResolver,
+	flushHandler flushhandler.FlushEventHandler,
+) (*sink.Sink, error) {
+	var err error
 
 	// Temporary: copy over sink storage settings
 	// TODO: remove after config migration is over
@@ -153,12 +169,6 @@ func initSink(ctx context.Context, conf config.Configuration, logger *slog.Logge
 	}
 	if conf.Sink.Storage.QuerySettings != nil {
 		conf.Aggregation.InsertQuerySettings = conf.Sink.Storage.QuerySettings
-	}
-
-	// Initialize streaming connector
-	streaming, err := common.NewStreamingConnector(ctx, conf.Aggregation, clickhouseClient, meterRepository, logger)
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse streaming connector: %w", err)
 	}
 
 	// Initialize deduplicator if enabled
@@ -214,11 +224,6 @@ func initSink(ctx context.Context, conf config.Configuration, logger *slog.Logge
 
 	// Enable Kafka client logging
 	go pkgkafka.ConsumeLogChannel(consumer, logger.WithGroup("kafka").WithGroup("consumer"))
-
-	topicResolver, err := topicresolver.NewNamespacedTopicResolver(conf.Ingest.Kafka.EventsTopicTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create topic name resolver: %w", err)
-	}
 
 	sinkConfig := sink.SinkConfig{
 		Logger:                  logger,

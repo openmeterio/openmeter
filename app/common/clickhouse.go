@@ -4,13 +4,17 @@ import (
 	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
 )
 
+var ClickHouse = wire.NewSet(
+	NewClickHouse,
+)
+
 // TODO: add closer function?
-func NewClickHouse(conf config.ClickHouseAggregationConfiguration) (driver.Conn, error) {
+func NewClickHouse(conf config.ClickHouseAggregationConfiguration) (clickhouse.Conn, error) {
 	conn, err := clickhouse.Open(conf.GetClientOptions())
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize clickhouse client: %w", err)

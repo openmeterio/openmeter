@@ -17,39 +17,46 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type Application struct {
 	common.GlobalInitializer
 
-	Metadata common.Metadata
-
-	MeterRepository  meter.Repository
-	TelemetryServer  common.TelemetryServer
 	FlushHandler     flushhandler.FlushEventHandler
+	Logger           *slog.Logger
+	Metadata         common.Metadata
+	Meter            metric.Meter
+	MeterRepository  meter.Repository
+	Streaming        streaming.Connector
+	TelemetryServer  common.TelemetryServer
 	TopicProvisioner pkgkafka.TopicProvisioner
-
-	Logger *slog.Logger
-	Meter  metric.Meter
-	Tracer trace.Tracer
+	TopicResolver    *topicresolver.NamespacedTopicResolver
+	Tracer           trace.Tracer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
+		wire.FieldsOf(new(config.Configuration), "Sink"),
+
 		metadata,
+		common.ClickHouse,
 		common.Config,
 		common.Framework,
-		common.Telemetry,
-		common.NewDefaultTextMapPropagator,
 		common.KafkaTopic,
-		common.SinkWorkerProvisionTopics,
-		common.WatermillNoPublisher,
-		common.NewSinkWorkerPublisher,
-		common.OpenMeter,
+		common.KafkaNamespaceResolver,
+		common.MeterInMemory,
+		common.NewDefaultTextMapPropagator,
 		common.NewFlushHandler,
+		common.NewSinkWorkerPublisher,
+		common.SinkWorkerProvisionTopics,
+		common.Streaming,
+		common.Telemetry,
+		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil

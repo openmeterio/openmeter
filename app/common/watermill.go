@@ -6,11 +6,36 @@ import (
 	"log/slog"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+)
+
+var Watermill = wire.NewSet(
+	WatermillNoPublisher,
+
+	// NewBrokerConfiguration,
+	// wire.Struct(new(watermillkafka.PublisherOptions), "*"),
+
+	NewPublisher,
+	// NewEventBusPublisher,
+)
+
+// TODO: move this back to [Watermill]
+// NOTE: this is also used by the sink-worker that requires control over how the publisher is closed
+var WatermillNoPublisher = wire.NewSet(
+	NewBrokerConfiguration,
+	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
+
+	NewEventBusPublisher,
+)
+
+var WatermillRouter = wire.NewSet(
+	wire.Struct(new(router.Options), "*"),
 )
 
 func NewBrokerConfiguration(

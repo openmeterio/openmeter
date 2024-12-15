@@ -15,10 +15,6 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
-	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
-	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
-	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
-	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
@@ -103,47 +99,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Dependencies: entitlement
-	entitlementConnRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     app.EntClient,
-		StreamingConnector: app.StreamingConnector,
-		MeterRepository:    app.MeterRepository,
-		Logger:             logger,
-		Publisher:          app.EventPublisher,
-	})
-
-	// Dependencies: notification
-	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
-		Client: app.EntClient,
-		Logger: logger.WithGroup("notification.postgres"),
-	})
-	if err != nil {
-		logger.Error("failed to initialize notification repository", "error", err)
-		os.Exit(1)
-	}
-
-	notificationWebhook, err := notificationwebhook.New(notificationwebhook.Config{
-		SvixConfig:              conf.Svix,
-		RegistrationTimeout:     conf.Notification.Webhook.EventTypeRegistrationTimeout,
-		SkipRegistrationOnError: conf.Notification.Webhook.SkipEventTypeRegistrationOnError,
-		Logger:                  logger.WithGroup("notification.webhook"),
-	})
-	if err != nil {
-		logger.Error("failed to initialize notification repository", "error", err)
-		os.Exit(1)
-	}
-
-	notificationService, err := notificationservice.New(notificationservice.Config{
-		Repository:       notificationRepo,
-		Webhook:          notificationWebhook,
-		FeatureConnector: entitlementConnRegistry.Feature,
-		Logger:           logger.With(slog.String("subsystem", "notification")),
-	})
-	if err != nil {
-		logger.Error("failed to initialize notification service", "error", err)
-		os.Exit(1)
-	}
-
 	// Initialize consumer
 	consumerOptions := consumer.Options{
 		SystemEventsTopic: conf.Events.SystemEvents.Topic,
@@ -157,7 +112,7 @@ func main() {
 		},
 		Marshaler: app.EventPublisher.Marshaler(),
 
-		Notification: notificationService,
+		Notification: app.Notification,
 
 		Logger: logger,
 	}

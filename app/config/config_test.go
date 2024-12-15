@@ -43,7 +43,10 @@ func TestComplete(t *testing.T) {
 		Postgres: PostgresConfig{
 			AutoMigrate: AutoMigrateEnt,
 		},
-		Address:     "127.0.0.1:8888",
+		Address: "127.0.0.1:8888",
+		Apps: AppsConfiguration{
+			BaseURL: "https://example.com",
+		},
 		Environment: "local",
 		Telemetry: TelemetryConfig{
 			Address: "127.0.0.1:10000",
@@ -128,6 +131,29 @@ func TestComplete(t *testing.T) {
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
+		},
+		Billing: BillingConfiguration{
+			Enabled: false,
+			Worker: BillingWorkerConfiguration{
+				ConsumerConfiguration: ConsumerConfiguration{
+					ProcessingTimeout: 30 * time.Second,
+					Retry: RetryConfiguration{
+						InitialInterval: 10 * time.Millisecond,
+						MaxInterval:     time.Second,
+						MaxElapsedTime:  time.Minute,
+					},
+					DLQ: DLQConfiguration{
+						Enabled: true,
+						Topic:   "om_sys.billing_worker_dlq",
+						AutoProvision: DLQAutoProvisionConfiguration{
+							Enabled:    true,
+							Partitions: 1,
+							Retention:  90 * 24 * time.Hour,
+						},
+					},
+					ConsumerGroupName: "om_billing_worker",
+				},
+			},
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
@@ -306,11 +332,6 @@ func TestComplete(t *testing.T) {
 			APIKey:    "test-svix-token",
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
-		},
-		StripeApp: StripeAppConfig{
-			IncomingWebhook: StripeAppIncomingWebhookConfig{
-				BaseURL: "https://example.com",
-			},
 		},
 	}
 

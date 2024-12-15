@@ -5,19 +5,45 @@ import (
 	"log/slog"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
+	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
+)
+
+var Kafka = wire.NewSet(
+	NewKafkaProducer,
+	NewKafkaMetrics,
+
+	KafkaTopic,
+)
+
+var KafkaTopic = wire.NewSet(
+	NewKafkaAdminClient,
+	NewKafkaTopicProvisionerConfig,
+	NewKafkaTopicProvisioner,
+)
+
+var KafkaNamespaceResolver = wire.NewSet(
+	NewNamespacedTopicResolver,
+	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
+
+	NewKafkaNamespaceHandler,
+	NewNamespaceHandlers,
 )
 
 // TODO: use ingest config directly?
 // TODO: use kafka config directly?
 // TODO: add closer function?
-func NewKafkaProducer(conf config.Configuration, logger *slog.Logger) (*kafka.Producer, error) {
+func NewKafkaProducer(conf config.KafkaIngestConfiguration, logger *slog.Logger) (*kafka.Producer, error) {
 	// Initialize Kafka Admin Client
-	kafkaConfig := conf.Ingest.Kafka.CreateKafkaConfig()
+	kafkaConfig := conf.CreateKafkaConfig()
 
 	// Initialize Kafka Producer
 	producer, err := kafka.NewProducer(&kafkaConfig)
@@ -82,4 +108,36 @@ func NewKafkaTopicProvisioner(conf pkgkafka.TopicProvisionerConfig) (pkgkafka.To
 	}
 
 	return topicProvisioner, nil
+}
+
+func NewNamespaceHandlers(
+	kafkaHandler *kafkaingest.NamespaceHandler,
+	clickHouseHandler streaming.Connector,
+) []namespace.Handler {
+	return []namespace.Handler{
+		kafkaHandler,
+		clickHouseHandler,
+	}
+}
+
+func NewKafkaNamespaceHandler(
+	topicResolver topicresolver.Resolver,
+	topicProvisioner pkgkafka.TopicProvisioner,
+	conf config.KafkaIngestConfiguration,
+) (*kafkaingest.NamespaceHandler, error) {
+	return &kafkaingest.NamespaceHandler{
+		TopicResolver:    topicResolver,
+		TopicProvisioner: topicProvisioner,
+		Partitions:       conf.Partitions,
+		DeletionEnabled:  conf.NamespaceDeletionEnabled,
+	}, nil
+}
+
+func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicresolver.NamespacedTopicResolver, error) {
+	topicResolver, err := topicresolver.NewNamespacedTopicResolver(config.EventsTopicTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create topic name resolver: %w", err)
+	}
+
+	return topicResolver, nil
 }

@@ -146,7 +146,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v3 := conf.Meters
-	inMemoryRepository := common.NewMeterRepository(v3)
+	inMemoryRepository := common.NewInMemoryRepository(v3)
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, inMemoryRepository, logger)
 	if err != nil {
 		cleanup6()
@@ -165,9 +165,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Publisher:          eventbusPublisher,
 	}
 	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)
-	entitlementRepo := common.NewEntitlementRepo(client)
-	subjectResolver := common.SubjectResolver()
-	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, entitlementRepo, subjectResolver, logger)
+	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
+	subjectResolver := common.BalanceWorkerSubjectResolver()
+	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, logger)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
 		cleanup6()

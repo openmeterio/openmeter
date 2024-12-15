@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -24,33 +26,36 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	Metadata common.Metadata
-
-	StreamingConnector streaming.Connector
-	MeterRepository    meter.Repository
-	EntClient          *db.Client
-	TelemetryServer    common.TelemetryServer
 	BrokerOptions      watermillkafka.BrokerOptions
-	MessagePublisher   message.Publisher
 	EventPublisher     eventbus.Publisher
-
-	Logger *slog.Logger
-	Meter  metric.Meter
+	EntClient          *db.Client
+	FeatureConnector   feature.FeatureConnector
+	Logger             *slog.Logger
+	MessagePublisher   message.Publisher
+	Meter              metric.Meter
+	Metadata           common.Metadata
+	MeterRepository    meter.Repository
+	Notification       notification.Service
+	StreamingConnector streaming.Connector
+	TelemetryServer    common.TelemetryServer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
 	wire.Build(
 		metadata,
-		common.Config,
-		common.Framework,
-		common.Telemetry,
-		common.NewDefaultTextMapPropagator,
-		common.Database,
 		common.ClickHouse,
+		common.Config,
+		common.Database,
+		common.Feature,
+		common.Framework,
 		common.KafkaTopic,
+		common.MeterInMemory,
+		common.NewDefaultTextMapPropagator,
+		common.Notification,
 		common.NotificationServiceProvisionTopics,
+		common.Streaming,
+		common.Telemetry,
 		common.Watermill,
-		common.OpenMeter,
 		wire.Struct(new(Application), "*"),
 	)
 	return Application{}, nil, nil

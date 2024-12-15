@@ -8,17 +8,14 @@ package main
 
 import (
 	"context"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"go.opentelemetry.io/otel/metric"
+	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"log/slog"
 )
 
@@ -71,12 +68,22 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Client: client,
 		Logger: logger,
 	}
+	eventsConfiguration := conf.Events
+	billingConfiguration := conf.Billing
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
-	notificationConfiguration := conf.Notification
-	v := common.NotificationServiceProvisionTopics(notificationConfiguration)
+	subscriber, err := common.BillingWorkerSubscriber(billingConfiguration, brokerOptions)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v := common.BillingWorkerProvisionTopics(billingConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -111,8 +118,57 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventsConfiguration := conf.Events
+	billingWorkerConfiguration := billingConfiguration.Worker
+	consumerConfiguration := billingWorkerConfiguration.ConsumerConfiguration
+	options := router.Options{
+		Subscriber:  subscriber,
+		Publisher:   publisher,
+		Logger:      logger,
+		MetricMeter: meter,
+		Config:      consumerConfiguration,
+	}
 	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appsConfiguration := conf.Apps
+	service, err := common.NewAppService(logger, client, appsConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	customerService, err := common.NewCustomerService(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -125,20 +181,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v2 := conf.Meters
 	inMemoryRepository := common.NewInMemoryRepository(v2)
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	v3 := conf.Svix
-	service, err := common.NewNotificationService(logger, client, notificationConfiguration, v3, featureConnector)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v4, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -148,7 +193,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, inMemoryRepository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, logger)
+	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -160,22 +226,68 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
-	v5, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BillingWorkerGroup(ctx, worker, v4)
+	runner := common.Runner{
+		Group:  group,
+		Logger: logger,
+	}
+	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	namespaceHandler, err := common.NewKafkaNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v5 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	namespaceConfiguration := conf.Namespace
+	manager, err := common.NewNamespaceManager(v5, namespaceConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
-		GlobalInitializer:  globalInitializer,
-		Migrator:           migrator,
-		BrokerOptions:      brokerOptions,
-		EventPublisher:     eventbusPublisher,
-		EntClient:          client,
-		FeatureConnector:   featureConnector,
-		Logger:             logger,
-		MessagePublisher:   publisher,
-		Meter:              meter,
-		Metadata:           commonMetadata,
-		MeterRepository:    inMemoryRepository,
-		Notification:       service,
-		StreamingConnector: connector,
-		TelemetryServer:    v5,
+		GlobalInitializer:     globalInitializer,
+		Migrator:              migrator,
+		Runner:                runner,
+		App:                   service,
+		AppStripe:             appstripeService,
+		AppSandboxProvisioner: appSandboxProvisioner,
+		Logger:                logger,
+		Meter:                 inMemoryRepository,
+		Streaming:             connector,
 	}
 	return application, func() {
 		cleanup7()
@@ -193,21 +305,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.Runner
 
-	BrokerOptions      kafka.BrokerOptions
-	EventPublisher     eventbus.Publisher
-	EntClient          *db.Client
-	FeatureConnector   feature.FeatureConnector
-	Logger             *slog.Logger
-	MessagePublisher   message.Publisher
-	Meter              metric.Meter
-	Metadata           common.Metadata
-	MeterRepository    meter.Repository
-	Notification       notification.Service
-	StreamingConnector streaming.Connector
-	TelemetryServer    common.TelemetryServer
+	App                   app.Service
+	AppStripe             appstripe.Service
+	AppSandboxProvisioner common.AppSandboxProvisioner
+	Logger                *slog.Logger
+	Meter                 meter.Repository
+	Streaming             streaming.Connector
 }
 
 func metadata(conf config.Configuration) common.Metadata {
-	return common.NewMetadata(conf, version, "notification-worker")
+	return common.NewMetadata(conf, version, "billing-worker")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
+	"github.com/google/wire"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	slogmulti "github.com/samber/slog-multi"
 	realotelslog "go.opentelemetry.io/contrib/bridges/otelslog"
@@ -30,6 +31,26 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
+)
+
+var Telemetry = wire.NewSet(
+	NewTelemetryResource,
+
+	NewLoggerProvider,
+	wire.Bind(new(log.LoggerProvider), new(*sdklog.LoggerProvider)),
+	NewLogger,
+
+	NewMeterProvider,
+	wire.Bind(new(metric.MeterProvider), new(*sdkmetric.MeterProvider)),
+	NewMeter,
+	NewTracerProvider,
+	wire.Bind(new(trace.TracerProvider), new(*sdktrace.TracerProvider)),
+	NewTracer,
+
+	NewHealthChecker,
+
+	NewTelemetryHandler,
+	NewTelemetryServer,
 )
 
 // Set the default logger to JSON for messages emitted before the "real" logger is initialized.

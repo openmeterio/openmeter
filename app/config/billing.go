@@ -4,6 +4,7 @@ import "github.com/spf13/viper"
 
 type BillingConfiguration struct {
 	Enabled bool
+	Worker  BillingWorkerConfiguration
 }
 
 func (c BillingConfiguration) Validate() error {
@@ -12,4 +13,6 @@ func (c BillingConfiguration) Validate() error {
 
 func ConfigureBilling(v *viper.Viper) {
 	v.SetDefault("billing.enabled", false)
+
+	ConfigureBillingWorker(v)
 }
