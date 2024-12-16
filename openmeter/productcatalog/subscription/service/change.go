@@ -1,0 +1,50 @@
+package service
+
+import (
+	"context"
+	"fmt"
+
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+func (s *service) Change(ctx context.Context, request plansubscription.ChangeSubscriptionRequest) (plansubscription.SubscriptionChangeResponse, error) {
+	var def plansubscription.SubscriptionChangeResponse
+	var plan subscription.Plan
+
+	if err := request.PlanInput.Validate(); err != nil {
+		return def, &models.GenericUserError{Message: err.Error()}
+	}
+
+	// TODO: let's validate the plan can be changed to!
+
+	if request.PlanInput.AsInput() != nil {
+		p, err := s.PlanAdapter.FromInput(ctx, request.ID.Namespace, *request.PlanInput.AsInput())
+		if err != nil {
+			return def, err
+		}
+
+		plan = p
+	} else if request.PlanInput.AsRef() != nil {
+		p, err := s.PlanAdapter.GetVersion(ctx, request.ID.Namespace, *request.PlanInput.AsRef())
+		if err != nil {
+			return def, err
+		}
+
+		plan = p
+	} else {
+		return def, fmt.Errorf("plan or plan reference must be provided, input should already be validated")
+	}
+
+	// Then let's create the subscription from the plan
+	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, request.WorkflowInput, plan)
+	if err != nil {
+		return def, err
+	}
+
+	return plansubscription.SubscriptionChangeResponse{
+		Current: curr,
+		New:     new,
+	}, nil
+}

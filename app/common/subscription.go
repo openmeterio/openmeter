@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	subscriptionchangeservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
@@ -22,6 +23,7 @@ import (
 var Subscription = wire.NewSet(
 	NewSubscriptionService,
 	NewPlanSubscriptionAdapter,
+	NewSubscriptionChangeService,
 )
 
 // Combine Srvice and WorkflowService into one struct
@@ -87,5 +89,18 @@ func NewPlanSubscriptionAdapter(
 	return plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
 		PlanService: planService,
 		Logger:      logger.With("subsystem", "subscription.plan.adapter"),
+	})
+}
+
+func NewSubscriptionChangeService(
+	subsServices SubscriptionServiceWithWorkflow,
+	logger *slog.Logger,
+	planAdapter plansubscription.Adapter,
+) plansubscription.ChangeService {
+	return subscriptionchangeservice.New(subscriptionchangeservice.Config{
+		WorkflowService:     subsServices.WorkflowService,
+		SubscriptionService: subsServices.Service,
+		Logger:              logger.With("subsystem", "subscription.change.service"),
+		PlanAdapter:         planAdapter,
 	})
 }

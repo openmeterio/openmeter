@@ -1,11 +1,43 @@
 package plansubscription
 
 import (
+	"fmt"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+type PlanInput struct {
+	ref  *PlanRefInput
+	plan *plan.CreatePlanInput
+}
+
+func (p *PlanInput) Validate() error {
+	if p.ref == nil && p.plan == nil {
+		return fmt.Errorf("plan or plan reference must be provided")
+	}
+
+	return nil
+}
+
+func (p *PlanInput) AsRef() *PlanRefInput {
+	return p.ref
+}
+
+func (p *PlanInput) AsInput() *plan.CreatePlanInput {
+	return p.plan
+}
+
+func (p *PlanInput) FromInput(pi *plan.CreatePlanInput) {
+	p.plan = pi
+}
+
+func (p *PlanInput) FromRef(pr *PlanRefInput) {
+	p.ref = pr
+}
 
 type PlanRefInput struct {
 	Key     string `json:"key"`

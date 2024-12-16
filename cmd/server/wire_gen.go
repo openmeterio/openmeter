@@ -331,37 +331,39 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	plansubscriptionAdapter := common.NewPlanSubscriptionAdapter(logger, client, planService)
+	changeService := common.NewSubscriptionChangeService(subscriptionServiceWithWorkflow, logger, plansubscriptionAdapter)
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
-		GlobalInitializer:       globalInitializer,
-		Migrator:                migrator,
-		App:                     service,
-		AppStripe:               appstripeService,
-		AppSandboxProvisioner:   appSandboxProvisioner,
-		Customer:                customerService,
-		Billing:                 billingService,
-		EntClient:               client,
-		EventPublisher:          eventbusPublisher,
-		EntitlementRegistry:     entitlement,
-		FeatureConnector:        featureConnector,
-		IngestCollector:         ingestCollector,
-		KafkaProducer:           producer,
-		KafkaMetrics:            metrics,
-		Logger:                  logger,
-		MeterRepository:         inMemoryRepository,
-		NamespaceHandlers:       v3,
-		NamespaceManager:        manager,
-		Notification:            notificationService,
-		Meter:                   meter,
-		Plan:                    planService,
-		RouterHook:              v6,
-		Secret:                  secretserviceService,
-		Subscription:            subscriptionServiceWithWorkflow,
-		SubscriptionPlanAdapter: plansubscriptionAdapter,
-		StreamingConnector:      connector,
-		TelemetryServer:         v7,
+		GlobalInitializer:         globalInitializer,
+		Migrator:                  migrator,
+		App:                       service,
+		AppStripe:                 appstripeService,
+		AppSandboxProvisioner:     appSandboxProvisioner,
+		Customer:                  customerService,
+		Billing:                   billingService,
+		EntClient:                 client,
+		EventPublisher:            eventbusPublisher,
+		EntitlementRegistry:       entitlement,
+		FeatureConnector:          featureConnector,
+		IngestCollector:           ingestCollector,
+		KafkaProducer:             producer,
+		KafkaMetrics:              metrics,
+		Logger:                    logger,
+		MeterRepository:           inMemoryRepository,
+		NamespaceHandlers:         v3,
+		NamespaceManager:          manager,
+		Notification:              notificationService,
+		Meter:                     meter,
+		Plan:                      planService,
+		RouterHook:                v6,
+		Secret:                    secretserviceService,
+		Subscription:              subscriptionServiceWithWorkflow,
+		SubscriptionPlanAdapter:   plansubscriptionAdapter,
+		SubscriptionChangeService: changeService,
+		StreamingConnector:        connector,
+		TelemetryServer:           v7,
 	}
 	return application, func() {
 		cleanup8()
@@ -381,31 +383,32 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	App                     app.Service
-	AppStripe               appstripe.Service
-	AppSandboxProvisioner   common.AppSandboxProvisioner
-	Customer                customer.Service
-	Billing                 billing.Service
-	EntClient               *db.Client
-	EventPublisher          eventbus.Publisher
-	EntitlementRegistry     *registry.Entitlement
-	FeatureConnector        feature.FeatureConnector
-	IngestCollector         ingest.Collector
-	KafkaProducer           *kafka2.Producer
-	KafkaMetrics            *metrics.Metrics
-	Logger                  *slog.Logger
-	MeterRepository         meter.Repository
-	NamespaceHandlers       []namespace.Handler
-	NamespaceManager        *namespace.Manager
-	Notification            notification.Service
-	Meter                   metric.Meter
-	Plan                    plan.Service
-	RouterHook              func(chi.Router)
-	Secret                  secret.Service
-	Subscription            common.SubscriptionServiceWithWorkflow
-	SubscriptionPlanAdapter plansubscription.Adapter
-	StreamingConnector      streaming.Connector
-	TelemetryServer         common.TelemetryServer
+	App                       app.Service
+	AppStripe                 appstripe.Service
+	AppSandboxProvisioner     common.AppSandboxProvisioner
+	Customer                  customer.Service
+	Billing                   billing.Service
+	EntClient                 *db.Client
+	EventPublisher            eventbus.Publisher
+	EntitlementRegistry       *registry.Entitlement
+	FeatureConnector          feature.FeatureConnector
+	IngestCollector           ingest.Collector
+	KafkaProducer             *kafka2.Producer
+	KafkaMetrics              *metrics.Metrics
+	Logger                    *slog.Logger
+	MeterRepository           meter.Repository
+	NamespaceHandlers         []namespace.Handler
+	NamespaceManager          *namespace.Manager
+	Notification              notification.Service
+	Meter                     metric.Meter
+	Plan                      plan.Service
+	RouterHook                func(chi.Router)
+	Secret                    secret.Service
+	Subscription              common.SubscriptionServiceWithWorkflow
+	SubscriptionPlanAdapter   plansubscription.Adapter
+	SubscriptionChangeService plansubscription.ChangeService
+	StreamingConnector        streaming.Connector
+	TelemetryServer           common.TelemetryServer
 }
 
 func metadata(conf config.Configuration) common.Metadata {

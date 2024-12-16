@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -18,12 +17,7 @@ import (
 )
 
 type (
-	ChangeSubscriptionRequest = struct {
-		id      models.NamespacedID
-		inp     subscription.ChangeSubscriptionWorkflowInput
-		planRef *plansubscription.PlanRefInput
-		plan    *plan.CreatePlanInput
-	}
+	ChangeSubscriptionRequest  = plansubscription.ChangeSubscriptionRequest
 	ChangeSubscriptionResponse = api.SubscriptionChangeResponseBody
 	ChangeSubscriptionParams   = struct {
 		ID string
@@ -74,10 +68,13 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
+				planInp := plansubscription.PlanInput{}
+				planInp.FromInput(&req)
+
 				return ChangeSubscriptionRequest{
-					id:   models.NamespacedID{Namespace: ns, ID: params.ID},
-					plan: &req,
-					inp: subscription.ChangeSubscriptionWorkflowInput{
+					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
+					PlanInput: planInp,
+					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
 						ActiveFrom:  parsedBody.ActiveFrom,
 						Name:        req.Name,
 						Description: req.Description,
@@ -93,13 +90,16 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to parse plan: %w", err)
 				}
 
+				planInp := plansubscription.PlanInput{}
+				planInp.FromRef(&plansubscription.PlanRefInput{
+					Key:     parsedBody.Plan.Key,
+					Version: parsedBody.Plan.Version,
+				})
+
 				return ChangeSubscriptionRequest{
-					id: models.NamespacedID{Namespace: ns, ID: params.ID},
-					planRef: &plansubscription.PlanRefInput{
-						Key:     parsedBody.Plan.Key,
-						Version: parsedBody.Plan.Version,
-					},
-					inp: subscription.ChangeSubscriptionWorkflowInput{
+					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
+					PlanInput: planInp,
+					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
 						ActiveFrom: parsedBody.ActiveFrom,
 						AnnotatedModel: models.AnnotatedModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
@@ -111,37 +111,15 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			}
 		},
 		func(ctx context.Context, request ChangeSubscriptionRequest) (ChangeSubscriptionResponse, error) {
-			// First, lets map the input to a plan
-			var plan subscription.Plan
-
-			if request.plan != nil {
-				p, err := h.SubscrpiptionPlanAdapter.FromInput(ctx, request.id.Namespace, *request.plan)
-				if err != nil {
-					return ChangeSubscriptionResponse{}, err
-				}
-
-				plan = p
-			} else if request.planRef != nil {
-				p, err := h.SubscrpiptionPlanAdapter.GetVersion(ctx, request.id.Namespace, *request.planRef)
-				if err != nil {
-					return ChangeSubscriptionResponse{}, err
-				}
-
-				plan = p
-			} else {
-				return ChangeSubscriptionResponse{}, fmt.Errorf("plan or plan reference must be provided")
-			}
-
-			// Then let's create the subscription from the plan
-			curr, new, err := h.SubscriptionWorkflowService.ChangeToPlan(ctx, request.id, request.inp, plan)
+			res, err := h.SubscriptionChangeService.Change(ctx, request)
 			if err != nil {
 				return ChangeSubscriptionResponse{}, err
 			}
 
-			v, err := MapSubscriptionViewToAPI(new)
+			v, err := MapSubscriptionViewToAPI(res.New)
 
 			return ChangeSubscriptionResponse{
-				Current: MapSubscriptionToAPI(curr),
+				Current: MapSubscriptionToAPI(res.Current),
 				New:     v,
 			}, err
 		},
