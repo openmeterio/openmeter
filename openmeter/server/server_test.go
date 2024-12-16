@@ -25,6 +25,7 @@ import (
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -148,9 +149,10 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:             meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector: &MockStreamingConnector{},
-			DebugConnector:     MockDebugHandler{},
+			EntitlementConnector: &NoopEntitlementConnector{},
+			Meters:               meter.NewInMemoryRepository(mockMeters),
+			StreamingConnector:   &MockStreamingConnector{},
+			DebugConnector:       MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
@@ -474,8 +476,54 @@ func TestRoutes(t *testing.T) {
 	}
 }
 
+// NoopEntitlementConnector
+var _ entitlement.Connector = (*NoopEntitlementConnector)(nil)
+
+type NoopEntitlementConnector struct{}
+
+func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlement(ctx context.Context, namespace string, id string) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
+	return nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (entitlement.EntitlementValue, error) {
+	return nil, nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
+	return []entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
+	return pagination.PagedResponse[entitlement.Entitlement]{}, nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
 var _ notification.Service = (*NoopNotificationService)(nil)
 
+// NoopNotificationService
 type NoopNotificationService struct{}
 
 func (n NoopNotificationService) ListFeature(_ context.Context, _ string, _ ...string) ([]feature.Feature, error) {
