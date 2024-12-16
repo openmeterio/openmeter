@@ -150,6 +150,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
 			EntitlementConnector: &NoopEntitlementConnector{},
+			FeatureConnector:     &NoopFeatureConnector{},
 			Meters:               meter.NewInMemoryRepository(mockMeters),
 			StreamingConnector:   &MockStreamingConnector{},
 			DebugConnector:       MockDebugHandler{},
@@ -474,6 +475,31 @@ func TestRoutes(t *testing.T) {
 			}
 		})
 	}
+}
+
+// NoopFeatureConnector
+var _ feature.FeatureConnector = (*NoopFeatureConnector)(nil)
+
+type NoopFeatureConnector struct{}
+
+func (n NoopFeatureConnector) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.PagedResponse[feature.Feature], error) {
+	return pagination.PagedResponse[feature.Feature]{}, nil
+}
+
+func (n NoopFeatureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived feature.IncludeArchivedFeature) (*feature.Feature, error) {
+	return &feature.Feature{}, nil
+}
+
+func (n NoopFeatureConnector) CreateFeature(ctx context.Context, input feature.CreateFeatureInputs) (feature.Feature, error) {
+	return feature.Feature{}, nil
+}
+
+func (n NoopFeatureConnector) DeleteFeature(ctx context.Context, namespace string, key string) error {
+	return nil
+}
+
+func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
+	return nil
 }
 
 // NoopEntitlementConnector
