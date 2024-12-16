@@ -34,13 +34,6 @@ svix:
   debug: true
 {{- end }}
 
-{{/* All features are enabled for this installation */}}
-events:
-  enabled: true
-entitlements:
-  enabled: true
-notification:
-  enabled: true
 {{- end }}
 
 apiVersion: v1

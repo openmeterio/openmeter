@@ -92,8 +92,6 @@ type Config struct {
 	Notification                notification.Service
 
 	// FIXME: implement generic module management, loading, etc...
-	EntitlementsEnabled   bool
-	NotificationEnabled   bool
 	BillingEnabled        bool
 	ProductCatalogEnabled bool
 	AppsEnabled           bool
@@ -126,28 +124,24 @@ func (c Config) Validate() error {
 		return errors.New("debug connector is required")
 	}
 
-	if c.EntitlementsEnabled {
-		if c.FeatureConnector == nil {
-			return errors.New("feature connector is required")
-		}
-
-		if c.EntitlementConnector == nil {
-			return errors.New("entitlement connector is required")
-		}
-
-		if c.EntitlementBalanceConnector == nil {
-			return errors.New("entitlement balance connector is required")
-		}
-
-		if c.GrantConnector == nil {
-			return errors.New("grant connector is required")
-		}
+	if c.FeatureConnector == nil {
+		return errors.New("feature connector is required")
 	}
 
-	if c.NotificationEnabled {
-		if c.Notification == nil {
-			return errors.New("notification service is required")
-		}
+	if c.EntitlementConnector == nil {
+		return errors.New("entitlement connector is required")
+	}
+
+	if c.EntitlementBalanceConnector == nil {
+		return errors.New("entitlement balance connector is required")
+	}
+
+	if c.GrantConnector == nil {
+		return errors.New("grant connector is required")
+	}
+
+	if c.Notification == nil {
+		return errors.New("notification service is required")
 	}
 
 	if c.AppsEnabled {
@@ -210,41 +204,37 @@ func NewRouter(config Config) (*Router, error) {
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
-	if config.EntitlementsEnabled {
-		router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
-			config.FeatureConnector,
-			staticNamespaceDecoder,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
+	router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
+		config.FeatureConnector,
+		staticNamespaceDecoder,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
-		router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
-			config.EntitlementConnector,
-			staticNamespaceDecoder,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
+	router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
+		config.EntitlementConnector,
+		staticNamespaceDecoder,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
-		router.meteredEntitlementHandler = entitlementdriver.NewMeteredEntitlementHandler(
-			config.EntitlementConnector,
-			config.EntitlementBalanceConnector,
-			staticNamespaceDecoder,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
+	router.meteredEntitlementHandler = entitlementdriver.NewMeteredEntitlementHandler(
+		config.EntitlementConnector,
+		config.EntitlementBalanceConnector,
+		staticNamespaceDecoder,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
-		router.creditHandler = creditdriver.NewGrantHandler(
-			staticNamespaceDecoder,
-			config.GrantConnector,
-			config.GrantRepo,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
-	}
+	router.creditHandler = creditdriver.NewGrantHandler(
+		staticNamespaceDecoder,
+		config.GrantConnector,
+		config.GrantRepo,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
-	if config.NotificationEnabled {
-		router.notificationHandler = notificationhttpdriver.New(
-			staticNamespaceDecoder,
-			config.Notification,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
-	}
+	router.notificationHandler = notificationhttpdriver.New(
+		staticNamespaceDecoder,
+		config.Notification,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
 	// Customer
 	router.customerHandler = customerhttpdriver.New(

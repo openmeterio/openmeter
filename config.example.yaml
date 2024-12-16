@@ -36,10 +36,6 @@ telemetry:
 #     database: 0
 #     expiration: 768h # 32d
 
-# Entitlements
-entitlements:
-  enabled: true
-
 productcatalog:
   enabled: true
 
@@ -111,9 +107,11 @@ notification:
 #    eventTypeRegistrationTimeout: 30s
 #    skipEventTypeRegistrationOnError: false
 
-svix:
-  apiKey: secret
-  serverURL: http://localhost:8071
+# Enable the following configuration to use Svix to deliver webhooks.
+# The default webhook handler is a noop handler and only logs operations.
+# svix:
+#   apiKey: secret
+#   serverURL: http://localhost:8071
 
 #sink:
 #  kafka:

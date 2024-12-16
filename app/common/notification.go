@@ -26,15 +26,6 @@ func NewNotificationService(
 	svixConfig config.SvixConfig,
 	featureConnector feature.FeatureConnector,
 ) (notification.Service, error) {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return nil, nil
-	}
-
-	if !notificationConfig.Enabled {
-		return nil, nil
-	}
-
 	var notificationRepo notification.Repository
 	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
 		Client: db,

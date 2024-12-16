@@ -18,17 +18,12 @@ type WebhookConfiguration struct {
 }
 
 type NotificationConfiguration struct {
-	Enabled  bool
 	Consumer ConsumerConfiguration
 
 	Webhook WebhookConfiguration
 }
 
 func (c NotificationConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
 	var errs []error
 
 	if err := c.Consumer.Validate(); err != nil {

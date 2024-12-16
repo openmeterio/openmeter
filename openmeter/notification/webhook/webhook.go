@@ -292,9 +292,21 @@ func New(config Config) (Handler, error) {
 		config.RegistrationTimeout = DefaultRegistrationTimeout
 	}
 
-	handler, err := newSvixWebhookHandler(config.SvixConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
+	var (
+		handler Handler
+		err     error
+	)
+
+	// If the Svix server URL is not provided, we use the noop webhook handler
+	if config.SvixConfig.ServerURL == "" {
+		config.Logger.InfoContext(context.Background(), "svix url not provided: using the noop webhook handler")
+
+		handler = newNoopWebhookHandler(config.Logger)
+	} else {
+		handler, err = newSvixWebhookHandler(config.SvixConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
+		}
 	}
 
 	if len(config.RegisterEventTypes) > 0 {

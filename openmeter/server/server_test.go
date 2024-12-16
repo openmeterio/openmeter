@@ -23,8 +23,13 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/engine"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -148,9 +153,13 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:             meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector: &MockStreamingConnector{},
-			DebugConnector:     MockDebugHandler{},
+			EntitlementConnector:        &NoopEntitlementConnector{},
+			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
+			FeatureConnector:            &NoopFeatureConnector{},
+			GrantConnector:              &NoopGrantConnector{},
+			Meters:                      meter.NewInMemoryRepository(mockMeters),
+			StreamingConnector:          &MockStreamingConnector{},
+			DebugConnector:              MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
@@ -474,6 +483,133 @@ func TestRoutes(t *testing.T) {
 	}
 }
 
+// NoopFeatureConnector
+var _ feature.FeatureConnector = (*NoopFeatureConnector)(nil)
+
+type NoopFeatureConnector struct{}
+
+func (n NoopFeatureConnector) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.PagedResponse[feature.Feature], error) {
+	return pagination.PagedResponse[feature.Feature]{}, nil
+}
+
+func (n NoopFeatureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived feature.IncludeArchivedFeature) (*feature.Feature, error) {
+	return &feature.Feature{}, nil
+}
+
+func (n NoopFeatureConnector) CreateFeature(ctx context.Context, input feature.CreateFeatureInputs) (feature.Feature, error) {
+	return feature.Feature{}, nil
+}
+
+func (n NoopFeatureConnector) DeleteFeature(ctx context.Context, namespace string, key string) error {
+	return nil
+}
+
+func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
+	return nil
+}
+
+// NoopEntitlementConnector
+var _ entitlement.Connector = (*NoopEntitlementConnector)(nil)
+
+type NoopEntitlementConnector struct{}
+
+func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlement(ctx context.Context, namespace string, id string) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
+	return nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (entitlement.EntitlementValue, error) {
+	return nil, nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
+	return []entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
+	return pagination.PagedResponse[entitlement.Entitlement]{}, nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+// NoopEntitlementBalanceConnector
+
+var _ meteredentitlement.Connector = (*NoopEntitlementBalanceConnector)(nil)
+
+type NoopEntitlementBalanceConnector struct{}
+
+func (n NoopEntitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*meteredentitlement.EntitlementBalance, error) {
+	return nil, nil
+}
+
+func (n NoopEntitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params meteredentitlement.BalanceHistoryParams) ([]meteredentitlement.EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
+	return []meteredentitlement.EntitlementBalanceHistoryWindow{}, engine.GrantBurnDownHistory{}, nil
+}
+
+func (n NoopEntitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params meteredentitlement.ResetEntitlementUsageParams) (balanceAfterReset *meteredentitlement.EntitlementBalance, err error) {
+	return nil, nil
+}
+
+func (n NoopEntitlementBalanceConnector) ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]models.NamespacedID, error) {
+	return []models.NamespacedID{}, nil
+}
+
+func (n NoopEntitlementBalanceConnector) CreateGrant(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string, inputGrant meteredentitlement.CreateEntitlementGrantInputs) (meteredentitlement.EntitlementGrant, error) {
+	return meteredentitlement.EntitlementGrant{}, nil
+}
+
+func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]meteredentitlement.EntitlementGrant, error) {
+	return []meteredentitlement.EntitlementGrant{}, nil
+}
+
+func (n NoopEntitlementBalanceConnector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+	return nil, nil
+}
+
+func (n NoopEntitlementBalanceConnector) BeforeCreate(entitlement entitlement.CreateEntitlementInputs, feature feature.Feature) (*entitlement.CreateEntitlementRepoInputs, error) {
+	return nil, nil
+}
+
+func (n NoopEntitlementBalanceConnector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
+	return nil
+}
+
+// NoopGrantConnector
+
+var _ credit.GrantConnector = (*NoopGrantConnector)(nil)
+
+type NoopGrantConnector struct{}
+
+func (n NoopGrantConnector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input credit.CreateGrantInput) (*grant.Grant, error) {
+	return &grant.Grant{}, nil
+}
+
+func (n NoopGrantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+	return nil
+}
+
+// NoopNotificationService
 var _ notification.Service = (*NoopNotificationService)(nil)
 
 type NoopNotificationService struct{}

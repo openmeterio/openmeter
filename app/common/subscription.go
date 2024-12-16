@@ -41,12 +41,7 @@ func NewSubscriptionService(
 	customerService customer.Service,
 	planService plan.Service,
 ) (SubscriptionServiceWithWorkflow, error) {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return SubscriptionServiceWithWorkflow{}, nil
-	}
-
-	if !productcatalogConfig.Enabled || !entitlementConfig.Enabled {
+	if !productcatalogConfig.Enabled {
 		return SubscriptionServiceWithWorkflow{}, nil
 	}
 

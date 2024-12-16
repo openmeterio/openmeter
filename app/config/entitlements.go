@@ -1,8 +1,6 @@
 package config
 
-type EntitlementsConfiguration struct {
-	Enabled bool
-}
+type EntitlementsConfiguration struct{}
 
 // Validate validates the configuration.
 func (c EntitlementsConfiguration) Validate() error {

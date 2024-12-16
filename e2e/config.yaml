@@ -32,9 +32,6 @@ sink:
 apps:
   enabled: true
 
-entitlements:
-  enabled: true
-
 productcatalog:
   enabled: true
 

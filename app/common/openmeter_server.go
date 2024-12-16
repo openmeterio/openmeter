@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -84,10 +83,6 @@ func NewServerPublisher(
 	options watermillkafka.PublisherOptions,
 	logger *slog.Logger,
 ) (message.Publisher, func(), error) {
-	if !conf.Enabled {
-		return &noop.Publisher{}, func() {}, nil
-	}
-
 	return NewPublisher(ctx, options, logger)
 }
 

@@ -76,11 +76,6 @@ func main() {
 
 	// Validate service prerequisites
 
-	if !conf.Events.Enabled {
-		logger.Error("events are disabled, exiting")
-		os.Exit(1)
-	}
-
 	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)

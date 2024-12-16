@@ -175,8 +175,6 @@ func main() {
 			Notification:                app.Notification,
 			Plan:                        app.Plan,
 			// modules
-			EntitlementsEnabled:   conf.Entitlements.Enabled,
-			NotificationEnabled:   conf.Notification.Enabled,
 			ProductCatalogEnabled: conf.ProductCatalog.Enabled,
 			AppsEnabled:           conf.Apps.Enabled,
 			BillingEnabled:        conf.Billing.Enabled,

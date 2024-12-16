@@ -34,10 +34,6 @@ func NewFlushHandler(
 	logger *slog.Logger,
 	meter metric.Meter,
 ) (flushhandler.FlushEventHandler, error) {
-	if !eventsConfig.Enabled {
-		return nil, nil
-	}
-
 	flushHandlerMux := flushhandler.NewFlushEventHandlers()
 
 	// We should only close the producer once the ingest events are fully processed

@@ -63,6 +63,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Initialize application
 	app, cleanup, err := initializeApplication(ctx, conf)
 	if err != nil {
 		slog.Error("failed to initialize application", "error", err)
@@ -78,11 +79,6 @@ func main() {
 	logger := app.Logger
 
 	// Validate service prerequisites
-
-	if !conf.Events.Enabled {
-		logger.Error("events are disabled, exiting")
-		os.Exit(1)
-	}
 
 	if err := app.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)

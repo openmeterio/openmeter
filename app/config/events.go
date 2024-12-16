@@ -11,7 +11,6 @@ import (
 )
 
 type EventsConfiguration struct {
-	Enabled      bool
 	SystemEvents EventSubsystemConfiguration
 	IngestEvents EventSubsystemConfiguration
 }
