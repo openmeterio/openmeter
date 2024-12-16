@@ -297,16 +297,18 @@ func New(config Config) (Handler, error) {
 		err     error
 	)
 
-	// If the Svix server URL is not provided, we use the noop webhook handler
-	if config.SvixConfig.ServerURL == "" {
-		config.Logger.InfoContext(context.Background(), "svix url not provided: using the noop webhook handler")
+	fmt.Println("config.SvixConfig.ServerURL")
 
-		handler = newNoopWebhookHandler(config.Logger)
-	} else {
+	// If Svix is not enabled, we use the noop webhook handler
+	if config.IsEnabled() {
 		handler, err = newSvixWebhookHandler(config.SvixConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
 		}
+	} else {
+		config.Logger.InfoContext(context.Background(), "svix is disabled: using noop webhook handler")
+
+		handler = newNoopWebhookHandler(config.Logger)
 	}
 
 	if len(config.RegisterEventTypes) > 0 {
