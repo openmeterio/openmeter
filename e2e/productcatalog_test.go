@@ -370,4 +370,91 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, apiRes.JSON200)
 		assert.Equal(t, api.SubscriptionStatusActive, *apiRes.JSON200.Status)
 	})
+
+	t.Run("Should create and publish a new version of the plan", func(t *testing.T) {
+		require.NotNil(t, planId)
+
+		planAPIRes, err := client.CreatePlanWithResponse(ctx, api.CreatePlanJSONRequestBody{
+			Name:     "Test Plan New Version",
+			Key:      PlanKey,
+			Currency: api.CurrencyCode("USD"),
+			// Let's add a new phase
+			Phases: append(planCreate.Phases, api.PlanPhase{
+				Name:       "Test Plan Phase 3",
+				Key:        "test_plan_phase_3",
+				StartAfter: lo.ToPtr("P9M"),
+				RateCards:  []api.RateCard{p2RC1},
+			}),
+		})
+
+		require.Nil(t, err)
+
+		require.Equal(t, 201, planAPIRes.StatusCode(), "received the following body: %s", planAPIRes.Body)
+		require.NotNil(t, planAPIRes.JSON201)
+		require.NotNil(t, planAPIRes.JSON201.Id)
+		require.NotNil(t, planAPIRes.JSON201.Version)
+		require.NotNil(t, planAPIRes.JSON201.Key)
+
+		assert.NotEqual(t, planId, *planAPIRes.JSON201.Id)
+		assert.Equal(t, PlanKey, planAPIRes.JSON201.Key)
+		assert.Equal(t, 2, *planAPIRes.JSON201.Version)
+
+		// Let's publis the new version
+		apiRes2, err := client.PublishPlanWithResponse(ctx, *planAPIRes.JSON201.Id)
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes2.StatusCode(), "received the following body: %s", apiRes2.Body)
+	})
+
+	var migratedSubscriptionId string
+	var migratedSubView api.SubscriptionExpanded
+
+	t.Run("Should migrate the subscription to a newer version", func(t *testing.T) {
+		require.NotNil(t, subscriptionId)
+
+		apiRes, err := client.MigrateSubscriptionWithResponse(ctx, subscriptionId, api.MigrateSubscriptionJSONRequestBody{
+			TargetVersion: 2,
+		})
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+		require.NotNil(t, apiRes.JSON200)
+		require.NotNil(t, apiRes.JSON200.New.Id)
+		require.NotNil(t, apiRes.JSON200.Current.Id)
+
+		require.Equal(t, subscriptionId, *apiRes.JSON200.Current.Id)
+		require.NotEqual(t, subscriptionId, *apiRes.JSON200.New.Id)
+
+		migratedSubscriptionId = *apiRes.JSON200.New.Id
+		migratedSubView = apiRes.JSON200.New
+
+		require.Equal(t, 3, len(apiRes.JSON200.New.Phases))
+		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.New.Phases[2].Key)
+	})
+
+	t.Run("Should change the subscription's plan", func(t *testing.T) {
+		require.NotNil(t, migratedSubscriptionId)
+
+		req := api.SubscriptionChange{}
+
+		err := req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
+			ActiveFrom: migratedSubView.ActiveFrom.Add(time.Minute),
+			CustomPlan: planCreate, // It will functionally be the same as the old plan
+		})
+		require.Nil(t, err)
+
+		// For simplicity, let's change the plan to a custom one
+		apiRes, err := client.ChangeSubscriptionWithResponse(ctx, migratedSubscriptionId, req)
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+		require.NotNil(t, apiRes.JSON200)
+		require.NotNil(t, apiRes.JSON200.Current.Id)
+		require.NotNil(t, apiRes.JSON200.New.Id)
+
+		require.Equal(t, migratedSubscriptionId, *apiRes.JSON200.Current.Id)
+		require.NotEqual(t, migratedSubscriptionId, *apiRes.JSON200.New.Id)
+
+		require.Equal(t, 2, len(planCreate.Phases))
+	})
 }

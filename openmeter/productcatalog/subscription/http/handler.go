@@ -19,6 +19,8 @@ type Handler interface {
 	EditSubscription() EditSubscriptionHandler
 	CancelSubscription() CancelSubscriptionHandler
 	ContinueSubscription() ContinueSubscriptionHandler
+	MigrateSubscription() MigrateSubscriptionHandler
+	ChangeSubscription() ChangeSubscriptionHandler
 }
 
 type HandlerConfig struct {
