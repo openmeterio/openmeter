@@ -1,4 +1,4 @@
-package billing_test
+package billing
 
 import (
 	"context"
@@ -52,9 +52,9 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a profile
-	_ = s.installSandboxApp(s.T(), ns)
+	_ = s.InstallSandboxApp(s.T(), ns)
 
-	minimalCreateProfileInput := minimalCreateProfileInputTemplate
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = ns
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)

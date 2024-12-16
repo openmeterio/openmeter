@@ -149,3 +149,11 @@ The entity's `ChildrenWithIDReuse` call can be used to facilitate the line reuse
 Then the adapter layer will use those IDs to make decisions if they want to persist or recreate the records.
 
 We could do the same logic in the adapter layer, but this approach makes it more flexible on the calculation layer if we want to generate new lines or not. If this becomes a burden we can do the same matching logic as part of the upsert logic in adapter.
+
+## Subscription adapter
+
+The subscription adapter is responsible for feeding the billing with line items during the subscription's lifecycle. The generation of items is event-driven, new items are yielded when:
+- A subscription is created
+- A new invoice is created
+- A subscription is modified
+- Upgrade/Downgrade is handled as a subscription create/cancel

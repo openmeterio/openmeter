@@ -43,7 +43,7 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 			WithBillingWorkflowConfig()
 
 		if in.Expand.Lines {
-			query = tx.expandInvoiceLineItems(query, in.Expand.DeletedLines)
+			query = tx.expandInvoiceLineItems(query, in.Expand)
 		}
 
 		invoice, err := query.Only(ctx)
@@ -63,15 +63,20 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	})
 }
 
-func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, includeDeleted bool) *db.BillingInvoiceQuery {
+func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.InvoiceExpand) *db.BillingInvoiceQuery {
 	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-		if !includeDeleted {
+		if !expand.DeletedLines {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
+		}
+
+		requestedStatuses := []billing.InvoiceLineStatus{billing.InvoiceLineStatusValid}
+		if expand.SplitLines {
+			requestedStatuses = append(requestedStatuses, billing.InvoiceLineStatusSplit)
 		}
 
 		q = q.Where(
 			// Detailed lines are sub-lines of a line and should not be included in the top-level invoice
-			billinginvoiceline.StatusIn(billing.InvoiceLineStatusValid),
+			billinginvoiceline.StatusIn(requestedStatuses...),
 		)
 
 		a.expandLineItems(q)
@@ -170,6 +175,10 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
 		}
 
+		if len(input.IDs) > 0 {
+			query = query.Where(billinginvoice.IDIn(input.IDs...))
+		}
+
 		if len(input.Statuses) > 0 {
 			query = query.Where(func(s *sql.Selector) {
 				s.Where(sql.Or(
@@ -190,7 +199,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		}
 
 		if input.Expand.Lines {
-			query = tx.expandInvoiceLineItems(query, input.Expand.DeletedLines)
+			query = tx.expandInvoiceLineItems(query, input.Expand)
 		}
 
 		switch input.OrderBy {

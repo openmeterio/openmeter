@@ -52,6 +52,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 		if err != nil {
 			return nil, err
 		}
+
 		mappedEntities[dbLine.ID] = &entity
 	}
 

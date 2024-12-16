@@ -1,4 +1,4 @@
-package billing_test
+package billing
 
 import (
 	"context"
@@ -33,6 +33,7 @@ import (
 
 type BaseSuite struct {
 	suite.Suite
+	*require.Assertions
 
 	TestDB   *testutils.TestDB
 	DBClient *db.Client
@@ -42,6 +43,7 @@ type BaseSuite struct {
 	InvoiceCalculator *invoicecalc.MockableInvoiceCalculator
 
 	FeatureService         feature.FeatureConnector
+	FeatureRepo            feature.FeatureRepo
 	MeterRepo              *meter.InMemoryRepository
 	MockStreamingConnector *streamingtestutils.MockStreamingConnector
 
@@ -54,11 +56,13 @@ type BaseSuite struct {
 func (s *BaseSuite) SetupSuite() {
 	t := s.T()
 	t.Log("setup suite")
+	s.Assertions = require.New(t)
 
 	s.TestDB = testutils.InitPostgresDB(t)
 
 	// init db
 	dbClient := db.NewClient(db.Driver(s.TestDB.EntDriver.Driver()))
+	s.DBClient = dbClient
 
 	if os.Getenv("TEST_DISABLE_ATLAS") != "" {
 		s.Require().NoError(dbClient.Schema.Create(context.Background()))
@@ -74,9 +78,8 @@ func (s *BaseSuite) SetupSuite() {
 	s.MockStreamingConnector = streamingtestutils.NewMockStreamingConnector(t)
 
 	// Feature
-	featureRepo := featureadapter.NewPostgresFeatureRepo(dbClient, slog.Default())
-
-	s.FeatureService = feature.NewFeatureConnector(featureRepo, s.MeterRepo)
+	s.FeatureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, slog.Default())
+	s.FeatureService = feature.NewFeatureConnector(s.FeatureRepo, s.MeterRepo)
 
 	// Customer
 
@@ -138,7 +141,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.BillingService = billingService.WithInvoiceCalculator(s.InvoiceCalculator)
 }
 
-func (s *BaseSuite) installSandboxApp(t *testing.T, ns string) appentity.App {
+func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) appentity.App {
 	ctx := context.Background()
 	_, err := s.AppService.CreateApp(ctx,
 		appentity.CreateAppInput{

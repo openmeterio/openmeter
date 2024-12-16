@@ -50,6 +50,11 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps Calculator
 			return billing.Totals{}
 		}
 
+		// Split lines cannot contribute to the totals, as they are superseded by the child lines
+		if line.Status == billing.InvoiceLineStatusSplit {
+			return billing.Totals{}
+		}
+
 		return line.Totals
 	})...)
 

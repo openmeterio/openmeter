@@ -137,6 +137,7 @@ type InvoiceExpand struct {
 	WorkflowApps bool
 	Lines        bool
 	DeletedLines bool
+	SplitLines   bool
 }
 
 var InvoiceExpandAll = InvoiceExpand{
@@ -144,6 +145,7 @@ var InvoiceExpandAll = InvoiceExpand{
 	WorkflowApps: true,
 	Lines:        true,
 	DeletedLines: false,
+	SplitLines:   false,
 }
 
 func (e InvoiceExpand) Validate() error {
@@ -157,6 +159,11 @@ func (e InvoiceExpand) SetLines(v bool) InvoiceExpand {
 
 func (e InvoiceExpand) SetDeletedLines(v bool) InvoiceExpand {
 	e.DeletedLines = v
+	return e
+}
+
+func (e InvoiceExpand) SetSplitLines(v bool) InvoiceExpand {
+	e.SplitLines = v
 	return e
 }
 
@@ -373,6 +380,7 @@ type ListInvoicesInput struct {
 	pagination.Page
 
 	Namespace string
+	IDs       []string
 	Customers []string
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
 	Statuses []string
@@ -497,3 +505,21 @@ type GetOwnershipAdapterResponse struct {
 }
 
 type DeleteInvoiceInput = InvoiceID
+
+type UpdateInvoiceLinesInternalInput struct {
+	Namespace  string
+	CustomerID string
+	Lines      []*Line
+}
+
+func (i UpdateInvoiceLinesInternalInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.CustomerID == "" {
+		return errors.New("customer ID is required")
+	}
+
+	return nil
+}

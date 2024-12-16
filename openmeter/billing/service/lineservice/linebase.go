@@ -21,6 +21,8 @@ type UpdateInput struct {
 
 	// PreventChildChanges is used to prevent any child changes to the line by the adapter.
 	PreventChildChanges bool
+
+	ResetChildUniqueReferenceID bool
 }
 
 func (i UpdateInput) apply(line *billing.Line) {
@@ -42,6 +44,10 @@ func (i UpdateInput) apply(line *billing.Line) {
 
 	if i.PreventChildChanges {
 		line.Children = billing.LineChildren{}
+	}
+
+	if i.ResetChildUniqueReferenceID {
+		line.ChildUniqueReferenceID = nil
 	}
 }
 
@@ -215,16 +221,18 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 		// Let's create the child lines
 		preSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine: mo.Some(parentLine.ToEntity()),
-			Status:     billing.InvoiceLineStatusValid,
-			PeriodEnd:  splitAt,
-			InvoiceAt:  splitAt,
+			ParentLine:                  mo.Some(parentLine.ToEntity()),
+			Status:                      billing.InvoiceLineStatusValid,
+			PeriodEnd:                   splitAt,
+			InvoiceAt:                   splitAt,
+			ResetChildUniqueReferenceID: true,
 		})
 
 		postSplitAtLine := l.CloneForCreate(UpdateInput{
-			ParentLine:  mo.Some(parentLine.ToEntity()),
-			Status:      billing.InvoiceLineStatusValid,
-			PeriodStart: splitAt,
+			ParentLine:                  mo.Some(parentLine.ToEntity()),
+			Status:                      billing.InvoiceLineStatusValid,
+			PeriodStart:                 splitAt,
+			ResetChildUniqueReferenceID: true,
 		})
 
 		splitLines, err := l.service.UpsertLines(ctx, l.line.Namespace, preSplitAtLine, postSplitAtLine)
@@ -240,17 +248,19 @@ func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, er
 
 	// We have alredy split the line once, we just need to create a new line and update the existing line
 	postSplitAtLine, err := l.CloneForCreate(UpdateInput{
-		Status:      billing.InvoiceLineStatusValid,
-		PeriodStart: splitAt,
-		ParentLine:  mo.Some(l.line.ParentLine),
+		Status:                      billing.InvoiceLineStatusValid,
+		PeriodStart:                 splitAt,
+		ParentLine:                  mo.Some(l.line.ParentLine),
+		ResetChildUniqueReferenceID: true,
 	}).Save(ctx)
 	if err != nil {
 		return SplitResult{}, fmt.Errorf("creating split lines: %w", err)
 	}
 
 	preSplitAtLine, err := l.Update(UpdateInput{
-		PeriodEnd: splitAt,
-		InvoiceAt: splitAt,
+		PeriodEnd:                   splitAt,
+		InvoiceAt:                   splitAt,
+		ResetChildUniqueReferenceID: true,
 	}).Save(ctx)
 	if err != nil {
 		return SplitResult{}, fmt.Errorf("updating parent line: %w", err)

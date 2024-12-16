@@ -383,3 +383,13 @@ func (s *Service) DeleteInvoiceLine(ctx context.Context, input billing.DeleteInv
 		return err
 	})
 }
+
+func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.adapter.GetLinesForSubscription(ctx, input)
+}
