@@ -297,8 +297,6 @@ func New(config Config) (Handler, error) {
 		err     error
 	)
 
-	fmt.Println("config.SvixConfig.ServerURL")
-
 	// If Svix is not enabled, we use the noop webhook handler
 	if config.IsEnabled() {
 		handler, err = newSvixWebhookHandler(config.SvixConfig)
