@@ -112,10 +112,6 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "product catalog"))
 	}
 
-	if c.ProductCatalog.Enabled {
-		errs = append(errs, errors.New("entitlements must be enabled if product catalog is enabled"))
-	}
-
 	if err := c.Billing.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "billing"))
 	}
