@@ -7376,7 +7376,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Subscription'
+                $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -7453,7 +7453,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Subscription'
+                $ref: '#/components/schemas/SubscriptionChangeResponseBody'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -14799,6 +14799,21 @@ components:
         - $ref: '#/components/schemas/PlanSubscriptionChange'
         - $ref: '#/components/schemas/CustomSubscriptionChange'
       description: Change a subscription.
+    SubscriptionChangeResponseBody:
+      type: object
+      required:
+        - current
+        - new
+      properties:
+        current:
+          allOf:
+            - $ref: '#/components/schemas/Subscription'
+          title: Current subscription
+        new:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionExpanded'
+          title: The subscription it will be changed to
+      description: Response body for subscription change.
     SubscriptionCreate:
       oneOf:
         - $ref: '#/components/schemas/PlanSubscriptionCreate'

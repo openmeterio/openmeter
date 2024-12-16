@@ -45,9 +45,11 @@ func TestCreateFromPlan(t *testing.T) {
 				defer cancel()
 
 				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+						ActiveFrom: deps.CurrentTime,
+					},
 					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
 					Namespace:  subscriptiontestutils.ExampleNamespace,
-					ActiveFrom: deps.CurrentTime,
 				}, deps.Plan)
 
 				assert.ErrorAs(t, err, &customerentity.NotFoundError{}, "expected customer not found error, got %T", err)
@@ -488,10 +490,12 @@ func TestEditRunning(t *testing.T) {
 
 			// Let's create an example subscription
 			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					ActiveFrom: tcDeps.CurrentTime,
+					Name:       "Example Subscription",
+				},
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
-				ActiveFrom: tcDeps.CurrentTime,
-				Name:       "Example Subscription",
 			}, plan)
 			require.Nil(t, err)
 
@@ -657,23 +661,23 @@ func TestChangeToPlan(t *testing.T) {
 			// First, let's create a subscription from the first plan
 			// Let's create an example subscription
 			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					ActiveFrom: deps.CurrentTime,
+					Name:       "Example Subscription",
+				},
 				CustomerID: deps.Customer.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
-				ActiveFrom: deps.CurrentTime,
-				Name:       "Example Subscription",
 			}, deps.Plan1)
 			require.Nil(t, err)
 
 			someTimeLater := deps.CurrentTime.AddDate(0, 0, 10)
 
-			createInput := subscription.CreateSubscriptionWorkflowInput{
-				Namespace:  subscriptiontestutils.ExampleNamespace,
-				CustomerID: deps.Customer.ID,
+			changeInput := subscription.ChangeSubscriptionWorkflowInput{
 				ActiveFrom: someTimeLater,
 				Name:       "New Subscription",
 			}
 
-			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, createInput, deps.Plan2)
+			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, changeInput, deps.Plan2)
 			require.Nil(t, err)
 
 			// Let's do some simple validations
@@ -686,12 +690,12 @@ func TestChangeToPlan(t *testing.T) {
 
 			// Let's check that the new plan looks as we expect
 			targetSpec, err := subscription.NewSpecFromPlan(deps.Plan2, subscription.CreateSubscriptionCustomerInput{
-				Name:           createInput.Name,
-				Description:    createInput.Description,
-				AnnotatedModel: createInput.AnnotatedModel,
-				CustomerId:     createInput.CustomerID,
+				Name:           changeInput.Name,
+				Description:    changeInput.Description,
+				AnnotatedModel: changeInput.AnnotatedModel,
+				CustomerId:     curr.CustomerId,
 				Currency:       deps.Plan2.Currency(),
-				ActiveFrom:     createInput.ActiveFrom,
+				ActiveFrom:     changeInput.ActiveFrom,
 				ActiveTo:       nil,
 			})
 			require.Nil(t, err)

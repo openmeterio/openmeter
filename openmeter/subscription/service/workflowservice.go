@@ -113,20 +113,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	})
 }
 
-func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.Subscription, subscription.SubscriptionView, error) {
-	// Let's validate that the new input matches the current subscription
-	curr, err := s.Service.Get(ctx, subscriptionID)
-	if err != nil {
-		return subscription.Subscription{}, subscription.SubscriptionView{}, fmt.Errorf("failed to fetch subscription: %w", err)
-	}
-
-	if curr.CustomerId != inp.CustomerID {
-		return subscription.Subscription{}, subscription.SubscriptionView{}, &models.GenericUserError{Message: "customer ID mismatch"}
-	}
-	if curr.Namespace != inp.Namespace {
-		return subscription.Subscription{}, subscription.SubscriptionView{}, &models.GenericUserError{Message: "namespace mismatch"}
-	}
-
+func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (subscription.Subscription, subscription.SubscriptionView, error) {
 	// typing helper
 	type res struct {
 		curr subscription.Subscription
@@ -142,7 +129,11 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 		}
 
 		// Now, let's create a new subscription with the new plan
-		new, err := s.CreateFromPlan(ctx, inp, plan)
+		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: inp,
+			Namespace:                       curr.Namespace,
+			CustomerID:                      curr.CustomerId,
+		}, plan)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to create new subscription: %w", err)
 		}

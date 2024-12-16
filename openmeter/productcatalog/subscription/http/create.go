@@ -75,14 +75,16 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 
 				return CreateSubscriptionRequest{
 					inp: subscription.CreateSubscriptionWorkflowInput{
-						Namespace:   ns,
-						ActiveFrom:  parsedBody.ActiveFrom,
-						CustomerID:  parsedBody.CustomerId,
-						Name:        req.Name,        // We map the plan name to the subscription name
-						Description: req.Description, // We map the plan description to the subscription description
-						AnnotatedModel: models.AnnotatedModel{
-							Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
+						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+							ActiveFrom:  parsedBody.ActiveFrom,
+							Name:        req.Name,        // We map the plan name to the subscription name
+							Description: req.Description, // We map the plan description to the subscription description
+							AnnotatedModel: models.AnnotatedModel{
+								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
+							},
 						},
+						Namespace:  ns,
+						CustomerID: parsedBody.CustomerId,
 					},
 
 					plan: &req,
@@ -95,14 +97,16 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 				return CreateSubscriptionRequest{
 					inp: subscription.CreateSubscriptionWorkflowInput{
-						Namespace:   ns,
-						ActiveFrom:  parsedBody.ActiveFrom,
-						CustomerID:  parsedBody.CustomerId,
-						Name:        parsedBody.Name,
-						Description: parsedBody.Description,
-						AnnotatedModel: models.AnnotatedModel{
-							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
+						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+							ActiveFrom:  parsedBody.ActiveFrom,
+							Name:        parsedBody.Name,
+							Description: parsedBody.Description,
+							AnnotatedModel: models.AnnotatedModel{
+								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
+							},
 						},
+						Namespace:  ns,
+						CustomerID: parsedBody.CustomerId,
 					},
 					planRef: &plansubscription.PlanRefInput{
 						Key:     parsedBody.Plan.Key,
