@@ -63,6 +63,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Initialize application
 	app, cleanup, err := initializeApplication(ctx, conf)
 	if err != nil {
 		slog.Error("failed to initialize application", "error", err)

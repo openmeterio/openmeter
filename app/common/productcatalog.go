@@ -30,11 +30,6 @@ var Plan = wire.NewSet(
 )
 
 func NewFeatureConnector(logger *slog.Logger, db *entdb.Client, meterRepo meter.Repository) feature.FeatureConnector {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return nil
-	}
-
 	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger)
 	return feature.NewFeatureConnector(featureRepo, meterRepo)
 }
@@ -45,11 +40,6 @@ func NewPlanService(
 	productCatalogConf config.ProductCatalogConfiguration,
 	featureConnector feature.FeatureConnector,
 ) (plan.Service, error) {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return nil, nil
-	}
-
 	if !productCatalogConf.Enabled {
 		return nil, nil
 	}

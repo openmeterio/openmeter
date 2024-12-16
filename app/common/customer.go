@@ -17,11 +17,6 @@ var Customer = wire.NewSet(
 )
 
 func NewCustomerService(logger *slog.Logger, db *entdb.Client) (customer.Service, error) {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return nil, nil
-	}
-
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: db,
 		Logger: logger.WithGroup("customer.postgres"),

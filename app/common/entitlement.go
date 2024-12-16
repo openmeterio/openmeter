@@ -26,11 +26,6 @@ func NewEntitlementRegistry(
 	meterRepository meter.Repository,
 	eventPublisher eventbus.Publisher,
 ) *registry.Entitlement {
-	// TODO: remove this check after enabled by default
-	if db == nil {
-		return nil
-	}
-
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     db,
 		StreamingConnector: streamingConnector,

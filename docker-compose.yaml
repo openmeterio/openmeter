@@ -115,8 +115,6 @@ services:
   # docker compose --profile postgres up
   postgres:
     image: postgres:14.9-alpine
-    profiles:
-      - postgres
     ports:
       - "127.0.0.1:5432:5432"
     environment:
