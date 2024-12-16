@@ -297,11 +297,11 @@ func New(config Config) (Handler, error) {
 		err     error
 	)
 
-	// If the Svix server URL is not provided, we use the debug webhook handler
+	// If the Svix server URL is not provided, we use the noop webhook handler
 	if config.SvixConfig.ServerURL == "" {
-		config.Logger.InfoContext(context.Background(), "svix url not provided: using debug webhook handler")
+		config.Logger.InfoContext(context.Background(), "svix url not provided: using the noop webhook handler")
 
-		handler = newDebugWebhookHandler(config.Logger)
+		handler = newNoopWebhookHandler(config.Logger)
 	} else {
 		handler, err = newSvixWebhookHandler(config.SvixConfig)
 		if err != nil {
