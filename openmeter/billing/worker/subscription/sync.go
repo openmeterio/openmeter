@@ -121,7 +121,7 @@ func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.
 	deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
 	linesToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
 
-	currency, err := currencyx.Code(subs.Spec.Currency).Calculator()
+	currency, err := subs.Spec.Currency.Calculator()
 	if err != nil {
 		return fmt.Errorf("getting currency calculator: %w", err)
 	}
