@@ -18,19 +18,24 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 	}
 
 	if request.PlanInput.AsInput() != nil {
-		p, err := s.PlanAdapter.FromInput(ctx, request.WorkflowInput.Namespace, *request.PlanInput.AsInput())
+		p, err := PlanFromPlanInput(*request.PlanInput.AsInput())
 		if err != nil {
 			return def, err
 		}
 
 		plan = p
 	} else if request.PlanInput.AsRef() != nil {
-		p, err := s.PlanAdapter.GetVersion(ctx, request.WorkflowInput.Namespace, *request.PlanInput.AsRef())
+		p, err := s.getPlanByVersion(ctx, request.WorkflowInput.Namespace, *request.PlanInput.AsRef())
 		if err != nil {
 			return def, err
 		}
 
-		plan = p
+		pp, err := PlanFromPlan(*p)
+		if err != nil {
+			return def, err
+		}
+
+		plan = pp
 	} else {
 		return def, fmt.Errorf("plan or plan reference must be provided, should have validated already")
 	}

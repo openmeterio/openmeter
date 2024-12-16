@@ -25,11 +25,26 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		}
 	}
 
+	if request.TargetVersion <= sub.PlanRef.Version {
+		return def, &models.GenericUserError{
+			Message: fmt.Sprintf("Subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
+		}
+	}
+
 	// Let's fetch the version of the plan we should migrate to
-	plan, err := s.PlanAdapter.GetVersion(ctx, request.ID.Namespace, plansubscription.PlanRefInput{
+	plan, err := s.getPlanByVersion(ctx, request.ID.Namespace, plansubscription.PlanRefInput{
 		Key:     sub.PlanRef.Key,
 		Version: &request.TargetVersion,
 	})
+	if err != nil {
+		return def, err
+	}
+
+	if plan == nil {
+		return def, fmt.Errorf("plan is nil")
+	}
+
+	pp, err := PlanFromPlan(*plan)
 	if err != nil {
 		return def, err
 	}
@@ -40,7 +55,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		AnnotatedModel: sub.AnnotatedModel,
 		Name:           sub.Name,
 		Description:    sub.Description,
-	}, plan)
+	}, pp)
 	if err != nil {
 		return def, err
 	}

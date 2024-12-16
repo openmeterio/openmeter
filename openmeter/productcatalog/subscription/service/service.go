@@ -3,6 +3,7 @@ package service
 import (
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 )
@@ -11,7 +12,7 @@ type Config struct {
 	// TODO: WorkflowService and this can probably be merged
 	WorkflowService     subscription.WorkflowService
 	SubscriptionService subscription.Service
-	PlanAdapter         plansubscription.Adapter
+	PlanService         plan.Service
 	Logger              *slog.Logger
 }
 

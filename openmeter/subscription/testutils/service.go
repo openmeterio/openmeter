@@ -1,14 +1,13 @@
 package subscriptiontestutils
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
@@ -27,6 +26,7 @@ type ExposedServiceDeps struct {
 	FeatureConnector   *testFeatureConnector
 	EntitlementAdapter subscription.EntitlementAdapter
 	PlanHelper         *planHelper
+	PlanService        plan.Service
 	DBDeps             *DBDeps
 }
 
@@ -106,45 +106,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 			EntitlementAdapter: entitlementAdapter,
 			DBDeps:             dbDeps,
 			PlanHelper:         planHelper,
+			PlanService:        planService,
 		}
-}
-
-type MockService struct {
-	CreateFn   func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error)
-	UpdateFn   func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error)
-	DeleteFn   func(ctx context.Context, subscriptionID models.NamespacedID) error
-	CancelFn   func(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error)
-	ContinueFn func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
-	GetFn      func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
-	GetViewFn  func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
-}
-
-var _ subscription.Service = &MockService{}
-
-func (s *MockService) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
-	return s.CreateFn(ctx, namespace, spec)
-}
-
-func (s *MockService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
-	return s.UpdateFn(ctx, subscriptionID, target)
-}
-
-func (s *MockService) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
-	return s.DeleteFn(ctx, subscriptionID)
-}
-
-func (s *MockService) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error) {
-	return s.CancelFn(ctx, subscriptionID, at)
-}
-
-func (s *MockService) Continue(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
-	return s.ContinueFn(ctx, subscriptionID)
-}
-
-func (s *MockService) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
-	return s.GetFn(ctx, subscriptionID)
-}
-
-func (s *MockService) GetView(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error) {
-	return s.GetViewFn(ctx, subscriptionID)
 }

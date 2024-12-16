@@ -85,15 +85,10 @@ func NewPlanSubscriptionService(
 	subsServices SubscriptionServiceWithWorkflow,
 	logger *slog.Logger,
 ) plansubscription.PlanSubscriptionService {
-	adapter := plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
-		PlanService: planService,
-		Logger:      logger.With("subsystem", "subscription.plan.adapter"),
-	})
-
 	return subscriptionchangeservice.New(subscriptionchangeservice.Config{
 		WorkflowService:     subsServices.WorkflowService,
 		SubscriptionService: subsServices.Service,
+		PlanService:         planService,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
-		PlanAdapter:         adapter,
 	})
 }

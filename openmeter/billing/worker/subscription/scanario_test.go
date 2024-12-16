@@ -27,8 +27,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
-	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlementadatapter "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
@@ -47,7 +47,7 @@ type SubscriptionHandlerTestSuite struct {
 
 	PlanService                 plan.Service
 	SubscriptionService         subscription.Service
-	SubscrpiptionPlanAdapter    plansubscription.Adapter
+	SubscrpiptionPlanAdapter    testutils.PlanSubscriptionAdapter
 	SubscriptionWorkflowService subscription.WorkflowService
 
 	Handler *Handler
@@ -92,7 +92,7 @@ func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 		Publisher: eventbus.NewMock(s.T()),
 	})
 
-	s.SubscrpiptionPlanAdapter = plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
+	s.SubscrpiptionPlanAdapter = testutils.NewPlanSubscriptionAdapter(testutils.PlanSubscriptionAdapterConfig{
 		PlanService: planService,
 		Logger:      slog.Default(),
 	})

@@ -315,7 +315,7 @@ func (i ArchivePlanInput) Validate() error {
 		errs = append(errs, errors.New("invalid EffectiveTo: must not be empty"))
 	}
 
-	now := time.Now()
+	now := clock.Now()
 
 	if i.EffectiveTo.Before(now.Add(-timeJitter)) {
 		errs = append(errs, errors.New("invalid EffectiveTo: period end must not be in the past"))

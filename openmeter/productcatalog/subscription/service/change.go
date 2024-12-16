@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,19 +21,28 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 	// TODO: let's validate the plan can be changed to!
 
 	if request.PlanInput.AsInput() != nil {
-		p, err := s.PlanAdapter.FromInput(ctx, request.ID.Namespace, *request.PlanInput.AsInput())
+		p, err := PlanFromPlanInput(*request.PlanInput.AsInput())
 		if err != nil {
 			return def, err
 		}
 
 		plan = p
 	} else if request.PlanInput.AsRef() != nil {
-		p, err := s.PlanAdapter.GetVersion(ctx, request.ID.Namespace, *request.PlanInput.AsRef())
+		p, err := s.getPlanByVersion(ctx, request.ID.Namespace, *request.PlanInput.AsRef())
 		if err != nil {
 			return def, err
 		}
 
-		plan = p
+		if p.Status() != productcatalog.ActiveStatus {
+			return def, &models.GenericUserError{Message: "plan is not active"}
+		}
+
+		pp, err := PlanFromPlan(*p)
+		if err != nil {
+			return def, err
+		}
+
+		plan = pp
 	} else {
 		return def, fmt.Errorf("plan or plan reference must be provided, input should already be validated")
 	}
