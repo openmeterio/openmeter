@@ -82,8 +82,7 @@ type Config struct {
 	Plan                        plan.Service
 	SubscriptionService         subscription.Service
 	SubscriptionWorkflowService subscription.WorkflowService
-	SubscriptionChangeService   plansubscription.ChangeService
-	SubscriptionPlanAdapter     plansubscription.Adapter
+	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	DebugConnector              debug.DebugConnector
 	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
@@ -277,7 +276,7 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.SubscriptionPlanAdapter == nil || config.SubscriptionChangeService == nil {
+		if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.PlanSubscriptionService == nil {
 			return nil, errors.New("subscription services are required when productcatalog is enabled")
 		}
 
@@ -289,8 +288,7 @@ func NewRouter(config Config) (*Router, error) {
 			subscriptionhttpdriver.HandlerConfig{
 				SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 				SubscriptionService:         config.SubscriptionService,
-				SubscrpiptionPlanAdapter:    config.SubscriptionPlanAdapter,
-				SubscriptionChangeService:   config.SubscriptionChangeService,
+				PlanSubscriptionService:     config.PlanSubscriptionService,
 				NamespaceDecoder:            staticNamespaceDecoder,
 				Logger:                      config.Logger,
 			},

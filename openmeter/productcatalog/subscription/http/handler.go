@@ -26,8 +26,7 @@ type Handler interface {
 type HandlerConfig struct {
 	SubscriptionWorkflowService subscription.WorkflowService
 	SubscriptionService         subscription.Service
-	SubscrpiptionPlanAdapter    plansubscription.Adapter
-	SubscriptionChangeService   plansubscription.ChangeService
+	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
 }

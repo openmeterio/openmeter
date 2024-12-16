@@ -59,8 +59,7 @@ type Application struct {
 	RouterHook                func(chi.Router)
 	Secret                    secret.Service
 	Subscription              common.SubscriptionServiceWithWorkflow
-	SubscriptionPlanAdapter   plansubscription.Adapter
-	SubscriptionChangeService plansubscription.ChangeService
+	SubscriptionChangeService plansubscription.PlanSubscriptionService
 	StreamingConnector        streaming.Connector
 	TelemetryServer           common.TelemetryServer
 }

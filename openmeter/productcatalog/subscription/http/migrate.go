@@ -43,7 +43,7 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 			}, nil
 		},
 		func(ctx context.Context, request MigrateSubscriptionRequest) (MigrateSubscriptionResponse, error) {
-			res, err := h.SubscriptionChangeService.Migrate(ctx, request)
+			res, err := h.PlanSubscriptionService.Migrate(ctx, request)
 			if err != nil {
 				return MigrateSubscriptionResponse{}, err
 			}

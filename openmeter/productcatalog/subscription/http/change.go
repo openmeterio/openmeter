@@ -111,7 +111,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			}
 		},
 		func(ctx context.Context, request ChangeSubscriptionRequest) (ChangeSubscriptionResponse, error) {
-			res, err := h.SubscriptionChangeService.Change(ctx, request)
+			res, err := h.PlanSubscriptionService.Change(ctx, request)
 			if err != nil {
 				return ChangeSubscriptionResponse{}, err
 			}

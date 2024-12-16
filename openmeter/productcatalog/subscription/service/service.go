@@ -19,7 +19,7 @@ type service struct {
 	Config
 }
 
-func New(c Config) plansubscription.ChangeService {
+func New(c Config) plansubscription.PlanSubscriptionService {
 	return &service{
 		Config: c,
 	}

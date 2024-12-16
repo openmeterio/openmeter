@@ -22,8 +22,7 @@ import (
 
 var Subscription = wire.NewSet(
 	NewSubscriptionService,
-	NewPlanSubscriptionAdapter,
-	NewSubscriptionChangeService,
+	NewPlanSubscriptionService,
 )
 
 // Combine Srvice and WorkflowService into one struct
@@ -81,26 +80,20 @@ func NewSubscriptionService(
 	}, nil
 }
 
-func NewPlanSubscriptionAdapter(
-	logger *slog.Logger,
-	db *entdb.Client,
+func NewPlanSubscriptionService(
 	planService plan.Service,
-) plansubscription.Adapter {
-	return plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
+	subsServices SubscriptionServiceWithWorkflow,
+	logger *slog.Logger,
+) plansubscription.PlanSubscriptionService {
+	adapter := plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
 		PlanService: planService,
 		Logger:      logger.With("subsystem", "subscription.plan.adapter"),
 	})
-}
 
-func NewSubscriptionChangeService(
-	subsServices SubscriptionServiceWithWorkflow,
-	logger *slog.Logger,
-	planAdapter plansubscription.Adapter,
-) plansubscription.ChangeService {
 	return subscriptionchangeservice.New(subscriptionchangeservice.Config{
 		WorkflowService:     subsServices.WorkflowService,
 		SubscriptionService: subsServices.Service,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
-		PlanAdapter:         planAdapter,
+		PlanAdapter:         adapter,
 	})
 }

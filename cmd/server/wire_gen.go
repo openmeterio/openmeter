@@ -330,8 +330,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	plansubscriptionAdapter := common.NewPlanSubscriptionAdapter(logger, client, planService)
-	changeService := common.NewSubscriptionChangeService(subscriptionServiceWithWorkflow, logger, plansubscriptionAdapter)
+	planSubscriptionService := common.NewPlanSubscriptionService(planService, subscriptionServiceWithWorkflow, logger)
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
@@ -360,8 +359,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RouterHook:                v6,
 		Secret:                    secretserviceService,
 		Subscription:              subscriptionServiceWithWorkflow,
-		SubscriptionPlanAdapter:   plansubscriptionAdapter,
-		SubscriptionChangeService: changeService,
+		SubscriptionChangeService: planSubscriptionService,
 		StreamingConnector:        connector,
 		TelemetryServer:           v7,
 	}
@@ -405,8 +403,7 @@ type Application struct {
 	RouterHook                func(chi.Router)
 	Secret                    secret.Service
 	Subscription              common.SubscriptionServiceWithWorkflow
-	SubscriptionPlanAdapter   plansubscription.Adapter
-	SubscriptionChangeService plansubscription.ChangeService
+	SubscriptionChangeService plansubscription.PlanSubscriptionService
 	StreamingConnector        streaming.Connector
 	TelemetryServer           common.TelemetryServer
 }

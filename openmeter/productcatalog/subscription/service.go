@@ -7,7 +7,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type ChangeService interface {
+type PlanSubscriptionService interface {
+	Create(ctx context.Context, request CreateSubscriptionRequest) (subscription.Subscription, error)
 	Migrate(ctx context.Context, request MigrateSubscriptionRequest) (SubscriptionChangeResponse, error)
 	Change(ctx context.Context, request ChangeSubscriptionRequest) (SubscriptionChangeResponse, error)
 }
@@ -26,5 +27,10 @@ type MigrateSubscriptionRequest struct {
 type ChangeSubscriptionRequest struct {
 	ID            models.NamespacedID
 	WorkflowInput subscription.ChangeSubscriptionWorkflowInput
+	PlanInput     PlanInput
+}
+
+type CreateSubscriptionRequest struct {
+	WorkflowInput subscription.CreateSubscriptionWorkflowInput
 	PlanInput     PlanInput
 }
