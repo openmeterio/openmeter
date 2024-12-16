@@ -40,19 +40,21 @@ type SvixConfig struct {
 func (c SvixConfig) Validate() error {
 	var errs []error
 
-	if c.ServerURL == "" {
-		return nil
-	}
-
 	if c.APIKey == "" {
 		errs = append(errs, errors.New("API key is required"))
 	}
 
-	if _, err := url.Parse(c.ServerURL); err != nil {
-		errs = append(errs, fmt.Errorf("invalid server URL: %w", err))
+	if c.ServerURL != "" {
+		if _, err := url.Parse(c.ServerURL); err != nil {
+			errs = append(errs, fmt.Errorf("invalid server URL: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)
+}
+
+func (c SvixConfig) IsEnabled() bool {
+	return c.ServerURL != "" || c.APIKey != ""
 }
 
 var _ Handler = (*svixWebhookHandler)(nil)
