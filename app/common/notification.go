@@ -31,10 +31,6 @@ func NewNotificationService(
 		return nil, nil
 	}
 
-	if !notificationConfig.Enabled {
-		return nil, nil
-	}
-
 	var notificationRepo notification.Repository
 	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
 		Client: db,

@@ -46,7 +46,7 @@ func NewSubscriptionService(
 		return SubscriptionServiceWithWorkflow{}, nil
 	}
 
-	if !productcatalogConfig.Enabled || !entitlementConfig.Enabled {
+	if !productcatalogConfig.Enabled {
 		return SubscriptionServiceWithWorkflow{}, nil
 	}
 

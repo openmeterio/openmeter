@@ -100,21 +100,19 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "balance worker"))
 	}
 
-	if c.Notification.Enabled {
-		if err := c.Notification.Validate(); err != nil {
-			errs = append(errs, errorsx.WithPrefix(err, "notification"))
-		}
+	if err := c.Notification.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "notification"))
+	}
 
-		if err := c.Svix.Validate(); err != nil {
-			errs = append(errs, errorsx.WithPrefix(err, "svix"))
-		}
+	if err := c.Svix.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "svix"))
 	}
 
 	if err := c.ProductCatalog.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "product catalog"))
 	}
 
-	if c.ProductCatalog.Enabled && !c.Entitlements.Enabled {
+	if c.ProductCatalog.Enabled {
 		errs = append(errs, errors.New("entitlements must be enabled if product catalog is enabled"))
 	}
 

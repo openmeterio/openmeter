@@ -304,7 +304,6 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Notification: NotificationConfiguration{
-			Enabled: true,
 			Consumer: ConsumerConfiguration{
 				ProcessingTimeout: 30 * time.Second,
 				Retry: RetryConfiguration{
