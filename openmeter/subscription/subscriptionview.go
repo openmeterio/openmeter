@@ -17,10 +17,10 @@ import (
 )
 
 type SubscriptionView struct {
-	Subscription Subscription
-	Customer     customerentity.Customer
-	Spec         SubscriptionSpec
-	Phases       []SubscriptionPhaseView
+	Subscription Subscription            `json:"subscription"`
+	Customer     customerentity.Customer `json:"customer"`
+	Spec         SubscriptionSpec        `json:"spec"`
+	Phases       []SubscriptionPhaseView `json:"phases"`
 }
 
 func (s SubscriptionView) AsSpec() SubscriptionSpec {
@@ -57,9 +57,9 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 }
 
 type SubscriptionPhaseView struct {
-	SubscriptionPhase SubscriptionPhase
-	Spec              SubscriptionPhaseSpec
-	ItemsByKey        map[string][]SubscriptionItemView
+	SubscriptionPhase SubscriptionPhase                 `json:"subscriptionPhase"`
+	Spec              SubscriptionPhaseSpec             `json:"spec"`
+	ItemsByKey        map[string][]SubscriptionItemView `json:"itemsByKey"`
 }
 
 func (s *SubscriptionPhaseView) ActiveFrom(subscriptionCadence models.CadencedModel) time.Time {
@@ -85,10 +85,10 @@ func (s *SubscriptionPhaseView) Validate(includeItems bool) error {
 }
 
 type SubscriptionItemView struct {
-	SubscriptionItem SubscriptionItem
-	Spec             SubscriptionItemSpec
+	SubscriptionItem SubscriptionItem     `json:"subscriptionItem"`
+	Spec             SubscriptionItemSpec `json:"spec"`
 
-	Entitlement *SubscriptionEntitlement
+	Entitlement *SubscriptionEntitlement `json:"entitlement,omitempty"`
 }
 
 func (s *SubscriptionItemView) AsSpec() SubscriptionItemSpec {

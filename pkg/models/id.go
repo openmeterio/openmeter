@@ -5,8 +5,8 @@ import (
 )
 
 type NamespacedID struct {
-	Namespace string
-	ID        string
+	Namespace string `json:"namespace"`
+	ID        string `json:"id"`
 }
 
 func (i NamespacedID) Validate() error {

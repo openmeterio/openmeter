@@ -15,13 +15,13 @@ import (
 type Customer struct {
 	models.ManagedResource
 
-	Timezone         *timezone.Timezone       `json:"timezone"`
+	Timezone         *timezone.Timezone       `json:"timezone,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
-	PrimaryEmail     *string                  `json:"primaryEmail"`
-	Currency         *currencyx.Code          `json:"currency"`
-	BillingAddress   *models.Address          `json:"billingAddress"`
+	PrimaryEmail     *string                  `json:"primaryEmail,omitempty"`
+	Currency         *currencyx.Code          `json:"currency,omitempty"`
+	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
 
-	CurrentSubscriptionID *string `json:"currentSubscriptionId"`
+	CurrentSubscriptionID *string `json:"currentSubscriptionId,omitempty"`
 }
 
 func (c Customer) Validate() error {

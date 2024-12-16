@@ -28,11 +28,11 @@ type RateCard struct {
 	TaxConfig *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
 
 	// Price defines the price for the RateCard
-	Price *productcatalog.Price `json:"price"`
+	Price *productcatalog.Price `json:"price,omitempty"`
 
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
-	BillingCadence *datex.Period `json:"billingCadence"`
+	BillingCadence *datex.Period `json:"billingCadence,omitempty"`
 }
 
 func (r RateCard) Equal(other RateCard) bool {
