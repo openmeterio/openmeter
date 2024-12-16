@@ -320,10 +320,12 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.NoError(err)
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			ActiveFrom: start,
+			Name:       "subs-1",
+		},
 		Namespace:  namespace,
-		ActiveFrom: start,
 		CustomerID: customerEntity.ID,
-		Name:       "subs-1",
 	}, subscriptionPlan)
 
 	s.NoError(err)
@@ -634,10 +636,12 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 	s.NoError(err)
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+			ActiveFrom: start,
+			Name:       "subs-1",
+		},
 		Namespace:  namespace,
-		ActiveFrom: start,
 		CustomerID: customerEntity.ID,
-		Name:       "subs-1",
 	}, subscriptionPlan)
 
 	s.NoError(err)
