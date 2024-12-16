@@ -40,13 +40,13 @@ type SvixConfig struct {
 func (c SvixConfig) Validate() error {
 	var errs []error
 
-	if c.APIKey == "" {
-		errs = append(errs, errors.New("API key is required"))
-	}
-
 	if c.ServerURL != "" {
 		if _, err := url.Parse(c.ServerURL); err != nil {
 			errs = append(errs, fmt.Errorf("invalid server URL: %w", err))
+		}
+
+		if c.APIKey == "" {
+			errs = append(errs, errors.New("API key is required"))
 		}
 	}
 
