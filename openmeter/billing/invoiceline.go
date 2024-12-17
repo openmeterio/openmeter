@@ -731,6 +731,7 @@ type ListInvoiceLinesAdapterInput struct {
 	Namespace string
 
 	CustomerID                 string
+	InvoiceIDs                 []string
 	InvoiceStatuses            []InvoiceStatus
 	InvoiceAtBefore            *time.Time
 	IncludeDeleted             bool

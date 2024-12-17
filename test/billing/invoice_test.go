@@ -22,6 +22,7 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -2228,4 +2229,164 @@ func requireTotals(t *testing.T, expected expectedTotals, totals billing.Totals)
 	}
 
 	require.Equal(t, expected, totalsFloat)
+}
+
+func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
+	namespace := "ns-gathering-invoice-calc"
+	ctx := context.Background()
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	clock.SetTime(periodStart)
+	defer clock.ResetTime()
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	meterSlug := "flat-per-unit"
+
+	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
+		{
+			Namespace:   namespace,
+			Slug:        meterSlug,
+			WindowSize:  models.WindowSizeMinute,
+			Aggregation: models.MeterAggregationSum,
+		},
+	})
+	defer s.MeterRepo.ReplaceMeters(ctx, []models.Meter{})
+
+	// Let's initialize the mock streaming connector with data that is out of the period so that we
+	// can start with empty values
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+
+	defer s.MockStreamingConnector.Reset()
+
+	flatPerUnitFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "flat-per-unit",
+		Key:       "flat-per-unit",
+		MeterSlug: lo.ToPtr("flat-per-unit"),
+	}))
+
+	// Given we have a test customer
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:         "Test Customer",
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			BillingAddress: &models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customerentity.CustomerUsageAttribution{
+				SubjectKeys: []string{"test"},
+			},
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), customerEntity)
+	require.NotEmpty(s.T(), customerEntity.ID)
+
+	// Given we have a default profile for the namespace
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	s.Run("create pending invoice items", func() {
+		// When we create pending invoice items
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+			billing.CreateInvoiceLinesInput{
+				Namespace: namespace,
+				Lines: []billing.LineWithCustomer{
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - FLAT per unit",
+							},
+							UsageBased: billing.UsageBasedLine{
+								FeatureKey: flatPerUnitFeature.Key,
+								Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount:        alpacadecimal.NewFromFloat(100),
+									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+								}),
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+				},
+			},
+		)
+		require.NoError(s.T(), err)
+		require.Len(s.T(), pendingLines, 1)
+	})
+
+	s.Run("fetch gathering invoice", func() {
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:        namespace,
+			Customers:        []string{customerEntity.ID},
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+			Expand: billing.InvoiceExpand{
+				GatheringTotals: true,
+			},
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+
+		gatheringInvoice := invoices.Items[0]
+		require.Equal(s.T(), float64(0), gatheringInvoice.Totals.Total.InexactFloat64())
+	})
+
+	// when we have some traffic on the meter, the invoice should be recalculated
+	s.Run("invoice recalculation", func() {
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))
+
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:        namespace,
+			Customers:        []string{customerEntity.ID},
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+			Expand: billing.InvoiceExpand{
+				GatheringTotals: true,
+			},
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+
+		gatheringInvoice := invoices.Items[0]
+		require.Equal(s.T(), float64(1000), gatheringInvoice.Totals.Total.InexactFloat64())
+	})
+
+	// Max spend is reached
+	s.Run("invoice recalculation - max spend", func() {
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 30, periodStart.Add(2*time.Minute))
+
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:        namespace,
+			Customers:        []string{customerEntity.ID},
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+			Expand: billing.InvoiceExpand{
+				GatheringTotals: true,
+			},
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+
+		gatheringInvoice := invoices.Items[0]
+		requireTotals(s.T(), expectedTotals{
+			Amount:         4000,
+			Total:          2000,
+			DiscountsTotal: 2000,
+		}, gatheringInvoice.Totals)
+	})
 }

@@ -138,6 +138,9 @@ type InvoiceExpand struct {
 	Lines        bool
 	DeletedLines bool
 	SplitLines   bool
+	// GatheringTotals is used to calculate the totals of the invoice when gathering, this is temporary
+	// until we implement the full progressive billing stack.
+	GatheringTotals bool
 }
 
 var InvoiceExpandAll = InvoiceExpand{
@@ -164,6 +167,11 @@ func (e InvoiceExpand) SetDeletedLines(v bool) InvoiceExpand {
 
 func (e InvoiceExpand) SetSplitLines(v bool) InvoiceExpand {
 	e.SplitLines = v
+	return e
+}
+
+func (e InvoiceExpand) SetGatheringTotals(v bool) InvoiceExpand {
+	e.GatheringTotals = v
 	return e
 }
 
