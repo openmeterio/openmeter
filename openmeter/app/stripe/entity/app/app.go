@@ -15,7 +15,6 @@ import (
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/secret"
-	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 const (
@@ -68,41 +67,29 @@ func (a App) Validate() error {
 
 // ValidateCustomer validates if the app can run for the given customer
 func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
+	return a.ValidateCustomerByID(ctx, customer.GetID(), capabilities)
+}
+
+// ValidateCustomerByID validates if the app can run for the given customer ID
+func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity.CustomerID, capabilities []appentitybase.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities...); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
 
-	// Get Stripe App
-	stripeAppData, err := a.StripeAppService.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
-		AppID: a.GetID(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get stripe app data: %w", err)
-	}
-
 	// Get Stripe Customer
 	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
 		AppID:      a.GetID(),
-		CustomerID: customer.GetID(),
+		CustomerID: customerID,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
-	// Get Stripe API Key
-	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.NewSecretID(a.GetID(), stripeAppData.APIKey.ID, appstripeentity.APIKeySecretKey))
-	if err != nil {
-		return fmt.Errorf("failed to get stripe api key secret: %w", err)
-	}
-
 	// Stripe Client
-	stripeClient, err := a.StripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: apiKeySecret.SecretID.Namespace,
-		APIKey:    apiKeySecret.Value,
-	})
+	stripeAppData, stripeClient, err := a.getStripeClient(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create stripe client: %w", err)
+		return fmt.Errorf("failed to get stripe client: %w", err)
 	}
 
 	// Check if the customer exists in Stripe
@@ -112,7 +99,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
-				CustomerID: customer.GetID(),
+				CustomerID: customerID,
 				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
 			}
 		}
@@ -134,7 +121,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 					return app.CustomerPreConditionError{
 						AppID:      a.GetID(),
 						AppType:    a.GetType(),
-						CustomerID: customer.GetID(),
+						CustomerID: customerID,
 						Condition:  fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
 					}
 				}
@@ -149,7 +136,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 				return app.CustomerPreConditionError{
 					AppID:      a.GetID(),
 					AppType:    a.GetType(),
-					CustomerID: customer.GetID(),
+					CustomerID: customerID,
 					Condition:  "stripe customer must have a default payment method",
 				}
 			}
@@ -161,7 +148,7 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 			return app.CustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
-				CustomerID: customer.GetID(),
+				CustomerID: customerID,
 				Condition:  "stripe customer default payment method must have a billing address",
 			}
 		}
