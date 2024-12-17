@@ -15,6 +15,7 @@ func getErrorEncoder() httptransport.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		return commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureInvalidFiltersError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*feature.ForbiddenError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureInvalidMeterAggregationError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*models.MeterNotFoundError](ctx, http.StatusNotFound, err, w) ||
