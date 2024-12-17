@@ -124,9 +124,13 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Walk the tree
 	var queue []*billing.Line
 
+	// Feed the queue with the root lines
 	invoice.Lines.ForEach(func(lines []*billing.Line) {
 		queue = append(queue, lines...)
 	})
+
+	// We collect the line IDs to match them with the Stripe line items from the response
+	var lineIDs []string
 
 	for len(queue) > 0 {
 		line := queue[0]
@@ -151,6 +155,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		// Add discounts
 		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
 			for _, discount := range discounts {
+				lineIDs = append(lineIDs, line.ID)
+
 				stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
 					Description: discount.Description,
 					Amount:      lo.ToPtr(discount.Amount.GetFixed()),
@@ -163,6 +169,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		// Add line item
 		switch line.Type {
 		case billing.InvoiceLineTypeFee:
+			lineIDs = append(lineIDs, line.ID)
+
 			stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
 				Description: line.Description,
 				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
@@ -170,6 +178,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 				Period:      period,
 			})
 		case billing.InvoiceLineTypeUsageBased:
+			lineIDs = append(lineIDs, line.ID)
+
 			stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
 				Description: line.Description,
 				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
@@ -181,14 +191,21 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		}
 	}
 
+	// Add Stripe line items to the Stripe invoice
 	stripeInvoice, err = client.Invoices.AddLines(stripeInvoice.ID, stripeInvoiceLineParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add line items to invoice in stripe: %w", err)
 	}
 
+	// Add external line IDs
+	for idx, stripeLine := range stripeInvoice.Lines.Data {
+		result.AddLineExternalID(lineIDs[idx], stripeLine.ID)
+	}
+
 	return result, nil
 }
 
+// getStripeClient gets the Stripe client for the app
 func (a App) getStripeClient(ctx context.Context) (appstripeentity.AppData, stripeclient.StripeClient, error) {
 	// Get Stripe App
 	stripeAppData, err := a.StripeAppService.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
