@@ -266,7 +266,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		workflowConfig.UpdatedAt = time.Time{}
 		workflowConfig.DeletedAt = nil
 
-		newInvoice, err := tx.db.BillingInvoice.Create().
+		createMut := tx.db.BillingInvoice.Create().
 			SetNamespace(input.Namespace).
 			SetMetadata(input.Metadata).
 			SetCurrency(input.Currency).
@@ -288,16 +288,14 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetTaxAppID(input.Profile.Apps.Tax.GetID().ID).
 			SetInvoicingAppID(input.Profile.Apps.Invoicing.GetID().ID).
 			SetPaymentAppID(input.Profile.Apps.Payment.GetID().ID).
-			// Customer contacts
-			SetNillableCustomerAddressCountry(customer.BillingAddress.Country).
-			SetNillableCustomerAddressPostalCode(customer.BillingAddress.PostalCode).
-			SetNillableCustomerAddressState(customer.BillingAddress.State).
-			SetNillableCustomerAddressCity(customer.BillingAddress.City).
-			SetNillableCustomerAddressLine1(customer.BillingAddress.Line1).
-			SetNillableCustomerAddressLine2(customer.BillingAddress.Line2).
-			SetNillableCustomerAddressPhoneNumber(customer.BillingAddress.PhoneNumber).
-			SetCustomerName(customer.Name).
-			SetNillableCustomerTimezone(customer.Timezone).
+			// Totals
+			SetAmount(input.Totals.Amount).
+			SetChargesTotal(input.Totals.ChargesTotal).
+			SetDiscountsTotal(input.Totals.DiscountsTotal).
+			SetTaxesTotal(input.Totals.TaxesTotal).
+			SetTaxesExclusiveTotal(input.Totals.TaxesExclusiveTotal).
+			SetTaxesInclusiveTotal(input.Totals.TaxesInclusiveTotal).
+			SetTotal(input.Totals.Total).
 			// Supplier contacts
 			SetNillableSupplierAddressCountry(supplier.Address.Country).
 			SetNillableSupplierAddressPostalCode(supplier.Address.PostalCode).
@@ -307,16 +305,24 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableSupplierAddressLine2(supplier.Address.Line2).
 			SetNillableSupplierAddressPhoneNumber(supplier.Address.PhoneNumber).
 			SetSupplierName(supplier.Name).
-			SetNillableSupplierTaxCode(supplier.TaxCode).
-			// Totals
-			SetAmount(input.Totals.Amount).
-			SetChargesTotal(input.Totals.ChargesTotal).
-			SetDiscountsTotal(input.Totals.DiscountsTotal).
-			SetTaxesTotal(input.Totals.TaxesTotal).
-			SetTaxesExclusiveTotal(input.Totals.TaxesExclusiveTotal).
-			SetTaxesInclusiveTotal(input.Totals.TaxesInclusiveTotal).
-			SetTotal(input.Totals.Total).
-			Save(ctx)
+			SetNillableSupplierTaxCode(supplier.TaxCode)
+
+		if customer.BillingAddress != nil {
+			createMut = createMut.
+				// Customer contacts
+				SetNillableCustomerAddressCountry(customer.BillingAddress.Country).
+				SetNillableCustomerAddressPostalCode(customer.BillingAddress.PostalCode).
+				SetNillableCustomerAddressState(customer.BillingAddress.State).
+				SetNillableCustomerAddressCity(customer.BillingAddress.City).
+				SetNillableCustomerAddressLine1(customer.BillingAddress.Line1).
+				SetNillableCustomerAddressLine2(customer.BillingAddress.Line2).
+				SetNillableCustomerAddressPhoneNumber(customer.BillingAddress.PhoneNumber)
+		}
+		createMut = createMut.
+			SetCustomerName(customer.Name).
+			SetNillableCustomerTimezone(customer.Timezone)
+
+		newInvoice, err := createMut.Save(ctx)
 		if err != nil {
 			return billing.CreateInvoiceAdapterRespone{}, err
 		}
@@ -457,14 +463,27 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		updateQuery = updateQuery.
 			// CustomerID is immutable
 			SetCustomerName(in.Customer.Name).
-			SetOrClearCustomerAddressCountry(in.Customer.BillingAddress.Country).
-			SetOrClearCustomerAddressPostalCode(in.Customer.BillingAddress.PostalCode).
-			SetOrClearCustomerAddressCity(in.Customer.BillingAddress.City).
-			SetOrClearCustomerAddressState(in.Customer.BillingAddress.State).
-			SetOrClearCustomerAddressLine1(in.Customer.BillingAddress.Line1).
-			SetOrClearCustomerAddressLine2(in.Customer.BillingAddress.Line2).
-			SetOrClearCustomerAddressPhoneNumber(in.Customer.BillingAddress.PhoneNumber).
 			SetOrClearCustomerTimezone(in.Customer.Timezone)
+
+		if in.Customer.BillingAddress != nil {
+			updateQuery = updateQuery.
+				SetOrClearCustomerAddressCountry(in.Customer.BillingAddress.Country).
+				SetOrClearCustomerAddressPostalCode(in.Customer.BillingAddress.PostalCode).
+				SetOrClearCustomerAddressCity(in.Customer.BillingAddress.City).
+				SetOrClearCustomerAddressState(in.Customer.BillingAddress.State).
+				SetOrClearCustomerAddressLine1(in.Customer.BillingAddress.Line1).
+				SetOrClearCustomerAddressLine2(in.Customer.BillingAddress.Line2).
+				SetOrClearCustomerAddressPhoneNumber(in.Customer.BillingAddress.PhoneNumber)
+		} else {
+			updateQuery = updateQuery.
+				ClearCustomerAddressCountry().
+				ClearCustomerAddressPostalCode().
+				ClearCustomerAddressCity().
+				ClearCustomerAddressState().
+				ClearCustomerAddressLine1().
+				ClearCustomerAddressLine2().
+				ClearCustomerAddressPhoneNumber()
+		}
 
 		// ExternalIDs
 		updateQuery = updateQuery.
