@@ -67,6 +67,16 @@ func (e CustomerAppError) Error() string {
 	return fmt.Sprintf("app %s type with id %s in namespace %s: %s", e.AppType, e.AppID.ID, e.AppID.Namespace, e.Err.Error())
 }
 
+type ForbiddenError genericError
+
+func (e ForbiddenError) Error() string {
+	return e.Err.Error()
+}
+
+func (e ForbiddenError) Unwrap() error {
+	return e.Err
+}
+
 // genericError represents a generic error
 type genericError struct {
 	Err error

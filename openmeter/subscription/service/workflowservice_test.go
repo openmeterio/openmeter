@@ -285,7 +285,7 @@ func TestCreateFromPlan(t *testing.T) {
 			clock.SetTime(tcDeps.CurrentTime)
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			require.NotNil(t, dbDeps)
-			defer dbDeps.Cleanup()
+			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeature(t)
@@ -480,7 +480,7 @@ func TestEditRunning(t *testing.T) {
 			// Let's build the dependencies
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			require.NotNil(t, dbDeps)
-			defer dbDeps.Cleanup()
+			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeature(t)
@@ -630,7 +630,7 @@ func TestChangeToPlan(t *testing.T) {
 			// Let's build the dependencies
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
 			require.NotNil(t, dbDeps)
-			defer dbDeps.Cleanup()
+			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeature(t)

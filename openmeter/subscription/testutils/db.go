@@ -2,6 +2,7 @@ package subscriptiontestutils
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 
@@ -12,15 +13,27 @@ import (
 )
 
 type DBDeps struct {
-	dbClient  *db.Client
-	entDriver *entdriver.EntPostgresDriver
-	pgDriver  *pgdriver.Driver
+	DBClient  *db.Client
+	EntDriver *entdriver.EntPostgresDriver
+	PGDriver  *pgdriver.Driver
 }
 
-func (d *DBDeps) Cleanup() {
-	d.dbClient.Close()
-	d.entDriver.Close()
-	d.pgDriver.Close()
+func (d *DBDeps) Cleanup(t *testing.T) {
+	var errs []error
+
+	if err := d.DBClient.Close(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := d.EntDriver.Close(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := d.PGDriver.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		t.Fatalf("failed to cleanup db deps: %v", errors.Join(errs...))
+	}
 }
 
 var m sync.Mutex
@@ -41,8 +54,8 @@ func SetupDBDeps(t *testing.T) *DBDeps {
 	}
 
 	return &DBDeps{
-		dbClient:  dbClient,
-		entDriver: entDriver,
-		pgDriver:  pgDriver,
+		DBClient:  dbClient,
+		EntDriver: entDriver,
+		PGDriver:  pgDriver,
 	}
 }
