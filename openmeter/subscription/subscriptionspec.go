@@ -31,21 +31,21 @@ type CreateSubscriptionPlanInput struct {
 }
 
 type CreateSubscriptionCustomerInput struct {
-	models.AnnotatedModel
-	Name        string         `json:"name"`
-	Description *string        `json:"description,omitempty"`
-	CustomerId  string         `json:"customerId"`
-	Currency    currencyx.Code `json:"currency"`
-	ActiveFrom  time.Time      `json:"activeFrom,omitempty"`
-	ActiveTo    *time.Time     `json:"activeTo,omitempty"`
+	models.AnnotatedModel `json:",inline"`
+	Name                  string         `json:"name"`
+	Description           *string        `json:"description,omitempty"`
+	CustomerId            string         `json:"customerId"`
+	Currency              currencyx.Code `json:"currency"`
+	ActiveFrom            time.Time      `json:"activeFrom,omitempty"`
+	ActiveTo              *time.Time     `json:"activeTo,omitempty"`
 }
 
 type SubscriptionSpec struct {
-	CreateSubscriptionPlanInput
-	CreateSubscriptionCustomerInput
+	CreateSubscriptionPlanInput     `json:",inline"`
+	CreateSubscriptionCustomerInput `json:",inline"`
 
 	// We use pointers so Patches can manipulate the spec
-	Phases map[string]*SubscriptionPhaseSpec
+	Phases map[string]*SubscriptionPhaseSpec `json:"phases"`
 }
 
 func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubscriptionEntityInput {
@@ -178,7 +178,7 @@ func (i CreateSubscriptionPhasePlanInput) Validate() error {
 }
 
 type CreateSubscriptionPhaseCustomerInput struct {
-	models.AnnotatedModel
+	models.AnnotatedModel `json:",inline"`
 }
 
 type RemoveSubscriptionPhaseShifting int
@@ -216,11 +216,11 @@ func (i CreateSubscriptionPhaseInput) Validate() error {
 
 type SubscriptionPhaseSpec struct {
 	// Duration is not part of the Spec by design
-	CreateSubscriptionPhasePlanInput
-	CreateSubscriptionPhaseCustomerInput
+	CreateSubscriptionPhasePlanInput     `json:",inline"`
+	CreateSubscriptionPhaseCustomerInput `json:",inline"`
 
 	// In each key, for each phase, we have a list of item specs to account for mid-phase changes
-	ItemsByKey map[string][]SubscriptionItemSpec
+	ItemsByKey map[string][]SubscriptionItemSpec `json:"itemsByKey"`
 }
 
 func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
@@ -369,12 +369,12 @@ type CreateSubscriptionItemCustomerInput struct {
 }
 
 type CreateSubscriptionItemInput struct {
-	CreateSubscriptionItemPlanInput
-	CreateSubscriptionItemCustomerInput
+	CreateSubscriptionItemPlanInput     `json:",inline"`
+	CreateSubscriptionItemCustomerInput `json:",inline"`
 }
 
 type SubscriptionItemSpec struct {
-	CreateSubscriptionItemInput
+	CreateSubscriptionItemInput `json:",inline"`
 }
 
 func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (models.CadencedModel, error) {

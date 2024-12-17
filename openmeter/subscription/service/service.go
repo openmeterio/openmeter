@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,6 +26,7 @@ type ServiceConfig struct {
 	EntitlementAdapter subscription.EntitlementAdapter
 	// framework
 	TransactionManager transaction.Creator
+	Publisher          eventbus.Publisher
 }
 
 func New(conf ServiceConfig) subscription.Service {
@@ -104,6 +106,19 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			}
 		}
 
+		// Let's fetch the view for event generation
+		view, err := s.GetView(ctx, sub.NamespacedID)
+		if err != nil {
+			return sub, err
+		}
+
+		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
+			SubscriptionView: view,
+		})
+		if err != nil {
+			return sub, fmt.Errorf("failed to publish event: %w", err)
+		}
+
 		// Return sub reference
 		return sub, nil
 	})
@@ -135,7 +150,25 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 
 	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
-		return s.sync(ctx, view, spec)
+		sub, err := s.sync(ctx, view, spec)
+		if err != nil {
+			return sub, err
+		}
+
+		// Let's fetch the view for event generation
+		view, err := s.GetView(ctx, sub.NamespacedID)
+		if err != nil {
+			return sub, err
+		}
+
+		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
+			SubscriptionView: view,
+		})
+		if err != nil {
+			return sub, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return sub, nil
 	})
 }
 
@@ -165,7 +198,25 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
-		return s.sync(ctx, view, spec)
+		sub, err := s.sync(ctx, view, spec)
+		if err != nil {
+			return sub, err
+		}
+
+		// Let's fetch the view for event generation
+		view, err := s.GetView(ctx, sub.NamespacedID)
+		if err != nil {
+			return sub, err
+		}
+
+		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
+			SubscriptionView: view,
+		})
+		if err != nil {
+			return sub, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return sub, nil
 	})
 }
 

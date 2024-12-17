@@ -310,7 +310,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionService(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionService(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()

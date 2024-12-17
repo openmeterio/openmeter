@@ -7,9 +7,11 @@ import (
 
 // Entitlements
 const (
-	EntityEntitlement = "entitlement"
-	EntitySubjectKey  = "subjectKey"
-	EntityGrant       = "grant"
+	EntityEntitlement  = "entitlement"
+	EntitySubscription = "subscription"
+	EntityCustomer     = "customer"
+	EntitySubjectKey   = "subjectKey"
+	EntityGrant        = "grant"
 )
 
 // Ingestion/Events

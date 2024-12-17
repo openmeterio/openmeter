@@ -16,6 +16,7 @@ import (
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var Subscription = wire.NewSet(
@@ -40,6 +41,7 @@ func NewSubscriptionService(
 	entitlementRegistry *registry.Entitlement,
 	customerService customer.Service,
 	planService plan.Service,
+	eventPublisher eventbus.Publisher,
 ) (SubscriptionServiceWithWorkflow, error) {
 	if !productcatalogConfig.Enabled {
 		return SubscriptionServiceWithWorkflow{}, nil
@@ -62,6 +64,7 @@ func NewSubscriptionService(
 		CustomerService:       customerService,
 		EntitlementAdapter:    subscriptionEntitlementAdapter,
 		TransactionManager:    subscriptionRepo,
+		Publisher:             eventPublisher,
 	})
 
 	subscriptionWorkflowService := subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{

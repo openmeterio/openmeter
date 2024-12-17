@@ -88,6 +88,8 @@ func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 		),
 		// framework
 		TransactionManager: subsRepo,
+		// events
+		Publisher: eventbus.NewMock(s.T()),
 	})
 
 	s.SubscrpiptionPlanAdapter = plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{

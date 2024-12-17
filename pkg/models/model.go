@@ -20,8 +20,8 @@ type ManagedUniqueResource struct {
 }
 
 type ManagedResource struct {
-	NamespacedModel
-	ManagedModel
+	NamespacedModel `json:",inline"`
+	ManagedModel    `json:",inline"`
 
 	// ID is the unique identifier for Resource.
 	ID          string  `json:"id"`

@@ -19,8 +19,8 @@ type Subscription struct {
 	// References the plan (if the Subscription was created form one)
 	PlanRef *PlanRef `json:"planRef"`
 
-	CustomerId string `json:"customerId,omitempty"`
-	Currency   currencyx.Code
+	CustomerId string         `json:"customerId,omitempty"`
+	Currency   currencyx.Code `json:"currency,omitempty"`
 }
 
 func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {

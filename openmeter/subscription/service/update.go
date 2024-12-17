@@ -30,7 +30,27 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		return def, err
 	}
 
-	return s.sync(ctx, view, newSpec)
+	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		sub, err := s.sync(ctx, view, newSpec)
+		if err != nil {
+			return sub, err
+		}
+
+		// Let's fetch the view for event generation
+		view, err := s.GetView(ctx, sub.NamespacedID)
+		if err != nil {
+			return sub, err
+		}
+
+		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
+			UpdatedView: view,
+		})
+		if err != nil {
+			return sub, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return sub, nil
+	})
 }
 
 // TODO: localize error so phase and item keys are always included (alongside subscription reference)
