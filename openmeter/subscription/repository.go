@@ -38,6 +38,9 @@ type SubscriptionRepository interface {
 
 	// Create a new subscription
 	Create(ctx context.Context, input CreateSubscriptionEntityInput) (Subscription, error)
+
+	// Delete a subscription
+	Delete(ctx context.Context, id models.NamespacedID) error
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

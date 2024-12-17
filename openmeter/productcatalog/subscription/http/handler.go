@@ -19,12 +19,14 @@ type Handler interface {
 	EditSubscription() EditSubscriptionHandler
 	CancelSubscription() CancelSubscriptionHandler
 	ContinueSubscription() ContinueSubscriptionHandler
+	MigrateSubscription() MigrateSubscriptionHandler
+	ChangeSubscription() ChangeSubscriptionHandler
 }
 
 type HandlerConfig struct {
 	SubscriptionWorkflowService subscription.WorkflowService
 	SubscriptionService         subscription.Service
-	SubscrpiptionPlanAdapter    plansubscription.Adapter
+	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
 }

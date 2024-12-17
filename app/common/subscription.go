@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	subscriptionchangeservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
@@ -20,19 +21,19 @@ import (
 )
 
 var Subscription = wire.NewSet(
-	NewSubscriptionService,
-	NewPlanSubscriptionAdapter,
+	NewSubscriptionServices,
 )
 
 // Combine Srvice and WorkflowService into one struct
 // We do this to able to initialize the Service and WorkflowService together
 // and share the same subscriptionRepo.
 type SubscriptionServiceWithWorkflow struct {
-	Service         subscription.Service
-	WorkflowService subscription.WorkflowService
+	Service                 subscription.Service
+	WorkflowService         subscription.WorkflowService
+	PlanSubscriptionService plansubscription.PlanSubscriptionService
 }
 
-func NewSubscriptionService(
+func NewSubscriptionServices(
 	logger *slog.Logger,
 	db *entdb.Client,
 	productcatalogConfig config.ProductCatalogConfiguration,
@@ -73,19 +74,16 @@ func NewSubscriptionService(
 		TransactionManager: subscriptionRepo,
 	})
 
-	return SubscriptionServiceWithWorkflow{
-		Service:         subscriptionService,
-		WorkflowService: subscriptionWorkflowService,
-	}, nil
-}
-
-func NewPlanSubscriptionAdapter(
-	logger *slog.Logger,
-	db *entdb.Client,
-	planService plan.Service,
-) plansubscription.Adapter {
-	return plansubscription.NewPlanSubscriptionAdapter(plansubscription.PlanSubscriptionAdapterConfig{
-		PlanService: planService,
-		Logger:      logger.With("subsystem", "subscription.plan.adapter"),
+	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{
+		WorkflowService:     subscriptionWorkflowService,
+		SubscriptionService: subscriptionService,
+		PlanService:         planService,
+		Logger:              logger.With("subsystem", "subscription.change.service"),
 	})
+
+	return SubscriptionServiceWithWorkflow{
+		Service:                 subscriptionService,
+		WorkflowService:         subscriptionWorkflowService,
+		PlanSubscriptionService: planSubscriptionService,
+	}, nil
 }

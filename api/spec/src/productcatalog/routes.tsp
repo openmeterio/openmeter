@@ -292,7 +292,7 @@ interface Subscriptions {
     @body
     body: SubscriptionChange,
   ):
-    | Subscription
+    | SubscriptionChangeResponseBody
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
@@ -309,10 +309,10 @@ interface Subscriptions {
     @path subscriptionId: ULID,
     @body body: {
       @minValue(1)
-      targetVersion: integer;
+      targetVersion?: integer;
     },
   ):
-    | Subscription
+    | SubscriptionChangeResponseBody
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;

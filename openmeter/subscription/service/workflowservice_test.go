@@ -7,11 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
@@ -40,9 +45,11 @@ func TestCreateFromPlan(t *testing.T) {
 				defer cancel()
 
 				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+						ActiveFrom: deps.CurrentTime,
+					},
 					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
 					Namespace:  subscriptiontestutils.ExampleNamespace,
-					ActiveFrom: deps.CurrentTime,
 				}, deps.Plan)
 
 				assert.ErrorAs(t, err, &customerentity.NotFoundError{}, "expected customer not found error, got %T", err)
@@ -483,10 +490,12 @@ func TestEditRunning(t *testing.T) {
 
 			// Let's create an example subscription
 			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					ActiveFrom: tcDeps.CurrentTime,
+					Name:       "Example Subscription",
+				},
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
-				ActiveFrom: tcDeps.CurrentTime,
-				Name:       "Example Subscription",
 			}, plan)
 			require.Nil(t, err)
 
@@ -504,4 +513,194 @@ func TestEditRunning(t *testing.T) {
 
 func TestEditingCurrentPhase(t *testing.T) {
 	t.Skip("TODO: implement me")
+}
+
+func TestChangeToPlan(t *testing.T) {
+	// Let's define two plans. One is the example plan, and the second is a slightly modified version of that
+	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
+	rc1 := productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:         subscriptiontestutils.ExampleFeatureKey,
+			Name:        "Rate Card 1",
+			Description: lo.ToPtr("Rate Card 1 Description"),
+			Feature: &feature.Feature{
+				Key: subscriptiontestutils.ExampleFeatureKey,
+			},
+			EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+				IssueAfterReset: lo.ToPtr(111.0),
+				UsagePeriod:     subscriptiontestutils.ISOMonth,
+			}),
+			TaxConfig: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{
+					Code: "txcd_10000001",
+				},
+			},
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(int64(1)),
+			}),
+		},
+		BillingCadence: &subscriptiontestutils.ISOMonth,
+	}
+
+	rc2 := productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:         "new-rc-2",
+			Name:        "Rate Card 2",
+			Description: lo.ToPtr("Rate Card 2 Description"),
+			TaxConfig: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{
+					Code: "txcd_10000001",
+				},
+			},
+			Price: nil,
+		},
+		BillingCadence: nil,
+	}
+
+	examplePlanInput2 := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan 2",
+				Key:      "test_plan_2",
+				Version:  1,
+				Currency: currency.USD,
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "test_phase_1_new",
+						Name:        "Test Phase 1 New",
+						Description: lo.ToPtr("Test Phase 1 Description"),
+						StartAfter:  testutils.GetISODuration(t, "P0M"),
+					},
+					RateCards: productcatalog.RateCards{
+						&rc1,
+					},
+				},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "test_phase_2",
+						Name:        "Test Phase 2",
+						Description: lo.ToPtr("Test Phase 2 Description"),
+						StartAfter:  testutils.GetISODuration(t, "P2M"),
+					},
+					RateCards: productcatalog.RateCards{
+						&subscriptiontestutils.ExampleRateCard1,
+						&rc2,
+					},
+				},
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:         "test_phase_3",
+						Name:        "Test Phase 3",
+						Description: lo.ToPtr("Test Phase 3 Description"),
+						StartAfter:  testutils.GetISODuration(t, "P3M"),
+					},
+					RateCards: productcatalog.RateCards{
+						&rc1,
+					},
+				},
+			},
+		},
+	}
+
+	// Let's define what deps a test case needs
+	type testCaseDeps struct {
+		CurrentTime     time.Time
+		Customer        customerentity.Customer
+		WorkflowService subscription.WorkflowService
+		Service         subscription.Service
+		DBDeps          *subscriptiontestutils.DBDeps
+		Plan1           subscription.Plan
+		Plan2           subscription.Plan
+	}
+
+	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
+		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup()
+
+			services, deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeature(t)
+
+			// Let's create the two plans
+			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
+			plan2 := deps.PlanHelper.CreatePlan(t, examplePlanInput2)
+
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+
+			tcDeps.Customer = *cust
+			tcDeps.DBDeps = dbDeps
+			tcDeps.Service = services.Service
+			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Plan1 = plan1
+			tcDeps.Plan2 = plan2
+
+			fn(t, tcDeps)
+		}
+	}
+
+	t.Run("Should change to the new plan", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// First, let's create a subscription from the first plan
+			// Let's create an example subscription
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					ActiveFrom: deps.CurrentTime,
+					Name:       "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			someTimeLater := deps.CurrentTime.AddDate(0, 0, 10)
+
+			changeInput := subscription.ChangeSubscriptionWorkflowInput{
+				ActiveFrom: someTimeLater,
+				Name:       "New Subscription",
+			}
+
+			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, changeInput, deps.Plan2)
+			require.Nil(t, err)
+
+			// Let's do some simple validations
+			require.Equal(t, sub.Subscription.NamespacedID, curr.NamespacedID)
+			require.NotNil(t, curr.ActiveTo)
+			require.Equal(t, someTimeLater, *curr.ActiveTo)
+
+			require.NotNil(t, new.Subscription.PlanRef)
+			require.Equal(t, examplePlanInput2.Key, new.Subscription.PlanRef.Key)
+
+			// Let's check that the new plan looks as we expect
+			targetSpec, err := subscription.NewSpecFromPlan(deps.Plan2, subscription.CreateSubscriptionCustomerInput{
+				Name:           changeInput.Name,
+				Description:    changeInput.Description,
+				AnnotatedModel: changeInput.AnnotatedModel,
+				CustomerId:     curr.CustomerId,
+				Currency:       deps.Plan2.Currency(),
+				ActiveFrom:     changeInput.ActiveFrom,
+				ActiveTo:       nil,
+			})
+			require.Nil(t, err)
+
+			subscriptiontestutils.ValidateSpecAndView(t, targetSpec, new)
+		})
+	})
 }

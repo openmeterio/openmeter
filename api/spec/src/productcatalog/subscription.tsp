@@ -234,6 +234,18 @@ model SubscriptionEdit {
 }
 
 /**
+ * Response body for subscription change.
+ */
+@friendlyName("SubscriptionChangeResponseBody")
+model SubscriptionChangeResponseBody {
+  @summary("Current subscription")
+  current: Subscription;
+
+  @summary("The subscription it will be changed to")
+  next: SubscriptionExpanded;
+}
+
+/**
  * Create a subscription.
  */
 @friendlyName("SubscriptionCreate")

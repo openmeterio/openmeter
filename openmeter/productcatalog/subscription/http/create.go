@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -19,11 +18,7 @@ import (
 
 type (
 	// TODO: might need or not need a single interface for using the multiple workflow methods
-	CreateSubscriptionRequest = struct {
-		inp     subscription.CreateSubscriptionWorkflowInput
-		planRef *plansubscription.PlanRefInput
-		plan    *plan.CreatePlanInput
-	}
+	CreateSubscriptionRequest  = plansubscription.CreateSubscriptionRequest
 	CreateSubscriptionResponse = api.Subscription
 	// CreateSubscriptionParams   = api.CreateSubscriptionParams
 	// CreateSubscriptionHandler  httptransport.HandlerWithArgs[ListPlansRequest, ListPlansResponse, ListPlansParams]
@@ -73,19 +68,23 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				return CreateSubscriptionRequest{
-					inp: subscription.CreateSubscriptionWorkflowInput{
-						Namespace:   ns,
-						ActiveFrom:  parsedBody.ActiveFrom,
-						CustomerID:  parsedBody.CustomerId,
-						Name:        req.Name,        // We map the plan name to the subscription name
-						Description: req.Description, // We map the plan description to the subscription description
-						AnnotatedModel: models.AnnotatedModel{
-							Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
-						},
-					},
+				plan := plansubscription.PlanInput{}
+				plan.FromInput(&req)
 
-					plan: &req,
+				return CreateSubscriptionRequest{
+					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+							ActiveFrom:  parsedBody.ActiveFrom,
+							Name:        req.Name,        // We map the plan name to the subscription name
+							Description: req.Description, // We map the plan description to the subscription description
+							AnnotatedModel: models.AnnotatedModel{
+								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
+							},
+						},
+						Namespace:  ns,
+						CustomerID: parsedBody.CustomerId,
+					},
+					PlanInput: plan,
 				}, nil
 			} else {
 				// Plan subscription creation
@@ -93,53 +92,36 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				if err != nil {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 				}
+
+				plan := plansubscription.PlanInput{}
+				plan.FromRef(&plansubscription.PlanRefInput{
+					Key: parsedBody.Plan.Key,
+				})
+
 				return CreateSubscriptionRequest{
-					inp: subscription.CreateSubscriptionWorkflowInput{
-						Namespace:   ns,
-						ActiveFrom:  parsedBody.ActiveFrom,
-						CustomerID:  parsedBody.CustomerId,
-						Name:        parsedBody.Name,
-						Description: parsedBody.Description,
-						AnnotatedModel: models.AnnotatedModel{
-							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
+					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+							ActiveFrom:  parsedBody.ActiveFrom,
+							Name:        parsedBody.Name,
+							Description: parsedBody.Description,
+							AnnotatedModel: models.AnnotatedModel{
+								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
+							},
 						},
+						Namespace:  ns,
+						CustomerID: parsedBody.CustomerId,
 					},
-					planRef: &plansubscription.PlanRefInput{
-						Key:     parsedBody.Plan.Key,
-						Version: parsedBody.Plan.Version,
-					},
+					PlanInput: plan,
 				}, nil
 			}
 		},
 		func(ctx context.Context, request CreateSubscriptionRequest) (CreateSubscriptionResponse, error) {
-			// First, let's map the input to a Plan
-			var plan subscription.Plan
-
-			if request.plan != nil {
-				p, err := h.SubscrpiptionPlanAdapter.FromInput(ctx, request.inp.Namespace, *request.plan)
-				if err != nil {
-					return CreateSubscriptionResponse{}, err
-				}
-
-				plan = p
-			} else if request.planRef != nil {
-				p, err := h.SubscrpiptionPlanAdapter.GetVersion(ctx, request.inp.Namespace, *request.planRef)
-				if err != nil {
-					return CreateSubscriptionResponse{}, err
-				}
-
-				plan = p
-			} else {
-				return CreateSubscriptionResponse{}, fmt.Errorf("plan or plan reference must be provided")
-			}
-
-			// Then let's create the subscription form the plan
-			subView, err := h.SubscriptionWorkflowService.CreateFromPlan(ctx, request.inp, plan)
+			res, err := h.PlanSubscriptionService.Create(ctx, request)
 			if err != nil {
 				return CreateSubscriptionResponse{}, err
 			}
 
-			return MapSubscriptionToAPI(subView.Subscription), nil
+			return MapSubscriptionToAPI(res), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateSubscriptionResponse](http.StatusCreated),
 		httptransport.AppendOptions(

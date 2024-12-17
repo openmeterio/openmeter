@@ -1,11 +1,15 @@
 package subscriptiontestutils
 
 import (
+	"testing"
+
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 var (
@@ -47,3 +51,20 @@ var (
 	}
 	ExamplePriceAmount int = 100
 )
+
+func GetEntitlementTemplateUsagePeriod(t *testing.T, et productcatalog.EntitlementTemplate) *datex.Period {
+	t.Helper()
+
+	switch et.Type() {
+	case entitlement.EntitlementTypeMetered:
+		if e, err := et.AsMetered(); err == nil {
+			return &e.UsagePeriod
+		}
+	case entitlement.EntitlementTypeStatic:
+		return nil
+	case entitlement.EntitlementTypeBoolean:
+		return nil
+	}
+
+	return nil
+}

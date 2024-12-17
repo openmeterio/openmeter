@@ -112,3 +112,35 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		return s.Service.GetView(ctx, sub.NamespacedID)
 	})
 }
+
+func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (subscription.Subscription, subscription.SubscriptionView, error) {
+	// typing helper
+	type res struct {
+		curr subscription.Subscription
+		new  subscription.SubscriptionView
+	}
+
+	// Changing the plan means canceling the current subscription and creating a new one with the provided timestamp
+	r, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (res, error) {
+		// First, let's try to cancel the current subscription
+		curr, err := s.Service.Cancel(ctx, subscriptionID, inp.ActiveFrom)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to end current subscription: %w", err)
+		}
+
+		// Now, let's create a new subscription with the new plan
+		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: inp,
+			Namespace:                       curr.Namespace,
+			CustomerID:                      curr.CustomerId,
+		}, plan)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to create new subscription: %w", err)
+		}
+
+		// Let's just return after a great success
+		return res{curr, new}, nil
+	})
+
+	return r.curr, r.new, err
+}

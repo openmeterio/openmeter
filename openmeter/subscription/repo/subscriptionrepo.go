@@ -11,6 +11,7 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -136,5 +137,21 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 		}
 
 		return MapDBSubscription(res)
+	})
+}
+
+func (r *subscriptionRepo) Delete(ctx context.Context, id models.NamespacedID) error {
+	return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, repo *subscriptionRepo) error {
+		_, err := repo.db.Subscription.UpdateOneID(id.ID).SetDeletedAt(clock.Now()).Save(ctx)
+		if db.IsNotFound(err) {
+			return &subscription.NotFoundError{
+				ID: id.ID,
+			}
+		}
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 }

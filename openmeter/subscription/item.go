@@ -1,8 +1,6 @@
 package subscription
 
 import (
-	"fmt"
-
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -96,28 +94,4 @@ func (r SubscriptionItemRef) Equals(r2 SubscriptionItemRef) bool {
 		return false
 	}
 	return true
-}
-
-// SubscriptionItems under the same key in a phase have to meet this criteria
-func ValidateCadencesAreSortedAndNonOverlapping(cadences []models.CadencedModel) error {
-	// First, let's validate that the cadences are sorted by ActiveFrom
-	for i := range cadences {
-		if i == 0 {
-			continue
-		}
-
-		if cadences[i-1].ActiveFrom.After(cadences[i].ActiveFrom) {
-			return fmt.Errorf("cadences at %d and %d are not sorted by ActiveFrom: %s > %s", i-1, i, cadences[i-1].ActiveFrom, cadences[i].ActiveFrom)
-		}
-
-		if cadences[i-1].ActiveTo == nil {
-			return fmt.Errorf("cadence %d overlaps cadence %d starting %s due to missing ActiveTo", i-1, i, cadences[i-1].ActiveFrom)
-		}
-
-		if cadences[i-1].ActiveTo.After(cadences[i].ActiveFrom) {
-			return fmt.Errorf("cadence %d overlaps cadence %d between %s and %s", i-1, i, cadences[i].ActiveFrom, cadences[i-1].ActiveTo)
-		}
-	}
-
-	return nil
 }

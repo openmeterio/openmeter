@@ -1,24 +1,26 @@
-package plansubscription
+package testutils
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type Adapter interface {
+// TODO: we can get rid of this
+type PlanSubscriptionAdapter interface {
 	// GetPlan returns the plan for the Ref with all it's dependent resources.
 	//
 	// If the Plan is Not Found, it should return a PlanNotFoundError.
-	GetVersion(ctx context.Context, namespace string, ref PlanRefInput) (subscription.Plan, error)
+	GetVersion(ctx context.Context, namespace string, ref plansubscription.PlanRefInput) (subscription.Plan, error)
 
 	// Converts a plan.CreatePlanInput to a subscription.Plan.
 	FromInput(ctx context.Context, namespace string, input plan.CreatePlanInput) (subscription.Plan, error)
@@ -33,13 +35,13 @@ type adapter struct {
 	PlanSubscriptionAdapterConfig
 }
 
-var _ Adapter = &adapter{}
+var _ PlanSubscriptionAdapter = &adapter{}
 
-func NewPlanSubscriptionAdapter(config PlanSubscriptionAdapterConfig) Adapter {
+func NewPlanSubscriptionAdapter(config PlanSubscriptionAdapterConfig) PlanSubscriptionAdapter {
 	return &adapter{config}
 }
 
-func (a *adapter) GetVersion(ctx context.Context, namespace string, ref PlanRefInput) (subscription.Plan, error) {
+func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubscription.PlanRefInput) (subscription.Plan, error) {
 	planKey := ref.Key
 	version := defaultx.WithDefault(ref.Version, 0) // plan service treats 0 as special case
 
@@ -72,20 +74,12 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref PlanRefI
 		return nil, err
 	}
 
-	return &Plan{
+	return &plansubscription.Plan{
 		Plan: pp,
 		Ref:  &p.NamespacedID,
 	}, nil
 }
 
 func (a *adapter) FromInput(ctx context.Context, namespace string, input plan.CreatePlanInput) (subscription.Plan, error) {
-	p := input.Plan
-
-	if err := p.ValidForCreatingSubscriptions(); err != nil {
-		return nil, &models.GenericUserError{Message: fmt.Sprintf("invalid plan: %v", err)}
-	}
-
-	return &Plan{
-		Plan: p,
-	}, nil
+	return service.PlanFromPlanInput(input)
 }
