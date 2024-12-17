@@ -33,7 +33,7 @@ func TestChange(t *testing.T) {
 	withDeps := func(t *testing.T, f func(t *testing.T, deps tDeps)) {
 		t.Helper()
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
-		defer dbDeps.Cleanup()
+		defer dbDeps.Cleanup(t)
 
 		svc, exposedDeps := subscriptiontestutils.NewService(t, dbDeps)
 

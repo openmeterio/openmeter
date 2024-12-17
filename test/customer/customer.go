@@ -3,13 +3,20 @@ package customer
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	plansubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -160,6 +167,131 @@ func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T)
 	require.Equal(t, originalCustomer.ID, updatedCustomer.ID, "Customer ID must match")
 	require.Equal(t, newName, updatedCustomer.Name, "Customer name must match")
 	require.Equal(t, newSubjectKeys, updatedCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+	require.Equal(t, &TestPrimaryEmail, updatedCustomer.PrimaryEmail, "Customer primary email must match")
+	require.Equal(t, &TestCurrency, updatedCustomer.Currency, "Customer currency must match")
+	require.Equal(t, &TestTimezone, updatedCustomer.Timezone, "Customer timezone must match")
+	require.Equal(t, &TestAddressCountry, updatedCustomer.BillingAddress.Country, "Customer billing address country must match")
+	require.Equal(t, &TestAddressCity, updatedCustomer.BillingAddress.City, "Customer billing address city must match")
+	require.Equal(t, &TestAddressLine1, updatedCustomer.BillingAddress.Line1, "Customer billing address line1 must match")
+	require.Equal(t, &TestAddressLine2, updatedCustomer.BillingAddress.Line2, "Customer billing address line2 must match")
+	require.Equal(t, &TestAddressPostalCode, updatedCustomer.BillingAddress.PostalCode, "Customer billing address postal code must match")
+	require.Equal(t, &TestAddressPhoneNumber, updatedCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
+}
+
+// If a customer has a subscription, UsageAttributions cannot be updated
+func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	cService := s.Env.Customer()
+	sService := s.Env.Subscription()
+
+	// Create a customer with mandatory fields
+	originalCustomer, err := cService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customerentity.CustomerMutate{
+			Name: TestName,
+			UsageAttribution: customerentity.CustomerUsageAttribution{
+				SubjectKeys: TestSubjectKeys,
+			},
+		},
+	})
+
+	require.NoError(t, err, "Creating customer must not return error")
+	require.NotNil(t, originalCustomer, "Customer must not be nil")
+	require.Equal(t, TestName, originalCustomer.Name, "Customer name must match")
+	require.Equal(t, TestSubjectKeys, originalCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	emptyExamplePlan := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Key:      "empty-plan",
+				Name:     "Empty Plan",
+				Currency: currency.Code("USD"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:  "empty-phase",
+						Name: "Empty Phase",
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "empty-rate-card",
+								Name: "Empty Rate Card",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Let's create a subscription for the customer
+	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)
+	require.Nil(t, err)
+
+	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
+		CustomerId: originalCustomer.ID,
+		Name:       "Test Subscription",
+		Currency:   currencyx.Code("USD"),
+		ActiveFrom: clock.Now(),
+	})
+	require.Nil(t, err)
+
+	clock.SetTime(clock.Now().Add(1 * time.Minute))
+
+	_, err = sService.Create(ctx, s.namespace, spec)
+	require.Nil(t, err)
+
+	// Update the customer with new UsageAttribution
+	newName := "New Name"
+	newSubjectKeys := []string{"subject-1"}
+
+	_, err = cService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+		CustomerID: customerentity.CustomerID{
+			Namespace: s.namespace,
+			ID:        originalCustomer.ID,
+		},
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:           newName,
+			PrimaryEmail:   &TestPrimaryEmail,
+			Currency:       &TestCurrency,
+			Timezone:       &TestTimezone,
+			BillingAddress: &TestAddress,
+			UsageAttribution: customerentity.CustomerUsageAttribution{
+				SubjectKeys: newSubjectKeys,
+			},
+		},
+	})
+
+	require.ErrorAs(t, err, &customerentity.ForbiddenError{}, "Updating customer UsageAttribution with subscription must return forbidden error")
+
+	// Update the customer but not the UsageAttribution
+	updatedCustomer, err := cService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+		CustomerID: customerentity.CustomerID{
+			Namespace: s.namespace,
+			ID:        originalCustomer.ID,
+		},
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:             newName,
+			PrimaryEmail:     &TestPrimaryEmail,
+			Currency:         &TestCurrency,
+			Timezone:         &TestTimezone,
+			BillingAddress:   &TestAddress,
+			UsageAttribution: originalCustomer.UsageAttribution,
+		},
+	})
+
+	require.NoError(t, err, "Updating customer must not return error")
+	require.NotNil(t, updatedCustomer, "Customer must not be nil")
+	require.Equal(t, s.namespace, updatedCustomer.Namespace, "Customer namespace must match")
+	require.Equal(t, originalCustomer.ID, updatedCustomer.ID, "Customer ID must match")
+	require.Equal(t, newName, updatedCustomer.Name, "Customer name must match")
+	require.Equal(t, originalCustomer.UsageAttribution.SubjectKeys, updatedCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 	require.Equal(t, &TestPrimaryEmail, updatedCustomer.PrimaryEmail, "Customer primary email must match")
 	require.Equal(t, &TestCurrency, updatedCustomer.Currency, "Customer currency must match")
 	require.Equal(t, &TestTimezone, updatedCustomer.Timezone, "Customer timezone must match")

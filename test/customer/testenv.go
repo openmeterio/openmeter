@@ -2,7 +2,6 @@ package customer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"testing"
@@ -10,7 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
-	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 )
 
 const (
@@ -19,6 +19,7 @@ const (
 
 type TestEnv interface {
 	Customer() customer.Service
+	Subscription() subscription.Service
 
 	Close() error
 }
@@ -26,7 +27,8 @@ type TestEnv interface {
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	customer customer.Service
+	customer     customer.Service
+	subscription subscription.Service
 
 	closerFunc func() error
 }
@@ -39,6 +41,10 @@ func (n testEnv) Customer() customer.Service {
 	return n.customer
 }
 
+func (n testEnv) Subscription() subscription.Service {
+	return n.subscription
+}
+
 const (
 	DefaultPostgresHost = "127.0.0.1"
 )
@@ -47,16 +53,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	logger := slog.Default().WithGroup("customer")
 
 	// Initialize postgres driver
-	driver := testutils.InitPostgresDB(t)
-
-	entClient := driver.EntDriver.Client()
-	if err := entClient.Schema.Create(ctx); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
 
 	// Initialize customer adapter
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client: entClient,
+		Client: dbDeps.DBClient,
 		Logger: logger.WithGroup("postgres"),
 	})
 	if err != nil {
@@ -70,22 +71,16 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, err
 	}
 
+	subsServices, _ := subscriptiontestutils.NewService(t, dbDeps)
+
 	closerFunc := func() error {
-		var errs error
-
-		if err = entClient.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
-		}
-
-		if err = driver.PGDriver.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("failed to close postgres driver: %w", err))
-		}
-
-		return errs
+		dbDeps.Cleanup(t)
+		return nil
 	}
 
 	return &testEnv{
-		customer:   customerService,
-		closerFunc: closerFunc,
+		customer:     customerService,
+		closerFunc:   closerFunc,
+		subscription: subsServices.Service,
 	}, nil
 }
