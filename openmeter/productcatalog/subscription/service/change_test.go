@@ -253,6 +253,7 @@ func TestChange(t *testing.T) {
 
 			require.NotNil(t, err)
 			require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}))
+			require.ErrorContains(t, err, "plan is not active")
 		})
 	})
 }
