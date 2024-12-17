@@ -242,7 +242,7 @@ model SubscriptionChangeResponseBody {
   current: Subscription;
 
   @summary("The subscription it will be changed to")
-  new: SubscriptionExpanded;
+  next: SubscriptionExpanded;
 }
 
 /**

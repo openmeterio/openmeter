@@ -13,7 +13,7 @@ import (
 )
 
 // Ensures the created view matches the input spec
-// FIXME: there are quire a few things not asserted here, let's be methodical and add them
+// TODO: Missing validations (OM-1053)
 func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, found subscription.SubscriptionView) {
 	// Test Phases
 

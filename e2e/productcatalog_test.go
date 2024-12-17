@@ -399,7 +399,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, PlanKey, planAPIRes.JSON201.Key)
 		assert.Equal(t, 2, *planAPIRes.JSON201.Version)
 
-		// Let's publis the new version
+		// Let's publish the new version
 		apiRes2, err := client.PublishPlanWithResponse(ctx, *planAPIRes.JSON201.Id)
 		require.Nil(t, err)
 
@@ -413,23 +413,23 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, subscriptionId)
 
 		apiRes, err := client.MigrateSubscriptionWithResponse(ctx, subscriptionId, api.MigrateSubscriptionJSONRequestBody{
-			TargetVersion: 2,
+			TargetVersion: lo.ToPtr(2),
 		})
 		require.Nil(t, err)
 
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
-		require.NotNil(t, apiRes.JSON200.New.Id)
+		require.NotNil(t, apiRes.JSON200.Next.Id)
 		require.NotNil(t, apiRes.JSON200.Current.Id)
 
 		require.Equal(t, subscriptionId, *apiRes.JSON200.Current.Id)
-		require.NotEqual(t, subscriptionId, *apiRes.JSON200.New.Id)
+		require.NotEqual(t, subscriptionId, *apiRes.JSON200.Next.Id)
 
-		migratedSubscriptionId = *apiRes.JSON200.New.Id
-		migratedSubView = apiRes.JSON200.New
+		migratedSubscriptionId = *apiRes.JSON200.Next.Id
+		migratedSubView = apiRes.JSON200.Next
 
-		require.Equal(t, 3, len(apiRes.JSON200.New.Phases))
-		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.New.Phases[2].Key)
+		require.Equal(t, 3, len(apiRes.JSON200.Next.Phases))
+		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.Next.Phases[2].Key)
 	})
 
 	t.Run("Should change the subscription's plan", func(t *testing.T) {
@@ -450,10 +450,10 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
 		require.NotNil(t, apiRes.JSON200.Current.Id)
-		require.NotNil(t, apiRes.JSON200.New.Id)
+		require.NotNil(t, apiRes.JSON200.Next.Id)
 
 		require.Equal(t, migratedSubscriptionId, *apiRes.JSON200.Current.Id)
-		require.NotEqual(t, migratedSubscriptionId, *apiRes.JSON200.New.Id)
+		require.NotEqual(t, migratedSubscriptionId, *apiRes.JSON200.Next.Id)
 
 		require.Equal(t, 2, len(planCreate.Phases))
 	})

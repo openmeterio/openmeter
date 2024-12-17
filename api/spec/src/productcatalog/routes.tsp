@@ -309,7 +309,7 @@ interface Subscriptions {
     @path subscriptionId: ULID,
     @body body: {
       @minValue(1)
-      targetVersion: integer;
+      targetVersion?: integer;
     },
   ):
     | SubscriptionChangeResponseBody

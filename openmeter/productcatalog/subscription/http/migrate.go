@@ -48,11 +48,11 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 				return MigrateSubscriptionResponse{}, err
 			}
 
-			v, err := MapSubscriptionViewToAPI(res.New)
+			v, err := MapSubscriptionViewToAPI(res.Next)
 
 			return MigrateSubscriptionResponse{
 				Current: MapSubscriptionToAPI(res.Current),
-				New:     v,
+				Next:    v,
 			}, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[MigrateSubscriptionResponse](http.StatusOK),

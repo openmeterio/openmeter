@@ -110,12 +110,12 @@ func TestMigrate(t *testing.T) {
 			// Let's migrate the subscription to the new version
 			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
-				TargetVersion: plan2.PlanMeta.Version,
+				TargetVersion: &plan2.PlanMeta.Version,
 			})
 			require.Nil(t, err)
 
 			require.Equal(t, sub.NamespacedID, resp.Current.NamespacedID)
-			require.Equal(t, plan2.PlanMeta.Version, resp.New.Subscription.PlanRef.Version)
+			require.Equal(t, plan2.PlanMeta.Version, resp.Next.Subscription.PlanRef.Version)
 		})
 	})
 
@@ -185,7 +185,7 @@ func TestMigrate(t *testing.T) {
 			// Let's migrate the subscription to the new version
 			_, err = svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
-				TargetVersion: plan1.ToCreateSubscriptionPlanInput().Plan.Version,
+				TargetVersion: lo.ToPtr(plan1.ToCreateSubscriptionPlanInput().Plan.Version),
 			})
 			require.NotNil(t, err)
 			require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}))

@@ -175,7 +175,7 @@ func main() {
 			EntitlementConnector:        app.EntitlementRegistry.Entitlement,
 			SubscriptionService:         app.Subscription.Service,
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,
-			PlanSubscriptionService:     app.SubscriptionChangeService,
+			PlanSubscriptionService:     app.Subscription.PlanSubscriptionService,
 			Logger:                      logger,
 			FeatureConnector:            app.EntitlementRegistry.Feature,
 			GrantConnector:              app.EntitlementRegistry.Grant,

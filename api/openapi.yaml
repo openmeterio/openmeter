@@ -7114,8 +7114,6 @@ paths:
                 targetVersion:
                   type: integer
                   minimum: 1
-              required:
-                - targetVersion
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
@@ -14558,13 +14556,13 @@ components:
       type: object
       required:
         - current
-        - new
+        - next
       properties:
         current:
           allOf:
             - $ref: '#/components/schemas/Subscription'
           title: Current subscription
-        new:
+        next:
           allOf:
             - $ref: '#/components/schemas/SubscriptionExpanded'
           title: The subscription it will be changed to

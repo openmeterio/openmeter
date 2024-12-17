@@ -116,11 +116,11 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionResponse{}, err
 			}
 
-			v, err := MapSubscriptionViewToAPI(res.New)
+			v, err := MapSubscriptionViewToAPI(res.Next)
 
 			return ChangeSubscriptionResponse{
 				Current: MapSubscriptionToAPI(res.Current),
-				New:     v,
+				Next:    v,
 			}, err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ChangeSubscriptionResponse](http.StatusOK),

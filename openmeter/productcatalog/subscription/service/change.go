@@ -18,8 +18,6 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 		return def, &models.GenericUserError{Message: err.Error()}
 	}
 
-	// TODO: let's validate the plan can be changed to!
-
 	if request.PlanInput.AsInput() != nil {
 		p, err := PlanFromPlanInput(*request.PlanInput.AsInput())
 		if err != nil {
@@ -55,6 +53,6 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 
 	return plansubscription.SubscriptionChangeResponse{
 		Current: curr,
-		New:     new,
+		Next:    new,
 	}, nil
 }

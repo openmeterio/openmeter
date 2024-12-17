@@ -137,7 +137,7 @@ func TestChange(t *testing.T) {
 			require.Nil(t, err)
 
 			require.Equal(t, sub.NamespacedID, resp.Current.NamespacedID)
-			require.Equal(t, plan2.PlanMeta.Key, resp.New.Subscription.PlanRef.Key)
+			require.Equal(t, plan2.PlanMeta.Key, resp.Next.Subscription.PlanRef.Key)
 		})
 	})
 

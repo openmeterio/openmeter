@@ -16,12 +16,12 @@ type PlanSubscriptionService interface {
 // Generic response where a customer's subscription is changed to a different one.
 type SubscriptionChangeResponse struct {
 	Current subscription.Subscription
-	New     subscription.SubscriptionView
+	Next    subscription.SubscriptionView
 }
 
 type MigrateSubscriptionRequest struct {
 	ID            models.NamespacedID
-	TargetVersion int
+	TargetVersion *int
 }
 
 type ChangeSubscriptionRequest struct {
