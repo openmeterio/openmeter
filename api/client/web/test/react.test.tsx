@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import React from 'react'
-import { MockAgent, setGlobalDispatcher } from 'undici'
+import { Interceptable, MockAgent, setGlobalDispatcher } from 'undici'
 import {
   afterAll,
   afterEach,
@@ -14,6 +14,11 @@ import {
 import { OpenMeterClient } from '../dist'
 import { useOpenMeter, OpenMeterProvider } from '../dist/react'
 
+type TestContext = {
+  openmeter: OpenMeterClient
+  fetchMock: Interceptable
+}
+
 describe('react', () => {
   beforeAll(() => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -23,7 +28,7 @@ describe('react', () => {
     vi.resetAllMocks()
   })
 
-  beforeEach((ctx) => {
+  beforeEach<TestContext>((ctx) => {
     const url = 'http://127.0.0.1:8888'
     ctx.openmeter = new OpenMeterClient(url, 'token')
     const mockAgent = new MockAgent()
@@ -33,7 +38,7 @@ describe('react', () => {
     ctx.fetchMock = mockAgent.get(url)
   })
 
-  afterEach((ctx) => {
+  afterEach<TestContext>((ctx) => {
     ctx.fetchMock.destroy()
   })
 
@@ -71,7 +76,7 @@ describe('react', () => {
       expect(result.current).toBeInstanceOf(OpenMeterClient)
     })
 
-    it('should initialize the client with the provided url and token', async (ctx) => {
+    it<TestContext>('should initialize the client with the provided url and token', async (ctx) => {
       const wrapper = ({ children }: { children?: React.ReactNode }) => (
         <OpenMeterProvider url="http://127.0.0.1:8888" token="token">
           {children}
