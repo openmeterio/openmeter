@@ -119,34 +119,69 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	result.SetInvoiceNumber(stripeInvoice.Number)
 
 	// Add line items
-	lineParams := &stripe.InvoiceAddLinesParams{}
+	stripeInvoiceLineParams := &stripe.InvoiceAddLinesParams{}
+
+	// Walk the tree
+	var queue []*billing.Line
 
 	invoice.Lines.ForEach(func(lines []*billing.Line) {
-		for _, line := range lines {
-			switch line.Type {
-			case billing.InvoiceLineTypeFee:
-				lineParams.Lines = append(lineParams.Lines, &stripe.InvoiceAddLinesLineParams{
-					InvoiceItem: lo.ToPtr(line.Name),
-					Description: line.Description,
-					Amount:      lo.ToPtr(line.FlatFee.PerUnitAmount.GetFixed()),
-					Quantity:    lo.ToPtr(line.FlatFee.Quantity.GetFixed()),
-				})
-			case billing.InvoiceLineTypeUsageBased:
-				lineParams.Lines = append(lineParams.Lines, &stripe.InvoiceAddLinesLineParams{
-					// TODO
-				})
-			default:
-				err = fmt.Errorf("unsupported line type: %s", line.Type)
-				return
-			}
-		}
+		queue = append(queue, lines...)
 	})
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to map line items to stripe: %w", err)
+	for len(queue) > 0 {
+		line := queue[0]
+		queue = queue[1:]
+
+		// Add children to the queue
+		childrens := line.Children.OrEmpty()
+		for _, l := range childrens {
+			queue = append(queue, l)
+		}
+
+		// Only add line items for leaf nodes
+		if len(childrens) > 0 {
+			continue
+		}
+
+		period := &stripe.InvoiceAddLinesLinePeriodParams{
+			Start: lo.ToPtr(line.Period.Start.Unix()),
+			End:   lo.ToPtr(line.Period.End.Unix()),
+		}
+
+		// Add discounts
+		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
+			for _, discount := range discounts {
+				stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
+					Description: discount.Description,
+					Amount:      lo.ToPtr(discount.Amount.GetFixed()),
+					Quantity:    lo.ToPtr(int64(1)),
+					Period:      period,
+				})
+			}
+		})
+
+		// Add line item
+		switch line.Type {
+		case billing.InvoiceLineTypeFee:
+			stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
+				Description: line.Description,
+				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+				Quantity:    lo.ToPtr(int64(1)),
+				Period:      period,
+			})
+		case billing.InvoiceLineTypeUsageBased:
+			stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
+				Description: line.Description,
+				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+				Quantity:    lo.ToPtr(line.UsageBased.Quantity.GetFixed()),
+				Period:      period,
+			})
+		default:
+			return result, fmt.Errorf("unsupported line type: %s", line.Type)
+		}
 	}
 
-	stripeInvoice, err = client.Invoices.AddLines(stripeInvoice.ID, lineParams)
+	stripeInvoice, err = client.Invoices.AddLines(stripeInvoice.ID, stripeInvoiceLineParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add line items to invoice in stripe: %w", err)
 	}
