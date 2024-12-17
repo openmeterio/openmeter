@@ -54,7 +54,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 
 				IssuedAfter:  input.IssuedAfter,
 				IssuedBefore: input.IssuedBefore,
-				Expand:       mapInvoiceExpandToEntity(lo.FromPtrOr(input.Expand, nil)),
+				Expand:       mapInvoiceExpandToEntity(lo.FromPtrOr(input.Expand, nil)).SetGatheringTotals(true),
 
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(input.PageSize, DefaultPageSize),
@@ -177,7 +177,7 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 					ID:        params.InvoiceID,
 					Namespace: ns,
 				},
-				Expand: mapInvoiceExpandToEntity(params.Expand).SetDeletedLines(params.IncludeDeletedLines),
+				Expand: mapInvoiceExpandToEntity(params.Expand).SetDeletedLines(params.IncludeDeletedLines).SetGatheringTotals(true),
 			}, nil
 		},
 		func(ctx context.Context, request GetInvoiceRequest) (GetInvoiceResponse, error) {

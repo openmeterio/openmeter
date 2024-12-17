@@ -22,7 +22,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps Calculator
 	var outErr error
 
 	for _, line := range lines {
-		if line.IsDeleted() {
+		if line.IsDeleted() || line.IsSplit() {
 			continue
 		}
 

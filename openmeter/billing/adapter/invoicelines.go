@@ -316,6 +316,10 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 				q = q.Where(billinginvoiceline.IDIn(input.LineIDs...))
 			}
 
+			if len(input.InvoiceIDs) > 0 {
+				q = q.Where(billinginvoiceline.InvoiceIDIn(input.InvoiceIDs...))
+			}
+
 			if input.InvoiceAtBefore != nil {
 				q = q.Where(billinginvoiceline.InvoiceAtLT(*input.InvoiceAtBefore))
 			}

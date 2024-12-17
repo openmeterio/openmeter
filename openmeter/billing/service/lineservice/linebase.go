@@ -67,6 +67,7 @@ type LineBase interface {
 	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
 	IsLastInPeriod() bool
 	IsDeleted() bool
+	IsSplit() bool
 
 	CloneForCreate(in UpdateInput) Line
 	Update(in UpdateInput) Line
@@ -144,6 +145,10 @@ func (l lineBase) IsFirstInPeriod() bool {
 
 func (l lineBase) IsDeleted() bool {
 	return l.line.DeletedAt != nil
+}
+
+func (l lineBase) IsSplit() bool {
+	return l.line.Status == billing.InvoiceLineStatusSplit
 }
 
 func (l lineBase) Save(ctx context.Context) (Line, error) {

@@ -36,6 +36,13 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		if err != nil {
 			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoices.Items[i].ID, err)
 		}
+
+		if input.Expand.GatheringTotals {
+			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, invoices.Items[i])
+			if err != nil {
+				return billing.ListInvoicesResponse{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoices.Items[i].ID, err)
+			}
+		}
 	}
 
 	return invoices, nil
@@ -76,6 +83,47 @@ func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invo
 	return invoice, nil
 }
 
+func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
+	if invoice.Status != billing.InvoiceStatusGathering {
+		return invoice, nil
+	}
+
+	if invoice.Lines.IsAbsent() {
+		// Let's load the lines, if not expanded. This can happen when we are responding to a list request, however
+		// this at least allows us to not to expand all the invoices.
+		lines, err := s.adapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace:  invoice.Namespace,
+			InvoiceIDs: []string{invoice.ID},
+		})
+		if err != nil {
+			return invoice, fmt.Errorf("loading lines: %w", err)
+		}
+
+		invoice.Lines = billing.NewLineChildren(lines)
+	}
+
+	for _, line := range invoice.Lines.OrEmpty() {
+		if line.Status != billing.InvoiceLineStatusValid || line.DeletedAt != nil {
+			continue
+		}
+
+		srv, err := s.lineService.FromEntity(line)
+		if err != nil {
+			return invoice, fmt.Errorf("creating line service: %w", err)
+		}
+
+		if err := srv.SnapshotQuantity(ctx, &invoice); err != nil {
+			return invoice, fmt.Errorf("snapshotting quantity: %w", err)
+		}
+	}
+
+	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
+		return invoice, fmt.Errorf("calculating invoice: %w", err)
+	}
+
+	return invoice, nil
+}
+
 func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
 	invoice, err := s.adapter.GetInvoiceById(ctx, input)
 	if err != nil {
@@ -90,6 +138,13 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	invoice, err = s.resolveStatusDetails(ctx, invoice)
 	if err != nil {
 		return billing.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+	}
+
+	if input.Expand.GatheringTotals {
+		invoice, err = s.recalculateGatheringInvoice(ctx, invoice)
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoice.ID, err)
+		}
 	}
 
 	return invoice, nil
