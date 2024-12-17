@@ -355,7 +355,7 @@ func fromAPIBillingAppIdOrType(i string) billing.AppReference {
 }
 
 func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, error) {
-	def := defaultWorkflowConfig
+	def := billing.DefaultWorkflowConfig
 
 	if i.Collection == nil {
 		i.Collection = &api.BillingWorkflowCollectionSettings{}

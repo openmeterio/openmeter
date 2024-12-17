@@ -68,5 +68,18 @@
         "recalculate-balance-snapshots"
       ]
     },
+    {
+      "name": "Launch billing-worker Service",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/billing-worker",
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml",
+        "--telemetry-address",
+        ":10004"
+      ]
+    },
   ]
 }

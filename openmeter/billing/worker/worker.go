@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -21,6 +24,7 @@ type WorkerOptions struct {
 
 	Logger *slog.Logger
 
+	BillingAdapter billing.Adapter
 	BillingService billing.Service
 	// External connectors
 }
@@ -46,13 +50,18 @@ func (w WorkerOptions) Validate() error {
 		return fmt.Errorf("billing service is required")
 	}
 
+	if w.BillingAdapter == nil {
+		return fmt.Errorf("billing adapter is required")
+	}
+
 	return nil
 }
 
 type Worker struct {
 	router *message.Router
 
-	billingService billing.Service
+	billingService      billing.Service
+	subscriptionHandler *billingworkersubscription.Handler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -60,8 +69,18 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, err
 	}
 
+	handler, err := billingworkersubscription.New(billingworkersubscription.Config{
+		BillingService: opts.BillingService,
+		Logger:         opts.Logger,
+		TxCreator:      opts.BillingAdapter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	worker := &Worker{
-		billingService: opts.BillingService,
+		billingService:      opts.BillingService,
+		subscriptionHandler: handler,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -91,18 +110,18 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 		opts.EventBus.Marshaler(),
 		opts.Router.MetricMeter,
 
-	/*	TODO:
-
-		// Entitlement created event
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEvent) error {
-			return w.opts.EventBus.
-				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementEvent(
-					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-				))
-		}), */
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CreatedEvent) error {
+			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
+			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
+			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
+			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
+		}),
 	)
 }
 

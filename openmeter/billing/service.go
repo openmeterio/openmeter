@@ -18,6 +18,7 @@ type ProfileService interface {
 	ListProfiles(ctx context.Context, input ListProfilesInput) (ListProfilesResult, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*Profile, error)
+	ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error
 }
 
 type CustomerOverrideService interface {

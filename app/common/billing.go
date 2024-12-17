@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/google/wire"
@@ -21,13 +20,25 @@ import (
 
 var Billing = wire.NewSet(
 	BillingService,
+	BillingAdapter,
 )
+
+func BillingAdapter(
+	logger *slog.Logger,
+	db *entdb.Client,
+) (billing.Adapter, error) {
+	return billingadapter.New(billingadapter.Config{
+		Client: db,
+		Logger: logger,
+	})
+}
 
 func BillingService(
 	logger *slog.Logger,
 	db *entdb.Client,
 	appService app.Service,
 	appStripeService appstripe.Service,
+	billingAdapter billing.Adapter,
 	billingConfig config.BillingConfiguration,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
@@ -38,16 +49,8 @@ func BillingService(
 		return nil, nil
 	}
 
-	adapter, err := billingadapter.New(billingadapter.Config{
-		Client: db,
-		Logger: logger,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating billing adapter: %w", err)
-	}
-
 	return billingservice.New(billingservice.Config{
-		Adapter:            adapter,
+		Adapter:            billingAdapter,
 		AppService:         appService,
 		CustomerService:    customerService,
 		FeatureService:     featureConnector,

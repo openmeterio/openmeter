@@ -148,6 +148,14 @@ func main() {
 		}
 	}
 
+	if conf.Billing.Enabled {
+		err = app.Billing.ProvisionDefaultBillingProfile(ctx, app.NamespaceManager.GetDefaultNamespace())
+		if err != nil {
+			logger.Error("failed to provision default billing profile", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			NamespaceManager:    app.NamespaceManager,
