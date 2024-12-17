@@ -28,6 +28,7 @@ var BillingWorker = wire.NewSet(
 	BillingWorkerSubscriber,
 
 	NewFeatureConnector,
+	BillingAdapter,
 	BillingService,
 
 	NewBillingWorkerOptions,
@@ -67,6 +68,7 @@ func NewBillingWorkerOptions(
 	routerOptions router.Options,
 	eventBus eventbus.Publisher,
 	billingService billing.Service,
+	billingAdapter billing.Adapter,
 	logger *slog.Logger,
 ) billingworker.WorkerOptions {
 	return billingworker.WorkerOptions{
@@ -75,6 +77,7 @@ func NewBillingWorkerOptions(
 		Router:         routerOptions,
 		EventBus:       eventBus,
 		BillingService: billingService,
+		BillingAdapter: billingAdapter,
 		Logger:         logger,
 	}
 }

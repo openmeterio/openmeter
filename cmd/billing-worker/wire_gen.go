@@ -178,6 +178,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	adapter, err := common.BillingAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	v2 := conf.Meters
 	inMemoryRepository := common.NewInMemoryRepository(v2)
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
@@ -203,7 +213,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -213,7 +223,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, logger)
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, adapter, logger)
 	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup6()

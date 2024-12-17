@@ -353,6 +353,42 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 	})
 }
 
+func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error {
+	profile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: namespace,
+	})
+	if err != nil {
+		return err
+	}
+
+	if profile != nil {
+		return nil
+	}
+
+	_, err = s.CreateProfile(ctx, billing.CreateProfileInput{
+		Namespace:   namespace,
+		Name:        "openmeter-sandbox",
+		Description: lo.ToPtr("Default profile for OpenMeter sandbox"),
+		Supplier: billing.SupplierContact{
+			Name: "OpenMeter",
+			Address: models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+		},
+		WorkflowConfig: billing.DefaultWorkflowConfig,
+		Default:        true,
+		Apps: billing.ProfileAppReferences{
+			Tax:       billing.AppReference{Type: appentitybase.AppTypeSandbox},
+			Invoicing: billing.AppReference{Type: appentitybase.AppTypeSandbox},
+			Payment:   billing.AppReference{Type: appentitybase.AppTypeSandbox},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("error creating default profile: %w", err)
+	}
+	return nil
+}
+
 func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BaseProfile) (*billing.Profile, error) {
 	if input == nil {
 		return nil, nil

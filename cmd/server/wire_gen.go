@@ -203,9 +203,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	adapter, err := common.BillingAdapter(logger, client)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	billingConfiguration := conf.Billing
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, appstripeService, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
+	billingService, err := common.BillingService(logger, client, service, appstripeService, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -321,7 +330,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	adapter := common.NewPlanSubscriptionAdapter(logger, client, planService)
+	plansubscriptionAdapter := common.NewPlanSubscriptionAdapter(logger, client, planService)
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health)
 	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
@@ -350,7 +359,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RouterHook:              v6,
 		Secret:                  secretserviceService,
 		Subscription:            subscriptionServiceWithWorkflow,
-		SubscriptionPlanAdapter: adapter,
+		SubscriptionPlanAdapter: plansubscriptionAdapter,
 		StreamingConnector:      connector,
 		TelemetryServer:         v7,
 	}
