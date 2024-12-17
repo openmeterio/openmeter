@@ -51,9 +51,7 @@ func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Update the invoice in Stripe.
-
-	// TODO: Implement
-	return nil, fmt.Errorf("upsert invoice operation not implemented")
+	return a.updateInvoice(ctx, invoice)
 }
 
 // DeleteInvoice deletes the invoice for the app
@@ -159,7 +157,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 				stripeInvoiceLineParams.Lines = append(stripeInvoiceLineParams.Lines, &stripe.InvoiceAddLinesLineParams{
 					Description: discount.Description,
-					Amount:      lo.ToPtr(discount.Amount.GetFixed()),
+					Amount:      lo.ToPtr(-discount.Amount.GetFixed()),
 					Quantity:    lo.ToPtr(int64(1)),
 					Period:      period,
 				})
@@ -200,6 +198,200 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Add external line IDs
 	for idx, stripeLine := range stripeInvoice.Lines.Data {
 		result.AddLineExternalID(lineIDs[idx], stripeLine.ID)
+	}
+
+	return result, nil
+}
+
+// updateInvoice update the invoice for the app
+func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+	// Get the Stripe client
+	_, stripeClient, err := a.getStripeClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stripe client: %w", err)
+	}
+
+	client := stripeClient.GetClient()
+
+	// Get the invoice from Stripe
+	stripeInvoice, err := client.Invoices.Get(invoice.ExternalIDs.Invoicing, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get invoice in stripe: %w", err)
+	}
+
+	// TODO: do we need to update Stripe invoice? Like due date?
+
+	existingStripeLines := make(map[string]bool)
+
+	// Return the result
+	result := &billing.UpsertInvoiceResult{}
+	result.SetExternalID(stripeInvoice.ID)
+	result.SetInvoiceNumber(stripeInvoice.Number)
+
+	for _, stripeLine := range stripeInvoice.Lines.Data {
+		existingStripeLines[stripeLine.ID] = true
+	}
+
+	addStripeLines := &stripe.InvoiceAddLinesParams{}
+	updateStripeLines := &stripe.InvoiceUpdateLinesParams{}
+	removeStripeLines := &stripe.InvoiceRemoveLinesParams{}
+
+	// Walk the tree
+	var queue []*billing.Line
+
+	// Feed the queue with the root lines
+	invoice.Lines.ForEach(func(lines []*billing.Line) {
+		queue = append(queue, lines...)
+	})
+
+	// We collect the line IDs to match them with the Stripe line items from the response
+	var lineIDs []string
+
+	for len(queue) > 0 {
+		line := queue[0]
+		queue = queue[1:]
+
+		// Add children to the queue
+		childrens := line.Children.OrEmpty()
+		for _, l := range childrens {
+			queue = append(queue, l)
+		}
+
+		// Only add line items for leaf nodes
+		if len(childrens) > 0 {
+			continue
+		}
+
+		period := &stripe.InvoiceAddLinesLinePeriodParams{
+			Start: lo.ToPtr(line.Period.Start.Unix()),
+			End:   lo.ToPtr(line.Period.End.Unix()),
+		}
+
+		// Add discounts
+		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
+			for _, discount := range discounts {
+				// Add line item if it doesn't exist
+				if line.ExternalIDs.Invoicing == "" {
+					lineIDs = append(lineIDs, line.ID)
+
+					addStripeLines.Lines = append(addStripeLines.Lines, &stripe.InvoiceAddLinesLineParams{
+						Description: discount.Description,
+						Amount:      lo.ToPtr(-discount.Amount.GetFixed()),
+						Quantity:    lo.ToPtr(int64(1)),
+						Period:      period,
+					})
+				} else {
+					// Update line item
+					delete(existingStripeLines, line.ExternalIDs.Invoicing)
+
+					result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
+
+					updateStripeLines.Lines = append(updateStripeLines.Lines, &stripe.InvoiceUpdateLinesLineParams{
+						ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
+						Description: discount.Description,
+						Amount:      lo.ToPtr(-discount.Amount.GetFixed()),
+						Quantity:    lo.ToPtr(int64(1)),
+						// period is not updatable
+					})
+				}
+			}
+		})
+
+		// Add line item
+		switch line.Type {
+		case billing.InvoiceLineTypeFee:
+			// Add line item if it doesn't exist
+			if line.ExternalIDs.Invoicing == "" {
+				lineIDs = append(lineIDs, line.ID)
+
+				addStripeLines.Lines = append(addStripeLines.Lines, &stripe.InvoiceAddLinesLineParams{
+					Description: line.Description,
+					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+					Quantity:    lo.ToPtr(int64(1)),
+					Period:      period,
+				})
+			} else {
+				// Update line item
+				delete(existingStripeLines, line.ExternalIDs.Invoicing)
+
+				result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
+
+				updateStripeLines.Lines = append(updateStripeLines.Lines, &stripe.InvoiceUpdateLinesLineParams{
+					ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
+					Description: line.Description,
+					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+					Quantity:    lo.ToPtr(int64(1)),
+					// period is not updatable
+				})
+			}
+
+		case billing.InvoiceLineTypeUsageBased:
+			// Add line item if it doesn't exist
+			if line.ExternalIDs.Invoicing == "" {
+				lineIDs = append(lineIDs, line.ID)
+
+				addStripeLines.Lines = append(addStripeLines.Lines, &stripe.InvoiceAddLinesLineParams{
+					Description: line.Description,
+					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+					Quantity:    lo.ToPtr(line.UsageBased.Quantity.GetFixed()),
+					Period:      period,
+				})
+			} else {
+				// Update line item
+				delete(existingStripeLines, line.ExternalIDs.Invoicing)
+
+				result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
+
+				updateStripeLines.Lines = append(updateStripeLines.Lines, &stripe.InvoiceUpdateLinesLineParams{
+					ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
+					Description: line.Description,
+					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+					Quantity:    lo.ToPtr(line.UsageBased.Quantity.GetFixed()),
+					// period is not updatable
+				})
+			}
+		default:
+			return result, fmt.Errorf("unsupported line type: %s", line.Type)
+		}
+	}
+
+	// Delete line items that are not in the invoice
+	for stripeLineID := range existingStripeLines {
+		removeStripeLines.Lines = append(removeStripeLines.Lines, &stripe.InvoiceRemoveLinesLineParams{
+			ID:       lo.ToPtr(stripeLineID),
+			Behavior: lo.ToPtr("delete"),
+		})
+	}
+
+	// Add Stripe line items to the Stripe invoice
+	if len(addStripeLines.Lines) > 0 {
+		shift := len(stripeInvoice.Lines.Data) - 1
+
+		stripeInvoice, err = client.Invoices.AddLines(stripeInvoice.ID, addStripeLines)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add line items to invoice in stripe: %w", err)
+		}
+
+		// Add new line IDs
+		for idx, stripeLine := range stripeInvoice.Lines.Data {
+			result.AddLineExternalID(lineIDs[idx+shift], stripeLine.ID)
+		}
+	}
+
+	// Update Stripe line items in the Stripe invoice
+	if len(updateStripeLines.Lines) > 0 {
+		stripeInvoice, err = client.Invoices.UpdateLines(stripeInvoice.ID, updateStripeLines)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update line items in invoice in stripe: %w", err)
+		}
+	}
+
+	// Remove Stripe line items from the Stripe invoice
+	if len(removeStripeLines.Lines) > 0 {
+		stripeInvoice, err = client.Invoices.RemoveLines(stripeInvoice.ID, removeStripeLines)
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove line items from invoice in stripe: %w", err)
+		}
 	}
 
 	return result, nil
