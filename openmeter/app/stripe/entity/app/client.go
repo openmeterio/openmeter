@@ -34,5 +34,5 @@ func (a App) getStripeClient(ctx context.Context) (appstripeentity.AppData, stri
 		return appstripeentity.AppData{}, nil, fmt.Errorf("failed to create stripe client: %w", err)
 	}
 
-	return appstripeentity.AppData{}, stripeClient, nil
+	return stripeAppData, stripeClient, nil
 }
