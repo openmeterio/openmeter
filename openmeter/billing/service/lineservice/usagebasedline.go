@@ -834,7 +834,7 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 				ParentLineID:           lo.ToPtr(l.line.ID),
 				TaxConfig:              l.line.TaxConfig,
 			},
-			FlatFee: billing.FlatFeeLine{
+			FlatFee: &billing.FlatFeeLine{
 				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount: in.PerUnitAmount,
 				Quantity:      in.Quantity,
