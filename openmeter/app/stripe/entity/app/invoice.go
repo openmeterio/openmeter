@@ -3,6 +3,7 @@ package appstripeentityapp
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -12,6 +13,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 )
+
+const invoiceLineMetadataID = "om_line_id"
 
 var _ billing.InvoicingApp = (*App)(nil)
 
@@ -73,6 +76,12 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 
 // createInvoice creates the invoice for the app
 func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+	// Get the currency calculator
+	calculator, err := NewStripeCalculator(invoice.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get currency calculator: %w", err)
+	}
+
 	customerID := customerentity.CustomerID{
 		Namespace: invoice.Namespace,
 		ID:        invoice.Customer.CustomerID,
@@ -112,29 +121,26 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Add lines to the Stripe invoice
 	var stripeLineAdd []*stripe.InvoiceAddLinesLineParams
 
-	// Walk the tree
-	var queue []*billing.Line
+	lines := invoice.FlattenLinesByID()
 
-	// Feed the queue with the root lines
-	invoice.Lines.ForEach(func(lines []*billing.Line) {
-		queue = append(queue, lines...)
-	})
+	// Check if we have any non integer amount or quantity
+	// We use this to determinate if we add alreay calculated total or per unit amount and quantity to the Stripe line item
+	isInteger := true
 
-	// We collect the line IDs to match them with the Stripe line items from the response
-	var lineIDs []string
-
-	for len(queue) > 0 {
-		line := queue[0]
-		queue = queue[1:]
-
-		// Add children to the queue
-		childrens := line.Children.OrEmpty()
-		for _, l := range childrens {
-			queue = append(queue, l)
+	for _, line := range lines {
+		if line.Type != billing.InvoiceLineTypeFee {
+			continue
 		}
 
-		// Only add line items for leaf nodes
-		if len(childrens) > 0 {
+		if !calculator.IsInteger(line.FlatFee.PerUnitAmount) || !line.FlatFee.Quantity.IsInteger() {
+			isInteger = false
+			break
+		}
+	}
+
+	// Walk the tree
+	for _, line := range lines {
+		if line.Type != billing.InvoiceLineTypeFee {
 			continue
 		}
 
@@ -146,40 +152,69 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		// Add discounts
 		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
 			for _, discount := range discounts {
-				lineIDs = append(lineIDs, line.ID)
+				name := line.Name
+				if discount.Description != nil {
+					name = fmt.Sprintf("%s (%s)", name, *discount.Description)
+				}
 
 				stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
-					Description: discount.Description,
-					Amount:      lo.ToPtr(-discount.Amount.GetFixed()),
+					Description: lo.ToPtr(name),
+					Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
 					Quantity:    lo.ToPtr(int64(1)),
 					Period:      period,
+					Metadata: map[string]string{
+						// TODO: is a discount ID a line id?
+						invoiceLineMetadataID: discount.ID,
+					},
 				})
 			}
 		})
 
-		// Add line item
-		switch line.Type {
-		case billing.InvoiceLineTypeFee:
-			lineIDs = append(lineIDs, line.ID)
+		// Add line
+		name := line.Name
+		if line.Description != nil {
+			name = fmt.Sprintf("%s (%s)", name, *line.Description)
+		}
 
+		// If the per unit amount and quantity can be represented in stripe as integer we add the line item
+		if isInteger {
 			stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
-				Description: line.Description,
-				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+				Description: lo.ToPtr(name),
+				Amount:      lo.ToPtr(calculator.RoundToAmount(line.FlatFee.PerUnitAmount)),
+				Quantity:    lo.ToPtr(line.FlatFee.Quantity.IntPart()),
+				Period:      period,
+				Metadata: map[string]string{
+					invoiceLineMetadataID: line.ID,
+				},
+			})
+		} else {
+			// Otherwise we add the calcualted total with with quantity one
+			stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
+				Description: lo.ToPtr(name),
+				Amount:      lo.ToPtr(calculator.RoundToAmount(line.Totals.Amount)),
 				Quantity:    lo.ToPtr(int64(1)),
 				Period:      period,
+				Metadata: map[string]string{
+					invoiceLineMetadataID: line.ID,
+				},
 			})
-		case billing.InvoiceLineTypeUsageBased:
-			lineIDs = append(lineIDs, line.ID)
-
-			stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
-				Description: line.Description,
-				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
-				Quantity:    lo.ToPtr(line.UsageBased.Quantity.GetFixed()),
-				Period:      period,
-			})
-		default:
-			return result, fmt.Errorf("unsupported line type: %s", line.Type)
 		}
+	}
+
+	// Sort the line items by description
+	sort.Slice(stripeLineAdd, func(i, j int) bool {
+		descA := lo.FromPtrOr(stripeLineAdd[i].Description, "")
+		descB := lo.FromPtrOr(stripeLineAdd[j].Description, "")
+
+		return descA < descB
+	})
+
+	// We collect the line IDs to match them with the Stripe line items from the response
+	var lineIDs []string
+
+	for _, stripeLine := range stripeLineAdd {
+		lineIDs = append(lineIDs, stripeLine.Metadata[invoiceLineMetadataID])
+		stripeLine.Metadata = nil
 	}
 
 	// Add Stripe line items to the Stripe invoice

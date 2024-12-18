@@ -154,7 +154,8 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
-	testApp, customer, _ := s.setupAppWithCustomer(ctx, t)
+	testApp, customer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
 
 	// Get customer data
 	customerData, err := testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
@@ -208,7 +209,8 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 // TestCustomerValidate tests stripe app behavior when validating a customer
 func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testing.T) {
-	app, customer, _ := s.setupAppWithCustomer(ctx, t)
+	app, customer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
 
 	// Create customer without stripe data
 	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
@@ -246,7 +248,8 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 // TestCreateCheckoutSession tests stripe app behavior when creating a new checkout session
 func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *testing.T) {
-	app, customer, _ := s.setupAppWithCustomer(ctx, t)
+	app, customer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
 
 	// Create checkout session
 	appID := app.GetID()
@@ -299,60 +302,4 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	})
 
 	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
-}
-
-func (s *AppHandlerTestSuite) setupAppWithCustomer(ctx context.Context, t *testing.T) (appentity.App, *customerentity.Customer, appstripeentity.CustomerData) {
-	app := s.setupApp(ctx, t)
-	customer := s.setupCustomer(ctx, t)
-	data := s.setupAppCustomerData(ctx, t, app, customer)
-
-	return app, customer, data
-}
-
-// Create a stripe app first
-func (s *AppHandlerTestSuite) setupApp(ctx context.Context, t *testing.T) appentity.App {
-	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
-		},
-
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
-	})
-
-	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, app, "Create stripe app must return app")
-
-	return app
-}
-
-// Create test customers
-func (s *AppHandlerTestSuite) setupCustomer(ctx context.Context, t *testing.T) *customerentity.Customer {
-	customer, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
-		Namespace: s.namespace,
-		CustomerMutate: customerentity.CustomerMutate{
-			Name: "Test Customer",
-		},
-	})
-
-	require.NoError(t, err, "Create customer must not return error")
-	require.NotNil(t, customer, "Create customer must return customer")
-
-	return customer
-}
-
-// Add customer data to the app
-func (s *AppHandlerTestSuite) setupAppCustomerData(ctx context.Context, t *testing.T, app appentity.App, customer *customerentity.Customer) appstripeentity.CustomerData {
-	data := appstripeentity.CustomerData{
-		StripeCustomerID: "cus_123",
-	}
-
-	err := app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
-		CustomerID: customer.GetID(),
-		Data:       data,
-	})
-
-	require.NoError(t, err, "Upsert customer data must not return error")
-
-	return data
 }
