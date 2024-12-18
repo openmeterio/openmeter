@@ -11,6 +11,15 @@ import (
 	"github.com/stripe/stripe-go/v80"
 )
 
+// GetInvoice retrieves a Stripe invoice.
+func (c *stripeClient) GetInvoice(ctx context.Context, input GetInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("stripe get invoice: invalid input: %w", err)
+	}
+
+	return c.client.Invoices.Get(input.StripeInvoiceID, nil)
+}
+
 // CreateInvoice creates a new invoice for a customer in Stripe.
 func (c *stripeClient) CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
@@ -60,6 +69,19 @@ func (c *stripeClient) DeleteInvoice(ctx context.Context, input DeleteInvoiceInp
 
 	_, err := c.client.Invoices.Del(input.StripeInvoiceID, nil)
 	return err
+}
+
+// GetInvoiceInput is the input to get a Stripe invoice.
+type GetInvoiceInput struct {
+	StripeInvoiceID string
+}
+
+func (i GetInvoiceInput) Validate() error {
+	if i.StripeInvoiceID == "" {
+		return errors.New("stripe invoice id is required")
+	}
+
+	return nil
 }
 
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.

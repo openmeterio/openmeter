@@ -9,7 +9,6 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
-	"github.com/stripe/stripe-go/v80/client"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
@@ -253,6 +252,56 @@ func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID
 	}, nil
 }
 
-func (c *StripeClientMock) GetClient() *client.API {
-	panic("implement me")
+func (c *StripeClientMock) CreateInvoice(ctx context.Context, input stripeclient.CreateInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &stripe.Invoice{
+		ID: "in_123",
+	}, nil
+}
+
+func (c *StripeClientMock) UpdateInvoice(ctx context.Context, input stripeclient.UpdateInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &stripe.Invoice{
+		ID: "in_123",
+	}, nil
+}
+
+func (c *StripeClientMock) DeleteInvoice(ctx context.Context, input stripeclient.DeleteInvoiceInput) error {
+	return input.Validate()
+}
+
+func (c *StripeClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &stripe.Invoice{
+		ID: "in_123",
+	}, nil
+}
+
+func (c *StripeClientMock) UpdateInvoiceLines(ctx context.Context, input stripeclient.UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &stripe.Invoice{
+		ID: "in_123",
+	}, nil
+}
+
+func (c *StripeClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &stripe.Invoice{
+		ID: "in_123",
+	}, nil
 }
