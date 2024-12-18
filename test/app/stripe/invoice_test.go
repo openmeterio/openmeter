@@ -655,7 +655,21 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.Equal("stripe-invoice-id", externalId)
 
 		// Assert results.
-		s.Len(results.GetLineExternalIDs(), len(expectedInvoiceAddLinesLines))
+		// TODO: discount line items are not in the results
+		s.Len(results.GetLineExternalIDs(), len(expectedInvoiceAddLinesLines)-1)
+
+		expectedResult := map[string]string{}
+
+		for _, stripeLine := range stripeInvoice.Lines.Data {
+			// TODO: currently we don't have a way to match Stripe discount line items
+			if stripeLine.Metadata["om_line_type"] == "discount" {
+				continue
+			}
+
+			expectedResult[stripeLine.Metadata["om_line_id"]] = stripeLine.ID
+		}
+
+		s.Equal(expectedResult, results.GetLineExternalIDs())
 
 		// // Update the invoice.
 
