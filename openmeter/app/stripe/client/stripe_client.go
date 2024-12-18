@@ -40,6 +40,7 @@ type StripeClient interface {
 	CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error)
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (*stripe.Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
+	FinalizeInvoice(ctx context.Context, input FinalizeInvoiceInput) (*stripe.Invoice, error)
 	// Invoice Line
 	AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) (*stripe.Invoice, error)
 	UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) (*stripe.Invoice, error)

@@ -128,6 +128,17 @@ func (c *StripeClientMock) DeleteInvoice(ctx context.Context, input stripeclient
 	return args.Error(1)
 }
 
+func (c *StripeClientMock) FinalizeInvoice(ctx context.Context, input stripeclient.FinalizeInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	args := c.Called(input)
+	return args.Get(0).(*stripe.Invoice), args.Error(1)
+}
+
+// Invoice Lines
+
 func (c *StripeClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err

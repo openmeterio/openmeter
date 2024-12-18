@@ -78,7 +78,36 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 
 // FinalizeInvoice finalizes the invoice for the app
 func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
-	return nil, fmt.Errorf("finalize invoice operation not implemented")
+	// Get the Stripe client
+	_, stripeClient, err := a.getStripeClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stripe client: %w", err)
+	}
+
+	// Finalize the invoice in Stripe
+	stripeInvoice, err := stripeClient.FinalizeInvoice(ctx, stripeclient.FinalizeInvoiceInput{
+		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+
+		// Controls whether Stripe performs automatic collection of the invoice.
+		// If false, the invoice’s state doesn’t automatically advance without an explicit action.
+		// https://docs.stripe.com/api/invoices/finalize#finalize_invoice-auto_advance
+		AutoAdvance: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to finalize invoice in stripe: %w", err)
+	}
+
+	// Result
+	result := billing.NewFinalizeInvoiceResult()
+
+	// The PaymentIntent is generated when the invoice is finalized,
+	// and can then be used to pay the invoice.
+	// https://docs.stripe.com/api/invoices/object#invoice_object-payment_intent
+	if stripeInvoice.PaymentIntent != nil {
+		result.SetPaymentExternalID(stripeInvoice.PaymentIntent.ID)
+	}
+
+	return result, nil
 }
 
 // createInvoice creates the invoice for the app
