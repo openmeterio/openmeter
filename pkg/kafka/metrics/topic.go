@@ -362,15 +362,15 @@ type PartitionMetrics struct {
 	// Difference between (HighWatermarkOffset or LowWatermarkOffset) and StoredOffset. See ConsumerLag and StoredOffset.
 	ConsumerLagStored metric.Int64Gauge
 	// Total number of messages transmitted (produced)
-	MessagesSent metric.Int64Counter
+	MessagesSent metric.Int64Gauge
 	// Total number of bytes transmitted
-	MessageBytesSent metric.Int64Counter
+	MessageBytesSent metric.Int64Gauge
 	// Total number of messages consumed, not including ignored messages (due to offset, etc).
-	MessagesReceived metric.Int64Counter
+	MessagesReceived metric.Int64Gauge
 	// Total number of bytes received
-	MessageBytesReceived metric.Int64Counter
+	MessageBytesReceived metric.Int64Gauge
 	// Total number of messages received (consumer), or total number of messages produced (possibly not yet transmitted) (producer).
-	TotalNumOfMessages metric.Int64Counter
+	TotalNumOfMessages metric.Int64Gauge
 	// Current number of messages in-flight to/from broker
 	MessagesInflight metric.Int64Gauge
 }
@@ -399,11 +399,11 @@ func (m *PartitionMetrics) Add(ctx context.Context, stats *stats.Partition, attr
 	m.LastStableOffsetOnBroker.Record(ctx, stats.LastStableOffsetOnBroker, metric.WithAttributes(attrs...))
 	m.ConsumerLag.Record(ctx, stats.ConsumerLag, metric.WithAttributes(attrs...))
 	m.ConsumerLagStored.Record(ctx, stats.ConsumerLagStored, metric.WithAttributes(attrs...))
-	m.MessagesSent.Add(ctx, stats.MessagesSent, metric.WithAttributes(attrs...))
-	m.MessageBytesSent.Add(ctx, stats.MessageBytesSent, metric.WithAttributes(attrs...))
-	m.MessagesReceived.Add(ctx, stats.MessagesReceived, metric.WithAttributes(attrs...))
-	m.MessageBytesReceived.Add(ctx, stats.MessageBytesReceived, metric.WithAttributes(attrs...))
-	m.TotalNumOfMessages.Add(ctx, stats.TotalNumOfMessages, metric.WithAttributes(attrs...))
+	m.MessagesSent.Record(ctx, stats.MessagesSent, metric.WithAttributes(attrs...))
+	m.MessageBytesSent.Record(ctx, stats.MessageBytesSent, metric.WithAttributes(attrs...))
+	m.MessagesReceived.Record(ctx, stats.MessagesReceived, metric.WithAttributes(attrs...))
+	m.MessageBytesReceived.Record(ctx, stats.MessageBytesReceived, metric.WithAttributes(attrs...))
+	m.TotalNumOfMessages.Record(ctx, stats.TotalNumOfMessages, metric.WithAttributes(attrs...))
 	m.MessagesInflight.Record(ctx, stats.MessagesInflight, metric.WithAttributes(attrs...))
 }
 
@@ -580,7 +580,7 @@ func NewPartitionMetrics(meter metric.Meter) (*PartitionMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.partition.consumer_lag_stored: %w", err)
 	}
 
-	m.MessagesSent, err = meter.Int64Counter(
+	m.MessagesSent, err = meter.Int64Gauge(
 		"kafka.partition.messages_sent",
 		metric.WithDescription("Total number of messages transmitted (produced)"),
 		metric.WithUnit("{message}"),
@@ -589,7 +589,7 @@ func NewPartitionMetrics(meter metric.Meter) (*PartitionMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.partition.messages_sent: %w", err)
 	}
 
-	m.MessageBytesSent, err = meter.Int64Counter(
+	m.MessageBytesSent, err = meter.Int64Gauge(
 		"kafka.partition.message_bytes_sent",
 		metric.WithDescription("Total number of bytes transmitted for messages_sent"),
 		metric.WithUnit("{byte}"),
@@ -598,7 +598,7 @@ func NewPartitionMetrics(meter metric.Meter) (*PartitionMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.partition.message_bytes_sent: %w", err)
 	}
 
-	m.MessagesReceived, err = meter.Int64Counter(
+	m.MessagesReceived, err = meter.Int64Gauge(
 		"kafka.partition.messages_received",
 		metric.WithDescription("Total number of messages transmitted (produced)"),
 		metric.WithUnit("{message}"),
@@ -607,7 +607,7 @@ func NewPartitionMetrics(meter metric.Meter) (*PartitionMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.partition.messages_received: %w", err)
 	}
 
-	m.MessageBytesReceived, err = meter.Int64Counter(
+	m.MessageBytesReceived, err = meter.Int64Gauge(
 		"kafka.partition.message_bytes_received",
 		metric.WithDescription("Total number of bytes received for messages_received"),
 		metric.WithUnit("{byte}"),
@@ -616,7 +616,7 @@ func NewPartitionMetrics(meter metric.Meter) (*PartitionMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.partition.message_bytes_received: %w", err)
 	}
 
-	m.TotalNumOfMessages, err = meter.Int64Counter(
+	m.TotalNumOfMessages, err = meter.Int64Gauge(
 		"kafka.partition.total_num_of_messages",
 		metric.WithDescription("Total number of messages received (consumer, same as MessageBytesReceived), or total number of messages produced (possibly not yet transmitted) (producer)"),
 		metric.WithUnit("{message}"),

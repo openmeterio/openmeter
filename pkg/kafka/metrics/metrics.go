@@ -18,7 +18,7 @@ type Metrics struct {
 	*ConsumerGroupMetrics
 
 	// Time since this client instance was created (microseconds)
-	Age metric.Int64Counter
+	Age metric.Int64Gauge
 	// Number of ops (callbacks, events, etc) waiting in queue for application to serve with rd_kafka_poll()
 	ReplyQueue metric.Int64Gauge
 	// Current number of messages in producer queues
@@ -26,21 +26,21 @@ type Metrics struct {
 	// Current total size of messages in producer queues
 	MessageSize metric.Int64Gauge
 	// Total number of requests sent to Kafka brokers
-	RequestsSent metric.Int64Counter
+	RequestsSent metric.Int64Gauge
 	// Total number of bytes transmitted to Kafka brokers
-	RequestsBytesSent metric.Int64Counter
+	RequestsBytesSent metric.Int64Gauge
 	// Total number of responses received from Kafka brokers
-	RequestsReceived metric.Int64Counter
+	RequestsReceived metric.Int64Gauge
 	// Total number of bytes received from Kafka brokers
-	RequestsBytesReceived metric.Int64Counter
+	RequestsBytesReceived metric.Int64Gauge
 	// Total number of messages transmitted (produced) to Kafka brokers
-	MessagesProduced metric.Int64Counter
+	MessagesProduced metric.Int64Gauge
 	// Total number of message bytes (including framing, such as per-Message framing and MessageSet/batch framing) transmitted to Kafka brokers
-	MessagesBytesProduced metric.Int64Counter
+	MessagesBytesProduced metric.Int64Gauge
 	// Total number of messages consumed, not including ignored messages (due to offset, etc), from Kafka brokers.
-	MessagesConsumed metric.Int64Counter
+	MessagesConsumed metric.Int64Gauge
 	// Total number of message bytes (including framing) received from Kafka brokers
-	MessagesBytesConsumed metric.Int64Counter
+	MessagesBytesConsumed metric.Int64Gauge
 	// Number of topics in the metadata cache
 	TopicsInMetadataCache metric.Int64Gauge
 }
@@ -52,18 +52,18 @@ func (m *Metrics) Add(ctx context.Context, stats *stats.Stats, attrs ...attribut
 		attribute.String("type", stats.Type),
 	}...)
 
-	m.Age.Add(ctx, stats.Age, metric.WithAttributes(attrs...))
+	m.Age.Record(ctx, stats.Age, metric.WithAttributes(attrs...))
 	m.ReplyQueue.Record(ctx, stats.ReplyQueue, metric.WithAttributes(attrs...))
 	m.MessageCount.Record(ctx, stats.MessageCount, metric.WithAttributes(attrs...))
 	m.MessageSize.Record(ctx, stats.MessageSize, metric.WithAttributes(attrs...))
-	m.RequestsSent.Add(ctx, stats.RequestsSent, metric.WithAttributes(attrs...))
-	m.RequestsBytesSent.Add(ctx, stats.RequestsBytesSent, metric.WithAttributes(attrs...))
-	m.RequestsReceived.Add(ctx, stats.RequestsReceived, metric.WithAttributes(attrs...))
-	m.RequestsBytesReceived.Add(ctx, stats.RequestsBytesReceived, metric.WithAttributes(attrs...))
-	m.MessagesProduced.Add(ctx, stats.MessagesProduced, metric.WithAttributes(attrs...))
-	m.MessagesBytesProduced.Add(ctx, stats.MessagesBytesProduced, metric.WithAttributes(attrs...))
-	m.MessagesConsumed.Add(ctx, stats.MessagesConsumed, metric.WithAttributes(attrs...))
-	m.MessagesBytesConsumed.Add(ctx, stats.MessagesBytesConsumed, metric.WithAttributes(attrs...))
+	m.RequestsSent.Record(ctx, stats.RequestsSent, metric.WithAttributes(attrs...))
+	m.RequestsBytesSent.Record(ctx, stats.RequestsBytesSent, metric.WithAttributes(attrs...))
+	m.RequestsReceived.Record(ctx, stats.RequestsReceived, metric.WithAttributes(attrs...))
+	m.RequestsBytesReceived.Record(ctx, stats.RequestsBytesReceived, metric.WithAttributes(attrs...))
+	m.MessagesProduced.Record(ctx, stats.MessagesProduced, metric.WithAttributes(attrs...))
+	m.MessagesBytesProduced.Record(ctx, stats.MessagesBytesProduced, metric.WithAttributes(attrs...))
+	m.MessagesConsumed.Record(ctx, stats.MessagesConsumed, metric.WithAttributes(attrs...))
+	m.MessagesBytesConsumed.Record(ctx, stats.MessagesBytesConsumed, metric.WithAttributes(attrs...))
 	m.TopicsInMetadataCache.Record(ctx, stats.TopicsInMetadataCache, metric.WithAttributes(attrs...))
 
 	if m.BrokerMetrics != nil {
@@ -107,7 +107,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create topic metrics: %w", err)
 	}
 
-	m.Age, err = meter.Int64Counter(
+	m.Age, err = meter.Int64Gauge(
 		"kafka.age_microseconds",
 		metric.WithDescription("Time since this client instance was created (microseconds)"),
 		metric.WithUnit("{microseconds}"),
@@ -143,7 +143,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.message_size_bytes: %w", err)
 	}
 
-	m.RequestsSent, err = meter.Int64Counter(
+	m.RequestsSent, err = meter.Int64Gauge(
 		"kafka.requests_sent_count",
 		metric.WithDescription("Total number of requests sent to Kafka brokers"),
 		metric.WithUnit("{request}"),
@@ -152,7 +152,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.requests_sent_count: %w", err)
 	}
 
-	m.RequestsBytesSent, err = meter.Int64Counter(
+	m.RequestsBytesSent, err = meter.Int64Gauge(
 		"kafka.request_sent_bytes",
 		metric.WithDescription("Total number of bytes transmitted to Kafka brokers"),
 		metric.WithUnit("{byte}"),
@@ -161,7 +161,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.request_sent_bytes: %w", err)
 	}
 
-	m.RequestsReceived, err = meter.Int64Counter(
+	m.RequestsReceived, err = meter.Int64Gauge(
 		"kafka.requests_received_count",
 		metric.WithDescription("Total number of responses received from Kafka brokers"),
 		metric.WithUnit("{request}"),
@@ -170,7 +170,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.requests_received_count: %w", err)
 	}
 
-	m.RequestsBytesReceived, err = meter.Int64Counter(
+	m.RequestsBytesReceived, err = meter.Int64Gauge(
 		"kafka.requests_received_bytes",
 		metric.WithDescription("Total number of bytes received from Kafka brokers"),
 		metric.WithUnit("{byte}"),
@@ -179,7 +179,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.requests-sent: %w", err)
 	}
 
-	m.MessagesProduced, err = meter.Int64Counter(
+	m.MessagesProduced, err = meter.Int64Gauge(
 		"kafka.messages_produced_count",
 		metric.WithDescription("Total number of messages transmitted (produced) to Kafka brokers"),
 		metric.WithUnit("{message}"),
@@ -188,7 +188,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.messages_produced_count: %w", err)
 	}
 
-	m.MessagesBytesProduced, err = meter.Int64Counter(
+	m.MessagesBytesProduced, err = meter.Int64Gauge(
 		"kafka.messages_produced_bytes",
 		metric.WithDescription("Total number of message bytes (including framing, such as per-Message framing and MessageSet/batch framing) transmitted to Kafka brokers"),
 		metric.WithUnit("{byte}"),
@@ -197,7 +197,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.messages_produced_bytes: %w", err)
 	}
 
-	m.MessagesConsumed, err = meter.Int64Counter(
+	m.MessagesConsumed, err = meter.Int64Gauge(
 		"kafka.messages_consumed_count",
 		metric.WithDescription("Total number of messages consumed, not including ignored messages (due to offset, etc), from Kafka brokers."),
 		metric.WithUnit("{message}"),
@@ -206,7 +206,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.messages_consumed_count: %w", err)
 	}
 
-	m.MessagesBytesConsumed, err = meter.Int64Counter(
+	m.MessagesBytesConsumed, err = meter.Int64Gauge(
 		"kafka.messages_consumed_bytes",
 		metric.WithDescription("Total number of message bytes (including framing) received from Kafka brokers"),
 		metric.WithUnit("{byte}"),
