@@ -3,6 +3,7 @@ package appstripeentityapp
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sort"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -271,9 +272,16 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Collect the existing line items
 	existingStripeLines := make(map[string]bool)
+	existingStripeDiscounts := make(map[string]bool)
 
 	for _, stripeLine := range stripeInvoice.Lines.Data {
+		if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
+			existingStripeDiscounts[stripeLine.ID] = true
+			continue
+		}
+
 		existingStripeLines[stripeLine.ID] = true
+
 	}
 
 	var (
@@ -288,15 +296,21 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// We use this to determinate if we add alreay calculated total or per unit amount and quantity to the Stripe line item
 	isInteger := isAllInteger(calculator, lines)
 
+	// Check if a line item already exists in the Stripe invoice
+	isExisting := func(lineId string, lineType string) (*stripe.InvoiceLineItem, bool) {
+		for _, stripeLine := range stripeInvoice.Lines.Data {
+			if stripeLine.Metadata[invoiceLineMetadataID] == lineId && stripeLine.Metadata[invoiceLineMetadataType] == lineType {
+				return stripeLine, true
+			}
+		}
+
+		return nil, false
+	}
+
 	// Walk the tree
 	for _, line := range lines {
 		if line.Type != billing.InvoiceLineTypeFee {
 			continue
-		}
-
-		period := &stripe.InvoiceAddLinesLinePeriodParams{
-			Start: lo.ToPtr(line.Period.Start.Unix()),
-			End:   lo.ToPtr(line.Period.End.Unix()),
 		}
 
 		// Add discounts
@@ -309,42 +323,78 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 				}
 
 				// Add line item if it doesn't exist
-				if line.ExternalIDs.Invoicing == "" {
+				// FIXME: discounts don't have an external ID
+				// if line.ExternalIDs.Invoicing == "" {
+				stripeLine, isUpdate := isExisting(discount.ID, invoiceLineMetadataTypeDiscount)
+
+				if isUpdate {
+					// Update line item
+					delete(existingStripeDiscounts, stripeLine.ID)
+
+					// TODO: how do we add discount ID to result?
+					// result.AddLineExternalID(discount.ID, line.ExternalIDs.Invoicing)
+
+					stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
+						ID:          lo.ToPtr(stripeLine.ID),
+						Description: lo.ToPtr(name),
+						Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
+						Quantity:    lo.ToPtr(int64(1)),
+						Metadata:    stripeLine.Metadata,
+						Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
+							Start: lo.ToPtr(line.Period.Start.Unix()),
+							End:   lo.ToPtr(line.Period.End.Unix()),
+						},
+					})
+				} else {
 					stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
 						Description: lo.ToPtr(name),
 						Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
 						Quantity:    lo.ToPtr(int64(1)),
-						Period:      period,
+						Period: &stripe.InvoiceAddLinesLinePeriodParams{
+							Start: lo.ToPtr(line.Period.Start.Unix()),
+							End:   lo.ToPtr(line.Period.End.Unix()),
+						},
 						Metadata: map[string]string{
-							// TODO: is a discount ID a line id?
-							invoiceLineMetadataID: discount.ID,
+							invoiceLineMetadataID:   discount.ID,
+							invoiceLineMetadataType: invoiceLineMetadataTypeDiscount,
 						},
 					})
-				} else {
-					// Update line item
-					delete(existingStripeLines, line.ExternalIDs.Invoicing)
-
-					// TODO: is a discount ID a line id?
-					result.AddLineExternalID(discount.ID, line.ExternalIDs.Invoicing)
-
-					stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
-						// TODO: how do we get the discount ID?
-						ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
-						Description: lo.ToPtr(name),
-						Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
-						Quantity:    lo.ToPtr(int64(1)),
-						// period is not updatable
-					})
 				}
+
 			}
 		})
 
-		// Add line item
-		if line.ExternalIDs.Invoicing == "" {
-			// Add line
-			name := line.Name
-			if line.Description != nil {
-				name = fmt.Sprintf("%s (%s)", name, *line.Description)
+		// Add line
+		name := line.Name
+		if line.Description != nil {
+			name = fmt.Sprintf("%s (%s)", name, *line.Description)
+		}
+
+		// FIXME: set external ID in the test invoice
+		// if line.ExternalIDs.Invoicing == "" {
+		stripeLine, isUpdate := isExisting(line.ID, invoiceLineMetadataTypeLine)
+
+		if isUpdate {
+			// Update line item
+			delete(existingStripeLines, stripeLine.ID)
+
+			result.AddLineExternalID(line.ID, stripeLine.ID)
+
+			stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
+				ID:          lo.ToPtr(stripeLine.ID),
+				Description: lo.ToPtr(name),
+				Amount:      lo.ToPtr(calculator.RoundToAmount(line.Totals.Amount)),
+				Quantity:    lo.ToPtr(int64(1)),
+				Metadata:    stripeLine.Metadata,
+				Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
+					Start: lo.ToPtr(line.Period.Start.Unix()),
+					End:   lo.ToPtr(line.Period.End.Unix()),
+				},
+			})
+		} else {
+			period := &stripe.InvoiceAddLinesLinePeriodParams{
+				Start: lo.ToPtr(line.Period.Start.Unix()),
+				End:   lo.ToPtr(line.Period.End.Unix()),
 			}
 
 			// If the per unit amount and quantity can be represented in stripe as integer we add the line item
@@ -355,7 +405,8 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 					Quantity:    lo.ToPtr(line.FlatFee.Quantity.IntPart()),
 					Period:      period,
 					Metadata: map[string]string{
-						invoiceLineMetadataID: line.ID,
+						invoiceLineMetadataID:   line.ID,
+						invoiceLineMetadataType: invoiceLineMetadataTypeLine,
 					},
 				})
 			} else {
@@ -366,25 +417,12 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 					Quantity:    lo.ToPtr(int64(1)),
 					Period:      period,
 					Metadata: map[string]string{
-						invoiceLineMetadataID: line.ID,
+						invoiceLineMetadataID:   line.ID,
+						invoiceLineMetadataType: invoiceLineMetadataTypeLine,
 					},
 				})
 			}
-		} else {
-			// Update line item
-			delete(existingStripeLines, line.ExternalIDs.Invoicing)
-
-			result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
-
-			stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
-				ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
-				Description: line.Description,
-				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
-				Quantity:    lo.ToPtr(int64(1)),
-				// period is not updatable
-			})
 		}
-
 	}
 
 	// Add Stripe lines to the Stripe invoice
@@ -426,6 +464,14 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Update Stripe lines on the Stripe invoice
 	if len(stripeLinesUpdate) > 0 {
+		// Sort the line items by description
+		sort.Slice(stripeLinesUpdate, func(i, j int) bool {
+			descA := lo.FromPtrOr(stripeLinesUpdate[i].Description, "")
+			descB := lo.FromPtrOr(stripeLinesUpdate[j].Description, "")
+
+			return descA < descB
+		})
+
 		stripeInvoice, err = stripeClient.UpdateInvoiceLines(ctx, stripeclient.UpdateInvoiceLinesInput{
 			StripeInvoiceID: stripeInvoice.ID,
 			Lines:           stripeLinesUpdate,
@@ -436,6 +482,8 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Remove Stripe lines from the Stripe invoice
+	maps.Copy(existingStripeDiscounts, existingStripeLines)
+
 	for stripeLineID := range existingStripeLines {
 		stripeLinesRemove = append(stripeLinesRemove, &stripe.InvoiceRemoveLinesLineParams{
 			ID:       lo.ToPtr(stripeLineID),
