@@ -24,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
-
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -718,6 +717,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Update the invoice.
 		results, err = invoicingApp.UpsertInvoice(ctx, updateInvoice)
 		s.NoError(err, "failed to upsert invoice")
+
+		// Assert results.
+		s.Equal(expectedResult, results.GetLineExternalIDs())
 
 		// Assert invoice is created in stripe.
 		s.StripeClient.AssertExpectations(s.T())

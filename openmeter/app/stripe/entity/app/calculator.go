@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // NewStripeCalculator creates a new StripeCalculator.
 func NewStripeCalculator(currency currencyx.Code) (StripeCalculator, error) {
-	calculator, err := currencyx.Code(currency).Calculator()
+	calculator, err := currency.Calculator()
 	if err != nil {
 		return StripeCalculator{}, fmt.Errorf("failed to get stripe calculator: %w", err)
 	}

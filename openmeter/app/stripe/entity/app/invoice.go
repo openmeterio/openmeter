@@ -6,13 +6,14 @@ import (
 	"maps"
 	"sort"
 
+	"github.com/samber/lo"
+	"github.com/stripe/stripe-go/v80"
+
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/samber/lo"
-	"github.com/stripe/stripe-go/v80"
 )
 
 const (
@@ -185,7 +186,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 				},
 			})
 		} else {
-			// Otherwise we add the calcualted total with with quantity one
+			// Otherwise we add the calculated total with with quantity one
 			stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
 				Description: lo.ToPtr(name),
 				Amount:      lo.ToPtr(calculator.RoundToAmount(line.Totals.Amount)),
@@ -281,7 +282,6 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		}
 
 		existingStripeLines[stripeLine.ID] = true
-
 	}
 
 	var (
@@ -360,7 +360,6 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 						},
 					})
 				}
-
 			}
 		})
 
@@ -410,7 +409,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 					},
 				})
 			} else {
-				// Otherwise we add the calcualted total with with quantity one
+				// Otherwise we add the calculated total with with quantity one
 				stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
 					Description: lo.ToPtr(name),
 					Amount:      lo.ToPtr(calculator.RoundToAmount(line.Totals.Amount)),

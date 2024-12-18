@@ -3,11 +3,12 @@ package appstripe
 import (
 	"context"
 
-	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v80"
+
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type StripeClientMock struct {

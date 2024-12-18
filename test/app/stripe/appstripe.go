@@ -154,18 +154,18 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
-	testApp, customer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	testApp, customer, customerData, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Get customer data
-	customerData, err := testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
+	getCustomerData, err := testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
 	require.Equal(t, appstripeentity.CustomerData{
-		StripeCustomerID: "cus_123",
-	}, customerData, "Customer data must match")
+		StripeCustomerID: customerData.StripeCustomerID,
+	}, getCustomerData, "Customer data must match")
 
 	// Update customer data
 	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
@@ -178,14 +178,14 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.NoError(t, err, "Update customer data must not return error")
 
 	// Updated customer data must match
-	customerData, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
+	getCustomerData, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
 	require.NoError(t, err, "Get customer data must not return error")
 	require.Equal(t, appstripeentity.CustomerData{
 		StripeCustomerID: "cus_456",
-	}, customerData, "Customer data must match")
+	}, getCustomerData, "Customer data must match")
 
 	// Delete customer data
 	err = testApp.DeleteCustomerData(ctx, appentity.DeleteAppInstanceCustomerDataInput{

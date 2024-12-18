@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // GetInvoice retrieves a Stripe invoice.
