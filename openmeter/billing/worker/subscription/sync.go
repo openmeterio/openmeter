@@ -275,7 +275,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 		line.Type = billing.InvoiceLineTypeFee
-		line.FlatFee = billing.FlatFeeLine{
+		line.FlatFee = &billing.FlatFeeLine{
 			PerUnitAmount: perUnitAmount,
 			Quantity:      alpacadecimal.NewFromInt(1),
 			PaymentTerm:   price.PaymentTerm,
@@ -294,8 +294,8 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 
 		line.Type = billing.InvoiceLineTypeUsageBased
 		line.InvoiceAt = item.Period.End
-		line.UsageBased = billing.UsageBasedLine{
-			Price:      *item.SubscriptionItem.RateCard.Price,
+		line.UsageBased = &billing.UsageBasedLine{
+			Price:      item.SubscriptionItem.RateCard.Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.FeatureKey,
 		}
 

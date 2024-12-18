@@ -290,6 +290,16 @@ func (i Invoice) Clone() Invoice {
 	return clone
 }
 
+func (i Invoice) RemoveCircularReferences() Invoice {
+	clone := i.Clone()
+
+	clone.Lines = clone.Lines.Map(func(line *Line) *Line {
+		return line.RemoveCircularReferences()
+	})
+
+	return clone
+}
+
 type InvoiceExternalIDs struct {
 	Invoicing string `json:"invoicing,omitempty"`
 	Payment   string `json:"payment,omitempty"`

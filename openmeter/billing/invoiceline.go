@@ -228,26 +228,30 @@ type FlatFeeLine struct {
 	Quantity alpacadecimal.Decimal `json:"quantity"`
 }
 
-func (i FlatFeeLine) Clone() FlatFeeLine {
-	return i
+func (i FlatFeeLine) Clone() *FlatFeeLine {
+	return &i
 }
 
-func (i FlatFeeLine) Equal(other FlatFeeLine) bool {
-	return reflect.DeepEqual(i, other)
+func (i FlatFeeLine) Equal(other *FlatFeeLine) bool {
+	if other == nil {
+		return false
+	}
+	return reflect.DeepEqual(i, *other)
 }
 
 type Line struct {
-	LineBase
+	LineBase `json:",inline"`
 
-	FlatFee    FlatFeeLine    `json:"flatFee,omitempty"`
-	UsageBased UsageBasedLine `json:"usageBased,omitempty"`
+	// TODO[OM-1060]: Make it a proper union type instead of having both fields as public
+	FlatFee    *FlatFeeLine    `json:"flatFee,omitempty"`
+	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
 
 	Children   LineChildren `json:"children,omitempty"`
 	ParentLine *Line        `json:"parent,omitempty"`
 
 	Discounts LineDiscounts `json:"discounts,omitempty"`
 
-	DBState *Line
+	DBState *Line `json:"-"`
 }
 
 func (i Line) LineID() LineID {
@@ -266,8 +270,12 @@ func (i Line) CloneWithoutDependencies() *Line {
 	clone.ParentLine = nil
 	clone.Children = LineChildren{}
 	clone.Discounts = LineDiscounts{}
-	clone.FlatFee.ConfigID = ""
-	clone.UsageBased.ConfigID = ""
+	if clone.FlatFee != nil {
+		clone.FlatFee.ConfigID = ""
+	}
+	if clone.UsageBased != nil {
+		clone.UsageBased.ConfigID = ""
+	}
 	clone.DBState = nil
 
 	return clone
@@ -276,6 +284,19 @@ func (i Line) CloneWithoutDependencies() *Line {
 func (i Line) WithoutDBState() *Line {
 	i.DBState = nil
 	return &i
+}
+
+func (i Line) RemoveCircularReferences() *Line {
+	clone := i.Clone()
+
+	clone.ParentLine = nil
+	clone.DBState = nil
+
+	clone.Children = clone.Children.Map(func(l *Line) *Line {
+		return l.RemoveCircularReferences()
+	})
+
+	return clone
 }
 
 // RemoveMetaForCompare returns a copy of the invoice without the fields that are not relevant for higher level
@@ -312,11 +333,15 @@ func (i Line) RemoveMetaForCompare() *Line {
 
 func (i Line) Clone() *Line {
 	res := &Line{
-		FlatFee:    i.FlatFee.Clone(),
-		UsageBased: i.UsageBased.Clone(),
-
 		// DBStates are considered immutable, so it's safe to clone
 		DBState: i.DBState,
+	}
+
+	switch i.Type {
+	case InvoiceLineTypeFee:
+		res.FlatFee = i.FlatFee.Clone()
+	case InvoiceLineTypeUsageBased:
+		res.UsageBased = i.UsageBased.Clone()
 	}
 
 	res.LineBase = i.LineBase.Clone(res)
@@ -558,18 +583,24 @@ type Price = productcatalog.Price
 type UsageBasedLine struct {
 	ConfigID string `json:"configId"`
 
-	Price                 Price                  `json:"price"`
+	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
+	// empty prices.
+	Price                 *Price                 `json:"price"`
 	FeatureKey            string                 `json:"featureKey"`
 	Quantity              *alpacadecimal.Decimal `json:"quantity"`
 	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 }
 
-func (i UsageBasedLine) Equal(other UsageBasedLine) bool {
-	return reflect.DeepEqual(i, other)
+func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
+	if other == nil {
+		return false
+	}
+
+	return reflect.DeepEqual(i, *other)
 }
 
-func (i UsageBasedLine) Clone() UsageBasedLine {
-	return i
+func (i UsageBasedLine) Clone() *UsageBasedLine {
+	return &i
 }
 
 func (i UsageBasedLine) Validate() error {
@@ -830,11 +861,11 @@ func (u UpdateInvoiceLineInput) Apply(l *Line) (*Line, error) {
 
 	switch l.Type {
 	case InvoiceLineTypeUsageBased:
-		if err := u.UsageBased.Apply(&l.UsageBased); err != nil {
+		if err := u.UsageBased.Apply(l.UsageBased); err != nil {
 			return l, err
 		}
 	case InvoiceLineTypeFee:
-		if err := u.FlatFee.Apply(&l.FlatFee); err != nil {
+		if err := u.FlatFee.Apply(l.FlatFee); err != nil {
 			return l, err
 		}
 	}
@@ -923,7 +954,7 @@ func (u UpdateInvoiceLineUsageBasedInput) Validate() error {
 
 func (u UpdateInvoiceLineUsageBasedInput) Apply(l *UsageBasedLine) error {
 	if u.Price != nil {
-		l.Price = *u.Price
+		l.Price = u.Price
 	}
 
 	return nil

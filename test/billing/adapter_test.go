@@ -111,8 +111,8 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 
 				Status: billing.InvoiceLineStatusValid,
 			},
-			UsageBased: billing.UsageBasedLine{
-				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			UsageBased: &billing.UsageBasedLine{
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(1),
 				}),
 				FeatureKey: "test",
@@ -307,8 +307,8 @@ func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
 			Status:                 billing.InvoiceLineStatusValid,
 			ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
 		},
-		UsageBased: billing.UsageBasedLine{
-			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		UsageBased: &billing.UsageBasedLine{
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(1),
 			}),
 			FeatureKey: "test",
@@ -325,7 +325,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
 			line.ParentLine = out
 			line.Status = billing.InvoiceLineStatusDetailed
 			line.Type = billing.InvoiceLineTypeFee
-			line.FlatFee = billing.FlatFeeLine{
+			line.FlatFee = &billing.FlatFeeLine{
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
 				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -456,7 +456,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		})
 		newLine.Status = billing.InvoiceLineStatusDetailed
 		newLine.Type = billing.InvoiceLineTypeFee
-		newLine.FlatFee = billing.FlatFeeLine{
+		newLine.FlatFee = &billing.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -532,7 +532,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		})
 		newLine.Status = billing.InvoiceLineStatusDetailed
 		newLine.Type = billing.InvoiceLineTypeFee
-		newLine.FlatFee = billing.FlatFeeLine{
+		newLine.FlatFee = &billing.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,

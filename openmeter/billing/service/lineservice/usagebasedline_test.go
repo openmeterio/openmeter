@@ -52,8 +52,8 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 					Status:   billing.InvoiceLineStatusValid,
 					Name:     "feature",
 				},
-				UsageBased: billing.UsageBasedLine{
-					Price: tc.price,
+				UsageBased: &billing.UsageBasedLine{
+					Price: lo.ToPtr(tc.price),
 				},
 			},
 			currency: usdCurrencyCalc,

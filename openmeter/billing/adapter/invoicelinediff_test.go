@@ -31,30 +31,33 @@ func TestInvoiceLineDiffing(t *testing.T) {
 				ID:   "1",
 				Type: billing.InvoiceLineTypeFee,
 			},
+			FlatFee: &billing.FlatFeeLine{},
 		},
 		{
 			LineBase: billing.LineBase{
 				ID:   "2",
 				Type: billing.InvoiceLineTypeUsageBased,
 			},
+			UsageBased: &billing.UsageBasedLine{},
 			Children: billing.NewLineChildren([]*billing.Line{
 				{
 					LineBase: billing.LineBase{
 						ID:   "2.1",
 						Type: billing.InvoiceLineTypeFee,
 					},
+					FlatFee: &billing.FlatFeeLine{},
 					Discounts: billing.NewLineDiscounts([]billing.LineDiscount{
 						{
 							ID: "D2.1.1",
 						},
-					},
-					),
+					}),
 				},
 				{
 					LineBase: billing.LineBase{
 						ID:   "2.2",
 						Type: billing.InvoiceLineTypeFee,
 					},
+					FlatFee: &billing.FlatFeeLine{},
 				},
 			}),
 		},

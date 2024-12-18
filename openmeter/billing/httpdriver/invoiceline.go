@@ -274,7 +274,7 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 				InvoiceAt: line.InvoiceAt,
 				TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 			},
-			FlatFee: billing.FlatFeeLine{
+			FlatFee: &billing.FlatFeeLine{
 				PerUnitAmount: perUnitAmount,
 				PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
 				Quantity:      qty,
@@ -310,8 +310,8 @@ func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLin
 				InvoiceAt: line.InvoiceAt,
 				TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
 			},
-			UsageBased: billing.UsageBasedLine{
-				Price:      lo.FromPtr(price),
+			UsageBased: &billing.UsageBasedLine{
+				Price:      price,
 				FeatureKey: line.FeatureKey,
 			},
 		},
@@ -641,7 +641,7 @@ func decimalPtrToFloat64Ptr(d *alpacadecimal.Decimal) *float64 {
 	return lo.ToPtr(d.InexactFloat64())
 }
 
-func mapPriceToAPI(price productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
+func mapPriceToAPI(price *productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
 	switch price.Type() {
 	case productcatalog.FlatPriceType:
 		flatPrice, err := price.AsFlat()

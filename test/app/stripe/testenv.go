@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v80/client"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
@@ -250,4 +251,8 @@ func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID
 			Line1:      lo.ToPtr("123 Market St"),
 		},
 	}, nil
+}
+
+func (c *StripeClientMock) GetClient() *client.API {
+	panic("implement me")
 }

@@ -273,7 +273,7 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs diff[*bi
 			create := tx.BillingInvoiceUsageBasedLineConfig.Create().
 				SetNamespace(line.Namespace).
 				SetPriceType(line.UsageBased.Price.Type()).
-				SetPrice(&line.UsageBased.Price).
+				SetPrice(line.UsageBased.Price).
 				SetFeatureKey(line.UsageBased.FeatureKey).
 				SetID(line.UsageBased.ConfigID).
 				SetNillablePreLinePeriodQuantity(line.UsageBased.PreLinePeriodQuantity)

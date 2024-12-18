@@ -134,7 +134,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 									"key": "value",
 								},
 							},
-							FlatFee: billing.FlatFeeLine{
+							FlatFee: &billing.FlatFeeLine{
 								PerUnitAmount: alpacadecimal.NewFromFloat(100),
 								Quantity:      alpacadecimal.NewFromFloat(1),
 							},
@@ -153,7 +153,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								Name:     "Test item - HUF",
 								Currency: currencyx.Code(currency.HUF),
 							},
-							FlatFee: billing.FlatFeeLine{
+							FlatFee: &billing.FlatFeeLine{
 								PerUnitAmount: alpacadecimal.NewFromFloat(200),
 								Quantity:      alpacadecimal.NewFromFloat(3),
 							},
@@ -172,8 +172,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								Name:     "Test item - HUF",
 								Currency: currencyx.Code(currency.HUF),
 							},
-							UsageBased: billing.UsageBasedLine{
-								Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							UsageBased: &billing.UsageBasedLine{
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.GraduatedTieredPrice,
 									Tiers: []productcatalog.PriceTier{
 										{
@@ -243,7 +243,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					"key": "value",
 				},
 			},
-			FlatFee: billing.FlatFeeLine{
+			FlatFee: &billing.FlatFeeLine{
 				ConfigID:      usdInvoiceLine.FlatFee.ConfigID,
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
@@ -483,7 +483,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 								"key": "value",
 							},
 						},
-						FlatFee: billing.FlatFeeLine{
+						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(100),
 							Quantity:      alpacadecimal.NewFromFloat(1),
 						},
@@ -503,7 +503,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 							Name:     "Test item2",
 							Currency: currencyx.Code(currency.USD),
 						},
-						FlatFee: billing.FlatFeeLine{
+						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(200),
 							Quantity:      alpacadecimal.NewFromFloat(3),
 						},
@@ -685,7 +685,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 								"key": "value",
 							},
 						},
-						FlatFee: billing.FlatFeeLine{
+						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(100),
 							Quantity:      alpacadecimal.NewFromFloat(1),
 						},
@@ -705,7 +705,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 							Name:     "Test item2",
 							Currency: currencyx.Code(currency.USD),
 						},
-						FlatFee: billing.FlatFeeLine{
+						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(200),
 							Quantity:      alpacadecimal.NewFromFloat(3),
 						},
@@ -1357,9 +1357,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per unit",
 							},
-							UsageBased: billing.UsageBasedLine{
+							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: features.flatPerUnit.Key,
-								Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount:        alpacadecimal.NewFromFloat(100),
 									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 								}),
@@ -1376,9 +1376,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per any usage",
 							},
-							UsageBased: billing.UsageBasedLine{
+							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: features.flatPerUsage.Key,
-								Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      alpacadecimal.NewFromFloat(100),
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
@@ -1395,9 +1395,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered graduated",
 							},
-							UsageBased: billing.UsageBasedLine{
+							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: features.tieredGraduated.Key,
-								Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.GraduatedTieredPrice,
 									Tiers: []productcatalog.PriceTier{
 										{
@@ -1432,9 +1432,9 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered volume",
 							},
-							UsageBased: billing.UsageBasedLine{
+							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: features.tieredVolume.Key,
-								Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,
 									Tiers: []productcatalog.PriceTier{
 										{
@@ -2312,9 +2312,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per unit",
 							},
-							UsageBased: billing.UsageBasedLine{
+							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: flatPerUnitFeature.Key,
-								Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount:        alpacadecimal.NewFromFloat(100),
 									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 								}),

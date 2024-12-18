@@ -176,7 +176,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 
 	switch dbLine.Type {
 	case billing.InvoiceLineTypeFee:
-		invoiceLine.FlatFee = billing.FlatFeeLine{
+		invoiceLine.FlatFee = &billing.FlatFeeLine{
 			ConfigID:      dbLine.Edges.FlatFeeLine.ID,
 			PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
 			Quantity:      lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
@@ -186,10 +186,10 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 		if ubpLine == nil {
 			return invoiceLine, fmt.Errorf("manual usage based line is missing")
 		}
-		invoiceLine.UsageBased = billing.UsageBasedLine{
+		invoiceLine.UsageBased = &billing.UsageBasedLine{
 			ConfigID:              ubpLine.ID,
 			FeatureKey:            ubpLine.FeatureKey,
-			Price:                 *ubpLine.Price,
+			Price:                 ubpLine.Price,
 			Quantity:              dbLine.Quantity,
 			PreLinePeriodQuantity: ubpLine.PreLinePeriodQuantity,
 		}
