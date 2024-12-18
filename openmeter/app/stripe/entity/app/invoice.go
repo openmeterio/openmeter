@@ -14,7 +14,12 @@ import (
 	"github.com/stripe/stripe-go/v80"
 )
 
-const invoiceLineMetadataID = "om_line_id"
+const (
+	invoiceLineMetadataID           = "om_line_id"
+	invoiceLineMetadataType         = "om_line_type"
+	invoiceLineMetadataTypeLine     = "line"
+	invoiceLineMetadataTypeDiscount = "discount"
+)
 
 var _ billing.InvoicingApp = (*App)(nil)
 
@@ -125,18 +130,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Check if we have any non integer amount or quantity
 	// We use this to determinate if we add alreay calculated total or per unit amount and quantity to the Stripe line item
-	isInteger := true
-
-	for _, line := range lines {
-		if line.Type != billing.InvoiceLineTypeFee {
-			continue
-		}
-
-		if !calculator.IsInteger(line.FlatFee.PerUnitAmount) || !line.FlatFee.Quantity.IsInteger() {
-			isInteger = false
-			break
-		}
-	}
+	isInteger := isAllInteger(calculator, lines)
 
 	// Walk the tree
 	for _, line := range lines {
@@ -164,7 +158,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 					Period:      period,
 					Metadata: map[string]string{
 						// TODO: is a discount ID a line id?
-						invoiceLineMetadataID: discount.ID,
+						invoiceLineMetadataID:   discount.ID,
+						invoiceLineMetadataType: invoiceLineMetadataTypeDiscount,
 					},
 				})
 			}
@@ -184,7 +179,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 				Quantity:    lo.ToPtr(line.FlatFee.Quantity.IntPart()),
 				Period:      period,
 				Metadata: map[string]string{
-					invoiceLineMetadataID: line.ID,
+					invoiceLineMetadataID:   line.ID,
+					invoiceLineMetadataType: invoiceLineMetadataTypeLine,
 				},
 			})
 		} else {
@@ -195,7 +191,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 				Quantity:    lo.ToPtr(int64(1)),
 				Period:      period,
 				Metadata: map[string]string{
-					invoiceLineMetadataID: line.ID,
+					invoiceLineMetadataID:   line.ID,
+					invoiceLineMetadataType: invoiceLineMetadataTypeLine,
 				},
 			})
 		}
@@ -214,7 +211,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	for _, stripeLine := range stripeLineAdd {
 		lineIDs = append(lineIDs, stripeLine.Metadata[invoiceLineMetadataID])
-		stripeLine.Metadata = nil
+		// stripeLine.Metadata = nil
 	}
 
 	// Add Stripe line items to the Stripe invoice
@@ -236,6 +233,12 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 // updateInvoice update the invoice for the app
 func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+	// Get the currency calculator
+	calculator, err := NewStripeCalculator(invoice.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get currency calculator: %w", err)
+	}
+
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx)
 	if err != nil {
@@ -277,29 +280,15 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		stripeLinesRemove []*stripe.InvoiceRemoveLinesLineParams
 	)
 
+	lines := invoice.FlattenLinesByID()
+
+	// Check if we have any non integer amount or quantity
+	// We use this to determinate if we add alreay calculated total or per unit amount and quantity to the Stripe line item
+	isInteger := isAllInteger(calculator, lines)
+
 	// Walk the tree
-	var queue []*billing.Line
-
-	// Feed the queue with the root lines
-	invoice.Lines.ForEach(func(lines []*billing.Line) {
-		queue = append(queue, lines...)
-	})
-
-	// We collect the line IDs to match them with the Stripe line items from the response
-	var lineIDs []string
-
-	for len(queue) > 0 {
-		line := queue[0]
-		queue = queue[1:]
-
-		// Add children to the queue
-		childrens := line.Children.OrEmpty()
-		for _, l := range childrens {
-			queue = append(queue, l)
-		}
-
-		// Only add line items for leaf nodes
-		if len(childrens) > 0 {
+	for _, line := range lines {
+		if line.Type != billing.InvoiceLineTypeFee {
 			continue
 		}
 
@@ -310,27 +299,37 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 		// Add discounts
 		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
+			// Discounts
 			for _, discount := range discounts {
+				name := line.Name
+				if discount.Description != nil {
+					name = fmt.Sprintf("%s (%s)", name, *discount.Description)
+				}
+
 				// Add line item if it doesn't exist
 				if line.ExternalIDs.Invoicing == "" {
-					lineIDs = append(lineIDs, line.ID)
-
 					stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
-						Description: discount.Description,
-						Amount:      lo.ToPtr(-discount.Amount.GetFixed()),
+						Description: lo.ToPtr(name),
+						Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
 						Quantity:    lo.ToPtr(int64(1)),
 						Period:      period,
+						Metadata: map[string]string{
+							// TODO: is a discount ID a line id?
+							invoiceLineMetadataID: discount.ID,
+						},
 					})
 				} else {
 					// Update line item
 					delete(existingStripeLines, line.ExternalIDs.Invoicing)
 
-					result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
+					// TODO: is a discount ID a line id?
+					result.AddLineExternalID(discount.ID, line.ExternalIDs.Invoicing)
 
 					stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
+						// TODO: how do we get the discount ID?
 						ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
-						Description: discount.Description,
-						Amount:      lo.ToPtr(-discount.Amount.GetFixed()),
+						Description: lo.ToPtr(name),
+						Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
 						Quantity:    lo.ToPtr(int64(1)),
 						// period is not updatable
 					})
@@ -339,67 +338,74 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		})
 
 		// Add line item
-		switch line.Type {
-		case billing.InvoiceLineTypeFee:
-			// Add line item if it doesn't exist
-			if line.ExternalIDs.Invoicing == "" {
-				lineIDs = append(lineIDs, line.ID)
-
-				stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
-					Description: line.Description,
-					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
-					Quantity:    lo.ToPtr(int64(1)),
-					Period:      period,
-				})
-			} else {
-				// Update line item
-				delete(existingStripeLines, line.ExternalIDs.Invoicing)
-
-				result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
-
-				stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
-					ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
-					Description: line.Description,
-					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
-					Quantity:    lo.ToPtr(int64(1)),
-					// period is not updatable
-				})
+		if line.ExternalIDs.Invoicing == "" {
+			// Add line
+			name := line.Name
+			if line.Description != nil {
+				name = fmt.Sprintf("%s (%s)", name, *line.Description)
 			}
 
-		case billing.InvoiceLineTypeUsageBased:
-			// Add line item if it doesn't exist
-			if line.ExternalIDs.Invoicing == "" {
-				lineIDs = append(lineIDs, line.ID)
-
+			// If the per unit amount and quantity can be represented in stripe as integer we add the line item
+			if isInteger {
 				stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
-					Description: line.Description,
-					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
-					Quantity:    lo.ToPtr(line.UsageBased.Quantity.GetFixed()),
+					Description: lo.ToPtr(name),
+					Amount:      lo.ToPtr(calculator.RoundToAmount(line.FlatFee.PerUnitAmount)),
+					Quantity:    lo.ToPtr(line.FlatFee.Quantity.IntPart()),
 					Period:      period,
+					Metadata: map[string]string{
+						invoiceLineMetadataID: line.ID,
+					},
 				})
 			} else {
-				// Update line item
-				delete(existingStripeLines, line.ExternalIDs.Invoicing)
-
-				result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
-
-				stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
-					ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
-					Description: line.Description,
-					Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
-					Quantity:    lo.ToPtr(line.UsageBased.Quantity.GetFixed()),
-					// period is not updatable
+				// Otherwise we add the calcualted total with with quantity one
+				stripeLineAdd = append(stripeLineAdd, &stripe.InvoiceAddLinesLineParams{
+					Description: lo.ToPtr(name),
+					Amount:      lo.ToPtr(calculator.RoundToAmount(line.Totals.Amount)),
+					Quantity:    lo.ToPtr(int64(1)),
+					Period:      period,
+					Metadata: map[string]string{
+						invoiceLineMetadataID: line.ID,
+					},
 				})
 			}
-		default:
-			return result, fmt.Errorf("unsupported line type: %s", line.Type)
+		} else {
+			// Update line item
+			delete(existingStripeLines, line.ExternalIDs.Invoicing)
+
+			result.AddLineExternalID(line.ID, line.ExternalIDs.Invoicing)
+
+			stripeLinesUpdate = append(stripeLinesUpdate, &stripe.InvoiceUpdateLinesLineParams{
+				ID:          lo.ToPtr(line.ExternalIDs.Invoicing),
+				Description: line.Description,
+				Amount:      lo.ToPtr(line.Totals.Amount.GetFixed()),
+				Quantity:    lo.ToPtr(int64(1)),
+				// period is not updatable
+			})
 		}
+
 	}
 
 	// Add Stripe lines to the Stripe invoice
 	if len(stripeLineAdd) > 0 {
+		// Sort the line items by description
+		sort.Slice(stripeLineAdd, func(i, j int) bool {
+			descA := lo.FromPtrOr(stripeLineAdd[i].Description, "")
+			descB := lo.FromPtrOr(stripeLineAdd[j].Description, "")
+
+			return descA < descB
+		})
+
 		shift := len(stripeInvoice.Lines.Data) - 1
 
+		// We collect the line IDs to match them with the Stripe line items from the response
+		var lineIDs []string
+
+		for _, stripeLine := range stripeLineAdd {
+			lineIDs = append(lineIDs, stripeLine.Metadata[invoiceLineMetadataID])
+			stripeLine.Metadata = nil
+		}
+
+		// Add Stripe line items to the Stripe invoice
 		stripeInvoice, err = stripeClient.AddInvoiceLines(ctx, stripeclient.AddInvoiceLinesInput{
 			StripeInvoiceID: stripeInvoice.ID,
 			Lines:           stripeLineAdd,
@@ -408,9 +414,11 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 			return nil, fmt.Errorf("failed to add line items to invoice in stripe: %w", err)
 		}
 
-		// Add new line IDs
-		for idx, stripeLine := range stripeInvoice.Lines.Data {
-			result.AddLineExternalID(lineIDs[idx+shift], stripeLine.ID)
+		// Add external line IDs
+		newLines := stripeInvoice.Lines.Data[shift:]
+
+		for idx, stripeLine := range newLines {
+			result.AddLineExternalID(lineIDs[idx], stripeLine.ID)
 		}
 	}
 
@@ -444,4 +452,19 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	return result, nil
+}
+
+// isAllInteger checks if the invoice lines have only integer amount and quantity
+func isAllInteger(calculator StripeCalculator, lines map[string]*billing.Line) bool {
+	for _, line := range lines {
+		if line.Type != billing.InvoiceLineTypeFee {
+			continue
+		}
+
+		if !calculator.IsInteger(line.FlatFee.PerUnitAmount) || !line.FlatFee.Quantity.IsInteger() {
+			return false
+		}
+	}
+
+	return true
 }
