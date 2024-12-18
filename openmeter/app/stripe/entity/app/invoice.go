@@ -206,14 +206,6 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return descA < descB
 	})
 
-	// We collect the line IDs to match them with the Stripe line items from the response
-	var lineIDs []string
-
-	for _, stripeLine := range stripeLineAdd {
-		lineIDs = append(lineIDs, stripeLine.Metadata[invoiceLineMetadataID])
-		// stripeLine.Metadata = nil
-	}
-
 	// Add Stripe line items to the Stripe invoice
 	stripeInvoice, err = stripeClient.AddInvoiceLines(ctx, stripeclient.AddInvoiceLinesInput{
 		StripeInvoiceID: stripeInvoice.ID,
@@ -224,8 +216,18 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Add external line IDs
-	for idx, stripeLine := range stripeInvoice.Lines.Data {
-		result.AddLineExternalID(lineIDs[idx], stripeLine.ID)
+	for _, stripeLine := range stripeInvoice.Lines.Data {
+		// TODO: currently we don't have a way to match Stripe discount line items
+		if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
+			continue
+		}
+
+		id, ok := stripeLine.Metadata[invoiceLineMetadataID]
+		if !ok {
+			return nil, fmt.Errorf("missing line ID in metadata")
+		}
+
+		result.AddLineExternalID(id, stripeLine.ID)
 	}
 
 	return result, nil
