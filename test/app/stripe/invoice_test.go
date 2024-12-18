@@ -2,7 +2,7 @@ package appstripe
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,11 +10,20 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
+	"github.com/stripe/stripe-go/v80"
 
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/secret"
+	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
+	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
+
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -22,6 +31,11 @@ import (
 
 type StripeInvoiceTestSuite struct {
 	billingtest.BaseSuite
+
+	AppStripeService appstripe.Service
+	Fixture          *Fixture
+	SecretService    secret.Service
+	StripeClient     *StripeClientMock
 }
 
 func TestStripeInvoicing(t *testing.T) {
@@ -30,7 +44,47 @@ func TestStripeInvoicing(t *testing.T) {
 
 func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	// TODO: add any additional initialization required here
+
+	// Secret
+	secretAdapter := secretadapter.New()
+
+	secretService, err := secretservice.New(secretservice.Config{
+		Adapter: secretAdapter,
+	})
+	s.Require().NoError(err, "failed to create secret service")
+
+	s.SecretService = secretService
+
+	// Stripe Client
+	stripeClient := &StripeClientMock{
+		StripeAccountID: "acct_123",
+	}
+
+	s.StripeClient = stripeClient
+
+	// App Stripe
+	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
+		Client:          s.DBClient,
+		AppService:      s.AppService,
+		CustomerService: s.CustomerService,
+		SecretService:   secretService,
+		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
+			return stripeClient, nil
+		},
+	})
+	s.Require().NoError(err, "failed to create app stripe adapter")
+
+	appStripeService, err := appstripeservice.New(appstripeservice.Config{
+		Adapter:       appStripeAdapter,
+		AppService:    s.AppService,
+		SecretService: secretService,
+	})
+	s.Require().NoError(err, "failed to create app stripe service")
+
+	s.AppStripeService = appStripeService
+
+	// Fixture
+	s.Fixture = NewFixture(s.AppService, s.CustomerService)
 }
 
 type ubpFeatures struct {
@@ -326,6 +380,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	})
 
 	s.Run("create invoice", func() {
+		// Setup the app with the customer
+		app, err := s.Fixture.setupApp(ctx, namespace)
+		s.NoError(err)
+
+		customerData, err := s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
+		s.NoError(err)
+
 		// Covered case: most measurements are fractional
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 32.2, periodStart.Add(time.Minute))
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-usage", 2, periodStart.Add(time.Minute))
@@ -335,21 +396,175 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// When we create an invoice
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
-				ID:        customerEntity.ID,
-				Namespace: namespace,
-			},
-			AsOf: &periodEnd,
+			Customer: customerEntity.GetID(),
+			AsOf:     &periodEnd,
 		})
 		s.NoError(err)
 		s.Len(invoices, 1)
 
 		invoice := invoices[0].RemoveCircularReferences()
 
-		dump, err := json.Marshal(invoice)
+		// Create a new invoice for the customer.
+		invoicingApp, err := billing.GetApp(app)
 		s.NoError(err)
-		s.NotEmpty(dump)
-		// TODO: temporary until the stripe invoice is implemented
-		// fmt.Println(string(dump))
+
+		// Mock the stripe client to return the created invoice.
+		s.StripeClient.
+			On("CreateInvoice", stripeclient.CreateInvoiceInput{
+				StripeCustomerID: customerData.StripeCustomerID,
+				Currency:         "USD",
+			}).
+			Return(&stripe.Invoice{
+				ID: "stripe-invoice-id",
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: []*stripe.InvoiceLineItem{},
+				},
+			}, nil)
+
+		expectedPeriodStart := time.Unix(int64(1725279180), 0)
+		expectedPeriodEnd := time.Unix(int64(1725365580), 0)
+
+		expectedInvoiceAddLinesLines := []*stripe.InvoiceAddLinesLineParams{
+			{
+				Amount:      lo.ToPtr(int64(10000)),
+				Description: lo.ToPtr("Fee"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(periodStart.Unix()),
+					// TODO: check time shift
+					End: lo.ToPtr(periodStart.Add(time.Hour * 24).Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(7725)),
+				Description: lo.ToPtr("UBP - AI Usecase: usage in period"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(10000)),
+				Description: lo.ToPtr("UBP - FLAT per any usage"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(322000)),
+				Description: lo.ToPtr("UBP - FLAT per unit: usage in period"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(-122000)),
+				Description: lo.ToPtr("UBP - FLAT per unit: usage in period (Maximum spend discount for charges over 2000)"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(95000)),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 1"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(94500)),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 2"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(122400)),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 3"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				// FIXME(pmarton): should be 162300
+				Amount:      lo.ToPtr(int64(0)),
+				Description: lo.ToPtr("UBP - Tiered volume: minimum spend"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					// TODO: check rounding
+					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
+					End:   lo.ToPtr(periodEnd.Truncate(time.Minute).Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+			{
+				Amount:      lo.ToPtr(int64(137700)),
+				Description: lo.ToPtr("UBP - Tiered volume: unit price for tier 2"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					// TODO: check rounding
+					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+			},
+		}
+
+		s.StripeClient.
+			On("AddInvoiceLines", stripeclient.AddInvoiceLinesInput{
+				StripeInvoiceID: "stripe-invoice-id",
+				Lines:           expectedInvoiceAddLinesLines,
+			}).
+			Return(&stripe.Invoice{
+				ID: "stripe-invoice-id",
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: lo.Map(expectedInvoiceAddLinesLines, func(line *stripe.InvoiceAddLinesLineParams, idx int) *stripe.InvoiceLineItem {
+						return &stripe.InvoiceLineItem{
+							ID:          fmt.Sprintf("il_%d", idx),
+							Amount:      *line.Amount,
+							Description: *line.Description,
+							Period: &stripe.Period{
+								Start: *line.Period.Start,
+								End:   *line.Period.End,
+							},
+							Quantity: *line.Quantity,
+						}
+					}),
+				},
+			}, nil)
+
+		// Create the invoice.
+		results, err := invoicingApp.UpsertInvoice(ctx, invoice)
+		s.NoError(err, "failed to upsert invoice")
+
+		// Assert external ID is set.
+		externalId, ok := results.GetExternalID()
+		s.True(ok, "external ID is not set")
+		s.Equal("stripe-invoice-id", externalId)
+
+		// Assert invoice is created in stripe.
+		s.StripeClient.AssertExpectations(s.T())
+
+		// Assert results.
+		s.Len(results.GetLineExternalIDs(), len(expectedInvoiceAddLinesLines))
 	})
 }
