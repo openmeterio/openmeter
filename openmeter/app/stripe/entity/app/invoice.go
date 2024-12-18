@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 )
@@ -56,7 +54,16 @@ func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 // DeleteInvoice deletes the invoice for the app
 func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
-	return fmt.Errorf("delete invoice operation not implemented")
+	// Get the Stripe client
+	_, stripeClient, err := a.getStripeClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get stripe client: %w", err)
+	}
+
+	// Delete the invoice in Stripe
+	return stripeClient.DeleteInvoice(ctx, stripeclient.DeleteInvoiceInput{
+		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+	})
 }
 
 // FinalizeInvoice finalizes the invoice for the app
@@ -88,24 +95,12 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
-	// This should never happen as invoices call ValidateInvoice before calling this method.
-	if stripeCustomerData.StripeDefaultPaymentMethodID == nil {
-		return nil, app.CustomerPreConditionError{
-			AppID:      a.GetID(),
-			AppType:    a.GetType(),
-			CustomerID: customerID,
-			Condition:  "default payment method cannot be null",
-		}
-	}
-
 	// Create the invoice in Stripe
-	stripeInvoice, err := client.Invoices.New(&stripe.InvoiceParams{
-		// FinalizeInvoice will advance the invoice
-		AutoAdvance:          stripe.Bool(false),
-		Currency:             stripe.String(string(invoice.Currency)),
-		Customer:             stripe.String(stripeCustomerData.StripeCustomerID),
-		DueDate:              lo.ToPtr(invoice.DueAt.Unix()),
-		DefaultPaymentMethod: stripe.String(*stripeCustomerData.StripeDefaultPaymentMethodID),
+	stripeInvoice, err := stripeClient.CreateInvoice(ctx, stripeclient.CreateInvoiceInput{
+		Currency:                     invoice.Currency,
+		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
+		StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
+		DueDate:                      invoice.DueAt,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoice in stripe: %w", err)
@@ -219,14 +214,22 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to get invoice in stripe: %w", err)
 	}
 
-	// TODO: do we need to update Stripe invoice? Like due date?
-
-	existingStripeLines := make(map[string]bool)
+	// Update the invoice in Stripe
+	stripeInvoice, err = stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
+		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+		DueDate:         invoice.DueAt,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update invoice in stripe: %w", err)
+	}
 
 	// Return the result
 	result := &billing.UpsertInvoiceResult{}
 	result.SetExternalID(stripeInvoice.ID)
 	result.SetInvoiceNumber(stripeInvoice.Number)
+
+	// Collect the existing line items
+	existingStripeLines := make(map[string]bool)
 
 	for _, stripeLine := range stripeInvoice.Lines.Data {
 		existingStripeLines[stripeLine.ID] = true
@@ -395,32 +398,4 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	return result, nil
-}
-
-// getStripeClient gets the Stripe client for the app
-func (a App) getStripeClient(ctx context.Context) (appstripeentity.AppData, stripeclient.StripeClient, error) {
-	// Get Stripe App
-	stripeAppData, err := a.StripeAppService.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
-		AppID: a.GetID(),
-	})
-	if err != nil {
-		return appstripeentity.AppData{}, nil, fmt.Errorf("failed to get stripe app data: %w", err)
-	}
-
-	// Get Stripe API Key
-	apiKeySecret, err := a.SecretService.GetAppSecret(ctx, secretentity.NewSecretID(a.GetID(), stripeAppData.APIKey.ID, appstripeentity.APIKeySecretKey))
-	if err != nil {
-		return appstripeentity.AppData{}, nil, fmt.Errorf("failed to get stripe api key secret: %w", err)
-	}
-
-	// Stripe Client
-	stripeClient, err := a.StripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: apiKeySecret.SecretID.Namespace,
-		APIKey:    apiKeySecret.Value,
-	})
-	if err != nil {
-		return appstripeentity.AppData{}, nil, fmt.Errorf("failed to create stripe client: %w", err)
-	}
-
-	return appstripeentity.AppData{}, stripeClient, nil
 }
