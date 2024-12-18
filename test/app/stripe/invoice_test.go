@@ -724,9 +724,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			// We return the updated invoice.
 			Return(stripeInvoiceUpdated, nil)
 
-		// No Stripe client add, update or remove calls should be made.
-		// As no  new lines are added, no new invoice lines should be created.
-		// Only updates should be made to the existing invoice lines.
+		// Mocks to fulfill add, update and remove invoice lines:
+		// From existing lines, one is removed and the rest are updated.
 
 		s.StripeClient.
 			On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
