@@ -36,16 +36,18 @@ type TestEnv interface {
 	AppStripe() appstripe.Service
 	Customer() customer.Service
 	Secret() secret.Service
+	StripeClient() *StripeClientMock
 	Close() error
 }
 
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	app       app.Service
-	appstripe appstripe.Service
-	customer  customer.Service
-	secret    secret.Service
+	app          app.Service
+	appstripe    appstripe.Service
+	customer     customer.Service
+	secret       secret.Service
+	stripeClient *StripeClientMock
 
 	closerFunc func() error
 }
@@ -68,6 +70,10 @@ func (n testEnv) Customer() customer.Service {
 
 func (n testEnv) Secret() secret.Service {
 	return n.secret
+}
+
+func (n testEnv) StripeClient() *StripeClientMock {
+	return n.stripeClient
 }
 
 const (
@@ -127,6 +133,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
 	}
 
+	// Stripe Client
+	stripeClient := &StripeClientMock{
+		StripeAccountID: "acct_123",
+	}
+
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          entClient,
@@ -134,9 +145,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		SecretService:   secretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
-			return &StripeClientMock{
-				StripeAccountID: "acct_123",
-			}, nil
+			return stripeClient, nil
 		},
 	})
 	if err != nil {
@@ -167,16 +176,18 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		app:        appService,
-		appstripe:  appStripeService,
-		customer:   customerService,
-		secret:     secretService,
-		closerFunc: closerFunc,
+		app:          appService,
+		appstripe:    appStripeService,
+		customer:     customerService,
+		secret:       secretService,
+		closerFunc:   closerFunc,
+		stripeClient: stripeClient,
 	}, nil
 }
 
 type StripeClientMock struct {
 	StripeAccountID string
+	mockInvoice     *stripe.Invoice
 }
 
 func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.SetupWebhookInput) (stripeclient.StripeWebhookEndpoint, error) {
@@ -252,14 +263,34 @@ func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID
 	}, nil
 }
 
+// Invoice
+
+func (c *StripeClientMock) SetMockInvoice(invoice *stripe.Invoice) {
+	c.mockInvoice = invoice
+}
+
+func (c *StripeClientMock) GetInvoice(ctx context.Context, input stripeclient.GetInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	if c.mockInvoice == nil {
+		return nil, fmt.Errorf("mock invoice is not set")
+	}
+
+	return c.mockInvoice, nil
+}
+
 func (c *StripeClientMock) CreateInvoice(ctx context.Context, input stripeclient.CreateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	return &stripe.Invoice{
-		ID: "in_123",
-	}, nil
+	if c.mockInvoice == nil {
+		return nil, fmt.Errorf("mock invoice is not set")
+	}
+
+	return c.mockInvoice, nil
 }
 
 func (c *StripeClientMock) UpdateInvoice(ctx context.Context, input stripeclient.UpdateInvoiceInput) (*stripe.Invoice, error) {
@@ -267,9 +298,11 @@ func (c *StripeClientMock) UpdateInvoice(ctx context.Context, input stripeclient
 		return nil, err
 	}
 
-	return &stripe.Invoice{
-		ID: "in_123",
-	}, nil
+	if c.mockInvoice == nil {
+		return nil, fmt.Errorf("mock invoice is not set")
+	}
+
+	return c.mockInvoice, nil
 }
 
 func (c *StripeClientMock) DeleteInvoice(ctx context.Context, input stripeclient.DeleteInvoiceInput) error {
@@ -281,9 +314,11 @@ func (c *StripeClientMock) AddInvoiceLines(ctx context.Context, input stripeclie
 		return nil, err
 	}
 
-	return &stripe.Invoice{
-		ID: "in_123",
-	}, nil
+	if c.mockInvoice == nil {
+		return nil, fmt.Errorf("mock invoice is not set")
+	}
+
+	return c.mockInvoice, nil
 }
 
 func (c *StripeClientMock) UpdateInvoiceLines(ctx context.Context, input stripeclient.UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
@@ -291,9 +326,11 @@ func (c *StripeClientMock) UpdateInvoiceLines(ctx context.Context, input stripec
 		return nil, err
 	}
 
-	return &stripe.Invoice{
-		ID: "in_123",
-	}, nil
+	if c.mockInvoice == nil {
+		return nil, fmt.Errorf("mock invoice is not set")
+	}
+
+	return c.mockInvoice, nil
 }
 
 func (c *StripeClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
@@ -301,7 +338,9 @@ func (c *StripeClientMock) RemoveInvoiceLines(ctx context.Context, input stripec
 		return nil, err
 	}
 
-	return &stripe.Invoice{
-		ID: "in_123",
-	}, nil
+	if c.mockInvoice == nil {
+		return nil, fmt.Errorf("mock invoice is not set")
+	}
+
+	return c.mockInvoice, nil
 }
