@@ -72,6 +72,17 @@ func (c *stripeClient) DeleteInvoice(ctx context.Context, input DeleteInvoiceInp
 	return err
 }
 
+// FinalizeInvoice finalizes a Stripe invoice.
+func (c *stripeClient) FinalizeInvoice(ctx context.Context, input FinalizeInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("stripe finalize invoice: invalid input: %w", err)
+	}
+
+	return c.client.Invoices.FinalizeInvoice(input.StripeInvoiceID, &stripe.InvoiceFinalizeInvoiceParams{
+		AutoAdvance: lo.ToPtr(input.AutoAdvance),
+	})
+}
+
 // GetInvoiceInput is the input to get a Stripe invoice.
 type GetInvoiceInput struct {
 	StripeInvoiceID string
@@ -133,6 +144,20 @@ type DeleteInvoiceInput struct {
 }
 
 func (i DeleteInvoiceInput) Validate() error {
+	if i.StripeInvoiceID == "" {
+		return errors.New("stripe invoice id is required")
+	}
+
+	return nil
+}
+
+// FinalizeInvoiceInput is the input for finalizing an invoice in Stripe.
+type FinalizeInvoiceInput struct {
+	StripeInvoiceID string
+	AutoAdvance     bool
+}
+
+func (i FinalizeInvoiceInput) Validate() error {
 	if i.StripeInvoiceID == "" {
 		return errors.New("stripe invoice id is required")
 	}
