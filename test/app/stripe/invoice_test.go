@@ -478,7 +478,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			return id
 		}
 
-		expectedInvoiceAddLinesLines := []*stripe.InvoiceAddLinesLineParams{
+		expectedInvoiceAddLines := []*stripe.InvoiceAddLinesLineParams{
 			{
 				Amount:      lo.ToPtr(int64(10000)),
 				Description: lo.ToPtr("Fee"),
@@ -622,7 +622,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			Currency: "USD",
 			Lines: &stripe.InvoiceLineItemList{
-				Data: lo.Map(expectedInvoiceAddLinesLines, func(line *stripe.InvoiceAddLinesLineParams, idx int) *stripe.InvoiceLineItem {
+				Data: lo.Map(expectedInvoiceAddLines, func(line *stripe.InvoiceAddLinesLineParams, idx int) *stripe.InvoiceLineItem {
 					return &stripe.InvoiceLineItem{
 						ID:          fmt.Sprintf("il_%d", idx),
 						Amount:      *line.Amount,
@@ -641,7 +641,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeClient.
 			On("AddInvoiceLines", stripeclient.AddInvoiceLinesInput{
 				StripeInvoiceID: "stripe-invoice-id",
-				Lines:           expectedInvoiceAddLinesLines,
+				Lines:           expectedInvoiceAddLines,
 			}).
 			Return(stripeInvoice, nil)
 
@@ -656,7 +656,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// Assert results.
 		// TODO: discount line items are not in the results
-		s.Len(results.GetLineExternalIDs(), len(expectedInvoiceAddLinesLines)-1)
+		s.Len(results.GetLineExternalIDs(), len(expectedInvoiceAddLines)-1)
 
 		expectedResult := map[string]string{}
 
@@ -671,62 +671,55 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		s.Equal(expectedResult, results.GetLineExternalIDs())
 
-		// // Update the invoice.
+		// Update the invoice.
 
-		// updateInvoice := invoice.Clone()
+		updateInvoice := invoice.Clone()
 
-		// s.StripeClient.
-		// 	On("GetInvoice", stripeclient.GetInvoiceInput{
-		// 		StripeInvoiceID: "stripe-invoice-id",
-		// 	}).
-		// 	Return(stripeInvoice, nil)
+		// To simulate the update, we will update the external ID of the invoice.
+		// Which will go into update path of the upsert invoice.
+		updateInvoice.ExternalIDs.Invoicing = "stripe-invoice-id"
 
-		// s.StripeClient.
-		// 	On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-		// 		StripeInvoiceID: "stripe-invoice-id",
-		// 	}).
-		// 	Return(stripeInvoice, nil)
+		s.StripeClient.
+			On("GetInvoice", stripeclient.GetInvoiceInput{
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+			}).
+			Return(stripeInvoice, nil)
 
-		// // We set the external ID to the invoice
-		// // to simulate the invoice was created in stripe before.
-		// updateInvoice.ExternalIDs.Invoicing = "stripe-invoice-id"
+		s.StripeClient.
+			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+			}).
+			Return(stripeInvoice, nil)
 
-		// // We set the external ID to the lines to the invoice
-		// // to simulate the invoice was created in stripe before.
-		// for _, line := range updateInvoice.FlattenLinesByID() {
-		// 	externalId, ok := results.GetLineExternalID(line.ID)
-		// 	if !ok {
-		// 		line.ExternalIDs.Invoicing = externalId
-		// 	}
-		// }
+		// No Stripe client add, update or remove calls should be made.
+		// As no  new lines are added, no new invoice lines should be created.
+		// Only updates should be made to the existing invoice lines.
 
-		// // No Stripe client add, update or remove calls should be made.
-		// // As no  new lines are added, no new invoice lines should be created.
-		// // Only updates should be made to the existing invoice lines.
+		s.StripeClient.
+			On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+				Lines: lo.Map(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) *stripe.InvoiceUpdateLinesLineParams {
+					// No changes to the line items.
+					return &stripe.InvoiceUpdateLinesLineParams{
+						ID:          &line.ID,
+						Amount:      &line.Amount,
+						Description: &line.Description,
+						Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
+							Start: &line.Period.Start,
+							End:   &line.Period.End,
+						},
+						Quantity: &line.Quantity,
+						Metadata: line.Metadata,
+					}
+				}),
+			}).
+			Return(stripeInvoice, nil)
 
-		// s.StripeClient.
-		// 	On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
-		// 		StripeInvoiceID: "stripe-invoice-id",
-		// 		Lines: lo.Map(expectedInvoiceAddLinesLines, func(line *stripe.InvoiceAddLinesLineParams, idx int) *stripe.InvoiceUpdateLinesLineParams {
-		// 			return &stripe.InvoiceUpdateLinesLineParams{
-		// 				ID:          lo.ToPtr(fmt.Sprintf("il_%d", idx)),
-		// 				Amount:      line.Amount,
-		// 				Description: line.Description,
-		// 				Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
-		// 					Start: line.Period.Start,
-		// 					End:   line.Period.End,
-		// 				},
-		// 				Quantity: line.Quantity,
-		// 			}
-		// 		}),
-		// 	}).
-		// 	Return(stripeInvoice, nil)
+		// Update the invoice.
+		results, err = invoicingApp.UpsertInvoice(ctx, updateInvoice)
+		s.NoError(err, "failed to upsert invoice")
 
-		// 	// Update the invoice.
-		// results, err = invoicingApp.UpsertInvoice(ctx, updateInvoice)
-		// s.NoError(err, "failed to upsert invoice")
-
-		// // Assert invoice is created in stripe.
-		// s.StripeClient.AssertExpectations(s.T())
+		// Assert invoice is created in stripe.
+		s.StripeClient.AssertExpectations(s.T())
 	})
 }
