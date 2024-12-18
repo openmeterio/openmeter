@@ -2,6 +2,9 @@ package billing
 
 import (
 	"context"
+	"fmt"
+
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 )
 
 type UpsertResults struct {
@@ -102,4 +105,18 @@ type InvoicingApp interface {
 	// DeleteInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the invoice deletion is only invoked for non-finalized invoices.
 	DeleteInvoice(ctx context.Context, invoice Invoice) error
+}
+
+// GetApp returns the app from the app entity
+func GetApp(app appentity.App) (InvoicingApp, error) {
+	customerApp, ok := app.(InvoicingApp)
+	if !ok {
+		return nil, AppError{
+			AppID:   app.GetID(),
+			AppType: app.GetType(),
+			Err:     fmt.Errorf("is not an invoicing app"),
+		}
+	}
+
+	return customerApp, nil
 }

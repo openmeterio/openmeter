@@ -1,6 +1,10 @@
 package billing
 
-import "fmt"
+import (
+	"fmt"
+
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+)
 
 var (
 	// We want to return the invoice regardless of the validation issues, as invoices can have issues at numerous
@@ -136,4 +140,17 @@ func (e UpdateAfterDeleteError) Error() string {
 
 func (e UpdateAfterDeleteError) Unwrap() error {
 	return e.Err
+}
+
+// AppError represents an error when interacting with an app.
+var _ error = (*AppError)(nil)
+
+type AppError struct {
+	AppID   appentitybase.AppID
+	AppType appentitybase.AppType
+	Err     error
+}
+
+func (e AppError) Error() string {
+	return fmt.Sprintf("app %s type with id %s in namespace %s: %s", e.AppType, e.AppID.ID, e.AppID.Namespace, e.Err.Error())
 }

@@ -105,7 +105,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Return the result
-	result := &billing.UpsertInvoiceResult{}
+	result := billing.NewUpsertInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
 	result.SetInvoiceNumber(stripeInvoice.Number)
 
@@ -225,7 +225,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Return the result
-	result := &billing.UpsertInvoiceResult{}
+	result := billing.NewUpsertInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
 	result.SetInvoiceNumber(stripeInvoice.Number)
 
