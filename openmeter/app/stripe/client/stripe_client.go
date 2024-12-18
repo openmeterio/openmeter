@@ -36,11 +36,14 @@ type StripeClient interface {
 	CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error)
 	GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error)
 	// Invoice
+	GetInvoice(ctx context.Context, input GetInvoiceInput) (*stripe.Invoice, error)
 	CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error)
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (*stripe.Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
-
-	GetClient() *client.API
+	// Invoice Line
+	AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) (*stripe.Invoice, error)
+	UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) (*stripe.Invoice, error)
+	RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) (*stripe.Invoice, error)
 }
 
 type StripeClientConfig struct {
@@ -109,11 +112,6 @@ func (l leveledLogger) Warnf(format string, args ...interface{}) {
 
 func (l leveledLogger) Errorf(format string, args ...interface{}) {
 	l.logger.Error(fmt.Sprintf(format, args...))
-}
-
-// GetClient returns the stripe client
-func (c *stripeClient) GetClient() *client.API {
-	return c.client
 }
 
 // SetupWebhook setups a stripe webhook to handle setup intents and save the payment method
