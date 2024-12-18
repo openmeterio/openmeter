@@ -674,21 +674,55 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		updateInvoice := invoice.Clone()
 
+		// Remove a line item.
+		lineToRemove := getLine("Fee")
+		s.NotNil(lineToRemove, "line ID to remove is not found")
+
+		// Find the stripe line ID to remove.
+		var stripeLineIDToRemove string
+
+		for lineID, stripeLineID := range expectedResult {
+			if lineID == lineToRemove.ID {
+				stripeLineIDToRemove = stripeLineID
+			}
+		}
+
+		delete(expectedResult, lineToRemove.ID)
+
+		s.NotEmpty(stripeLineIDToRemove, "stripe line ID to remove is empty")
+
+		ok = updateInvoice.Lines.RemoveByID(lineToRemove.ID)
+		s.True(ok, "failed to remove line item")
+
 		// To simulate the update, we will update the external ID of the invoice.
 		// Which will go into update path of the upsert invoice.
 		updateInvoice.ExternalIDs.Invoicing = "stripe-invoice-id"
+
+		stripeInvoiceUpdated := &stripe.Invoice{
+			ID:       stripeInvoice.ID,
+			Customer: stripeInvoice.Customer,
+			Currency: stripeInvoice.Currency,
+			Lines: &stripe.InvoiceLineItemList{
+				Data: lo.Filter(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, _ int) bool {
+					return line.ID != lineToRemove.ID
+				}),
+			},
+		}
 
 		s.StripeClient.
 			On("GetInvoice", stripeclient.GetInvoiceInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 			}).
+			// We return the same invoice as the created invoice.
+			// This one still has the line items that were removed in the update.
 			Return(stripeInvoice, nil)
 
 		s.StripeClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 			}).
-			Return(stripeInvoice, nil)
+			// We return the updated invoice.
+			Return(stripeInvoiceUpdated, nil)
 
 		// No Stripe client add, update or remove calls should be made.
 		// As no  new lines are added, no new invoice lines should be created.
@@ -697,7 +731,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeClient.
 			On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
-				Lines: lo.Map(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) *stripe.InvoiceUpdateLinesLineParams {
+				Lines: lo.FilterMap(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) (*stripe.InvoiceUpdateLinesLineParams, bool) {
 					// No changes to the line items.
 					return &stripe.InvoiceUpdateLinesLineParams{
 						ID:          &line.ID,
@@ -709,8 +743,20 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 						},
 						Quantity: &line.Quantity,
 						Metadata: line.Metadata,
-					}
+					}, line.ID != stripeLineIDToRemove
 				}),
+			}).
+			Return(stripeInvoice, nil)
+
+		s.StripeClient.
+			On("RemoveInvoiceLines", stripeclient.RemoveInvoiceLinesInput{
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+				Lines: []*stripe.InvoiceRemoveLinesLineParams{
+					{
+						ID:       lo.ToPtr(stripeLineIDToRemove),
+						Behavior: lo.ToPtr("delete"),
+					},
+				},
 			}).
 			Return(stripeInvoice, nil)
 
