@@ -26,29 +26,29 @@ type BrokerMetrics struct {
 	// Number of messages in-flight to broker awaiting response
 	InflightMessagesAwaitingResponse metric.Int64Gauge
 	// Total number of requests sent
-	RequestsSent metric.Int64Counter
+	RequestsSent metric.Int64Gauge
 	// Total number of bytes sent
-	RequestBytesSent metric.Int64Counter
+	RequestBytesSent metric.Int64Gauge
 	// Total number of transmission errors
-	RequestErrors metric.Int64Counter
+	RequestErrors metric.Int64Gauge
 	// Total number of request retries
-	RequestRetries metric.Int64Counter
+	RequestRetries metric.Int64Gauge
 	// Microseconds since last socket send (or -1 if no sends yet for current connection).
-	LastSocketSend metric.Int64Counter
+	LastSocketSend metric.Int64Gauge
 	// Total number of requests timed out
-	RequestTimeouts metric.Int64Counter
+	RequestTimeouts metric.Int64Gauge
 	// Total number of responses received
-	ResponsesReceived metric.Int64Counter
+	ResponsesReceived metric.Int64Gauge
 	// Total number of bytes received
-	ResponseBytesReceived metric.Int64Counter
+	ResponseBytesReceived metric.Int64Gauge
 	// Total number of receive errors
-	ResponseErrors metric.Int64Counter
+	ResponseErrors metric.Int64Gauge
 	// Microseconds since last socket receive (or -1 if no receives yet for current connection).
-	LastSocketReceive metric.Int64Counter
+	LastSocketReceive metric.Int64Gauge
 	// Number of connection attempts, including successful and failed, and name resolution failures.
-	Connects metric.Int64Counter
+	Connects metric.Int64Gauge
 	// Number of disconnects (triggered by broker, network, load-balancer, etc.).
-	Disconnects metric.Int64Counter
+	Disconnects metric.Int64Gauge
 
 	// Smallest value
 	LatencyMin metric.Int64Gauge
@@ -112,18 +112,18 @@ func (m *BrokerMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs
 	m.MessagesAwaitingTransmission.Record(ctx, stats.MessagesAwaitingTransmission, metric.WithAttributes(attrs...))
 	m.InflightRequestsAwaitingResponse.Record(ctx, stats.InflightRequestsAwaitingResponse, metric.WithAttributes(attrs...))
 	m.InflightMessagesAwaitingResponse.Record(ctx, stats.InflightMessagesAwaitingResponse, metric.WithAttributes(attrs...))
-	m.RequestsSent.Add(ctx, stats.RequestsSent, metric.WithAttributes(attrs...))
-	m.RequestBytesSent.Add(ctx, stats.RequestBytesSent, metric.WithAttributes(attrs...))
-	m.RequestErrors.Add(ctx, stats.RequestErrors, metric.WithAttributes(attrs...))
-	m.RequestRetries.Add(ctx, stats.RequestRetries, metric.WithAttributes(attrs...))
-	m.LastSocketSend.Add(ctx, stats.LastSocketSend, metric.WithAttributes(attrs...))
-	m.RequestTimeouts.Add(ctx, stats.RequestTimeouts, metric.WithAttributes(attrs...))
-	m.ResponsesReceived.Add(ctx, stats.ResponsesReceived, metric.WithAttributes(attrs...))
-	m.ResponseBytesReceived.Add(ctx, stats.ResponseBytesReceived, metric.WithAttributes(attrs...))
-	m.ResponseErrors.Add(ctx, stats.ResponseErrors, metric.WithAttributes(attrs...))
-	m.LastSocketReceive.Add(ctx, stats.LastSocketReceive, metric.WithAttributes(attrs...))
-	m.Connects.Add(ctx, stats.Connects, metric.WithAttributes(attrs...))
-	m.Disconnects.Add(ctx, stats.Disconnects, metric.WithAttributes(attrs...))
+	m.RequestsSent.Record(ctx, stats.RequestsSent, metric.WithAttributes(attrs...))
+	m.RequestBytesSent.Record(ctx, stats.RequestBytesSent, metric.WithAttributes(attrs...))
+	m.RequestErrors.Record(ctx, stats.RequestErrors, metric.WithAttributes(attrs...))
+	m.RequestRetries.Record(ctx, stats.RequestRetries, metric.WithAttributes(attrs...))
+	m.LastSocketSend.Record(ctx, stats.LastSocketSend, metric.WithAttributes(attrs...))
+	m.RequestTimeouts.Record(ctx, stats.RequestTimeouts, metric.WithAttributes(attrs...))
+	m.ResponsesReceived.Record(ctx, stats.ResponsesReceived, metric.WithAttributes(attrs...))
+	m.ResponseBytesReceived.Record(ctx, stats.ResponseBytesReceived, metric.WithAttributes(attrs...))
+	m.ResponseErrors.Record(ctx, stats.ResponseErrors, metric.WithAttributes(attrs...))
+	m.LastSocketReceive.Record(ctx, stats.LastSocketReceive, metric.WithAttributes(attrs...))
+	m.Connects.Record(ctx, stats.Connects, metric.WithAttributes(attrs...))
+	m.Disconnects.Record(ctx, stats.Disconnects, metric.WithAttributes(attrs...))
 
 	m.LatencyMin.Record(ctx, stats.Latency.Min, metric.WithAttributes(attrs...))
 	m.LatencyMax.Record(ctx, stats.Latency.Max, metric.WithAttributes(attrs...))
@@ -215,7 +215,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.inflight_messages_awaiting_response: %w", err)
 	}
 
-	m.RequestsSent, err = meter.Int64Counter(
+	m.RequestsSent, err = meter.Int64Gauge(
 		"kafka.broker.request_sent",
 		metric.WithDescription("Total number of requests sent"),
 		metric.WithUnit("{request}"),
@@ -224,7 +224,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.request_sent: %w", err)
 	}
 
-	m.RequestBytesSent, err = meter.Int64Counter(
+	m.RequestBytesSent, err = meter.Int64Gauge(
 		"kafka.broker.request_bytes_sent",
 		metric.WithDescription("Total number of bytes sent"),
 		metric.WithUnit("{byte}"),
@@ -233,7 +233,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.request_bytes_sent: %w", err)
 	}
 
-	m.RequestErrors, err = meter.Int64Counter(
+	m.RequestErrors, err = meter.Int64Gauge(
 		"kafka.broker.request_errors",
 		metric.WithDescription("Total number of transmission errors"),
 		metric.WithUnit("{request}"),
@@ -242,7 +242,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.request_errors: %w", err)
 	}
 
-	m.RequestRetries, err = meter.Int64Counter(
+	m.RequestRetries, err = meter.Int64Gauge(
 		"kafka.broker.request_retries",
 		metric.WithDescription("Total number of request retries"),
 		metric.WithUnit("{request}"),
@@ -251,7 +251,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.request_retries: %w", err)
 	}
 
-	m.LastSocketSend, err = meter.Int64Counter(
+	m.LastSocketSend, err = meter.Int64Gauge(
 		"kafka.broker.last_socket_send",
 		metric.WithDescription("Microseconds since last socket send (or -1 if no sends yet for current connection)"),
 		metric.WithUnit("{microsecond}"),
@@ -260,7 +260,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.last_socket_send: %w", err)
 	}
 
-	m.RequestTimeouts, err = meter.Int64Counter(
+	m.RequestTimeouts, err = meter.Int64Gauge(
 		"kafka.broker.request_timeouts",
 		metric.WithDescription("Total number of requests timed out"),
 		metric.WithUnit("{request}"),
@@ -269,7 +269,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.request_retries: %w", err)
 	}
 
-	m.ResponsesReceived, err = meter.Int64Counter(
+	m.ResponsesReceived, err = meter.Int64Gauge(
 		"kafka.broker.responses_received",
 		metric.WithDescription("Total number of responses received"),
 		metric.WithUnit("{response}"),
@@ -278,7 +278,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.responses_received: %w", err)
 	}
 
-	m.ResponseBytesReceived, err = meter.Int64Counter(
+	m.ResponseBytesReceived, err = meter.Int64Gauge(
 		"kafka.broker.responses_bytes_received",
 		metric.WithDescription("Total number of bytes received"),
 		metric.WithUnit("{byte}"),
@@ -287,7 +287,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.responses_bytes_received: %w", err)
 	}
 
-	m.ResponseErrors, err = meter.Int64Counter(
+	m.ResponseErrors, err = meter.Int64Gauge(
 		"kafka.broker.responses_errors",
 		metric.WithDescription("Total number of receive errors"),
 		metric.WithUnit("{event}"),
@@ -296,7 +296,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.responses_errors: %w", err)
 	}
 
-	m.LastSocketReceive, err = meter.Int64Counter(
+	m.LastSocketReceive, err = meter.Int64Gauge(
 		"kafka.broker.last_socket_receive",
 		metric.WithDescription("Microseconds since last socket receive (or -1 if no receives yet for current connection)"),
 		metric.WithUnit("{microsecond}"),
@@ -305,7 +305,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.last_socket_receive: %w", err)
 	}
 
-	m.Connects, err = meter.Int64Counter(
+	m.Connects, err = meter.Int64Gauge(
 		"kafka.broker.connects",
 		metric.WithDescription("Number of connection attempts, including successful and failed, and name resolution failures"),
 		metric.WithUnit("{event}"),
@@ -314,7 +314,7 @@ func NewBrokerMetrics(meter metric.Meter) (*BrokerMetrics, error) {
 		return nil, fmt.Errorf("failed to create metric: kafka.broker.connects: %w", err)
 	}
 
-	m.Disconnects, err = meter.Int64Counter(
+	m.Disconnects, err = meter.Int64Gauge(
 		"kafka.broker.disconnects",
 		metric.WithDescription("Number of disconnects (triggered by broker, network, load-balancer, etc.)"),
 		metric.WithUnit("{event}"),

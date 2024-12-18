@@ -20,7 +20,7 @@ type ConsumerGroupMetrics struct {
 	// Time elapsed since last rebalance (assign or revoke) (milliseconds)
 	RebalanceAge metric.Int64Gauge
 	// Total number of rebalances (assign or revoke)
-	RebalanceCount metric.Int64Counter
+	RebalanceCount metric.Int64Gauge
 	// Current assignment's partition count
 	PartitionAssigned metric.Int64Gauge
 }
@@ -30,7 +30,7 @@ func (m *ConsumerGroupMetrics) Add(ctx context.Context, stats *stats.ConsumerGro
 	m.StateAge.Record(ctx, stats.StateAge, metric.WithAttributes(attrs...))
 	m.JoinState.Record(ctx, stats.JoinState.Int64(), metric.WithAttributes(attrs...))
 	m.RebalanceAge.Record(ctx, stats.RebalanceAge, metric.WithAttributes(attrs...))
-	m.RebalanceCount.Add(ctx, stats.RebalanceCount, metric.WithAttributes(attrs...))
+	m.RebalanceCount.Record(ctx, stats.RebalanceCount, metric.WithAttributes(attrs...))
 	m.PartitionAssigned.Record(ctx, stats.PartitionAssigned, metric.WithAttributes(attrs...))
 }
 
@@ -72,7 +72,7 @@ func NewConsumerGroupMetrics(meter metric.Meter) (*ConsumerGroupMetrics, error) 
 		return nil, fmt.Errorf("failed to create metric: kafka.consumer_group.rebalance_age: %w", err)
 	}
 
-	m.RebalanceCount, err = meter.Int64Counter(
+	m.RebalanceCount, err = meter.Int64Gauge(
 		"kafka.consumer_group.rebalance_count",
 		metric.WithDescription("Time elapsed since last rebalance (assign or revoke) (milliseconds)"),
 		metric.WithUnit("{event}"),
