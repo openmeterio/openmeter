@@ -52,6 +52,15 @@ func (e *FeatureInvalidMeterAggregationError) Error() string {
 	return fmt.Sprintf("meter %s's aggregation is %s but features can only be created for %s", e.MeterSlug, e.Aggregation, validAggregations)
 }
 
+type ForbiddenError struct {
+	Msg string
+	ID  string
+}
+
+func (e *ForbiddenError) Error() string {
+	return fmt.Sprintf("forbidden for feature %s: %s", e.ID, e.Msg)
+}
+
 // MeterGroupByFilters is a map of filters that can be applied to a meter when querying the usage for a feature.
 type MeterGroupByFilters map[string]string
 

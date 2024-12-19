@@ -55,9 +55,9 @@ func (r *subscriptionRepo) GetAllForCustomerSince(ctx context.Context, customerI
 				dbsubscription.CustomerID(customerID.ID),
 				dbsubscription.Namespace(customerID.Namespace),
 			).Where(
-				subscriptionActiveAfter(at)...,
+				SubscriptionActiveAfter(at)...,
 			).Where(
-				subscriptionNotDeletedAt(at)...,
+				SubscriptionNotDeletedAt(at)...,
 			).All(ctx)
 			if err != nil {
 				return nil, err

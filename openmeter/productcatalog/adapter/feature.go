@@ -10,7 +10,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	dbratecard "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -74,9 +78,34 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 }
 
 func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	_, err := c.GetByIdOrKey(ctx, featureID.Namespace, featureID.ID, true)
+	f, err := c.GetByIdOrKey(ctx, featureID.Namespace, featureID.ID, true)
 	if err != nil {
 		return err
+	}
+
+	// FIXME: (OM-1055) we should marry productcatalog/plan with feature so we can do this check outside the db layer
+	planReferencesIt, err := c.db.Plan.Query().WithPhases(func(qp *db.PlanPhaseQuery) {
+		qp.WithRatecards(func(qrc *db.PlanRateCardQuery) {
+			qrc.Where(dbratecard.FeatureID(f.ID))
+		})
+	}).Where(dbplan.EffectiveFromNotNil(), dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil())).Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check for plan references: %w", err)
+	}
+
+	subsReferencesIt, err := c.db.Subscription.Query().WithPhases(func(qp *db.SubscriptionPhaseQuery) {
+		qp.WithItems(func(qi *db.SubscriptionItemQuery) {
+			qi.Where(dbsubscriptionitem.FeatureKey(f.Key))
+		})
+	}).Where(subscriptionrepo.SubscriptionActiveAfter(clock.Now())...).Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check for subscription references: %w", err)
+	}
+
+	// As currently features are referenced by IDs instead of Keys, and there's no way to publish a new feature version in a single action,
+	// using subscriptions/productcatalog bricks referenced features either way as they can no longer be updated.
+	if planReferencesIt || subsReferencesIt {
+		return &feature.ForbiddenError{Msg: "feature is referenced by active plan or subscription, it cannot be archived", ID: f.ID}
 	}
 
 	err = c.db.Feature.Update().

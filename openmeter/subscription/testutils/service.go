@@ -49,7 +49,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	}})
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     dbDeps.dbClient,
+		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
 		Logger:             logger,
 		MeterRepository:    meterRepo,
@@ -66,7 +66,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	customer := NewCustomerService(t, dbDeps)
 
 	planRepo, err := planrepo.New(planrepo.Config{
-		Client: dbDeps.dbClient,
+		Client: dbDeps.DBClient,
 		Logger: logger,
 	})
 	require.NoError(t, err)
