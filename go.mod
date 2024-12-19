@@ -2,7 +2,7 @@ module github.com/openmeterio/openmeter
 
 go 1.23.1
 
-require github.com/openmeterio/openmeter/api v0.0.0-20241219173711-e6cdb08a9d49
+require github.com/openmeterio/openmeter/api v0.0.0-20241219175546-dcaedd1488b3
 
 replace github.com/openmeterio/openmeter/api => ./api
 
