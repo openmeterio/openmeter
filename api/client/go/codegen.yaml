@@ -1,6 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
 package: openmeter
 generate:
   client: true
   models: true
   embedded-spec: true
+additional-imports:
+  - package: github.com/openmeterio/openmeter/api/models
 output: ./client.gen.go

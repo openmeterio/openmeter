@@ -8,7 +8,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oliveagle/jsonpath"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 )
 
 // ParseEvent validates and parses an event against a meter.

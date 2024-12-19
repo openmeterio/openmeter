@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/api/models"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -24,7 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPlanService(t *testing.T) {
@@ -81,7 +82,7 @@ func TestPlanService(t *testing.T) {
 
 			t.Run("Get", func(t *testing.T) {
 				getPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-					NamespacedID: models.NamespacedID{
+					NamespacedID: pkgmodels.NamespacedID{
 						Namespace: planInput.Namespace,
 					},
 					Key:           planInput.Key,
@@ -104,7 +105,7 @@ func TestPlanService(t *testing.T) {
 				updatedPhases := slices.Clone(draftPlan.Phases)
 				updatedPhases = append(updatedPhases, plan.Phase{
 					PhaseManagedFields: plan.PhaseManagedFields{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: namespace,
 						},
 						PlanID: draftPlan.ID,
@@ -114,7 +115,7 @@ func TestPlanService(t *testing.T) {
 							Key:         "pro-2",
 							Name:        "Pro-2",
 							Description: lo.ToPtr("Pro-2 phase"),
-							Metadata:    models.Metadata{"name": "pro-2"},
+							Metadata:    pkgmodels.Metadata{"name": "pro-2"},
 							StartAfter:  ThreeMonthPeriod,
 						},
 						RateCards: []productcatalog.RateCard{
@@ -123,7 +124,7 @@ func TestPlanService(t *testing.T) {
 									Key:         "api_requests_total",
 									Name:        "Pro-2 RateCard 1",
 									Description: lo.ToPtr("Pro-2 RateCard 1"),
-									Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
+									Metadata:    pkgmodels.Metadata{"name": "pro-2-ratecard-1"},
 									Feature: &feature.Feature{
 										Namespace: namespace,
 										Key:       "api_requests_total",
@@ -175,7 +176,7 @@ func TestPlanService(t *testing.T) {
 				})
 
 				updateInput := plan.UpdatePlanInput{
-					NamespacedID: models.NamespacedID{
+					NamespacedID: pkgmodels.NamespacedID{
 						Namespace: planInput.Namespace,
 						ID:        draftPlan.ID,
 					},
@@ -212,8 +213,8 @@ func TestPlanService(t *testing.T) {
 						updatedPhases = slices.Clone(draftPlan.Phases)
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
-								ManagedModel: models.ManagedModel{},
-								NamespacedID: models.NamespacedID{
+								ManagedModel: pkgmodels.ManagedModel{},
+								NamespacedID: pkgmodels.NamespacedID{
 									Namespace: namespace,
 								},
 								PlanID: draftPlan.ID,
@@ -223,18 +224,18 @@ func TestPlanService(t *testing.T) {
 									Key:         "pro-2",
 									Name:        "Pro-2",
 									Description: lo.ToPtr("Pro-2 phase"),
-									Metadata:    models.Metadata{"name": "pro-2"},
+									Metadata:    pkgmodels.Metadata{"name": "pro-2"},
 									StartAfter:  SixMonthPeriod,
 								},
 								RateCards: []productcatalog.RateCard{
 									&plan.UsageBasedRateCard{
 										RateCardManagedFields: plan.RateCardManagedFields{
-											ManagedModel: models.ManagedModel{
+											ManagedModel: pkgmodels.ManagedModel{
 												CreatedAt: time.Time{},
 												UpdatedAt: time.Time{},
 												DeletedAt: &time.Time{},
 											},
-											NamespacedID: models.NamespacedID{
+											NamespacedID: pkgmodels.NamespacedID{
 												Namespace: namespace,
 												ID:        "",
 											},
@@ -245,7 +246,7 @@ func TestPlanService(t *testing.T) {
 												Key:                 "pro-2-ratecard-1",
 												Name:                "Pro-2 RateCard 1",
 												Description:         lo.ToPtr("Pro-2 RateCard 1"),
-												Metadata:            models.Metadata{"name": "pro-ratecard-1"},
+												Metadata:            pkgmodels.Metadata{"name": "pro-ratecard-1"},
 												Feature:             nil,
 												EntitlementTemplate: nil,
 												TaxConfig: &productcatalog.TaxConfig{
@@ -288,7 +289,7 @@ func TestPlanService(t *testing.T) {
 						})
 
 						updateInput = plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
+							NamespacedID: pkgmodels.NamespacedID{
 								Namespace: planInput.Namespace,
 								ID:        draftPlan.ID,
 							},
@@ -321,7 +322,7 @@ func TestPlanService(t *testing.T) {
 						updatedPhases = slices.Clone(draftPlan.Phases)
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
-								NamespacedID: models.NamespacedID{
+								NamespacedID: pkgmodels.NamespacedID{
 									Namespace: namespace,
 								},
 								PlanID: draftPlan.ID,
@@ -331,7 +332,7 @@ func TestPlanService(t *testing.T) {
 									Key:         "pro-2",
 									Name:        "Pro-2",
 									Description: lo.ToPtr("Pro-2 phase"),
-									Metadata:    models.Metadata{"name": "pro-2"},
+									Metadata:    pkgmodels.Metadata{"name": "pro-2"},
 									StartAfter:  SixMonthPeriod,
 								},
 								RateCards: []productcatalog.RateCard{},
@@ -339,7 +340,7 @@ func TestPlanService(t *testing.T) {
 						})
 
 						updateInput = plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
+							NamespacedID: pkgmodels.NamespacedID{
 								Namespace: planInput.Namespace,
 								ID:        draftPlan.ID,
 							},
@@ -371,7 +372,7 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Delete", func(t *testing.T) {
 					updateInput = plan.UpdatePlanInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: planInput.Namespace,
 							ID:        draftPlan.ID,
 						},
@@ -406,7 +407,7 @@ func TestPlanService(t *testing.T) {
 				publishAt := time.Now().Truncate(time.Microsecond)
 
 				publishInput := plan.PublishPlanInput{
-					NamespacedID: models.NamespacedID{
+					NamespacedID: pkgmodels.NamespacedID{
 						Namespace: draftPlan.Namespace,
 						ID:        draftPlan.ID,
 					},
@@ -428,7 +429,7 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := plan.UpdatePlanInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: draftPlan.Namespace,
 							ID:        draftPlan.ID,
 						},
@@ -443,7 +444,7 @@ func TestPlanService(t *testing.T) {
 			var nextPlan *plan.Plan
 			t.Run("NewVersion", func(t *testing.T) {
 				nextInput := plan.NextPlanInput{
-					NamespacedID: models.NamespacedID{
+					NamespacedID: pkgmodels.NamespacedID{
 						Namespace: publishedPlan.Namespace,
 					},
 					Key: publishedPlan.Key,
@@ -461,7 +462,7 @@ func TestPlanService(t *testing.T) {
 				t.Run("Phases", func(t *testing.T) {
 					t.Run("Remove", func(t *testing.T) {
 						updateInput := plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
+							NamespacedID: pkgmodels.NamespacedID{
 								Namespace: nextPlan.Namespace,
 								ID:        nextPlan.ID,
 							},
@@ -478,7 +479,7 @@ func TestPlanService(t *testing.T) {
 					t.Run("ReAdd", func(t *testing.T) {
 						reAddPhases := slices.Clone(draftPlan.Phases)
 						updateInput := plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
+							NamespacedID: pkgmodels.NamespacedID{
 								Namespace: nextPlan.Namespace,
 								ID:        nextPlan.ID,
 							},
@@ -512,7 +513,7 @@ func TestPlanService(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
 					publishInput := plan.PublishPlanInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: nextPlan.Namespace,
 							ID:        nextPlan.ID,
 						},
@@ -533,7 +534,7 @@ func TestPlanService(t *testing.T) {
 						"Plan Status mismatch: expected=%s, actual=%s", productcatalog.ActiveStatus, publishedNextPlan.Status())
 
 					prevPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: publishedPlan.Namespace,
 							ID:        publishedPlan.ID,
 						},
@@ -548,7 +549,7 @@ func TestPlanService(t *testing.T) {
 						archiveAt := time.Now().Truncate(time.Microsecond)
 
 						archiveInput := plan.ArchivePlanInput{
-							NamespacedID: models.NamespacedID{
+							NamespacedID: pkgmodels.NamespacedID{
 								Namespace: nextPlan.Namespace,
 								ID:        nextPlan.ID,
 							},
@@ -569,7 +570,7 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Delete", func(t *testing.T) {
 					deleteInput := plan.DeletePlanInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: nextPlan.Namespace,
 							ID:        nextPlan.ID,
 						},
@@ -579,7 +580,7 @@ func TestPlanService(t *testing.T) {
 					require.NoErrorf(t, err, "deleting Plan must not fail")
 
 					deletedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: nextPlan.Namespace,
 							ID:        nextPlan.ID,
 						},
@@ -608,7 +609,7 @@ func TestPlanService(t *testing.T) {
 
 			t.Run("Get", func(t *testing.T) {
 				getPhase, err := env.Plan.GetPhase(ctx, plan.GetPhaseInput{
-					NamespacedID: models.NamespacedID{
+					NamespacedID: pkgmodels.NamespacedID{
 						Namespace: draftPlan.Namespace,
 					},
 					Key:    draftPlan.Phases[0].Key,
@@ -625,7 +626,7 @@ func TestPlanService(t *testing.T) {
 
 			t.Run("Create", func(t *testing.T) {
 				newPhaseInput := plan.CreatePhaseInput{
-					NamespacedModel: models.NamespacedModel{
+					NamespacedModel: pkgmodels.NamespacedModel{
 						Namespace: draftPlan.Namespace,
 					},
 					PlanID: draftPlan.ID,
@@ -640,12 +641,12 @@ func TestPlanService(t *testing.T) {
 						RateCards: []productcatalog.RateCard{
 							&plan.UsageBasedRateCard{
 								RateCardManagedFields: plan.RateCardManagedFields{
-									ManagedModel: models.ManagedModel{
+									ManagedModel: pkgmodels.ManagedModel{
 										CreatedAt: time.Time{},
 										UpdatedAt: time.Time{},
 										DeletedAt: &time.Time{},
 									},
-									NamespacedID: models.NamespacedID{
+									NamespacedID: pkgmodels.NamespacedID{
 										Namespace: namespace,
 										ID:        "",
 									},
@@ -717,24 +718,24 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := plan.UpdatePhaseInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: draftPlan.Namespace,
 						},
 						Key:         newPhase.Key,
 						Name:        lo.ToPtr("Pro-3"),
 						Description: lo.ToPtr("Pro-3"),
-						Metadata:    &models.Metadata{"name": "pro-3"},
+						Metadata:    &pkgmodels.Metadata{"name": "pro-3"},
 						StartAfter:  lo.ToPtr(SixMonthPeriod),
 						PlanID:      draftPlan.ID,
 						RateCards: &productcatalog.RateCards{
 							&plan.UsageBasedRateCard{
 								RateCardManagedFields: plan.RateCardManagedFields{
-									ManagedModel: models.ManagedModel{
+									ManagedModel: pkgmodels.ManagedModel{
 										CreatedAt: time.Time{},
 										UpdatedAt: time.Time{},
 										DeletedAt: &time.Time{},
 									},
-									NamespacedID: models.NamespacedID{
+									NamespacedID: pkgmodels.NamespacedID{
 										Namespace: namespace,
 										ID:        "",
 									},
@@ -745,7 +746,7 @@ func TestPlanService(t *testing.T) {
 										Key:         "api_requests_total",
 										Name:        "Pro-2 RateCard 1",
 										Description: lo.ToPtr("Pro-2 RateCard 1"),
-										Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
+										Metadata:    pkgmodels.Metadata{"name": "pro-2-ratecard-1"},
 										Feature: &feature.Feature{
 											Namespace: namespace,
 											Key:       "api_requests_total",
@@ -806,24 +807,24 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("ReplaceRateCard", func(t *testing.T) {
 					updateInput := plan.UpdatePhaseInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: draftPlan.Namespace,
 						},
 						Key:         newPhase.Key,
 						Name:        lo.ToPtr("Pro-3"),
 						Description: lo.ToPtr("Pro-3"),
-						Metadata:    &models.Metadata{"name": "pro-3"},
+						Metadata:    &pkgmodels.Metadata{"name": "pro-3"},
 						StartAfter:  lo.ToPtr(SixMonthPeriod),
 						PlanID:      draftPlan.ID,
 						RateCards: &productcatalog.RateCards{
 							&plan.FlatFeeRateCard{
 								RateCardManagedFields: plan.RateCardManagedFields{
-									ManagedModel: models.ManagedModel{
+									ManagedModel: pkgmodels.ManagedModel{
 										CreatedAt: time.Time{},
 										UpdatedAt: time.Time{},
 										DeletedAt: &time.Time{},
 									},
-									NamespacedID: models.NamespacedID{
+									NamespacedID: pkgmodels.NamespacedID{
 										Namespace: namespace,
 										ID:        "",
 									},
@@ -834,7 +835,7 @@ func TestPlanService(t *testing.T) {
 										Key:         "api_requests_total",
 										Name:        "Pro-2 RateCard 1",
 										Description: lo.ToPtr("Pro-2 RateCard 1"),
-										Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
+										Metadata:    pkgmodels.Metadata{"name": "pro-2-ratecard-1"},
 										Feature: &feature.Feature{
 											Namespace: namespace,
 											Key:       "api_requests_total",
@@ -874,7 +875,7 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Delete", func(t *testing.T) {
 					err = env.Plan.DeletePhase(ctx, plan.DeletePhaseInput{
-						NamespacedID: models.NamespacedID{
+						NamespacedID: pkgmodels.NamespacedID{
 							Namespace: draftPlan.Namespace,
 						},
 						Key:    newPhase.Key,
@@ -898,7 +899,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 	t.Helper()
 
 	return plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedModel: pkgmodels.NamespacedModel{
 			Namespace: namespace,
 		},
 		Plan: productcatalog.Plan{
@@ -906,7 +907,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 				Key:         "pro",
 				Name:        "Pro",
 				Description: lo.ToPtr("Pro plan v1"),
-				Metadata:    models.Metadata{"name": "pro"},
+				Metadata:    pkgmodels.Metadata{"name": "pro"},
 				Currency:    currency.USD,
 			},
 			Phases: []productcatalog.Phase{
@@ -921,12 +922,12 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 					RateCards: []productcatalog.RateCard{
 						&plan.FlatFeeRateCard{
 							RateCardManagedFields: plan.RateCardManagedFields{
-								ManagedModel: models.ManagedModel{
+								ManagedModel: pkgmodels.ManagedModel{
 									CreatedAt: time.Time{},
 									UpdatedAt: time.Time{},
 									DeletedAt: &time.Time{},
 								},
-								NamespacedID: models.NamespacedID{
+								NamespacedID: pkgmodels.NamespacedID{
 									Namespace: "",
 									ID:        "",
 								},
@@ -937,7 +938,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 									Key:                 "trial-ratecard-1",
 									Name:                "Trial RateCard 1",
 									Description:         lo.ToPtr("Trial RateCard 1"),
-									Metadata:            models.Metadata{"name": "trial-ratecard-1"},
+									Metadata:            pkgmodels.Metadata{"name": "trial-ratecard-1"},
 									Feature:             nil,
 									EntitlementTemplate: nil,
 									TaxConfig: &productcatalog.TaxConfig{
@@ -961,18 +962,18 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Key:         "pro",
 						Name:        "Pro",
 						Description: lo.ToPtr("Pro phase"),
-						Metadata:    models.Metadata{"name": "pro"},
+						Metadata:    pkgmodels.Metadata{"name": "pro"},
 						StartAfter:  TwoMonthPeriod,
 					},
 					RateCards: []productcatalog.RateCard{
 						&plan.UsageBasedRateCard{
 							RateCardManagedFields: plan.RateCardManagedFields{
-								ManagedModel: models.ManagedModel{
+								ManagedModel: pkgmodels.ManagedModel{
 									CreatedAt: time.Time{},
 									UpdatedAt: time.Time{},
 									DeletedAt: &time.Time{},
 								},
-								NamespacedID: models.NamespacedID{
+								NamespacedID: pkgmodels.NamespacedID{
 									Namespace: namespace,
 									ID:        "",
 								},
@@ -983,7 +984,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 									Key:                 "pro-ratecard-1",
 									Name:                "Pro RateCard 1",
 									Description:         lo.ToPtr("Pro RateCard 1"),
-									Metadata:            models.Metadata{"name": "pro-ratecard-1"},
+									Metadata:            pkgmodels.Metadata{"name": "pro-ratecard-1"},
 									Feature:             nil,
 									EntitlementTemplate: nil,
 									TaxConfig: &productcatalog.TaxConfig{

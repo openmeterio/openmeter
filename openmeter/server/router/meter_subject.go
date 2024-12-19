@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-chi/render"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ListMeterSubjects lists the subjects of a meter.

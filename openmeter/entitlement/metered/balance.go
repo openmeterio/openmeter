@@ -6,13 +6,14 @@ import (
 	"math"
 	"time"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -48,7 +49,7 @@ type BalanceHistoryParams struct {
 	WindowTimeZone time.Location
 }
 
-func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID pkgmodels.NamespacedID, at time.Time) (*EntitlementBalance, error) {
 	nsOwner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        grant.Owner(entitlementID.ID),
@@ -101,7 +102,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	}, nil
 }
 
-func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
+func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID pkgmodels.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
 	// TODO: we should guard against abuse, getting history is expensive
 
 	// validate that we're working with a metered entitlement
@@ -129,7 +130,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	// query period cannot be before start of measuring usage
 	if params.From.Before(ent.MeasureUsageFrom) {
-		return nil, engine.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
+		return nil, engine.GrantBurnDownHistory{}, &pkgmodels.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
 	}
 
 	owner := grant.NamespacedOwner{

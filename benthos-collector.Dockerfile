@@ -10,14 +10,17 @@ ARG GOPROXY
 
 ENV CGO_ENABLED=0
 
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=bind,source=.,target=/usr/local/src/openmeter,ro \
+    go mod download
 
 ARG VERSION
 
-RUN go build -ldflags "-X main.version=${VERSION}" -o /usr/local/bin/benthos ./cmd/benthos-collector
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=bind,source=.,target=/usr/local/src/openmeter,ro \
+    go build -ldflags "-X main.version=${VERSION}" -o /usr/local/bin/benthos ./cmd/benthos-collector
 
 FROM alpine:3.20.3@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a
 

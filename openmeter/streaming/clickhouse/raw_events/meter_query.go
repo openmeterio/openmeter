@@ -8,7 +8,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 

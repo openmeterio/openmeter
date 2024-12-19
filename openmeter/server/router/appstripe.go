@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/api/models"
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Handle app stripe webhook

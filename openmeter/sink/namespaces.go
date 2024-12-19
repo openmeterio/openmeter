@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	ommeter "github.com/openmeterio/openmeter/openmeter/meter"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type MeterStore struct {

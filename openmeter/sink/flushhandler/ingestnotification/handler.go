@@ -8,12 +8,12 @@ import (
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/api/models"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 

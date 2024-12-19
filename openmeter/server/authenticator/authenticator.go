@@ -13,8 +13,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type AuthenticatorContextKey string
