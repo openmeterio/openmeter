@@ -3720,6 +3720,15 @@ export interface components {
        */
       usage: number
     }
+    /** @description IDResource is a resouce with an ID. */
+    IDResource: {
+      /**
+       * ID
+       * @description A unique identifier for the resource.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly id: string
+    }
     /** @description The body of the events request.
      *     Either a single event or a batch of events. */
     IngestEventsBody:
@@ -3992,6 +4001,8 @@ export interface components {
       invoiceAt: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      /** @description Subscription are the references to the subscritpions that this line is related to. */
+      readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
       /** @enum {string} */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
@@ -4165,6 +4176,15 @@ export interface components {
      * @enum {string}
      */
     InvoiceLineStatus: 'valid' | 'detail' | 'split'
+    /** @description InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to. */
+    InvoiceLineSubscriptionReference: {
+      /** @description The subscription. */
+      readonly subscription: components['schemas']['IDResource']
+      /** @description The phase of the subscription. */
+      readonly phase: components['schemas']['IDResource']
+      /** @description The item this line is related to. */
+      readonly item: components['schemas']['IDResource']
+    }
     /**
      * @description InvoiceLineTaxBehavior details how the tax item is applied to the base amount.
      *
@@ -4394,6 +4414,8 @@ export interface components {
       invoiceAt: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      /** @description Subscription are the references to the subscritpions that this line is related to. */
+      readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
       /** @enum {string} */
       type: 'usage_based'
       price: components['schemas']['RateCardUsageBasedPrice']
@@ -6465,6 +6487,13 @@ export interface components {
     SubscriptionChange:
       | components['schemas']['PlanSubscriptionChange']
       | components['schemas']['CustomSubscriptionChange']
+    /** @description Response body for subscription change. */
+    SubscriptionChangeResponseBody: {
+      /** Current subscription */
+      current: components['schemas']['Subscription']
+      /** The subscription it will be changed to */
+      next: components['schemas']['SubscriptionExpanded']
+    }
     /** @description Create a subscription. */
     SubscriptionCreate:
       | components['schemas']['PlanSubscriptionCreate']
@@ -16390,7 +16419,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['Subscription']
+          'application/json': components['schemas']['SubscriptionChangeResponseBody']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -16479,7 +16508,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          targetVersion: number
+          targetVersion?: number
         }
       }
     }
@@ -16490,7 +16519,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['Subscription']
+          'application/json': components['schemas']['SubscriptionChangeResponseBody']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
