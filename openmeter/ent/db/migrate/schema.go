@@ -576,6 +576,7 @@ var (
 		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "invoicing_app_external_id", Type: field.TypeString, Nullable: true},
 		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceLineDiscountsTable holds the schema information for the "billing_invoice_line_discounts" table.
@@ -586,7 +587,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_line_discounts_billing_invoice_lines_line_discounts",
-				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[8]},
+				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[9]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -605,12 +606,12 @@ var (
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[8]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[9]},
 			},
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[8], BillingInvoiceLineDiscountsColumns[5]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[9], BillingInvoiceLineDiscountsColumns[5]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},

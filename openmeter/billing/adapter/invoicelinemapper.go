@@ -207,6 +207,9 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Amount:                 discount.Amount,
 			Description:            discount.Description,
 			ChildUniqueReferenceID: discount.ChildUniqueReferenceID,
+			ExternalIDs: billing.LineExternalIDs{
+				Invoicing: lo.FromPtrOr(discount.InvoicingAppExternalID, ""),
+			},
 		}
 	})
 	invoiceLine.Discounts = billing.NewLineDiscounts(discounts)

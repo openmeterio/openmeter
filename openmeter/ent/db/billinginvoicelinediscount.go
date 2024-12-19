@@ -35,6 +35,8 @@ type BillingInvoiceLineDiscount struct {
 	Description *string `json:"description,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	// InvoicingAppExternalID holds the value of the "invoicing_app_external_id" field.
+	InvoicingAppExternalID *string `json:"invoicing_app_external_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineDiscountQuery when eager-loading is set.
 	Edges        BillingInvoiceLineDiscountEdges `json:"edges"`
@@ -68,7 +70,7 @@ func (*BillingInvoiceLineDiscount) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoicelinediscount.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription:
+		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldInvoicingAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoicelinediscount.FieldCreatedAt, billinginvoicelinediscount.FieldUpdatedAt, billinginvoicelinediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -144,6 +146,13 @@ func (bild *BillingInvoiceLineDiscount) assignValues(columns []string, values []
 			} else if value != nil {
 				bild.Amount = *value
 			}
+		case billinginvoicelinediscount.FieldInvoicingAppExternalID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_external_id", values[i])
+			} else if value.Valid {
+				bild.InvoicingAppExternalID = new(string)
+				*bild.InvoicingAppExternalID = value.String
+			}
 		default:
 			bild.selectValues.Set(columns[i], values[i])
 		}
@@ -214,6 +223,11 @@ func (bild *BillingInvoiceLineDiscount) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", bild.Amount))
+	builder.WriteString(", ")
+	if v := bild.InvoicingAppExternalID; v != nil {
+		builder.WriteString("invoicing_app_external_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

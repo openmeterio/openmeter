@@ -11599,6 +11599,11 @@ components:
         description:
           type: string
           description: Text description as to why the discount was applied.
+        externalIDs:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
       description: InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
     InvoiceLineReplaceUpdate:
       anyOf:

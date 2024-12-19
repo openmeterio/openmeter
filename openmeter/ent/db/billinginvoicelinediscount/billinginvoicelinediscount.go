@@ -30,6 +30,8 @@ const (
 	FieldDescription = "description"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
+	// FieldInvoicingAppExternalID holds the string denoting the invoicing_app_external_id field in the database.
+	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// Table holds the table name of the billinginvoicelinediscount in the database.
@@ -54,6 +56,7 @@ var Columns = []string{
 	FieldChildUniqueReferenceID,
 	FieldDescription,
 	FieldAmount,
+	FieldInvoicingAppExternalID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -125,6 +128,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+}
+
+// ByInvoicingAppExternalID orders the results by the invoicing_app_external_id field.
+func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppExternalID, opts...).ToFunc()
 }
 
 // ByBillingInvoiceLineField orders the results by billing_invoice_line field.
