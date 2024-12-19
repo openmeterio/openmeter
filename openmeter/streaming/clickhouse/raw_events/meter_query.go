@@ -3,7 +3,6 @@ package raw_events
 import (
 	_ "embed"
 	"fmt"
-	"slices"
 	"sort"
 	"time"
 
@@ -105,22 +104,15 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, fmt.Sprintf("%s(cast(JSON_VALUE(%s, '%s'), 'Float64')) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(d.Meter.ValueProperty)))
 	}
 
-	groupBys := make([]string, 0, len(d.GroupBy))
-
-	for _, groupBy := range d.GroupBy {
-		if groupBy == "subject" {
+	for _, groupByKey := range d.GroupBy {
+		// Subject is a special case as it's a top level column
+		if groupByKey == "subject" {
 			selectColumns = append(selectColumns, getColumn("subject"))
 			groupByColumns = append(groupByColumns, "subject")
 			continue
 		}
 
-		groupBys = append(groupBys, groupBy)
-	}
-
-	// Select Group By
-	slices.Sort(groupBys)
-
-	for _, groupByKey := range groupBys {
+		// Group by columns need to be parsed from the JSON data
 		groupByColumn := sqlbuilder.Escape(groupByKey)
 		groupByJSONPath := sqlbuilder.Escape(d.Meter.GroupBy[groupByKey])
 		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
