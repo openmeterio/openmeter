@@ -8,9 +8,9 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestMockStreamingConnector(t *testing.T) {

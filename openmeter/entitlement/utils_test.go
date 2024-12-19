@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -16,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Meant to work for boolean entitlements

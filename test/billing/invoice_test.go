@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/api/models"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
@@ -25,7 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -56,8 +57,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country:     lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country:     lo.ToPtr(pkgmodels.CountryCode("US")),
 				PostalCode:  lo.ToPtr("12345"),
 				State:       lo.ToPtr("NY"),
 				City:        lo.ToPtr("New York"),
@@ -442,8 +443,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 		},
@@ -849,8 +850,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				CustomerMutate: customerentity.CustomerMutate{
 					Name:         "Test Customer",
 					PrimaryEmail: lo.ToPtr("test@test.com"),
-					BillingAddress: &models.Address{
-						Country: lo.ToPtr(models.CountryCode("US")),
+					BillingAddress: &pkgmodels.Address{
+						Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 					},
 					Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 				},
@@ -1190,8 +1191,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				CustomerMutate: customerentity.CustomerMutate{
 					Name:         "Test Customer",
 					PrimaryEmail: lo.ToPtr("test@test.com"),
-					BillingAddress: &models.Address{
-						Country: lo.ToPtr(models.CountryCode("US")),
+					BillingAddress: &pkgmodels.Address{
+						Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 					},
 					Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 				},
@@ -1313,8 +1314,8 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country:     lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country:     lo.ToPtr(pkgmodels.CountryCode("US")),
 				PostalCode:  lo.ToPtr("12345"),
 				State:       lo.ToPtr("NY"),
 				City:        lo.ToPtr("New York"),
@@ -2275,8 +2276,8 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customerentity.CustomerUsageAttribution{

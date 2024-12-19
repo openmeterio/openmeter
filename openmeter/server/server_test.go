@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -41,7 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -504,7 +505,7 @@ func (n NoopFeatureConnector) DeleteFeature(ctx context.Context, namespace strin
 	return nil
 }
 
-func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
+func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID pkgmodels.NamespacedID) error {
 	return nil
 }
 
@@ -559,20 +560,20 @@ var _ meteredentitlement.Connector = (*NoopEntitlementBalanceConnector)(nil)
 
 type NoopEntitlementBalanceConnector struct{}
 
-func (n NoopEntitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*meteredentitlement.EntitlementBalance, error) {
+func (n NoopEntitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID pkgmodels.NamespacedID, at time.Time) (*meteredentitlement.EntitlementBalance, error) {
 	return nil, nil
 }
 
-func (n NoopEntitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params meteredentitlement.BalanceHistoryParams) ([]meteredentitlement.EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
+func (n NoopEntitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID pkgmodels.NamespacedID, params meteredentitlement.BalanceHistoryParams) ([]meteredentitlement.EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
 	return []meteredentitlement.EntitlementBalanceHistoryWindow{}, engine.GrantBurnDownHistory{}, nil
 }
 
-func (n NoopEntitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params meteredentitlement.ResetEntitlementUsageParams) (balanceAfterReset *meteredentitlement.EntitlementBalance, err error) {
+func (n NoopEntitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID pkgmodels.NamespacedID, params meteredentitlement.ResetEntitlementUsageParams) (balanceAfterReset *meteredentitlement.EntitlementBalance, err error) {
 	return nil, nil
 }
 
-func (n NoopEntitlementBalanceConnector) ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]models.NamespacedID, error) {
-	return []models.NamespacedID{}, nil
+func (n NoopEntitlementBalanceConnector) ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]pkgmodels.NamespacedID, error) {
+	return []pkgmodels.NamespacedID{}, nil
 }
 
 func (n NoopEntitlementBalanceConnector) CreateGrant(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string, inputGrant meteredentitlement.CreateEntitlementGrantInputs) (meteredentitlement.EntitlementGrant, error) {
@@ -605,7 +606,7 @@ func (n NoopGrantConnector) CreateGrant(ctx context.Context, owner grant.Namespa
 	return &grant.Grant{}, nil
 }
 
-func (n NoopGrantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+func (n NoopGrantConnector) VoidGrant(ctx context.Context, grantID pkgmodels.NamespacedID) error {
 	return nil
 }
 

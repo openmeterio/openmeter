@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
@@ -37,7 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -221,8 +222,8 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
@@ -235,7 +236,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	plan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedModel: pkgmodels.NamespacedModel{
 			Namespace: namespace,
 		},
 		Plan: productcatalog.Plan{
@@ -445,13 +446,13 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		clock.SetTime(s.mustParseTime("2024-02-20T00:00:00Z"))
 
 		cancelAt := s.mustParseTime("2024-02-22T00:00:00Z")
-		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
+		subs, err := s.SubscriptionService.Cancel(ctx, pkgmodels.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
 		}, cancelAt)
 		s.NoError(err)
 
-		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
+		subsView, err = s.SubscriptionService.GetView(ctx, pkgmodels.NamespacedID{
 			Namespace: namespace,
 			ID:        subs.ID,
 		})
@@ -502,13 +503,13 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.Run("continue subscription", func() {
 		clock.SetTime(s.mustParseTime("2024-02-21T00:00:00Z"))
 
-		subs, err := s.SubscriptionService.Continue(ctx, models.NamespacedID{
+		subs, err := s.SubscriptionService.Continue(ctx, pkgmodels.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
 		})
 		s.NoError(err)
 
-		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
+		subsView, err = s.SubscriptionService.GetView(ctx, pkgmodels.NamespacedID{
 			Namespace: namespace,
 			ID:        subs.ID,
 		})
@@ -576,8 +577,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
 			UsageAttribution: customerentity.CustomerUsageAttribution{
@@ -590,7 +591,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	plan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
+		NamespacedModel: pkgmodels.NamespacedModel{
 			Namespace: namespace,
 		},
 		Plan: productcatalog.Plan{
@@ -684,13 +685,13 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		clock.SetTime(s.mustParseTime("2024-01-01T10:00:00Z"))
 
 		cancelAt := s.mustParseTime("2024-01-01T12:00:00Z")
-		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
+		subs, err := s.SubscriptionService.Cancel(ctx, pkgmodels.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
 		}, cancelAt)
 		s.NoError(err)
 
-		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
+		subsView, err = s.SubscriptionService.GetView(ctx, pkgmodels.NamespacedID{
 			Namespace: namespace,
 			ID:        subs.ID,
 		})

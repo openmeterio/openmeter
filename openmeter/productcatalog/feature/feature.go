@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 )
 
 type FeatureNotFoundError struct {

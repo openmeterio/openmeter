@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ streaming.Connector = &MockStreamingConnector{}

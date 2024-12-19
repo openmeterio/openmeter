@@ -13,9 +13,9 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // QueryMeter queries the values stored for a meter.

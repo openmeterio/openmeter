@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestNamespaceStore(t *testing.T) {

@@ -226,7 +226,7 @@ namespace OpenMeterCloud.ProductCatalog {
 @extension(
   "x-go-type-import",
   {
-    path: "github.com/openmeterio/openmeter/pkg/models",
+    path: "github.com/openmeterio/openmeter/api/models",
   }
 )
 @friendlyName("MeterCreate")

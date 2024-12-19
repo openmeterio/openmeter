@@ -9,11 +9,11 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NewIngestEventsHandler returns a new HTTP handler that wraps the given [operation.Operation].

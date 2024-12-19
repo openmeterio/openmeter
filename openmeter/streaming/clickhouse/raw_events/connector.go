@@ -14,8 +14,9 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ streaming.Connector = (*Connector)(nil)
@@ -79,7 +80,7 @@ func (c *Connector) ListEvents(ctx context.Context, namespace string, params str
 
 	events, err := c.queryEventsTable(ctx, namespace, params)
 	if err != nil {
-		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+		if _, ok := err.(*pkgmodels.NamespaceNotFoundError); ok {
 			return nil, err
 		}
 
@@ -166,7 +167,7 @@ func (c *Connector) CountEvents(ctx context.Context, namespace string, params st
 
 	rows, err := c.queryCountEvents(ctx, namespace, params)
 	if err != nil {
-		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+		if _, ok := err.(*pkgmodels.NamespaceNotFoundError); ok {
 			return nil, err
 		}
 
@@ -240,7 +241,7 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+			return nil, &pkgmodels.NamespaceNotFoundError{Namespace: namespace}
 		}
 
 		return nil, fmt.Errorf("query events table query: %w", err)
@@ -316,7 +317,7 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+			return nil, &pkgmodels.NamespaceNotFoundError{Namespace: namespace}
 		}
 
 		return nil, fmt.Errorf("query events count query: %w", err)

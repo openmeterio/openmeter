@@ -7,9 +7,9 @@ import (
 
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Handler[Request any, Response any] interface {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -25,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Dependencies struct {

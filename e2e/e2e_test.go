@@ -18,9 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestMain(m *testing.M) {

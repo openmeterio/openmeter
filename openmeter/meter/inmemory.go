@@ -5,7 +5,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 )
 
 // InMemoryRepository is an in-memory meter repository.

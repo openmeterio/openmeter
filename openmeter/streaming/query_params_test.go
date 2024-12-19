@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 )
 
 func TestQueryParamsValidate(t *testing.T) {

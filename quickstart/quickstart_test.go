@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 )
 
 func initClient(t *testing.T) *api.ClientWithResponses {

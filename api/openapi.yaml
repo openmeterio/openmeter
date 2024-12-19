@@ -12106,7 +12106,7 @@ components:
           type: $.type
       description: A meter is a configuration that defines how to match and aggregate events.
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/models
+        path: github.com/openmeterio/openmeter/api/models
       x-go-type: models.Meter
     MeterAggregation:
       type: string
@@ -12119,7 +12119,7 @@ components:
         - MAX
       description: The aggregation type to use for the meter.
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/models
+        path: github.com/openmeterio/openmeter/api/models
       x-go-type: models.MeterAggregation
     MeterQueryResult:
       type: object
@@ -12190,7 +12190,7 @@ components:
           type: prompt
       description: A row in the result of a meter query.
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/models
+        path: github.com/openmeterio/openmeter/api/models
       x-go-type: models.MeterQueryRow
     NotFoundProblemResponse:
       type: object
@@ -15200,7 +15200,7 @@ components:
         A Problem Details object (RFC 7807).
         Additional properties specific to the problem type may be present.
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/models
+        path: github.com/openmeterio/openmeter/api/models
       x-go-type: models.StatusProblem
     UnitPrice:
       type: object
@@ -15463,7 +15463,7 @@ components:
         - DAY
       description: Aggregation window size.
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/models
+        path: github.com/openmeterio/openmeter/api/models
       x-go-type: models.WindowSize
     WindowedBalanceHistory:
       type: object

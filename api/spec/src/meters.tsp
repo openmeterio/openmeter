@@ -84,7 +84,7 @@ interface Meters {
 @extension(
   "x-go-type-import",
   {
-    path: "github.com/openmeterio/openmeter/pkg/models",
+    path: "github.com/openmeterio/openmeter/api/models",
   }
 )
 @friendlyName("Meter")
@@ -163,7 +163,7 @@ model Meter {
 @extension(
   "x-go-type-import",
   {
-    path: "github.com/openmeterio/openmeter/pkg/models",
+    path: "github.com/openmeterio/openmeter/api/models",
   }
 )
 @friendlyName("MeterAggregation")
@@ -184,7 +184,7 @@ enum MeterAggregation {
 @extension(
   "x-go-type-import",
   {
-    path: "github.com/openmeterio/openmeter/pkg/models",
+    path: "github.com/openmeterio/openmeter/api/models",
   }
 )
 @friendlyName("WindowSize")
@@ -289,7 +289,7 @@ model MeterQueryResult {
 @extension(
   "x-go-type-import",
   {
-    path: "github.com/openmeterio/openmeter/pkg/models",
+    path: "github.com/openmeterio/openmeter/api/models",
   }
 )
 @friendlyName("MeterQueryRow")

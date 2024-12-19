@@ -1,6 +1,10 @@
 module github.com/openmeterio/openmeter
 
-go 1.23.0
+go 1.23.1
+
+require github.com/openmeterio/openmeter/api v0.0.0-20241219173711-e6cdb08a9d49
+
+replace github.com/openmeterio/openmeter/api => ./api
 
 require (
 	entgo.io/ent v0.14.1
@@ -35,7 +39,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
-	github.com/oapi-codegen/runtime v1.1.1
+	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ErrorWithHTTPStatusCode struct {

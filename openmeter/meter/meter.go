@@ -3,7 +3,7 @@ package meter
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/models"
 )
 
 // TODO: move types here and add aliases to the models package

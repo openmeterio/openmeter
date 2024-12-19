@@ -5,8 +5,8 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SinkMessage struct {

@@ -120,7 +120,7 @@ func (m *Generate) Server() *dagger.Directory {
 
 	return goModule().
 		WithSource(source).
-		Exec([]string{"go", "generate", "-x", "./api"}).
+		Exec([]string{"go", "-C", "api", "generate", "-x", "."}).
 		Directory("/work/src/api")
 }
 
