@@ -106,6 +106,11 @@ func Amount(v alpacadecimal.Decimal) predicate.BillingInvoiceLineDiscount {
 	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldAmount, v))
 }
 
+// InvoicingAppExternalID applies equality check predicate on the "invoicing_app_external_id" field. It's identical to InvoicingAppExternalIDEQ.
+func InvoicingAppExternalID(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldInvoicingAppExternalID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceLineDiscount {
 	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldNamespace, v))
@@ -554,6 +559,81 @@ func AmountLT(v alpacadecimal.Decimal) predicate.BillingInvoiceLineDiscount {
 // AmountLTE applies the LTE predicate on the "amount" field.
 func AmountLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceLineDiscount {
 	return predicate.BillingInvoiceLineDiscount(sql.FieldLTE(FieldAmount, v))
+}
+
+// InvoicingAppExternalIDEQ applies the EQ predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDEQ(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEQ(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDNEQ applies the NEQ predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNEQ(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNEQ(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDIn applies the In predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDIn(vs ...string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldIn(FieldInvoicingAppExternalID, vs...))
+}
+
+// InvoicingAppExternalIDNotIn applies the NotIn predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNotIn(vs ...string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNotIn(FieldInvoicingAppExternalID, vs...))
+}
+
+// InvoicingAppExternalIDGT applies the GT predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDGT(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldGT(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDGTE applies the GTE predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDGTE(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldGTE(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDLT applies the LT predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDLT(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldLT(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDLTE applies the LTE predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDLTE(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldLTE(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDContains applies the Contains predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDContains(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldContains(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDHasPrefix applies the HasPrefix predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDHasPrefix(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldHasPrefix(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDHasSuffix applies the HasSuffix predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDHasSuffix(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldHasSuffix(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDIsNil applies the IsNil predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDIsNil() predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldIsNull(FieldInvoicingAppExternalID))
+}
+
+// InvoicingAppExternalIDNotNil applies the NotNil predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDNotNil() predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldNotNull(FieldInvoicingAppExternalID))
+}
+
+// InvoicingAppExternalIDEqualFold applies the EqualFold predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDEqualFold(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldEqualFold(FieldInvoicingAppExternalID, v))
+}
+
+// InvoicingAppExternalIDContainsFold applies the ContainsFold predicate on the "invoicing_app_external_id" field.
+func InvoicingAppExternalIDContainsFold(v string) predicate.BillingInvoiceLineDiscount {
+	return predicate.BillingInvoiceLineDiscount(sql.FieldContainsFold(FieldInvoicingAppExternalID, v))
 }
 
 // HasBillingInvoiceLine applies the HasEdge predicate on the "billing_invoice_line" edge.

@@ -707,6 +707,12 @@ model InvoiceGenericCharge {
 @friendlyName("InvoiceLineDiscount")
 model InvoiceLineDiscount {
   ...InvoiceGenericCharge;
+
+  /**
+   * External IDs of the invoice in other apps such as Stripe.
+   */
+  @visibility("read")
+  externalIDs?: InvoiceLineAppExternalIDs;
 }
 
 /**

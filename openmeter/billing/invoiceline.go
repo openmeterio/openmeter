@@ -629,6 +629,7 @@ type LineDiscount struct {
 	Amount                 alpacadecimal.Decimal `json:"amount"`
 	Description            *string               `json:"description,omitempty"`
 	ChildUniqueReferenceID *string               `json:"childUniqueReferenceId,omitempty"`
+	ExternalIDs            LineExternalIDs       `json:"externalIDs,omitempty"`
 }
 
 func (i LineDiscount) Equal(other LineDiscount) bool {

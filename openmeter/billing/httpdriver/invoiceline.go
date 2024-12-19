@@ -622,6 +622,9 @@ func mapDiscountToAPI(discount billing.LineDiscount) api.InvoiceLineDiscount {
 		Description: discount.Description,
 		Amount:      discount.Amount.String(),
 		Code:        discount.ChildUniqueReferenceID,
+		ExternalIDs: &api.InvoiceLineAppExternalIDs{
+			Invoicing: lo.EmptyableToPtr(discount.ExternalIDs.Invoicing),
+		},
 	}
 }
 

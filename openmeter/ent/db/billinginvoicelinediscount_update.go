@@ -124,6 +124,26 @@ func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableAmount(a *alpacadecima
 	return bildu
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (bildu *BillingInvoiceLineDiscountUpdate) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountUpdate {
+	bildu.mutation.SetInvoicingAppExternalID(s)
+	return bildu
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (bildu *BillingInvoiceLineDiscountUpdate) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountUpdate {
+	if s != nil {
+		bildu.SetInvoicingAppExternalID(*s)
+	}
+	return bildu
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (bildu *BillingInvoiceLineDiscountUpdate) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpdate {
+	bildu.mutation.ClearInvoicingAppExternalID()
+	return bildu
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (bildu *BillingInvoiceLineDiscountUpdate) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdate {
 	bildu.mutation.SetBillingInvoiceLineID(id)
@@ -225,6 +245,12 @@ func (bildu *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (n i
 	}
 	if value, ok := bildu.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := bildu.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if bildu.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString)
 	}
 	if bildu.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -369,6 +395,26 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableAmount(a *alpacade
 	return bilduo
 }
 
+// SetInvoicingAppExternalID sets the "invoicing_app_external_id" field.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetInvoicingAppExternalID(s string) *BillingInvoiceLineDiscountUpdateOne {
+	bilduo.mutation.SetInvoicingAppExternalID(s)
+	return bilduo
+}
+
+// SetNillableInvoicingAppExternalID sets the "invoicing_app_external_id" field if the given value is not nil.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetNillableInvoicingAppExternalID(s *string) *BillingInvoiceLineDiscountUpdateOne {
+	if s != nil {
+		bilduo.SetInvoicingAppExternalID(*s)
+	}
+	return bilduo
+}
+
+// ClearInvoicingAppExternalID clears the value of the "invoicing_app_external_id" field.
+func (bilduo *BillingInvoiceLineDiscountUpdateOne) ClearInvoicingAppExternalID() *BillingInvoiceLineDiscountUpdateOne {
+	bilduo.mutation.ClearInvoicingAppExternalID()
+	return bilduo
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (bilduo *BillingInvoiceLineDiscountUpdateOne) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdateOne {
 	bilduo.mutation.SetBillingInvoiceLineID(id)
@@ -500,6 +546,12 @@ func (bilduo *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := bilduo.mutation.Amount(); ok {
 		_spec.SetField(billinginvoicelinediscount.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := bilduo.mutation.InvoicingAppExternalID(); ok {
+		_spec.SetField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString, value)
+	}
+	if bilduo.mutation.InvoicingAppExternalIDCleared() {
+		_spec.ClearField(billinginvoicelinediscount.FieldInvoicingAppExternalID, field.TypeString)
 	}
 	if bilduo.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
