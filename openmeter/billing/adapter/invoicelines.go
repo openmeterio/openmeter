@@ -190,7 +190,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetLineID(d.Line.ID).
 					SetAmount(d.Discount.Amount).
 					SetNillableChildUniqueReferenceID(d.Discount.ChildUniqueReferenceID).
-					SetNillableDescription(d.Discount.Description)
+					SetNillableDescription(d.Discount.Description).
+					// ExternalIDs
+					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(d.Discount.ExternalIDs.Invoicing))
 
 				return create, nil
 			},

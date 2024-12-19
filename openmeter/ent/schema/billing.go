@@ -325,7 +325,8 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			}).
 			Optional(),
 
-		// App IDs
+		// ID of the line in the external invoicing app
+		// For example, Stripe invoice line item ID
 		field.String("invoicing_app_external_id").
 			Optional().
 			Nillable(),
@@ -488,6 +489,12 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "numeric",
 			}),
+
+		// ID of the line discount in the external invoicing app
+		// For example, Stripe invoice line item ID
+		field.String("invoicing_app_external_id").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -628,11 +635,14 @@ func (BillingInvoice) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 
-		// App IDs
+		// ID of the line in the external invoicing app
+		// For example, Stripe invoice ID
 		field.String("invoicing_app_external_id").
 			Optional().
 			Nillable(),
 
+		// ID of the payment in the external invoicing app
+		// For example, Stripe payment intent ID
 		field.String("payment_app_external_id").
 			Optional().
 			Nillable(),

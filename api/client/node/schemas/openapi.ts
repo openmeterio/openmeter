@@ -4166,6 +4166,8 @@ export interface components {
       code?: string
       /** @description Text description as to why the discount was applied. */
       description?: string
+      /** @description External IDs of the invoice in other apps such as Stripe. */
+      readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
     }
     /** @description InvoiceLineReplaceUpdate represents the update model for an invoice line. */
     InvoiceLineReplaceUpdate:
