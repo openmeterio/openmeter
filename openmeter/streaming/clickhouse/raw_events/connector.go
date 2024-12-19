@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 
@@ -337,6 +338,11 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 }
 
 func (c *Connector) queryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+	// We sort the group by keys to ensure the order of the group by columns is deterministic
+	// It helps testing the SQL queries.
+	groupBy := params.GroupBy
+	sort.Strings(groupBy)
+
 	queryMeter := queryMeter{
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
@@ -346,7 +352,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 		To:              params.To,
 		Subject:         params.FilterSubject,
 		FilterGroupBy:   params.FilterGroupBy,
-		GroupBy:         params.GroupBy,
+		GroupBy:         groupBy,
 		WindowSize:      params.WindowSize,
 		WindowTimeZone:  params.WindowTimeZone,
 	}
@@ -393,6 +399,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
+				// Subject is a top level field
 				if key == "subject" {
 					row.Subject = s
 					continue
