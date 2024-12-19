@@ -51,6 +51,12 @@ func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error
 }
 
 // UpsertInvoice upserts the invoice for the app
+// Upsert is idempotent and can be used to create or update an invoice.
+// In case of failure the upsert should be retried.
+//
+// TODO: should we split invoice create and lines adds to make retries more robust?
+// Currently if the create fails between the create and add lines we can end up with
+// an invoice without lines.
 func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
 	// Create the invoice in Stripe.
 	if invoice.ExternalIDs.Invoicing == "" {
@@ -156,19 +162,16 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Add lines to the Stripe invoice
 	var stripeLineAdd []*stripe.InvoiceAddLinesLineParams
 
-	lines := invoice.FlattenLinesByID()
+	leafLines := invoice.GetLeafLines()
 
 	// Check if we have any non integer amount or quantity
 	// We use this to determinate if we add alreay calculated total or per unit amount and quantity to the Stripe line item
-	isInteger := isAllInteger(calculator, lines)
+	// We decide this globally for all line items in the invoice for consistency of the invoice.
+	isInteger := calculator.IsAllLinesInteger(leafLines)
 
-	// Walk the tree
-	for _, line := range lines {
-		if line.Type != billing.InvoiceLineTypeFee {
-			continue
-		}
-
-		// Add discounts
+	// Iterate over the leaf lines
+	for _, line := range leafLines {
+		// Add discounts for line if any
 		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
 			for _, discount := range discounts {
 				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount))
@@ -179,7 +182,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		stripeLineAdd = append(stripeLineAdd, getStripeAddLinesLineParams(isInteger, line, calculator))
 	}
 
-	// Sort the line items by description
+	// Sort the Stripe line items for deterministic order
+	// TODO: use invoice summaries to group lines when Stripe supports it
 	sortInvoiceLines(stripeLineAdd)
 
 	// Add Stripe line items to the Stripe invoice
@@ -240,7 +244,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to update invoice in stripe: %w", err)
 	}
 
-	// Return the result
+	// The result
 	result := billing.NewUpsertInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
 	result.SetInvoiceNumber(stripeInvoice.Number)
@@ -260,13 +264,15 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		stripeLinesRemove []*stripe.InvoiceRemoveLinesLineParams
 	)
 
-	lines := invoice.FlattenLinesByID()
+	leafLines := invoice.GetLeafLines()
 
 	// Check if we have any non integer amount or quantity
 	// We use this to determinate if we add alreay calculated total or per unit amount and quantity to the Stripe line item
-	isInteger := isAllInteger(calculator, lines)
+	// We decide this globally for all line items in the invoice for consistency of the invoice.
+	isInteger := calculator.IsAllLinesInteger(leafLines)
 
 	// Check if a line item already exists in the Stripe invoice
+	// Used to determine if we should add or update the line item.
 	isExisting := func(lineId string, lineType string) (*stripe.InvoiceLineItem, bool) {
 		for _, stripeLine := range stripeInvoice.Lines.Data {
 			if stripeLine.Metadata[invoiceLineMetadataID] == lineId && stripeLine.Metadata[invoiceLineMetadataType] == lineType {
@@ -277,12 +283,8 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, false
 	}
 
-	// Walk the tree
-	for _, line := range lines {
-		if line.Type != billing.InvoiceLineTypeFee {
-			continue
-		}
-
+	// Iterate over the leaf lines
+	for _, line := range leafLines {
 		// Add discounts
 		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
 			// Discounts
@@ -546,19 +548,4 @@ func getLineName(line *billing.Line) string {
 	}
 
 	return name
-}
-
-// isAllInteger checks if the invoice lines have only integer amount and quantity
-func isAllInteger(calculator StripeCalculator, lines map[string]*billing.Line) bool {
-	for _, line := range lines {
-		if line.Type != billing.InvoiceLineTypeFee {
-			continue
-		}
-
-		if !calculator.IsInteger(line.FlatFee.PerUnitAmount) || !line.FlatFee.Quantity.IsInteger() {
-			return false
-		}
-	}
-
-	return true
 }

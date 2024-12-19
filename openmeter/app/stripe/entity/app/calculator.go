@@ -5,6 +5,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -35,4 +36,15 @@ func (c StripeCalculator) RoundToAmount(amount alpacadecimal.Decimal) int64 {
 // IsInteger checks if the amount is an integer in the Stripe currency.
 func (c StripeCalculator) IsInteger(amount alpacadecimal.Decimal) bool {
 	return amount.Mul(c.multiplier).IsInteger()
+}
+
+// IsAllLinesInteger checks if the invoice lines have only integer amount and quantity
+func (c StripeCalculator) IsAllLinesInteger(lines []*billing.Line) bool {
+	for _, line := range lines {
+		if !c.IsInteger(line.FlatFee.PerUnitAmount) || !line.FlatFee.Quantity.IsInteger() {
+			return false
+		}
+	}
+
+	return true
 }
