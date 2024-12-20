@@ -261,6 +261,19 @@ func (i Line) LineID() LineID {
 	}
 }
 
+// FlattenDiscountsByID returns all discounts for the line and its children.
+func (i Line) FlattenDiscountsByID() map[string]LineDiscount {
+	discountsByID := map[string]LineDiscount{}
+
+	i.Discounts.ForEach(func(discounts []LineDiscount) {
+		for _, discount := range discounts {
+			discountsByID[discount.ID] = discount
+		}
+	})
+
+	return discountsByID
+}
+
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
 // for creating a new line without any references to the parent or children (or config IDs).
 func (i Line) CloneWithoutDependencies() *Line {
@@ -629,6 +642,7 @@ type LineDiscount struct {
 	Amount                 alpacadecimal.Decimal `json:"amount"`
 	Description            *string               `json:"description,omitempty"`
 	ChildUniqueReferenceID *string               `json:"childUniqueReferenceId,omitempty"`
+	ExternalIDs            LineExternalIDs       `json:"externalIDs,omitempty"`
 }
 
 func (i LineDiscount) Equal(other LineDiscount) bool {

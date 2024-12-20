@@ -826,6 +826,20 @@ func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearDescription(value *strin
 	return u.SetDescription(*value)
 }
 
+func (u *BillingInvoiceLineDiscountUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
+func (u *BillingInvoiceLineDiscountUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceLineDiscountUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppExternalID()
+	}
+	return u.SetInvoicingAppExternalID(*value)
+}
+
 func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearPreLinePeriodQuantity(value *alpacadecimal.Decimal) *BillingInvoiceUsageBasedLineConfigUpdate {
 	if value == nil {
 		return u.ClearPreLinePeriodQuantity()

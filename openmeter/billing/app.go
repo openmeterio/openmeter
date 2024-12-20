@@ -8,12 +8,14 @@ type UpsertResults struct {
 	invoiceNumber string
 	externalID    string
 
-	lineExternalIDs map[string]string
+	lineExternalIDs         map[string]string
+	LineDiscountExternalIDs map[string]string
 }
 
 func NewUpsertResults() *UpsertResults {
 	return &UpsertResults{
-		lineExternalIDs: make(map[string]string),
+		lineExternalIDs:         make(map[string]string),
+		LineDiscountExternalIDs: make(map[string]string),
 	}
 }
 
@@ -44,6 +46,19 @@ func (u *UpsertResults) GetLineExternalID(lineID string) (string, bool) {
 
 func (u *UpsertResults) GetLineExternalIDs() map[string]string {
 	return u.lineExternalIDs
+}
+
+func (u *UpsertResults) AddLineDiscountExternalID(lineDiscountID string, externalID string) {
+	u.LineDiscountExternalIDs[lineDiscountID] = externalID
+}
+
+func (u *UpsertResults) GetLineDiscountExternalID(lineDiscountID string) (string, bool) {
+	externalID, ok := u.LineDiscountExternalIDs[lineDiscountID]
+	return externalID, ok
+}
+
+func (u *UpsertResults) GetLineDiscountExternalIDs() map[string]string {
+	return u.LineDiscountExternalIDs
 }
 
 type UpsertInvoiceResult = UpsertResults
