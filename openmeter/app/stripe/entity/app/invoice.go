@@ -172,11 +172,9 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
 		// Add discounts for line if any
-		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
-			for _, discount := range discounts {
-				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount))
-			}
-		})
+		for _, discount := range line.FlattenDiscountsByID() {
+			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount))
+		}
 
 		// Add line
 		stripeLineAdd = append(stripeLineAdd, getStripeAddLinesLineParams(isInteger, line, calculator))
@@ -273,48 +271,45 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// We decide this globally for all line items in the invoice for consistency of the invoice.
 	isInteger := calculator.IsAllLinesInteger(leafLines)
 
-	// Check if a line item already exists in the Stripe invoice
-	// Used to determine if we should add or update the line item.
-	isExisting := func(lineId string, lineType string) (*stripe.InvoiceLineItem, bool) {
-		for _, stripeLine := range stripeInvoice.Lines.Data {
-			if stripeLine.Metadata[invoiceLineMetadataID] == lineId && stripeLine.Metadata[invoiceLineMetadataType] == lineType {
-				return stripeLine, true
-			}
-		}
+	// Helper to get a Stripe line item by ID
+	stripeLinesByID := make(map[string]*stripe.InvoiceLineItem)
 
-		return nil, false
+	for _, stripeLine := range stripeInvoice.Lines.Data {
+		stripeLinesByID[stripeLine.ID] = stripeLine
 	}
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
-		// Add discounts
-		line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
-			// Discounts
-			for _, discount := range discounts {
-				// Add line item if it doesn't exist
-				// FIXME: discounts don't have an external ID
-				// if line.ExternalIDs.Invoicing == "" {
-				stripeLine, isUpdate := isExisting(discount.ID, invoiceLineMetadataTypeDiscount)
-
-				if isUpdate {
-					// Exclude line from the remove list as it is updated
-					delete(stripeLinesToRemove, stripeLine.ID)
-
-					result.AddLineDiscountExternalID(discount.ID, line.ExternalIDs.Invoicing)
-
-					stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateLinesLineParams(calculator, line, discount, stripeLine))
-				} else {
-					stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount))
+		// Add discounts for line if any
+		for _, discount := range line.FlattenDiscountsByID() {
+			// Update discount line item if it already has an external ID
+			if discount.ExternalIDs.Invoicing != "" {
+				// Get the Stripe line item for the discount
+				stripeLine, ok := stripeLinesByID[discount.ExternalIDs.Invoicing]
+				if !ok {
+					return nil, fmt.Errorf("discount not found in stripe lines: %s", discount.ExternalIDs.Invoicing)
 				}
+
+				// Exclude line from the remove list as it is updated
+				delete(stripeLinesToRemove, stripeLine.ID)
+
+				result.AddLineDiscountExternalID(discount.ID, line.ExternalIDs.Invoicing)
+
+				stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateLinesLineParams(calculator, line, discount, stripeLine))
+			} else {
+				// Add the discount line item if it doesn't have an external ID yet
+				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount))
 			}
-		})
+		}
 
-		// Add line
-		// FIXME: set external ID in the test invoice
-		// if line.ExternalIDs.Invoicing == "" {
-		stripeLine, isUpdate := isExisting(line.ID, invoiceLineMetadataTypeLine)
+		// Update line item if it already has an external ID
+		if line.ExternalIDs.Invoicing != "" {
+			// Get the Stripe line item for the line
+			stripeLine, ok := stripeLinesByID[line.ExternalIDs.Invoicing]
+			if !ok {
+				return nil, fmt.Errorf("line not found in stripe lines: %s", line.ExternalIDs.Invoicing)
+			}
 
-		if isUpdate {
 			// Exclude line from the remove list as it is updated
 			delete(stripeLinesToRemove, stripeLine.ID)
 
@@ -324,7 +319,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 			// Get stripe update line params
 			stripeLinesUpdate = append(stripeLinesUpdate, getStripeUpdateLinesLineParams(isInteger, calculator, line, stripeLine))
 		} else {
-			// Get stripe add line params
+			// Add the line item if it doesn't have an external ID yet
 			stripeLineAdd = append(stripeLineAdd, getStripeAddLinesLineParams(isInteger, line, calculator))
 		}
 	}
@@ -468,7 +463,6 @@ func getDiscountStripeAddLinesLineParams(calculator StripeCalculator, line *bill
 		Quantity:    lo.ToPtr(int64(1)),
 		Period:      period,
 		Metadata: map[string]string{
-			// TODO (OM-1062): should we use the discount ID as the external ID?
 			invoiceLineMetadataID:   discount.ID,
 			invoiceLineMetadataType: invoiceLineMetadataTypeDiscount,
 		},

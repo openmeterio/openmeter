@@ -669,6 +669,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		updateInvoice := invoice.Clone()
 
+		// We merge external IDs into the invoice manually to simulate the update.
+		// Normally this is done by the state machine.
+		billing.MergeUpsertInvoiceResult(&updateInvoice, results)
+
 		// Remove a line item.
 		lineToRemove := getLine("Fee")
 		s.NotNil(lineToRemove, "line ID to remove is not found")

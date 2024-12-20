@@ -2,9 +2,11 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/samber/lo"
 )
 
 type UpsertResults struct {
@@ -119,4 +121,54 @@ func GetApp(app appentity.App) (InvoicingApp, error) {
 	}
 
 	return customerApp, nil
+}
+
+// MergeUpsertInvoiceResult merges the upsert invoice result into the invoice.
+func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) error {
+	// Let's merge the results into the invoice
+	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
+		invoice.Number = lo.ToPtr(invoiceNumber)
+	}
+
+	if externalID, ok := result.GetExternalID(); ok {
+		invoice.ExternalIDs.Invoicing = externalID
+	}
+
+	var outErr error
+
+	// Let's merge the line IDs
+	if len(result.GetLineExternalIDs()) > 0 {
+		flattenedLines := invoice.FlattenLinesByID()
+
+		// Merge the line IDs
+		for lineID, externalID := range result.GetLineExternalIDs() {
+			if line, ok := flattenedLines[lineID]; ok {
+				line.ExternalIDs.Invoicing = externalID
+			} else {
+				outErr = errors.Join(outErr, fmt.Errorf("line not found in invoice: %s", lineID))
+			}
+		}
+
+		// Build a map of line discounts
+		discountMap := map[string]*LineDiscount{}
+
+		for _, line := range flattenedLines {
+			line.Discounts.ForEach(func(discounts []LineDiscount) {
+				for i, discount := range discounts {
+					discountMap[discount.ID] = &discounts[i]
+				}
+			})
+		}
+
+		// Merge the line discount IDs
+		for lineDiscountID, externalID := range result.GetLineDiscountExternalIDs() {
+			if lineDiscount, ok := discountMap[lineDiscountID]; ok {
+				lineDiscount.ExternalIDs.Invoicing = externalID
+			} else {
+				outErr = errors.Join(outErr, fmt.Errorf("line discount not found in invoice: %s", lineDiscountID))
+			}
+		}
+	}
+
+	return outErr
 }
