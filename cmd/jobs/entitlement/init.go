@@ -8,6 +8,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -17,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 

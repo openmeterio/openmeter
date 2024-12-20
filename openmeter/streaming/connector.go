@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ListEventsParams struct {

@@ -10,10 +10,10 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	raw_events "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ streaming.Connector = (*Connector)(nil)

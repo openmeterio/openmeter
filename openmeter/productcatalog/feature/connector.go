@@ -6,8 +6,9 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -26,7 +27,7 @@ type FeatureConnector interface {
 	// Feature Management
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	// Should just use deletedAt, there's no real "archiving"
-	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
+	ArchiveFeature(ctx context.Context, featureID pkgmodels.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error)
 	GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error)
 }
@@ -120,7 +121,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	}
 
 	if _, err := ulid.Parse(feature.Key); err == nil {
-		return Feature{}, &models.GenericUserError{Message: "Feature key cannot be a valid ULID"}
+		return Feature{}, &pkgmodels.GenericUserError{Message: "Feature key cannot be a valid ULID"}
 	}
 
 	// check key is not taken
@@ -136,7 +137,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	return c.featureRepo.CreateFeature(ctx, feature)
 }
 
-func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
+func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID pkgmodels.NamespacedID) error {
 	_, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
 	if err != nil {
 		return err

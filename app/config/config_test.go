@@ -10,9 +10,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api/models"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 

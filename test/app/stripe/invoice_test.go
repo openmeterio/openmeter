@@ -11,12 +11,13 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -137,8 +138,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
+			BillingAddress: &pkgmodels.Address{
+				Country: lo.ToPtr(pkgmodels.CountryCode("US")),
 			},
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},

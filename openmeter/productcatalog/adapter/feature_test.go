@@ -9,11 +9,12 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api/models"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/models"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -76,7 +77,7 @@ func TestCreateFeature(t *testing.T) {
 				assert.NoError(t, err)
 
 				// archives the feature
-				err = connector.ArchiveFeature(ctx, models.NamespacedID{
+				err = connector.ArchiveFeature(ctx, pkgmodels.NamespacedID{
 					Namespace: featureIn.Namespace,
 					ID:        createFeatureOut.ID,
 				})
@@ -84,7 +85,7 @@ func TestCreateFeature(t *testing.T) {
 
 				// errors on a feature that doesn't exist
 				fakeID := ulid.Make().String()
-				err = connector.ArchiveFeature(ctx, models.NamespacedID{
+				err = connector.ArchiveFeature(ctx, pkgmodels.NamespacedID{
 					Namespace: featureIn.Namespace,
 					ID:        fakeID,
 				})
@@ -142,7 +143,7 @@ func TestCreateFeature(t *testing.T) {
 				assert.Len(t, features.Items, 1)
 				assert.Equal(t, "feature-2", features.Items[0].Name)
 
-				err = connector.ArchiveFeature(ctx, models.NamespacedID{
+				err = connector.ArchiveFeature(ctx, pkgmodels.NamespacedID{
 					Namespace: namespace,
 					ID:        features.Items[0].ID,
 				})
@@ -188,7 +189,7 @@ func TestCreateFeature(t *testing.T) {
 
 				assert.Equal(t, "feature-1", foundFeature.Name)
 
-				err = connector.ArchiveFeature(ctx, models.NamespacedID{
+				err = connector.ArchiveFeature(ctx, pkgmodels.NamespacedID{
 					Namespace: namespace,
 					ID:        foundFeature.ID,
 				})
