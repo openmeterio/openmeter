@@ -197,16 +197,18 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Add external line IDs
 	for _, stripeLine := range stripeInvoice.Lines.Data {
-		// FIXME (OM-1062): currently we don't have a way to match Stripe discount line items to results
-		if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
-			continue
-		}
-
 		id, ok := stripeLine.Metadata[invoiceLineMetadataID]
 		if !ok {
 			return nil, fmt.Errorf("missing line ID in metadata")
 		}
 
+		// Add line discount external ID
+		if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
+			result.AddLineDiscountExternalID(id, stripeLine.ID)
+			continue
+		}
+
+		// Add line external ID
 		result.AddLineExternalID(id, stripeLine.ID)
 	}
 
@@ -298,8 +300,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 					// Exclude line from the remove list as it is updated
 					delete(stripeLinesToRemove, stripeLine.ID)
 
-					// FIXME (OM-1062): how do we add discount ID to result?
-					// result.AddLineExternalID(discount.ID, line.ExternalIDs.Invoicing)
+					result.AddLineDiscountExternalID(discount.ID, line.ExternalIDs.Invoicing)
 
 					stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateLinesLineParams(calculator, line, discount, stripeLine))
 				} else {
@@ -356,6 +357,13 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		newLines := stripeInvoice.Lines.Data[shift:]
 
 		for idx, stripeLine := range newLines {
+			// Add line discount external ID
+			if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
+				result.AddLineDiscountExternalID(lineIDs[idx], stripeLine.ID)
+				continue
+			}
+
+			// Add line external ID
 			result.AddLineExternalID(lineIDs[idx], stripeLine.ID)
 		}
 	}
