@@ -24,6 +24,11 @@ const (
 
 var _ billing.InvoicingApp = (*App)(nil)
 
+type lineID struct {
+	id         string
+	isDiscount bool
+}
+
 // ValidateInvoice validates the invoice for the app
 func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
 	customerID := customerentity.CustomerID{
@@ -194,20 +199,9 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Add external line IDs
-	for _, stripeLine := range stripeInvoice.Lines.Data {
-		id, ok := stripeLine.Metadata[invoiceLineMetadataID]
-		if !ok {
-			return nil, fmt.Errorf("missing line ID in metadata")
-		}
-
-		// Add line discount external ID
-		if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
-			result.AddLineDiscountExternalID(id, stripeLine.ID)
-			continue
-		}
-
-		// Add line external ID
-		result.AddLineExternalID(id, stripeLine.ID)
+	err = addResultExternalIDs(stripeLineAdd, stripeInvoice.Lines.Data, result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add external line IDs to result: %w", err)
 	}
 
 	return result, nil
@@ -329,15 +323,9 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		// Sort the line items by description
 		sortInvoiceLines(stripeLineAdd)
 
+		// New lines are added at the end of the stripe invoice lines
+		// We add before remove so we know where the new lines are
 		shift := len(stripeInvoice.Lines.Data) - 1
-
-		// We collect the line IDs to match them with the Stripe line items from the response
-		var lineIDs []string
-
-		for _, stripeLine := range stripeLineAdd {
-			lineIDs = append(lineIDs, stripeLine.Metadata[invoiceLineMetadataID])
-			stripeLine.Metadata = nil
-		}
 
 		// Add Stripe line items to the Stripe invoice
 		stripeInvoice, err = stripeClient.AddInvoiceLines(ctx, stripeclient.AddInvoiceLinesInput{
@@ -351,15 +339,9 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		// Add external line IDs
 		newLines := stripeInvoice.Lines.Data[shift:]
 
-		for idx, stripeLine := range newLines {
-			// Add line discount external ID
-			if stripeLine.Metadata[invoiceLineMetadataType] == invoiceLineMetadataTypeDiscount {
-				result.AddLineDiscountExternalID(lineIDs[idx], stripeLine.ID)
-				continue
-			}
-
-			// Add line external ID
-			result.AddLineExternalID(lineIDs[idx], stripeLine.ID)
+		err = addResultExternalIDs(stripeLineAdd, newLines, result)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add external line IDs to result: %w", err)
 		}
 	}
 
@@ -559,4 +541,41 @@ func getLineName(line *billing.Line) string {
 	}
 
 	return name
+}
+
+// addResultExternalIDs adds the Stripe line item IDs to the result external IDs
+func addResultExternalIDs(
+	params []*stripe.InvoiceAddLinesLineParams,
+	newLines []*stripe.InvoiceLineItem,
+	result *billing.UpsertInvoiceResult,
+) error {
+	if len(params) != len(newLines) {
+		return fmt.Errorf("unexpected number of new stripe line items")
+	}
+
+	for idx, stripeLine := range newLines {
+
+		// Get the line ID from the param metadata
+		id, ok := params[idx].Metadata[invoiceLineMetadataID]
+		if !ok {
+			return fmt.Errorf("line ID not found in stripe line metadata")
+		}
+
+		// Get the line type from the param metadata
+		lineType, ok := params[idx].Metadata[invoiceLineMetadataType]
+		if !ok {
+			return fmt.Errorf("line type not found in stripe line metadata")
+		}
+
+		// Add line discount external ID
+		if lineType == invoiceLineMetadataTypeDiscount {
+			result.AddLineDiscountExternalID(id, stripeLine.ID)
+			continue
+		}
+
+		// Add line external ID
+		result.AddLineExternalID(id, stripeLine.ID)
+	}
+
+	return nil
 }
