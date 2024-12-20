@@ -580,8 +580,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				},
 			},
 			{
-				// FIXME(pmarton): should be 162300
-				Amount:      lo.ToPtr(int64(0)),
+				Amount:      lo.ToPtr(int64(162300)),
 				Description: lo.ToPtr("UBP - Tiered volume: minimum spend"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					// TODO: check rounding

@@ -509,10 +509,19 @@ func getStripeAddLinesLineParams(isInteger bool, line *billing.Line, calculator 
 		}
 	}
 
+	amount := line.Totals.Amount
+
+	// Handle usage based commitments like minimum spend
+	if amount.IsZero() {
+		// ChargesTotal is the amount of value of the line that are due to additional charges.
+		// If the line is a commitment we use the total charges.
+		amount = line.Totals.ChargesTotal
+	}
+
 	// Otherwise we add the calculated total with with quantity one
 	return &stripe.InvoiceAddLinesLineParams{
 		Description: lo.ToPtr(name),
-		Amount:      lo.ToPtr(calculator.RoundToAmount(line.Totals.Amount)),
+		Amount:      lo.ToPtr(calculator.RoundToAmount(amount)),
 		Quantity:    lo.ToPtr(int64(1)),
 		Period:      period,
 		Metadata: map[string]string{
