@@ -549,6 +549,7 @@ func addResultExternalIDs(
 	newLines []*stripe.InvoiceLineItem,
 	result *billing.UpsertInvoiceResult,
 ) error {
+	// Check if we have the same number of params and new lines
 	if len(params) != len(newLines) {
 		return fmt.Errorf("unexpected number of new stripe line items")
 	}
@@ -556,12 +557,14 @@ func addResultExternalIDs(
 	for idx, stripeLine := range newLines {
 
 		// Get the line ID from the param metadata
+		// We always read it from params as it's our source of truth
 		id, ok := params[idx].Metadata[invoiceLineMetadataID]
 		if !ok {
 			return fmt.Errorf("line ID not found in stripe line metadata")
 		}
 
 		// Get the line type from the param metadata
+		// We always read it from params as it's our source of truth
 		lineType, ok := params[idx].Metadata[invoiceLineMetadataType]
 		if !ok {
 			return fmt.Errorf("line type not found in stripe line metadata")
