@@ -24,11 +24,6 @@ const (
 
 var _ billing.InvoicingApp = (*App)(nil)
 
-type lineID struct {
-	id         string
-	isDiscount bool
-}
-
 // ValidateInvoice validates the invoice for the app
 func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
 	customerID := customerentity.CustomerID{
@@ -221,16 +216,8 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to get stripe client: %w", err)
 	}
 
-	// Get the invoice from Stripe
-	stripeInvoice, err := stripeClient.GetInvoice(ctx, stripeclient.GetInvoiceInput{
-		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get invoice in stripe: %w", err)
-	}
-
 	// Update the invoice in Stripe
-	stripeInvoice, err = stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
+	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
 		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
 		DueDate:         invoice.DueAt,
 	})
@@ -368,7 +355,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	if len(stripeLinesRemove) > 0 {
-		stripeInvoice, err = stripeClient.RemoveInvoiceLines(ctx, stripeclient.RemoveInvoiceLinesInput{
+		_, err = stripeClient.RemoveInvoiceLines(ctx, stripeclient.RemoveInvoiceLinesInput{
 			StripeInvoiceID: stripeInvoice.ID,
 			Lines:           stripeLinesRemove,
 		})
@@ -555,7 +542,6 @@ func addResultExternalIDs(
 	}
 
 	for idx, stripeLine := range newLines {
-
 		// Get the line ID from the param metadata
 		// We always read it from params as it's our source of truth
 		id, ok := params[idx].Metadata[invoiceLineMetadataID]

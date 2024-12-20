@@ -36,7 +36,6 @@ type StripeClient interface {
 	CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error)
 	GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error)
 	// Invoice
-	GetInvoice(ctx context.Context, input GetInvoiceInput) (*stripe.Invoice, error)
 	CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error)
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (*stripe.Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error

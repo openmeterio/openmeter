@@ -671,7 +671,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// We merge external IDs into the invoice manually to simulate the update.
 		// Normally this is done by the state machine.
-		billing.MergeUpsertInvoiceResult(&updateInvoice, results)
+		err = billing.MergeUpsertInvoiceResult(&updateInvoice, results)
+		s.NoError(err)
 
 		// Remove a line item.
 		lineToRemove := getLine("Fee")
@@ -707,14 +708,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				}),
 			},
 		}
-
-		s.StripeClient.
-			On("GetInvoice", stripeclient.GetInvoiceInput{
-				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
-			}).
-			// We return the same invoice as the created invoice.
-			// This one still has the line items that were removed in the update.
-			Return(stripeInvoice, nil)
 
 		s.StripeClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{

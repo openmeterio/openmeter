@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/samber/lo"
+
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 )
 
 type UpsertResults struct {

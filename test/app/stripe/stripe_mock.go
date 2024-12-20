@@ -92,15 +92,6 @@ func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID
 
 // Invoice
 
-func (c *StripeClientMock) GetInvoice(ctx context.Context, input stripeclient.GetInvoiceInput) (*stripe.Invoice, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	args := c.Called(input)
-	return args.Get(0).(*stripe.Invoice), args.Error(1)
-}
-
 func (c *StripeClientMock) CreateInvoice(ctx context.Context, input stripeclient.CreateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
