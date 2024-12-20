@@ -1786,7 +1786,13 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 
 			for _, line := range lines {
 				if line.Type == billing.InvoiceLineTypeFee {
+					// We set the external id the same as the line id to make it easier to test the output.
 					out.AddLineExternalID(line.ID, line.ID)
+				}
+
+				// We set the external id the same as the discount id to make it easier to test the output.
+				for discountId := range line.FlattenDiscountsByID() {
+					out.AddLineDiscountExternalID(discountId, discountId)
 				}
 			}
 
@@ -1912,6 +1918,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 			default:
 				s.T().Errorf("unexpected line type: %s", line.Type)
 			}
+
+			// Test discounts
+			for _, discount := range line.FlattenDiscountsByID() {
+				require.Equal(s.T(), discount.ID, discount.ExternalIDs.Invoicing)
+			}
 		}
 
 		mockApp.AssertExpectations(s.T())
@@ -1925,6 +1936,10 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 				for _, line := range lines {
 					if line.Type == billing.InvoiceLineTypeFee {
 						out.AddLineExternalID(line.ID, "final_upsert_"+line.ID)
+					}
+
+					for discountId := range line.FlattenDiscountsByID() {
+						out.AddLineDiscountExternalID(discountId, "final_upsert_"+discountId)
 					}
 				}
 
@@ -1950,6 +1965,11 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 					require.Empty(s.T(), line.ExternalIDs.Invoicing)
 				default:
 					s.T().Errorf("unexpected line type: %s", line.Type)
+				}
+
+				// Test discounts
+				for _, discount := range line.FlattenDiscountsByID() {
+					require.Equal(s.T(), "final_upsert_"+discount.ID, discount.ExternalIDs.Invoicing)
 				}
 			}
 

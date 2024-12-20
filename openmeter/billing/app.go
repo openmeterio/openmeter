@@ -14,7 +14,8 @@ type UpsertResults struct {
 
 func NewUpsertResults() *UpsertResults {
 	return &UpsertResults{
-		lineExternalIDs: make(map[string]string),
+		lineExternalIDs:         make(map[string]string),
+		LineDiscountExternalIDs: make(map[string]string),
 	}
 }
 
