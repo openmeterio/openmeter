@@ -7,10 +7,6 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/samber/lo"
-	"github.com/stripe/stripe-go/v80"
-	"github.com/stripe/stripe-go/v80/client"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
@@ -25,7 +21,6 @@ import (
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -36,17 +31,21 @@ type TestEnv interface {
 	App() app.Service
 	AppStripe() appstripe.Service
 	Customer() customer.Service
+	Fixture() *Fixture
 	Secret() secret.Service
+	StripeClient() *StripeClientMock
 	Close() error
 }
 
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	app       app.Service
-	appstripe appstripe.Service
-	customer  customer.Service
-	secret    secret.Service
+	app          app.Service
+	appstripe    appstripe.Service
+	customer     customer.Service
+	fixture      *Fixture
+	secret       secret.Service
+	stripeClient *StripeClientMock
 
 	closerFunc func() error
 }
@@ -67,8 +66,16 @@ func (n testEnv) Customer() customer.Service {
 	return n.customer
 }
 
+func (n testEnv) Fixture() *Fixture {
+	return n.fixture
+}
+
 func (n testEnv) Secret() secret.Service {
 	return n.secret
+}
+
+func (n testEnv) StripeClient() *StripeClientMock {
+	return n.stripeClient
 }
 
 const (
@@ -128,6 +135,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
 	}
 
+	// Stripe Client
+	stripeClient := &StripeClientMock{
+		StripeAccountID: "acct_123",
+	}
+
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          entClient,
@@ -135,9 +147,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		SecretService:   secretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
-			return &StripeClientMock{
-				StripeAccountID: "acct_123",
-			}, nil
+			return stripeClient, nil
 		},
 	})
 	if err != nil {
@@ -168,91 +178,12 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		app:        appService,
-		appstripe:  appStripeService,
-		customer:   customerService,
-		secret:     secretService,
-		closerFunc: closerFunc,
+		app:          appService,
+		appstripe:    appStripeService,
+		customer:     customerService,
+		fixture:      NewFixture(appService, customerService),
+		secret:       secretService,
+		closerFunc:   closerFunc,
+		stripeClient: stripeClient,
 	}, nil
-}
-
-type StripeClientMock struct {
-	StripeAccountID string
-}
-
-func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.SetupWebhookInput) (stripeclient.StripeWebhookEndpoint, error) {
-	return stripeclient.StripeWebhookEndpoint{
-		EndpointID: "we_123",
-		Secret:     "whsec_123",
-	}, input.Validate()
-}
-
-func (c *StripeClientMock) DeleteWebhook(ctx context.Context, input stripeclient.DeleteWebhookInput) error {
-	return input.Validate()
-}
-
-func (c *StripeClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
-	return stripeclient.StripeAccount{
-		StripeAccountID: c.StripeAccountID,
-	}, nil
-}
-
-func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (stripeclient.StripeCustomer, error) {
-	return stripeclient.StripeCustomer{
-		StripeCustomerID: stripeCustomerID,
-		DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
-			ID:    "pm_123",
-			Name:  "ACME Inc.",
-			Email: "acme@test.com",
-			BillingAddress: &models.Address{
-				City:       lo.ToPtr("San Francisco"),
-				PostalCode: lo.ToPtr("94103"),
-				State:      lo.ToPtr("CA"),
-				Country:    lo.ToPtr(models.CountryCode("US")),
-				Line1:      lo.ToPtr("123 Market St"),
-			},
-		},
-	}, nil
-}
-
-func (c *StripeClientMock) CreateCustomer(ctx context.Context, input stripeclient.CreateStripeCustomerInput) (stripeclient.StripeCustomer, error) {
-	if err := input.Validate(); err != nil {
-		return stripeclient.StripeCustomer{}, err
-	}
-
-	return stripeclient.StripeCustomer{
-		StripeCustomerID: "cus_123",
-	}, input.Validate()
-}
-
-func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input stripeclient.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error) {
-	if err := input.Validate(); err != nil {
-		return stripeclient.StripeCheckoutSession{}, err
-	}
-
-	return stripeclient.StripeCheckoutSession{
-		SessionID:     "cs_123",
-		SetupIntentID: "seti_123",
-		Mode:          stripe.CheckoutSessionModeSetup,
-		URL:           "https://checkout.stripe.com/cs_123/test",
-	}, input.Validate()
-}
-
-func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (stripeclient.StripePaymentMethod, error) {
-	return stripeclient.StripePaymentMethod{
-		ID:    "pm_123",
-		Name:  "ACME Inc.",
-		Email: "acme@test.com",
-		BillingAddress: &models.Address{
-			City:       lo.ToPtr("San Francisco"),
-			PostalCode: lo.ToPtr("94103"),
-			State:      lo.ToPtr("CA"),
-			Country:    lo.ToPtr(models.CountryCode("US")),
-			Line1:      lo.ToPtr("123 Market St"),
-		},
-	}, nil
-}
-
-func (c *StripeClientMock) GetClient() *client.API {
-	panic("implement me")
 }

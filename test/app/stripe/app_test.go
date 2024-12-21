@@ -57,5 +57,9 @@ func TestAppStripe(t *testing.T) {
 		t.Run("TestCreateCheckoutSession", func(t *testing.T) {
 			testSuite.TestCreateCheckoutSession(ctx, t)
 		})
+
+		// t.Run("TestCreateInvoice", func(t *testing.T) {
+		// 	testSuite.TestCreateInvoice(ctx, t)
+		// })
 	})
 }

@@ -35,6 +35,15 @@ type StripeClient interface {
 	CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error)
 	CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error)
 	GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error)
+	// Invoice
+	CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error)
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (*stripe.Invoice, error)
+	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
+	FinalizeInvoice(ctx context.Context, input FinalizeInvoiceInput) (*stripe.Invoice, error)
+	// Invoice Line
+	AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) (*stripe.Invoice, error)
+	UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) (*stripe.Invoice, error)
+	RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) (*stripe.Invoice, error)
 }
 
 type StripeClientConfig struct {

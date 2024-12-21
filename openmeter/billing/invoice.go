@@ -280,6 +280,22 @@ func (i *Invoice) FlattenLinesByID() map[string]*Line {
 	return out
 }
 
+// GetLeafLines returns the leaf lines
+func (i *Invoice) GetLeafLines() []*Line {
+	var leafLines []*Line
+
+	for _, line := range i.FlattenLinesByID() {
+		// Skip non leaf nodes
+		if line.Type != InvoiceLineTypeFee {
+			continue
+		}
+
+		leafLines = append(leafLines, line)
+	}
+
+	return leafLines
+}
+
 func (i Invoice) Clone() Invoice {
 	clone := i
 

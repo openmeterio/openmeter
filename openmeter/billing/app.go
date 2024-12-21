@@ -2,6 +2,12 @@ package billing
 
 import (
 	"context"
+	"errors"
+	"fmt"
+
+	"github.com/samber/lo"
+
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 )
 
 type UpsertResults struct {
@@ -102,4 +108,68 @@ type InvoicingApp interface {
 	// DeleteInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the invoice deletion is only invoked for non-finalized invoices.
 	DeleteInvoice(ctx context.Context, invoice Invoice) error
+}
+
+// GetApp returns the app from the app entity
+func GetApp(app appentity.App) (InvoicingApp, error) {
+	customerApp, ok := app.(InvoicingApp)
+	if !ok {
+		return nil, AppError{
+			AppID:   app.GetID(),
+			AppType: app.GetType(),
+			Err:     fmt.Errorf("is not an invoicing app"),
+		}
+	}
+
+	return customerApp, nil
+}
+
+// MergeUpsertInvoiceResult merges the upsert invoice result into the invoice.
+func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) error {
+	// Let's merge the results into the invoice
+	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
+		invoice.Number = lo.ToPtr(invoiceNumber)
+	}
+
+	if externalID, ok := result.GetExternalID(); ok {
+		invoice.ExternalIDs.Invoicing = externalID
+	}
+
+	var outErr error
+
+	// Let's merge the line IDs
+	if len(result.GetLineExternalIDs()) > 0 {
+		flattenedLines := invoice.FlattenLinesByID()
+
+		// Merge the line IDs
+		for lineID, externalID := range result.GetLineExternalIDs() {
+			if line, ok := flattenedLines[lineID]; ok {
+				line.ExternalIDs.Invoicing = externalID
+			} else {
+				outErr = errors.Join(outErr, fmt.Errorf("line not found in invoice: %s", lineID))
+			}
+		}
+
+		// Build a map of line discounts
+		discountMap := map[string]*LineDiscount{}
+
+		for _, line := range flattenedLines {
+			line.Discounts.ForEach(func(discounts []LineDiscount) {
+				for i, discount := range discounts {
+					discountMap[discount.ID] = &discounts[i]
+				}
+			})
+		}
+
+		// Merge the line discount IDs
+		for lineDiscountID, externalID := range result.GetLineDiscountExternalIDs() {
+			if lineDiscount, ok := discountMap[lineDiscountID]; ok {
+				lineDiscount.ExternalIDs.Invoicing = externalID
+			} else {
+				outErr = errors.Join(outErr, fmt.Errorf("line discount not found in invoice: %s", lineDiscountID))
+			}
+		}
+	}
+
+	return outErr
 }
