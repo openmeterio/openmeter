@@ -411,8 +411,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Mock the stripe client to return the created invoice.
 		s.StripeClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
-				StripeCustomerID: customerData.StripeCustomerID,
-				Currency:         "USD",
+				StripeCustomerID:    customerData.StripeCustomerID,
+				Currency:            "USD",
+				StatementDescriptor: invoice.Supplier.Name,
 			}).
 			Return(&stripe.Invoice{
 				ID: "stripe-invoice-id",
@@ -630,6 +631,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					}
 				}),
 			},
+			StatementDescriptor: invoice.Supplier.Name,
 		}
 
 		s.StripeClient.
@@ -707,11 +709,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					return line.ID != lineToRemove.ID
 				}),
 			},
+			StatementDescriptor: invoice.Supplier.Name,
 		}
 
 		s.StripeClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
+				StatementDescriptor: updateInvoice.Supplier.Name,
 			}).
 			// We return the updated invoice.
 			Return(stripeInvoiceUpdated, nil)

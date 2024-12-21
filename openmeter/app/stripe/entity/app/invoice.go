@@ -146,9 +146,11 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Create the invoice in Stripe
 	stripeInvoice, err := stripeClient.CreateInvoice(ctx, stripeclient.CreateInvoiceInput{
 		Currency:                     invoice.Currency,
+		DueDate:                      invoice.DueAt,
+		Number:                       invoice.Number,
 		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
 		StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
-		DueDate:                      invoice.DueAt,
+		StatementDescriptor:          getInvoiceStatementDescriptor(invoice),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoice in stripe: %w", err)
@@ -218,8 +220,10 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
-		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
-		DueDate:         invoice.DueAt,
+		StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
+		DueDate:             invoice.DueAt,
+		Number:              invoice.Number,
+		StatementDescriptor: getInvoiceStatementDescriptor(invoice),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update invoice in stripe: %w", err)
@@ -528,6 +532,12 @@ func getLineName(line *billing.Line) string {
 	}
 
 	return name
+}
+
+// TODO (OM-1064): should we include invoice description in the statement descriptor?
+// getInvoiceStatementDescriptor returns the invoice statement descriptor
+func getInvoiceStatementDescriptor(invoice billing.Invoice) string {
+	return invoice.Supplier.Name
 }
 
 // addResultExternalIDs adds the Stripe line item IDs to the result external IDs
