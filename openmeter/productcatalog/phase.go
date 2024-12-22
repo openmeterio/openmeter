@@ -3,7 +3,6 @@ package productcatalog
 import (
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/samber/lo"
 
@@ -29,10 +28,11 @@ type PhaseMeta struct {
 	// Metadata stores user defined metadata for Phase.
 	Metadata models.Metadata `json:"metadata,omitempty"`
 
-	// StartAfter defines the time period after the Phase becomes active measured from the Subscription start.
-	StartAfter datex.Period `json:"interval"`
+	// Duration is the duration of the Phase.
+	Duration *datex.Period `json:"duration"`
 }
 
+// Equal returns true if the two PhaseMetas are equal.
 func (p PhaseMeta) Equal(v PhaseMeta) bool {
 	if p.Key != v.Key {
 		return false
@@ -46,13 +46,18 @@ func (p PhaseMeta) Equal(v PhaseMeta) bool {
 		return false
 	}
 
-	if p.StartAfter != v.StartAfter {
+	if !p.Metadata.Equal(v.Metadata) {
+		return false
+	}
+
+	if !p.Duration.Equal(v.Duration) {
 		return false
 	}
 
 	return true
 }
 
+// Validate validates the PhaseMeta.
 func (p PhaseMeta) Validate() error {
 	var errs []error
 
@@ -64,8 +69,8 @@ func (p PhaseMeta) Validate() error {
 		errs = append(errs, errors.New("missing Name"))
 	}
 
-	if p.StartAfter.IsNegative() {
-		errs = append(errs, fmt.Errorf("the StartAfter period must not be negative"))
+	if p.Duration != nil && p.Duration.IsNegative() {
+		errs = append(errs, fmt.Errorf("the Duration period must not be negative"))
 	}
 
 	if len(errs) > 0 {
@@ -76,8 +81,8 @@ func (p PhaseMeta) Validate() error {
 }
 
 var (
-	_ models.Validator          = (*PhaseMeta)(nil)
-	_ models.Equaler[PhaseMeta] = (*PhaseMeta)(nil)
+	_ models.Validator      = (*Phase)(nil)
+	_ models.Equaler[Phase] = (*Phase)(nil)
 )
 
 type Phase struct {
@@ -90,6 +95,7 @@ type Phase struct {
 	RateCards RateCards `json:"rateCards"`
 }
 
+// Equal returns true if the two Phases are equal.
 func (p Phase) Equal(v Phase) bool {
 	if !p.PhaseMeta.Equal(v.PhaseMeta) {
 		return false
@@ -102,6 +108,7 @@ func (p Phase) Equal(v Phase) bool {
 	return p.RateCards.Equal(v.RateCards)
 }
 
+// Validate validates the Phase.
 func (p Phase) Validate() error {
 	var errs []error
 
@@ -144,20 +151,3 @@ func (p Phase) Validate() error {
 
 	return nil
 }
-
-type SortPhasesFunc = func(left, right Phase) int
-
-var SortPhasesByStartAfter SortPhasesFunc = func(left, right Phase) int {
-	lt, _ := left.StartAfter.Duration()
-	rt, _ := right.StartAfter.Duration()
-
-	if lt > rt {
-		return 1
-	} else if lt < rt {
-		return -1
-	}
-
-	return 0
-}
-
-var SortPhases = slices.SortFunc[[]Phase, Phase]

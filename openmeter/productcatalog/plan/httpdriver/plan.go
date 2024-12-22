@@ -9,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -39,8 +38,8 @@ func (h *handler) ListPlans() ListPlansHandler {
 				OrderBy: plan.OrderBy(lo.FromPtrOr(params.OrderBy, api.PlanOrderById)),
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
+					PageSize:   defaultx.WithDefault(params.PageSize, commonhttp.DefaultPageSize),
+					PageNumber: defaultx.WithDefault(params.Page, commonhttp.DefaultPage),
 				},
 				Namespaces:     []string{ns},
 				IDs:            lo.FromPtrOr(params.Id, nil),
@@ -64,7 +63,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 
 				item, err = FromPlan(p)
 				if err != nil {
-					return ListPlansResponse{}, fmt.Errorf("failed to cast plan pahse: %w", err)
+					return ListPlansResponse{}, fmt.Errorf("failed to cast plan: %w", err)
 				}
 
 				items = append(items, item)
@@ -110,10 +109,6 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 			}
 
-			req.NamespacedModel = models.NamespacedModel{
-				Namespace: ns,
-			}
-
 			return req, nil
 		},
 		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
@@ -157,17 +152,17 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 				return UpdatePlanRequest{}, fmt.Errorf("failed to update plan request: %w", err)
 			}
 
-			req.NamespacedID = models.NamespacedID{
-				Namespace: ns,
-				ID:        planID,
-			}
-
 			return req, nil
 		},
 		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
 			p, err := h.service.UpdatePlan(ctx, request)
 			if err != nil {
 				return UpdatePlanResponse{}, fmt.Errorf("failed to update plan: %w", err)
+			}
+
+			if p == nil {
+				// TODO: shouldn't happen, we should use a better error
+				return UpdatePlanResponse{}, commonhttp.NewHTTPError(http.StatusNotFound, fmt.Errorf("plan not found"))
 			}
 
 			return FromPlan(*p)
@@ -264,6 +259,11 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanResponse{}, fmt.Errorf("failed to get plan: %w", err)
 			}
 
+			if p == nil {
+				// TODO: shouldn't happen, we should use a better error
+				return GetPlanResponse{}, commonhttp.NewHTTPError(http.StatusNotFound, fmt.Errorf("plan not found"))
+			}
+
 			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
@@ -358,55 +358,6 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("archivePlan"),
-			httptransport.WithErrorEncoder(errorEncoder()),
-		)...,
-	)
-}
-
-type (
-	NextPlanRequest  = plan.NextPlanInput
-	NextPlanResponse = api.Plan
-	NextPlanHandler  httptransport.HandlerWithArgs[NextPlanRequest, NextPlanResponse, string]
-)
-
-func (h *handler) NextPlan() NextPlanHandler {
-	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, planIdOrKey string) (NextPlanRequest, error) {
-			ns, err := h.resolveNamespace(ctx)
-			if err != nil {
-				return NextPlanRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
-			}
-
-			// TODO(chrisgacsal): update api.Request in TypeSpec definition to allow setting EffectivePeriod.To
-
-			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
-			idOrKey := NewIDOrKey(planIdOrKey)
-
-			req := NextPlanRequest{
-				NamespacedID: models.NamespacedID{
-					Namespace: ns,
-					ID:        idOrKey.ID,
-				},
-				Key:     idOrKey.Key,
-				Version: 0,
-			}
-
-			return req, nil
-		},
-		func(ctx context.Context, request NextPlanRequest) (NextPlanResponse, error) {
-			p, err := h.service.NextPlan(ctx, request)
-			if err != nil {
-				return NextPlanResponse{}, fmt.Errorf("failed to create next version of Plan: %w", err)
-			}
-
-			// TODO(chrisgacsal): update api.Response in TypeSpec definition to allow returning Plan
-
-			return FromPlan(*p)
-		},
-		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
-		httptransport.AppendOptions(
-			h.options,
-			httptransport.WithOperationName("nextPlan"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

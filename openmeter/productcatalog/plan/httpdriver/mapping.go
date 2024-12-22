@@ -68,7 +68,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 		Key:         p.Key,
 		Metadata:    lo.EmptyableToPtr(api.Metadata(p.Metadata)),
 		Name:        p.Name,
-		StartAfter:  lo.ToPtr(p.StartAfter.ISOString().String()),
+		Duration:    lo.ToPtr(p.Duration.ISOString().String()),
 	}
 
 	if len(p.Discounts) > 0 {
@@ -446,9 +446,9 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		},
 	}
 
-	phase.StartAfter, err = datex.ISOString(lo.FromPtrOr(a.StartAfter, plan.DefaultStartAfter)).Parse()
+	phase.Duration, err = (*datex.ISOString)(a.Duration).ParsePtrOrNil()
 	if err != nil {
-		return phase, fmt.Errorf("failed to cast StartAfter date to period: %w", err)
+		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
 	}
 
 	discounts := lo.FromPtrOr(a.Discounts, nil)
@@ -891,87 +891,6 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 		phases = append(phases, planPhase)
 	}
 	req.Phases = &phases
-
-	return req, nil
-}
-
-func AsCreatePhaseRequest(a api.PlanPhaseCreate, namespace, planID string) (CreatePhaseRequest, error) {
-	var err error
-
-	req := CreatePhaseRequest{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
-		},
-		Phase: productcatalog.Phase{
-			PhaseMeta: productcatalog.PhaseMeta{
-				Key:         a.Key,
-				Name:        a.Name,
-				Description: a.Description,
-				Metadata:    lo.FromPtrOr(a.Metadata, nil),
-			},
-		},
-		PlanID: planID,
-	}
-
-	req.StartAfter, err = datex.ISOString(lo.FromPtrOr(a.StartAfter, plan.DefaultStartAfter)).Parse()
-	if err != nil {
-		return req, fmt.Errorf("failed to parse StartAfter period: %w", err)
-	}
-
-	if len(a.RateCards) > 0 {
-		req.RateCards = make([]productcatalog.RateCard, 0, len(a.RateCards))
-
-		for _, rc := range a.RateCards {
-			rateCard, err := AsRateCard(rc)
-			if err != nil {
-				return req, fmt.Errorf("failed to cast RateCard from HTTP create request: %w", err)
-			}
-
-			req.RateCards = append(req.RateCards, rateCard)
-		}
-	}
-
-	return req, nil
-}
-
-func AsUpdatePhaseRequest(a api.PlanPhaseUpdate, namespace, planID, phaseKey string) (UpdatePhaseRequest, error) {
-	req := UpdatePhaseRequest{
-		NamespacedID: models.NamespacedID{
-			Namespace: namespace,
-		},
-		Key:         phaseKey,
-		Name:        a.Name,
-		Description: a.Description,
-		Metadata:    (*models.Metadata)(a.Metadata),
-		PlanID:      planID,
-	}
-
-	if a.StartAfter != nil {
-		startAfterISO := datex.ISOString(*a.StartAfter)
-
-		startAfter, err := startAfterISO.ParsePtrOrNil()
-		if err != nil {
-			return req, fmt.Errorf("failed to parse StartAfter period: %w", err)
-		}
-
-		req.StartAfter = startAfter
-	}
-
-	if a.RateCards != nil && *a.RateCards != nil {
-		rateCards := make([]productcatalog.RateCard, 0, len(*a.RateCards))
-		if len(*a.RateCards) > 0 {
-			for _, phase := range *a.RateCards {
-				planPhase, err := AsRateCard(phase)
-				if err != nil {
-					return req, fmt.Errorf("failed to cast RateCard from HTTP update request: %w", err)
-				}
-
-				rateCards = append(rateCards, planPhase)
-			}
-		}
-
-		req.RateCards = lo.ToPtr(productcatalog.RateCards(rateCards))
-	}
 
 	return req, nil
 }

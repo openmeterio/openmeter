@@ -94,7 +94,6 @@ func TestChange(t *testing.T) {
 					Key:         "test_phase_4",
 					Name:        "Test Phase 4",
 					Description: lo.ToPtr("Test Phase 4 Description"),
-					StartAfter:  testutils.GetISODuration(t, "P8M"),
 				},
 				RateCards: productcatalog.RateCards{
 					&subscriptiontestutils.ExampleRateCard1,
@@ -191,7 +190,7 @@ func TestChange(t *testing.T) {
 					Key:         "test_phase_4",
 					Name:        "Test Phase 4",
 					Description: lo.ToPtr("Test Phase 4 Description"),
-					StartAfter:  testutils.GetISODuration(t, "P8M"),
+					Duration:    lo.ToPtr(testutils.GetISODuration(t, "P8M")),
 				},
 				RateCards: productcatalog.RateCards{
 					&subscriptiontestutils.ExampleRateCard1,
