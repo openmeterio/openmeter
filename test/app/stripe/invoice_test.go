@@ -2,7 +2,8 @@ package appstripe
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -10,11 +11,19 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
+	"github.com/stripe/stripe-go/v80"
 
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
+	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/secret"
+	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
+	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -22,6 +31,11 @@ import (
 
 type StripeInvoiceTestSuite struct {
 	billingtest.BaseSuite
+
+	AppStripeService appstripe.Service
+	Fixture          *Fixture
+	SecretService    secret.Service
+	StripeClient     *StripeClientMock
 }
 
 func TestStripeInvoicing(t *testing.T) {
@@ -30,7 +44,47 @@ func TestStripeInvoicing(t *testing.T) {
 
 func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	// TODO: add any additional initialization required here
+
+	// Secret
+	secretAdapter := secretadapter.New()
+
+	secretService, err := secretservice.New(secretservice.Config{
+		Adapter: secretAdapter,
+	})
+	s.Require().NoError(err, "failed to create secret service")
+
+	s.SecretService = secretService
+
+	// Stripe Client
+	stripeClient := &StripeClientMock{
+		StripeAccountID: "acct_123",
+	}
+
+	s.StripeClient = stripeClient
+
+	// App Stripe
+	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
+		Client:          s.DBClient,
+		AppService:      s.AppService,
+		CustomerService: s.CustomerService,
+		SecretService:   secretService,
+		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
+			return stripeClient, nil
+		},
+	})
+	s.Require().NoError(err, "failed to create app stripe adapter")
+
+	appStripeService, err := appstripeservice.New(appstripeservice.Config{
+		Adapter:       appStripeAdapter,
+		AppService:    s.AppService,
+		SecretService: secretService,
+	})
+	s.Require().NoError(err, "failed to create app stripe service")
+
+	s.AppStripeService = appStripeService
+
+	// Fixture
+	s.Fixture = NewFixture(s.AppService, s.CustomerService)
 }
 
 type ubpFeatures struct {
@@ -325,7 +379,14 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.Len(pendingLines, 6)
 	})
 
-	s.Run("create invoice", func() {
+	s.Run("upsert invoice", func() {
+		// Setup the app with the customer
+		app, err := s.Fixture.setupApp(ctx, namespace)
+		s.NoError(err)
+
+		customerData, err := s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
+		s.NoError(err)
+
 		// Covered case: most measurements are fractional
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 32.2, periodStart.Add(time.Minute))
 		s.MockStreamingConnector.AddSimpleEvent("flat-per-usage", 2, periodStart.Add(time.Minute))
@@ -335,21 +396,373 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// When we create an invoice
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
-				ID:        customerEntity.ID,
-				Namespace: namespace,
-			},
-			AsOf: &periodEnd,
+			Customer: customerEntity.GetID(),
+			AsOf:     &periodEnd,
 		})
 		s.NoError(err)
 		s.Len(invoices, 1)
 
 		invoice := invoices[0].RemoveCircularReferences()
 
-		dump, err := json.Marshal(invoice)
+		// Create a new invoice for the customer.
+		invoicingApp, err := billing.GetApp(app)
 		s.NoError(err)
-		s.NotEmpty(dump)
-		// TODO: temporary until the stripe invoice is implemented
-		// fmt.Println(string(dump))
+
+		// Mock the stripe client to return the created invoice.
+		s.StripeClient.
+			On("CreateInvoice", stripeclient.CreateInvoiceInput{
+				StripeCustomerID:    customerData.StripeCustomerID,
+				Currency:            "USD",
+				StatementDescriptor: invoice.Supplier.Name,
+			}).
+			Return(&stripe.Invoice{
+				ID: "stripe-invoice-id",
+				Customer: &stripe.Customer{
+					ID: customerData.StripeCustomerID,
+				},
+				Currency: "USD",
+				Lines: &stripe.InvoiceLineItemList{
+					Data: []*stripe.InvoiceLineItem{},
+				},
+			}, nil)
+
+		expectedPeriodStart := time.Unix(int64(1725279180), 0)
+		expectedPeriodEnd := time.Unix(int64(1725365580), 0)
+
+		getLine := func(description string) *billing.Line {
+			for _, line := range invoice.GetLeafLines() {
+				name := line.Name
+				if line.Description != nil {
+					name = fmt.Sprintf("%s (%s)", name, *line.Description)
+				}
+
+				if name == description {
+					return line
+				}
+			}
+
+			return nil
+		}
+
+		getLineID := func(description string) string {
+			line := getLine(description)
+			return line.ID
+		}
+
+		getDiscountID := func(description string) string {
+			r, err := regexp.Compile(`^(.+) \((.+)\)$`)
+			s.NoError(err)
+
+			group := r.FindAllStringSubmatch(description, -1)
+
+			id := ""
+
+			line := getLine(group[0][1])
+			if line == nil {
+				return id
+			}
+
+			line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
+				for _, discount := range discounts {
+					if discount.Description != nil && group[0][2] == *discount.Description {
+						id = discount.ID
+						return
+					}
+				}
+			})
+
+			return id
+		}
+
+		expectedInvoiceAddLines := []*stripe.InvoiceAddLinesLineParams{
+			{
+				Amount:      lo.ToPtr(int64(10000)),
+				Description: lo.ToPtr("Fee"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(periodStart.Unix()),
+					// TODO: check time shift
+					End: lo.ToPtr(periodStart.Add(time.Hour * 24).Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("Fee"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(7725)),
+				Description: lo.ToPtr("UBP - AI Usecase: usage in period"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - AI Usecase: usage in period"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(10000)),
+				Description: lo.ToPtr("UBP - FLAT per any usage"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - FLAT per any usage"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(322000)),
+				Description: lo.ToPtr("UBP - FLAT per unit: usage in period"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - FLAT per unit: usage in period"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(-122000)),
+				Description: lo.ToPtr("UBP - FLAT per unit: usage in period (Maximum spend discount for charges over 2000)"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getDiscountID("UBP - FLAT per unit: usage in period (Maximum spend discount for charges over 2000)"),
+					"om_line_type": "discount",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(95000)),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 1"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 1"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(94500)),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 2"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 2"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(122400)),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 3"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					Start: lo.ToPtr(expectedPeriodStart.Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 3"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(162300)),
+				Description: lo.ToPtr("UBP - Tiered volume: minimum spend"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					// TODO: check rounding
+					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
+					End:   lo.ToPtr(periodEnd.Truncate(time.Minute).Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - Tiered volume: minimum spend"),
+					"om_line_type": "line",
+				},
+			},
+			{
+				Amount:      lo.ToPtr(int64(137700)),
+				Description: lo.ToPtr("UBP - Tiered volume: unit price for tier 2"),
+				Period: &stripe.InvoiceAddLinesLinePeriodParams{
+					// TODO: check rounding
+					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
+					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
+				},
+				Quantity: lo.ToPtr(int64(1)),
+				Metadata: map[string]string{
+					"om_line_id":   getLineID("UBP - Tiered volume: unit price for tier 2"),
+					"om_line_type": "line",
+				},
+			},
+		}
+
+		stripeInvoice := &stripe.Invoice{
+			ID: "stripe-invoice-id",
+			Customer: &stripe.Customer{
+				ID: customerData.StripeCustomerID,
+			},
+			Currency: "USD",
+			Lines: &stripe.InvoiceLineItemList{
+				Data: lo.Map(expectedInvoiceAddLines, func(line *stripe.InvoiceAddLinesLineParams, idx int) *stripe.InvoiceLineItem {
+					return &stripe.InvoiceLineItem{
+						ID:          fmt.Sprintf("il_%d", idx),
+						Amount:      *line.Amount,
+						Description: *line.Description,
+						Period: &stripe.Period{
+							Start: *line.Period.Start,
+							End:   *line.Period.End,
+						},
+						Quantity: *line.Quantity,
+						Metadata: line.Metadata,
+					}
+				}),
+			},
+			StatementDescriptor: invoice.Supplier.Name,
+		}
+
+		s.StripeClient.
+			On("AddInvoiceLines", stripeclient.AddInvoiceLinesInput{
+				StripeInvoiceID: "stripe-invoice-id",
+				Lines:           expectedInvoiceAddLines,
+			}).
+			Return(stripeInvoice, nil)
+
+		// Create the invoice.
+		results, err := invoicingApp.UpsertInvoice(ctx, invoice)
+		s.NoError(err, "failed to upsert invoice")
+
+		// Assert external ID is set.
+		externalId, ok := results.GetExternalID()
+		s.True(ok, "external ID is not set")
+		s.Equal("stripe-invoice-id", externalId)
+
+		// Assert results.
+		// TODO: discount line items are not in the results
+		s.Len(results.GetLineExternalIDs(), len(expectedInvoiceAddLines)-1)
+
+		expectedResult := map[string]string{}
+
+		for _, stripeLine := range stripeInvoice.Lines.Data {
+			// TODO: currently we don't have a way to match Stripe discount line items
+			if stripeLine.Metadata["om_line_type"] == "discount" {
+				continue
+			}
+
+			expectedResult[stripeLine.Metadata["om_line_id"]] = stripeLine.ID
+		}
+
+		s.Equal(expectedResult, results.GetLineExternalIDs())
+
+		// Update the invoice.
+
+		updateInvoice := invoice.Clone()
+
+		// We merge external IDs into the invoice manually to simulate the update.
+		// Normally this is done by the state machine.
+		err = billing.MergeUpsertInvoiceResult(&updateInvoice, results)
+		s.NoError(err)
+
+		// Remove a line item.
+		lineToRemove := getLine("Fee")
+		s.NotNil(lineToRemove, "line ID to remove is not found")
+
+		// Find the stripe line ID to remove.
+		var stripeLineIDToRemove string
+
+		for lineID, stripeLineID := range expectedResult {
+			if lineID == lineToRemove.ID {
+				stripeLineIDToRemove = stripeLineID
+			}
+		}
+
+		delete(expectedResult, lineToRemove.ID)
+
+		s.NotEmpty(stripeLineIDToRemove, "stripe line ID to remove is empty")
+
+		ok = updateInvoice.Lines.RemoveByID(lineToRemove.ID)
+		s.True(ok, "failed to remove line item")
+
+		// To simulate the update, we will update the external ID of the invoice.
+		// Which will go into update path of the upsert invoice.
+		updateInvoice.ExternalIDs.Invoicing = "stripe-invoice-id"
+
+		stripeInvoiceUpdated := &stripe.Invoice{
+			ID:       stripeInvoice.ID,
+			Customer: stripeInvoice.Customer,
+			Currency: stripeInvoice.Currency,
+			Lines: &stripe.InvoiceLineItemList{
+				Data: lo.Filter(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, _ int) bool {
+					return line.ID != lineToRemove.ID
+				}),
+			},
+			StatementDescriptor: invoice.Supplier.Name,
+		}
+
+		s.StripeClient.
+			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
+				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
+				StatementDescriptor: updateInvoice.Supplier.Name,
+			}).
+			// We return the updated invoice.
+			Return(stripeInvoiceUpdated, nil)
+
+		// Mocks to fulfill add, update and remove invoice lines:
+		// From existing lines, one is removed and the rest are updated.
+
+		s.StripeClient.
+			On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+				Lines: lo.FilterMap(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) (*stripe.InvoiceUpdateLinesLineParams, bool) {
+					// No changes to the line items.
+					return &stripe.InvoiceUpdateLinesLineParams{
+						ID:          &line.ID,
+						Amount:      &line.Amount,
+						Description: &line.Description,
+						Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
+							Start: &line.Period.Start,
+							End:   &line.Period.End,
+						},
+						Quantity: &line.Quantity,
+						Metadata: line.Metadata,
+					}, line.ID != stripeLineIDToRemove
+				}),
+			}).
+			Return(stripeInvoice, nil)
+
+		s.StripeClient.
+			On("RemoveInvoiceLines", stripeclient.RemoveInvoiceLinesInput{
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
+				Lines: []*stripe.InvoiceRemoveLinesLineParams{
+					{
+						ID:       lo.ToPtr(stripeLineIDToRemove),
+						Behavior: lo.ToPtr("delete"),
+					},
+				},
+			}).
+			Return(stripeInvoice, nil)
+
+		// Update the invoice.
+		results, err = invoicingApp.UpsertInvoice(ctx, updateInvoice)
+		s.NoError(err, "failed to upsert invoice")
+
+		// Assert results.
+		s.Equal(expectedResult, results.GetLineExternalIDs())
+
+		// Assert invoice is created in stripe.
+		s.StripeClient.AssertExpectations(s.T())
 	})
 }

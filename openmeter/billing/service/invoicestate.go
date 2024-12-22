@@ -370,52 +370,7 @@ func (m *InvoiceStateMachine) withInvoicingApp(op string, cb func(billing.Invoic
 }
 
 func (m *InvoiceStateMachine) mergeUpsertInvoiceResult(result *billing.UpsertInvoiceResult) error {
-	// Let's merge the results into the invoice
-	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
-		m.Invoice.Number = lo.ToPtr(invoiceNumber)
-	}
-
-	if externalID, ok := result.GetExternalID(); ok {
-		m.Invoice.ExternalIDs.Invoicing = externalID
-	}
-
-	var outErr error
-
-	// Let's merge the line IDs
-	if len(result.GetLineExternalIDs()) > 0 {
-		flattenedLines := m.Invoice.FlattenLinesByID()
-
-		// Merge the line IDs
-		for lineID, externalID := range result.GetLineExternalIDs() {
-			if line, ok := flattenedLines[lineID]; ok {
-				line.ExternalIDs.Invoicing = externalID
-			} else {
-				outErr = errors.Join(outErr, fmt.Errorf("line not found in invoice: %s", lineID))
-			}
-		}
-
-		// Build a map of line discounts
-		discountMap := map[string]*billing.LineDiscount{}
-
-		for _, line := range flattenedLines {
-			line.Discounts.ForEach(func(discounts []billing.LineDiscount) {
-				for i, discount := range discounts {
-					discountMap[discount.ID] = &discounts[i]
-				}
-			})
-		}
-
-		// Merge the line discount IDs
-		for lineDiscountID, externalID := range result.GetLineDiscountExternalIDs() {
-			if lineDiscount, ok := discountMap[lineDiscountID]; ok {
-				lineDiscount.ExternalIDs.Invoicing = externalID
-			} else {
-				outErr = errors.Join(outErr, fmt.Errorf("line discount not found in invoice: %s", lineDiscountID))
-			}
-		}
-	}
-
-	return outErr
+	return billing.MergeUpsertInvoiceResult(&m.Invoice, result)
 }
 
 // validateDraftInvoice validates the draft invoice using the apps referenced in the invoice.
