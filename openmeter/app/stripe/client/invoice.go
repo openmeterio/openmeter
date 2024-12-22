@@ -19,6 +19,7 @@ func (c *stripeClient) CreateInvoice(ctx context.Context, input CreateInvoiceInp
 	}
 
 	params := &stripe.InvoiceParams{
+		Number:   input.Number,
 		Currency: lo.ToPtr(string(input.Currency)),
 		Customer: lo.ToPtr(input.StripeCustomerID),
 		// FinalizeInvoice will advance the invoice
@@ -35,10 +36,6 @@ func (c *stripeClient) CreateInvoice(ctx context.Context, input CreateInvoiceInp
 		params.DueDate = lo.ToPtr(input.DueDate.Unix())
 	}
 
-	if input.Number != nil {
-		params.Number = input.Number
-	}
-
 	return c.client.Invoices.New(params)
 }
 
@@ -50,16 +47,12 @@ func (c *stripeClient) UpdateInvoice(ctx context.Context, input UpdateInvoiceInp
 
 	params := &stripe.InvoiceParams{
 		StatementDescriptor: lo.ToPtr(input.StatementDescriptor),
+		Number:              input.Number,
 	}
 
 	if input.DueDate != nil {
 		params.DueDate = lo.ToPtr(input.DueDate.Unix())
 	}
-
-	if input.Number != nil {
-		params.Number = input.Number
-	}
-
 	return c.client.Invoices.Update(input.StripeInvoiceID, params)
 }
 

@@ -81,9 +81,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 			}
 		} else {
 			// Check if the customer has a default payment method
-			if stripeCustomer.DefaultPaymentMethod != nil {
-				paymentMethod = *stripeCustomer.DefaultPaymentMethod
-			} else {
+			if stripeCustomer.DefaultPaymentMethod == nil {
 				return app.CustomerPreConditionError{
 					AppID:      a.GetID(),
 					AppType:    a.GetType(),
@@ -91,6 +89,8 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 					Condition:  "stripe customer must have a default payment method",
 				}
 			}
+
+			paymentMethod = *stripeCustomer.DefaultPaymentMethod
 		}
 
 		// Payment method must have a billing address
