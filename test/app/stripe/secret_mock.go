@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
-	"github.com/stretchr/testify/mock"
 )
 
 var _ secret.SecretService = (*MockSecretService)(nil)
