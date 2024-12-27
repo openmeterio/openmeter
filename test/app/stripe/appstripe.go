@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stripe/stripe-go/v80"
@@ -18,6 +19,7 @@ import (
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var TestStripeAPIKey = "test_stripe_api_key"
@@ -263,8 +265,34 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	require.NoError(t, err, "Get app must not return error")
 
+	// Mocks
+	s.Env.StripeAppClient().
+		On("GetCustomer", "cus_123").
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: "cus_123",
+			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+				ID:    "pm_123",
+				Name:  "ACME Inc.",
+				Email: "acme@test.com",
+				BillingAddress: &models.Address{
+					City:       lo.ToPtr("San Francisco"),
+					PostalCode: lo.ToPtr("94103"),
+					State:      lo.ToPtr("CA"),
+					Country:    lo.ToPtr(models.CountryCode("US")),
+					Line1:      lo.ToPtr("123 Market St"),
+				},
+			},
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeAppClient().Restore()
+
 	// App should validate the customer
-	err = customerApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
+	err = customerApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{
+		appentitybase.CapabilityTypeCalculateTax,
+		appentitybase.CapabilityTypeInvoiceCustomers,
+		appentitybase.CapabilityTypeCollectPayments,
+	})
 	require.NoError(t, err, "Validate customer must not return error")
 
 	// Validate the customer with an invalid capability
@@ -284,6 +312,24 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	// Create checkout session
 	appID := app.GetID()
 	customerID := customer.GetID()
+
+	// Mocks
+	s.Env.StripeAppClient().
+		On("CreateCheckoutSession", stripeclient.CreateCheckoutSessionInput{
+			AppID:            appID,
+			CustomerID:       customerID,
+			StripeCustomerID: "cus_123",
+			Options:          stripeclient.StripeCheckoutSessionOptions{},
+		}).
+		Return(stripeclient.StripeCheckoutSession{
+			SessionID:     "cs_123",
+			SetupIntentID: "seti_123",
+			Mode:          stripe.CheckoutSessionModeSetup,
+			URL:           "https://checkout.stripe.com/cs_123/test",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeAppClient().Restore()
 
 	checkoutSession, err := s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
 		Namespace:  s.namespace,
