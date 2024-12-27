@@ -162,6 +162,14 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, createApp, "Create stripe app must return app")
 
+	// Mocks
+	s.Env.StripeAppClient().
+		On("DeleteWebhook", stripeclient.DeleteWebhookInput{
+			AppID:           createApp.GetID(),
+			StripeWebhookID: "we_123",
+		}).
+		Return(nil)
+
 	// Uninstall the app
 	err = s.Env.App().UninstallApp(ctx, createApp.GetID())
 

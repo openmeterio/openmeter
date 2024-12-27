@@ -42,7 +42,12 @@ func (c *StripeAppClientMock) Restore() {
 }
 
 func (c *StripeAppClientMock) DeleteWebhook(ctx context.Context, input stripeclient.DeleteWebhookInput) error {
-	return input.Validate()
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	args := c.Called(input)
+	return args.Error(0)
 }
 
 func (c *StripeAppClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
