@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stripe/stripe-go/v80"
 
@@ -39,6 +40,22 @@ func (s *AppHandlerTestSuite) setupNamespace(t *testing.T) {
 func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
+	s.Env.StripeClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: "stripe-account-id",
+		}, nil)
+
+	s.Env.StripeClient().
+		On("SetupWebhook", mock.Anything).
+		Return(stripeclient.StripeWebhookEndpoint{
+			EndpointID: "we_123",
+			Secret:     "whsec_123",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeClient().Restore()
+
 	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
@@ -57,14 +74,8 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
-		},
-
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
-	})
+	createApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
 
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, createApp, "Create stripe app must return app")
@@ -88,6 +99,22 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 // TestGetDefault tests getting the default stripe app
 func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
+
+	s.Env.StripeClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: "stripe-account-id",
+		}, nil)
+
+	s.Env.StripeClient().
+		On("SetupWebhook", mock.Anything).
+		Return(stripeclient.StripeWebhookEndpoint{
+			EndpointID: "we_123",
+			Secret:     "whsec_123",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeClient().Restore()
 
 	// Create a stripe app first
 	createApp1, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
@@ -129,14 +156,8 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
 	// Create a stripe app first
-	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
-		},
-
-		Namespace: s.namespace,
-		APIKey:    TestStripeAPIKey,
-	})
+	createApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
 
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, createApp, "Create stripe app must return app")
@@ -331,7 +352,7 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	newAPIKey = "sk_live_abcde"
 
-	s.Env.StripeClient().
+	s.Env.StripeAppClient().
 		On("GetAccount").
 		Return(stripeclient.StripeAccount{
 			StripeAccountID: stripeApp.StripeAccountID,

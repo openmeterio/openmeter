@@ -7,21 +7,29 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/stretchr/testify/mock"
 )
 
-func NewFixture(app app.Service, customer customer.Service) *Fixture {
+func NewFixture(
+	app app.Service,
+	customer customer.Service,
+	stripeClient *StripeClientMock,
+) *Fixture {
 	return &Fixture{
-		app:      app,
-		customer: customer,
+		app:          app,
+		customer:     customer,
+		stripeClient: stripeClient,
 	}
 }
 
 type Fixture struct {
-	app      app.Service
-	customer customer.Service
+	app          app.Service
+	customer     customer.Service
+	stripeClient *StripeClientMock
 }
 
 // setupAppWithCustomer creates a stripe app and a customer with customer data
@@ -46,6 +54,22 @@ func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (a
 
 // Create a stripe app first
 func (s *Fixture) setupApp(ctx context.Context, namespace string) (appentity.App, error) {
+	s.stripeClient.
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: "stripe-account-id",
+		}, nil)
+
+	s.stripeClient.
+		On("SetupWebhook", mock.Anything).
+		Return(stripeclient.StripeWebhookEndpoint{
+			EndpointID: "we_123",
+			Secret:     "whsec_123",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.stripeClient.Restore()
+
 	app, err := s.app.InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,

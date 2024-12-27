@@ -30,19 +30,21 @@ type TestEnv interface {
 	Customer() customer.Service
 	Fixture() *Fixture
 	Secret() *MockSecretService
-	StripeClient() *StripeAppClientMock
+	StripeClient() *StripeClientMock
+	StripeAppClient() *StripeAppClientMock
 	Close() error
 }
 
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	app          app.Service
-	appstripe    appstripe.Service
-	customer     customer.Service
-	fixture      *Fixture
-	secret       *MockSecretService
-	stripeClient *StripeAppClientMock
+	app             app.Service
+	appstripe       appstripe.Service
+	customer        customer.Service
+	fixture         *Fixture
+	secret          *MockSecretService
+	stripeClient    *StripeClientMock
+	stripeAppClient *StripeAppClientMock
 
 	closerFunc func() error
 }
@@ -71,8 +73,12 @@ func (n testEnv) Secret() *MockSecretService {
 	return n.secret
 }
 
-func (n testEnv) StripeClient() *StripeAppClientMock {
+func (n testEnv) StripeClient() *StripeClientMock {
 	return n.stripeClient
+}
+
+func (n testEnv) StripeAppClient() *StripeAppClientMock {
+	return n.stripeAppClient
 }
 
 const (
@@ -129,9 +135,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	// Stripe Client
-	stripeClientMock := &StripeClientMock{
-		StripeAccountID: "acct_123",
-	}
+	stripeClientMock := &StripeClientMock{}
 	stripeAppClientMock := &StripeAppClientMock{}
 
 	// App Stripe
@@ -175,12 +179,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		app:          appService,
-		appstripe:    appStripeService,
-		customer:     customerService,
-		fixture:      NewFixture(appService, customerService),
-		secret:       secretService,
-		closerFunc:   closerFunc,
-		stripeClient: stripeAppClientMock,
+		app:             appService,
+		appstripe:       appStripeService,
+		customer:        customerService,
+		fixture:         NewFixture(appService, customerService, stripeClientMock),
+		secret:          secretService,
+		closerFunc:      closerFunc,
+		stripeClient:    stripeClientMock,
+		stripeAppClient: stripeAppClientMock,
 	}, nil
 }

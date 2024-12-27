@@ -56,9 +56,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.SecretService = secretService
 
 	// Stripe Client
-	stripeClient := &StripeClientMock{
-		StripeAccountID: "stripe-account-id",
-	}
+	stripeClient := &StripeClientMock{}
 	stripeAppClient := &StripeAppClientMock{}
 
 	s.StripeAppClient = stripeAppClient
@@ -88,7 +86,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.AppStripeService = appStripeService
 
 	// Fixture
-	s.Fixture = NewFixture(s.AppService, s.CustomerService)
+	s.Fixture = NewFixture(s.AppService, s.CustomerService, stripeClient)
 }
 
 type ubpFeatures struct {
@@ -430,6 +428,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				},
 			}, nil)
 
+		// TODO: do not share env between tests
+		defer s.StripeAppClient.Restore()
+
 		expectedPeriodStart := time.Unix(int64(1725279180), 0)
 		expectedPeriodEnd := time.Unix(int64(1725365580), 0)
 
@@ -758,6 +759,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				},
 			}).
 			Return(stripeInvoice, nil)
+
+		// TODO: do not share env between tests
+		defer s.StripeAppClient.Restore()
 
 		// Update the invoice.
 		results, err = invoicingApp.UpsertInvoice(ctx, updateInvoice)

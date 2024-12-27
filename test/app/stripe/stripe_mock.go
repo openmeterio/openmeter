@@ -13,25 +13,32 @@ import (
 
 type StripeClientMock struct {
 	mock.Mock
+}
 
-	StripeAccountID string
+func (c *StripeClientMock) Restore() {
+	c.ExpectedCalls = c.ExpectedCalls[:0]
 }
 
 func (c *StripeClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
-	return stripeclient.StripeAccount{
-		StripeAccountID: c.StripeAccountID,
-	}, nil
+	args := c.Called()
+	return args.Get(0).(stripeclient.StripeAccount), args.Error(1)
 }
 
 func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.SetupWebhookInput) (stripeclient.StripeWebhookEndpoint, error) {
-	return stripeclient.StripeWebhookEndpoint{
-		EndpointID: "we_123",
-		Secret:     "whsec_123",
-	}, input.Validate()
+	if err := input.Validate(); err != nil {
+		return stripeclient.StripeWebhookEndpoint{}, err
+	}
+
+	args := c.Called(input)
+	return args.Get(0).(stripeclient.StripeWebhookEndpoint), args.Error(1)
 }
 
 type StripeAppClientMock struct {
 	mock.Mock
+}
+
+func (c *StripeAppClientMock) Restore() {
+	c.ExpectedCalls = c.ExpectedCalls[:0]
 }
 
 func (c *StripeAppClientMock) DeleteWebhook(ctx context.Context, input stripeclient.DeleteWebhookInput) error {
