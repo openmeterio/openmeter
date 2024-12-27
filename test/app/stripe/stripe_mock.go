@@ -17,6 +17,12 @@ type StripeClientMock struct {
 	StripeAccountID string
 }
 
+func (c *StripeClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
+	return stripeclient.StripeAccount{
+		StripeAccountID: c.StripeAccountID,
+	}, nil
+}
+
 func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.SetupWebhookInput) (stripeclient.StripeWebhookEndpoint, error) {
 	return stripeclient.StripeWebhookEndpoint{
 		EndpointID: "we_123",
@@ -24,17 +30,20 @@ func (c *StripeClientMock) SetupWebhook(ctx context.Context, input stripeclient.
 	}, input.Validate()
 }
 
-func (c *StripeClientMock) DeleteWebhook(ctx context.Context, input stripeclient.DeleteWebhookInput) error {
+type StripeAppClientMock struct {
+	mock.Mock
+}
+
+func (c *StripeAppClientMock) DeleteWebhook(ctx context.Context, input stripeclient.DeleteWebhookInput) error {
 	return input.Validate()
 }
 
-func (c *StripeClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
-	return stripeclient.StripeAccount{
-		StripeAccountID: c.StripeAccountID,
-	}, nil
+func (c *StripeAppClientMock) GetAccount(ctx context.Context) (stripeclient.StripeAccount, error) {
+	args := c.Called()
+	return args.Get(0).(stripeclient.StripeAccount), args.Error(1)
 }
 
-func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (stripeclient.StripeCustomer, error) {
+func (c *StripeAppClientMock) GetCustomer(ctx context.Context, stripeCustomerID string) (stripeclient.StripeCustomer, error) {
 	return stripeclient.StripeCustomer{
 		StripeCustomerID: stripeCustomerID,
 		DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
@@ -52,7 +61,7 @@ func (c *StripeClientMock) GetCustomer(ctx context.Context, stripeCustomerID str
 	}, nil
 }
 
-func (c *StripeClientMock) CreateCustomer(ctx context.Context, input stripeclient.CreateStripeCustomerInput) (stripeclient.StripeCustomer, error) {
+func (c *StripeAppClientMock) CreateCustomer(ctx context.Context, input stripeclient.CreateStripeCustomerInput) (stripeclient.StripeCustomer, error) {
 	if err := input.Validate(); err != nil {
 		return stripeclient.StripeCustomer{}, err
 	}
@@ -62,7 +71,7 @@ func (c *StripeClientMock) CreateCustomer(ctx context.Context, input stripeclien
 	}, input.Validate()
 }
 
-func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input stripeclient.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error) {
+func (c *StripeAppClientMock) CreateCheckoutSession(ctx context.Context, input stripeclient.CreateCheckoutSessionInput) (stripeclient.StripeCheckoutSession, error) {
 	if err := input.Validate(); err != nil {
 		return stripeclient.StripeCheckoutSession{}, err
 	}
@@ -75,7 +84,7 @@ func (c *StripeClientMock) CreateCheckoutSession(ctx context.Context, input stri
 	}, input.Validate()
 }
 
-func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (stripeclient.StripePaymentMethod, error) {
+func (c *StripeAppClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID string) (stripeclient.StripePaymentMethod, error) {
 	return stripeclient.StripePaymentMethod{
 		ID:    "pm_123",
 		Name:  "ACME Inc.",
@@ -92,7 +101,7 @@ func (c *StripeClientMock) GetPaymentMethod(ctx context.Context, paymentMethodID
 
 // Invoice
 
-func (c *StripeClientMock) CreateInvoice(ctx context.Context, input stripeclient.CreateInvoiceInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) CreateInvoice(ctx context.Context, input stripeclient.CreateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -101,7 +110,7 @@ func (c *StripeClientMock) CreateInvoice(ctx context.Context, input stripeclient
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
-func (c *StripeClientMock) UpdateInvoice(ctx context.Context, input stripeclient.UpdateInvoiceInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) UpdateInvoice(ctx context.Context, input stripeclient.UpdateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -110,7 +119,7 @@ func (c *StripeClientMock) UpdateInvoice(ctx context.Context, input stripeclient
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
-func (c *StripeClientMock) DeleteInvoice(ctx context.Context, input stripeclient.DeleteInvoiceInput) error {
+func (c *StripeAppClientMock) DeleteInvoice(ctx context.Context, input stripeclient.DeleteInvoiceInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -119,7 +128,7 @@ func (c *StripeClientMock) DeleteInvoice(ctx context.Context, input stripeclient
 	return args.Error(1)
 }
 
-func (c *StripeClientMock) FinalizeInvoice(ctx context.Context, input stripeclient.FinalizeInvoiceInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripeclient.FinalizeInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -130,7 +139,7 @@ func (c *StripeClientMock) FinalizeInvoice(ctx context.Context, input stripeclie
 
 // Invoice Lines
 
-func (c *StripeClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -139,7 +148,7 @@ func (c *StripeClientMock) AddInvoiceLines(ctx context.Context, input stripeclie
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
-func (c *StripeClientMock) UpdateInvoiceLines(ctx context.Context, input stripeclient.UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) UpdateInvoiceLines(ctx context.Context, input stripeclient.UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -148,7 +157,7 @@ func (c *StripeClientMock) UpdateInvoiceLines(ctx context.Context, input stripec
 	return args.Get(0).(*stripe.Invoice), args.Error(1)
 }
 
-func (c *StripeClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

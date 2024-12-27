@@ -58,6 +58,20 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 		})
 }
 
+// UpdateAppStatus updates an app status
+func (a adapter) UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error {
+	_, err := a.db.App.Update().
+		Where(appdb.Namespace(input.ID.Namespace)).
+		Where(appdb.ID(input.ID.ID)).
+		SetStatus(input.Status).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to update app status: %w", err)
+	}
+
+	return nil
+}
+
 // ListApps lists apps
 func (a adapter) ListApps(ctx context.Context, params appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
 	return entutils.TransactingRepo(

@@ -35,7 +35,7 @@ type StripeInvoiceTestSuite struct {
 	AppStripeService appstripe.Service
 	Fixture          *Fixture
 	SecretService    secret.Service
-	StripeClient     *StripeClientMock
+	StripeAppClient  *StripeAppClientMock
 }
 
 func TestStripeInvoicing(t *testing.T) {
@@ -57,10 +57,11 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 
 	// Stripe Client
 	stripeClient := &StripeClientMock{
-		StripeAccountID: "acct_123",
+		StripeAccountID: "stripe-account-id",
 	}
+	stripeAppClient := &StripeAppClientMock{}
 
-	s.StripeClient = stripeClient
+	s.StripeAppClient = stripeAppClient
 
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
@@ -70,6 +71,9 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		SecretService:   secretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
 			return stripeClient, nil
+		},
+		StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) {
+			return stripeAppClient, nil
 		},
 	})
 	s.Require().NoError(err, "failed to create app stripe adapter")
@@ -409,7 +413,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.NoError(err)
 
 		// Mock the stripe client to return the created invoice.
-		s.StripeClient.
+		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
 				StripeCustomerID:    customerData.StripeCustomerID,
 				Currency:            "USD",
@@ -634,7 +638,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			StatementDescriptor: invoice.Supplier.Name,
 		}
 
-		s.StripeClient.
+		s.StripeAppClient.
 			On("AddInvoiceLines", stripeclient.AddInvoiceLinesInput{
 				StripeInvoiceID: "stripe-invoice-id",
 				Lines:           expectedInvoiceAddLines,
@@ -712,7 +716,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			StatementDescriptor: invoice.Supplier.Name,
 		}
 
-		s.StripeClient.
+		s.StripeAppClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
 				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
 				StatementDescriptor: updateInvoice.Supplier.Name,
@@ -723,7 +727,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Mocks to fulfill add, update and remove invoice lines:
 		// From existing lines, one is removed and the rest are updated.
 
-		s.StripeClient.
+		s.StripeAppClient.
 			On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 				Lines: lo.FilterMap(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) (*stripe.InvoiceUpdateLinesLineParams, bool) {
@@ -743,7 +747,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			}).
 			Return(stripeInvoice, nil)
 
-		s.StripeClient.
+		s.StripeAppClient.
 			On("RemoveInvoiceLines", stripeclient.RemoveInvoiceLinesInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 				Lines: []*stripe.InvoiceRemoveLinesLineParams{
@@ -763,6 +767,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.Equal(expectedResult, results.GetLineExternalIDs())
 
 		// Assert invoice is created in stripe.
-		s.StripeClient.AssertExpectations(s.T())
+		s.StripeAppClient.AssertExpectations(s.T())
 	})
 }

@@ -139,9 +139,10 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	}
 
 	// Create Stripe Client
-	stripeClient, err := s.adapter.GetStripeClientFactory()(stripeclient.StripeClientConfig{
-		Namespace: app.APIKey.Namespace,
-		APIKey:    apiKeySecret.Value,
+	stripeClient, err := s.adapter.GetStripeAppClientFactory()(stripeclient.StripeAppClientConfig{
+		AppID:      input,
+		AppService: s.appService,
+		APIKey:     apiKeySecret.Value,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stripe client")
@@ -164,11 +165,12 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 // newApp combines the app base and stripe app data to create a new app
 func (s *Service) newApp(appBase appentitybase.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
 	app := appstripeentityapp.App{
-		AppBase:             appBase,
-		AppData:             stripeApp,
-		StripeAppService:    s,
-		SecretService:       s.secretService,
-		StripeClientFactory: s.adapter.GetStripeClientFactory(),
+		AppBase:                appBase,
+		AppData:                stripeApp,
+		AppService:             s.appService,
+		StripeAppService:       s,
+		SecretService:          s.secretService,
+		StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),
 	}
 
 	if err := app.Validate(); err != nil {

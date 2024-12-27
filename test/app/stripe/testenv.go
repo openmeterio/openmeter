@@ -30,7 +30,7 @@ type TestEnv interface {
 	Customer() customer.Service
 	Fixture() *Fixture
 	Secret() *MockSecretService
-	StripeClient() *StripeClientMock
+	StripeClient() *StripeAppClientMock
 	Close() error
 }
 
@@ -42,7 +42,7 @@ type testEnv struct {
 	customer     customer.Service
 	fixture      *Fixture
 	secret       *MockSecretService
-	stripeClient *StripeClientMock
+	stripeClient *StripeAppClientMock
 
 	closerFunc func() error
 }
@@ -71,7 +71,7 @@ func (n testEnv) Secret() *MockSecretService {
 	return n.secret
 }
 
-func (n testEnv) StripeClient() *StripeClientMock {
+func (n testEnv) StripeClient() *StripeAppClientMock {
 	return n.stripeClient
 }
 
@@ -129,9 +129,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	// Stripe Client
-	stripeClient := &StripeClientMock{
+	stripeClientMock := &StripeClientMock{
 		StripeAccountID: "acct_123",
 	}
+	stripeAppClientMock := &StripeAppClientMock{}
 
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
@@ -140,7 +141,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		SecretService:   secretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
-			return stripeClient, nil
+			return stripeClientMock, nil
+		},
+		StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) {
+			return stripeAppClientMock, nil
 		},
 	})
 	if err != nil {
@@ -177,6 +181,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		fixture:      NewFixture(appService, customerService),
 		secret:       secretService,
 		closerFunc:   closerFunc,
-		stripeClient: stripeClient,
+		stripeClient: stripeAppClientMock,
 	}, nil
 }

@@ -143,3 +143,21 @@ func (i ListAppInput) Validate() error {
 
 	return nil
 }
+
+// UpdateAppStatusInput is the input for updating an app status
+type UpdateAppStatusInput struct {
+	ID     appentitybase.AppID
+	Status appentitybase.AppStatus
+}
+
+func (i UpdateAppStatusInput) Validate() error {
+	if err := i.ID.Validate(); err != nil {
+		return err
+	}
+
+	if i.Status == "" {
+		return errors.New("status is required")
+	}
+
+	return nil
+}

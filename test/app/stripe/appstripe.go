@@ -331,6 +331,12 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	newAPIKey = "sk_live_abcde"
 
+	s.Env.StripeClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: stripeApp.StripeAccountID,
+		}, nil)
+
 	s.Env.Secret().
 		On("GetAppSecret", secretentity.GetAppSecretInput{
 			AppID: app.GetID(),
@@ -346,6 +352,13 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 		}).
 		Return(nil)
 
+	// Update app status to unauthorized so we can check
+	// if it is updated to ready after updating the API key.
+	s.Env.App().UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
+		ID:     app.GetID(),
+		Status: appentitybase.AppStatusUnauthorized,
+	})
+
 	// Should allow to update test mode app with test mode key
 	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
 		AppID:  app.GetID(),
@@ -353,4 +366,10 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 	})
 
 	require.NoError(t, err, "Update API key must not return error")
+
+	// Get stripe app
+	app, err = s.Env.App().GetApp(ctx, app.GetID())
+	require.NoError(t, err, "Get app must not return error")
+
+	require.Equal(t, app.GetStatus(), appentitybase.AppStatusReady, "App status must be ready")
 }

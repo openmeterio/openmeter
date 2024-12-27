@@ -26,6 +26,11 @@ func (a adapter) GetStripeClientFactory() stripeclient.StripeClientFactory {
 	return a.stripeClientFactory
 }
 
+// GetStripeAppClientFactory gets the stripe client factory
+func (a adapter) GetStripeAppClientFactory() stripeclient.StripeAppClientFactory {
+	return a.stripeAppClientFactory
+}
+
 // CreateApp creates a new app
 func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error) {
 	if err := input.Validate(); err != nil {
@@ -89,9 +94,10 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 	}
 
 	// Validate the new API key
-	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: input.AppID.Namespace,
-		APIKey:    input.APIKey,
+	stripeClient, err := a.stripeAppClientFactory(stripeclient.StripeAppClientConfig{
+		AppID:      input.AppID,
+		AppService: a.appService,
+		APIKey:     input.APIKey,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stripe client: %w", err)
@@ -134,6 +140,17 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update api key: %w", err)
+	}
+
+	// Update the app status to ready
+	status := appentitybase.AppStatusReady
+
+	err = a.appService.UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
+		ID:     input.AppID,
+		Status: status,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update app status to %s for %s: %w", input.AppID.ID, status, err)
 	}
 
 	return nil
@@ -398,9 +415,10 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		}
 
 		// Stripe Client
-		stripeClient, err := repo.stripeClientFactory(stripeclient.StripeClientConfig{
-			Namespace: stripeApp.Namespace,
-			APIKey:    apiKeySecret.Value,
+		stripeClient, err := repo.stripeAppClientFactory(stripeclient.StripeAppClientConfig{
+			AppID:      appID,
+			AppService: repo.appService,
+			APIKey:     apiKeySecret.Value,
 		})
 		if err != nil {
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create stripe client: %w", err)

@@ -36,26 +36,34 @@ func (e AppDefaultNotFoundError) Error() string {
 var _ error = (*AppProviderAuthenticationError)(nil)
 
 type AppProviderAuthenticationError struct {
+	AppID         *appentitybase.AppID
 	Namespace     string
-	Type          appentitybase.AppType
 	ProviderError error
 }
 
 func (e AppProviderAuthenticationError) Error() string {
-	return fmt.Sprintf("provider authentication error for %s app type in %s namespace: %s", e.Type, e.Namespace, e.ProviderError)
+	if e.AppID == nil {
+		return fmt.Sprintf("provider authentication error for app in %s namespace: %s", e.Namespace, e.ProviderError)
+	}
+
+	return fmt.Sprintf("provider authentication error for app %s: %s", e.AppID.ID, e.ProviderError)
 }
 
 // AppProviderError
 var _ error = (*AppProviderError)(nil)
 
 type AppProviderError struct {
+	AppID         *appentitybase.AppID
 	Namespace     string
-	Type          appentitybase.AppType
 	ProviderError error
 }
 
 func (e AppProviderError) Error() string {
-	return fmt.Sprintf("provider error for %s app type in %s namespace: %s", e.Type, e.Namespace, e.ProviderError)
+	if e.AppID == nil {
+		return fmt.Sprintf("provider error for app in %s namespace: %s", e.Namespace, e.ProviderError)
+	}
+
+	return fmt.Sprintf("provider error for app %s: %s", e.AppID.ID, e.ProviderError)
 }
 
 // CustomerPreConditionError

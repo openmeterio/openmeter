@@ -24,6 +24,7 @@ type AppService interface {
 	// Installed app
 	CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error)
 	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
+	UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error
 	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)
 	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
 	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
