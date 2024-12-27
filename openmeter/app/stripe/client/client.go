@@ -15,12 +15,16 @@ import (
 	app "github.com/openmeterio/openmeter/openmeter/app"
 )
 
-type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
-
+// StripeClient is a client for the stripe API without an installed app
+// It is useful to call the Stripe API before the app is installed,
+// for example during the app installation process.
 type StripeClient interface {
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error)
 }
+
+// StripeClientFactory is a factory function to create a StripeClient.
+type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 
 type StripeClientConfig struct {
 	Namespace string

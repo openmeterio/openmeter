@@ -25,8 +25,8 @@ const (
 	WebhookEventTypeSetupIntentSucceeded = "setup_intent.succeeded"
 )
 
-type StripeAppClientFactory = func(config StripeAppClientConfig) (StripeAppClient, error)
-
+// StripeAppClient is a client for the stripe API for an installed app.
+// It is useful to call the Stripe API after the app is installed.
 type StripeAppClient interface {
 	DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error
 	GetAccount(ctx context.Context) (StripeAccount, error)
@@ -44,6 +44,9 @@ type StripeAppClient interface {
 	UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) (*stripe.Invoice, error)
 	RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) (*stripe.Invoice, error)
 }
+
+// StripeAppClientFactory is a factory for creating a StripeAppClient for an installed app.
+type StripeAppClientFactory = func(config StripeAppClientConfig) (StripeAppClient, error)
 
 type StripeAppClientConfig struct {
 	AppService app.Service
@@ -339,7 +342,6 @@ func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaym
 func (c *stripeAppClient) providerError(err error) error {
 	if stripeErr, ok := err.(*stripe.Error); ok {
 		if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-
 			// Update app status to unauthorized
 			status := appentitybase.AppStatusUnauthorized
 

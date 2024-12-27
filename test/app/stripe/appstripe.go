@@ -354,22 +354,22 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	// Update app status to unauthorized so we can check
 	// if it is updated to ready after updating the API key.
-	s.Env.App().UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
+	err = s.Env.App().UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
 		ID:     app.GetID(),
 		Status: appentitybase.AppStatusUnauthorized,
 	})
+	require.NoError(t, err, "Update app status must not return error")
 
 	// Should allow to update test mode app with test mode key
 	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
 		AppID:  app.GetID(),
 		APIKey: newAPIKey,
 	})
-
 	require.NoError(t, err, "Update API key must not return error")
 
 	// Get stripe app
 	app, err = s.Env.App().GetApp(ctx, app.GetID())
-	require.NoError(t, err, "Get app must not return error")
 
+	require.NoError(t, err, "Get app must not return error")
 	require.Equal(t, app.GetStatus(), appentitybase.AppStatusReady, "App status must be ready")
 }
