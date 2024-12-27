@@ -58,8 +58,8 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestCreateCheckoutSession(ctx, t)
 		})
 
-		// t.Run("TestCreateInvoice", func(t *testing.T) {
-		// 	testSuite.TestCreateInvoice(ctx, t)
-		// })
+		t.Run("TestUpdateAPIKey", func(t *testing.T) {
+			testSuite.TestUpdateAPIKey(ctx, t)
+		})
 	})
 }

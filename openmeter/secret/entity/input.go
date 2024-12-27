@@ -34,6 +34,34 @@ func (i CreateAppSecretInput) Validate() error {
 	return nil
 }
 
+type UpdateAppSecretInput struct {
+	ID    SecretID
+	Key   string
+	Value string
+}
+
+func (i UpdateAppSecretInput) Validate() error {
+	if err := i.ID.Validate(); err != nil {
+		return ValidationError{
+			Err: errors.New("id is invalid"),
+		}
+	}
+
+	if i.Key == "" {
+		return ValidationError{
+			Err: errors.New("key is required"),
+		}
+	}
+
+	if i.Value == "" {
+		return ValidationError{
+			Err: errors.New("value is required"),
+		}
+	}
+
+	return nil
+}
+
 type GetAppSecretInput = SecretID
 
 type DeleteAppSecretInput = SecretID

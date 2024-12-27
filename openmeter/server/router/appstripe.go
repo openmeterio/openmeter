@@ -33,8 +33,19 @@ func (a *Router) AppStripeWebhook(w http.ResponseWriter, r *http.Request, appID 
 	}).ServeHTTP(w, r)
 }
 
+// Handle update stripe api key
+// (POST /api/v1/apps/{id}/stripe/api-key)
+func (a *Router) UpdateStripeAPIKey(w http.ResponseWriter, r *http.Request, appID string) {
+	if !a.config.AppsEnabled {
+		unimplemented.UpdateStripeAPIKey(w, r, appID)
+		return
+	}
+
+	a.appStripeHandler.UpdateStripeAPIKey().With(appID).ServeHTTP(w, r)
+}
+
 // Handle create app stripe checkout session
-// (POST /api/v1/integration/stripe/checkout/sessions)
+// (POST /api/v1/stripe/checkout/sessions)
 func (a *Router) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	if !a.config.AppsEnabled {
 		unimplemented.CreateStripeCheckoutSession(w, r)

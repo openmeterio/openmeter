@@ -750,6 +750,10 @@ var _ appstripe.Service = (*NoopAppStripeService)(nil)
 
 type NoopAppStripeService struct{}
 
+func (n NoopAppStripeService) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+	return nil
+}
+
 func (n NoopAppStripeService) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
 	return appstripeentity.CreateCheckoutSessionOutput{}, nil
 }

@@ -16,6 +16,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 var TestStripeAPIKey = "test_stripe_api_key"
@@ -302,4 +303,54 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	})
 
 	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
+}
+
+// TestUpdateAPIKey tests stripe app behavior when updating the API key
+func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T) {
+	app, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	// Get stripe app
+	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: app.GetID()})
+	require.NoError(t, err, "Get stripe app data must not return error")
+
+	newAPIKey := "sk_test_abcde"
+
+	// Should not allow to update test mode app with livemode key
+	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
+		AppID:  app.GetID(),
+		APIKey: newAPIKey,
+	})
+
+	require.Error(t, err, "Update API key must return error")
+	require.Equal(t, err.Error(), "new stripe api key is in test mode but the app is in live mode")
+
+	// Mock the secret service
+	s.Env.Secret().EnableMock()
+	defer s.Env.Secret().DisableMock()
+
+	newAPIKey = "sk_live_abcde"
+
+	s.Env.Secret().
+		On("GetAppSecret", secretentity.GetAppSecretInput{
+			AppID: app.GetID(),
+			Key:   appstripeentity.APIKeySecretKey,
+		}).
+		Return(stripeApp.APIKey, nil)
+
+	s.Env.Secret().
+		On("UpdateAppSecret", secretentity.UpdateAppSecretInput{
+			ID:    stripeApp.APIKey,
+			Key:   appstripeentity.APIKeySecretKey,
+			Value: newAPIKey,
+		}).
+		Return(nil)
+
+	// Should allow to update test mode app with test mode key
+	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
+		AppID:  app.GetID(),
+		APIKey: newAPIKey,
+	})
+
+	require.NoError(t, err, "Update API key must not return error")
 }

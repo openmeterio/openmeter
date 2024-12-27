@@ -207,11 +207,72 @@ paths:
       tags:
         - Apps
       x-internal: true
+  /api/v1/apps/{id}/stripe/api-key:
+    put:
+      operationId: updateStripeAPIKey
+      summary: Update Stripe API key
+      description: Update the Stripe API key.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeAPIKeyInput'
+      x-internal: true
   /api/v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
       summary: Stripe webhook
-      description: Stripe webhook.
+      description: Handle stripe webhooks for apps.
       parameters:
         - name: id
           in: path
@@ -3148,70 +3209,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Entitlements (Beta)
-  /api/v1/integration/stripe/checkout/sessions:
-    post:
-      operationId: createStripeCheckoutSession
-      summary: Create checkout session
-      description: Create checkout session.
-      parameters: []
-      responses:
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateStripeCheckoutSessionResult'
-        '400':
-          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/BadRequestProblemResponse'
-        '401':
-          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedProblemResponse'
-        '403':
-          description: The server understood the request but refuses to authorize it.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenProblemResponse'
-        '404':
-          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/NotFoundProblemResponse'
-        '500':
-          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
-        '503':
-          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
-        default:
-          description: An unexpected error response.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/UnexpectedProblemResponse'
-      tags:
-        - Apps
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
-      x-internal: true
   /api/v1/marketplace/listings:
     get:
       operationId: listMarketplaceListings
@@ -5892,6 +5889,70 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Portal
+  /api/v1/stripe/checkout/sessions:
+    post:
+      operationId: createStripeCheckoutSession
+      summary: Create checkout session
+      description: Create checkout session.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateStripeCheckoutSessionResult'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
+      x-internal: true
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -14153,6 +14214,16 @@ components:
       description: |-
         Spending commitments.
         The customer is committed to spend at least the minimum amount and at most the maximum amount.
+    StripeAPIKeyInput:
+      type: object
+      required:
+        - secretAPIKey
+      properties:
+        secretAPIKey:
+          type: string
+      description: |-
+        The Stripe API key input.
+        Used to authenticate with the Stripe API.
     StripeApp:
       type: object
       required:
@@ -14165,6 +14236,7 @@ components:
         - type
         - stripeAccountId
         - livemode
+        - maskedAPIKey
       properties:
         id:
           type: string
@@ -14233,6 +14305,11 @@ components:
         livemode:
           type: boolean
           description: Livemode, true if the app is in production mode.
+        maskedAPIKey:
+          type: string
+          description: |-
+            The masked API key.
+            Only shows the first 8 and last 3 characters.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         type: stripe
@@ -14260,6 +14337,7 @@ components:
         updatedAt: 2024-01-01T01:01:01.001Z
         stripeAccountId: acct_123456789
         livemode: true
+        maskedAPIKey: sk_live_************abc
       description: A installed Stripe app object.
     StripeCheckoutSessionMode:
       type: string

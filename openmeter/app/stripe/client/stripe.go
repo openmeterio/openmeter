@@ -184,3 +184,18 @@ func (i CreateStripeCustomerInput) Validate() error {
 
 	return nil
 }
+
+// IsAPIKeyLiveMode checks if the API key is a live mode key
+func IsAPIKeyLiveMode(apiKey string) bool {
+	// Root keys start with "sk_"
+	if strings.HasPrefix(apiKey, "sk_test") {
+		return false
+	}
+
+	// Restricted keys start with "rk_"
+	if strings.HasPrefix(apiKey, "rk_test") {
+		return false
+	}
+
+	return true
+}

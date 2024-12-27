@@ -23,7 +23,7 @@ namespace OpenMeter.App;
 @tag("Apps")
 interface AppStripe {
   /**
-   * Stripe webhook.
+   * Handle stripe webhooks for apps.
    */
   @post
   @route("/api/v1/apps/{id}/stripe/webhook")
@@ -36,10 +36,23 @@ interface AppStripe {
   ): StripeWebhookResponse | NotFoundError | CommonErrors;
 
   /**
+   * Update the Stripe API key.
+   */
+  @put
+  @route("/api/v1/apps/{id}/stripe/api-key")
+  @operationId("updateStripeAPIKey")
+  @summary("Update Stripe API key")
+  @extension("x-internal", true)
+  updateStripeAPIKey(
+    @path id: ULID,
+    @body request: StripeAPIKeyInput,
+  ): void | OpenMeter.CommonErrors;
+
+  /**
    * Create checkout session.
    */
   @post
-  @route("/api/v1/integration/stripe/checkout/sessions")
+  @route("/api/v1/stripe/checkout/sessions")
   @operationId("createStripeCheckoutSession")
   @summary("Create checkout session")
   @extension("x-internal", true)
@@ -262,6 +275,7 @@ model CheckoutSessionCustomTextParams {
   stripeAccountId: "acct_123456789",
 
   livemode: true,
+  maskedAPIKey: "sk_live_************abc",
 })
 model StripeApp {
   ...AppBase;
@@ -280,6 +294,12 @@ model StripeApp {
    * Livemode, true if the app is in production mode.
    */
   livemode: boolean;
+
+  /**
+   * The masked API key.
+   * Only shows the first 8 and last 3 characters.
+   */
+  maskedAPIKey: string;
 }
 
 /**
@@ -362,4 +382,13 @@ enum StripePaymentIntentStatus {
   RequiresConfirmation: "requires_confirmation",
   RequiresPaymentMethod: "requires_payment_method",
   Succeeded: "succeeded",
+}
+
+/**
+ * The Stripe API key input.
+ * Used to authenticate with the Stripe API.
+ */
+@friendlyName("StripeAPIKeyInput")
+model StripeAPIKeyInput {
+  secretAPIKey: string;
 }

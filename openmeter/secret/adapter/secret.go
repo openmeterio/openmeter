@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,6 +19,11 @@ func (a adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateA
 		AppID: input.AppID,
 		Key:   input.Key,
 	}, nil
+}
+
+func (a adapter) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error {
+	// In the real implementation, this method would update a secret in a secret store.
+	return fmt.Errorf("update secret is not implemented")
 }
 
 func (a adapter) GetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error) {
