@@ -48,6 +48,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/apps/{id}/stripe/api-key': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Update Stripe API key
+     * @description Update the Stripe API key.
+     */
+    put: operations['updateStripeAPIKey']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/apps/{id}/stripe/webhook': {
     parameters: {
       query?: never
@@ -59,7 +79,7 @@ export interface paths {
     put?: never
     /**
      * Stripe webhook
-     * @description Stripe webhook.
+     * @description Handle stripe webhooks for apps.
      */
     post: operations['appStripeWebhook']
     delete?: never
@@ -701,26 +721,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/integration/stripe/checkout/sessions': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Create checkout session
-     * @description Create checkout session.
-     */
-    post: operations['createStripeCheckoutSession']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/marketplace/listings': {
     parameters: {
       query?: never
@@ -1332,6 +1332,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/stripe/checkout/sessions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Create checkout session
+     * @description Create checkout session.
+     */
+    post: operations['createStripeCheckoutSession']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/subjects': {
     parameters: {
       query?: never
@@ -1710,8 +1730,8 @@ export interface components {
     /** @description App.
      *     One of: stripe */
     App:
-    | components['schemas']['StripeApp']
-    | components['schemas']['SandboxApp']
+      | components['schemas']['StripeApp']
+      | components['schemas']['SandboxApp']
     /** @description Abstract base model for installed apps.
      *
      *     Represent an app installed to the organization.
@@ -1790,11 +1810,11 @@ export interface components {
      * @enum {string}
      */
     AppCapabilityType:
-    | 'reportUsage'
-    | 'reportEvents'
-    | 'calculateTax'
-    | 'invoiceCustomers'
-    | 'collectPayments'
+      | 'reportUsage'
+      | 'reportEvents'
+      | 'calculateTax'
+      | 'invoiceCustomers'
+      | 'collectPayments'
     /** @description A page of results. */
     AppList: {
       /** @description The page number. */
@@ -1980,8 +2000,8 @@ export interface components {
     /** @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
      *     for a billing profile. */
     BillingProfileAppsOrReference:
-    | components['schemas']['BillingProfileApps']
-    | components['schemas']['BillingProfileAppReferences']
+      | components['schemas']['BillingProfileApps']
+      | components['schemas']['BillingProfileAppReferences']
     /** @description BillingProfileCreate represents the input for creating a billing profile */
     BillingProfileCreate: {
       /**
@@ -2348,8 +2368,8 @@ export interface components {
       /** @description Provide a customer ID to use an existing OpenMeter customer.
        *     or provide a customer object to create a new customer. */
       customer:
-      | components['schemas']['CustomerId']
-      | components['schemas']['CustomerCreate']
+        | components['schemas']['CustomerId']
+        | components['schemas']['CustomerCreate']
       /** @description Stripe customer ID.
        *     If not provided OpenMeter creates a new Stripe customer or
        *     uses the OpenMeter customer's default Stripe customer ID. */
@@ -2540,8 +2560,8 @@ export interface components {
      *     Stores the app specific data for the customer.
      *     One of: stripe, sandbox */
     CustomerAppData:
-    | components['schemas']['StripeCustomerAppData']
-    | components['schemas']['SandboxCustomerAppData']
+      | components['schemas']['StripeCustomerAppData']
+      | components['schemas']['SandboxCustomerAppData']
     /** @description Paginated response */
     CustomerAppDataPaginatedResponse: {
       /**
@@ -2771,9 +2791,9 @@ export interface components {
     /** @description Entitlement templates are used to define the entitlements of a plan.
      *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     Entitlement:
-    | components['schemas']['EntitlementMetered']
-    | components['schemas']['EntitlementStatic']
-    | components['schemas']['EntitlementBoolean']
+      | components['schemas']['EntitlementMetered']
+      | components['schemas']['EntitlementStatic']
+      | components['schemas']['EntitlementBoolean']
     /** @description Shared fields of the entitlement templates. */
     EntitlementBaseTemplate: {
       /**
@@ -2913,9 +2933,9 @@ export interface components {
     }
     /** @description Create inputs for entitlement */
     EntitlementCreateInputs:
-    | components['schemas']['EntitlementMeteredCreateInputs']
-    | components['schemas']['EntitlementStaticCreateInputs']
-    | components['schemas']['EntitlementBooleanCreateInputs']
+      | components['schemas']['EntitlementMeteredCreateInputs']
+      | components['schemas']['EntitlementStaticCreateInputs']
+      | components['schemas']['EntitlementBooleanCreateInputs']
     /** @description The grant. */
     EntitlementGrant: {
       /**
@@ -3732,8 +3752,8 @@ export interface components {
     /** @description The body of the events request.
      *     Either a single event or a batch of events. */
     IngestEventsBody:
-    | components['schemas']['Event']
-    | components['schemas']['Event'][]
+      | components['schemas']['Event']
+      | components['schemas']['Event'][]
     /**
      * @description An ingested event with optional validation error.
      * @example {
@@ -4121,8 +4141,8 @@ export interface components {
     }
     /** @description BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price. */
     InvoiceLine:
-    | components['schemas']['InvoiceUsageBasedLine']
-    | components['schemas']['InvoiceFlatFeeLine']
+      | components['schemas']['InvoiceUsageBasedLine']
+      | components['schemas']['InvoiceFlatFeeLine']
     /** @description InvoiceLineAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe. */
     InvoiceLineAppExternalIDs: {
       /** @description The external ID of the invoice in the invoicing app if available. */
@@ -4171,8 +4191,8 @@ export interface components {
     }
     /** @description InvoiceLineReplaceUpdate represents the update model for an invoice line. */
     InvoiceLineReplaceUpdate:
-    | components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
-    | components['schemas']['InvoiceFlatFeeLineReplaceUpdate']
+      | components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
+      | components['schemas']['InvoiceFlatFeeLineReplaceUpdate']
     /**
      * @description Line status specifies the status of the line.
      * @enum {string}
@@ -4223,11 +4243,11 @@ export interface components {
      * @enum {string}
      */
     InvoiceOrderBy:
-    | 'customer.name'
-    | 'issuedAt'
-    | 'status'
-    | 'createdAt'
-    | 'updatedAt'
+      | 'customer.name'
+      | 'issuedAt'
+      | 'status'
+      | 'createdAt'
+      | 'updatedAt'
     /** @description Paginated response */
     InvoicePaginatedResponse: {
       /**
@@ -4255,8 +4275,8 @@ export interface components {
     }
     /** @description InvoiceLineCreate represents the create model for an invoice line. */
     InvoicePendingLineCreate:
-    | components['schemas']['InvoiceUsageBasedPendingLineCreate']
-    | components['schemas']['InvoiceFlatFeePendingLineCreate']
+      | components['schemas']['InvoiceUsageBasedPendingLineCreate']
+      | components['schemas']['InvoiceFlatFeePendingLineCreate']
     /** @description BillingInvoiceActionInput is the input for creating an invoice.
      *
      *     Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
@@ -4527,12 +4547,12 @@ export interface components {
     }
     /** @description List entitlements result */
     ListEntitlementsResult:
-    | components['schemas']['Entitlement'][]
-    | components['schemas']['EntitlementPaginatedResponse']
+      | components['schemas']['Entitlement'][]
+      | components['schemas']['EntitlementPaginatedResponse']
     /** @description List features result */
     ListFeaturesResult:
-    | components['schemas']['Feature'][]
-    | components['schemas']['FeaturePaginatedResponse']
+      | components['schemas']['Feature'][]
+      | components['schemas']['FeaturePaginatedResponse']
     /**
      * @description A marketplace listing.
      *     Represent an available app in the app marketplace that can be installed to the organization.
@@ -4590,8 +4610,8 @@ export interface components {
     }
     /** @description Measure usage from */
     MeasureUsageFrom:
-    | components['schemas']['MeasureUsageFromPreset']
-    | components['schemas']['MeasureUsageFromTime']
+      | components['schemas']['MeasureUsageFromPreset']
+      | components['schemas']['MeasureUsageFromTime']
     /**
      * @description Start of measurement options
      * @enum {string}
@@ -5080,10 +5100,10 @@ export interface components {
      * @enum {string}
      */
     NotificationEventDeliveryStatusState:
-    | 'SUCCESS'
-    | 'FAILED'
-    | 'SENDING'
-    | 'PENDING'
+      | 'SUCCESS'
+      | 'FAILED'
+      | 'SENDING'
+      | 'PENDING'
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -5274,13 +5294,13 @@ export interface components {
      * @enum {string}
      */
     OAuth2AuthorizationCodeGrantErrorType:
-    | 'invalid_request'
-    | 'unauthorized_client'
-    | 'access_denied'
-    | 'unsupported_response_type'
-    | 'invalid_scope'
-    | 'server_error'
-    | 'temporarily_unavailable'
+      | 'invalid_request'
+      | 'unauthorized_client'
+      | 'access_denied'
+      | 'unsupported_response_type'
+      | 'invalid_scope'
+      | 'server_error'
+      | 'temporarily_unavailable'
     /** @description PaymentDueDate contains an amount that should be paid by the given date. */
     PaymentDueDate: {
       /**
@@ -5326,8 +5346,8 @@ export interface components {
     }
     /** @description PaymentTerms defines the terms for payment. */
     PaymentTerms:
-    | components['schemas']['PaymentTermInstant']
-    | components['schemas']['PaymentTermDueDate']
+      | components['schemas']['PaymentTermInstant']
+      | components['schemas']['PaymentTermDueDate']
     /** @description Numeric representation of a percentage */
     Percentage: string
     /** @description A period with a start and end time. */
@@ -5785,8 +5805,8 @@ export interface components {
     }
     /** @description A rate card defines the pricing and entitlement of a feature or service. */
     RateCard:
-    | components['schemas']['RateCardFlatFee']
-    | components['schemas']['RateCardUsageBased']
+      | components['schemas']['RateCardFlatFee']
+      | components['schemas']['RateCardUsageBased']
     /** @description Entitlement template of a boolean entitlement. */
     RateCardBooleanEntitlement: {
       /** @description Additional metadata for the feature. */
@@ -5797,9 +5817,9 @@ export interface components {
     /** @description Entitlement templates are used to define the entitlements of a plan.
      *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     RateCardEntitlement:
-    | components['schemas']['RateCardMeteredEntitlement']
-    | components['schemas']['RateCardStaticEntitlement']
-    | components['schemas']['RateCardBooleanEntitlement']
+      | components['schemas']['RateCardMeteredEntitlement']
+      | components['schemas']['RateCardStaticEntitlement']
+      | components['schemas']['RateCardBooleanEntitlement']
     /** @description A flat fee rate card defines a one-time purchase or a recurring fee. */
     RateCardFlatFee: {
       /**
@@ -5961,9 +5981,9 @@ export interface components {
     }
     /** @description The price of the usage based rate card. */
     RateCardUsageBasedPrice:
-    | components['schemas']['FlatPriceWithPaymentTerm']
-    | components['schemas']['UnitPriceWithCommitments']
-    | components['schemas']['TieredPriceWithCommitments']
+      | components['schemas']['FlatPriceWithPaymentTerm']
+      | components['schemas']['UnitPriceWithCommitments']
+      | components['schemas']['TieredPriceWithCommitments']
     /**
      * @description Recurring period with an interval and an anchor.
      * @example {
@@ -6116,6 +6136,11 @@ export interface components {
      * @enum {string}
      */
     SortOrder: 'ASC' | 'DESC'
+    /** @description The Stripe API key input.
+     *     Used to authenticate with the Stripe API. */
+    StripeAPIKeyInput: {
+      secretAPIKey: string
+    }
     /**
      * @description A installed Stripe app object.
      * @example {
@@ -6152,7 +6177,8 @@ export interface components {
      *       "createdAt": "2024-01-01T01:01:01.001Z",
      *       "updatedAt": "2024-01-01T01:01:01.001Z",
      *       "stripeAccountId": "acct_123456789",
-     *       "livemode": true
+     *       "livemode": true,
+     *       "maskedAPIKey": "sk_live_************abc"
      *     }
      */
     StripeApp: {
@@ -6211,6 +6237,9 @@ export interface components {
       stripeAccountId: string
       /** @description Livemode, true if the app is in production mode. */
       livemode: boolean
+      /** @description The masked API key.
+       *     Only shows the first 8 and last 3 characters. */
+      maskedAPIKey: string
     }
     /**
      * @description Stripe CheckoutSession.mode
@@ -6250,12 +6279,12 @@ export interface components {
      * @enum {string}
      */
     StripePaymentIntentStatus:
-    | 'canceled'
-    | 'processing'
-    | 'requires_action'
-    | 'requires_confirmation'
-    | 'requires_payment_method'
-    | 'succeeded'
+      | 'canceled'
+      | 'processing'
+      | 'requires_action'
+      | 'requires_confirmation'
+      | 'requires_payment_method'
+      | 'succeeded'
     /** @description Stripe setup intent. */
     StripeSetupIntent: {
       /** @description The setup intent id. */
@@ -6487,8 +6516,8 @@ export interface components {
     }
     /** @description Change a subscription. */
     SubscriptionChange:
-    | components['schemas']['PlanSubscriptionChange']
-    | components['schemas']['CustomSubscriptionChange']
+      | components['schemas']['PlanSubscriptionChange']
+      | components['schemas']['CustomSubscriptionChange']
     /** @description Response body for subscription change. */
     SubscriptionChangeResponseBody: {
       /** Current subscription */
@@ -6498,8 +6527,8 @@ export interface components {
     }
     /** @description Create a subscription. */
     SubscriptionCreate:
-    | components['schemas']['PlanSubscriptionCreate']
-    | components['schemas']['CustomSubscriptionCreate']
+      | components['schemas']['PlanSubscriptionCreate']
+      | components['schemas']['CustomSubscriptionCreate']
     /** @description Subscription edit input. */
     SubscriptionEdit: {
       /** @description Batch processing commands for manipulating running subscriptions.
@@ -6507,11 +6536,11 @@ export interface components {
       customizations: components['schemas']['SubscriptionEditOperation'][]
     }
     SubscriptionEditOperation:
-    | components['schemas']['EditSubscriptionAddItem']
-    | components['schemas']['EditSubscriptionRemoveItem']
-    | components['schemas']['EditSubscriptionAddPhase']
-    | components['schemas']['EditSubscriptionRemovePhase']
-    | components['schemas']['EditSubscriptionStretchPhase']
+      | components['schemas']['EditSubscriptionAddItem']
+      | components['schemas']['EditSubscriptionRemoveItem']
+      | components['schemas']['EditSubscriptionAddPhase']
+      | components['schemas']['EditSubscriptionRemovePhase']
+      | components['schemas']['EditSubscriptionStretchPhase']
     /** @description Expanded subscription */
     SubscriptionExpanded: {
       /**
@@ -6667,9 +6696,9 @@ export interface components {
        * @example {}
        */
       price:
-      | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
-      | (components['schemas']['UnitPriceWithCommitments'] | null)
-      | (components['schemas']['TieredPriceWithCommitments'] | null)
+        | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
+        | (components['schemas']['UnitPriceWithCommitments'] | null)
+        | (components['schemas']['TieredPriceWithCommitments'] | null)
       /** @description Describes what access is gained via the SubscriptionItem */
       included?: components['schemas']['SubscriptionItemIncluded']
       /**
@@ -6793,13 +6822,13 @@ export interface components {
        * @enum {string}
        */
       type:
-      | 'endpoint.created'
-      | 'endpoint.deleted'
-      | 'endpoint.disabled'
-      | 'endpoint.updated'
-      | 'message.attempt.exhausted'
-      | 'message.attempt.failing'
-      | 'message.attempt.recovered'
+        | 'endpoint.created'
+        | 'endpoint.deleted'
+        | 'endpoint.disabled'
+        | 'endpoint.updated'
+        | 'message.attempt.exhausted'
+        | 'message.attempt.failing'
+        | 'message.attempt.recovered'
       /**
        * Operational Webhook Payload
        * @description The payload of the Svix operational webhook request.
@@ -6988,8 +7017,8 @@ export interface components {
        *
        *     If not specified, the `action` will be applied to all line items. */
       overrides?:
-      | components['schemas']['VoidInvoiceActionLineOverride'][]
-      | null
+        | components['schemas']['VoidInvoiceActionLineOverride'][]
+        | null
     }
     /** @description VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when voiding. */
     VoidInvoiceActionLineOverride: {
@@ -7003,12 +7032,12 @@ export interface components {
     }
     /** @description VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding. */
     VoidInvoiceLineActionCreate:
-    | components['schemas']['VoidInvoiceLineDiscardAction']
-    | components['schemas']['VoidInvoiceLinePendingActionCreate']
+      | components['schemas']['VoidInvoiceLineDiscardAction']
+      | components['schemas']['VoidInvoiceLinePendingActionCreate']
     /** @description VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding. */
     VoidInvoiceLineActionCreateItem:
-    | components['schemas']['VoidInvoiceLineDiscardAction']
-    | components['schemas']['VoidInvoiceLinePendingActionCreateItem']
+      | components['schemas']['VoidInvoiceLineDiscardAction']
+      | components['schemas']['VoidInvoiceLinePendingActionCreateItem']
     /** @description VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLineDiscardAction: {
       /** @enum {string} */
@@ -7450,6 +7479,84 @@ export interface operations {
       }
     }
   }
+  updateStripeAPIKey: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StripeAPIKeyInput']
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
   appStripeWebhook: {
     parameters: {
       query?: never
@@ -7742,8 +7849,8 @@ export interface operations {
         }
         content: {
           'application/json':
-          | components['schemas']['BillingProfileCustomerOverride']
-          | components['schemas']['BillingProfileCustomerOverride']
+            | components['schemas']['BillingProfileCustomerOverride']
+            | components['schemas']['BillingProfileCustomerOverride']
         }
       }
       /** @description The request has succeeded and a new resource has been created as a result. */
@@ -10997,8 +11104,8 @@ export interface operations {
         }
         content: {
           'application/json':
-          | components['schemas']['EntitlementGrant'][]
-          | components['schemas']['GrantPaginatedResponse']
+            | components['schemas']['EntitlementGrant'][]
+            | components['schemas']['GrantPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -11118,93 +11225,6 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  createStripeCheckoutSession: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateStripeCheckoutSessionRequest']
-      }
-    }
-    responses: {
-      /** @description The request has succeeded and a new resource has been created as a result. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CreateStripeCheckoutSessionResult']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14802,6 +14822,93 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  createStripeCheckoutSession: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateStripeCheckoutSessionRequest']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CreateStripeCheckoutSessionResult']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */

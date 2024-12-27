@@ -17,9 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
-	"github.com/openmeterio/openmeter/openmeter/secret"
-	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
-	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 )
 
@@ -32,7 +29,7 @@ type TestEnv interface {
 	AppStripe() appstripe.Service
 	Customer() customer.Service
 	Fixture() *Fixture
-	Secret() secret.Service
+	Secret() *MockSecretService
 	StripeClient() *StripeClientMock
 	Close() error
 }
@@ -44,7 +41,7 @@ type testEnv struct {
 	appstripe    appstripe.Service
 	customer     customer.Service
 	fixture      *Fixture
-	secret       secret.Service
+	secret       *MockSecretService
 	stripeClient *StripeClientMock
 
 	closerFunc func() error
@@ -70,7 +67,7 @@ func (n testEnv) Fixture() *Fixture {
 	return n.fixture
 }
 
-func (n testEnv) Secret() secret.Service {
+func (n testEnv) Secret() *MockSecretService {
 	return n.secret
 }
 
@@ -110,13 +107,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	// Secret
-	secretAdapter := secretadapter.New()
-
-	secretService, err := secretservice.New(secretservice.Config{
-		Adapter: secretAdapter,
-	})
+	secretService, err := NewMockSecretService()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create secret service")
+		return nil, fmt.Errorf("failed to create secret service mock: %w", err)
 	}
 
 	// App

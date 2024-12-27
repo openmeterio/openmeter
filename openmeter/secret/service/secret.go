@@ -20,6 +20,16 @@ func (s *Service) CreateAppSecret(ctx context.Context, input secretentity.Create
 	return s.adapter.CreateAppSecret(ctx, input)
 }
 
+func (s *Service) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error {
+	if err := input.Validate(); err != nil {
+		return secretentity.ValidationError{
+			Err: fmt.Errorf("error update app secret: %w", err),
+		}
+	}
+
+	return s.adapter.UpdateAppSecret(ctx, input)
+}
+
 func (s *Service) GetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error) {
 	if err := input.Validate(); err != nil {
 		return secretentity.Secret{}, secretentity.ValidationError{

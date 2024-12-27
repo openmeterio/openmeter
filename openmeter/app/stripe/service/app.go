@@ -13,6 +13,10 @@ func (s *Service) GetWebhookSecret(ctx context.Context, input appstripeentity.Ge
 	return s.adapter.GetWebhookSecret(ctx, input)
 }
 
+func (s *Service) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+	return s.adapter.UpdateAPIKey(ctx, input)
+}
+
 func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
 	return s.adapter.CreateCheckoutSession(ctx, input)
 }

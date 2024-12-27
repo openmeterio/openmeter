@@ -48,6 +48,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/apps/{id}/stripe/api-key': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Update Stripe API key
+     * @description Update the Stripe API key.
+     */
+    put: operations['updateStripeAPIKey']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/apps/{id}/stripe/webhook': {
     parameters: {
       query?: never
@@ -59,7 +79,7 @@ export interface paths {
     put?: never
     /**
      * Stripe webhook
-     * @description Stripe webhook.
+     * @description Handle stripe webhooks for apps.
      */
     post: operations['appStripeWebhook']
     delete?: never
@@ -701,26 +721,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/integration/stripe/checkout/sessions': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Create checkout session
-     * @description Create checkout session.
-     */
-    post: operations['createStripeCheckoutSession']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/marketplace/listings': {
     parameters: {
       query?: never
@@ -1326,6 +1326,26 @@ export interface paths {
      * @description Invalidates consumer portal tokens by ID or subject.
      */
     post: operations['invalidatePortalTokens']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/stripe/checkout/sessions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Create checkout session
+     * @description Create checkout session.
+     */
+    post: operations['createStripeCheckoutSession']
     delete?: never
     options?: never
     head?: never
@@ -6116,6 +6136,11 @@ export interface components {
      * @enum {string}
      */
     SortOrder: 'ASC' | 'DESC'
+    /** @description The Stripe API key input.
+     *     Used to authenticate with the Stripe API. */
+    StripeAPIKeyInput: {
+      secretAPIKey: string
+    }
     /**
      * @description A installed Stripe app object.
      * @example {
@@ -6152,7 +6177,8 @@ export interface components {
      *       "createdAt": "2024-01-01T01:01:01.001Z",
      *       "updatedAt": "2024-01-01T01:01:01.001Z",
      *       "stripeAccountId": "acct_123456789",
-     *       "livemode": true
+     *       "livemode": true,
+     *       "maskedAPIKey": "sk_live_************abc"
      *     }
      */
     StripeApp: {
@@ -6211,6 +6237,9 @@ export interface components {
       stripeAccountId: string
       /** @description Livemode, true if the app is in production mode. */
       livemode: boolean
+      /** @description The masked API key.
+       *     Only shows the first 8 and last 3 characters. */
+      maskedAPIKey: string
     }
     /**
      * @description Stripe CheckoutSession.mode
@@ -7419,6 +7448,84 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  updateStripeAPIKey: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StripeAPIKeyInput']
+      }
+    }
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11149,93 +11256,6 @@ export interface operations {
       }
     }
   }
-  createStripeCheckoutSession: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateStripeCheckoutSessionRequest']
-      }
-    }
-    responses: {
-      /** @description The request has succeeded and a new resource has been created as a result. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CreateStripeCheckoutSessionResult']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
   listMarketplaceListings: {
     parameters: {
       query?: {
@@ -14802,6 +14822,93 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  createStripeCheckoutSession: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateStripeCheckoutSessionRequest']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CreateStripeCheckoutSessionResult']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */

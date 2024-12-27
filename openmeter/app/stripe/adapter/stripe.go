@@ -2,6 +2,7 @@ package appstripeadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -68,6 +69,74 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 			AppData: appData,
 		}, nil
 	})
+}
+
+// UpdateAPIKey replaces the API key
+func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+	// Validate the input
+	if err := input.Validate(); err != nil {
+		return appstripe.ValidationError{
+			Err: fmt.Errorf("error replace api key: %w", err),
+		}
+	}
+
+	// Get the stripe app data
+	appData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: input.AppID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get stripe app data: %w", err)
+	}
+
+	// Validate the new API key
+	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
+		Namespace: input.AppID.Namespace,
+		APIKey:    input.APIKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create stripe client: %w", err)
+	}
+
+	// Check if new API Key in the same live or test mode as the app
+	livemode := stripeclient.IsAPIKeyLiveMode(input.APIKey)
+	if livemode != appData.Livemode {
+		var err error
+
+		if livemode {
+			err = errors.New("new stripe api key is in live mode but the app is in test mode")
+		} else {
+			err = errors.New("new stripe api key is in test mode but the app is in live mode")
+		}
+
+		return appstripe.ValidationError{
+			Err: err,
+		}
+	}
+
+	// Check if it belongs to the same stripe account
+	stripeAccount, err := stripeClient.GetAccount(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to validate stripe api key: %w", err)
+	}
+
+	// Check if the stripe account id matches with the stored one
+	if stripeAccount.StripeAccountID != appData.StripeAccountID {
+		return appstripe.ValidationError{
+			Err: fmt.Errorf("stripe account id mismatch: %s != %s", stripeAccount.StripeAccountID, appData.StripeAccountID),
+		}
+	}
+
+	// Update the API key
+	err = a.secretService.UpdateAppSecret(ctx, secretentity.UpdateAppSecretInput{
+		ID:    appData.APIKey,
+		Key:   appstripeentity.APIKeySecretKey,
+		Value: input.APIKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update api key: %w", err)
+	}
+
+	return nil
 }
 
 // GetStripeAppData gets stripe customer data

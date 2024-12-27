@@ -12,6 +12,7 @@ type Adapter interface {
 
 type SecretAdapter interface {
 	CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error)
+	UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error
 	GetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error)
 	DeleteAppSecret(ctx context.Context, input secretentity.DeleteAppSecretInput) error
 }

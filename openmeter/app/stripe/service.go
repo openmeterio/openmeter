@@ -18,6 +18,7 @@ type AppService interface {
 	InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error)
 	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
 	// Stripe App methods
+	UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error
 	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)

@@ -3,7 +3,6 @@ package appservice
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/oklog/ulid/v2"
 
@@ -41,11 +40,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 	}
 
 	// Check if the Stripe API key is a test key
-	livemode := true
-
-	if strings.HasPrefix(input.APIKey, "sk_test") || strings.HasPrefix(input.APIKey, "rk_test") {
-		livemode = false
-	}
+	livemode := stripeclient.IsAPIKeyLiveMode(input.APIKey)
 
 	// Get stripe client
 	stripeClient, err := s.adapter.GetStripeClientFactory()(stripeclient.StripeClientConfig{

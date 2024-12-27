@@ -17,6 +17,7 @@ type Handler interface {
 
 type AppStripeHandler interface {
 	AppStripeWebhook() AppStripeWebhookHandler
+	UpdateStripeAPIKey() UpdateStripeAPIKeyHandler
 	CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessionHandler
 }
 

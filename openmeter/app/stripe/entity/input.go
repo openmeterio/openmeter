@@ -220,6 +220,23 @@ func (i GetWebhookSecretInput) Validate() error {
 
 type GetWebhookSecretOutput = secretentity.Secret
 
+type UpdateAPIKeyInput struct {
+	AppID  appentitybase.AppID
+	APIKey string
+}
+
+func (i UpdateAPIKeyInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.APIKey == "" {
+		return errors.New("api key is required")
+	}
+
+	return nil
+}
+
 type CreateCheckoutSessionInput struct {
 	Namespace           string
 	AppID               *appentitybase.AppID
