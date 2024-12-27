@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -11,7 +13,6 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/stretchr/testify/mock"
 )
 
 func NewFixture(
