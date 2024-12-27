@@ -42,9 +42,7 @@ type UpdateAppSecretInput struct {
 
 func (i UpdateAppSecretInput) Validate() error {
 	if err := i.ID.Validate(); err != nil {
-		return ValidationError{
-			Err: errors.New("id is invalid"),
-		}
+		return err
 	}
 
 	if i.Key == "" {
