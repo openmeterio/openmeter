@@ -421,9 +421,10 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	s.Env.Secret().
 		On("UpdateAppSecret", secretentity.UpdateAppSecretInput{
-			ID:    stripeApp.APIKey,
-			Key:   appstripeentity.APIKeySecretKey,
-			Value: newAPIKey,
+			AppID:    app.GetID(),
+			SecretID: stripeApp.APIKey,
+			Key:      appstripeentity.APIKeySecretKey,
+			Value:    newAPIKey,
 		}).
 		Return(nil)
 
