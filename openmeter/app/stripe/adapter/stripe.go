@@ -134,9 +134,10 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 
 	// Update the API key
 	err = a.secretService.UpdateAppSecret(ctx, secretentity.UpdateAppSecretInput{
-		ID:    appData.APIKey,
-		Key:   appstripeentity.APIKeySecretKey,
-		Value: input.APIKey,
+		AppID:    input.AppID,
+		SecretID: appData.APIKey,
+		Key:      appstripeentity.APIKeySecretKey,
+		Value:    input.APIKey,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update api key: %w", err)

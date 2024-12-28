@@ -35,13 +35,18 @@ func (i CreateAppSecretInput) Validate() error {
 }
 
 type UpdateAppSecretInput struct {
-	ID    SecretID
-	Key   string
-	Value string
+	AppID    appentitybase.AppID
+	SecretID SecretID
+	Key      string
+	Value    string
 }
 
 func (i UpdateAppSecretInput) Validate() error {
-	if err := i.ID.Validate(); err != nil {
+	if err := i.AppID.Validate(); err != nil {
+		return err
+	}
+
+	if err := i.SecretID.Validate(); err != nil {
 		return err
 	}
 
