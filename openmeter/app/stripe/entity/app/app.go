@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -16,9 +17,10 @@ type App struct {
 	appentitybase.AppBase
 	appstripeentity.AppData
 
-	StripeClientFactory stripeclient.StripeClientFactory `json:"-"`
-	StripeAppService    stripeapp.Service                `json:"-"`
-	SecretService       secret.Service                   `json:"-"`
+	AppService             app.Service                         `json:"-"`
+	StripeAppClientFactory stripeclient.StripeAppClientFactory `json:"-"`
+	StripeAppService       stripeapp.Service                   `json:"-"`
+	SecretService          secret.Service                      `json:"-"`
 }
 
 func (a App) Validate() error {
@@ -38,8 +40,12 @@ func (a App) Validate() error {
 		return fmt.Errorf("error validating stripe app data: %w", err)
 	}
 
-	if a.StripeClientFactory == nil {
+	if a.StripeAppClientFactory == nil {
 		return errors.New("stripe client factory is required")
+	}
+
+	if a.AppService == nil {
+		return errors.New("app service is required")
 	}
 
 	if a.StripeAppService == nil {

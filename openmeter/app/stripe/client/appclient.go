@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/client"
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -25,10 +25,9 @@ const (
 	WebhookEventTypeSetupIntentSucceeded = "setup_intent.succeeded"
 )
 
-type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
-
-type StripeClient interface {
-	SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error)
+// StripeAppClient is a client for the stripe API for an installed app.
+// It is useful to call the Stripe API after the app is installed.
+type StripeAppClient interface {
 	DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error
 	GetAccount(ctx context.Context) (StripeAccount, error)
 	GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error)
@@ -46,14 +45,22 @@ type StripeClient interface {
 	RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) (*stripe.Invoice, error)
 }
 
-type StripeClientConfig struct {
-	Namespace string
-	APIKey    string
+// StripeAppClientFactory is a factory for creating a StripeAppClient for an installed app.
+type StripeAppClientFactory = func(config StripeAppClientConfig) (StripeAppClient, error)
+
+type StripeAppClientConfig struct {
+	AppService app.Service
+	AppID      appentitybase.AppID
+	APIKey     string
 }
 
-func (c *StripeClientConfig) Validate() error {
-	if c.Namespace == "" {
-		return fmt.Errorf("namespace is required")
+func (c *StripeAppClientConfig) Validate() error {
+	if c.AppService == nil {
+		return fmt.Errorf("app stripe servive is required")
+	}
+
+	if err := c.AppID.Validate(); err != nil {
+		return fmt.Errorf("app id is required")
 	}
 
 	if c.APIKey == "" {
@@ -63,12 +70,13 @@ func (c *StripeClientConfig) Validate() error {
 	return nil
 }
 
-type stripeClient struct {
-	namespace string
-	client    *client.API
+type stripeAppClient struct {
+	appService app.Service
+	appID      appentitybase.AppID
+	client     *client.API
 }
 
-func NewStripeClient(config StripeClientConfig) (StripeClient, error) {
+func NewStripeAppClient(config StripeAppClientConfig) (StripeAppClient, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -85,72 +93,15 @@ func NewStripeClient(config StripeClientConfig) (StripeClient, error) {
 		Uploads: backend,
 	})
 
-	return &stripeClient{
-		namespace: config.Namespace,
-		client:    client,
+	return &stripeAppClient{
+		appService: config.AppService,
+		appID:      config.AppID,
+		client:     client,
 	}, nil
 }
 
-// leveledLogger is a logger that implements the stripe LeveledLogger interface
-var _ stripe.LeveledLoggerInterface = (*leveledLogger)(nil)
-
-type leveledLogger struct {
-	logger *slog.Logger
-}
-
-func (l leveledLogger) Debugf(format string, args ...interface{}) {
-	l.logger.Debug(fmt.Sprintf(format, args...))
-}
-
-func (l leveledLogger) Infof(format string, args ...interface{}) {
-	l.logger.Info(fmt.Sprintf(format, args...))
-}
-
-func (l leveledLogger) Warnf(format string, args ...interface{}) {
-	l.logger.Warn(fmt.Sprintf(format, args...))
-}
-
-func (l leveledLogger) Errorf(format string, args ...interface{}) {
-	l.logger.Error(fmt.Sprintf(format, args...))
-}
-
-// SetupWebhook setups a stripe webhook to handle setup intents and save the payment method
-func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error) {
-	if err := input.Validate(); err != nil {
-		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
-	}
-
-	webhookURL, err := url.JoinPath(input.BaseURL, "/api/v1/apps/%s/stripe/webhook", input.AppID.ID)
-	if err != nil {
-		return StripeWebhookEndpoint{}, fmt.Errorf("failed to join url path: %w", err)
-	}
-
-	params := &stripe.WebhookEndpointParams{
-		EnabledEvents: []*string{
-			lo.ToPtr(WebhookEventTypeSetupIntentSucceeded),
-		},
-		URL:         lo.ToPtr(webhookURL),
-		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),
-		Metadata: map[string]string{
-			SetupIntentDataMetadataNamespace: input.AppID.Namespace,
-			SetupIntentDataMetadataAppID:     input.AppID.ID,
-		},
-	}
-	result, err := c.client.WebhookEndpoints.New(params)
-	if err != nil {
-		return StripeWebhookEndpoint{}, fmt.Errorf("failed to create stripe webhook: %w", err)
-	}
-
-	out := StripeWebhookEndpoint{
-		EndpointID: result.ID,
-		Secret:     result.Secret,
-	}
-
-	return out, nil
-}
-
 // DeleteWebhook setups a stripe webhook to handle setup intents and save the payment method
-func (c *stripeClient) DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error {
+func (c *stripeAppClient) DeleteWebhook(ctx context.Context, input DeleteWebhookInput) error {
 	_, err := c.client.WebhookEndpoints.Del(input.StripeWebhookID, nil)
 	if err != nil {
 		if stripeErr, ok := err.(*stripe.Error); ok {
@@ -171,7 +122,7 @@ func (c *stripeClient) DeleteWebhook(ctx context.Context, input DeleteWebhookInp
 }
 
 // GetAccount returns the authorized stripe account
-func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
+func (c *stripeAppClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 	stripeAccount, err := c.client.Accounts.Get()
 	if err != nil {
 		return StripeAccount{}, c.providerError(err)
@@ -183,7 +134,7 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 }
 
 // GetCustomer returns the stripe customer by stripe customer ID
-func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error) {
+func (c *stripeAppClient) GetCustomer(ctx context.Context, stripeCustomerID string) (StripeCustomer, error) {
 	stripeCustomer, err := c.client.Customers.Get(stripeCustomerID, &stripe.CustomerParams{
 		Expand: []*string{lo.ToPtr("invoice_settings.default_payment_method")},
 	})
@@ -220,7 +171,7 @@ func (c *stripeClient) GetCustomer(ctx context.Context, stripeCustomerID string)
 }
 
 // GetPaymentMethod returns the stripe payment method by stripe payment method ID
-func (c *stripeClient) GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error) {
+func (c *stripeAppClient) GetPaymentMethod(ctx context.Context, stripePaymentMethodID string) (StripePaymentMethod, error) {
 	stripePaymentMethod, err := c.client.PaymentMethods.Get(stripePaymentMethodID, nil)
 	if err != nil {
 		// Stripe customer not found error
@@ -239,7 +190,7 @@ func (c *stripeClient) GetPaymentMethod(ctx context.Context, stripePaymentMethod
 }
 
 // CreateCustomer creates a stripe customer
-func (c *stripeClient) CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error) {
+func (c *stripeAppClient) CreateCustomer(ctx context.Context, input CreateStripeCustomerInput) (StripeCustomer, error) {
 	if err := input.Validate(); err != nil {
 		return StripeCustomer{}, err
 	}
@@ -264,7 +215,7 @@ func (c *stripeClient) CreateCustomer(ctx context.Context, input CreateStripeCus
 }
 
 // CreateCheckoutSession creates a checkout session
-func (c *stripeClient) CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error) {
+func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error) {
 	if err := input.Validate(); err != nil {
 		return StripeCheckoutSession{}, err
 	}
@@ -388,19 +339,28 @@ func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaym
 }
 
 // providerError returns a typed error for stripe provider errors
-func (c *stripeClient) providerError(err error) error {
+func (c *stripeAppClient) providerError(err error) error {
 	if stripeErr, ok := err.(*stripe.Error); ok {
 		if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
+			// Update app status to unauthorized
+			status := appentitybase.AppStatusUnauthorized
+
+			err = c.appService.UpdateAppStatus(context.Background(), appentity.UpdateAppStatusInput{
+				ID:     c.appID,
+				Status: status,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update app status to %s for app %s: %w", c.appID.ID, status, err)
+			}
+
 			return app.AppProviderAuthenticationError{
-				Namespace:     c.namespace,
-				Type:          appentitybase.AppTypeStripe,
+				AppID:         &c.appID,
 				ProviderError: errors.New(stripeErr.Msg),
 			}
 		}
 
 		return app.AppProviderError{
-			Namespace:     c.namespace,
-			Type:          appentitybase.AppTypeStripe,
+			AppID:         &c.appID,
 			ProviderError: errors.New(stripeErr.Msg),
 		}
 	}

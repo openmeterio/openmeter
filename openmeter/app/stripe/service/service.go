@@ -15,6 +15,7 @@ var _ appstripe.Service = (*Service)(nil)
 
 type Service struct {
 	adapter       appstripe.Adapter
+	appService    app.Service
 	secretService secret.Service
 }
 
@@ -47,6 +48,7 @@ func New(config Config) (*Service, error) {
 
 	service := &Service{
 		adapter:       config.Adapter,
+		appService:    config.AppService,
 		secretService: config.SecretService,
 	}
 

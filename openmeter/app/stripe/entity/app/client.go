@@ -10,7 +10,7 @@ import (
 )
 
 // getStripeClient gets the Stripe client for the app
-func (a App) getStripeClient(ctx context.Context) (appstripeentity.AppData, stripeclient.StripeClient, error) {
+func (a App) getStripeClient(ctx context.Context) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
 	// Get Stripe App
 	stripeAppData, err := a.StripeAppService.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
 		AppID: a.GetID(),
@@ -26,9 +26,10 @@ func (a App) getStripeClient(ctx context.Context) (appstripeentity.AppData, stri
 	}
 
 	// Stripe Client
-	stripeClient, err := a.StripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: apiKeySecret.SecretID.Namespace,
-		APIKey:    apiKeySecret.Value,
+	stripeClient, err := a.StripeAppClientFactory(stripeclient.StripeAppClientConfig{
+		AppID:      a.GetID(),
+		AppService: a.AppService,
+		APIKey:     apiKeySecret.Value,
 	})
 	if err != nil {
 		return appstripeentity.AppData{}, nil, fmt.Errorf("failed to create stripe client: %w", err)

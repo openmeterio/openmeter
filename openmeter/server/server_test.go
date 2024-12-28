@@ -718,6 +718,10 @@ func (n NoopAppService) CreateApp(ctx context.Context, input appentity.CreateApp
 	return appentitybase.AppBase{}, nil
 }
 
+func (n NoopAppService) UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error {
+	return nil
+}
+
 func (n NoopAppService) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
 	return appstripeentityapp.App{}, nil
 }

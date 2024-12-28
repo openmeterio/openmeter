@@ -13,7 +13,7 @@ import (
 )
 
 // CreateInvoice creates a new invoice for a customer in Stripe.
-func (c *stripeClient) CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error) {
+func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe create invoice: invalid input: %w", err)
 	}
@@ -40,7 +40,7 @@ func (c *stripeClient) CreateInvoice(ctx context.Context, input CreateInvoiceInp
 }
 
 // UpdateInvoice updates a Stripe invoice Stripe.
-func (c *stripeClient) UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (*stripe.Invoice, error) {
+func (c *stripeAppClient) UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe update invoice: invalid input: %w", err)
 	}
@@ -58,7 +58,7 @@ func (c *stripeClient) UpdateInvoice(ctx context.Context, input UpdateInvoiceInp
 
 // DeleteInvoice deletes a Stripe invoice.
 // Stripe only allows deleting invoices in draft state.
-func (c *stripeClient) DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error {
+func (c *stripeAppClient) DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("stripe delete invoice: invalid input: %w", err)
 	}
@@ -68,7 +68,7 @@ func (c *stripeClient) DeleteInvoice(ctx context.Context, input DeleteInvoiceInp
 }
 
 // FinalizeInvoice finalizes a Stripe invoice.
-func (c *stripeClient) FinalizeInvoice(ctx context.Context, input FinalizeInvoiceInput) (*stripe.Invoice, error) {
+func (c *stripeAppClient) FinalizeInvoice(ctx context.Context, input FinalizeInvoiceInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe finalize invoice: invalid input: %w", err)
 	}

@@ -161,9 +161,10 @@ func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity
 	}
 
 	// Stripe Client
-	stripeClient, err := a.stripeClientFactory(stripeclient.StripeClientConfig{
-		Namespace: input.AppID.Namespace,
-		APIKey:    apiKeySecret.Value,
+	stripeClient, err := a.stripeAppClientFactory(stripeclient.StripeAppClientConfig{
+		AppID:      input.AppID,
+		AppService: a.appService,
+		APIKey:     apiKeySecret.Value,
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe client: %w", err)

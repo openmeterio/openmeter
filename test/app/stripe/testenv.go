@@ -31,18 +31,20 @@ type TestEnv interface {
 	Fixture() *Fixture
 	Secret() *MockSecretService
 	StripeClient() *StripeClientMock
+	StripeAppClient() *StripeAppClientMock
 	Close() error
 }
 
 var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
-	app          app.Service
-	appstripe    appstripe.Service
-	customer     customer.Service
-	fixture      *Fixture
-	secret       *MockSecretService
-	stripeClient *StripeClientMock
+	app             app.Service
+	appstripe       appstripe.Service
+	customer        customer.Service
+	fixture         *Fixture
+	secret          *MockSecretService
+	stripeClient    *StripeClientMock
+	stripeAppClient *StripeAppClientMock
 
 	closerFunc func() error
 }
@@ -73,6 +75,10 @@ func (n testEnv) Secret() *MockSecretService {
 
 func (n testEnv) StripeClient() *StripeClientMock {
 	return n.stripeClient
+}
+
+func (n testEnv) StripeAppClient() *StripeAppClientMock {
+	return n.stripeAppClient
 }
 
 const (
@@ -129,9 +135,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	// Stripe Client
-	stripeClient := &StripeClientMock{
-		StripeAccountID: "acct_123",
-	}
+	stripeClientMock := &StripeClientMock{}
+	stripeAppClientMock := &StripeAppClientMock{}
 
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
@@ -140,7 +145,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		CustomerService: customerService,
 		SecretService:   secretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
-			return stripeClient, nil
+			return stripeClientMock, nil
+		},
+		StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) {
+			return stripeAppClientMock, nil
 		},
 	})
 	if err != nil {
@@ -171,12 +179,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	return &testEnv{
-		app:          appService,
-		appstripe:    appStripeService,
-		customer:     customerService,
-		fixture:      NewFixture(appService, customerService),
-		secret:       secretService,
-		closerFunc:   closerFunc,
-		stripeClient: stripeClient,
+		app:             appService,
+		appstripe:       appStripeService,
+		customer:        customerService,
+		fixture:         NewFixture(appService, customerService, stripeClientMock),
+		secret:          secretService,
+		closerFunc:      closerFunc,
+		stripeClient:    stripeClientMock,
+		stripeAppClient: stripeAppClientMock,
 	}, nil
 }

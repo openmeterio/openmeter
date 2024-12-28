@@ -9,7 +9,7 @@ import (
 )
 
 // AddInvoiceLines is the input for adding invoice lines to a Stripe invoice.
-func (c *stripeClient) AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe add invoice lines: invalid input: %w", err)
 	}
@@ -20,7 +20,7 @@ func (c *stripeClient) AddInvoiceLines(ctx context.Context, input AddInvoiceLine
 }
 
 // UpdateInvoiceLines is the input for updating invoice lines on a Stripe invoice.
-func (c *stripeClient) UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *stripeAppClient) UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe update invoice lines: invalid input: %w", err)
 	}
@@ -31,7 +31,7 @@ func (c *stripeClient) UpdateInvoiceLines(ctx context.Context, input UpdateInvoi
 }
 
 // RemoveInvoiceLines is the input for removing invoice lines from a Stripe invoice.
-func (c *stripeClient) RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *stripeAppClient) RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe update invoice lines: invalid input: %w", err)
 	}

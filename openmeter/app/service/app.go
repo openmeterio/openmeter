@@ -60,3 +60,13 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 
 	return s.adapter.UninstallApp(ctx, input)
 }
+
+func (s *Service) UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error {
+	if err := input.Validate(); err != nil {
+		return app.ValidationError{
+			Err: err,
+		}
+	}
+
+	return s.adapter.UpdateAppStatus(ctx, input)
+}
