@@ -3,13 +3,14 @@ package plansubscription
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type PlanInput struct {
@@ -79,7 +80,8 @@ func (p *Plan) GetPhases() []subscription.PlanPhase {
 			StartAfter: startAfter,
 		})
 
-		startAfter.Add(lo.FromPtrOr(ph.Duration, datex.Period{}))
+		// Durations will be validated by this point
+		startAfter, _ = startAfter.Add(lo.FromPtrOr(ph.Duration, datex.Period{}))
 	}
 
 	return ps
