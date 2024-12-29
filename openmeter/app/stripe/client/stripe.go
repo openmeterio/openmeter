@@ -19,6 +19,8 @@ type StripeWebhookEndpoint struct {
 
 type StripeAccount struct {
 	StripeAccountID string
+	BusinessProfile *stripe.AccountBusinessProfile
+	Country         models.CountryCode
 }
 
 type StripeCustomer struct {

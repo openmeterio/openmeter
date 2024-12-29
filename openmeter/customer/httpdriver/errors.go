@@ -20,7 +20,7 @@ func errorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
 
 			// TODO: we have to add app errors as it can happen when cutomer app data is created or updated
-			commonhttp.HandleErrorIfTypeMatches[app.CustomerPreConditionError](ctx, http.StatusConflict, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[app.AppCustomerPreConditionError](ctx, http.StatusConflict, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[app.AppNotFoundError](ctx, http.StatusNotFound, err, w)
 	}
 }

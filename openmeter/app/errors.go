@@ -66,17 +66,41 @@ func (e AppProviderError) Error() string {
 	return fmt.Sprintf("provider error for app %s: %s", e.AppID.ID, e.ProviderError)
 }
 
-// CustomerPreConditionError
-var _ error = (*CustomerPreConditionError)(nil)
+// ProviderPreConditionError
+var _ error = (*AppProviderPreConditionError)(nil)
 
-type CustomerPreConditionError struct {
+type AppProviderPreConditionError struct {
+	AppID     appentitybase.AppID
+	Condition string
+}
+
+func (e AppProviderPreConditionError) Validate() error {
+	if err := e.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if e.Condition == "" {
+		return errors.New("condition is required")
+	}
+
+	return nil
+}
+
+func (e AppProviderPreConditionError) Error() string {
+	return fmt.Sprintf("app does not meet condition for %s: %s", e.AppID.ID, e.Condition)
+}
+
+// CustomerPreConditionError
+var _ error = (*AppCustomerPreConditionError)(nil)
+
+type AppCustomerPreConditionError struct {
 	appentitybase.AppID
 	AppType    appentitybase.AppType
 	CustomerID customerentity.CustomerID
 	Condition  string
 }
 
-func (e CustomerPreConditionError) Validate() error {
+func (e AppCustomerPreConditionError) Validate() error {
 	if e.AppID.ID == "" {
 		return errors.New("app id is required")
 	}
@@ -100,7 +124,7 @@ func (e CustomerPreConditionError) Validate() error {
 	return nil
 }
 
-func (e CustomerPreConditionError) Error() string {
+func (e AppCustomerPreConditionError) Error() string {
 	return fmt.Sprintf("customer with id %s does not meet condition %s for %s app type with id %s in namespace %s", e.CustomerID.ID, e.Condition, e.AppType, e.AppID.ID, e.AppID.Namespace)
 }
 

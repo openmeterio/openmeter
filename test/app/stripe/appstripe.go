@@ -231,7 +231,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		CustomerID: customer.GetID(),
 	})
 
-	require.ErrorIs(t, err, app.CustomerPreConditionError{
+	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
 		AppID:      testApp.GetID(),
 		AppType:    appentitybase.AppTypeStripe,
 		CustomerID: customer.GetID(),

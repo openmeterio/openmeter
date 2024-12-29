@@ -404,3 +404,16 @@ func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
 
 	return nil
 }
+
+// GetSupplierContactInput to get the default supplier
+type GetSupplierContactInput struct {
+	AppID appentitybase.AppID
+}
+
+func (i GetSupplierContactInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	return nil
+}

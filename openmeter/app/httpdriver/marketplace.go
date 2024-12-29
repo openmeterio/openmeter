@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -127,6 +129,15 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				return MarketplaceAppAPIKeyInstallResponse{}, err
 			}
 
+			// Make stripe the default billing app
+			if app.GetType() == appentitybase.AppTypeStripe {
+				err = h.makeStripeDefaultBillingApp(ctx, app)
+				if err != nil {
+					return MarketplaceAppAPIKeyInstallResponse{}, fmt.Errorf("make stripe app default billing profile")
+				}
+			}
+
+			// Return app base
 			appBase := app.GetAppBase()
 
 			return MarketplaceAppAPIKeyInstallResponse{
@@ -148,6 +159,59 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+// Make Stripe app the default billing app if current one is Sandbox app
+func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity.App) error {
+	appID := app.GetID()
+
+	// Check if it's a Stripe app
+	if app.GetType() != appentitybase.AppTypeStripe {
+		return fmt.Errorf("app is not a stripe app: %s", appID.ID)
+	}
+
+	// Check if the default billing profile is a sandbox app type
+	defaultBillingProfile, err := h.billingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: appID.Namespace,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get default billing profile: %w", err)
+	}
+
+	// Do nothing if the default is not the sandbox
+	if defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() != appentitybase.AppTypeSandbox {
+		return nil
+	}
+
+	// Get supplier contract from stripe app
+	supplierContract, err := h.stripeAppService.GetSupplierContact(ctx, appstripeentity.GetSupplierContactInput{
+		AppID: appID,
+	})
+
+	// Create new default billing profile
+	appRef := billing.AppReference{
+		ID:   appID.ID,
+		Type: appentitybase.AppTypeStripe,
+	}
+
+	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{
+		Namespace:      appID.Namespace,
+		Name:           "Stripe Billing Profile",
+		Description:    lo.ToPtr("Stripe Billing Profile, created automatically"),
+		Default:        true,
+		Supplier:       supplierContract,
+		WorkflowConfig: billing.DefaultWorkflowConfig,
+		Apps: billing.ProfileAppReferences{
+			Tax:       appRef,
+			Invoicing: appRef,
+			Payment:   appRef,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create billing profile for stripe app %s: %w", appID.ID, err)
+	}
+
+	return nil
 }
 
 func mapMarketplaceListing(listing appentitybase.MarketplaceListing) api.MarketplaceListing {

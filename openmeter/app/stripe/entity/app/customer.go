@@ -47,7 +47,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 	stripeCustomer, err := stripeClient.GetCustomer(ctx, stripeCustomerData.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
-			return app.CustomerPreConditionError{
+			return app.AppCustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
 				CustomerID: customerID,
@@ -69,7 +69,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
 			if err != nil {
 				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
-					return app.CustomerPreConditionError{
+					return app.AppCustomerPreConditionError{
 						AppID:      a.GetID(),
 						AppType:    a.GetType(),
 						CustomerID: customerID,
@@ -82,7 +82,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 		} else {
 			// Check if the customer has a default payment method
 			if stripeCustomer.DefaultPaymentMethod == nil {
-				return app.CustomerPreConditionError{
+				return app.AppCustomerPreConditionError{
 					AppID:      a.GetID(),
 					AppType:    a.GetType(),
 					CustomerID: customerID,
@@ -96,7 +96,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 		// Payment method must have a billing address
 		// Billing address is required for tax calculation and invoice creation
 		if paymentMethod.BillingAddress == nil {
-			return app.CustomerPreConditionError{
+			return app.AppCustomerPreConditionError{
 				AppID:      a.GetID(),
 				AppType:    a.GetType(),
 				CustomerID: customerID,

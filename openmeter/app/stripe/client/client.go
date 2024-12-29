@@ -13,6 +13,7 @@ import (
 	"github.com/stripe/stripe-go/v80/client"
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // StripeClient is a client for the stripe API without an installed app
@@ -115,6 +116,8 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 
 	return StripeAccount{
 		StripeAccountID: stripeAccount.ID,
+		Country:         models.CountryCode(stripeAccount.Country),
+		BusinessProfile: stripeAccount.BusinessProfile,
 	}, nil
 }
 
