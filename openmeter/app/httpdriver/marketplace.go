@@ -187,6 +187,9 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 	supplierContract, err := h.stripeAppService.GetSupplierContact(ctx, appstripeentity.GetSupplierContactInput{
 		AppID: appID,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to get supplier contract for stripe app %s: %w", appID.ID, err)
+	}
 
 	// Create new default billing profile
 	appRef := billing.AppReference{
