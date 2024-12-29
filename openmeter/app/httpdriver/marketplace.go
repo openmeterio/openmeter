@@ -174,7 +174,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 
 // Make Stripe app the default billing app if current one is Sandbox app
 func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity.App) ([]api.AppCapabilityType, error) {
-	var defaultForCapabilityTypes []api.AppCapabilityType
+	defaultForCapabilityTypes := []api.AppCapabilityType{}
 
 	appID := app.GetID()
 
