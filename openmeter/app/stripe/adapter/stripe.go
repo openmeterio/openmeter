@@ -474,8 +474,8 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 
 	// Get Stripe Account
 	stripeAccount, err := stripeAppClient.GetAccount(ctx)
-	if err == nil {
-		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe account for: %w", err)
+	if err != nil {
+		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe account: %w", err)
 	}
 
 	if stripeAccount.BusinessProfile == nil || stripeAccount.BusinessProfile.Name == "" {

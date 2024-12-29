@@ -125,7 +125,9 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			return req, nil
 		},
 		func(ctx context.Context, request MarketplaceAppAPIKeyInstallRequest) (MarketplaceAppAPIKeyInstallResponse, error) {
-			resp := MarketplaceAppAPIKeyInstallResponse{}
+			resp := MarketplaceAppAPIKeyInstallResponse{
+				DefaultForCapabilityTypes: []api.AppCapabilityType{},
+			}
 
 			installedApp, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request)
 			if err != nil {
@@ -144,7 +146,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 
 						resp.Error = lo.ToPtr(err.Error())
 					} else {
-						return resp, fmt.Errorf("make stripe app default billing profile")
+						return resp, fmt.Errorf("make stripe app default billing profile: %w", err)
 					}
 				}
 
