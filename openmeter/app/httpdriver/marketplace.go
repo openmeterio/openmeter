@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -124,21 +125,28 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			return req, nil
 		},
 		func(ctx context.Context, request MarketplaceAppAPIKeyInstallRequest) (MarketplaceAppAPIKeyInstallResponse, error) {
-			app, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request)
+			installedApp, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request)
 			if err != nil {
 				return MarketplaceAppAPIKeyInstallResponse{}, err
 			}
 
 			// Make stripe the default billing app
-			if app.GetType() == appentitybase.AppTypeStripe {
-				err = h.makeStripeDefaultBillingApp(ctx, app)
+			if installedApp.GetType() == appentitybase.AppTypeStripe {
+				err = h.makeStripeDefaultBillingApp(ctx, installedApp)
 				if err != nil {
-					return MarketplaceAppAPIKeyInstallResponse{}, fmt.Errorf("make stripe app default billing profile")
+					if errors.As(err, &app.AppProviderPreConditionError{}) {
+						// TODO: signal in respone that it could not be set as default billing app
+						// Do nothing if it's a pre-condition error
+						// The app is already installed successfully but won't
+						// be set as the default billing app.
+					} else {
+						return MarketplaceAppAPIKeyInstallResponse{}, fmt.Errorf("make stripe app default billing profile")
+					}
 				}
 			}
 
 			// Return app base
-			appBase := app.GetAppBase()
+			appBase := installedApp.GetAppBase()
 
 			return MarketplaceAppAPIKeyInstallResponse{
 				Id:     appBase.ID,
