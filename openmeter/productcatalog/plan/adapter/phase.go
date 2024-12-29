@@ -6,109 +6,51 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	ratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func (a *adapter) ListPhases(ctx context.Context, params plan.ListPhasesInput) (pagination.PagedResponse[plan.Phase], error) {
-	fn := func(ctx context.Context, a *adapter) (pagination.PagedResponse[plan.Phase], error) {
-		if err := params.Validate(); err != nil {
-			return pagination.PagedResponse[plan.Phase]{}, fmt.Errorf("invalid list PlanPhases parameters: %w", err)
-		}
+var _ models.Validator = (*createPhaseInput)(nil)
 
-		query := a.db.PlanPhase.Query()
+type createPhaseInput struct {
+	models.NamespacedModel
+	productcatalog.Phase
 
-		if len(params.Namespaces) > 0 {
-			query = query.Where(phasedb.NamespaceIn(params.Namespaces...))
-		}
-
-		var orFilters []predicate.PlanPhase
-		if len(params.IDs) > 0 {
-			orFilters = append(orFilters, phasedb.IDIn(params.IDs...))
-		}
-
-		if len(params.Keys) > 0 {
-			orFilters = append(orFilters, phasedb.KeyIn(params.Keys...))
-		}
-
-		query = query.Where(phasedb.Or(orFilters...))
-
-		if len(params.PlanIDs) > 0 {
-			query = query.Where(phasedb.PlanIDIn(params.PlanIDs...))
-		}
-
-		if !params.IncludeDeleted {
-			query = query.Where(phasedb.DeletedAtIsNil())
-		}
-
-		// Eager load phases with
-		// * with eager load RateCards
-		query = query.WithRatecards()
-
-		order := entutils.GetOrdering(sortx.OrderDefault)
-		if !params.Order.IsDefaultValue() {
-			order = entutils.GetOrdering(params.Order)
-		}
-
-		query = query.Order(phasedb.ByPlanID(order...))
-
-		switch params.OrderBy {
-		case plan.OrderByCreatedAt:
-			query = query.Order(phasedb.ByCreatedAt(order...))
-		case plan.OrderByUpdatedAt:
-			query = query.Order(phasedb.ByUpdatedAt(order...))
-		case plan.OrderByKey:
-			query = query.Order(phasedb.ByKey(order...))
-		case plan.OrderByID:
-			query = query.Order(phasedb.ByID(order...))
-		case plan.OrderByStartAfter:
-			fallthrough
-		default:
-			query = query.Order(phasedb.ByStartAfter(order...))
-		}
-
-		response := pagination.PagedResponse[plan.Phase]{
-			Page: params.Page,
-		}
-
-		paged, err := query.Paginate(ctx, params.Page)
-		if err != nil {
-			return response, fmt.Errorf("failed to list PlanPhases: %w", err)
-		}
-
-		result := make([]plan.Phase, 0, len(paged.Items))
-		for _, item := range paged.Items {
-			if item == nil {
-				a.logger.WarnContext(ctx, "invalid query result: nil PlanPhase received")
-				continue
-			}
-
-			phase, err := fromPlanPhaseRow(*item)
-			if err != nil {
-				return response, fmt.Errorf("failed to cast PlanPhase: %w", err)
-			}
-
-			result = append(result, *phase)
-		}
-
-		response.TotalCount = paged.TotalCount
-		response.Items = result
-
-		return response, nil
-	}
-
-	return entutils.TransactingRepo[pagination.PagedResponse[plan.Phase], *adapter](ctx, a, fn)
+	// PlanID identifies the Plan the Phase belongs to. See Key.
+	PlanID string `json:"planId"`
 }
 
-func (a *adapter) CreatePhase(ctx context.Context, params plan.CreatePhaseInput) (*plan.Phase, error) {
+func (i createPhaseInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace must not be empty"))
+	}
+
+	if i.Key == "" || i.PlanID == "" {
+		errs = append(errs, errors.New("key and planID must be provided"))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name must not be empty"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*plan.Phase, error) {
 	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid create PlanPhase parameters: %w", err)
@@ -197,13 +139,44 @@ func rateCardBulkCreate(c *entdb.PlanRateCardClient, rateCards productcatalog.Ra
 	return bulk, nil
 }
 
-func (a *adapter) DeletePhase(ctx context.Context, params plan.DeletePhaseInput) error {
+var _ models.Validator = (*deletePhaseInput)(nil)
+
+type deletePhaseInput struct {
+	models.NamespacedID
+
+	// Key is the unique key for Phase. Can be used as an alternative way to identify a Phase in Plan
+	// without providing/knowing its unique ID. Use it with PlanID in order to identify a Phase in Plan.
+	Key string `json:"key"`
+
+	// PlanID identifies the Plan the Phase belongs to. See Key.
+	PlanID string `json:"planId"`
+}
+
+func (i deletePhaseInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace must not be empty"))
+	}
+
+	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
+		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+func (a *adapter) deletePhase(ctx context.Context, params deletePhaseInput) error {
 	fn := func(ctx context.Context, a *adapter) (interface{}, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid delete PlanPhase parameters: %w", err)
 		}
 
-		phase, err := a.GetPhase(ctx, plan.GetPhaseInput{
+		phase, err := a.getPhase(ctx, getPhaseInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -260,7 +233,37 @@ func (a *adapter) DeletePhase(ctx context.Context, params plan.DeletePhaseInput)
 	return err
 }
 
-func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*plan.Phase, error) {
+var _ models.Validator = (*getPhaseInput)(nil)
+
+type getPhaseInput struct {
+	models.NamespacedID
+
+	// Key is the unique key for Phase.
+	Key string `json:"key"`
+
+	// PlanID identifies the Plan the Phase belongs to.
+	PlanID string `json:"planId"`
+}
+
+func (i getPhaseInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace must not be empty"))
+	}
+
+	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
+		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+func (a *adapter) getPhase(ctx context.Context, params getPhaseInput) (*plan.Phase, error) {
 	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid get PlanPhase parameters: %w", err)
@@ -317,13 +320,113 @@ func (a *adapter) GetPhase(ctx context.Context, params plan.GetPhaseInput) (*pla
 	return entutils.TransactingRepo[*plan.Phase, *adapter](ctx, a, fn)
 }
 
-func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput) (*plan.Phase, error) {
+var (
+	_ models.Validator           = (*updatePhaseInput)(nil)
+	_ models.Equaler[plan.Phase] = (*updatePhaseInput)(nil)
+)
+
+type updatePhaseInput struct {
+	models.NamespacedID
+
+	// PlanID identifies the Plan the Phase belongs to. See Key.
+	PlanID string `json:"planId"`
+
+	// Key is the unique key for Resource.
+	Key string `json:"key"`
+
+	// Name
+	Name *string `json:"name"`
+
+	// Description
+	Description *string `json:"description,omitempty"`
+
+	// Metadata
+	Metadata *models.Metadata `json:"metadata,omitempty"`
+
+	// StartAfter
+	StartAfter *datex.Period `json:"interval,omitempty"`
+
+	// RateCards
+	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
+
+	// Discounts
+	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+}
+
+// Equal implements the Equaler interface.
+func (i updatePhaseInput) Equal(p plan.Phase) bool {
+	if i.Namespace != p.Namespace {
+		return false
+	}
+
+	if i.Key != p.Key {
+		return false
+	}
+
+	if i.Name != nil && *i.Name != p.Name {
+		return false
+	}
+
+	if i.StartAfter != nil && *i.StartAfter != p.StartAfter {
+		return false
+	}
+
+	if len(lo.FromPtrOr(i.Metadata, nil)) != len(p.Metadata) {
+		return false
+	}
+
+	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+		return false
+	}
+
+	if i.Discounts != nil && !i.Discounts.Equal(p.Discounts) {
+		return false
+	}
+
+	if i.PlanID != p.PlanID {
+		return false
+	}
+
+	return true
+}
+
+func (i updatePhaseInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+	}
+
+	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
+		return errors.New("invalid: either ID or Key/PlanID pair must be provided")
+	}
+
+	if i.Name != nil && *i.Name == "" {
+		return errors.New("invalid Name: must not be empty")
+	}
+
+	if i.RateCards != nil && len(*i.RateCards) > 0 {
+		for _, rateCards := range *i.RateCards {
+			if err := rateCards.Validate(); err != nil {
+				return fmt.Errorf("invalid RateCard: %w", err)
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+func (a *adapter) updatePhase(ctx context.Context, params updatePhaseInput) (*plan.Phase, error) {
 	fn := func(ctx context.Context, a *adapter) (*plan.Phase, error) {
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid update PlanPhase parameters: %w", err)
 		}
 
-		p, err := a.GetPhase(ctx, plan.GetPhaseInput{
+		p, err := a.getPhase(ctx, getPhaseInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
@@ -441,7 +544,7 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 				}
 			}
 
-			p, err = a.GetPhase(ctx, plan.GetPhaseInput{
+			p, err = a.getPhase(ctx, getPhaseInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: params.Namespace,
 					ID:        params.ID,
@@ -461,13 +564,13 @@ func (a *adapter) UpdatePhase(ctx context.Context, params plan.UpdatePhaseInput)
 }
 
 type rateCardsDiffResult struct {
-	// Add defines the list of plan.CreatePhaseInput for plan.Phase objects to add
+	// Add defines the list of plan.createPhaseInput for plan.Phase objects to add
 	Add productcatalog.RateCards
 
-	// Update defines the list of plan.UpdatePhaseInput for plan.Phase objects to update
+	// Update defines the list of plan.updatePhaseInput for plan.Phase objects to update
 	Update productcatalog.RateCards
 
-	// Remove defines the list of plan.DeletePhaseInput for plan.Phase identifiers to delete
+	// Remove defines the list of plan.deletePhaseInput for plan.Phase identifiers to delete
 	Remove productcatalog.RateCards
 
 	// Keep defines the list of plan.Phase to keep unmodified
