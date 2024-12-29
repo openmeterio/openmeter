@@ -3333,7 +3333,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AppBase'
+                $ref: '#/components/schemas/MarketplaceInstallResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -11990,6 +11990,23 @@ components:
             $ref: '#/components/schemas/Feature'
         - $ref: '#/components/schemas/FeaturePaginatedResponse'
       description: List features result
+    MarketplaceInstallResponse:
+      type: object
+      required:
+        - app
+        - defaultForCapabilityTypes
+      properties:
+        app:
+          $ref: '#/components/schemas/App'
+        defaultForCapabilityTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppCapabilityType'
+          description: Default for capabilities
+        error:
+          type: string
+          description: Error message if any.
+      description: Marketplace install response.
     MarketplaceListing:
       type: object
       required:

@@ -4553,6 +4553,15 @@ export interface components {
     ListFeaturesResult:
       | components['schemas']['Feature'][]
       | components['schemas']['FeaturePaginatedResponse']
+    /** @description Marketplace install response. */
+    MarketplaceInstallResponse: {
+      /** @description The installed app. */
+      app: components['schemas']['AppBase']
+      /** @description Default for capabilities */
+      defaultForCapabilityTypes: components['schemas']['AppCapabilityType'][]
+      /** @description Error message if any. */
+      error?: string
+    }
     /**
      * @description A marketplace listing.
      *     Represent an available app in the app marketplace that can be installed to the organization.
@@ -11441,7 +11450,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['AppBase']
+          'application/json': components['schemas']['MarketplaceInstallResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
