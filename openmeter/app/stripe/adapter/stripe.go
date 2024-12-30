@@ -19,6 +19,7 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -464,6 +465,25 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 		return billing.SupplierContact{}, appstripe.ValidationError{
 			Err: fmt.Errorf("error validate input: %w", err),
 		}
+	}
+
+	// Get stripe app data
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: input.AppID,
+	})
+	if err != nil {
+		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app data: %w", err)
+	}
+
+	// Test mode Stripe accounts do not have supplier contact information
+	if !stripeAppData.Livemode {
+		return billing.SupplierContact{
+			// TODO: use organization name
+			Name: "Test Account",
+			Address: models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+		}, nil
 	}
 
 	// Get Stripe App client

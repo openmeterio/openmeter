@@ -138,6 +138,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{AppStripesColumns[1]},
 			},
+			{
+				Name:    "appstripe_namespace_stripe_account_id_stripe_livemode_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripesColumns[1], AppStripesColumns[5], AppStripesColumns[6], AppStripesColumns[4]},
+			},
 		},
 	}
 	// AppStripeCustomersColumns holds the columns for the "app_stripe_customers" table.
