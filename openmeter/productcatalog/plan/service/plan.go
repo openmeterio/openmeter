@@ -91,6 +91,7 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 		// Check if there is already a Plan with the same Key
 		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
+			// TODO: make page optional
 			Page: pagination.Page{
 				PageSize:   1000,
 				PageNumber: 1,
@@ -321,7 +322,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		// First, let's validate that the a Subscription can successfully be created from this Plan
 
-		if err := pp.ValidForCreatingSubscriptions(); err != nil {
+		if err := pp.Validate(); err != nil {
 			return nil, &models.GenericUserError{Message: fmt.Sprintf("invalid Plan for creating subscriptions: %s", err)}
 		}
 
@@ -446,136 +447,6 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		logger.Debug("Plan archived")
 
 		return p, nil
-	}
-
-	return transaction.Run(ctx, s.adapter, fn)
-}
-
-func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan.Plan, error) {
-	fn := func(ctx context.Context) (*plan.Plan, error) {
-		if err := params.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid next version Plan params: %w", err)
-		}
-
-		logger := s.logger.With(
-			"operation", "next",
-			"namespace", params.Namespace,
-			"plan.id", params.ID,
-			"plan.key", params.Key,
-			"plan.version", params.Version,
-		)
-
-		logger.Debug("creating new version of a Plan")
-
-		// Fetch all version of a plan to find the one to be used as source and also to calculate the next version number.
-		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
-			Page: pagination.Page{
-				PageSize:   1000,
-				PageNumber: 1,
-			},
-			OrderBy:        plan.OrderByVersion,
-			Order:          plan.OrderAsc,
-			Namespaces:     []string{params.Namespace},
-			IDs:            []string{params.ID},
-			Keys:           []string{params.Key},
-			IncludeDeleted: true,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list all versions of the Plan: %w", err)
-		}
-
-		if len(allVersions.Items) == 0 {
-			return nil, fmt.Errorf("no versions available for this plan")
-		}
-
-		// Generate source plan filter from input parameters
-
-		// planFilterFunc is a filter function which returns tuple where the first boolean means that
-		// there is a match while the second tells the caller to stop further invocations as there is an exact match.
-		type planFilterFunc func(plan plan.Plan) (match bool, stop bool)
-
-		sourcePlanFilterFunc := func() planFilterFunc {
-			switch {
-			case params.ID != "":
-				return func(p plan.Plan) (match bool, stop bool) {
-					if p.Namespace == params.Namespace && p.ID == params.ID {
-						return true, true
-					}
-
-					return false, false
-				}
-			case params.Key != "" && params.Version == 0:
-				return func(p plan.Plan) (match bool, stop bool) {
-					return p.Namespace == params.Namespace && p.Key == params.Key, false
-				}
-			default:
-				return func(p plan.Plan) (match bool, stop bool) {
-					if p.Namespace == params.Namespace && p.Key == params.Key && p.Version == params.Version {
-						return true, true
-					}
-
-					return false, false
-				}
-			}
-		}()
-
-		var sourcePlan *plan.Plan
-
-		nextVersion := 1
-		var match, stop bool
-		for _, p := range allVersions.Items {
-			if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
-				return nil, fmt.Errorf("only a single draft version is allowed for Plan")
-			}
-
-			if !stop {
-				match, stop = sourcePlanFilterFunc(p)
-				if match {
-					sourcePlan = &p
-				}
-			}
-
-			if p.Version >= nextVersion {
-				nextVersion = p.Version + 1
-			}
-		}
-
-		if sourcePlan == nil {
-			return nil, fmt.Errorf("no versions available for plan to use as source for next draft version")
-		}
-
-		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: sourcePlan.Namespace,
-			},
-			Plan: productcatalog.Plan{
-				PlanMeta: productcatalog.PlanMeta{
-					Key:         sourcePlan.Key,
-					Version:     nextVersion,
-					Name:        sourcePlan.Name,
-					Description: sourcePlan.Description,
-					Metadata:    sourcePlan.Metadata,
-					Currency:    sourcePlan.Currency,
-				},
-				Phases: func() []productcatalog.Phase {
-					var phases []productcatalog.Phase
-
-					for _, phase := range sourcePlan.Phases {
-						phases = append(phases, productcatalog.Phase{
-							PhaseMeta: phase.PhaseMeta,
-							RateCards: phase.RateCards,
-						})
-					}
-
-					return phases
-				}(),
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create new version of a Plan: %w", err)
-		}
-
-		return nextPlan, nil
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)

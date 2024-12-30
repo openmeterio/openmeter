@@ -104,17 +104,23 @@ func (ppu *PlanPhaseUpdate) ClearDescription() *PlanPhaseUpdate {
 	return ppu
 }
 
-// SetStartAfter sets the "start_after" field.
-func (ppu *PlanPhaseUpdate) SetStartAfter(ds datex.ISOString) *PlanPhaseUpdate {
-	ppu.mutation.SetStartAfter(ds)
+// SetDuration sets the "duration" field.
+func (ppu *PlanPhaseUpdate) SetDuration(ds datex.ISOString) *PlanPhaseUpdate {
+	ppu.mutation.SetDuration(ds)
 	return ppu
 }
 
-// SetNillableStartAfter sets the "start_after" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableStartAfter(ds *datex.ISOString) *PlanPhaseUpdate {
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (ppu *PlanPhaseUpdate) SetNillableDuration(ds *datex.ISOString) *PlanPhaseUpdate {
 	if ds != nil {
-		ppu.SetStartAfter(*ds)
+		ppu.SetDuration(*ds)
 	}
+	return ppu
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (ppu *PlanPhaseUpdate) ClearDuration() *PlanPhaseUpdate {
+	ppu.mutation.ClearDuration()
 	return ppu
 }
 
@@ -141,6 +147,27 @@ func (ppu *PlanPhaseUpdate) SetNillablePlanID(s *string) *PlanPhaseUpdate {
 	if s != nil {
 		ppu.SetPlanID(*s)
 	}
+	return ppu
+}
+
+// SetIndex sets the "index" field.
+func (ppu *PlanPhaseUpdate) SetIndex(i int) *PlanPhaseUpdate {
+	ppu.mutation.ResetIndex()
+	ppu.mutation.SetIndex(i)
+	return ppu
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (ppu *PlanPhaseUpdate) SetNillableIndex(i *int) *PlanPhaseUpdate {
+	if i != nil {
+		ppu.SetIndex(*i)
+	}
+	return ppu
+}
+
+// AddIndex adds i to the "index" field.
+func (ppu *PlanPhaseUpdate) AddIndex(i int) *PlanPhaseUpdate {
+	ppu.mutation.AddIndex(i)
 	return ppu
 }
 
@@ -281,8 +308,11 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if ppu.mutation.DescriptionCleared() {
 		_spec.ClearField(planphase.FieldDescription, field.TypeString)
 	}
-	if value, ok := ppu.mutation.StartAfter(); ok {
-		_spec.SetField(planphase.FieldStartAfter, field.TypeString, value)
+	if value, ok := ppu.mutation.Duration(); ok {
+		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
+	}
+	if ppu.mutation.DurationCleared() {
+		_spec.ClearField(planphase.FieldDuration, field.TypeString)
 	}
 	if value, ok := ppu.mutation.Discounts(); ok {
 		vv, err := planphase.ValueScanner.Discounts.Value(value)
@@ -293,6 +323,12 @@ func (ppu *PlanPhaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if ppu.mutation.DiscountsCleared() {
 		_spec.ClearField(planphase.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := ppu.mutation.Index(); ok {
+		_spec.SetField(planphase.FieldIndex, field.TypeInt, value)
+	}
+	if value, ok := ppu.mutation.AddedIndex(); ok {
+		_spec.AddField(planphase.FieldIndex, field.TypeInt, value)
 	}
 	if ppu.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -460,17 +496,23 @@ func (ppuo *PlanPhaseUpdateOne) ClearDescription() *PlanPhaseUpdateOne {
 	return ppuo
 }
 
-// SetStartAfter sets the "start_after" field.
-func (ppuo *PlanPhaseUpdateOne) SetStartAfter(ds datex.ISOString) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetStartAfter(ds)
+// SetDuration sets the "duration" field.
+func (ppuo *PlanPhaseUpdateOne) SetDuration(ds datex.ISOString) *PlanPhaseUpdateOne {
+	ppuo.mutation.SetDuration(ds)
 	return ppuo
 }
 
-// SetNillableStartAfter sets the "start_after" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableStartAfter(ds *datex.ISOString) *PlanPhaseUpdateOne {
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (ppuo *PlanPhaseUpdateOne) SetNillableDuration(ds *datex.ISOString) *PlanPhaseUpdateOne {
 	if ds != nil {
-		ppuo.SetStartAfter(*ds)
+		ppuo.SetDuration(*ds)
 	}
+	return ppuo
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (ppuo *PlanPhaseUpdateOne) ClearDuration() *PlanPhaseUpdateOne {
+	ppuo.mutation.ClearDuration()
 	return ppuo
 }
 
@@ -497,6 +539,27 @@ func (ppuo *PlanPhaseUpdateOne) SetNillablePlanID(s *string) *PlanPhaseUpdateOne
 	if s != nil {
 		ppuo.SetPlanID(*s)
 	}
+	return ppuo
+}
+
+// SetIndex sets the "index" field.
+func (ppuo *PlanPhaseUpdateOne) SetIndex(i int) *PlanPhaseUpdateOne {
+	ppuo.mutation.ResetIndex()
+	ppuo.mutation.SetIndex(i)
+	return ppuo
+}
+
+// SetNillableIndex sets the "index" field if the given value is not nil.
+func (ppuo *PlanPhaseUpdateOne) SetNillableIndex(i *int) *PlanPhaseUpdateOne {
+	if i != nil {
+		ppuo.SetIndex(*i)
+	}
+	return ppuo
+}
+
+// AddIndex adds i to the "index" field.
+func (ppuo *PlanPhaseUpdateOne) AddIndex(i int) *PlanPhaseUpdateOne {
+	ppuo.mutation.AddIndex(i)
 	return ppuo
 }
 
@@ -667,8 +730,11 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 	if ppuo.mutation.DescriptionCleared() {
 		_spec.ClearField(planphase.FieldDescription, field.TypeString)
 	}
-	if value, ok := ppuo.mutation.StartAfter(); ok {
-		_spec.SetField(planphase.FieldStartAfter, field.TypeString, value)
+	if value, ok := ppuo.mutation.Duration(); ok {
+		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
+	}
+	if ppuo.mutation.DurationCleared() {
+		_spec.ClearField(planphase.FieldDuration, field.TypeString)
 	}
 	if value, ok := ppuo.mutation.Discounts(); ok {
 		vv, err := planphase.ValueScanner.Discounts.Value(value)
@@ -679,6 +745,12 @@ func (ppuo *PlanPhaseUpdateOne) sqlSave(ctx context.Context) (_node *PlanPhase, 
 	}
 	if ppuo.mutation.DiscountsCleared() {
 		_spec.ClearField(planphase.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := ppuo.mutation.Index(); ok {
+		_spec.SetField(planphase.FieldIndex, field.TypeInt, value)
+	}
+	if value, ok := ppuo.mutation.AddedIndex(); ok {
+		_spec.AddField(planphase.FieldIndex, field.TypeInt, value)
 	}
 	if ppuo.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{

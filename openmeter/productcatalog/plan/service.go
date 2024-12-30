@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -29,15 +28,11 @@ const (
 	OrderByVersion   OrderBy = "version"
 	OrderByCreatedAt OrderBy = "created_at"
 	OrderByUpdatedAt OrderBy = "updated_at"
-
-	OrderByStartAfter OrderBy = "start_after"
 )
 
 type OrderBy string
 
 type Service interface {
-	// Plans
-
 	ListPlans(ctx context.Context, params ListPlansInput) (pagination.PagedResponse[Plan], error)
 	CreatePlan(ctx context.Context, params CreatePlanInput) (*Plan, error)
 	DeletePlan(ctx context.Context, params DeletePlanInput) error
@@ -45,33 +40,34 @@ type Service interface {
 	UpdatePlan(ctx context.Context, params UpdatePlanInput) (*Plan, error)
 	PublishPlan(ctx context.Context, params PublishPlanInput) (*Plan, error)
 	ArchivePlan(ctx context.Context, params ArchivePlanInput) (*Plan, error)
-	NextPlan(ctx context.Context, params NextPlanInput) (*Plan, error)
-
-	// Phases
-
-	ListPhases(ctx context.Context, params ListPhasesInput) (pagination.PagedResponse[Phase], error)
-	CreatePhase(ctx context.Context, params CreatePhaseInput) (*Phase, error)
-	DeletePhase(ctx context.Context, params DeletePhaseInput) error
-	GetPhase(ctx context.Context, params GetPhaseInput) (*Phase, error)
-	UpdatePhase(ctx context.Context, params UpdatePhaseInput) (*Phase, error)
 }
 
 var _ models.Validator = (*ListPlansInput)(nil)
 
 type ListPlansInput struct {
+	// Page is the pagination parameters.
+	// TODO: make it optional.
 	pagination.Page
 
+	// OrderBy is the field to order by.
 	OrderBy OrderBy
-	Order   sortx.Order
 
+	// Order is the order direction.
+	Order sortx.Order
+
+	// Namespaces is the list of namespaces to filter by.
 	Namespaces []string
 
+	// IDs is the list of IDs to filter by.
 	IDs []string
 
+	// Keys is the list of keys to filter by.
 	Keys []string
 
+	// KeyVersions is the map of keys to versions to filter by.
 	KeyVersions map[string][]int
 
+	// IncludeDeleted defines whether to include deleted Plans.
 	IncludeDeleted bool
 }
 
@@ -95,22 +91,8 @@ func (i CreatePlanInput) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid Namespace: %w", err))
 	}
 
-	if i.Key == "" {
-		errs = append(errs, errors.New("invalid Key: must not be empty"))
-	}
-
-	if i.Name == "" {
-		errs = append(errs, errors.New("invalid Name: must not be empty"))
-	}
-
-	if err := i.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid CurrencyCode: %w", err))
-	}
-
-	for _, phase := range i.Phases {
-		if err := phase.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
-		}
+	if err := i.Plan.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid Plan: %w", err))
 	}
 
 	if len(errs) > 0 {
@@ -153,7 +135,7 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
+	if !i.EffectivePeriod.Equal(p.EffectivePeriod) {
 		return false
 	}
 
@@ -167,6 +149,18 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 
 	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
 		return false
+	}
+
+	if i.Phases != nil {
+		if len(*i.Phases) != len(p.Phases) {
+			return false
+		}
+
+		for idx, phase := range *i.Phases {
+			if !phase.Equal(p.Phases[idx].Phase) {
+				return false
+			}
+		}
 	}
 
 	return true
@@ -189,7 +183,7 @@ func (i UpdatePlanInput) Validate() error {
 		}
 	}
 
-	if i.Phases != nil && len(*i.Phases) > 0 {
+	if i.Phases != nil {
 		for _, phase := range *i.Phases {
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
@@ -328,242 +322,249 @@ func (i ArchivePlanInput) Validate() error {
 	return nil
 }
 
-type NextPlanInput struct {
-	// NamespacedID
-	models.NamespacedID
+// type NextPlanInput struct {
+// 	// NamespacedID
+// 	models.NamespacedID
 
-	// Key is the unique key for Plan.
-	Key string `json:"key,omitempty"`
+// 	// Key is the unique key for Plan.
+// 	Key string `json:"key,omitempty"`
 
-	// Version is the version of the Plan.
-	// If not set the latest version is assumed.
-	Version int `json:"version,omitempty"`
-}
+// 	// Version is the version of the Plan.
+// 	// If not set the latest version is assumed.
+// 	Version int `json:"version,omitempty"`
+// }
 
-func (i NextPlanInput) Validate() error {
-	var errs []error
+// func (i NextPlanInput) Validate() error {
+// 	var errs []error
 
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
-	}
+// 	if i.Namespace == "" {
+// 		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+// 	}
 
-	if i.ID == "" && i.Key == "" {
-		errs = append(errs, errors.New("invalid: either ID or Key pair must be provided"))
-	}
+// 	if i.ID == "" && i.Key == "" {
+// 		errs = append(errs, errors.New("invalid: either ID or Key pair must be provided"))
+// 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
+// 	if len(errs) > 0 {
+// 		return errors.Join(errs...)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-type ListPhasesInput struct {
-	pagination.Page
+// type ListPhasesInput struct {
+// 	pagination.Page
 
-	OrderBy OrderBy
-	Order   sortx.Order
+// 	OrderBy OrderBy
+// 	Order   sortx.Order
 
-	Namespaces []string
+// 	Namespaces []string
 
-	IDs []string
+// 	IDs []string
 
-	Keys []string
+// 	Keys []string
 
-	PlanIDs []string
+// 	PlanIDs []string
 
-	IncludeDeleted bool
-}
+// 	IncludeDeleted bool
+// }
 
-var _ models.Validator = (*CreatePhaseInput)(nil)
+// var _ models.Validator = (*CreatePhaseInput)(nil)
 
-type CreatePhaseInput struct {
-	models.NamespacedModel
-	productcatalog.Phase
+// type CreatePhaseInput struct {
+// 	models.NamespacedModel
+// 	productcatalog.Phase
 
-	// PlanID identifies the Plan the Phase belongs to. See Key.
-	PlanID string `json:"planId"`
-}
+// 	// PlanID identifies the Plan the Phase belongs to. See Key.
+// 	PlanID string `json:"planId"`
 
-func (i CreatePhaseInput) Validate() error {
-	var errs []error
+// 	// SortOrder is the order of the Phase in the Plan.
+// 	SortOrder int `json:"sortOrder"`
+// }
 
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace must not be empty"))
-	}
+// func (i CreatePhaseInput) Validate() error {
+// 	var errs []error
 
-	if i.Key == "" || i.PlanID == "" {
-		errs = append(errs, errors.New("key and planID must be provided"))
-	}
+// 	if i.Namespace == "" {
+// 		errs = append(errs, errors.New("namespace must not be empty"))
+// 	}
 
-	if i.Name == "" {
-		errs = append(errs, errors.New("name must not be empty"))
-	}
+// 	if i.Key == "" || i.PlanID == "" {
+// 		errs = append(errs, errors.New("key and planID must be provided"))
+// 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
+// 	if i.Name == "" {
+// 		errs = append(errs, errors.New("name must not be empty"))
+// 	}
 
-	return nil
-}
+// 	if i.SortOrder < 0 {
+// 		errs = append(errs, errors.New("sortOrder must be greater than 0"))
+// 	}
 
-var _ models.Validator = (*DeletePhaseInput)(nil)
+// 	if len(errs) > 0 {
+// 		return errors.Join(errs...)
+// 	}
 
-type DeletePhaseInput struct {
-	models.NamespacedID
+// 	return nil
+// }
 
-	// Key is the unique key for Phase. Can be used as an alternative way to identify a Phase in Plan
-	// without providing/knowing its unique ID. Use it with PlanID in order to identify a Phase in Plan.
-	Key string `json:"key"`
+// var _ models.Validator = (*DeletePhaseInput)(nil)
 
-	// PlanID identifies the Plan the Phase belongs to. See Key.
-	PlanID string `json:"planId"`
-}
+// type DeletePhaseInput struct {
+// 	models.NamespacedID
 
-func (i DeletePhaseInput) Validate() error {
-	var errs []error
+// 	// Key is the unique key for Phase. Can be used as an alternative way to identify a Phase in Plan
+// 	// without providing/knowing its unique ID. Use it with PlanID in order to identify a Phase in Plan.
+// 	Key string `json:"key"`
 
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace must not be empty"))
-	}
+// 	// PlanID identifies the Plan the Phase belongs to. See Key.
+// 	PlanID string `json:"planId"`
+// }
 
-	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
-	}
+// func (i DeletePhaseInput) Validate() error {
+// 	var errs []error
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
+// 	if i.Namespace == "" {
+// 		errs = append(errs, errors.New("namespace must not be empty"))
+// 	}
 
-	return nil
-}
+// 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
+// 		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
+// 	}
 
-var _ models.Validator = (*GetPhaseInput)(nil)
+// 	if len(errs) > 0 {
+// 		return errors.Join(errs...)
+// 	}
 
-type GetPhaseInput struct {
-	models.NamespacedID
+// 	return nil
+// }
 
-	// Key is the unique key for Phase.
-	Key string `json:"key"`
+// var _ models.Validator = (*GetPhaseInput)(nil)
 
-	// PlanID identifies the Plan the Phase belongs to.
-	PlanID string `json:"planId"`
-}
+// type GetPhaseInput struct {
+// 	models.NamespacedID
 
-func (i GetPhaseInput) Validate() error {
-	var errs []error
+// 	// Key is the unique key for Phase.
+// 	Key string `json:"key"`
 
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace must not be empty"))
-	}
+// 	// PlanID identifies the Plan the Phase belongs to.
+// 	PlanID string `json:"planId"`
+// }
 
-	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
-	}
+// func (i GetPhaseInput) Validate() error {
+// 	var errs []error
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
+// 	if i.Namespace == "" {
+// 		errs = append(errs, errors.New("namespace must not be empty"))
+// 	}
 
-	return nil
-}
+// 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
+// 		errs = append(errs, errors.New("either id or key and planID pair must be provided"))
+// 	}
 
-var (
-	_ models.Validator      = (*UpdatePhaseInput)(nil)
-	_ models.Equaler[Phase] = (*UpdatePhaseInput)(nil)
-)
+// 	if len(errs) > 0 {
+// 		return errors.Join(errs...)
+// 	}
 
-type UpdatePhaseInput struct {
-	models.NamespacedID
+// 	return nil
+// }
 
-	// PlanID identifies the Plan the Phase belongs to. See Key.
-	PlanID string `json:"planId"`
+// var (
+// 	_ models.Validator      = (*UpdatePhaseInput)(nil)
+// 	_ models.Equaler[Phase] = (*UpdatePhaseInput)(nil)
+// )
 
-	// Key is the unique key for Resource.
-	Key string `json:"key"`
+// type UpdatePhaseInput struct {
+// 	models.NamespacedID
 
-	// Name
-	Name *string `json:"name"`
+// 	// PlanID identifies the Plan the Phase belongs to. See Key.
+// 	PlanID string `json:"planId"`
 
-	// Description
-	Description *string `json:"description,omitempty"`
+// 	// Key is the unique key for Resource.
+// 	Key string `json:"key"`
 
-	// Metadata
-	Metadata *models.Metadata `json:"metadata,omitempty"`
+// 	// Name
+// 	Name *string `json:"name"`
 
-	// StartAfter
-	StartAfter *datex.Period `json:"interval,omitempty"`
+// 	// Description
+// 	Description *string `json:"description,omitempty"`
 
-	// RateCards
-	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
+// 	// Metadata
+// 	Metadata *models.Metadata `json:"metadata,omitempty"`
 
-	// Discounts
-	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
-}
+// 	// Duration
+// 	Duration *datex.Period `json:"duration,omitempty"`
 
-// Equal implements the Equaler interface.
-func (i UpdatePhaseInput) Equal(p Phase) bool {
-	if i.Namespace != p.Namespace {
-		return false
-	}
+// 	// RateCards
+// 	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
 
-	if i.Key != p.Key {
-		return false
-	}
+// 	// Discounts
+// 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+// }
 
-	if i.Name != nil && *i.Name != p.Name {
-		return false
-	}
+// // Equal implements the Equaler interface.
+// func (i UpdatePhaseInput) Equal(p Phase) bool {
+// 	if i.Namespace != p.Namespace {
+// 		return false
+// 	}
 
-	if i.StartAfter != nil && *i.StartAfter != p.StartAfter {
-		return false
-	}
+// 	if i.Key != p.Key {
+// 		return false
+// 	}
 
-	if len(lo.FromPtrOr(i.Metadata, nil)) != len(p.Metadata) {
-		return false
-	}
+// 	if i.Name != nil && *i.Name != p.Name {
+// 		return false
+// 	}
 
-	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
-		return false
-	}
+// 	if i.Duration != nil && !i.Duration.Equal(p.Duration) {
+// 		return false
+// 	}
 
-	if i.Discounts != nil && !i.Discounts.Equal(p.Discounts) {
-		return false
-	}
+// 	if len(lo.FromPtrOr(i.Metadata, nil)) != len(p.Metadata) {
+// 		return false
+// 	}
 
-	if i.PlanID != p.PlanID {
-		return false
-	}
+// 	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+// 		return false
+// 	}
 
-	return true
-}
+// 	if i.Discounts != nil && !i.Discounts.Equal(p.Discounts) {
+// 		return false
+// 	}
 
-func (i UpdatePhaseInput) Validate() error {
-	var errs []error
+// 	if i.PlanID != p.PlanID {
+// 		return false
+// 	}
 
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
-	}
+// 	return true
+// }
 
-	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
-		return errors.New("invalid: either ID or Key/PlanID pair must be provided")
-	}
+// func (i UpdatePhaseInput) Validate() error {
+// 	var errs []error
 
-	if i.Name != nil && *i.Name == "" {
-		return errors.New("invalid Name: must not be empty")
-	}
+// 	if i.Namespace == "" {
+// 		errs = append(errs, errors.New("invalid Namespace: must not be empty"))
+// 	}
 
-	if i.RateCards != nil && len(*i.RateCards) > 0 {
-		for _, rateCards := range *i.RateCards {
-			if err := rateCards.Validate(); err != nil {
-				return fmt.Errorf("invalid RateCard: %w", err)
-			}
-		}
-	}
+// 	if i.ID == "" && (i.Key == "" || i.PlanID == "") {
+// 		return errors.New("invalid: either ID or Key/PlanID pair must be provided")
+// 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
+// 	if i.Name != nil && *i.Name == "" {
+// 		return errors.New("invalid Name: must not be empty")
+// 	}
 
-	return nil
-}
+// 	if i.RateCards != nil && len(*i.RateCards) > 0 {
+// 		for _, rateCards := range *i.RateCards {
+// 			if err := rateCards.Validate(); err != nil {
+// 				return fmt.Errorf("invalid RateCard: %w", err)
+// 			}
+// 		}
+// 	}
+
+// 	if len(errs) > 0 {
+// 		return errors.Join(errs...)
+// 	}
+
+// 	return nil
+// }

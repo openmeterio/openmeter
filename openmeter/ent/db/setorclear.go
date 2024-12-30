@@ -1652,6 +1652,20 @@ func (u *PlanPhaseUpdateOne) SetOrClearDescription(value *string) *PlanPhaseUpda
 	return u.SetDescription(*value)
 }
 
+func (u *PlanPhaseUpdate) SetOrClearDuration(value *datex.ISOString) *PlanPhaseUpdate {
+	if value == nil {
+		return u.ClearDuration()
+	}
+	return u.SetDuration(*value)
+}
+
+func (u *PlanPhaseUpdateOne) SetOrClearDuration(value *datex.ISOString) *PlanPhaseUpdateOne {
+	if value == nil {
+		return u.ClearDuration()
+	}
+	return u.SetDuration(*value)
+}
+
 func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanPhaseUpdate {
 	if value == nil {
 		return u.ClearDiscounts()

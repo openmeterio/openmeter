@@ -50,7 +50,7 @@ func (s *service) getPlanByVersion(ctx context.Context, namespace string, ref pl
 func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	p := input.Plan
 
-	if err := p.ValidForCreatingSubscriptions(); err != nil {
+	if err := p.Validate(); err != nil {
 		return nil, &models.GenericUserError{Message: fmt.Sprintf("invalid plan: %v", err)}
 	}
 

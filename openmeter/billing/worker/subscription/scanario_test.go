@@ -28,11 +28,12 @@ import (
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
+	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlementadatapter "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -47,7 +48,7 @@ type SubscriptionHandlerTestSuite struct {
 
 	PlanService                 plan.Service
 	SubscriptionService         subscription.Service
-	SubscrpiptionPlanAdapter    testutils.PlanSubscriptionAdapter
+	SubscrpiptionPlanAdapter    subscriptiontestutils.PlanSubscriptionAdapter
 	SubscriptionWorkflowService subscription.WorkflowService
 
 	Handler *Handler
@@ -92,7 +93,7 @@ func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 		Publisher: eventbus.NewMock(s.T()),
 	})
 
-	s.SubscrpiptionPlanAdapter = testutils.NewPlanSubscriptionAdapter(testutils.PlanSubscriptionAdapterConfig{
+	s.SubscrpiptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{
 		PlanService: planService,
 		Logger:      slog.Default(),
 	})
@@ -249,9 +250,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 			Phases: []productcatalog.Phase{
 				{
 					PhaseMeta: productcatalog.PhaseMeta{
-						Name:       "free trial",
-						Key:        "free-trial",
-						StartAfter: datex.MustParse(s.T(), "P0D"),
+						Name:     "free trial",
+						Key:      "free-trial",
+						Duration: lo.ToPtr(testutils.GetISODuration(s.T(), "P1M")),
 					},
 					// TODO[OM-1031]: let's add discount handling (as this could be a 100% discount for the first month)
 					RateCards: productcatalog.RateCards{
@@ -267,9 +268,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 				},
 				{
 					PhaseMeta: productcatalog.PhaseMeta{
-						Name:       "discounted phase",
-						Key:        "discounted-phase",
-						StartAfter: datex.MustParse(s.T(), "P1M"),
+						Name:     "discounted phase",
+						Key:      "discounted-phase",
+						Duration: lo.ToPtr(testutils.GetISODuration(s.T(), "P2M")),
 					},
 					// TODO[OM-1031]: 50% discount
 					RateCards: productcatalog.RateCards{
@@ -288,9 +289,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 				},
 				{
 					PhaseMeta: productcatalog.PhaseMeta{
-						Name:       "final phase",
-						Key:        "final-phase",
-						StartAfter: datex.MustParse(s.T(), "P3M"),
+						Name:     "final phase",
+						Key:      "final-phase",
+						Duration: nil,
 					},
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
@@ -604,9 +605,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 			Phases: []productcatalog.Phase{
 				{
 					PhaseMeta: productcatalog.PhaseMeta{
-						Name:       "first-phase",
-						Key:        "first-phase",
-						StartAfter: datex.MustParse(s.T(), "P0D"),
+						Name:     "first-phase",
+						Key:      "first-phase",
+						Duration: nil,
 					},
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{

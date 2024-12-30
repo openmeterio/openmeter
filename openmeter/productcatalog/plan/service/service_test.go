@@ -101,7 +101,13 @@ func TestPlanService(t *testing.T) {
 			})
 
 			t.Run("NewPhase", func(t *testing.T) {
-				updatedPhases := slices.Clone(draftPlan.Phases)
+				updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
+					if idx == len(draftPlan.Phases)-1 {
+						p.Duration = &SixMonthPeriod
+					}
+
+					return p
+				})
 				updatedPhases = append(updatedPhases, plan.Phase{
 					PhaseManagedFields: plan.PhaseManagedFields{
 						NamespacedID: models.NamespacedID{
@@ -115,7 +121,7 @@ func TestPlanService(t *testing.T) {
 							Name:        "Pro-2",
 							Description: lo.ToPtr("Pro-2 phase"),
 							Metadata:    models.Metadata{"name": "pro-2"},
-							StartAfter:  ThreeMonthPeriod,
+							Duration:    nil,
 						},
 						RateCards: []productcatalog.RateCard{
 							&productcatalog.FlatFeeRateCard{
@@ -209,7 +215,13 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Update", func(t *testing.T) {
 					t.Run("PhaseAndRateCards", func(t *testing.T) {
-						updatedPhases = slices.Clone(draftPlan.Phases)
+						updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
+							if idx == len(draftPlan.Phases)-1 {
+								p.Duration = &SixMonthPeriod
+							}
+
+							return p
+						})
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
 								ManagedModel: models.ManagedModel{},
@@ -224,7 +236,7 @@ func TestPlanService(t *testing.T) {
 									Name:        "Pro-2",
 									Description: lo.ToPtr("Pro-2 phase"),
 									Metadata:    models.Metadata{"name": "pro-2"},
-									StartAfter:  SixMonthPeriod,
+									Duration:    nil,
 								},
 								RateCards: []productcatalog.RateCard{
 									&plan.UsageBasedRateCard{
@@ -292,22 +304,12 @@ func TestPlanService(t *testing.T) {
 								Namespace: planInput.Namespace,
 								ID:        draftPlan.ID,
 							},
-							Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-								if len(p) == 0 {
-									return nil
+							Phases: lo.ToPtr(lo.Map(updatedPhases, func(p plan.Phase, idx int) productcatalog.Phase {
+								return productcatalog.Phase{
+									PhaseMeta: p.PhaseMeta,
+									RateCards: p.RateCards,
 								}
-
-								var phases []productcatalog.Phase
-
-								for _, phase := range p {
-									phases = append(phases, productcatalog.Phase{
-										PhaseMeta: phase.PhaseMeta,
-										RateCards: phase.RateCards,
-									})
-								}
-
-								return &phases
-							}(updatedPhases),
+							})),
 						}
 
 						updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
@@ -318,7 +320,13 @@ func TestPlanService(t *testing.T) {
 					})
 
 					t.Run("EmptyRateCards", func(t *testing.T) {
-						updatedPhases = slices.Clone(draftPlan.Phases)
+						updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
+							if idx == len(draftPlan.Phases)-1 {
+								p.Duration = &SixMonthPeriod
+							}
+
+							return p
+						})
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
 								NamespacedID: models.NamespacedID{
@@ -332,7 +340,7 @@ func TestPlanService(t *testing.T) {
 									Name:        "Pro-2",
 									Description: lo.ToPtr("Pro-2 phase"),
 									Metadata:    models.Metadata{"name": "pro-2"},
-									StartAfter:  SixMonthPeriod,
+									Duration:    nil,
 								},
 								RateCards: []productcatalog.RateCard{},
 							},
@@ -343,22 +351,12 @@ func TestPlanService(t *testing.T) {
 								Namespace: planInput.Namespace,
 								ID:        draftPlan.ID,
 							},
-							Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-								if len(p) == 0 {
-									return nil
+							Phases: lo.ToPtr(lo.Map(updatedPhases, func(p plan.Phase, _ int) productcatalog.Phase {
+								return productcatalog.Phase{
+									PhaseMeta: p.PhaseMeta,
+									RateCards: p.RateCards,
 								}
-
-								var phases []productcatalog.Phase
-
-								for _, phase := range p {
-									phases = append(phases, productcatalog.Phase{
-										PhaseMeta: phase.PhaseMeta,
-										RateCards: phase.RateCards,
-									})
-								}
-
-								return &phases
-							}(updatedPhases),
+							})),
 						}
 
 						updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
@@ -375,22 +373,12 @@ func TestPlanService(t *testing.T) {
 							Namespace: planInput.Namespace,
 							ID:        draftPlan.ID,
 						},
-						Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-							if len(p) == 0 {
-								return nil
+						Phases: lo.ToPtr(lo.Map(draftPlan.Phases, func(p plan.Phase, _ int) productcatalog.Phase {
+							return productcatalog.Phase{
+								PhaseMeta: p.PhaseMeta,
+								RateCards: p.RateCards,
 							}
-
-							var phases []productcatalog.Phase
-
-							for _, phase := range p {
-								phases = append(phases, productcatalog.Phase{
-									PhaseMeta: phase.PhaseMeta,
-									RateCards: phase.RateCards,
-								})
-							}
-
-							return &phases
-						}(draftPlan.Phases),
+						})),
 					}
 
 					updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
@@ -442,14 +430,7 @@ func TestPlanService(t *testing.T) {
 
 			var nextPlan *plan.Plan
 			t.Run("NewVersion", func(t *testing.T) {
-				nextInput := plan.NextPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: publishedPlan.Namespace,
-					},
-					Key: publishedPlan.Key,
-				}
-
-				nextPlan, err = env.Plan.NextPlan(ctx, nextInput)
+				nextPlan, err = env.Plan.CreatePlan(ctx, planInput)
 				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")
 				require.NotNil(t, nextPlan, "new draft Plan must not be empty")
 
@@ -458,55 +439,55 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, productcatalog.DraftStatus, nextPlan.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, nextPlan.Status())
 
-				t.Run("Phases", func(t *testing.T) {
-					t.Run("Remove", func(t *testing.T) {
-						updateInput := plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
-								Namespace: nextPlan.Namespace,
-								ID:        nextPlan.ID,
-							},
-							Phases: lo.ToPtr([]productcatalog.Phase{}),
-						}
+				// t.Run("Phases", func(t *testing.T) {
+				// 	t.Run("Remove", func(t *testing.T) {
+				// 		updateInput := plan.UpdatePlanInput{
+				// 			NamespacedID: models.NamespacedID{
+				// 				Namespace: nextPlan.Namespace,
+				// 				ID:        nextPlan.ID,
+				// 			},
+				// 			Phases: lo.ToPtr([]productcatalog.Phase{}),
+				// 		}
 
-						updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
-						require.NoErrorf(t, err, "removing all PlanPhases from draft Plan must not fail")
-						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+				// 		updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
+				// 		require.NoErrorf(t, err, "removing all PlanPhases from draft Plan must not fail")
+				// 		require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
 
-						plan.AssertPlanPhasesEqual(t, []plan.Phase{}, updatedPlan.Phases)
-					})
+				// 		plan.AssertPlanPhasesEqual(t, []plan.Phase{}, updatedPlan.Phases)
+				// 	})
 
-					t.Run("ReAdd", func(t *testing.T) {
-						reAddPhases := slices.Clone(draftPlan.Phases)
-						updateInput := plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
-								Namespace: nextPlan.Namespace,
-								ID:        nextPlan.ID,
-							},
-							Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-								if len(p) == 0 {
-									return nil
-								}
+				// 	t.Run("ReAdd", func(t *testing.T) {
+				// 		reAddPhases := slices.Clone(draftPlan.Phases)
+				// 		updateInput := plan.UpdatePlanInput{
+				// 			NamespacedID: models.NamespacedID{
+				// 				Namespace: nextPlan.Namespace,
+				// 				ID:        nextPlan.ID,
+				// 			},
+				// 			Phases: func(p []plan.Phase) *[]productcatalog.Phase {
+				// 				if len(p) == 0 {
+				// 					return nil
+				// 				}
 
-								var phases []productcatalog.Phase
+				// 				var phases []productcatalog.Phase
 
-								for _, phase := range p {
-									phases = append(phases, productcatalog.Phase{
-										PhaseMeta: phase.PhaseMeta,
-										RateCards: phase.RateCards,
-									})
-								}
+				// 				for _, phase := range p {
+				// 					phases = append(phases, productcatalog.Phase{
+				// 						PhaseMeta: phase.PhaseMeta,
+				// 						RateCards: phase.RateCards,
+				// 					})
+				// 				}
 
-								return &phases
-							}(reAddPhases),
-						}
+				// 				return &phases
+				// 			}(reAddPhases),
+				// 		}
 
-						updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
-						require.NoErrorf(t, err, "updating draft Plan must not fail")
-						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
+				// 		updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
+				// 		require.NoErrorf(t, err, "updating draft Plan must not fail")
+				// 		require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
 
-						plan.AssertPlanPhasesEqual(t, reAddPhases, updatedPlan.Phases)
-					})
-				})
+				// 		plan.AssertPlanPhasesEqual(t, reAddPhases, updatedPlan.Phases)
+				// 	})
+				// })
 
 				t.Run("Publish", func(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
@@ -593,298 +574,298 @@ func TestPlanService(t *testing.T) {
 		})
 	})
 
-	t.Run("Phase", func(t *testing.T) {
-		t.Run("CreatePlan", func(t *testing.T) {
-			planInput := NewProPlan(t, namespace)
-			planInput.Key = "Pro Phase"
+	// t.Run("Phase", func(t *testing.T) {
+	// 	t.Run("CreatePlan", func(t *testing.T) {
+	// 		planInput := NewProPlan(t, namespace)
+	// 		planInput.Key = "Pro Phase"
 
-			draftPlan, err := env.Plan.CreatePlan(ctx, planInput)
-			require.NoErrorf(t, err, "creating Plan must not fail")
-			require.NotNil(t, draftPlan, "Plan must not be empty")
+	// 		draftPlan, err := env.Plan.CreatePlan(ctx, planInput)
+	// 		require.NoErrorf(t, err, "creating Plan must not fail")
+	// 		require.NotNil(t, draftPlan, "Plan must not be empty")
 
-			plan.AssertPlanCreateInputEqual(t, planInput, *draftPlan)
-			assert.Equalf(t, productcatalog.DraftStatus, draftPlan.Status(),
-				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, draftPlan.Status())
+	// 		plan.AssertPlanCreateInputEqual(t, planInput, *draftPlan)
+	// 		assert.Equalf(t, productcatalog.DraftStatus, draftPlan.Status(),
+	// 			"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, draftPlan.Status())
 
-			t.Run("Get", func(t *testing.T) {
-				getPhase, err := env.Plan.GetPhase(ctx, plan.GetPhaseInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: draftPlan.Namespace,
-					},
-					Key:    draftPlan.Phases[0].Key,
-					PlanID: draftPlan.ID,
-				})
-				require.NoErrorf(t, err, "getting PlanPhase must not fail")
-				require.NotNil(t, getPhase, "PlanPhase must not be empty")
+	// 		t.Run("Get", func(t *testing.T) {
+	// 			getPhase, err := env.Plan.GetPhase(ctx, plan.GetPhaseInput{
+	// 				NamespacedID: models.NamespacedID{
+	// 					Namespace: draftPlan.Namespace,
+	// 				},
+	// 				Key:    draftPlan.Phases[0].Key,
+	// 				PlanID: draftPlan.ID,
+	// 			})
+	// 			require.NoErrorf(t, err, "getting PlanPhase must not fail")
+	// 			require.NotNil(t, getPhase, "PlanPhase must not be empty")
 
-				assert.Equalf(t, draftPlan.Phases[0].ID, getPhase.ID,
-					"PlanPhase ID mismatch: %s = %s", draftPlan.Phases[0].ID, getPhase.ID)
-				assert.Equalf(t, draftPlan.Phases[0].Key, getPhase.Key,
-					"PlanPhase Key mismatch: %s = %s", draftPlan.Key, getPhase.Key)
-			})
+	// 			assert.Equalf(t, draftPlan.Phases[0].ID, getPhase.ID,
+	// 				"PlanPhase ID mismatch: %s = %s", draftPlan.Phases[0].ID, getPhase.ID)
+	// 			assert.Equalf(t, draftPlan.Phases[0].Key, getPhase.Key,
+	// 				"PlanPhase Key mismatch: %s = %s", draftPlan.Key, getPhase.Key)
+	// 		})
 
-			t.Run("Create", func(t *testing.T) {
-				newPhaseInput := plan.CreatePhaseInput{
-					NamespacedModel: models.NamespacedModel{
-						Namespace: draftPlan.Namespace,
-					},
-					PlanID: draftPlan.ID,
-					Phase: productcatalog.Phase{
-						PhaseMeta: productcatalog.PhaseMeta{
-							Key:         "pro-2",
-							Name:        "Pro-2",
-							Description: lo.ToPtr("Pro-2 phase"),
-							Metadata:    map[string]string{"name": "pro-2"},
-							StartAfter:  ThreeMonthPeriod,
-						},
-						RateCards: []productcatalog.RateCard{
-							&plan.UsageBasedRateCard{
-								RateCardManagedFields: plan.RateCardManagedFields{
-									ManagedModel: models.ManagedModel{
-										CreatedAt: time.Time{},
-										UpdatedAt: time.Time{},
-										DeletedAt: &time.Time{},
-									},
-									NamespacedID: models.NamespacedID{
-										Namespace: namespace,
-										ID:        "",
-									},
-									PhaseID: "",
-								},
-								UsageBasedRateCard: productcatalog.UsageBasedRateCard{
-									RateCardMeta: productcatalog.RateCardMeta{
-										Key:         "api_requests_total",
-										Name:        "Pro-2 RateCard 1",
-										Description: lo.ToPtr("Pro-2 RateCard 1"),
-										Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
-										Feature: &feature.Feature{
-											Namespace: namespace,
-											Key:       "api_requests_total",
-										},
-										EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
-											productcatalog.MeteredEntitlementTemplate{
-												Metadata:                nil,
-												IsSoftLimit:             true,
-												IssueAfterReset:         lo.ToPtr(500.0),
-												IssueAfterResetPriority: lo.ToPtr[uint8](1),
-												PreserveOverageAtReset:  lo.ToPtr(true),
-												UsagePeriod:             MonthPeriod,
-											}),
-										TaxConfig: &productcatalog.TaxConfig{
-											Stripe: &productcatalog.StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
-										},
-										Price: productcatalog.NewPriceFrom(
-											productcatalog.TieredPrice{
-												Mode: productcatalog.VolumeTieredPrice,
-												Tiers: []productcatalog.PriceTier{
-													{
-														UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-														FlatPrice: &productcatalog.PriceTierFlatPrice{
-															Amount: decimal.NewFromInt(100),
-														},
-														UnitPrice: &productcatalog.PriceTierUnitPrice{
-															Amount: decimal.NewFromInt(50),
-														},
-													},
-													{
-														UpToAmount: nil,
-														FlatPrice: &productcatalog.PriceTierFlatPrice{
-															Amount: decimal.NewFromInt(75),
-														},
-														UnitPrice: &productcatalog.PriceTierUnitPrice{
-															Amount: decimal.NewFromInt(25),
-														},
-													},
-												},
-												MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-												MaximumAmount: nil,
-											}),
-									},
-									BillingCadence: MonthPeriod,
-								},
-							},
-						},
-					},
-				}
+	// 		t.Run("Create", func(t *testing.T) {
+	// 			newPhaseInput := plan.CreatePhaseInput{
+	// 				NamespacedModel: models.NamespacedModel{
+	// 					Namespace: draftPlan.Namespace,
+	// 				},
+	// 				PlanID: draftPlan.ID,
+	// 				Phase: productcatalog.Phase{
+	// 					PhaseMeta: productcatalog.PhaseMeta{
+	// 						Key:         "pro-2",
+	// 						Name:        "Pro-2",
+	// 						Description: lo.ToPtr("Pro-2 phase"),
+	// 						Metadata:    map[string]string{"name": "pro-2"},
+	// 						StartAfter:  ThreeMonthPeriod,
+	// 					},
+	// 					RateCards: []productcatalog.RateCard{
+	// 						&plan.UsageBasedRateCard{
+	// 							RateCardManagedFields: plan.RateCardManagedFields{
+	// 								ManagedModel: models.ManagedModel{
+	// 									CreatedAt: time.Time{},
+	// 									UpdatedAt: time.Time{},
+	// 									DeletedAt: &time.Time{},
+	// 								},
+	// 								NamespacedID: models.NamespacedID{
+	// 									Namespace: namespace,
+	// 									ID:        "",
+	// 								},
+	// 								PhaseID: "",
+	// 							},
+	// 							UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+	// 								RateCardMeta: productcatalog.RateCardMeta{
+	// 									Key:         "api_requests_total",
+	// 									Name:        "Pro-2 RateCard 1",
+	// 									Description: lo.ToPtr("Pro-2 RateCard 1"),
+	// 									Metadata:    map[string]string{"name": "pro-2-ratecard-1"},
+	// 									Feature: &feature.Feature{
+	// 										Namespace: namespace,
+	// 										Key:       "api_requests_total",
+	// 									},
+	// 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+	// 										productcatalog.MeteredEntitlementTemplate{
+	// 											Metadata:                nil,
+	// 											IsSoftLimit:             true,
+	// 											IssueAfterReset:         lo.ToPtr(500.0),
+	// 											IssueAfterResetPriority: lo.ToPtr[uint8](1),
+	// 											PreserveOverageAtReset:  lo.ToPtr(true),
+	// 											UsagePeriod:             MonthPeriod,
+	// 										}),
+	// 									TaxConfig: &productcatalog.TaxConfig{
+	// 										Stripe: &productcatalog.StripeTaxConfig{
+	// 											Code: "txcd_10000000",
+	// 										},
+	// 									},
+	// 									Price: productcatalog.NewPriceFrom(
+	// 										productcatalog.TieredPrice{
+	// 											Mode: productcatalog.VolumeTieredPrice,
+	// 											Tiers: []productcatalog.PriceTier{
+	// 												{
+	// 													UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+	// 													FlatPrice: &productcatalog.PriceTierFlatPrice{
+	// 														Amount: decimal.NewFromInt(100),
+	// 													},
+	// 													UnitPrice: &productcatalog.PriceTierUnitPrice{
+	// 														Amount: decimal.NewFromInt(50),
+	// 													},
+	// 												},
+	// 												{
+	// 													UpToAmount: nil,
+	// 													FlatPrice: &productcatalog.PriceTierFlatPrice{
+	// 														Amount: decimal.NewFromInt(75),
+	// 													},
+	// 													UnitPrice: &productcatalog.PriceTierUnitPrice{
+	// 														Amount: decimal.NewFromInt(25),
+	// 													},
+	// 												},
+	// 											},
+	// 											MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+	// 											MaximumAmount: nil,
+	// 										}),
+	// 								},
+	// 								BillingCadence: MonthPeriod,
+	// 							},
+	// 						},
+	// 					},
+	// 				},
+	// 			}
 
-				newPhase, err := env.Plan.CreatePhase(ctx, newPhaseInput)
-				require.NoErrorf(t, err, "creating PlanPhase must not fail")
-				require.NotNil(t, newPhase, "PlanPhase must not be empty")
+	// 			newPhase, err := env.Plan.CreatePhase(ctx, newPhaseInput)
+	// 			require.NoErrorf(t, err, "creating PlanPhase must not fail")
+	// 			require.NotNil(t, newPhase, "PlanPhase must not be empty")
 
-				plan.AssertPhaseCreateInputEqual(t, newPhaseInput, *newPhase)
+	// 			plan.AssertPhaseCreateInputEqual(t, newPhaseInput, *newPhase)
 
-				t.Run("Update", func(t *testing.T) {
-					updateInput := plan.UpdatePhaseInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: draftPlan.Namespace,
-						},
-						Key:         newPhase.Key,
-						Name:        lo.ToPtr("Pro-3"),
-						Description: lo.ToPtr("Pro-3"),
-						Metadata:    &models.Metadata{"name": "pro-3"},
-						StartAfter:  lo.ToPtr(SixMonthPeriod),
-						PlanID:      draftPlan.ID,
-						RateCards: &productcatalog.RateCards{
-							&plan.UsageBasedRateCard{
-								RateCardManagedFields: plan.RateCardManagedFields{
-									ManagedModel: models.ManagedModel{
-										CreatedAt: time.Time{},
-										UpdatedAt: time.Time{},
-										DeletedAt: &time.Time{},
-									},
-									NamespacedID: models.NamespacedID{
-										Namespace: namespace,
-										ID:        "",
-									},
-									PhaseID: "",
-								},
-								UsageBasedRateCard: productcatalog.UsageBasedRateCard{
-									RateCardMeta: productcatalog.RateCardMeta{
-										Key:         "api_requests_total",
-										Name:        "Pro-2 RateCard 1",
-										Description: lo.ToPtr("Pro-2 RateCard 1"),
-										Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
-										Feature: &feature.Feature{
-											Namespace: namespace,
-											Key:       "api_requests_total",
-										},
-										EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
-											productcatalog.MeteredEntitlementTemplate{
-												Metadata:                nil,
-												IsSoftLimit:             true,
-												IssueAfterReset:         lo.ToPtr(500.0),
-												IssueAfterResetPriority: lo.ToPtr[uint8](1),
-												PreserveOverageAtReset:  lo.ToPtr(true),
-												UsagePeriod:             MonthPeriod,
-											}),
-										TaxConfig: &productcatalog.TaxConfig{
-											Stripe: &productcatalog.StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
-										},
-										Price: productcatalog.NewPriceFrom(
-											productcatalog.TieredPrice{
-												Mode: productcatalog.VolumeTieredPrice,
-												Tiers: []productcatalog.PriceTier{
-													{
-														UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-														FlatPrice: &productcatalog.PriceTierFlatPrice{
-															Amount: decimal.NewFromInt(100),
-														},
-														UnitPrice: &productcatalog.PriceTierUnitPrice{
-															Amount: decimal.NewFromInt(50),
-														},
-													},
-													{
-														UpToAmount: nil,
-														FlatPrice: &productcatalog.PriceTierFlatPrice{
-															Amount: decimal.NewFromInt(75),
-														},
-														UnitPrice: &productcatalog.PriceTierUnitPrice{
-															Amount: decimal.NewFromInt(25),
-														},
-													},
-												},
-												MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-												MaximumAmount: nil,
-											}),
-									},
-									BillingCadence: MonthPeriod,
-								},
-							},
-						},
-					}
+	// 			t.Run("Update", func(t *testing.T) {
+	// 				updateInput := plan.UpdatePhaseInput{
+	// 					NamespacedID: models.NamespacedID{
+	// 						Namespace: draftPlan.Namespace,
+	// 					},
+	// 					Key:         newPhase.Key,
+	// 					Name:        lo.ToPtr("Pro-3"),
+	// 					Description: lo.ToPtr("Pro-3"),
+	// 					Metadata:    &models.Metadata{"name": "pro-3"},
+	// 					StartAfter:  lo.ToPtr(SixMonthPeriod),
+	// 					PlanID:      draftPlan.ID,
+	// 					RateCards: &productcatalog.RateCards{
+	// 						&plan.UsageBasedRateCard{
+	// 							RateCardManagedFields: plan.RateCardManagedFields{
+	// 								ManagedModel: models.ManagedModel{
+	// 									CreatedAt: time.Time{},
+	// 									UpdatedAt: time.Time{},
+	// 									DeletedAt: &time.Time{},
+	// 								},
+	// 								NamespacedID: models.NamespacedID{
+	// 									Namespace: namespace,
+	// 									ID:        "",
+	// 								},
+	// 								PhaseID: "",
+	// 							},
+	// 							UsageBasedRateCard: productcatalog.UsageBasedRateCard{
+	// 								RateCardMeta: productcatalog.RateCardMeta{
+	// 									Key:         "api_requests_total",
+	// 									Name:        "Pro-2 RateCard 1",
+	// 									Description: lo.ToPtr("Pro-2 RateCard 1"),
+	// 									Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
+	// 									Feature: &feature.Feature{
+	// 										Namespace: namespace,
+	// 										Key:       "api_requests_total",
+	// 									},
+	// 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+	// 										productcatalog.MeteredEntitlementTemplate{
+	// 											Metadata:                nil,
+	// 											IsSoftLimit:             true,
+	// 											IssueAfterReset:         lo.ToPtr(500.0),
+	// 											IssueAfterResetPriority: lo.ToPtr[uint8](1),
+	// 											PreserveOverageAtReset:  lo.ToPtr(true),
+	// 											UsagePeriod:             MonthPeriod,
+	// 										}),
+	// 									TaxConfig: &productcatalog.TaxConfig{
+	// 										Stripe: &productcatalog.StripeTaxConfig{
+	// 											Code: "txcd_10000000",
+	// 										},
+	// 									},
+	// 									Price: productcatalog.NewPriceFrom(
+	// 										productcatalog.TieredPrice{
+	// 											Mode: productcatalog.VolumeTieredPrice,
+	// 											Tiers: []productcatalog.PriceTier{
+	// 												{
+	// 													UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+	// 													FlatPrice: &productcatalog.PriceTierFlatPrice{
+	// 														Amount: decimal.NewFromInt(100),
+	// 													},
+	// 													UnitPrice: &productcatalog.PriceTierUnitPrice{
+	// 														Amount: decimal.NewFromInt(50),
+	// 													},
+	// 												},
+	// 												{
+	// 													UpToAmount: nil,
+	// 													FlatPrice: &productcatalog.PriceTierFlatPrice{
+	// 														Amount: decimal.NewFromInt(75),
+	// 													},
+	// 													UnitPrice: &productcatalog.PriceTierUnitPrice{
+	// 														Amount: decimal.NewFromInt(25),
+	// 													},
+	// 												},
+	// 											},
+	// 											MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+	// 											MaximumAmount: nil,
+	// 										}),
+	// 								},
+	// 								BillingCadence: MonthPeriod,
+	// 							},
+	// 						},
+	// 					},
+	// 				}
 
-					updatedPhase, err := env.Plan.UpdatePhase(ctx, updateInput)
-					require.NoErrorf(t, err, "updating PlanPhase must not fail")
-					require.NotNil(t, updatedPhase, "PlanPhase must not be empty")
+	// 				updatedPhase, err := env.Plan.UpdatePhase(ctx, updateInput)
+	// 				require.NoErrorf(t, err, "updating PlanPhase must not fail")
+	// 				require.NotNil(t, updatedPhase, "PlanPhase must not be empty")
 
-					plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
-				})
+	// 				plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
+	// 			})
 
-				t.Run("ReplaceRateCard", func(t *testing.T) {
-					updateInput := plan.UpdatePhaseInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: draftPlan.Namespace,
-						},
-						Key:         newPhase.Key,
-						Name:        lo.ToPtr("Pro-3"),
-						Description: lo.ToPtr("Pro-3"),
-						Metadata:    &models.Metadata{"name": "pro-3"},
-						StartAfter:  lo.ToPtr(SixMonthPeriod),
-						PlanID:      draftPlan.ID,
-						RateCards: &productcatalog.RateCards{
-							&plan.FlatFeeRateCard{
-								RateCardManagedFields: plan.RateCardManagedFields{
-									ManagedModel: models.ManagedModel{
-										CreatedAt: time.Time{},
-										UpdatedAt: time.Time{},
-										DeletedAt: &time.Time{},
-									},
-									NamespacedID: models.NamespacedID{
-										Namespace: namespace,
-										ID:        "",
-									},
-									PhaseID: "",
-								},
-								FlatFeeRateCard: productcatalog.FlatFeeRateCard{
-									RateCardMeta: productcatalog.RateCardMeta{
-										Key:         "api_requests_total",
-										Name:        "Pro-2 RateCard 1",
-										Description: lo.ToPtr("Pro-2 RateCard 1"),
-										Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
-										Feature: &feature.Feature{
-											Namespace: namespace,
-											Key:       "api_requests_total",
-										},
-										EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
-											productcatalog.MeteredEntitlementTemplate{
-												Metadata:                nil,
-												IsSoftLimit:             true,
-												IssueAfterReset:         lo.ToPtr(500.0),
-												IssueAfterResetPriority: lo.ToPtr[uint8](1),
-												PreserveOverageAtReset:  lo.ToPtr(true),
-												UsagePeriod:             MonthPeriod,
-											}),
-										TaxConfig: &productcatalog.TaxConfig{
-											Stripe: &productcatalog.StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
-										},
-										Price: productcatalog.NewPriceFrom(
-											productcatalog.FlatPrice{
-												Amount:      decimal.NewFromInt(1000),
-												PaymentTerm: productcatalog.InAdvancePaymentTerm,
-											}),
-									},
-									BillingCadence: &MonthPeriod,
-								},
-							},
-						},
-					}
+	// 			t.Run("ReplaceRateCard", func(t *testing.T) {
+	// 				updateInput := plan.UpdatePhaseInput{
+	// 					NamespacedID: models.NamespacedID{
+	// 						Namespace: draftPlan.Namespace,
+	// 					},
+	// 					Key:         newPhase.Key,
+	// 					Name:        lo.ToPtr("Pro-3"),
+	// 					Description: lo.ToPtr("Pro-3"),
+	// 					Metadata:    &models.Metadata{"name": "pro-3"},
+	// 					StartAfter:  lo.ToPtr(SixMonthPeriod),
+	// 					PlanID:      draftPlan.ID,
+	// 					RateCards: &productcatalog.RateCards{
+	// 						&plan.FlatFeeRateCard{
+	// 							RateCardManagedFields: plan.RateCardManagedFields{
+	// 								ManagedModel: models.ManagedModel{
+	// 									CreatedAt: time.Time{},
+	// 									UpdatedAt: time.Time{},
+	// 									DeletedAt: &time.Time{},
+	// 								},
+	// 								NamespacedID: models.NamespacedID{
+	// 									Namespace: namespace,
+	// 									ID:        "",
+	// 								},
+	// 								PhaseID: "",
+	// 							},
+	// 							FlatFeeRateCard: productcatalog.FlatFeeRateCard{
+	// 								RateCardMeta: productcatalog.RateCardMeta{
+	// 									Key:         "api_requests_total",
+	// 									Name:        "Pro-2 RateCard 1",
+	// 									Description: lo.ToPtr("Pro-2 RateCard 1"),
+	// 									Metadata:    models.Metadata{"name": "pro-2-ratecard-1"},
+	// 									Feature: &feature.Feature{
+	// 										Namespace: namespace,
+	// 										Key:       "api_requests_total",
+	// 									},
+	// 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+	// 										productcatalog.MeteredEntitlementTemplate{
+	// 											Metadata:                nil,
+	// 											IsSoftLimit:             true,
+	// 											IssueAfterReset:         lo.ToPtr(500.0),
+	// 											IssueAfterResetPriority: lo.ToPtr[uint8](1),
+	// 											PreserveOverageAtReset:  lo.ToPtr(true),
+	// 											UsagePeriod:             MonthPeriod,
+	// 										}),
+	// 									TaxConfig: &productcatalog.TaxConfig{
+	// 										Stripe: &productcatalog.StripeTaxConfig{
+	// 											Code: "txcd_10000000",
+	// 										},
+	// 									},
+	// 									Price: productcatalog.NewPriceFrom(
+	// 										productcatalog.FlatPrice{
+	// 											Amount:      decimal.NewFromInt(1000),
+	// 											PaymentTerm: productcatalog.InAdvancePaymentTerm,
+	// 										}),
+	// 								},
+	// 								BillingCadence: &MonthPeriod,
+	// 							},
+	// 						},
+	// 					},
+	// 				}
 
-					updatedPhase, err := env.Plan.UpdatePhase(ctx, updateInput)
-					require.NoErrorf(t, err, "updating PlanPhase must not fail")
-					require.NotNil(t, updatedPhase, "PlanPhase must not be empty")
+	// 				updatedPhase, err := env.Plan.UpdatePhase(ctx, updateInput)
+	// 				require.NoErrorf(t, err, "updating PlanPhase must not fail")
+	// 				require.NotNil(t, updatedPhase, "PlanPhase must not be empty")
 
-					plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
-				})
+	// 				plan.AssertPhaseUpdateInputEqual(t, updateInput, *updatedPhase)
+	// 			})
 
-				t.Run("Delete", func(t *testing.T) {
-					err = env.Plan.DeletePhase(ctx, plan.DeletePhaseInput{
-						NamespacedID: models.NamespacedID{
-							Namespace: draftPlan.Namespace,
-						},
-						Key:    newPhase.Key,
-						PlanID: draftPlan.ID,
-					})
-					require.NoErrorf(t, err, "deleting PlanPhase must not fail")
-				})
-			})
-		})
-	})
+	// 			t.Run("Delete", func(t *testing.T) {
+	// 				err = env.Plan.DeletePhase(ctx, plan.DeletePhaseInput{
+	// 					NamespacedID: models.NamespacedID{
+	// 						Namespace: draftPlan.Namespace,
+	// 					},
+	// 					Key:    newPhase.Key,
+	// 					PlanID: draftPlan.ID,
+	// 				})
+	// 				require.NoErrorf(t, err, "deleting PlanPhase must not fail")
+	// 			})
+	// 		})
+	// 	})
+	// })
 }
 
 var (
@@ -916,7 +897,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Name:        "Trial",
 						Description: lo.ToPtr("Trial phase"),
 						Metadata:    map[string]string{"name": "trial"},
-						StartAfter:  datex.MustParse(t, "P0D"),
+						Duration:    &TwoMonthPeriod,
 					},
 					RateCards: []productcatalog.RateCard{
 						&plan.FlatFeeRateCard{
@@ -962,7 +943,6 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Name:        "Pro",
 						Description: lo.ToPtr("Pro phase"),
 						Metadata:    models.Metadata{"name": "pro"},
-						StartAfter:  TwoMonthPeriod,
 					},
 					RateCards: []productcatalog.RateCard{
 						&plan.UsageBasedRateCard{

@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -70,9 +69,10 @@ func (PlanPhase) Mixin() []ent.Mixin {
 
 func (PlanPhase) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("start_after").
+		field.String("duration").
 			GoType(datex.ISOString("")).
-			Default(plan.DefaultStartAfter),
+			Optional().
+			Nillable(),
 		field.String("discounts").
 			GoType([]productcatalog.Discount{}).
 			ValueScanner(DiscountsValueScanner).
@@ -83,6 +83,8 @@ func (PlanPhase) Fields() []ent.Field {
 		field.String("plan_id").
 			NotEmpty().
 			Comment("The plan identifier the phase is assigned to."),
+		field.Int("index").
+			Comment("The index of the phase in the plan."),
 	}
 }
 
@@ -104,6 +106,8 @@ func (PlanPhase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "key"),
 		index.Fields("plan_id", "key", "deleted_at").
+			Unique(),
+		index.Fields("plan_id", "index", "deleted_at").
 			Unique(),
 	}
 }
@@ -187,10 +191,9 @@ func (PlanRateCard) Indexes() []ent.Index {
 	}
 }
 
-var EntitlementTemplateValueScanner = entutils.JSONStringValueScanner[*productcatalog.EntitlementTemplate]()
-
-var TaxConfigValueScanner = entutils.JSONStringValueScanner[*productcatalog.TaxConfig]()
-
-var PriceValueScanner = entutils.JSONStringValueScanner[*productcatalog.Price]()
-
-var DiscountsValueScanner = entutils.JSONStringValueScanner[[]productcatalog.Discount]()
+var (
+	EntitlementTemplateValueScanner = entutils.JSONStringValueScanner[*productcatalog.EntitlementTemplate]()
+	TaxConfigValueScanner           = entutils.JSONStringValueScanner[*productcatalog.TaxConfig]()
+	PriceValueScanner               = entutils.JSONStringValueScanner[*productcatalog.Price]()
+	DiscountsValueScanner           = entutils.JSONStringValueScanner[[]productcatalog.Discount]()
+)

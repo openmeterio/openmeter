@@ -192,14 +192,14 @@ func TestPlan(t *testing.T) {
 				Name:        "Test Plan Phase 1",
 				Key:         "test_plan_phase_1",
 				Description: lo.ToPtr("Test Plan Phase 1 Description"),
-				StartAfter:  nil,
+				Duration:    lo.ToPtr("P2M"),
 				RateCards:   []api.RateCard{p1RC1, p1RC2},
 			},
 			{
 				Name:        "Test Plan Phase 2",
 				Key:         "test_plan_phase_2",
 				Description: lo.ToPtr("Test Plan Phase 1 Description"),
-				StartAfter:  lo.ToPtr("P2M"),
+				Duration:    nil,
 				RateCards:   []api.RateCard{p2RC1, p2RC2},
 			},
 		},
@@ -374,17 +374,28 @@ func TestPlan(t *testing.T) {
 	t.Run("Should create and publish a new version of the plan", func(t *testing.T) {
 		require.NotNil(t, planId)
 
+		newPhases := []api.PlanPhase{
+			planCreate.Phases[0],
+			{
+				Name:      planCreate.Phases[1].Name,
+				Key:       planCreate.Phases[1].Key,
+				Duration:  lo.ToPtr("P7M"),
+				RateCards: planCreate.Phases[1].RateCards,
+			},
+			{
+				Name:      "Test Plan Phase 3",
+				Key:       "test_plan_phase_3",
+				Duration:  nil,
+				RateCards: []api.RateCard{p2RC1},
+			},
+		}
+
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, api.CreatePlanJSONRequestBody{
 			Name:     "Test Plan New Version",
 			Key:      PlanKey,
 			Currency: api.CurrencyCode("USD"),
 			// Let's add a new phase
-			Phases: append(planCreate.Phases, api.PlanPhase{
-				Name:       "Test Plan Phase 3",
-				Key:        "test_plan_phase_3",
-				StartAfter: lo.ToPtr("P9M"),
-				RateCards:  []api.RateCard{p2RC1},
-			}),
+			Phases: newPhases,
 		})
 
 		require.Nil(t, err)

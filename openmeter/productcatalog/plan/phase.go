@@ -2,13 +2,15 @@ package plan
 
 import (
 	"errors"
-	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const DefaultStartAfter = "P0D"
+var (
+	_ models.Validator                   = (*PhaseManagedFields)(nil)
+	_ models.Equaler[PhaseManagedFields] = (*PhaseManagedFields)(nil)
+)
 
 type PhaseManagedFields struct {
 	models.ManagedModel
@@ -110,20 +112,3 @@ func (p Phase) Validate() error {
 func (p Phase) AsProductCatalogPhase() productcatalog.Phase {
 	return p.Phase
 }
-
-type SortPhasesFunc = func(left, right Phase) int
-
-var SortPhasesByStartAfter SortPhasesFunc = func(left, right Phase) int {
-	lt, _ := left.StartAfter.Duration()
-	rt, _ := right.StartAfter.Duration()
-
-	if lt > rt {
-		return 1
-	} else if lt < rt {
-		return -1
-	}
-
-	return 0
-}
-
-var SortPhases = slices.SortFunc[[]Phase, Phase]

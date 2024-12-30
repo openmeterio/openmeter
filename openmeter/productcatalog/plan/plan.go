@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -31,17 +30,17 @@ func (p Plan) Validate() error {
 		errs = append(errs, err)
 	}
 
-	// Check if there are multiple plan phase with the same startAfter which is not allowed
-	startAfters := make(map[datex.ISOString]Phase)
-	for _, phase := range p.Phases {
-		startAfter := phase.StartAfter.ISOString()
-
-		if _, ok := startAfters[startAfter]; ok {
-			errs = append(errs, fmt.Errorf("multiple PlanPhases have the same startAfter which is not allowed: %q", phase.Name))
-		}
-
+	for i, phase := range p.Phases {
 		if err := phase.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid PlanPhase %q: %s", phase.Name, err))
+		}
+
+		if phase.Duration == nil && i != len(p.Phases)-1 {
+			errs = append(errs, fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i))
+		}
+
+		if phase.Duration != nil && i == len(p.Phases)-1 {
+			errs = append(errs, fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i))
 		}
 	}
 
