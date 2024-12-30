@@ -206,8 +206,7 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 
 	// Create new default billing profile
 	appRef := billing.AppReference{
-		ID:   appID.ID,
-		Type: appentitybase.AppTypeStripe,
+		ID: appID.ID,
 	}
 
 	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{

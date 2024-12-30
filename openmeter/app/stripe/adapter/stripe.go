@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -19,7 +21,6 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -468,9 +469,7 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	}
 
 	// Get stripe app data
-	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
-		AppID: input.AppID,
-	})
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput(input))
 	if err != nil {
 		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
@@ -479,7 +478,7 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	if !stripeAppData.Livemode {
 		return billing.SupplierContact{
 			// TODO: use organization name
-			Name: "Test Account",
+			Name: "Stripe Test Account",
 			Address: models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
