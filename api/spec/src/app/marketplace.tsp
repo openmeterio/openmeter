@@ -76,7 +76,9 @@ interface Marketplace {
   @operationId("marketplaceAppAPIKeyInstall")
   @summary("Install app via API key")
   @extension("x-internal", true)
-  installWithAPIKey(...MarketplaceApiKeyInstallRequest): MarketplaceInstallResponse | CommonErrors;
+  installWithAPIKey(
+    ...MarketplaceApiKeyInstallRequest,
+  ): MarketplaceInstallResponse | CommonErrors;
 }
 
 /**
