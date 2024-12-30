@@ -13,6 +13,7 @@ import (
 	"github.com/stripe/stripe-go/v80/client"
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // StripeClient is a client for the stripe API without an installed app
@@ -95,7 +96,7 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 	}
 	result, err := c.client.WebhookEndpoints.New(params)
 	if err != nil {
-		return StripeWebhookEndpoint{}, fmt.Errorf("failed to create stripe webhook: %w", err)
+		return StripeWebhookEndpoint{}, c.providerError(err)
 	}
 
 	out := StripeWebhookEndpoint{
@@ -115,6 +116,8 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 
 	return StripeAccount{
 		StripeAccountID: stripeAccount.ID,
+		Country:         models.CountryCode(stripeAccount.Country),
+		BusinessProfile: stripeAccount.BusinessProfile,
 	}, nil
 }
 

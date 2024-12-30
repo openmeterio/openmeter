@@ -1,4 +1,4 @@
-h1:62NBW35Q9hOmuOiLp3zxrR5vIhaKwUGL5RvUe+4xzOM=
+h1:1JUb9WsArbhtNMwfXdIY9FK5XGx5SyU369J0e+Sbfbk=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -69,3 +69,5 @@ h1:62NBW35Q9hOmuOiLp3zxrR5vIhaKwUGL5RvUe+4xzOM=
 20241213152122_billing-subscription-linking.up.sql h1:IX1Cr1PHb4GiGXoV6DQYr+U9/QZDNoHfH+nJXNWLevs=
 20241219213036_add_invoice_line_discount_external_id.down.sql h1:XOV1kWbmp3u0hPzZ1H5rT1bReMs6JqG/LviG6rZ3Rbs=
 20241219213036_add_invoice_line_discount_external_id.up.sql h1:kayHDlVLM6Oo66uMGi/69gtCou0ogDjbR/5T5gioOTE=
+20241230152834_app_stripe_account_id_unique.down.sql h1:XyFdqBe4goV/EY2u2HFpLuo2atLOSl93a0lCCXkiUOs=
+20241230152834_app_stripe_account_id_unique.up.sql h1:36Q5qBeQ3RZzPjCshW42QLlEf9zorteSj//V630vRUs=

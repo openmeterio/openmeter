@@ -34,6 +34,13 @@ func (AppStripe) Fields() []ent.Field {
 	}
 }
 
+func (AppStripe) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "stripe_account_id", "stripe_livemode").
+			Unique(),
+	}
+}
+
 func (AppStripe) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("customer_apps", AppStripeCustomer.Type).

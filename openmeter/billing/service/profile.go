@@ -26,7 +26,8 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Profile, error) {
 		// Given that we have multiple constraints let's validate those here for better error reporting
-		if input.Default {
+		// Only validate the default profile if it's not being overridden
+		if input.Default && !input.DefaultOverride {
 			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 				Namespace: input.Namespace,
 			})

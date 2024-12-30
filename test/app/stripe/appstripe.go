@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/oklog/ulid/v2"
@@ -40,12 +41,14 @@ func (s *AppHandlerTestSuite) setupNamespace(t *testing.T) {
 
 // TestCreate tests to create a new stripe app
 func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
+	stripeAccountID := getStripeAccountId()
+
 	s.setupNamespace(t)
 
 	s.Env.StripeClient().
 		On("GetAccount").
 		Return(stripeclient.StripeAccount{
-			StripeAccountID: "stripe-account-id",
+			StripeAccountID: stripeAccountID,
 		}, nil)
 
 	s.Env.StripeClient().
@@ -58,7 +61,8 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	// TODO: do not share env between tests
 	defer s.Env.StripeClient().Restore()
 
-	app, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+	// Create a stripe app
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
 			Type: appentitybase.AppTypeStripe,
 		},
@@ -68,7 +72,22 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, app, "Create stripe app must return app")
+	require.NotNil(t, createApp, "Create stripe app must return app")
+
+	// Create with same Stripe account ID should return conflict
+	_, err = s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.ErrorIs(t, err, app.AppConflictError{
+		Namespace: s.namespace,
+		Conflict:  fmt.Sprintf("stripe app already exists with stripe account id: %s", stripeAccountID),
+	}, "Create stripe app must return conflict error")
 }
 
 // TestGet tests getting a stripe app
@@ -105,7 +124,7 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 	s.Env.StripeClient().
 		On("GetAccount").
 		Return(stripeclient.StripeAccount{
-			StripeAccountID: "stripe-account-id",
+			StripeAccountID: getStripeAccountId(),
 		}, nil)
 
 	s.Env.StripeClient().
@@ -130,6 +149,22 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, createApp1, "Create stripe app must return app")
+
+	// Install with different Stripe account ID
+	s.Env.StripeClient().Restore()
+
+	s.Env.StripeClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: getStripeAccountId(),
+		}, nil)
+
+	s.Env.StripeClient().
+		On("SetupWebhook", mock.Anything).
+		Return(stripeclient.StripeWebhookEndpoint{
+			EndpointID: "we_123",
+			Secret:     "whsec_123",
+		}, nil)
 
 	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
 		MarketplaceListingID: appentity.MarketplaceListingID{
@@ -231,7 +266,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		CustomerID: customer.GetID(),
 	})
 
-	require.ErrorIs(t, err, app.CustomerPreConditionError{
+	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
 		AppID:      testApp.GetID(),
 		AppType:    appentitybase.AppTypeStripe,
 		CustomerID: customer.GetID(),

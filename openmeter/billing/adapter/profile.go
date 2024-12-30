@@ -28,11 +28,24 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.BaseProfile, error) {
+		// Set other profiles as non-default
+		if input.Default && input.DefaultOverride {
+			_, err := tx.db.BillingProfile.Update().
+				Where(billingprofile.Namespace(input.Namespace)).
+				SetDefault(false).
+				Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("cannot update default profile: %w", err)
+			}
+		}
+
+		// Create the new workflow config
 		dbWorkflowConfig, err := tx.createWorkflowConfig(ctx, input.Namespace, input.WorkflowConfig)
 		if err != nil {
 			return nil, err
 		}
 
+		// Create the new profile
 		dbProfile, err := tx.db.BillingProfile.Create().
 			SetNamespace(input.Namespace).
 			SetDefault(input.Default).

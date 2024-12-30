@@ -30,7 +30,7 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return appstripeentity.CustomerData{}, app.CustomerPreConditionError{
+			return appstripeentity.CustomerData{}, app.AppCustomerPreConditionError{
 				AppID:      input.AppID,
 				AppType:    appentitybase.AppTypeStripe,
 				CustomerID: input.CustomerID,
@@ -86,7 +86,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 			Exec(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
-				return nil, app.CustomerPreConditionError{
+				return nil, app.AppCustomerPreConditionError{
 					AppID:      input.AppID,
 					AppType:    appentitybase.AppTypeStripe,
 					CustomerID: input.CustomerID,

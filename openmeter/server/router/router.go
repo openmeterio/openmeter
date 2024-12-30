@@ -247,6 +247,8 @@ func NewRouter(config Config) (*Router, error) {
 	router.appHandler = apphttpdriver.New(
 		staticNamespaceDecoder,
 		config.App,
+		config.Billing,
+		config.AppStripe,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

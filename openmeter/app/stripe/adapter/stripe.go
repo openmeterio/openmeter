@@ -5,18 +5,22 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -63,6 +67,13 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 		dbApp, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
+			if entdb.IsConstraintError(err) {
+				return appstripeentity.AppBase{}, app.AppConflictError{
+					Namespace: appBase.GetID().Namespace,
+					Conflict:  fmt.Sprintf("stripe app already exists with stripe account id: %s", input.StripeAccountID),
+				}
+			}
+
 			return appstripeentity.AppBase{}, fmt.Errorf("failed to create stripe app: %w", err)
 		}
 
@@ -266,7 +277,7 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 
 		// Check if the stripe customer id matches with the input
 		if appCustomer.StripeCustomerID != input.StripeCustomerID {
-			return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.CustomerPreConditionError{
+			return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.AppCustomerPreConditionError{
 				AppID:      input.AppID,
 				CustomerID: customerID,
 				Condition:  "customer stripe customer id mismatch",
@@ -453,6 +464,102 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			ReturnURL:     checkoutSession.ReturnURL,
 		}, nil
 	})
+}
+
+// GetSupplierContact returns a supplier contact for the app
+func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error) {
+	// Validate input
+	if err := input.Validate(); err != nil {
+		return billing.SupplierContact{}, appstripe.ValidationError{
+			Err: fmt.Errorf("error validate input: %w", err),
+		}
+	}
+
+	// Get stripe app data
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput(input))
+	if err != nil {
+		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app data: %w", err)
+	}
+
+	// Test mode Stripe accounts do not have supplier contact information
+	if !stripeAppData.Livemode {
+		return billing.SupplierContact{
+			// TODO: use organization name
+			Name: "Stripe Test Account",
+			Address: models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+		}, nil
+	}
+
+	// Get Stripe App client
+	stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	if err != nil {
+		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app client: %w", err)
+	}
+
+	// Get Stripe Account
+	stripeAccount, err := stripeAppClient.GetAccount(ctx)
+	if err != nil {
+		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe account: %w", err)
+	}
+
+	if stripeAccount.BusinessProfile == nil || stripeAccount.BusinessProfile.Name == "" {
+		return billing.SupplierContact{}, app.AppProviderPreConditionError{
+			AppID:     input.AppID,
+			Condition: fmt.Sprintf("stripe account is missing business profile name: %s", stripeAccount.StripeAccountID),
+		}
+	}
+
+	if stripeAccount.Country == "" {
+		return billing.SupplierContact{}, app.AppProviderPreConditionError{
+			AppID:     input.AppID,
+			Condition: fmt.Sprintf("stripe account country is empty: %s", stripeAccount.StripeAccountID),
+		}
+	}
+
+	supplierContact := billing.SupplierContact{
+		Name: stripeAccount.BusinessProfile.Name,
+		Address: models.Address{
+			Country: &stripeAccount.Country,
+		},
+	}
+
+	return supplierContact, nil
+}
+
+// getStripeAppClient returns a Stripe App Client based on App ID
+func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.AppID) (stripeclient.StripeAppClient, error) {
+	// Validate app id
+	if err := appID.Validate(); err != nil {
+		return nil, fmt.Errorf("app id: %w", err)
+	}
+
+	// Get the stripe app data
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: appID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
+	}
+
+	// Get Stripe API Key
+	apiKeySecret, err := a.secretService.GetAppSecret(ctx, stripeAppData.APIKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stripe api key secret: %w", err)
+	}
+
+	// Stripe Client
+	stripeClient, err := a.stripeAppClientFactory(stripeclient.StripeAppClientConfig{
+		AppID:      appID,
+		AppService: a.appService,
+		APIKey:     apiKeySecret.Value,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stripe client: %w", err)
+	}
+
+	return stripeClient, nil
 }
 
 // mapAppStripeData maps stripe app data from the database
