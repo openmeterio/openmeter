@@ -64,12 +64,6 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.Equal(t, profile, defaultProfile)
 	})
 
-	s.T().Run("creating a second default profile fails", func(t *testing.T) {
-		_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-		require.Error(t, err)
-		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
-	})
-
 	s.T().Run("fetching the profile by id", func(t *testing.T) {
 		fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 			Profile: models.NamespacedID{
@@ -83,6 +77,26 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 		require.NoError(t, err)
 		require.Equal(t, profile, fetchedProfile)
+	})
+
+	s.T().Run("creating a second default profile fails", func(t *testing.T) {
+		_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+		require.Error(t, err)
+		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
+	})
+
+	s.T().Run("creating a second default profile succeeds with override", func(t *testing.T) {
+		overrideInput := minimalCreateProfileInput
+		overrideInput.DefaultOverride = true
+
+		profile, err := s.BillingService.CreateProfile(ctx, overrideInput)
+		require.NoError(t, err)
+
+		// Cleanup
+		require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+			Namespace: ns,
+			ID:        profile.ID,
+		}))
 	})
 
 	s.T().Run("deleted profile handling", func(t *testing.T) {

@@ -29,7 +29,7 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.BaseProfile, error) {
 		// Set other profiles as non-default
-		if input.Default {
+		if input.Default && input.DefaultOverride {
 			_, err := tx.db.BillingProfile.Update().
 				Where(billingprofile.Namespace(input.Namespace)).
 				SetDefault(false).

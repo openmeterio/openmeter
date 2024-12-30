@@ -32,6 +32,30 @@ func (e AppDefaultNotFoundError) Error() string {
 	return fmt.Sprintf("there is no default app for %s type in %s namespace", e.Type, e.Namespace)
 }
 
+// AppConflictError
+var _ error = (*AppConflictError)(nil)
+
+type AppConflictError struct {
+	Namespace string
+	Conflict  string
+}
+
+func (e AppConflictError) Validate() error {
+	if e.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if e.Conflict == "" {
+		return errors.New("conflict reason is required")
+	}
+
+	return nil
+}
+
+func (e AppConflictError) Error() string {
+	return fmt.Sprintf("app conflict: %s in namespace %s", e.Conflict, e.Namespace)
+}
+
 // AppProviderAuthenticationError
 var _ error = (*AppProviderAuthenticationError)(nil)
 
@@ -66,7 +90,7 @@ func (e AppProviderError) Error() string {
 	return fmt.Sprintf("provider error for app %s: %s", e.AppID.ID, e.ProviderError)
 }
 
-// ProviderPreConditionError
+// AppProviderPreConditionError
 var _ error = (*AppProviderPreConditionError)(nil)
 
 type AppProviderPreConditionError struct {

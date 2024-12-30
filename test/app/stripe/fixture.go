@@ -3,8 +3,10 @@ package appstripe
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/stretchr/testify/mock"
+	"golang.org/x/exp/rand"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
@@ -58,7 +60,7 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (appentity.App
 	s.stripeClient.
 		On("GetAccount").
 		Return(stripeclient.StripeAccount{
-			StripeAccountID: "stripe-account-id",
+			StripeAccountID: getStripeAccountId(),
 		}, nil)
 
 	s.stripeClient.
@@ -116,4 +118,15 @@ func (s *Fixture) setupAppCustomerData(ctx context.Context, app appentity.App, c
 	}
 
 	return data, nil
+}
+
+// Get a random stripe account id
+func getStripeAccountId() string {
+	length := 6
+	rand.Seed(uint64(time.Now().UnixNano()))
+	b := make([]byte, length+2)
+	_, _ = rand.Read(b)
+	s := fmt.Sprintf("%x", b)[2 : length+2]
+
+	return "acct_" + s
 }

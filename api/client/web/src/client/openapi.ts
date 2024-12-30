@@ -1732,58 +1732,6 @@ export interface components {
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
-    /** @description Abstract base model for installed apps.
-     *
-     *     Represent an app installed to the organization.
-     *     This is an actual instance, with its own configuration and credentials. */
-    AppBase: {
-      /**
-       * ID
-       * @description A unique identifier for the resource.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: string
-      /** @description The marketplace listing that this installed app is based on. */
-      readonly listing: components['schemas']['MarketplaceListing']
-      /** @description Status of the app connection. */
-      readonly status: components['schemas']['AppStatus']
-    }
     /**
      * @description App capability.
      *
@@ -4555,12 +4503,9 @@ export interface components {
       | components['schemas']['FeaturePaginatedResponse']
     /** @description Marketplace install response. */
     MarketplaceInstallResponse: {
-      /** @description The installed app. */
-      app: components['schemas']['AppBase']
+      app: components['schemas']['App']
       /** @description Default for capabilities */
       defaultForCapabilityTypes: components['schemas']['AppCapabilityType'][]
-      /** @description Error message if any. */
-      error?: string
     }
     /**
      * @description A marketplace listing.

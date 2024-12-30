@@ -96,7 +96,7 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 	}
 	result, err := c.client.WebhookEndpoints.New(params)
 	if err != nil {
-		return StripeWebhookEndpoint{}, fmt.Errorf("failed to create stripe webhook: %w", err)
+		return StripeWebhookEndpoint{}, c.providerError(err)
 	}
 
 	out := StripeWebhookEndpoint{

@@ -90,11 +90,6 @@ model MarketplaceInstallResponse {
    * Default for capabilities
    */
   defaultForCapabilityTypes: CapabilityType[];
-
-  /**
-   * Error message if any.
-   */
-  error?: string;
 }
 
 /**

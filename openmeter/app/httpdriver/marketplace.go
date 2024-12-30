@@ -139,12 +139,9 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 				defaultForCapabilityTypes, err := h.makeStripeDefaultBillingApp(ctx, installedApp)
 				if err != nil {
 					if errors.As(err, &app.AppProviderPreConditionError{}) {
-						// Do not return if it's a pre-condition error
-						// The app is already installed successfully but won't
-						// be set as the default billing app, we signal this to the user.
-						err = fmt.Errorf("failed to make stripe app default billing profile: %w", err)
-
-						resp.Error = lo.ToPtr(err.Error())
+						// Do not return error if it's a pre-condition error
+						// The app is installed successfully but won't be set as the default billing app.
+						// The user can set it manually later.
 					} else {
 						return resp, fmt.Errorf("make stripe app default billing profile: %w", err)
 					}
@@ -192,7 +189,7 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 	}
 
 	// Do nothing if the default is not the sandbox
-	if defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() != appentitybase.AppTypeSandbox {
+	if defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() != appentitybase.AppTypeSandbox {
 		return defaultForCapabilityTypes, nil
 	}
 
@@ -210,12 +207,13 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 	}
 
 	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{
-		Namespace:      appID.Namespace,
-		Name:           "Stripe Billing Profile",
-		Description:    lo.ToPtr("Stripe Billing Profile, created automatically"),
-		Default:        true,
-		Supplier:       supplierContract,
-		WorkflowConfig: billing.DefaultWorkflowConfig,
+		Namespace:       appID.Namespace,
+		Name:            "Stripe Billing Profile",
+		Description:     lo.ToPtr("Stripe Billing Profile, created automatically"),
+		Default:         true,
+		DefaultOverride: true,
+		Supplier:        supplierContract,
+		WorkflowConfig:  billing.DefaultWorkflowConfig,
 		Apps: billing.ProfileAppReferences{
 			Tax:       appRef,
 			Invoicing: appRef,

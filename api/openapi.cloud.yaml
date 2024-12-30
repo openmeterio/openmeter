@@ -12230,9 +12230,6 @@ components:
           items:
             $ref: '#/components/schemas/AppCapabilityType'
           description: Default for capabilities
-        error:
-          type: string
-          description: Error message if any.
       description: Marketplace install response.
     MarketplaceListing:
       type: object

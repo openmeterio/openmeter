@@ -67,6 +67,13 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 		dbApp, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
+			if entdb.IsConstraintError(err) {
+				return appstripeentity.AppBase{}, app.AppConflictError{
+					Namespace: appBase.GetID().Namespace,
+					Conflict:  fmt.Sprintf("stripe app already exists with stripe account id: %s", input.StripeAccountID),
+				}
+			}
+
 			return appstripeentity.AppBase{}, fmt.Errorf("failed to create stripe app: %w", err)
 		}
 

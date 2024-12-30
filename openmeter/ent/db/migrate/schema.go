@@ -139,9 +139,9 @@ var (
 				Columns: []*schema.Column{AppStripesColumns[1]},
 			},
 			{
-				Name:    "appstripe_namespace_stripe_account_id_stripe_livemode_deleted_at",
+				Name:    "appstripe_namespace_stripe_account_id_stripe_livemode",
 				Unique:  true,
-				Columns: []*schema.Column{AppStripesColumns[1], AppStripesColumns[5], AppStripesColumns[6], AppStripesColumns[4]},
+				Columns: []*schema.Column{AppStripesColumns[1], AppStripesColumns[5], AppStripesColumns[6]},
 			},
 		},
 	}
