@@ -22,7 +22,7 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 	logger := testutils.NewLogger(t)
 
 	repo, err := customeradapter.New(customeradapter.Config{
-		Client: dbDeps.dbClient,
+		Client: dbDeps.DBClient,
 		Logger: logger,
 	})
 	if err != nil {
