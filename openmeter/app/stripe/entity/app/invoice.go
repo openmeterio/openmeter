@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 
@@ -457,9 +458,8 @@ func getStripeUpdateLinesLineParams(
 
 // getStripeAddLinesLineParams returns the Stripe line item
 func getStripeAddLinesLineParams(line *billing.Line, calculator StripeCalculator) *stripe.InvoiceAddLinesLineParams {
-	name := getLineName(line)
+	description := getLineName(line)
 	period := getPeriod(line)
-
 	amount := line.Totals.Amount
 
 	// Handle usage based commitments like minimum spend
@@ -469,9 +469,19 @@ func getStripeAddLinesLineParams(line *billing.Line, calculator StripeCalculator
 		amount = line.Totals.ChargesTotal
 	}
 
+	// If the line has a quantity we add the quantity and per unit amount to the description
+	if line.FlatFee.Quantity.GreaterThan(alpacadecimal.NewFromInt(1)) {
+		description = fmt.Sprintf(
+			"%s (%s x %s)",
+			description,
+			calculator.FormatQuantity(line.FlatFee.Quantity),
+			calculator.FormatAmount(line.FlatFee.PerUnitAmount),
+		)
+	}
+
 	// Otherwise we add the calculated total with with quantity one
 	return &stripe.InvoiceAddLinesLineParams{
-		Description: lo.ToPtr(name),
+		Description: lo.ToPtr(description),
 		Amount:      lo.ToPtr(calculator.RoundToAmount(amount)),
 		Period:      period,
 		Metadata: map[string]string{
