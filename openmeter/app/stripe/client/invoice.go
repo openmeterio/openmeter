@@ -32,6 +32,12 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		StatementDescriptor:  lo.ToPtr(input.StatementDescriptor),
 	}
 
+	if input.AutomaticTaxEnabled {
+		params.AutomaticTax = &stripe.InvoiceAutomaticTaxParams{
+			Enabled: lo.ToPtr(true),
+		}
+	}
+
 	if input.DueDate != nil {
 		params.DueDate = lo.ToPtr(input.DueDate.Unix())
 	}
@@ -82,6 +88,7 @@ func (c *stripeAppClient) FinalizeInvoice(ctx context.Context, input FinalizeInv
 type CreateInvoiceInput struct {
 	StripeCustomerID             string
 	StripeDefaultPaymentMethodID *string
+	AutomaticTaxEnabled          bool
 	Currency                     currencyx.Code
 	DueDate                      *time.Time
 	Number                       *string
