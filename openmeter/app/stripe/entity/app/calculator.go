@@ -52,10 +52,10 @@ func (c StripeCalculator) FormatAmount(amount alpacadecimal.Decimal) string {
 func (c StripeCalculator) FormatQuantity(quantity alpacadecimal.Decimal) string {
 	if quantity.IsInteger() {
 		return c.printer.Sprintf("%d", quantity.IntPart())
-	} else {
-		f, _ := quantity.Float64()
-		return c.printer.Sprintf("%.2f", f)
 	}
+
+	f, _ := quantity.Float64()
+	return c.printer.Sprintf("%.2f", f)
 }
 
 // IsInteger checks if the amount is an integer in the Stripe currency.
