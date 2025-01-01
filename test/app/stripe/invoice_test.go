@@ -413,6 +413,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Mock the stripe client to return the created invoice.
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
+				AutomaticTaxEnabled: true,
 				StripeCustomerID:    customerData.StripeCustomerID,
 				Currency:            "USD",
 				StatementDescriptor: invoice.Supplier.Name,
@@ -488,7 +489,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					// TODO: check time shift
 					End: lo.ToPtr(periodStart.Add(time.Hour * 24).Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("Fee"),
 					"om_line_type": "line",
@@ -496,12 +496,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			{
 				Amount:      lo.ToPtr(int64(7725)),
-				Description: lo.ToPtr("UBP - AI Usecase: usage in period"),
+				Description: lo.ToPtr("UBP - AI Usecase: usage in period (103,000,025 x $0.000001)"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - AI Usecase: usage in period"),
 					"om_line_type": "line",
@@ -514,7 +513,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - FLAT per any usage"),
 					"om_line_type": "line",
@@ -522,12 +520,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			{
 				Amount:      lo.ToPtr(int64(322000)),
-				Description: lo.ToPtr("UBP - FLAT per unit: usage in period"),
+				Description: lo.ToPtr("UBP - FLAT per unit: usage in period (32.20 x $100)"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - FLAT per unit: usage in period"),
 					"om_line_type": "line",
@@ -540,7 +537,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getDiscountID("UBP - FLAT per unit: usage in period (Maximum spend discount for charges over 2000)"),
 					"om_line_type": "discount",
@@ -548,12 +544,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			{
 				Amount:      lo.ToPtr(int64(95000)),
-				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 1"),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 1 (9.50 x $100)"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 1"),
 					"om_line_type": "line",
@@ -561,12 +556,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			{
 				Amount:      lo.ToPtr(int64(94500)),
-				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 2"),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 2 (10.50 x $90)"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 2"),
 					"om_line_type": "line",
@@ -574,12 +568,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			{
 				Amount:      lo.ToPtr(int64(122400)),
-				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 3"),
+				Description: lo.ToPtr("UBP - Tiered graduated: usage price for tier 3 (15.30 x $80)"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					Start: lo.ToPtr(expectedPeriodStart.Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered graduated: usage price for tier 3"),
 					"om_line_type": "line",
@@ -593,7 +586,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
 					End:   lo.ToPtr(periodEnd.Truncate(time.Minute).Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered volume: minimum spend"),
 					"om_line_type": "line",
@@ -601,13 +593,12 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 			{
 				Amount:      lo.ToPtr(int64(137700)),
-				Description: lo.ToPtr("UBP - Tiered volume: unit price for tier 2"),
+				Description: lo.ToPtr("UBP - Tiered volume: unit price for tier 2 (15.30 x $90)"),
 				Period: &stripe.InvoiceAddLinesLinePeriodParams{
 					// TODO: check rounding
 					Start: lo.ToPtr(periodStart.Truncate(time.Minute).Unix()),
 					End:   lo.ToPtr(expectedPeriodEnd.Unix()),
 				},
-				Quantity: lo.ToPtr(int64(1)),
 				Metadata: map[string]string{
 					"om_line_id":   getLineID("UBP - Tiered volume: unit price for tier 2"),
 					"om_line_type": "line",
@@ -631,7 +622,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Start: *line.Period.Start,
 							End:   *line.Period.End,
 						},
-						Quantity: *line.Quantity,
 						Metadata: line.Metadata,
 					}
 				}),
@@ -741,7 +731,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Start: &line.Period.Start,
 							End:   &line.Period.End,
 						},
-						Quantity: &line.Quantity,
 						Metadata: line.Metadata,
 					}, line.ID != stripeLineIDToRemove
 				}),
