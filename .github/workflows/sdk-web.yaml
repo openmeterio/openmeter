@@ -14,7 +14,7 @@ on:
       - .github/workflows/sdk-web.yaml
 
 env:
-  DAGGER_VERSION: 0.14.0
+  DAGGER_VERSION: 0.15.1
 
 jobs:
   generate:

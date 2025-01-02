@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  DAGGER_VERSION: 0.15.1
+
 jobs:
   artifacts:
     name: Artifacts
@@ -43,7 +46,7 @@ jobs:
           verb: call
           args: release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token env:GITHUB_TOKEN --pypi-token env:PYPI_TOKEN --npm-token env:NPM_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.13.5"
+          version: ${{ env.DAGGER_VERSION }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
