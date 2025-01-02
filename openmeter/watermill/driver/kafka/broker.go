@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	gometrics "github.com/rcrowley/go-metrics"
 	otelmetric "go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka/metrics"
 )
 
 const (
@@ -91,16 +91,19 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	config.Producer.Retry.Max = 10
 	config.Producer.Return.Successes = true
 
-	meterRegistry, err := metrics.NewRegistry(metrics.NewRegistryOptions{
-		MetricMeter:     o.MetricMeter,
-		NameTransformFn: SaramaMetricRenamer(role),
-		ErrorHandler:    metrics.LoggingErrorHandler(o.Logger),
-	})
-	if err != nil {
-		return nil, err
-	}
+	//meterRegistry, err := metrics.NewRegistry(metrics.NewRegistryOptions{
+	//	MetricMeter:     o.MetricMeter,
+	//	NameTransformFn: SaramaMetricRenamer(role),
+	//	ErrorHandler:    metrics.LoggingErrorHandler(o.Logger),
+	//})
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//config.MetricRegistry = meterRegistry
 
-	config.MetricRegistry = meterRegistry
+	// FIXME(chrisgacsal): disable metric collection to test possibler mem/goroutine leak
+	gometrics.UseNilMetrics = true
 
 	return config, nil
 }
