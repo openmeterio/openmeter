@@ -225,9 +225,17 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			}
 		}
 
+		// Already deleted profiles cannot be deleted again
 		if profile.DeletedAt != nil {
 			return billing.ValidationError{
 				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileAlreadyDeleted, profile.ID),
+			}
+		}
+
+		// Default profiles cannot be deleted
+		if profile.Default {
+			return billing.ValidationError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileCannotBeDeleted, profile.ID),
 			}
 		}
 

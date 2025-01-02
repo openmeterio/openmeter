@@ -23,51 +23,73 @@ func TestProfile(t *testing.T) {
 	suite.Run(t, new(ProfileTestSuite))
 }
 
-func (s *ProfileTestSuite) TestProfileLifecycle() {
+// createProfileFixture creates a profile with the given default flag.
+// Note: only non default profiles can be deleted.
+func (s *ProfileTestSuite) createProfileFixture(isDefault bool) *billing.Profile {
+	t := s.T()
 	ctx := context.Background()
-	ns := "test_create_billing_profile"
+	ns := s.GetUniqueNamespace("test_billing_profile")
 
-	_ = s.InstallSandboxApp(s.T(), ns)
+	// Create a profile input
+	input := MinimalCreateProfileInputTemplate
+	input.Namespace = ns
+	input.Default = isDefault
 
-	s.T().Run("missing default profile", func(t *testing.T) {
-		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: ns,
-		})
-		require.NoError(t, err)
-		require.Nil(t, defaultProfile)
-	})
+	// Create a sandbox app
+	app := s.InstallSandboxApp(s.T(), ns)
+	require.NotNil(t, app)
 
-	var profile *billing.Profile
-	var err error
-
-	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
-	minimalCreateProfileInput.Namespace = ns
-
-	s.T().Run("create default profile", func(t *testing.T) {
-		profile, err = s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-		require.NoError(t, err)
-		require.NotNil(t, profile)
-	})
+	// Create a default profile
+	profile, err := s.BillingService.CreateProfile(ctx, input)
+	require.NoError(t, err)
+	require.NotNil(t, profile)
 
 	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
 	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
 	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
 	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
 
-	s.T().Run("fetching the default profile is possible", func(t *testing.T) {
+	return profile
+}
+
+func (s *ProfileTestSuite) TestProfileLifecycle() {
+	ctx := context.Background()
+
+	s.T().Run("missing default profile", func(t *testing.T) {
+		profile := s.createProfileFixture(false)
+
 		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: ns,
+			Namespace: profile.Namespace,
 		})
+		require.NoError(t, err)
+		require.Nil(t, defaultProfile)
+	})
+
+	s.T().Run("create default profile", func(t *testing.T) {
+		profile := s.createProfileFixture(true)
+
+		require.NotNil(t, profile)
+		require.True(t, profile.Default)
+	})
+
+	s.T().Run("fetching the default profile is possible", func(t *testing.T) {
+		profile := s.createProfileFixture(true)
+
+		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			Namespace: profile.Namespace,
+		})
+
 		require.NoError(t, err)
 		require.NotNil(t, defaultProfile)
 		require.Equal(t, profile, defaultProfile)
 	})
 
 	s.T().Run("fetching the profile by id", func(t *testing.T) {
+		profile := s.createProfileFixture(false)
+
 		fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 			Profile: models.NamespacedID{
-				Namespace: ns,
+				Namespace: profile.Namespace,
 				ID:        profile.ID,
 			},
 			Expand: billing.ProfileExpand{
@@ -80,55 +102,88 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	})
 
 	s.T().Run("creating a second default profile fails", func(t *testing.T) {
-		_, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+		profile := s.createProfileFixture(true)
+
+		// Try to create a second default profile in the same namespace
+		input := MinimalCreateProfileInputTemplate
+		input.Namespace = profile.Namespace
+
+		_, err := s.BillingService.CreateProfile(ctx, input)
 		require.Error(t, err)
 		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
 	})
 
 	s.T().Run("creating a second default profile succeeds with override", func(t *testing.T) {
-		overrideInput := minimalCreateProfileInput
-		overrideInput.DefaultOverride = true
+		profile1 := s.createProfileFixture(true)
 
-		profile, err := s.BillingService.CreateProfile(ctx, overrideInput)
+		// Create a second default profile with override
+		input := MinimalCreateProfileInputTemplate
+		input.Namespace = profile1.Namespace
+		input.DefaultOverride = true
+
+		profile2, err := s.BillingService.CreateProfile(ctx, input)
 		require.NoError(t, err)
+		require.NotNil(t, profile2)
 
-		// Cleanup
-		require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
-			Namespace: ns,
-			ID:        profile.ID,
-		}))
+		require.NotEqual(t, profile1.ID, profile2.ID)
+		require.True(t, profile2.Default)
 	})
 
 	s.T().Run("deleted profile handling", func(t *testing.T) {
-		require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
-			Namespace: ns,
-			ID:        profile.ID,
-		}))
+		t.Run("deleting a profile succeeds", func(t *testing.T) {
+			profile := s.createProfileFixture(false)
+
+			require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+				Namespace: profile.Namespace,
+				ID:        profile.ID,
+			}))
+		})
 
 		t.Run("deleting a profile twice yields an error", func(t *testing.T) {
+			profile := s.createProfileFixture(false)
+
+			// Delete the profile
+			require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+				Namespace: profile.Namespace,
+				ID:        profile.ID,
+			}))
+
+			// Try to delete the profile again
 			require.ErrorIs(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
-				Namespace: ns,
+				Namespace: profile.Namespace,
 				ID:        profile.ID,
 			}), billing.ErrProfileAlreadyDeleted)
 		})
 
+		t.Run("deleting the default profile yields an error", func(t *testing.T) {
+			profile := s.createProfileFixture(true)
+
+			// Try to delete the default profile
+			require.ErrorIs(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+				Namespace: profile.Namespace,
+				ID:        profile.ID,
+			}), billing.ErrDefaultProfileCannotBeDeleted)
+		})
+
 		t.Run("fetching a deleted profile by id returns the profile", func(t *testing.T) {
+			profile := s.createProfileFixture(false)
+
+			// Delete the profile
+			require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+				Namespace: profile.Namespace,
+				ID:        profile.ID,
+			}))
+
+			// Fetch the profile
 			fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
 				Profile: models.NamespacedID{
-					Namespace: ns,
+					Namespace: profile.Namespace,
 					ID:        profile.ID,
 				},
 			})
 
 			require.NoError(t, err)
 			require.Equal(t, profile.ID, fetchedProfile.ID)
-		})
-
-		t.Run("same profile can be created after the previous one was deleted", func(t *testing.T) {
-			profile, err = s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
-
-			require.NoError(t, err)
-			require.NotNil(t, profile)
 		})
 	})
 }
