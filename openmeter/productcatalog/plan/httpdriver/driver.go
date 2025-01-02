@@ -13,7 +13,6 @@ import (
 
 type Handler interface {
 	PlanHandler
-	PlanPhaseHandler
 }
 
 type PlanHandler interface {
@@ -25,14 +24,6 @@ type PlanHandler interface {
 	NextPlan() NextPlanHandler
 	PublishPlan() PublishPlanHandler
 	ArchivePlan() ArchivePlanHandler
-}
-
-type PlanPhaseHandler interface {
-	ListPhases() ListPhasesHandler
-	CreatePhase() CreatePhaseHandler
-	DeletePhase() DeletePhaseHandler
-	GetPhase() GetPhaseHandler
-	UpdatePhase() UpdatePhaseHandler
 }
 
 var _ Handler = (*handler)(nil)

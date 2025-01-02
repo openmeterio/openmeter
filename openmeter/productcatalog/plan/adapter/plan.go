@@ -150,7 +150,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 		if len(params.Phases) > 0 {
 			p.Phases = make([]plan.Phase, 0, len(params.Phases))
 			for _, phase := range params.Phases {
-				planPhase, err := a.CreatePhase(ctx, plan.CreatePhaseInput{
+				planPhase, err := a.createPhase(ctx, createPhaseInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: params.Namespace,
 					},
@@ -413,7 +413,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			for _, deleteInput := range diffResult.Remove {
 				deleteInput.Namespace = params.Namespace
 				deleteInput.PlanID = p.ID
-				err = a.DeletePhase(ctx, deleteInput)
+				err = a.deletePhase(ctx, deleteInput)
 				if err != nil {
 					return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
 				}
@@ -425,7 +425,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				updateInput.Namespace = params.Namespace
 				updateInput.PlanID = p.ID
 
-				phase, err := a.UpdatePhase(ctx, updateInput)
+				phase, err := a.updatePhase(ctx, updateInput)
 				if err != nil {
 					return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
 				}
@@ -439,7 +439,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				createInput.Namespace = params.Namespace
 				createInput.PlanID = p.ID
 
-				phase, err := a.CreatePhase(ctx, createInput)
+				phase, err := a.createPhase(ctx, createInput)
 				if err != nil {
 					return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
 				}
@@ -482,13 +482,13 @@ var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
 
 type planPhasesDiffResult struct {
 	// Add defines the list of plan.CreatePhaseInput for plan.Phase objects to add
-	Add []plan.CreatePhaseInput
+	Add []createPhaseInput
 
 	// Update defines the list of plan.UpdatePhaseInput for plan.Phase objects to update
-	Update []plan.UpdatePhaseInput
+	Update []updatePhaseInput
 
 	// Remove defines the list of plan.DeletePhaseInput for plan.Phase identifiers to delete
-	Remove []plan.DeletePhaseInput
+	Remove []deletePhaseInput
 
 	// Keep defines the list of plan.Phase to keep unmodified
 	Keep []plan.Phase
@@ -517,7 +517,7 @@ func planPhasesDiff(requested []productcatalog.Phase, actual []plan.Phase) planP
 
 		// Collect new phases
 		if !ok {
-			result.Add = append(result.Add, plan.CreatePhaseInput{
+			result.Add = append(result.Add, createPhaseInput{
 				Phase: requestedPhase,
 			})
 			phasesVisited[phaseKey] = struct{}{}
@@ -527,7 +527,7 @@ func planPhasesDiff(requested []productcatalog.Phase, actual []plan.Phase) planP
 
 		// Collect phases to be updated
 		if !requestedPhase.Equal(actualPhase.Phase) {
-			result.Update = append(result.Update, plan.UpdatePhaseInput{
+			result.Update = append(result.Update, updatePhaseInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: actualPhase.Namespace,
 					ID:        actualPhase.ID,
@@ -553,7 +553,7 @@ func planPhasesDiff(requested []productcatalog.Phase, actual []plan.Phase) planP
 	// Collect phases to be deleted
 	for phaseKey, actualPhase := range actualMap {
 		if _, ok := phasesVisited[phaseKey]; !ok {
-			result.Remove = append(result.Remove, plan.DeletePhaseInput{
+			result.Remove = append(result.Remove, deletePhaseInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: actualPhase.Namespace,
 					ID:        actualPhase.ID,

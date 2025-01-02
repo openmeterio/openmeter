@@ -181,11 +181,10 @@ func TestPostgresAdapter(t *testing.T) {
 		}
 	}()
 
-	repo, err := New(Config{
-		Client: pg.EntDriver.Client(),
-		Logger: testutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
+	repo := &adapter{
+		db:     pg.EntDriver.Client(),
+		logger: testutils.NewDiscardLogger(t),
+	}
 
 	t.Run("Plan", func(t *testing.T) {
 		var planV1 *plan.Plan
@@ -346,7 +345,7 @@ func TestPostgresAdapter(t *testing.T) {
 		var phase *plan.Phase
 
 		t.Run("Create", func(t *testing.T) {
-			phaseInput := plan.CreatePhaseInput{
+			phaseInput := createPhaseInput{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -419,17 +418,17 @@ func TestPostgresAdapter(t *testing.T) {
 				},
 			}
 
-			phase, err = repo.CreatePhase(ctx, phaseInput)
+			phase, err = repo.createPhase(ctx, phaseInput)
 			assert.NoErrorf(t, err, "creating phase must not fail")
 
 			require.NotNilf(t, phase, "plan phase must not be nil")
 
-			plan.AssertPhaseCreateInputEqual(t, phaseInput, *phase)
+			assertPhaseCreateInputEqual(t, phaseInput, *phase)
 		})
 
 		t.Run("Get", func(t *testing.T) {
 			t.Run("ById", func(t *testing.T) {
-				getPhase, err := repo.GetPhase(ctx, plan.GetPhaseInput{
+				getPhase, err := repo.getPhase(ctx, getPhaseInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 						ID:        phase.ID,
@@ -443,7 +442,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKey", func(t *testing.T) {
-				getPhase, err := repo.GetPhase(ctx, plan.GetPhaseInput{
+				getPhase, err := repo.getPhase(ctx, getPhaseInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 					},
@@ -459,7 +458,7 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("Update", func(t *testing.T) {
-			phaseUpdate := plan.UpdatePhaseInput{
+			phaseUpdate := updatePhaseInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        phase.ID,
@@ -469,16 +468,16 @@ func TestPostgresAdapter(t *testing.T) {
 				StartAfter: lo.ToPtr(ThreeMonthPeriod),
 			}
 
-			updatePhase, err := repo.UpdatePhase(ctx, phaseUpdate)
+			updatePhase, err := repo.updatePhase(ctx, phaseUpdate)
 			require.NoErrorf(t, err, "updating phase must not fail")
 
 			require.NotNilf(t, updatePhase, "phase must not be nil")
 
-			plan.AssertPhaseUpdateInputEqual(t, phaseUpdate, *updatePhase)
+			assertPhaseUpdateInputEqual(t, phaseUpdate, *updatePhase)
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			err = repo.DeletePhase(ctx, plan.DeletePhaseInput{
+			err = repo.deletePhase(ctx, deletePhaseInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        phase.ID,
@@ -488,7 +487,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 			require.NoErrorf(t, err, "deleting Phase must not fail")
 
-			getPhase, err := repo.GetPhase(ctx, plan.GetPhaseInput{
+			getPhase, err := repo.getPhase(ctx, getPhaseInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        phase.ID,
