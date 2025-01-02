@@ -16,11 +16,12 @@ var (
 	// Given that invoicing depends on the billing and customer override service, we need to have these error types in place for
 	// all.
 
-	ErrDefaultProfileAlreadyExists  = NewValidationError("default_profile_exists", "default profile already exists")
-	ErrDefaultProfileNotFound       = NewValidationError("default_profile_not_found", "default profile not found")
-	ErrProfileNotFound              = NewValidationError("profile_not_found", "profile not found")
-	ErrProfileAlreadyDeleted        = NewValidationError("profile_already_deleted", "profile already deleted")
-	ErrProfileReferencedByOverrides = NewValidationError("profile_referenced", "profile is referenced by customer overrides")
+	ErrDefaultProfileAlreadyExists   = NewValidationError("default_profile_exists", "default profile already exists")
+	ErrDefaultProfileNotFound        = NewValidationError("default_profile_not_found", "default profile not found")
+	ErrProfileNotFound               = NewValidationError("profile_not_found", "profile not found")
+	ErrProfileAlreadyDeleted         = NewValidationError("profile_already_deleted", "profile already deleted")
+	ErrProfileReferencedByOverrides  = NewValidationError("profile_referenced", "profile is referenced by customer overrides")
+	ErrDefaultProfileCannotBeDeleted = NewValidationError("default_profile_cannot_be_deleted", "default profile cannot be deleted")
 
 	ErrCustomerOverrideNotFound       = NewValidationError("customer_override_not_found", "customer override not found")
 	ErrCustomerOverrideAlreadyDeleted = NewValidationError("customer_override_deleted", "customer override already deleted")

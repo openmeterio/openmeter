@@ -2,10 +2,12 @@ package billing
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -51,6 +53,11 @@ type BaseSuite struct {
 
 	AppService app.Service
 	SandboxApp *appsandbox.MockableFactory
+}
+
+// GetUniqueNamespace returns a unique namespace with the given prefix
+func (s *BaseSuite) GetUniqueNamespace(prefix string) string {
+	return fmt.Sprintf("%s_%s", prefix, ulid.Make().String())
 }
 
 func (s *BaseSuite) SetupSuite() {
