@@ -31,7 +31,7 @@ jobs:
         with:
           verb: call
           args: generate node-sdk -o api/client/node
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Open pull request
