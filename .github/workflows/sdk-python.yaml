@@ -33,7 +33,7 @@ jobs:
         with:
           verb: call
           args: generate python-sdk -o api/client/python
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Open pull request
