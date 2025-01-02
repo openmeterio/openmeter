@@ -245,12 +245,17 @@ type RegisterEventTypesInputs struct {
 	AllowUpdate bool
 }
 
+type (
+	EvenTypeSchemaVersion = string
+	EventTypeSchema       = interface{}
+)
+
 type EventType struct {
 	Name        string
 	Description string
 	GroupName   string
 	// Schemas defines the list of schemas for each event type version
-	Schemas    map[string]map[string]interface{}
+	Schemas    map[EvenTypeSchemaVersion]EventTypeSchema
 	Deprecated bool
 }
 

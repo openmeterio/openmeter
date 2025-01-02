@@ -132,7 +132,7 @@ services:
       retries: 30
 
   svix:
-    image: svix/svix-server:v1.40
+    image: svix/svix-server:v1.44
     profiles:
       - webhook
     environment:
