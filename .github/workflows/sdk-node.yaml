@@ -13,7 +13,7 @@ on:
       - api/openapi.yaml
       - .github/workflows/sdk-node.yaml
 env:
-  DAGGER_VERSION: 0.14.0
+  DAGGER_VERSION: 0.15.1
 
 jobs:
   generate:

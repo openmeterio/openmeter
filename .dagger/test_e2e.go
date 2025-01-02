@@ -7,7 +7,7 @@ import (
 )
 
 func (m *Openmeter) Etoe(
-	// +optional
+// +optional
 	test string,
 ) *dagger.Container {
 	image := m.Build().ContainerImage("").
@@ -24,14 +24,16 @@ func (m *Openmeter) Etoe(
 		WithExposedPort(8080).
 		WithServiceBinding("postgres", postgres.Service()).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
-		WithExec([]string{"openmeter", "--config", "/etc/openmeter/config.yaml"}).
-		AsService()
+		AsService(dagger.ContainerAsServiceOpts{
+			Args: []string{"openmeter", "--config", "/etc/openmeter/config.yaml"},
+		})
 
 	sinkWorker := image.
 		WithServiceBinding("redis", redis()).
 		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
-		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
-		AsService()
+		AsService(dagger.ContainerAsServiceOpts{
+			Args: []string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"},
+		})
 
 	args := []string{"go", "test", "-tags", "musl", "-count=1", "-v"}
 
@@ -61,7 +63,9 @@ func clickhouse() *dagger.Service {
 		WithExposedPort(9000).
 		WithExposedPort(9009).
 		WithExposedPort(8123).
-		AsService()
+		AsService(dagger.ContainerAsServiceOpts{
+			UseEntrypoint: true, // This image has no CMD specified and ENTRYPOINT is not used by default.
+		})
 }
 
 func redis() *dagger.Service {
