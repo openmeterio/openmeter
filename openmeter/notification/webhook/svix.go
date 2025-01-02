@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
 	"k8s.io/utils/strings/slices"
 
@@ -85,8 +86,8 @@ func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params Regis
 	for _, eventType := range params.EventTypes {
 		input := &svix.EventTypeUpdate{
 			Description: eventType.Description,
-			FeatureFlag: *svix.NullableString(nil),
-			GroupName:   *svix.NullableString(&eventType.GroupName),
+			FeatureFlag: nil,
+			GroupName:   &eventType.GroupName,
 			Schemas:     eventType.Schemas,
 			Deprecated:  &eventType.Deprecated,
 		}
@@ -105,7 +106,7 @@ func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params Regis
 func (h svixWebhookHandler) CreateApplication(ctx context.Context, id string) (*svix.ApplicationOut, error) {
 	input := &svix.ApplicationIn{
 		Name: id,
-		Uid:  *svix.NullableString(&id),
+		Uid:  &id,
 	}
 
 	idempotencyKey, err := toIdempotencyKey(input, time.Now())
@@ -172,7 +173,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID
 
 	if secret != nil && *secret != secretOut.Key {
 		input := &svix.EndpointSecretRotateIn{
-			Key: *svix.NullableString(secret),
+			Key: secret,
 		}
 
 		idempotencyKey, err := toIdempotencyKey(input, time.Now())
@@ -244,7 +245,7 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 	}
 
 	input := &svix.EndpointIn{
-		Uid: *svix.NullableString(&endpointUID),
+		Uid: &endpointUID,
 		Description: convert.SafeDeRef(params.Description, func(p string) *string {
 			if p != "" {
 				return &p
@@ -254,8 +255,8 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 		}),
 		Url:         params.URL,
 		Disabled:    &params.Disabled,
-		RateLimit:   *svix.NullableInt32(params.RateLimit),
-		Secret:      *svix.NullableString(params.Secret),
+		RateLimit:   params.RateLimit,
+		Secret:      params.Secret,
 		FilterTypes: params.EventTypes,
 		Channels:    params.Channels,
 		Metadata: func() *map[string]string {
@@ -331,7 +332,7 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 	}
 
 	input := &svix.EndpointUpdate{
-		Uid: *svix.NullableString(&params.ID),
+		Uid: &params.ID,
 		Description: convert.SafeDeRef(params.Description, func(p string) *string {
 			if p != "" {
 				return &p
@@ -341,7 +342,7 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 		}),
 		Url:         params.URL,
 		Disabled:    &params.Disabled,
-		RateLimit:   *svix.NullableInt32(params.RateLimit),
+		RateLimit:   params.RateLimit,
 		FilterTypes: params.EventTypes,
 		Channels:    params.Channels,
 		Metadata: func() *map[string]string {
@@ -502,7 +503,7 @@ func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhook
 			return true
 		}
 
-		if o.Uid.IsSet() && slices.Contains(params.IDs, *o.Uid.Get()) {
+		if o.Uid != nil && slices.Contains(params.IDs, *o.Uid) {
 			return true
 		}
 
@@ -563,7 +564,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 
 	input := &svix.MessageIn{
 		Channels:  params.Channels,
-		EventId:   *svix.NullableString(eventID),
+		EventId:   eventID,
 		EventType: params.EventType,
 		Payload:   params.Payload,
 	}
@@ -585,13 +586,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 	return &Message{
 		Namespace: params.Namespace,
 		ID:        o.Id,
-		EventID: func() string {
-			if o.EventId.IsSet() {
-				return *o.EventId.Get()
-			}
-
-			return ""
-		}(),
+		EventID:   lo.FromPtr(o.EventId),
 		EventType: o.EventType,
 		Channels:  o.Channels,
 		Payload:   o.Payload,
@@ -600,16 +595,10 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 
 func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *Webhook {
 	return &Webhook{
-		ID: func() string {
-			if e.Uid.IsSet() {
-				return *e.Uid.Get()
-			}
-
-			return e.Id
-		}(),
+		ID:          lo.FromPtr(e.Uid),
 		URL:         e.Url,
 		Disabled:    defaultx.WithDefault(e.Disabled, false),
-		RateLimit:   e.RateLimit.Get(),
+		RateLimit:   e.RateLimit,
 		Description: e.Description,
 		EventTypes:  e.FilterTypes,
 		Channels: slices.Filter(nil, e.Channels, func(s string) bool {
