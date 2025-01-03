@@ -12657,12 +12657,6 @@ components:
           example: 2023-02-01T01:01:01.001Z
           description: Period end time.
       description: A period with a start and end time.
-    PhasesOrderBy:
-      type: string
-      enum:
-        - key
-        - start_after
-      description: Order by options for plan phases.
     Plan:
       type: object
       required:
@@ -12867,8 +12861,8 @@ components:
       required:
         - key
         - name
+        - duration
         - rateCards
-        - startAfter
       properties:
         key:
           type: string
@@ -12895,19 +12889,19 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
+        duration:
+          type: string
+          format: duration
+          nullable: true
+          example: P1Y1D
+          description: The duration of the phase.
+          title: Duration
         rateCards:
           type: array
           items:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        startAfter:
-          type: string
-          format: duration
-          nullable: true
-          example: P1Y1D
-          description: The time after which the plan starts compared to subscription start
-          title: Start after
         discounts:
           type: array
           items:

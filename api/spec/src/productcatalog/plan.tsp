@@ -147,20 +147,20 @@ model PlanPhase {
   metadata?: Metadata | null;
 
   /**
+   * The duration of the phase.
+   */
+  @visibility("read", "create", "update")
+  @summary("Duration")
+  @encode(DurationKnownEncoding.ISO8601)
+  @example(duration.fromISO("P1Y1D"))
+  duration: duration | null;
+
+  /**
    * The rate cards of the plan.
    */
   @visibility("read", "create", "update")
   @summary("Rate cards")
   rateCards: RateCard[];
-
-  /**
-   * The time after which the plan starts compared to subscription start
-   */
-  @visibility("read", "create", "update")
-  @summary("Start after")
-  @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1Y1D"))
-  startAfter: duration | null;
 
   /**
    * The discounts on the plan.
@@ -246,13 +246,4 @@ enum PlanOrderBy {
   version: "version",
   createdAt: "create_at",
   updatedAt: "updated_at",
-}
-
-/**
- * Order by options for plan phases.
- */
-@friendlyName("PhasesOrderBy")
-enum PhasesOrderBy {
-  key: "key",
-  startAfter: "start_after",
 }

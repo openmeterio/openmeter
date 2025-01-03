@@ -37,12 +37,14 @@ type PlanPhase struct {
 	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
-	// StartAfter holds the value of the "start_after" field.
-	StartAfter datex.ISOString `json:"start_after,omitempty"`
-	// Discounts holds the value of the "discounts" field.
-	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
 	// The plan identifier the phase is assigned to.
 	PlanID string `json:"plan_id,omitempty"`
+	// The index of the phase in the plan.
+	Index uint8 `json:"index,omitempty"`
+	// The duration of the phase.
+	Duration *datex.ISOString `json:"duration,omitempty"`
+	// Discounts holds the value of the "discounts" field.
+	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanPhaseQuery when eager-loading is set.
 	Edges        PlanPhaseEdges `json:"edges"`
@@ -87,7 +89,9 @@ func (*PlanPhase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planphase.FieldMetadata:
 			values[i] = new([]byte)
-		case planphase.FieldID, planphase.FieldNamespace, planphase.FieldName, planphase.FieldDescription, planphase.FieldKey, planphase.FieldStartAfter, planphase.FieldPlanID:
+		case planphase.FieldIndex:
+			values[i] = new(sql.NullInt64)
+		case planphase.FieldID, planphase.FieldNamespace, planphase.FieldName, planphase.FieldDescription, planphase.FieldKey, planphase.FieldPlanID, planphase.FieldDuration:
 			values[i] = new(sql.NullString)
 		case planphase.FieldCreatedAt, planphase.FieldUpdatedAt, planphase.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -166,23 +170,30 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				pp.Key = value.String
 			}
-		case planphase.FieldStartAfter:
+		case planphase.FieldPlanID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field start_after", values[i])
+				return fmt.Errorf("unexpected type %T for field plan_id", values[i])
 			} else if value.Valid {
-				pp.StartAfter = datex.ISOString(value.String)
+				pp.PlanID = value.String
+			}
+		case planphase.FieldIndex:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field index", values[i])
+			} else if value.Valid {
+				pp.Index = uint8(value.Int64)
+			}
+		case planphase.FieldDuration:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field duration", values[i])
+			} else if value.Valid {
+				pp.Duration = new(datex.ISOString)
+				*pp.Duration = datex.ISOString(value.String)
 			}
 		case planphase.FieldDiscounts:
 			if value, err := planphase.ValueScanner.Discounts.FromValue(values[i]); err != nil {
 				return err
 			} else {
 				pp.Discounts = value
-			}
-		case planphase.FieldPlanID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field plan_id", values[i])
-			} else if value.Valid {
-				pp.PlanID = value.String
 			}
 		default:
 			pp.selectValues.Set(columns[i], values[i])
@@ -258,14 +269,19 @@ func (pp *PlanPhase) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(pp.Key)
 	builder.WriteString(", ")
-	builder.WriteString("start_after=")
-	builder.WriteString(fmt.Sprintf("%v", pp.StartAfter))
+	builder.WriteString("plan_id=")
+	builder.WriteString(pp.PlanID)
+	builder.WriteString(", ")
+	builder.WriteString("index=")
+	builder.WriteString(fmt.Sprintf("%v", pp.Index))
+	builder.WriteString(", ")
+	if v := pp.Duration; v != nil {
+		builder.WriteString("duration=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("discounts=")
 	builder.WriteString(fmt.Sprintf("%v", pp.Discounts))
-	builder.WriteString(", ")
-	builder.WriteString("plan_id=")
-	builder.WriteString(pp.PlanID)
 	builder.WriteByte(')')
 	return builder.String()
 }

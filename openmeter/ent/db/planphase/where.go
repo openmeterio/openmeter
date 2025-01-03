@@ -101,15 +101,20 @@ func Key(v string) predicate.PlanPhase {
 	return predicate.PlanPhase(sql.FieldEQ(FieldKey, v))
 }
 
-// StartAfter applies equality check predicate on the "start_after" field. It's identical to StartAfterEQ.
-func StartAfter(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldEQ(FieldStartAfter, vc))
-}
-
 // PlanID applies equality check predicate on the "plan_id" field. It's identical to PlanIDEQ.
 func PlanID(v string) predicate.PlanPhase {
 	return predicate.PlanPhase(sql.FieldEQ(FieldPlanID, v))
+}
+
+// Index applies equality check predicate on the "index" field. It's identical to IndexEQ.
+func Index(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldEQ(FieldIndex, v))
+}
+
+// Duration applies equality check predicate on the "duration" field. It's identical to DurationEQ.
+func Duration(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldEQ(FieldDuration, vc))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -522,100 +527,6 @@ func KeyContainsFold(v string) predicate.PlanPhase {
 	return predicate.PlanPhase(sql.FieldContainsFold(FieldKey, v))
 }
 
-// StartAfterEQ applies the EQ predicate on the "start_after" field.
-func StartAfterEQ(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldEQ(FieldStartAfter, vc))
-}
-
-// StartAfterNEQ applies the NEQ predicate on the "start_after" field.
-func StartAfterNEQ(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldNEQ(FieldStartAfter, vc))
-}
-
-// StartAfterIn applies the In predicate on the "start_after" field.
-func StartAfterIn(vs ...datex.ISOString) predicate.PlanPhase {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.PlanPhase(sql.FieldIn(FieldStartAfter, v...))
-}
-
-// StartAfterNotIn applies the NotIn predicate on the "start_after" field.
-func StartAfterNotIn(vs ...datex.ISOString) predicate.PlanPhase {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.PlanPhase(sql.FieldNotIn(FieldStartAfter, v...))
-}
-
-// StartAfterGT applies the GT predicate on the "start_after" field.
-func StartAfterGT(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldGT(FieldStartAfter, vc))
-}
-
-// StartAfterGTE applies the GTE predicate on the "start_after" field.
-func StartAfterGTE(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldGTE(FieldStartAfter, vc))
-}
-
-// StartAfterLT applies the LT predicate on the "start_after" field.
-func StartAfterLT(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldLT(FieldStartAfter, vc))
-}
-
-// StartAfterLTE applies the LTE predicate on the "start_after" field.
-func StartAfterLTE(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldLTE(FieldStartAfter, vc))
-}
-
-// StartAfterContains applies the Contains predicate on the "start_after" field.
-func StartAfterContains(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldContains(FieldStartAfter, vc))
-}
-
-// StartAfterHasPrefix applies the HasPrefix predicate on the "start_after" field.
-func StartAfterHasPrefix(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldHasPrefix(FieldStartAfter, vc))
-}
-
-// StartAfterHasSuffix applies the HasSuffix predicate on the "start_after" field.
-func StartAfterHasSuffix(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldHasSuffix(FieldStartAfter, vc))
-}
-
-// StartAfterEqualFold applies the EqualFold predicate on the "start_after" field.
-func StartAfterEqualFold(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldEqualFold(FieldStartAfter, vc))
-}
-
-// StartAfterContainsFold applies the ContainsFold predicate on the "start_after" field.
-func StartAfterContainsFold(v datex.ISOString) predicate.PlanPhase {
-	vc := string(v)
-	return predicate.PlanPhase(sql.FieldContainsFold(FieldStartAfter, vc))
-}
-
-// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
-func DiscountsIsNil() predicate.PlanPhase {
-	return predicate.PlanPhase(sql.FieldIsNull(FieldDiscounts))
-}
-
-// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
-func DiscountsNotNil() predicate.PlanPhase {
-	return predicate.PlanPhase(sql.FieldNotNull(FieldDiscounts))
-}
-
 // PlanIDEQ applies the EQ predicate on the "plan_id" field.
 func PlanIDEQ(v string) predicate.PlanPhase {
 	return predicate.PlanPhase(sql.FieldEQ(FieldPlanID, v))
@@ -679,6 +590,150 @@ func PlanIDEqualFold(v string) predicate.PlanPhase {
 // PlanIDContainsFold applies the ContainsFold predicate on the "plan_id" field.
 func PlanIDContainsFold(v string) predicate.PlanPhase {
 	return predicate.PlanPhase(sql.FieldContainsFold(FieldPlanID, v))
+}
+
+// IndexEQ applies the EQ predicate on the "index" field.
+func IndexEQ(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldEQ(FieldIndex, v))
+}
+
+// IndexNEQ applies the NEQ predicate on the "index" field.
+func IndexNEQ(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldNEQ(FieldIndex, v))
+}
+
+// IndexIn applies the In predicate on the "index" field.
+func IndexIn(vs ...uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldIn(FieldIndex, vs...))
+}
+
+// IndexNotIn applies the NotIn predicate on the "index" field.
+func IndexNotIn(vs ...uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldNotIn(FieldIndex, vs...))
+}
+
+// IndexGT applies the GT predicate on the "index" field.
+func IndexGT(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldGT(FieldIndex, v))
+}
+
+// IndexGTE applies the GTE predicate on the "index" field.
+func IndexGTE(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldGTE(FieldIndex, v))
+}
+
+// IndexLT applies the LT predicate on the "index" field.
+func IndexLT(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldLT(FieldIndex, v))
+}
+
+// IndexLTE applies the LTE predicate on the "index" field.
+func IndexLTE(v uint8) predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldLTE(FieldIndex, v))
+}
+
+// DurationEQ applies the EQ predicate on the "duration" field.
+func DurationEQ(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldEQ(FieldDuration, vc))
+}
+
+// DurationNEQ applies the NEQ predicate on the "duration" field.
+func DurationNEQ(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldNEQ(FieldDuration, vc))
+}
+
+// DurationIn applies the In predicate on the "duration" field.
+func DurationIn(vs ...datex.ISOString) predicate.PlanPhase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.PlanPhase(sql.FieldIn(FieldDuration, v...))
+}
+
+// DurationNotIn applies the NotIn predicate on the "duration" field.
+func DurationNotIn(vs ...datex.ISOString) predicate.PlanPhase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.PlanPhase(sql.FieldNotIn(FieldDuration, v...))
+}
+
+// DurationGT applies the GT predicate on the "duration" field.
+func DurationGT(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldGT(FieldDuration, vc))
+}
+
+// DurationGTE applies the GTE predicate on the "duration" field.
+func DurationGTE(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldGTE(FieldDuration, vc))
+}
+
+// DurationLT applies the LT predicate on the "duration" field.
+func DurationLT(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldLT(FieldDuration, vc))
+}
+
+// DurationLTE applies the LTE predicate on the "duration" field.
+func DurationLTE(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldLTE(FieldDuration, vc))
+}
+
+// DurationContains applies the Contains predicate on the "duration" field.
+func DurationContains(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldContains(FieldDuration, vc))
+}
+
+// DurationHasPrefix applies the HasPrefix predicate on the "duration" field.
+func DurationHasPrefix(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldHasPrefix(FieldDuration, vc))
+}
+
+// DurationHasSuffix applies the HasSuffix predicate on the "duration" field.
+func DurationHasSuffix(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldHasSuffix(FieldDuration, vc))
+}
+
+// DurationIsNil applies the IsNil predicate on the "duration" field.
+func DurationIsNil() predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldIsNull(FieldDuration))
+}
+
+// DurationNotNil applies the NotNil predicate on the "duration" field.
+func DurationNotNil() predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldNotNull(FieldDuration))
+}
+
+// DurationEqualFold applies the EqualFold predicate on the "duration" field.
+func DurationEqualFold(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldEqualFold(FieldDuration, vc))
+}
+
+// DurationContainsFold applies the ContainsFold predicate on the "duration" field.
+func DurationContainsFold(v datex.ISOString) predicate.PlanPhase {
+	vc := string(v)
+	return predicate.PlanPhase(sql.FieldContainsFold(FieldDuration, vc))
+}
+
+// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
+func DiscountsIsNil() predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldIsNull(FieldDiscounts))
+}
+
+// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
+func DiscountsNotNil() predicate.PlanPhase {
+	return predicate.PlanPhase(sql.FieldNotNull(FieldDiscounts))
 }
 
 // HasPlan applies the HasEdge predicate on the "plan" edge.
