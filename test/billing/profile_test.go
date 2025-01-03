@@ -101,32 +101,25 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.Equal(t, profile, fetchedProfile)
 	})
 
-	s.T().Run("creating a second default profile fails", func(t *testing.T) {
-		profile := s.createProfileFixture(true)
-
-		// Try to create a second default profile in the same namespace
-		input := MinimalCreateProfileInputTemplate
-		input.Namespace = profile.Namespace
-
-		_, err := s.BillingService.CreateProfile(ctx, input)
-		require.Error(t, err)
-		require.ErrorIs(t, err, billing.ErrDefaultProfileAlreadyExists)
-	})
-
-	s.T().Run("creating a second default profile succeeds with override", func(t *testing.T) {
+	s.T().Run("creating a second default profile", func(t *testing.T) {
 		profile1 := s.createProfileFixture(true)
 
-		// Create a second default profile with override
+		// Create a second default profile in the same namespace
 		input := MinimalCreateProfileInputTemplate
 		input.Namespace = profile1.Namespace
-		input.DefaultOverride = true
+		input.Default = true
 
 		profile2, err := s.BillingService.CreateProfile(ctx, input)
 		require.NoError(t, err)
 		require.NotNil(t, profile2)
 
-		require.NotEqual(t, profile1.ID, profile2.ID)
-		require.True(t, profile2.Default)
+		// Fetch the default profile
+		defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			Namespace: profile1.Namespace,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, defaultProfile)
+		require.Equal(t, profile2.ID, defaultProfile.ID)
 	})
 
 	s.T().Run("deleted profile handling", func(t *testing.T) {
@@ -184,6 +177,30 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 			require.NoError(t, err)
 			require.Equal(t, profile.ID, fetchedProfile.ID)
+		})
+	})
+
+	s.T().Run("update profile handling", func(t *testing.T) {
+		t.Run("updating the default profile", func(t *testing.T) {
+			var err error
+
+			profile := s.createProfileFixture(true)
+			profile.Name = "Updated Name"
+
+			profile, err = s.BillingService.UpdateProfile(ctx, toUpdateProfileInput(*profile))
+			require.NoError(t, err)
+			require.NotNil(t, profile)
+
+			require.True(t, profile.Default)
+			require.Equal(t, "Updated Name", profile.Name)
+		})
+
+		t.Run("unsetting the default profile returns error", func(t *testing.T) {
+			profile := s.createProfileFixture(true)
+			profile.Default = false
+
+			_, err := s.BillingService.UpdateProfile(ctx, toUpdateProfileInput(*profile))
+			require.ErrorIs(t, err, billing.ErrDefaultProfileCannotBeUnset)
 		})
 	})
 }
@@ -442,4 +459,19 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 		require.Equal(t, expectedOutput, *updatedProfile)
 	})
+}
+
+func toUpdateProfileInput(profile billing.Profile) billing.UpdateProfileInput {
+	return billing.UpdateProfileInput{
+		ID:             profile.ID,
+		Namespace:      profile.Namespace,
+		Name:           profile.Name,
+		Description:    profile.Description,
+		Metadata:       profile.Metadata,
+		Default:        profile.Default,
+		WorkflowConfig: profile.WorkflowConfig,
+		Supplier:       profile.Supplier,
+		CreatedAt:      profile.CreatedAt,
+		UpdatedAt:      profile.UpdatedAt,
+	}
 }
