@@ -207,13 +207,12 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 	}
 
 	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{
-		Namespace:       appID.Namespace,
-		Name:            "Stripe Billing Profile",
-		Description:     lo.ToPtr("Stripe Billing Profile, created automatically"),
-		Default:         true,
-		DefaultOverride: true,
-		Supplier:        supplierContract,
-		WorkflowConfig:  billing.DefaultWorkflowConfig,
+		Namespace:      appID.Namespace,
+		Name:           "Stripe Billing Profile",
+		Description:    lo.ToPtr("Stripe Billing Profile, created automatically"),
+		Default:        true,
+		Supplier:       supplierContract,
+		WorkflowConfig: billing.DefaultWorkflowConfig,
 		Apps: billing.ProfileAppReferences{
 			Tax:       appRef,
 			Invoicing: appRef,

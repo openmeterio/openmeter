@@ -25,19 +25,18 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Profile, error) {
-		// Given that we have multiple constraints let's validate those here for better error reporting
-		// Only validate the default profile if it's not being overridden
-		if input.Default && !input.DefaultOverride {
+		// If a profile is already set as default, we need to unset it
+		if input.Default {
 			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
 				Namespace: input.Namespace,
 			})
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error fetching default profile: %w", err)
 			}
 
 			if defaultProfile != nil {
-				return nil, billing.ValidationError{
-					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
+				if err := s.unsetDefaultProfile(ctx, *defaultProfile); err != nil {
+					return nil, fmt.Errorf("error unsetting default profile: %w", err)
 				}
 			}
 		}
@@ -329,17 +328,26 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		if !profile.Default && input.Default {
-			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
-			if err != nil {
-				return nil, err
+		// Get the default profile for the namespace if any
+		defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			Namespace: input.Namespace,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error fetching default profile: %w", err)
+		}
+
+		if defaultProfile != nil {
+			// If a different profile is being set as default we need to unset the current default
+			if input.Default && defaultProfile.ID != input.ID {
+				if err := s.unsetDefaultProfile(ctx, *defaultProfile); err != nil {
+					return nil, fmt.Errorf("error unsetting default profile: %w", err)
+				}
 			}
 
-			if defaultProfile != nil && defaultProfile.ID != input.ID {
+			// If the current profile is the default one it cannot be unset
+			if !input.Default && defaultProfile.ID == input.ID {
 				return nil, billing.ValidationError{
-					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileAlreadyExists, defaultProfile.ID),
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrDefaultProfileCannotBeUnset, input.ID),
 				}
 			}
 		}
@@ -437,4 +445,20 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	out.Apps.Payment = paymentApp
 
 	return &out, nil
+}
+
+// unsetDefaultProfile unsets the default profile for the given namespace
+func (s *Service) unsetDefaultProfile(ctx context.Context, defaultProfile billing.BaseProfile) error {
+	profile := defaultProfile
+	profile.Default = false
+
+	_, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
+		TargetState:      profile,
+		WorkflowConfigID: profile.WorkflowConfig.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error unsetting default profile: %w", err)
+	}
+
+	return nil
 }
