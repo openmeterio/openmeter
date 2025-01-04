@@ -68,7 +68,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 		Key:         p.Key,
 		Metadata:    lo.EmptyableToPtr(api.Metadata(p.Metadata)),
 		Name:        p.Name,
-		Duration:    lo.ToPtr(p.Duration.ISOString().String()),
+		Duration:    (*string)(p.Duration.ISOStringPtrOrNil()),
 	}
 
 	if len(p.Discounts) > 0 {
