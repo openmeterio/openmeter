@@ -30,17 +30,9 @@ func (p Plan) Validate() error {
 		errs = append(errs, err)
 	}
 
-	for i, phase := range p.Phases {
+	for _, phase := range p.Phases {
 		if err := phase.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid PlanPhase %q: %s", phase.Name, err))
-		}
-
-		if phase.Duration == nil && i != len(p.Phases)-1 {
-			errs = append(errs, fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i))
-		}
-
-		if phase.Duration != nil && i == len(p.Phases)-1 {
-			errs = append(errs, fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i))
 		}
 	}
 
