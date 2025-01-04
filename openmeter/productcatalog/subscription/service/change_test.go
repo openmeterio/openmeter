@@ -89,12 +89,14 @@ func TestChange(t *testing.T) {
 			p2Input := examplePlanInput1
 			p2Input.Plan.PlanMeta.Name = "New Plan"
 			p2Input.Plan.PlanMeta.Key = "new_plan"
+			// We need to copy the phases to avoid modifying the original plan
+			p2Input.Plan.Phases = lo.Map(p2Input.Plan.Phases, func(phase productcatalog.Phase, _ int) productcatalog.Phase { return phase })
+			p2Input.Plan.Phases[2].Duration = lo.ToPtr(testutils.GetISODuration(t, "P5M"))
 			p2Input.Plan.Phases = append(p2Input.Plan.Phases, productcatalog.Phase{
 				PhaseMeta: productcatalog.PhaseMeta{
 					Key:         "test_phase_4",
 					Name:        "Test Phase 4",
 					Description: lo.ToPtr("Test Phase 4 Description"),
-					StartAfter:  testutils.GetISODuration(t, "P8M"),
 				},
 				RateCards: productcatalog.RateCards{
 					&subscriptiontestutils.ExampleRateCard1,
@@ -186,12 +188,14 @@ func TestChange(t *testing.T) {
 			p2Input := examplePlanInput1
 			p2Input.Plan.PlanMeta.Name = "New Plan"
 			p2Input.Plan.PlanMeta.Key = "new_plan"
+			// We need to copy the phases to avoid modifying the original plan
+			p2Input.Plan.Phases = lo.Map(p2Input.Plan.Phases, func(phase productcatalog.Phase, _ int) productcatalog.Phase { return phase })
+			p2Input.Plan.Phases[2].Duration = lo.ToPtr(testutils.GetISODuration(t, "P5M"))
 			p2Input.Plan.Phases = append(p2Input.Plan.Phases, productcatalog.Phase{
 				PhaseMeta: productcatalog.PhaseMeta{
 					Key:         "test_phase_4",
 					Name:        "Test Phase 4",
 					Description: lo.ToPtr("Test Phase 4 Description"),
-					StartAfter:  testutils.GetISODuration(t, "P8M"),
 				},
 				RateCards: productcatalog.RateCards{
 					&subscriptiontestutils.ExampleRateCard1,

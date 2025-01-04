@@ -3,10 +3,13 @@ package plansubscription
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -70,10 +73,14 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 
 func (p *Plan) GetPhases() []subscription.PlanPhase {
 	ps := make([]subscription.PlanPhase, 0, len(p.Phases))
+	startAfter := datex.Period{}
 	for _, ph := range p.Phases {
 		ps = append(ps, &Phase{
-			Phase: ph,
+			Phase:      ph,
+			StartAfter: startAfter,
 		})
+
+		startAfter, _ = startAfter.Add(lo.FromPtrOr(ph.Duration, datex.Period{}))
 	}
 
 	return ps
@@ -85,6 +92,7 @@ func (p *Plan) Currency() currencyx.Code {
 
 type Phase struct {
 	productcatalog.Phase
+	StartAfter datex.Period
 }
 
 var _ subscription.PlanPhase = &Phase{}

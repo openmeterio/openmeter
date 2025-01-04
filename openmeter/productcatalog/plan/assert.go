@@ -128,7 +128,7 @@ func AssertPlanPhaseEqual[E interface{ productcatalog.Phase | Phase }](t *testin
 	assert.Equalf(t, expected.Name, actual.Name, "name mismatch")
 	assert.Equalf(t, expected.Description, actual.Description, "description mismatch")
 	assert.Equalf(t, expected.Metadata, actual.Metadata, "metadata mismatch")
-	assert.Equalf(t, expected.StartAfter, actual.StartAfter, "startAfter mismatch")
+	assert.Equalf(t, expected.Duration, actual.Duration, "duration mismatch")
 
 	AssertPlanRateCardsEqual(t, expected.RateCards, actual.RateCards)
 }
