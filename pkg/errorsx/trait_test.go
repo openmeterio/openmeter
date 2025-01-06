@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type mErr struct {
@@ -38,4 +39,7 @@ func TestTraits(t *testing.T) {
 	e4 := errorsx.WithTrait(e3, t2)
 	assert.True(t, errorsx.HasTrait(e4, t1), "Should find trait of wrapped error")
 	assert.True(t, errorsx.HasTrait(e4, t2), "Should find trait of wrapped error")
+
+	e5 := errors.Join(e1, e2, e3, e4)
+	assert.False(t, errorsx.HasTrait(e5, t1), "Does NOT parse joined errors")
 }

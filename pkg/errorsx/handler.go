@@ -38,8 +38,9 @@ func (h SlogHandler) Handle(err error) {
 	}
 
 	// Warn errors are logged as warnings.
-	if wErr, ok := ErrorAs[*warnError](err); ok {
-		h.Logger.Warn(wErr.Error())
+	if HasTrait(err, Warning) {
+		// Should this Trait be unique like so?
+		h.Logger.Warn(err.Error())
 		return
 	}
 
@@ -55,8 +56,8 @@ func (h SlogHandler) HandleContext(ctx context.Context, err error) {
 	}
 
 	// Warn errors are logged as warnings.
-	if wErr, ok := ErrorAs[*warnError](err); ok {
-		h.Logger.WarnContext(ctx, wErr.Error())
+	if HasTrait(err, Warning) {
+		h.Logger.WarnContext(ctx, err.Error())
 		return
 	}
 
