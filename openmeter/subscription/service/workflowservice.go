@@ -84,7 +84,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	// Let's validate the patches
 	for i, patch := range customizations {
 		if err := patch.Validate(); err != nil {
-			return subscription.SubscriptionView{}, &models.GenericUserError{Message: fmt.Sprintf("invalid patch at index %d: %s", i, err.Error())}
+			return subscription.SubscriptionView{}, &models.GenericUserError{Inner: fmt.Errorf("invalid patch at index %d: %s", i, err.Error())}
 		}
 	}
 
@@ -97,7 +97,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	})
 	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
 		// FIXME: error details are lost here
-		return subscription.SubscriptionView{}, &models.GenericUserError{Message: sErr.Error()}
+		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
 	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}

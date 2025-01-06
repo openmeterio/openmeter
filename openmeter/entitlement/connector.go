@@ -124,7 +124,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error) {
 	// Validate input
 	if subject != input.SubjectKey {
-		return nil, &models.GenericUserError{Message: "Subject keys do not match"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("Subject keys do not match")}
 	}
 
 	// Find the entitlement to override
@@ -138,11 +138,11 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	}
 
 	if oldEnt.DeletedAt != nil {
-		return nil, &models.GenericUserError{Message: fmt.Sprintf("Entitlement already deleted: %s", oldEnt.ID)}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("Entitlement already deleted: %s", oldEnt.ID)}
 	}
 
 	if input.ActiveFrom != nil || input.ActiveTo != nil {
-		return nil, &models.GenericUserError{Message: "ActiveFrom and ActiveTo are not supported in OverrideEntitlement"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("ActiveFrom and ActiveTo are not supported in OverrideEntitlement")}
 	}
 
 	return c.SupersedeEntitlement(ctx, oldEnt.ID, input)

@@ -14,7 +14,7 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 	var plan subscription.Plan
 
 	if err := request.PlanInput.Validate(); err != nil {
-		return def, &models.GenericUserError{Message: err.Error()}
+		return def, &models.GenericUserError{Inner: err}
 	}
 
 	if request.PlanInput.AsInput() != nil {

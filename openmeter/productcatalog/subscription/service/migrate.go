@@ -21,7 +21,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	if sub.PlanRef == nil {
 		return def, &models.GenericUserError{
-			Message: fmt.Sprintf("Subscription %s has no plan, cannot be migrated", request.ID.ID),
+			Inner: fmt.Errorf("Subscription %s has no plan, cannot be migrated", request.ID.ID),
 		}
 	}
 
@@ -36,7 +36,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	if plan.Version <= sub.PlanRef.Version {
 		return def, &models.GenericUserError{
-			Message: fmt.Sprintf("Subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
+			Inner: fmt.Errorf("Subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
 		}
 	}
 

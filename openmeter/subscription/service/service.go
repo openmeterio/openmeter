@@ -95,7 +95,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
 		// TODO: better error message
-		return def, &models.GenericConflictError{Message: fmt.Sprintf("new subscription overlaps with existing ones: %v", overlaps)}
+		return def, &models.GenericConflictError{Inner: fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps)}
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
