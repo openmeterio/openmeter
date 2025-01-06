@@ -86,12 +86,18 @@ type CreatePlanInput struct {
 }
 
 func (i CreatePlanInput) Validate() error {
+	var errs []error
+
 	if err := i.NamespacedModel.Validate(); err != nil {
-		return fmt.Errorf("invalid Namespace: %w", err)
+		errs = append(errs, fmt.Errorf("invalid Namespace: %w", err))
 	}
 
 	if err := i.Plan.Validate(); err != nil {
-		return fmt.Errorf("invalid Plan: %w", err)
+		errs = append(errs, fmt.Errorf("invalid Plan: %w", err))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil
