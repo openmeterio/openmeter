@@ -1,0 +1,63 @@
+package errorsx
+
+import (
+	"errors"
+	"sync/atomic"
+)
+
+// Traits
+var internalId uint64
+
+func nextId() uint64 {
+	return atomic.AddUint64(&internalId, 1)
+}
+
+type Trait struct {
+	id    uint64
+	label string
+}
+
+func NewTrait(label string) Trait {
+	return Trait{id: nextId(), label: label}
+}
+
+// Errors with Traits
+type errorWithTrait struct {
+	err error
+	Trait
+}
+
+func (e errorWithTrait) Error() string {
+	return e.err.Error()
+}
+
+func (e errorWithTrait) Unwrap() error {
+	return e.err
+}
+
+// Managing Traits
+func HasTrait(e error, t Trait) bool {
+	if e == nil {
+		return false
+	}
+
+	// First, we check the current error
+	if et, ok := e.(errorWithTrait); ok {
+		if et.Trait == t {
+			return true
+		}
+	}
+
+	// Then, we attempt to unwrap the inner error
+	uw := errors.Unwrap(e)
+
+	return HasTrait(uw, t)
+}
+
+func WithTrait(err error, trait Trait) error {
+	if err == nil {
+		return nil
+	}
+
+	return errorWithTrait{err: err, Trait: trait}
+}
