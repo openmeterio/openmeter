@@ -24,6 +24,7 @@ type ProfileAdapter interface {
 	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*BaseProfile, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*BaseProfile, error)
+	UnsetDefaultProfile(ctx context.Context, input UnsetDefaultProfileInput) error
 }
 
 type CustomerOverrideAdapter interface {

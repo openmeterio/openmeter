@@ -88,10 +88,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		profile := s.createProfileFixture(false)
 
 		fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-			Profile: models.NamespacedID{
-				Namespace: profile.Namespace,
-				ID:        profile.ID,
-			},
+			Profile: profile.ProfileID(),
 			Expand: billing.ProfileExpand{
 				Apps: true,
 			},
@@ -169,14 +166,28 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 
 			// Fetch the profile
 			fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-				Profile: models.NamespacedID{
-					Namespace: profile.Namespace,
-					ID:        profile.ID,
-				},
+				Profile: profile.ProfileID(),
 			})
 
 			require.NoError(t, err)
 			require.Equal(t, profile.ID, fetchedProfile.ID)
+		})
+
+		t.Run("updating a deleted profile yields an error", func(t *testing.T) {
+			profile := s.createProfileFixture(false)
+
+			// Delete the profile
+			require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+				Namespace: profile.Namespace,
+				ID:        profile.ID,
+			}))
+
+			// Update the profile
+			profile.BaseProfile.AppReferences = nil
+			_, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
+
+			require.ErrorAs(t, err, &billing.ValidationIssue{})
+			require.ErrorIs(t, err, billing.ErrProfileAlreadyDeleted)
 		})
 	})
 
@@ -273,11 +284,8 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-		Profile: models.NamespacedID{
-			Namespace: ns,
-			ID:        profile.ID,
-		},
-		Expand: billing.ProfileExpandAll,
+		Profile: profile.ProfileID(),
+		Expand:  billing.ProfileExpandAll,
 	})
 
 	// Sanity check db conversion & fetching
@@ -374,11 +382,8 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
-		Profile: models.NamespacedID{
-			Namespace: ns,
-			ID:        profile.ID,
-		},
-		Expand: billing.ProfileExpandAll,
+		Profile: profile.ProfileID(),
+		Expand:  billing.ProfileExpandAll,
 	})
 
 	// Sanity check db conversion & fetching
@@ -393,9 +398,6 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			Default:     true,
 			Name:        "Awesome Default Profile [update]",
 			Description: lo.ToPtr("Updated description"),
-			CreatedAt:   profile.CreatedAt,
-
-			UpdatedAt: profile.UpdatedAt,
 
 			WorkflowConfig: billing.WorkflowConfig{
 				CreatedAt: profile.WorkflowConfig.CreatedAt,
