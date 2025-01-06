@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,3 +27,9 @@ func (e *NotFoundError) Error() string {
 
 	return msg
 }
+
+func (e *NotFoundError) Traits() []errorsx.Trait {
+	return []errorsx.Trait{errorsx.NotFound}
+}
+
+var _ errorsx.ErrorWithTraits = &NotFoundError{}

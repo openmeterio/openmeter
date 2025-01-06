@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -247,17 +248,15 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 	// Let's validate that the phase is not empty
 	flat := lo.Flatten(lo.Values(s.ItemsByKey))
 	if len(flat) == 0 {
-		errs = append(errs, &AllowedDuringApplyingPatchesError{
-			Inner: &SpecValidationError{
-				AffectedKeys: [][]string{
-					{
-						"phaseKey",
-						s.PhaseKey,
-					},
+		errs = append(errs, errorsx.WithTrait(&SpecValidationError{
+			AffectedKeys: [][]string{
+				{
+					"phaseKey",
+					s.PhaseKey,
 				},
-				Msg: "Phase must have at least one item",
 			},
-		})
+			Msg: "Phase must have at least one item",
+		}, AllowedDuringApplyingPatches))
 	}
 
 	for key, items := range s.ItemsByKey {
@@ -800,8 +799,7 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 			if uw, ok := err.(interface{ Unwrap() []error }); ok {
 				// If all returned errors are allowed during applying patches, we can continue
 				if lo.EveryBy(uw.Unwrap(), func(e error) bool {
-					_, ok := lo.ErrorsAs[*AllowedDuringApplyingPatchesError](e)
-					return ok
+					return errorsx.HasTrait(e, AllowedDuringApplyingPatches)
 				}) {
 					continue
 				}
@@ -819,17 +817,7 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 }
 
 // Some errors are allowed during applying individual patches, but still mean the Spec as a whole is invalid
-type AllowedDuringApplyingPatchesError struct {
-	Inner error
-}
-
-func (e *AllowedDuringApplyingPatchesError) Error() string {
-	return fmt.Sprintf("allowed during incremental validation failed: %s", e.Inner)
-}
-
-func (e *AllowedDuringApplyingPatchesError) Unwrap() error {
-	return e.Inner
-}
+var AllowedDuringApplyingPatches = errorsx.NewTrait("error is allowed during applying patches")
 
 type SpecValidationError struct {
 	// TODO: This spec is broken and painful, lets improve it
@@ -840,3 +828,9 @@ type SpecValidationError struct {
 func (e *SpecValidationError) Error() string {
 	return e.Msg
 }
+
+func (e *SpecValidationError) Traits() []errorsx.Trait {
+	return []errorsx.Trait{errorsx.BadRequest}
+}
+
+var _ errorsx.ErrorWithTraits = &SpecValidationError{}

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type PatchConflictError struct {
