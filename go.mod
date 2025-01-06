@@ -31,7 +31,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.33.1
 	github.com/invopop/gobl v0.207.0
 	github.com/jackc/pgx/v5 v5.7.1
-	github.com/lmittmann/tint v1.0.5
+	github.com/lmittmann/tint v1.0.6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
