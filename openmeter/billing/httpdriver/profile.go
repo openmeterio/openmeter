@@ -101,7 +101,7 @@ func (h *handler) GetProfile() GetProfileHandler {
 			}
 
 			return GetProfileRequest{
-				Profile: models.NamespacedID{
+				Profile: billing.ProfileID{
 					Namespace: ns,
 					ID:        params.ID,
 				},

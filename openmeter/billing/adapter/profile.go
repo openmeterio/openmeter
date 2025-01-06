@@ -184,10 +184,7 @@ func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		profile, err := tx.GetProfile(ctx, billing.GetProfileInput{
-			Profile: models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.ID,
-			},
+			Profile: input,
 		})
 		if err != nil {
 			return err
@@ -251,6 +248,19 @@ func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 
 		updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
 		return mapProfileFromDB(updatedProfile)
+	})
+}
+
+func (a *adapter) UnsetDefaultProfile(ctx context.Context, input billing.UnsetDefaultProfileInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		return tx.db.BillingProfile.Update().
+			Where(billingprofile.Namespace(input.Namespace)).
+			SetDefault(false).
+			Exec(ctx)
 	})
 }
 

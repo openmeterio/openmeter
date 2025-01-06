@@ -252,11 +252,7 @@ func (i UpdateCustomerOverrideAdapterInput) Validate() error {
 	return nil
 }
 
-type HasCustomerOverrideReferencingProfileAdapterInput genericNamespaceID
-
-func (i HasCustomerOverrideReferencingProfileAdapterInput) Validate() error {
-	return genericNamespaceID(i).Validate()
-}
+type HasCustomerOverrideReferencingProfileAdapterInput = ProfileID
 
 type (
 	UpsertCustomerOverrideAdapterInput = customerentity.CustomerID

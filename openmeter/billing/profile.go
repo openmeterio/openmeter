@@ -185,6 +185,12 @@ func (c SupplierContact) Validate() error {
 	return nil
 }
 
+type ProfileID models.NamespacedID
+
+func (p ProfileID) Validate() error {
+	return models.NamespacedID(p).Validate()
+}
+
 type BaseProfile struct {
 	ID        string `json:"id"`
 	Namespace string `json:"namespace"`
@@ -224,6 +230,13 @@ func (p BaseProfile) Validate() error {
 	}
 
 	return nil
+}
+
+func (p BaseProfile) ProfileID() ProfileID {
+	return ProfileID{
+		Namespace: p.Namespace,
+		ID:        p.ID,
+	}
 }
 
 type Profile struct {
@@ -403,25 +416,8 @@ func (i GetDefaultProfileInput) Validate() error {
 	return nil
 }
 
-type genericNamespaceID struct {
-	Namespace string
-	ID        string
-}
-
-func (i genericNamespaceID) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if i.ID == "" {
-		return errors.New("id is required")
-	}
-
-	return nil
-}
-
 type GetProfileInput struct {
-	Profile models.NamespacedID
+	Profile ProfileID
 	Expand  ProfileExpand
 }
 
@@ -437,11 +433,7 @@ func (i GetProfileInput) Validate() error {
 	return nil
 }
 
-type DeleteProfileInput genericNamespaceID
-
-func (i DeleteProfileInput) Validate() error {
-	return genericNamespaceID(i).Validate()
-}
+type DeleteProfileInput = ProfileID
 
 type UpdateProfileInput BaseProfile
 
@@ -455,6 +447,10 @@ func (i UpdateProfileInput) Validate() error {
 	}
 
 	return BaseProfile(i).Validate()
+}
+
+func (i UpdateProfileInput) ProfileID() ProfileID {
+	return BaseProfile(i).ProfileID()
 }
 
 type UpdateProfileAdapterInput struct {
@@ -471,13 +467,11 @@ func (i UpdateProfileAdapterInput) Validate() error {
 		return fmt.Errorf("id is required")
 	}
 
-	if i.TargetState.UpdatedAt.IsZero() {
-		return fmt.Errorf("updated at is required")
-	}
-
 	if i.WorkflowConfigID == "" {
 		return fmt.Errorf("workflow config id is required")
 	}
 
 	return nil
 }
+
+type UnsetDefaultProfileInput = ProfileID
