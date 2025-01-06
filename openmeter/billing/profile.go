@@ -313,13 +313,12 @@ type CreateWorkflowConfigInput struct {
 }
 
 type CreateProfileInput struct {
-	Namespace       string            `json:"namespace"`
-	Name            string            `json:"name"`
-	Description     *string           `json:"description,omitempty"`
-	Metadata        map[string]string `json:"metadata"`
-	Supplier        SupplierContact   `json:"supplier"`
-	Default         bool              `json:"default"`
-	DefaultOverride bool              `json:"-"`
+	Namespace   string            `json:"namespace"`
+	Name        string            `json:"name"`
+	Description *string           `json:"description,omitempty"`
+	Metadata    map[string]string `json:"metadata"`
+	Supplier    SupplierContact   `json:"supplier"`
+	Default     bool              `json:"default"`
 
 	WorkflowConfig WorkflowConfig         `json:"workflowConfig"`
 	Apps           CreateProfileAppsInput `json:"apps"`
@@ -344,10 +343,6 @@ func (i CreateProfileInput) Validate() error {
 
 	if err := i.Apps.Validate(); err != nil {
 		return fmt.Errorf("invalid apps: %w", err)
-	}
-
-	if !i.Default && i.DefaultOverride {
-		return errors.New("override default is only allowed when creating a default profile")
 	}
 
 	return nil
