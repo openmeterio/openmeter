@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -71,4 +72,23 @@ func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err 
 	}
 
 	return false
+}
+
+func HandleErrorIfTraitMatches(ctx context.Context, statusCode int, err error, trait errorsx.Trait, w http.ResponseWriter) bool {
+	if errorsx.HasTrait(err, trait) {
+		NewHTTPError(statusCode, err).EncodeError(ctx, w)
+		return true
+	}
+
+	return false
+}
+
+func CommonTraitErrorEncoder() httptransport.ErrorEncoder {
+	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
+		// order matters!
+		return HandleErrorIfTraitMatches(ctx, http.StatusForbidden, err, errorsx.Forbidden, w) ||
+			HandleErrorIfTraitMatches(ctx, http.StatusNotFound, err, errorsx.NotFound, w) ||
+			HandleErrorIfTraitMatches(ctx, http.StatusConflict, err, errorsx.Conflict, w) ||
+			HandleErrorIfTraitMatches(ctx, http.StatusBadRequest, err, errorsx.BadRequest, w)
+	}
 }

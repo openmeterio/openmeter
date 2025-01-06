@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 type PlanRef struct {
@@ -68,3 +69,9 @@ type PlanNotFoundError struct {
 func (e PlanNotFoundError) Error() string {
 	return fmt.Sprintf("plan %s@%d not found", e.Key, e.Version)
 }
+
+func (e PlanNotFoundError) Traits() []errorsx.Trait {
+	return []errorsx.Trait{errorsx.NotFound}
+}
+
+var _ errorsx.ErrorWithTraits = PlanNotFoundError{}

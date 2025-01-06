@@ -22,16 +22,28 @@ func NewTrait(label string) Trait {
 }
 
 // Errors with Traits
-type errorWithTrait struct {
-	err error
-	Trait
+
+type ErrorWithTraits interface {
+	error
+	Traits() []Trait
 }
 
-func (e errorWithTrait) Error() string {
+type errorWithTraits struct {
+	err   error
+	trait []Trait
+}
+
+var _ ErrorWithTraits = errorWithTraits{}
+
+func (e errorWithTraits) Traits() []Trait {
+	return e.trait
+}
+
+func (e errorWithTraits) Error() string {
 	return e.err.Error()
 }
 
-func (e errorWithTrait) Unwrap() error {
+func (e errorWithTraits) Unwrap() error {
 	return e.err
 }
 
@@ -42,9 +54,11 @@ func HasTrait(e error, t Trait) bool {
 	}
 
 	// First, we check the current error
-	if et, ok := e.(errorWithTrait); ok {
-		if et.Trait == t {
-			return true
+	if et, ok := e.(ErrorWithTraits); ok {
+		for _, trait := range et.Traits() {
+			if trait == t {
+				return true
+			}
 		}
 	}
 
@@ -59,5 +73,5 @@ func WithTrait(err error, trait Trait) error {
 		return nil
 	}
 
-	return errorWithTrait{err: err, Trait: trait}
+	return errorWithTraits{err: err, trait: []Trait{trait}}
 }

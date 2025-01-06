@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/samber/lo"
 )
 
@@ -16,6 +17,12 @@ func (e *PatchConflictError) Error() string {
 	return fmt.Sprintf("patch conflict error: %s", e.Msg)
 }
 
+func (e *PatchConflictError) Traits() []errorsx.Trait {
+	return []errorsx.Trait{errorsx.Conflict}
+}
+
+var _ errorsx.ErrorWithTraits = &PatchConflictError{}
+
 type PatchValidationError struct {
 	Msg string
 }
@@ -24,12 +31,22 @@ func (e *PatchValidationError) Error() string {
 	return fmt.Sprintf("patch validation error: %s", e.Msg)
 }
 
+func (e *PatchValidationError) Traits() []errorsx.Trait {
+	return []errorsx.Trait{errorsx.BadRequest}
+}
+
+var _ errorsx.ErrorWithTraits = &PatchValidationError{}
+
 type PatchForbiddenError struct {
 	Msg string
 }
 
 func (e *PatchForbiddenError) Error() string {
 	return fmt.Sprintf("patch forbidden error: %s", e.Msg)
+}
+
+func (e *PatchForbiddenError) Traits() []errorsx.Trait {
+	return []errorsx.Trait{errorsx.Forbidden}
 }
 
 type PatchOperation string
