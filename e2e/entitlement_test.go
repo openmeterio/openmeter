@@ -140,8 +140,11 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	})
 
 	t.Run("Should not count usage of previous period twice", func(t *testing.T) {
-		// we have to wait for a minute to pass so we can reset
-		time.Sleep(time.Minute)
+		// let's wait till the next minute so we can reset
+		currMinute := time.Now().Truncate(time.Minute)
+		waitUntil := currMinute.Add(time.Minute + time.Second)
+		time.Sleep(waitUntil.Sub(time.Now()))
+
 		effectiveAt := time.Now().Truncate(time.Minute)
 
 		// Reset usage
