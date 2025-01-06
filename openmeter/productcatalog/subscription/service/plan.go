@@ -51,7 +51,7 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	p := input.Plan
 
 	if err := p.ValidForCreatingSubscriptions(); err != nil {
-		return nil, &models.GenericUserError{Message: fmt.Sprintf("invalid plan: %v", err)}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("invalid plan: %v", err)}
 	}
 
 	return &plansubscription.Plan{

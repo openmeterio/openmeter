@@ -21,11 +21,11 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 		activeFromTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
 
 		if input.ActiveTo != nil && input.ActiveFrom == nil {
-			return nil, &models.GenericUserError{Message: "ActiveFrom must be set if ActiveTo is set"}
+			return nil, &models.GenericUserError{Inner: fmt.Errorf("ActiveFrom must be set if ActiveTo is set")}
 		}
 		// We can allow an active period of 0 (ActiveFrom = ActiveTo)
 		if input.ActiveTo != nil && input.ActiveTo.Before(activeFromTime) {
-			return nil, &models.GenericUserError{Message: "ActiveTo cannot be before ActiveFrom"}
+			return nil, &models.GenericUserError{Inner: fmt.Errorf("ActiveTo cannot be before ActiveFrom")}
 		}
 
 		// ID has priority over key
@@ -34,7 +34,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 			featureIdOrKey = input.FeatureKey
 		}
 		if featureIdOrKey == nil {
-			return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
+			return nil, &models.GenericUserError{Inner: fmt.Errorf("Feature ID or Key is required")}
 		}
 
 		feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
@@ -148,7 +148,7 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 		featureIdOrKey = input.FeatureKey
 	}
 	if featureIdOrKey == nil {
-		return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("Feature ID or Key is required")}
 	}
 
 	feat, err := c.featureConnector.GetFeature(ctx, input.Namespace, *featureIdOrKey, feature.IncludeArchivedFeatureFalse)
@@ -163,24 +163,24 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 	// Validate that old a new entitlement belong to same feature & subject
 
 	if feat.Key != oldEnt.FeatureKey {
-		return nil, &models.GenericUserError{Message: "Old and new entitlements belong to different features"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("Old and new entitlements belong to different features")}
 	}
 
 	if input.SubjectKey != oldEnt.SubjectKey {
-		return nil, &models.GenericUserError{Message: "Old and new entitlements belong to different subjects"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("Old and new entitlements belong to different subjects")}
 	}
 
 	// To override we close the old entitlement as inactive and create the new one
 	activationTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
 
 	if !activationTime.After(oldEnt.ActiveFromTime()) {
-		return nil, &models.GenericUserError{Message: "New entitlement must be active after the old one"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("New entitlement must be active after the old one")}
 	}
 
 	// To avoid unintended consequences, we don't allow overriding an entitlement with another one which wouldn't otherwise be overlapping
 	// Otherwise create ScheduleEntitlement would return an InconsistencyError which is hard to make sense of
 	if oldEnt.ActiveToTime() != nil && oldEnt.ActiveToTime().Before(activationTime) {
-		return nil, &models.GenericUserError{Message: "New entitlement must be active before the old one ends"}
+		return nil, &models.GenericUserError{Inner: fmt.Errorf("New entitlement must be active before the old one ends")}
 	}
 
 	// Do the override in TX

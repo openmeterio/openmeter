@@ -20,25 +20,37 @@ func (e *NamespaceNotFoundError) Error() string {
 
 // TODO: these should be picked up in a general server error handler
 type GenericUserError struct {
-	Message string
+	Inner error
 }
 
 func (e *GenericUserError) Error() string {
-	return e.Message
+	return e.Inner.Error()
+}
+
+func (e *GenericUserError) Unwrap() error {
+	return e.Inner
 }
 
 type GenericConflictError struct {
-	Message string
+	Inner error
 }
 
 func (e *GenericConflictError) Error() string {
-	return e.Message
+	return e.Inner.Error()
+}
+
+func (e *GenericConflictError) Unwrap() error {
+	return e.Inner
 }
 
 type GenericForbiddenError struct {
-	Message string
+	Inner error
 }
 
 func (e *GenericForbiddenError) Error() string {
-	return e.Message
+	return e.Inner.Error()
+}
+
+func (e *GenericForbiddenError) Unwrap() error {
+	return e.Inner
 }

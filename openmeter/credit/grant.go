@@ -56,7 +56,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 		}
 
 		if input.EffectiveAt.Before(periodStart) {
-			return nil, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
+			return nil, &models.GenericUserError{Inner: fmt.Errorf("grant effective date is before the current usage period")}
 		}
 
 		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
@@ -114,7 +114,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 	}
 
 	if g.VoidedAt != nil {
-		return &models.GenericUserError{Message: "grant already voided"}
+		return &models.GenericUserError{Inner: fmt.Errorf("grant already voided")}
 	}
 
 	owner := grant.NamespacedOwner{Namespace: grantID.Namespace, ID: g.OwnerID}

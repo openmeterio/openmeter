@@ -15,7 +15,7 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 	var plan subscription.Plan
 
 	if err := request.PlanInput.Validate(); err != nil {
-		return def, &models.GenericUserError{Message: err.Error()}
+		return def, &models.GenericUserError{Inner: err}
 	}
 
 	if request.PlanInput.AsInput() != nil {
@@ -32,7 +32,7 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 		}
 
 		if p.Status() != productcatalog.ActiveStatus {
-			return def, &models.GenericUserError{Message: "plan is not active"}
+			return def, &models.GenericUserError{Inner: fmt.Errorf("plan is not active")}
 		}
 
 		pp, err := PlanFromPlan(*p)

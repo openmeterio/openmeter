@@ -125,7 +125,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if ent.SubscriptionManaged {
-				return api.EntitlementGrant{}, &models.GenericForbiddenError{Message: "entitlement is managed by subscription"}
+				return api.EntitlementGrant{}, &models.GenericForbiddenError{Inner: fmt.Errorf("entitlement is managed by subscription")}
 			}
 
 			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.GrantInput)
@@ -248,7 +248,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 			}
 
 			if ent.SubscriptionManaged {
-				return nil, &models.GenericForbiddenError{Message: "entitlement is managed by subscription"}
+				return nil, &models.GenericForbiddenError{Inner: fmt.Errorf("entitlement is managed by subscription")}
 			}
 
 			_, err = h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{

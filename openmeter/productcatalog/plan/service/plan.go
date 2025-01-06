@@ -322,7 +322,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		// First, let's validate that the a Subscription can successfully be created from this Plan
 
 		if err := pp.ValidForCreatingSubscriptions(); err != nil {
-			return nil, &models.GenericUserError{Message: fmt.Sprintf("invalid Plan for creating subscriptions: %s", err)}
+			return nil, &models.GenericUserError{Inner: fmt.Errorf("invalid Plan for creating subscriptions: %s", err)}
 		}
 
 		// Second, let's validate that the plan status and the version history is correct

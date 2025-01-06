@@ -129,7 +129,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	// query period cannot be before start of measuring usage
 	if params.From.Before(ent.MeasureUsageFrom) {
-		return nil, engine.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
+		return nil, engine.GrantBurnDownHistory{}, &models.GenericUserError{Inner: fmt.Errorf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
 	}
 
 	owner := grant.NamespacedOwner{
