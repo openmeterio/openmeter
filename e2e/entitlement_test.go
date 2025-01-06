@@ -99,7 +99,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 		now := time.Now()
 
 		for i := 0; i < uniqueEventCount*2; i++ {
-			timestamp := gofakeit.DateRange(now, now.Add(time.Second*5))
+			timestamp := gofakeit.DateRange(now, now.Add(time.Second))
 
 			ev := cloudevents.New()
 			ev.SetID(gofakeit.UUID())
@@ -119,7 +119,9 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 
 		// Wait for events to be processed
 		assert.EventuallyWithT(t, func(t *assert.CollectT) {
-			resp, err := client.QueryMeterWithResponse(ctx, meterSlug, nil)
+			resp, err := client.QueryMeterWithResponse(ctx, meterSlug, &api.QueryMeterParams{
+				To: convert.ToPointer(time.Now().Truncate(time.Minute)),
+			})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 
@@ -129,7 +131,9 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	})
 
 	t.Run("Should calculate usage correctly", func(t *testing.T) {
-		resp, err := client.GetEntitlementValueWithResponse(ctx, subject, entitlementId, nil)
+		resp, err := client.GetEntitlementValueWithResponse(ctx, subject, entitlementId, &api.GetEntitlementValueParams{
+			Time: convert.ToPointer(time.Now().Truncate(time.Minute)),
+		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
@@ -140,8 +144,11 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	})
 
 	t.Run("Should not count usage of previous period twice", func(t *testing.T) {
-		// we have to wait for a minute to pass so we can reset
-		time.Sleep(time.Minute)
+		// let's wait till the next minute so we can reset
+		currMinute := time.Now().Truncate(time.Minute)
+		waitUntil := currMinute.Add(time.Minute + time.Second)
+		time.Sleep(time.Until(waitUntil))
+
 		effectiveAt := time.Now().Truncate(time.Minute)
 
 		// Reset usage
