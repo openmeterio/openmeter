@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -464,6 +465,66 @@ func TestEditRunning(t *testing.T) {
 				})
 
 				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1})
+				assert.Nil(t, err)
+			},
+		},
+		{
+			Name: "Should be able to add a new phase with new items",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				returnedSpec := deps.SubView.AsSpec()
+
+				pKey := "test_phase_1"
+
+				require.Contains(t, returnedSpec.Phases, pKey, "expected %s to be present in the starting spec", pKey)
+				returnedSpec.Phases[pKey].Name = "New Phase 1 Name"
+				returnedSpec.Phases[pKey].Description = lo.ToPtr("This is a new description")
+
+				patch1 := patch.PatchAddPhase{
+					PhaseKey: "new_phase",
+					CreateInput: subscription.CreateSubscriptionPhaseInput{
+						Duration: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+						CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+							PhaseKey:   "new_phase",
+							StartAfter: testutils.GetISODuration(t, "P1Y"),
+							Name:       "New Phase",
+						},
+					},
+				}
+
+				pacth2 := patch.PatchAddItem{
+					PhaseKey: "new_phase",
+					ItemKey:  "new_item",
+					CreateInput: subscription.SubscriptionItemSpec{
+						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+								PhaseKey: "new_phase",
+								ItemKey:  "new_item",
+								RateCard: subscription.RateCard{
+									Name: "new_rate_card",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromInt(int64(100)),
+										PaymentTerm: productcatalog.InAdvancePaymentTerm,
+									}),
+								},
+							},
+						},
+					},
+				}
+
+				sID := deps.SubView.Subscription.NamespacedID
+
+				sv, tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
+
+				workflowService := service.NewWorkflowService(service.WorkflowServiceConfig{
+					Service:            sv.Service,
+					CustomerService:    tuDeps.CustomerService,
+					TransactionManager: tuDeps.CustomerAdapter,
+				})
+
+				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1, &pacth2})
 				assert.Nil(t, err)
 			},
 		},

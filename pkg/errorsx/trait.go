@@ -63,9 +63,17 @@ func HasTrait(e error, t Trait) bool {
 	}
 
 	// Then, we attempt to unwrap the inner error
-	uw := errors.Unwrap(e)
+	if uw := errors.Unwrap(e); uw != nil {
+		return HasTrait(uw, t)
+	} else if je, ok := e.(interface{ Unwrap() []error }); ok {
+		for _, err := range je.Unwrap() {
+			if HasTrait(err, t) {
+				return true
+			}
+		}
+	}
 
-	return HasTrait(uw, t)
+	return false
 }
 
 func WithTrait(err error, trait Trait) error {

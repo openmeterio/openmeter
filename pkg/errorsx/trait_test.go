@@ -40,6 +40,7 @@ func TestTraits(t *testing.T) {
 	assert.True(t, errorsx.HasTrait(e4, t1), "Should find trait of wrapped error")
 	assert.True(t, errorsx.HasTrait(e4, t2), "Should find trait of wrapped error")
 
-	e5 := errors.Join(e1, e2, e3, e4)
-	assert.False(t, errorsx.HasTrait(e5, t1), "Does NOT parse joined errors")
+	e5 := errors.Join(e3, e4)
+	assert.True(t, errorsx.HasTrait(e5, t1), "Does parse joined errors")
+	assert.True(t, errorsx.HasTrait(e5, t2), "Does parse joined errors")
 }
