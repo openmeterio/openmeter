@@ -147,7 +147,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 		// let's wait till the next minute so we can reset
 		currMinute := time.Now().Truncate(time.Minute)
 		waitUntil := currMinute.Add(time.Minute + time.Second)
-		time.Sleep(waitUntil.Sub(time.Now()))
+		time.Sleep(time.Until(waitUntil))
 
 		effectiveAt := time.Now().Truncate(time.Minute)
 
