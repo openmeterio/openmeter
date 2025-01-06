@@ -8,7 +8,6 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -31,7 +30,10 @@ func (s PlanStatus) Values() []string {
 	}
 }
 
-var _ models.Validator = (*Plan)(nil)
+var (
+	_ models.Validator     = (*Plan)(nil)
+	_ models.Equaler[Plan] = (*Plan)(nil)
+)
 
 type Plan struct {
 	PlanMeta
@@ -47,15 +49,7 @@ func (p Plan) Validate() error {
 		errs = append(errs, err)
 	}
 
-	// Check if there are multiple plan phase with the same startAfter which is not allowed
-	startAfters := make(map[datex.ISOString]Phase)
 	for _, phase := range p.Phases {
-		startAfter := phase.StartAfter.ISOString()
-
-		if _, ok := startAfters[startAfter]; ok {
-			errs = append(errs, fmt.Errorf("multiple PlanPhases have the same startAfter which is not allowed: %q", phase.Name))
-		}
-
 		if err := phase.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid PlanPhase %q: %s", phase.Name, err))
 		}
@@ -70,56 +64,25 @@ func (p Plan) Validate() error {
 
 // ValidForCreatingSubscriptions checks if the Plan is valid for creating Subscriptions, a stricter version of Validate
 func (p Plan) ValidForCreatingSubscriptions() error {
+	var errs []error
+
 	if err := p.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if len(p.Phases) == 0 {
 		return fmt.Errorf("invalid Plan: at least one PlanPhase is required")
 	}
 
-	if !lo.SomeBy(p.Phases, func(phase Phase) bool {
-		return phase.StartAfter.IsZero()
-	}) {
-		return fmt.Errorf("invalid Plan: there has to be a starting phase")
-	}
+	// Check if only the last phase has no duration
+	for i, phase := range p.Phases {
+		if phase.Duration == nil && i != len(p.Phases)-1 {
+			errs = append(errs, fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i))
+		}
 
-	return nil
-}
-
-var _ models.Validator = (*PlanMeta)(nil)
-
-type PlanMeta struct {
-	EffectivePeriod
-
-	// Key is the unique key for Plan.
-	Key string `json:"key"`
-
-	// Name
-	Name string `json:"name"`
-
-	// Description
-	Description *string `json:"description,omitempty"`
-
-	// Metadata
-	Metadata models.Metadata `json:"metadata,omitempty"`
-
-	// Version
-	Version int `json:"version"`
-
-	// Currency
-	Currency currency.Code `json:"currency"`
-}
-
-func (p PlanMeta) Validate() error {
-	var errs []error
-
-	if err := p.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid Currency: %s", err))
-	}
-
-	if p.Status() == InvalidStatus {
-		errs = append(errs, fmt.Errorf("invalid Status"))
+		if phase.Duration != nil && i == len(p.Phases)-1 {
+			errs = append(errs, fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i))
+		}
 	}
 
 	if len(errs) > 0 {
@@ -129,7 +92,116 @@ func (p PlanMeta) Validate() error {
 	return nil
 }
 
-var _ models.Validator = (*EffectivePeriod)(nil)
+// Equal returns true if the two Plans are equal.
+func (p Plan) Equal(o Plan) bool {
+	if !p.PlanMeta.Equal(o.PlanMeta) {
+		return false
+	}
+
+	if len(p.Phases) != len(o.Phases) {
+		return false
+	}
+
+	for i, phase := range p.Phases {
+		if !phase.Equal(o.Phases[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+var (
+	_ models.Validator         = (*PlanMeta)(nil)
+	_ models.Equaler[PlanMeta] = (*PlanMeta)(nil)
+)
+
+type PlanMeta struct {
+	EffectivePeriod
+
+	// Key is the unique key for Plan.
+	Key string `json:"key"`
+
+	// Version
+	Version int `json:"version"`
+
+	// Name
+	Name string `json:"name"`
+
+	// Description
+	Description *string `json:"description,omitempty"`
+
+	// Currency
+	Currency currency.Code `json:"currency"`
+
+	// Metadata
+	Metadata models.Metadata `json:"metadata,omitempty"`
+}
+
+// Validate validates the PlanMeta.
+func (p PlanMeta) Validate() error {
+	var errs []error
+
+	if err := p.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid Currency: %s", err))
+	}
+
+	if err := p.EffectivePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %s", err))
+	}
+
+	if p.Key == "" {
+		errs = append(errs, fmt.Errorf("invalid Key: must not be empty"))
+	}
+
+	if p.Name == "" {
+		errs = append(errs, fmt.Errorf("invalid Name: must not be empty"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+// Equal returns true if the two PlanMetas are equal.
+func (p PlanMeta) Equal(o PlanMeta) bool {
+	if p.Key != o.Key {
+		return false
+	}
+
+	if p.Version != o.Version {
+		return false
+	}
+
+	if p.Name != o.Name {
+		return false
+	}
+
+	if p.Description != o.Description {
+		return false
+	}
+
+	if p.Currency != o.Currency {
+		return false
+	}
+
+	if !p.EffectivePeriod.Equal(o.EffectivePeriod) {
+		return false
+	}
+
+	if !p.Metadata.Equal(o.Metadata) {
+		return false
+	}
+
+	return true
+}
+
+var (
+	_ models.Validator                = (*EffectivePeriod)(nil)
+	_ models.Equaler[EffectivePeriod] = (*EffectivePeriod)(nil)
+)
 
 type EffectivePeriod struct {
 	// EffectiveFrom defines the time from the Plan becomes active.
@@ -180,4 +252,10 @@ func (p EffectivePeriod) StatusAt(t time.Time) PlanStatus {
 	}
 
 	return InvalidStatus
+}
+
+// Equal returns true if the two EffectivePeriods are equal.
+func (p EffectivePeriod) Equal(o EffectivePeriod) bool {
+	return lo.FromPtrOr(p.EffectiveFrom, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveFrom, time.Time{})) &&
+		lo.FromPtrOr(p.EffectiveTo, time.Time{}).Equal(lo.FromPtrOr(o.EffectiveTo, time.Time{}))
 }

@@ -38,7 +38,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
 
 	"entgo.io/ent/schema/field"
 )
@@ -926,17 +925,13 @@ func init() {
 	planphaseDescKey := planphaseMixinFields0[8].Descriptor()
 	// planphase.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	planphase.KeyValidator = planphaseDescKey.Validators[0].(func(string) error)
-	// planphaseDescStartAfter is the schema descriptor for start_after field.
-	planphaseDescStartAfter := planphaseFields[0].Descriptor()
-	// planphase.DefaultStartAfter holds the default value on creation for the start_after field.
-	planphase.DefaultStartAfter = datex.ISOString(planphaseDescStartAfter.Default.(string))
-	// planphaseDescDiscounts is the schema descriptor for discounts field.
-	planphaseDescDiscounts := planphaseFields[1].Descriptor()
-	planphase.ValueScanner.Discounts = planphaseDescDiscounts.ValueScanner.(field.TypeValueScanner[[]productcatalog.Discount])
 	// planphaseDescPlanID is the schema descriptor for plan_id field.
-	planphaseDescPlanID := planphaseFields[2].Descriptor()
+	planphaseDescPlanID := planphaseFields[0].Descriptor()
 	// planphase.PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
 	planphase.PlanIDValidator = planphaseDescPlanID.Validators[0].(func(string) error)
+	// planphaseDescDiscounts is the schema descriptor for discounts field.
+	planphaseDescDiscounts := planphaseFields[3].Descriptor()
+	planphase.ValueScanner.Discounts = planphaseDescDiscounts.ValueScanner.(field.TypeValueScanner[[]productcatalog.Discount])
 	// planphaseDescID is the schema descriptor for id field.
 	planphaseDescID := planphaseMixinFields0[0].Descriptor()
 	// planphase.DefaultID holds the default value on creation for the id field.

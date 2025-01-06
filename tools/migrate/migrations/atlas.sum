@@ -1,4 +1,4 @@
-h1:1JUb9WsArbhtNMwfXdIY9FK5XGx5SyU369J0e+Sbfbk=
+h1:3riykK9/yO/uLtXfebrPOTAs+AeK0klKslGaDek5VoU=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -71,3 +71,5 @@ h1:1JUb9WsArbhtNMwfXdIY9FK5XGx5SyU369J0e+Sbfbk=
 20241219213036_add_invoice_line_discount_external_id.up.sql h1:kayHDlVLM6Oo66uMGi/69gtCou0ogDjbR/5T5gioOTE=
 20241230152834_app_stripe_account_id_unique.down.sql h1:XyFdqBe4goV/EY2u2HFpLuo2atLOSl93a0lCCXkiUOs=
 20241230152834_app_stripe_account_id_unique.up.sql h1:36Q5qBeQ3RZzPjCshW42QLlEf9zorteSj//V630vRUs=
+20250103121359_plan-phase-duration.down.sql h1:ZFq105oYKb2tgd/G8nbVt0aAhSuGHZ8QxLim/7S9ekQ=
+20250103121359_plan-phase-duration.up.sql h1:a6mnE11ePlmC9gIh217m8v7gULmCDsFMQhbeLUs0ljQ=

@@ -1330,7 +1330,8 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
-		{Name: "start_after", Type: field.TypeString, Default: "P0D"},
+		{Name: "index", Type: field.TypeUint8},
+		{Name: "duration", Type: field.TypeString, Nullable: true},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "plan_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -1342,7 +1343,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "plan_phases_plans_phases",
-				Columns:    []*schema.Column{PlanPhasesColumns[11]},
+				Columns:    []*schema.Column{PlanPhasesColumns[12]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1376,7 +1377,12 @@ var (
 			{
 				Name:    "planphase_plan_id_key_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{PlanPhasesColumns[11], PlanPhasesColumns[8], PlanPhasesColumns[5]},
+				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[8], PlanPhasesColumns[5]},
+			},
+			{
+				Name:    "planphase_plan_id_index_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[9], PlanPhasesColumns[5]},
 			},
 		},
 	}

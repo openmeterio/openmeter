@@ -30481,7 +30481,9 @@ type PlanPhaseMutation struct {
 	name             *string
 	description      *string
 	key              *string
-	start_after      *datex.ISOString
+	index            *uint8
+	addindex         *int8
+	duration         *datex.ISOString
 	discounts        *[]productcatalog.Discount
 	clearedFields    map[string]struct{}
 	plan             *string
@@ -30925,40 +30927,145 @@ func (m *PlanPhaseMutation) ResetKey() {
 	m.key = nil
 }
 
-// SetStartAfter sets the "start_after" field.
-func (m *PlanPhaseMutation) SetStartAfter(ds datex.ISOString) {
-	m.start_after = &ds
+// SetPlanID sets the "plan_id" field.
+func (m *PlanPhaseMutation) SetPlanID(s string) {
+	m.plan = &s
 }
 
-// StartAfter returns the value of the "start_after" field in the mutation.
-func (m *PlanPhaseMutation) StartAfter() (r datex.ISOString, exists bool) {
-	v := m.start_after
+// PlanID returns the value of the "plan_id" field in the mutation.
+func (m *PlanPhaseMutation) PlanID() (r string, exists bool) {
+	v := m.plan
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldStartAfter returns the old "start_after" field's value of the PlanPhase entity.
+// OldPlanID returns the old "plan_id" field's value of the PlanPhase entity.
 // If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanPhaseMutation) OldStartAfter(ctx context.Context) (v datex.ISOString, err error) {
+func (m *PlanPhaseMutation) OldPlanID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStartAfter is only allowed on UpdateOne operations")
+		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStartAfter requires an ID field in the mutation")
+		return v, errors.New("OldPlanID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStartAfter: %w", err)
+		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
 	}
-	return oldValue.StartAfter, nil
+	return oldValue.PlanID, nil
 }
 
-// ResetStartAfter resets all changes to the "start_after" field.
-func (m *PlanPhaseMutation) ResetStartAfter() {
-	m.start_after = nil
+// ResetPlanID resets all changes to the "plan_id" field.
+func (m *PlanPhaseMutation) ResetPlanID() {
+	m.plan = nil
+}
+
+// SetIndex sets the "index" field.
+func (m *PlanPhaseMutation) SetIndex(u uint8) {
+	m.index = &u
+	m.addindex = nil
+}
+
+// Index returns the value of the "index" field in the mutation.
+func (m *PlanPhaseMutation) Index() (r uint8, exists bool) {
+	v := m.index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIndex returns the old "index" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldIndex(ctx context.Context) (v uint8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIndex: %w", err)
+	}
+	return oldValue.Index, nil
+}
+
+// AddIndex adds u to the "index" field.
+func (m *PlanPhaseMutation) AddIndex(u int8) {
+	if m.addindex != nil {
+		*m.addindex += u
+	} else {
+		m.addindex = &u
+	}
+}
+
+// AddedIndex returns the value that was added to the "index" field in this mutation.
+func (m *PlanPhaseMutation) AddedIndex() (r int8, exists bool) {
+	v := m.addindex
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetIndex resets all changes to the "index" field.
+func (m *PlanPhaseMutation) ResetIndex() {
+	m.index = nil
+	m.addindex = nil
+}
+
+// SetDuration sets the "duration" field.
+func (m *PlanPhaseMutation) SetDuration(ds datex.ISOString) {
+	m.duration = &ds
+}
+
+// Duration returns the value of the "duration" field in the mutation.
+func (m *PlanPhaseMutation) Duration() (r datex.ISOString, exists bool) {
+	v := m.duration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDuration returns the old "duration" field's value of the PlanPhase entity.
+// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanPhaseMutation) OldDuration(ctx context.Context) (v *datex.ISOString, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDuration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDuration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDuration: %w", err)
+	}
+	return oldValue.Duration, nil
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (m *PlanPhaseMutation) ClearDuration() {
+	m.duration = nil
+	m.clearedFields[planphase.FieldDuration] = struct{}{}
+}
+
+// DurationCleared returns if the "duration" field was cleared in this mutation.
+func (m *PlanPhaseMutation) DurationCleared() bool {
+	_, ok := m.clearedFields[planphase.FieldDuration]
+	return ok
+}
+
+// ResetDuration resets all changes to the "duration" field.
+func (m *PlanPhaseMutation) ResetDuration() {
+	m.duration = nil
+	delete(m.clearedFields, planphase.FieldDuration)
 }
 
 // SetDiscounts sets the "discounts" field.
@@ -31008,42 +31115,6 @@ func (m *PlanPhaseMutation) DiscountsCleared() bool {
 func (m *PlanPhaseMutation) ResetDiscounts() {
 	m.discounts = nil
 	delete(m.clearedFields, planphase.FieldDiscounts)
-}
-
-// SetPlanID sets the "plan_id" field.
-func (m *PlanPhaseMutation) SetPlanID(s string) {
-	m.plan = &s
-}
-
-// PlanID returns the value of the "plan_id" field in the mutation.
-func (m *PlanPhaseMutation) PlanID() (r string, exists bool) {
-	v := m.plan
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPlanID returns the old "plan_id" field's value of the PlanPhase entity.
-// If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanPhaseMutation) OldPlanID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPlanID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
-	}
-	return oldValue.PlanID, nil
-}
-
-// ResetPlanID resets all changes to the "plan_id" field.
-func (m *PlanPhaseMutation) ResetPlanID() {
-	m.plan = nil
 }
 
 // ClearPlan clears the "plan" edge to the Plan entity.
@@ -31161,7 +31232,7 @@ func (m *PlanPhaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanPhaseMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, planphase.FieldNamespace)
 	}
@@ -31186,14 +31257,17 @@ func (m *PlanPhaseMutation) Fields() []string {
 	if m.key != nil {
 		fields = append(fields, planphase.FieldKey)
 	}
-	if m.start_after != nil {
-		fields = append(fields, planphase.FieldStartAfter)
+	if m.plan != nil {
+		fields = append(fields, planphase.FieldPlanID)
+	}
+	if m.index != nil {
+		fields = append(fields, planphase.FieldIndex)
+	}
+	if m.duration != nil {
+		fields = append(fields, planphase.FieldDuration)
 	}
 	if m.discounts != nil {
 		fields = append(fields, planphase.FieldDiscounts)
-	}
-	if m.plan != nil {
-		fields = append(fields, planphase.FieldPlanID)
 	}
 	return fields
 }
@@ -31219,12 +31293,14 @@ func (m *PlanPhaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case planphase.FieldKey:
 		return m.Key()
-	case planphase.FieldStartAfter:
-		return m.StartAfter()
-	case planphase.FieldDiscounts:
-		return m.Discounts()
 	case planphase.FieldPlanID:
 		return m.PlanID()
+	case planphase.FieldIndex:
+		return m.Index()
+	case planphase.FieldDuration:
+		return m.Duration()
+	case planphase.FieldDiscounts:
+		return m.Discounts()
 	}
 	return nil, false
 }
@@ -31250,12 +31326,14 @@ func (m *PlanPhaseMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDescription(ctx)
 	case planphase.FieldKey:
 		return m.OldKey(ctx)
-	case planphase.FieldStartAfter:
-		return m.OldStartAfter(ctx)
-	case planphase.FieldDiscounts:
-		return m.OldDiscounts(ctx)
 	case planphase.FieldPlanID:
 		return m.OldPlanID(ctx)
+	case planphase.FieldIndex:
+		return m.OldIndex(ctx)
+	case planphase.FieldDuration:
+		return m.OldDuration(ctx)
+	case planphase.FieldDiscounts:
+		return m.OldDiscounts(ctx)
 	}
 	return nil, fmt.Errorf("unknown PlanPhase field %s", name)
 }
@@ -31321,12 +31399,26 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKey(v)
 		return nil
-	case planphase.FieldStartAfter:
+	case planphase.FieldPlanID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanID(v)
+		return nil
+	case planphase.FieldIndex:
+		v, ok := value.(uint8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIndex(v)
+		return nil
+	case planphase.FieldDuration:
 		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetStartAfter(v)
+		m.SetDuration(v)
 		return nil
 	case planphase.FieldDiscounts:
 		v, ok := value.([]productcatalog.Discount)
@@ -31335,13 +31427,6 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDiscounts(v)
 		return nil
-	case planphase.FieldPlanID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPlanID(v)
-		return nil
 	}
 	return fmt.Errorf("unknown PlanPhase field %s", name)
 }
@@ -31349,13 +31434,21 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *PlanPhaseMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addindex != nil {
+		fields = append(fields, planphase.FieldIndex)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *PlanPhaseMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case planphase.FieldIndex:
+		return m.AddedIndex()
+	}
 	return nil, false
 }
 
@@ -31364,6 +31457,13 @@ func (m *PlanPhaseMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *PlanPhaseMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case planphase.FieldIndex:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIndex(v)
+		return nil
 	}
 	return fmt.Errorf("unknown PlanPhase numeric field %s", name)
 }
@@ -31380,6 +31480,9 @@ func (m *PlanPhaseMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(planphase.FieldDescription) {
 		fields = append(fields, planphase.FieldDescription)
+	}
+	if m.FieldCleared(planphase.FieldDuration) {
+		fields = append(fields, planphase.FieldDuration)
 	}
 	if m.FieldCleared(planphase.FieldDiscounts) {
 		fields = append(fields, planphase.FieldDiscounts)
@@ -31406,6 +31509,9 @@ func (m *PlanPhaseMutation) ClearField(name string) error {
 		return nil
 	case planphase.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case planphase.FieldDuration:
+		m.ClearDuration()
 		return nil
 	case planphase.FieldDiscounts:
 		m.ClearDiscounts()
@@ -31442,14 +31548,17 @@ func (m *PlanPhaseMutation) ResetField(name string) error {
 	case planphase.FieldKey:
 		m.ResetKey()
 		return nil
-	case planphase.FieldStartAfter:
-		m.ResetStartAfter()
+	case planphase.FieldPlanID:
+		m.ResetPlanID()
+		return nil
+	case planphase.FieldIndex:
+		m.ResetIndex()
+		return nil
+	case planphase.FieldDuration:
+		m.ResetDuration()
 		return nil
 	case planphase.FieldDiscounts:
 		m.ResetDiscounts()
-		return nil
-	case planphase.FieldPlanID:
-		m.ResetPlanID()
 		return nil
 	}
 	return fmt.Errorf("unknown PlanPhase field %s", name)

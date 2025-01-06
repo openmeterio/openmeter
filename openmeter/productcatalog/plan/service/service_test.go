@@ -101,7 +101,13 @@ func TestPlanService(t *testing.T) {
 			})
 
 			t.Run("NewPhase", func(t *testing.T) {
-				updatedPhases := slices.Clone(draftPlan.Phases)
+				updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
+					if idx == len(draftPlan.Phases)-1 {
+						p.Duration = &SixMonthPeriod
+					}
+
+					return p
+				})
 				updatedPhases = append(updatedPhases, plan.Phase{
 					PhaseManagedFields: plan.PhaseManagedFields{
 						NamespacedID: models.NamespacedID{
@@ -115,7 +121,7 @@ func TestPlanService(t *testing.T) {
 							Name:        "Pro-2",
 							Description: lo.ToPtr("Pro-2 phase"),
 							Metadata:    models.Metadata{"name": "pro-2"},
-							StartAfter:  ThreeMonthPeriod,
+							Duration:    nil,
 						},
 						RateCards: []productcatalog.RateCard{
 							&productcatalog.FlatFeeRateCard{
@@ -209,7 +215,13 @@ func TestPlanService(t *testing.T) {
 
 				t.Run("Update", func(t *testing.T) {
 					t.Run("PhaseAndRateCards", func(t *testing.T) {
-						updatedPhases = slices.Clone(draftPlan.Phases)
+						updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
+							if idx == len(draftPlan.Phases)-1 {
+								p.Duration = &SixMonthPeriod
+							}
+
+							return p
+						})
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
 								ManagedModel: models.ManagedModel{},
@@ -224,7 +236,7 @@ func TestPlanService(t *testing.T) {
 									Name:        "Pro-2",
 									Description: lo.ToPtr("Pro-2 phase"),
 									Metadata:    models.Metadata{"name": "pro-2"},
-									StartAfter:  SixMonthPeriod,
+									Duration:    nil,
 								},
 								RateCards: []productcatalog.RateCard{
 									&plan.UsageBasedRateCard{
@@ -292,22 +304,12 @@ func TestPlanService(t *testing.T) {
 								Namespace: planInput.Namespace,
 								ID:        draftPlan.ID,
 							},
-							Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-								if len(p) == 0 {
-									return nil
+							Phases: lo.ToPtr(lo.Map(updatedPhases, func(p plan.Phase, idx int) productcatalog.Phase {
+								return productcatalog.Phase{
+									PhaseMeta: p.PhaseMeta,
+									RateCards: p.RateCards,
 								}
-
-								var phases []productcatalog.Phase
-
-								for _, phase := range p {
-									phases = append(phases, productcatalog.Phase{
-										PhaseMeta: phase.PhaseMeta,
-										RateCards: phase.RateCards,
-									})
-								}
-
-								return &phases
-							}(updatedPhases),
+							})),
 						}
 
 						updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
@@ -318,7 +320,13 @@ func TestPlanService(t *testing.T) {
 					})
 
 					t.Run("EmptyRateCards", func(t *testing.T) {
-						updatedPhases = slices.Clone(draftPlan.Phases)
+						updatedPhases := lo.Map(slices.Clone(draftPlan.Phases), func(p plan.Phase, idx int) plan.Phase {
+							if idx == len(draftPlan.Phases)-1 {
+								p.Duration = &SixMonthPeriod
+							}
+
+							return p
+						})
 						updatedPhases = append(updatedPhases, plan.Phase{
 							PhaseManagedFields: plan.PhaseManagedFields{
 								NamespacedID: models.NamespacedID{
@@ -332,7 +340,7 @@ func TestPlanService(t *testing.T) {
 									Name:        "Pro-2",
 									Description: lo.ToPtr("Pro-2 phase"),
 									Metadata:    models.Metadata{"name": "pro-2"},
-									StartAfter:  SixMonthPeriod,
+									Duration:    nil,
 								},
 								RateCards: []productcatalog.RateCard{},
 							},
@@ -343,22 +351,12 @@ func TestPlanService(t *testing.T) {
 								Namespace: planInput.Namespace,
 								ID:        draftPlan.ID,
 							},
-							Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-								if len(p) == 0 {
-									return nil
+							Phases: lo.ToPtr(lo.Map(updatedPhases, func(p plan.Phase, _ int) productcatalog.Phase {
+								return productcatalog.Phase{
+									PhaseMeta: p.PhaseMeta,
+									RateCards: p.RateCards,
 								}
-
-								var phases []productcatalog.Phase
-
-								for _, phase := range p {
-									phases = append(phases, productcatalog.Phase{
-										PhaseMeta: phase.PhaseMeta,
-										RateCards: phase.RateCards,
-									})
-								}
-
-								return &phases
-							}(updatedPhases),
+							})),
 						}
 
 						updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
@@ -375,22 +373,12 @@ func TestPlanService(t *testing.T) {
 							Namespace: planInput.Namespace,
 							ID:        draftPlan.ID,
 						},
-						Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-							if len(p) == 0 {
-								return nil
+						Phases: lo.ToPtr(lo.Map(draftPlan.Phases, func(p plan.Phase, _ int) productcatalog.Phase {
+							return productcatalog.Phase{
+								PhaseMeta: p.PhaseMeta,
+								RateCards: p.RateCards,
 							}
-
-							var phases []productcatalog.Phase
-
-							for _, phase := range p {
-								phases = append(phases, productcatalog.Phase{
-									PhaseMeta: phase.PhaseMeta,
-									RateCards: phase.RateCards,
-								})
-							}
-
-							return &phases
-						}(draftPlan.Phases),
+						})),
 					}
 
 					updatedPlan, err = env.Plan.UpdatePlan(ctx, updateInput)
@@ -442,14 +430,7 @@ func TestPlanService(t *testing.T) {
 
 			var nextPlan *plan.Plan
 			t.Run("NewVersion", func(t *testing.T) {
-				nextInput := plan.NextPlanInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: publishedPlan.Namespace,
-					},
-					Key: publishedPlan.Key,
-				}
-
-				nextPlan, err = env.Plan.NextPlan(ctx, nextInput)
+				nextPlan, err = env.Plan.CreatePlan(ctx, planInput)
 				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")
 				require.NotNil(t, nextPlan, "new draft Plan must not be empty")
 
@@ -457,56 +438,6 @@ func TestPlanService(t *testing.T) {
 					"new draft Plan must have higher version number")
 				assert.Equalf(t, productcatalog.DraftStatus, nextPlan.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, nextPlan.Status())
-
-				t.Run("Phases", func(t *testing.T) {
-					t.Run("Remove", func(t *testing.T) {
-						updateInput := plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
-								Namespace: nextPlan.Namespace,
-								ID:        nextPlan.ID,
-							},
-							Phases: lo.ToPtr([]productcatalog.Phase{}),
-						}
-
-						updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
-						require.NoErrorf(t, err, "removing all PlanPhases from draft Plan must not fail")
-						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
-
-						plan.AssertPlanPhasesEqual(t, []plan.Phase{}, updatedPlan.Phases)
-					})
-
-					t.Run("ReAdd", func(t *testing.T) {
-						reAddPhases := slices.Clone(draftPlan.Phases)
-						updateInput := plan.UpdatePlanInput{
-							NamespacedID: models.NamespacedID{
-								Namespace: nextPlan.Namespace,
-								ID:        nextPlan.ID,
-							},
-							Phases: func(p []plan.Phase) *[]productcatalog.Phase {
-								if len(p) == 0 {
-									return nil
-								}
-
-								var phases []productcatalog.Phase
-
-								for _, phase := range p {
-									phases = append(phases, productcatalog.Phase{
-										PhaseMeta: phase.PhaseMeta,
-										RateCards: phase.RateCards,
-									})
-								}
-
-								return &phases
-							}(reAddPhases),
-						}
-
-						updatedPlan, err := env.Plan.UpdatePlan(ctx, updateInput)
-						require.NoErrorf(t, err, "updating draft Plan must not fail")
-						require.NotNil(t, updatedPlan, "updated draft Plan must not be empty")
-
-						plan.AssertPlanPhasesEqual(t, reAddPhases, updatedPlan.Phases)
-					})
-				})
 
 				t.Run("Publish", func(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
@@ -623,7 +554,7 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Name:        "Trial",
 						Description: lo.ToPtr("Trial phase"),
 						Metadata:    map[string]string{"name": "trial"},
-						StartAfter:  datex.MustParse(t, "P0D"),
+						Duration:    &TwoMonthPeriod,
 					},
 					RateCards: []productcatalog.RateCard{
 						&plan.FlatFeeRateCard{
@@ -669,7 +600,6 @@ func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {
 						Name:        "Pro",
 						Description: lo.ToPtr("Pro phase"),
 						Metadata:    models.Metadata{"name": "pro"},
-						StartAfter:  TwoMonthPeriod,
 					},
 					RateCards: []productcatalog.RateCard{
 						&plan.UsageBasedRateCard{

@@ -39,7 +39,7 @@ func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 	}
 
 	if len(p.Edges.Phases) > 0 {
-		phases := make([]plan.Phase, 0, len(p.Edges.Phases))
+		phases := make([]plan.Phase, len(p.Edges.Phases))
 		for _, edge := range p.Edges.Phases {
 			if edge == nil {
 				continue
@@ -50,7 +50,7 @@ func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 				return nil, fmt.Errorf("invalid phase %s: %w", edge.ID, err)
 			}
 
-			phases = append(phases, *phase)
+			phases[edge.Index] = *phase
 		}
 
 		if len(phases) > 0 {
@@ -92,12 +92,12 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 
 	// Set Interval
 
-	startAfter, err := p.StartAfter.Parse()
+	duration, err := p.Duration.ParsePtrOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("invalid startAfter %v: %w", p.StartAfter, err)
+		return nil, fmt.Errorf("invalid duration %v: %w", p.Duration, err)
 	}
 
-	pp.StartAfter = startAfter
+	pp.Duration = duration
 
 	// Set Rate Cards
 

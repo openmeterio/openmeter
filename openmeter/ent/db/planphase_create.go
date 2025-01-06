@@ -107,16 +107,28 @@ func (ppc *PlanPhaseCreate) SetKey(s string) *PlanPhaseCreate {
 	return ppc
 }
 
-// SetStartAfter sets the "start_after" field.
-func (ppc *PlanPhaseCreate) SetStartAfter(ds datex.ISOString) *PlanPhaseCreate {
-	ppc.mutation.SetStartAfter(ds)
+// SetPlanID sets the "plan_id" field.
+func (ppc *PlanPhaseCreate) SetPlanID(s string) *PlanPhaseCreate {
+	ppc.mutation.SetPlanID(s)
 	return ppc
 }
 
-// SetNillableStartAfter sets the "start_after" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableStartAfter(ds *datex.ISOString) *PlanPhaseCreate {
+// SetIndex sets the "index" field.
+func (ppc *PlanPhaseCreate) SetIndex(u uint8) *PlanPhaseCreate {
+	ppc.mutation.SetIndex(u)
+	return ppc
+}
+
+// SetDuration sets the "duration" field.
+func (ppc *PlanPhaseCreate) SetDuration(ds datex.ISOString) *PlanPhaseCreate {
+	ppc.mutation.SetDuration(ds)
+	return ppc
+}
+
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (ppc *PlanPhaseCreate) SetNillableDuration(ds *datex.ISOString) *PlanPhaseCreate {
 	if ds != nil {
-		ppc.SetStartAfter(*ds)
+		ppc.SetDuration(*ds)
 	}
 	return ppc
 }
@@ -124,12 +136,6 @@ func (ppc *PlanPhaseCreate) SetNillableStartAfter(ds *datex.ISOString) *PlanPhas
 // SetDiscounts sets the "discounts" field.
 func (ppc *PlanPhaseCreate) SetDiscounts(pr []productcatalog.Discount) *PlanPhaseCreate {
 	ppc.mutation.SetDiscounts(pr)
-	return ppc
-}
-
-// SetPlanID sets the "plan_id" field.
-func (ppc *PlanPhaseCreate) SetPlanID(s string) *PlanPhaseCreate {
-	ppc.mutation.SetPlanID(s)
 	return ppc
 }
 
@@ -210,10 +216,6 @@ func (ppc *PlanPhaseCreate) defaults() {
 		v := planphase.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := ppc.mutation.StartAfter(); !ok {
-		v := planphase.DefaultStartAfter
-		ppc.mutation.SetStartAfter(v)
-	}
 	if _, ok := ppc.mutation.ID(); !ok {
 		v := planphase.DefaultID()
 		ppc.mutation.SetID(v)
@@ -247,9 +249,6 @@ func (ppc *PlanPhaseCreate) check() error {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "PlanPhase.key": %w`, err)}
 		}
 	}
-	if _, ok := ppc.mutation.StartAfter(); !ok {
-		return &ValidationError{Name: "start_after", err: errors.New(`db: missing required field "PlanPhase.start_after"`)}
-	}
 	if _, ok := ppc.mutation.PlanID(); !ok {
 		return &ValidationError{Name: "plan_id", err: errors.New(`db: missing required field "PlanPhase.plan_id"`)}
 	}
@@ -257,6 +256,9 @@ func (ppc *PlanPhaseCreate) check() error {
 		if err := planphase.PlanIDValidator(v); err != nil {
 			return &ValidationError{Name: "plan_id", err: fmt.Errorf(`db: validator failed for field "PlanPhase.plan_id": %w`, err)}
 		}
+	}
+	if _, ok := ppc.mutation.Index(); !ok {
+		return &ValidationError{Name: "index", err: errors.New(`db: missing required field "PlanPhase.index"`)}
 	}
 	if len(ppc.mutation.PlanIDs()) == 0 {
 		return &ValidationError{Name: "plan", err: errors.New(`db: missing required edge "PlanPhase.plan"`)}
@@ -332,9 +334,13 @@ func (ppc *PlanPhaseCreate) createSpec() (*PlanPhase, *sqlgraph.CreateSpec, erro
 		_spec.SetField(planphase.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
-	if value, ok := ppc.mutation.StartAfter(); ok {
-		_spec.SetField(planphase.FieldStartAfter, field.TypeString, value)
-		_node.StartAfter = value
+	if value, ok := ppc.mutation.Index(); ok {
+		_spec.SetField(planphase.FieldIndex, field.TypeUint8, value)
+		_node.Index = value
+	}
+	if value, ok := ppc.mutation.Duration(); ok {
+		_spec.SetField(planphase.FieldDuration, field.TypeString, value)
+		_node.Duration = &value
 	}
 	if value, ok := ppc.mutation.Discounts(); ok {
 		vv, err := planphase.ValueScanner.Discounts.Value(value)
@@ -507,15 +513,51 @@ func (u *PlanPhaseUpsert) ClearDescription() *PlanPhaseUpsert {
 	return u
 }
 
-// SetStartAfter sets the "start_after" field.
-func (u *PlanPhaseUpsert) SetStartAfter(v datex.ISOString) *PlanPhaseUpsert {
-	u.Set(planphase.FieldStartAfter, v)
+// SetPlanID sets the "plan_id" field.
+func (u *PlanPhaseUpsert) SetPlanID(v string) *PlanPhaseUpsert {
+	u.Set(planphase.FieldPlanID, v)
 	return u
 }
 
-// UpdateStartAfter sets the "start_after" field to the value that was provided on create.
-func (u *PlanPhaseUpsert) UpdateStartAfter() *PlanPhaseUpsert {
-	u.SetExcluded(planphase.FieldStartAfter)
+// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
+func (u *PlanPhaseUpsert) UpdatePlanID() *PlanPhaseUpsert {
+	u.SetExcluded(planphase.FieldPlanID)
+	return u
+}
+
+// SetIndex sets the "index" field.
+func (u *PlanPhaseUpsert) SetIndex(v uint8) *PlanPhaseUpsert {
+	u.Set(planphase.FieldIndex, v)
+	return u
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *PlanPhaseUpsert) UpdateIndex() *PlanPhaseUpsert {
+	u.SetExcluded(planphase.FieldIndex)
+	return u
+}
+
+// AddIndex adds v to the "index" field.
+func (u *PlanPhaseUpsert) AddIndex(v uint8) *PlanPhaseUpsert {
+	u.Add(planphase.FieldIndex, v)
+	return u
+}
+
+// SetDuration sets the "duration" field.
+func (u *PlanPhaseUpsert) SetDuration(v datex.ISOString) *PlanPhaseUpsert {
+	u.Set(planphase.FieldDuration, v)
+	return u
+}
+
+// UpdateDuration sets the "duration" field to the value that was provided on create.
+func (u *PlanPhaseUpsert) UpdateDuration() *PlanPhaseUpsert {
+	u.SetExcluded(planphase.FieldDuration)
+	return u
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (u *PlanPhaseUpsert) ClearDuration() *PlanPhaseUpsert {
+	u.SetNull(planphase.FieldDuration)
 	return u
 }
 
@@ -534,18 +576,6 @@ func (u *PlanPhaseUpsert) UpdateDiscounts() *PlanPhaseUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *PlanPhaseUpsert) ClearDiscounts() *PlanPhaseUpsert {
 	u.SetNull(planphase.FieldDiscounts)
-	return u
-}
-
-// SetPlanID sets the "plan_id" field.
-func (u *PlanPhaseUpsert) SetPlanID(v string) *PlanPhaseUpsert {
-	u.Set(planphase.FieldPlanID, v)
-	return u
-}
-
-// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
-func (u *PlanPhaseUpsert) UpdatePlanID() *PlanPhaseUpsert {
-	u.SetExcluded(planphase.FieldPlanID)
 	return u
 }
 
@@ -697,17 +727,59 @@ func (u *PlanPhaseUpsertOne) ClearDescription() *PlanPhaseUpsertOne {
 	})
 }
 
-// SetStartAfter sets the "start_after" field.
-func (u *PlanPhaseUpsertOne) SetStartAfter(v datex.ISOString) *PlanPhaseUpsertOne {
+// SetPlanID sets the "plan_id" field.
+func (u *PlanPhaseUpsertOne) SetPlanID(v string) *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.SetStartAfter(v)
+		s.SetPlanID(v)
 	})
 }
 
-// UpdateStartAfter sets the "start_after" field to the value that was provided on create.
-func (u *PlanPhaseUpsertOne) UpdateStartAfter() *PlanPhaseUpsertOne {
+// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
+func (u *PlanPhaseUpsertOne) UpdatePlanID() *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.UpdateStartAfter()
+		s.UpdatePlanID()
+	})
+}
+
+// SetIndex sets the "index" field.
+func (u *PlanPhaseUpsertOne) SetIndex(v uint8) *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.SetIndex(v)
+	})
+}
+
+// AddIndex adds v to the "index" field.
+func (u *PlanPhaseUpsertOne) AddIndex(v uint8) *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.AddIndex(v)
+	})
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *PlanPhaseUpsertOne) UpdateIndex() *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.UpdateIndex()
+	})
+}
+
+// SetDuration sets the "duration" field.
+func (u *PlanPhaseUpsertOne) SetDuration(v datex.ISOString) *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.SetDuration(v)
+	})
+}
+
+// UpdateDuration sets the "duration" field to the value that was provided on create.
+func (u *PlanPhaseUpsertOne) UpdateDuration() *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.UpdateDuration()
+	})
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (u *PlanPhaseUpsertOne) ClearDuration() *PlanPhaseUpsertOne {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.ClearDuration()
 	})
 }
 
@@ -729,20 +801,6 @@ func (u *PlanPhaseUpsertOne) UpdateDiscounts() *PlanPhaseUpsertOne {
 func (u *PlanPhaseUpsertOne) ClearDiscounts() *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.ClearDiscounts()
-	})
-}
-
-// SetPlanID sets the "plan_id" field.
-func (u *PlanPhaseUpsertOne) SetPlanID(v string) *PlanPhaseUpsertOne {
-	return u.Update(func(s *PlanPhaseUpsert) {
-		s.SetPlanID(v)
-	})
-}
-
-// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
-func (u *PlanPhaseUpsertOne) UpdatePlanID() *PlanPhaseUpsertOne {
-	return u.Update(func(s *PlanPhaseUpsert) {
-		s.UpdatePlanID()
 	})
 }
 
@@ -1064,17 +1122,59 @@ func (u *PlanPhaseUpsertBulk) ClearDescription() *PlanPhaseUpsertBulk {
 	})
 }
 
-// SetStartAfter sets the "start_after" field.
-func (u *PlanPhaseUpsertBulk) SetStartAfter(v datex.ISOString) *PlanPhaseUpsertBulk {
+// SetPlanID sets the "plan_id" field.
+func (u *PlanPhaseUpsertBulk) SetPlanID(v string) *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.SetStartAfter(v)
+		s.SetPlanID(v)
 	})
 }
 
-// UpdateStartAfter sets the "start_after" field to the value that was provided on create.
-func (u *PlanPhaseUpsertBulk) UpdateStartAfter() *PlanPhaseUpsertBulk {
+// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
+func (u *PlanPhaseUpsertBulk) UpdatePlanID() *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
-		s.UpdateStartAfter()
+		s.UpdatePlanID()
+	})
+}
+
+// SetIndex sets the "index" field.
+func (u *PlanPhaseUpsertBulk) SetIndex(v uint8) *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.SetIndex(v)
+	})
+}
+
+// AddIndex adds v to the "index" field.
+func (u *PlanPhaseUpsertBulk) AddIndex(v uint8) *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.AddIndex(v)
+	})
+}
+
+// UpdateIndex sets the "index" field to the value that was provided on create.
+func (u *PlanPhaseUpsertBulk) UpdateIndex() *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.UpdateIndex()
+	})
+}
+
+// SetDuration sets the "duration" field.
+func (u *PlanPhaseUpsertBulk) SetDuration(v datex.ISOString) *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.SetDuration(v)
+	})
+}
+
+// UpdateDuration sets the "duration" field to the value that was provided on create.
+func (u *PlanPhaseUpsertBulk) UpdateDuration() *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.UpdateDuration()
+	})
+}
+
+// ClearDuration clears the value of the "duration" field.
+func (u *PlanPhaseUpsertBulk) ClearDuration() *PlanPhaseUpsertBulk {
+	return u.Update(func(s *PlanPhaseUpsert) {
+		s.ClearDuration()
 	})
 }
 
@@ -1096,20 +1196,6 @@ func (u *PlanPhaseUpsertBulk) UpdateDiscounts() *PlanPhaseUpsertBulk {
 func (u *PlanPhaseUpsertBulk) ClearDiscounts() *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.ClearDiscounts()
-	})
-}
-
-// SetPlanID sets the "plan_id" field.
-func (u *PlanPhaseUpsertBulk) SetPlanID(v string) *PlanPhaseUpsertBulk {
-	return u.Update(func(s *PlanPhaseUpsert) {
-		s.SetPlanID(v)
-	})
-}
-
-// UpdatePlanID sets the "plan_id" field to the value that was provided on create.
-func (u *PlanPhaseUpsertBulk) UpdatePlanID() *PlanPhaseUpsertBulk {
-	return u.Update(func(s *PlanPhaseUpsert) {
-		s.UpdatePlanID()
 	})
 }
 

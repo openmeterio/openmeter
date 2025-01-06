@@ -119,8 +119,6 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			return nil, fmt.Errorf("invalid create Plan parameters: %w", err)
 		}
 
-		// Create plan
-
 		if params.Version == 0 {
 			params.Version = 1
 		}
@@ -148,9 +146,10 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 		}
 
 		if len(params.Phases) > 0 {
-			p.Phases = make([]plan.Phase, 0, len(params.Phases))
-			for _, phase := range params.Phases {
+			p.Phases = make([]plan.Phase, len(params.Phases))
+			for idx, phase := range params.Phases {
 				planPhase, err := a.createPhase(ctx, createPhaseInput{
+					Index: idx,
 					NamespacedModel: models.NamespacedModel{
 						Namespace: params.Namespace,
 					},
@@ -161,7 +160,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 							Name:        phase.Name,
 							Description: phase.Description,
 							Metadata:    phase.Metadata,
-							StartAfter:  phase.StartAfter,
+							Duration:    phase.Duration,
 						},
 						Discounts: phase.Discounts,
 						RateCards: phase.RateCards,
@@ -171,7 +170,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 					return nil, fmt.Errorf("failed to create PlanPhase for Plan: %w", err)
 				}
 
-				p.Phases = append(p.Phases, *planPhase)
+				p.Phases[idx] = *planPhase
 			}
 		}
 
@@ -316,7 +315,6 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		query = query.WithPhases(
 			planPhaseIncludeDeleted(false),
 			planPhaseEagerLoadRateCardsFn,
-			planPhaseAscOrderingByStartAfterFn,
 		)
 
 		planRow, err := query.First(ctx)
@@ -388,6 +386,14 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				},
 			})
 			if err != nil {
+				if entdb.IsNotFound(err) {
+					return nil, plan.NotFoundError{
+						NamespacedModel: models.NamespacedModel{
+							Namespace: params.Namespace,
+						},
+					}
+				}
+
 				return nil, fmt.Errorf("failed to get updated Plan: %w", err)
 			}
 		}
@@ -397,59 +403,29 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			return p, nil
 		}
 
-		// Return early if there are no changes in PlanPhases.
-		diffResult := planPhasesDiff(*params.Phases, p.Phases)
-		if !diffResult.IsDiff() {
-			return p, nil
+		// Delete all existing PlanPhases
+		_, err = a.db.PlanPhase.Delete().Where(phasedb.PlanID(p.ID)).Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete PlanPhases: %w", err)
 		}
 
-		phases := make([]plan.Phase, 0, len(p.Phases))
-
-		if len(diffResult.Keep) > 0 {
-			phases = append(phases, diffResult.Keep...)
-		}
-
-		if len(diffResult.Remove) > 0 {
-			for _, deleteInput := range diffResult.Remove {
-				deleteInput.Namespace = params.Namespace
-				deleteInput.PlanID = p.ID
-				err = a.deletePhase(ctx, deleteInput)
-				if err != nil {
-					return nil, fmt.Errorf("failed to delete PlanPhase: %w", err)
-				}
+		// Create new PlanPhases
+		phases := make([]plan.Phase, len(*params.Phases))
+		for idx, phase := range *params.Phases {
+			planPhase, err := a.createPhase(ctx, createPhaseInput{
+				Index: idx,
+				NamespacedModel: models.NamespacedModel{
+					Namespace: params.Namespace,
+				},
+				PlanID: p.ID,
+				Phase:  phase,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
 			}
+
+			phases[idx] = *planPhase
 		}
-
-		if len(diffResult.Update) > 0 {
-			for _, updateInput := range diffResult.Update {
-				updateInput.Namespace = params.Namespace
-				updateInput.PlanID = p.ID
-
-				phase, err := a.updatePhase(ctx, updateInput)
-				if err != nil {
-					return nil, fmt.Errorf("failed to update PlanPhase: %w", err)
-				}
-
-				phases = append(phases, *phase)
-			}
-		}
-
-		if len(diffResult.Add) > 0 {
-			for _, createInput := range diffResult.Add {
-				createInput.Namespace = params.Namespace
-				createInput.PlanID = p.ID
-
-				phase, err := a.createPhase(ctx, createInput)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create PlanPhase: %w", err)
-				}
-
-				phases = append(phases, *phase)
-			}
-		}
-
-		plan.SortPhases(p.Phases, plan.SortPhasesByStartAfter)
-
 		p.Phases = phases
 
 		return p, nil
@@ -468,99 +444,10 @@ func planPhaseIncludeDeleted(include bool) func(*entdb.PlanPhaseQuery) {
 	}
 }
 
-var planPhaseAscOrderingByStartAfterFn = func(q *entdb.PlanPhaseQuery) {
-	q.Order(phasedb.ByStartAfter(sql.OrderAsc()))
-}
-
 var planPhaseEagerLoadRateCardsFn = func(q *entdb.PlanPhaseQuery) {
 	q.WithRatecards(rateCardEagerLoadFeaturesFn)
 }
 
 var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
 	q.WithFeatures()
-}
-
-type planPhasesDiffResult struct {
-	// Add defines the list of plan.CreatePhaseInput for plan.Phase objects to add
-	Add []createPhaseInput
-
-	// Update defines the list of plan.UpdatePhaseInput for plan.Phase objects to update
-	Update []updatePhaseInput
-
-	// Remove defines the list of plan.DeletePhaseInput for plan.Phase identifiers to delete
-	Remove []deletePhaseInput
-
-	// Keep defines the list of plan.Phase to keep unmodified
-	Keep []plan.Phase
-}
-
-func (d planPhasesDiffResult) IsDiff() bool {
-	return len(d.Add) > 0 || len(d.Update) > 0 || len(d.Remove) > 0
-}
-
-func planPhasesDiff(requested []productcatalog.Phase, actual []plan.Phase) planPhasesDiffResult {
-	result := planPhasesDiffResult{}
-
-	requestedMap := make(map[string]productcatalog.Phase, len(requested))
-	for _, phase := range requested {
-		requestedMap[phase.Key] = phase
-	}
-
-	actualMap := make(map[string]plan.Phase, len(actual))
-	for _, phase := range actual {
-		actualMap[phase.Key] = phase
-	}
-
-	phasesVisited := make(map[string]struct{})
-	for phaseKey, requestedPhase := range requestedMap {
-		actualPhase, ok := actualMap[phaseKey]
-
-		// Collect new phases
-		if !ok {
-			result.Add = append(result.Add, createPhaseInput{
-				Phase: requestedPhase,
-			})
-			phasesVisited[phaseKey] = struct{}{}
-
-			continue
-		}
-
-		// Collect phases to be updated
-		if !requestedPhase.Equal(actualPhase.Phase) {
-			result.Update = append(result.Update, updatePhaseInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: actualPhase.Namespace,
-					ID:        actualPhase.ID,
-				},
-				PlanID:      actualPhase.PlanID,
-				Key:         actualPhase.Key,
-				Name:        &requestedPhase.Name,
-				Description: requestedPhase.Description,
-				Metadata:    &requestedPhase.Metadata,
-				StartAfter:  &requestedPhase.StartAfter,
-				RateCards:   &requestedPhase.RateCards,
-				Discounts:   &requestedPhase.Discounts,
-			})
-			phasesVisited[phaseKey] = struct{}{}
-
-			continue
-		}
-
-		result.Keep = append(result.Keep, actualPhase)
-		phasesVisited[phaseKey] = struct{}{}
-	}
-
-	// Collect phases to be deleted
-	for phaseKey, actualPhase := range actualMap {
-		if _, ok := phasesVisited[phaseKey]; !ok {
-			result.Remove = append(result.Remove, deletePhaseInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: actualPhase.Namespace,
-					ID:        actualPhase.ID,
-				},
-			})
-		}
-	}
-
-	return result
 }

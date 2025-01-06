@@ -45,7 +45,7 @@ var planV1Input = plan.CreatePlanInput{
 					Name:        "Trial",
 					Description: lo.ToPtr("Trial phase"),
 					Metadata:    models.Metadata{"name": "trial"},
-					StartAfter:  MonthPeriod,
+					Duration:    &MonthPeriod,
 				},
 				Discounts: nil,
 				RateCards: []productcatalog.RateCard{
@@ -91,7 +91,7 @@ var planV1Input = plan.CreatePlanInput{
 					Name:        "Pro",
 					Description: lo.ToPtr("Pro phase"),
 					Metadata:    models.Metadata{"name": "pro"},
-					StartAfter:  TwoMonthPeriod,
+					Duration:    nil,
 				},
 				Discounts: nil,
 				RateCards: []productcatalog.RateCard{
@@ -331,175 +331,6 @@ func TestPostgresAdapter(t *testing.T) {
 			require.NotNilf(t, getPlanV1, "plan must not be nil")
 
 			plan.AssertPlanEqual(t, *planV1, *getPlanV1)
-		})
-	})
-
-	t.Run("Phase", func(t *testing.T) {
-		planV1, err := repo.CreatePlan(ctx, planV1Input)
-		require.NoErrorf(t, err, "creating new plan must not fail")
-
-		require.NotNilf(t, planV1, "plan must not be nil")
-
-		plan.AssertPlanCreateInputEqual(t, planV1Input, *planV1)
-
-		var phase *plan.Phase
-
-		t.Run("Create", func(t *testing.T) {
-			phaseInput := createPhaseInput{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: namespace,
-				},
-				PlanID: planV1.ID,
-				Phase: productcatalog.Phase{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:         "team",
-						Name:        "Team",
-						Description: lo.ToPtr("Team"),
-						Metadata:    models.Metadata{"name": "team"},
-						StartAfter:  ThreeMonthPeriod,
-					},
-					RateCards: []productcatalog.RateCard{
-						&plan.UsageBasedRateCard{
-							RateCardManagedFields: plan.RateCardManagedFields{
-								ManagedModel: models.ManagedModel{
-									CreatedAt: time.Time{},
-									UpdatedAt: time.Time{},
-									DeletedAt: &time.Time{},
-								},
-								NamespacedID: models.NamespacedID{
-									Namespace: namespace,
-									ID:        "",
-								},
-								PhaseID: "",
-							},
-							UsageBasedRateCard: productcatalog.UsageBasedRateCard{
-								RateCardMeta: productcatalog.RateCardMeta{
-									Key:                 "team-ratecard-1",
-									Name:                "Team RateCard 1",
-									Description:         lo.ToPtr("Team RateCard 1"),
-									Metadata:            models.Metadata{"name": "team-ratecard-1"},
-									Feature:             nil,
-									EntitlementTemplate: nil,
-									TaxConfig: &productcatalog.TaxConfig{
-										Stripe: &productcatalog.StripeTaxConfig{
-											Code: "txcd_10000000",
-										},
-									},
-									Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-										Mode: productcatalog.VolumeTieredPrice,
-										Tiers: []productcatalog.PriceTier{
-											{
-												UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-												FlatPrice: &productcatalog.PriceTierFlatPrice{
-													Amount: decimal.NewFromInt(100),
-												},
-												UnitPrice: &productcatalog.PriceTierUnitPrice{
-													Amount: decimal.NewFromInt(50),
-												},
-											},
-											{
-												UpToAmount: nil,
-												FlatPrice: &productcatalog.PriceTierFlatPrice{
-													Amount: decimal.NewFromInt(75),
-												},
-												UnitPrice: &productcatalog.PriceTierUnitPrice{
-													Amount: decimal.NewFromInt(25),
-												},
-											},
-										},
-										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-										MaximumAmount: nil,
-									}),
-								},
-								BillingCadence: MonthPeriod,
-							},
-						},
-					},
-				},
-			}
-
-			phase, err = repo.createPhase(ctx, phaseInput)
-			assert.NoErrorf(t, err, "creating phase must not fail")
-
-			require.NotNilf(t, phase, "plan phase must not be nil")
-
-			assertPhaseCreateInputEqual(t, phaseInput, *phase)
-		})
-
-		t.Run("Get", func(t *testing.T) {
-			t.Run("ById", func(t *testing.T) {
-				getPhase, err := repo.getPhase(ctx, getPhaseInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: namespace,
-						ID:        phase.ID,
-					},
-				})
-				require.NoErrorf(t, err, "getting Phase by id must not fail")
-
-				require.NotNilf(t, getPhase, "Phase must not be nil")
-
-				plan.AssertPlanPhaseEqual(t, *getPhase, *phase)
-			})
-
-			t.Run("ByKey", func(t *testing.T) {
-				getPhase, err := repo.getPhase(ctx, getPhaseInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: namespace,
-					},
-					Key:    phase.Key,
-					PlanID: planV1.ID,
-				})
-				require.NoErrorf(t, err, "getting Phase by id must not fail")
-
-				require.NotNilf(t, getPhase, "Phase must not be nil")
-
-				plan.AssertPlanPhaseEqual(t, *getPhase, *phase)
-			})
-		})
-
-		t.Run("Update", func(t *testing.T) {
-			phaseUpdate := updatePhaseInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: namespace,
-					ID:        phase.ID,
-				},
-				Key:        phase.Key,
-				PlanID:     planV1.ID,
-				StartAfter: lo.ToPtr(ThreeMonthPeriod),
-			}
-
-			updatePhase, err := repo.updatePhase(ctx, phaseUpdate)
-			require.NoErrorf(t, err, "updating phase must not fail")
-
-			require.NotNilf(t, updatePhase, "phase must not be nil")
-
-			assertPhaseUpdateInputEqual(t, phaseUpdate, *updatePhase)
-		})
-
-		t.Run("Delete", func(t *testing.T) {
-			err = repo.deletePhase(ctx, deletePhaseInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: namespace,
-					ID:        phase.ID,
-				},
-				Key:    phase.Key,
-				PlanID: planV1.ID,
-			})
-			require.NoErrorf(t, err, "deleting Phase must not fail")
-
-			getPhase, err := repo.getPhase(ctx, getPhaseInput{
-				NamespacedID: models.NamespacedID{
-					Namespace: namespace,
-					ID:        phase.ID,
-				},
-				Key:    phase.Key,
-				PlanID: planV1.ID,
-			})
-			require.NoErrorf(t, err, "getting Phase by id must not fail")
-
-			require.NotNilf(t, getPhase, "Phase must not be nil")
-
-			plan.AssertPlanPhaseEqual(t, *getPhase, *phase)
 		})
 	})
 }

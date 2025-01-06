@@ -68,7 +68,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 		Key:         p.Key,
 		Metadata:    lo.EmptyableToPtr(api.Metadata(p.Metadata)),
 		Name:        p.Name,
-		StartAfter:  lo.ToPtr(p.StartAfter.ISOString().String()),
+		Duration:    (*string)(p.Duration.ISOStringPtrOrNil()),
 	}
 
 	if len(p.Discounts) > 0 {
@@ -446,9 +446,9 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		},
 	}
 
-	phase.StartAfter, err = datex.ISOString(lo.FromPtrOr(a.StartAfter, plan.DefaultStartAfter)).Parse()
+	phase.Duration, err = (*datex.ISOString)(a.Duration).ParsePtrOrNil()
 	if err != nil {
-		return phase, fmt.Errorf("failed to cast StartAfter date to period: %w", err)
+		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
 	}
 
 	discounts := lo.FromPtrOr(a.Discounts, nil)

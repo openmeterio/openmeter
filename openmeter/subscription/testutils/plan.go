@@ -35,7 +35,7 @@ func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 						Key:         "test_phase_1",
 						Name:        "Test Phase 1",
 						Description: lo.ToPtr("Test Phase 1 Description"),
-						StartAfter:  testutils.GetISODuration(t, "P0M"),
+						Duration:    lo.ToPtr(testutils.GetISODuration(t, "P1M")),
 					},
 					RateCards: productcatalog.RateCards{
 						&ExampleRateCard1,
@@ -46,7 +46,7 @@ func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 						Key:         "test_phase_2",
 						Name:        "Test Phase 2",
 						Description: lo.ToPtr("Test Phase 2 Description"),
-						StartAfter:  testutils.GetISODuration(t, "P1M"),
+						Duration:    lo.ToPtr(testutils.GetISODuration(t, "P2M")),
 					},
 					RateCards: productcatalog.RateCards{
 						&ExampleRateCard1,
@@ -58,7 +58,7 @@ func GetExamplePlanInput(t *testing.T) plan.CreatePlanInput {
 						Key:         "test_phase_3",
 						Name:        "Test Phase 3",
 						Description: lo.ToPtr("Test Phase 3 Description"),
-						StartAfter:  testutils.GetISODuration(t, "P3M"),
+						Duration:    nil,
 					},
 					RateCards: productcatalog.RateCards{
 						&ExampleRateCard1,

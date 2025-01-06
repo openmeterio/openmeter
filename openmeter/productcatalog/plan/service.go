@@ -28,8 +28,6 @@ const (
 	OrderByVersion   OrderBy = "version"
 	OrderByCreatedAt OrderBy = "created_at"
 	OrderByUpdatedAt OrderBy = "updated_at"
-
-	OrderByStartAfter OrderBy = "start_after"
 )
 
 type OrderBy string
@@ -48,19 +46,29 @@ type Service interface {
 var _ models.Validator = (*ListPlansInput)(nil)
 
 type ListPlansInput struct {
+	// Page is the pagination parameters.
+	// TODO: make it optional.
 	pagination.Page
 
+	// OrderBy is the field to order by.
 	OrderBy OrderBy
-	Order   sortx.Order
 
+	// Order is the order direction.
+	Order sortx.Order
+
+	// Namespaces is the list of namespaces to filter by.
 	Namespaces []string
 
+	// IDs is the list of IDs to filter by.
 	IDs []string
 
+	// Keys is the list of keys to filter by.
 	Keys []string
 
+	// KeyVersions is the map of keys to versions to filter by.
 	KeyVersions map[string][]int
 
+	// IncludeDeleted defines whether to include deleted Plans.
 	IncludeDeleted bool
 }
 
@@ -84,22 +92,8 @@ func (i CreatePlanInput) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid Namespace: %w", err))
 	}
 
-	if i.Key == "" {
-		errs = append(errs, errors.New("invalid Key: must not be empty"))
-	}
-
-	if i.Name == "" {
-		errs = append(errs, errors.New("invalid Name: must not be empty"))
-	}
-
-	if err := i.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid CurrencyCode: %w", err))
-	}
-
-	for _, phase := range i.Phases {
-		if err := phase.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))
-		}
+	if err := i.Plan.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid Plan: %w", err))
 	}
 
 	if len(errs) > 0 {
@@ -142,7 +136,7 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.EffectivePeriod.Status() != p.EffectivePeriod.Status() {
+	if !i.EffectivePeriod.Equal(p.EffectivePeriod) {
 		return false
 	}
 
@@ -156,6 +150,18 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 
 	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
 		return false
+	}
+
+	if i.Phases != nil {
+		if len(*i.Phases) != len(p.Phases) {
+			return false
+		}
+
+		for idx, phase := range *i.Phases {
+			if !phase.Equal(p.Phases[idx].Phase) {
+				return false
+			}
+		}
 	}
 
 	return true
@@ -178,7 +184,7 @@ func (i UpdatePlanInput) Validate() error {
 		}
 	}
 
-	if i.Phases != nil && len(*i.Phases) > 0 {
+	if i.Phases != nil {
 		for _, phase := range *i.Phases {
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("invalid PlanPhase: %w", err))

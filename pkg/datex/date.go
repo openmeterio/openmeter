@@ -125,6 +125,19 @@ func (d *Period) ISOStringPtrOrNil() *ISOString {
 	return lo.ToPtr(d.ISOString())
 }
 
+// Equal returns true if the two periods are equal
+func (p *Period) Equal(v *Period) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	return p.String() == v.String()
+}
+
 func MustParse(t *testing.T, s string) Period {
 	res, err := period.Parse(s)
 	if err != nil {

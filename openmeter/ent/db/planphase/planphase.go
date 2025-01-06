@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 const (
@@ -33,12 +32,14 @@ const (
 	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
-	// FieldStartAfter holds the string denoting the start_after field in the database.
-	FieldStartAfter = "start_after"
-	// FieldDiscounts holds the string denoting the discounts field in the database.
-	FieldDiscounts = "discounts"
 	// FieldPlanID holds the string denoting the plan_id field in the database.
 	FieldPlanID = "plan_id"
+	// FieldIndex holds the string denoting the index field in the database.
+	FieldIndex = "index"
+	// FieldDuration holds the string denoting the duration field in the database.
+	FieldDuration = "duration"
+	// FieldDiscounts holds the string denoting the discounts field in the database.
+	FieldDiscounts = "discounts"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeRatecards holds the string denoting the ratecards edge name in mutations.
@@ -72,9 +73,10 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldKey,
-	FieldStartAfter,
-	FieldDiscounts,
 	FieldPlanID,
+	FieldIndex,
+	FieldDuration,
+	FieldDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -98,8 +100,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
-	// DefaultStartAfter holds the default value on creation for the "start_after" field.
-	DefaultStartAfter datex.ISOString
 	// PlanIDValidator is a validator for the "plan_id" field. It is called by the builders before save.
 	PlanIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -153,19 +153,24 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
-// ByStartAfter orders the results by the start_after field.
-func ByStartAfter(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStartAfter, opts...).ToFunc()
+// ByPlanID orders the results by the plan_id field.
+func ByPlanID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlanID, opts...).ToFunc()
+}
+
+// ByIndex orders the results by the index field.
+func ByIndex(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIndex, opts...).ToFunc()
+}
+
+// ByDuration orders the results by the duration field.
+func ByDuration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDuration, opts...).ToFunc()
 }
 
 // ByDiscounts orders the results by the discounts field.
 func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
-}
-
-// ByPlanID orders the results by the plan_id field.
-func ByPlanID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPlanID, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.
