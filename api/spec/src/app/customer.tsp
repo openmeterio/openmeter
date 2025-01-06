@@ -50,7 +50,7 @@ model SandboxCustomerAppData {
   /**
    * The installed sandbox app this data belongs to.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   app?: SandboxApp;
 
   ...CustomerAppBase<Type.Sandbox>;
@@ -67,7 +67,7 @@ model StripeCustomerAppData {
   /**
    * The installed stripe app this data belongs to.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   app?: StripeApp;
 
   /**

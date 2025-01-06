@@ -246,7 +246,7 @@ model EntitlementSharedFields {
    * Readonly unique ULID identifier.
    */
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id: ULID;
 
   /**
@@ -293,25 +293,25 @@ model EntitlementMeteredCalculatedFields {
    * The time the last reset happened.
    */
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   lastReset: DateTime;
 
   /**
    * The current usage period.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   currentUsagePeriod: Period;
 
   /**
    * The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   measureUsageFrom: DateTime;
 
   /**
    * THe usage period of the entitlement.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   usagePeriod: RecurringPeriod;
 }
 

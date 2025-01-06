@@ -28,19 +28,19 @@ model InvoiceGenericDocumentRef {
   /**
    * Type of the document referenced.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   type: InvoiceDocumentRefType;
 
   /**
    * Human readable description on why this reference is here or needs to be used.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   reason?: string;
 
   /**
    * Additional details about the document.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   description?: string;
 }
 
@@ -54,20 +54,20 @@ model InvoiceCreditNoteOriginalInvoiceRef extends InvoiceGenericDocumentRef {
   /**
    * IssueAt reflects the time the document was issued.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   issuedAt?: DateTime;
 
   /**
    * (Serial) Number of the referenced document.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   number?: InvoiceNumber;
 
   /**
    * Link to the source document.
    */
   @format("uri")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   url: string;
 }
 

@@ -28,7 +28,7 @@ model Subject {
   /**
    * A unique identifier for the subject.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   id: ULID;
 

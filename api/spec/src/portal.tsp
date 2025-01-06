@@ -46,20 +46,20 @@ interface Tokens {
  */
 @friendlyName("PortalToken")
 model Token {
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   id?: ULID;
 
   @example("customer-1")
   subject: string;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   expiresAt?: DateTime;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   expired?: boolean;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   createdAt?: DateTime;
 
   // TODO: technically the visibility is incorrect, because the token is only returned at creation.
@@ -67,7 +67,7 @@ model Token {
   /**
    * The token is only returned at creation.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo")
   token?: string;
 

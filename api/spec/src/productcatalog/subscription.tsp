@@ -48,7 +48,7 @@ model Subscription {
   /**
    * The status of the subscription.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   status: SubscriptionStatus;
 
   /**
@@ -114,7 +114,7 @@ model SubscriptionPhaseCreate {
    */
   @summary("Start after")
   @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1Y1D"))
+  @example(duration.fromISO("P1Y"))
   startAfter: duration | null;
 
   /**
@@ -199,7 +199,7 @@ model SubscriptionItem {
    * The tax config of the Subscription Item.
    * When undefined, the tax config of the feature or the default tax config of the plan is used.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tax config")
   taxConfig?: TaxConfig;
 }

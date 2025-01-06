@@ -17,31 +17,31 @@ model PaymentDueDate {
    * When the payment is due.
    */
   // Note: This is a date-time, but we should use a date-time string to be more specific. (original schema has a Date field)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   dueAt: DateTime;
 
   /**
    * Other details to take into account for the due date.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   notes?: string;
 
   /**
    * How much needs to be paid by the date.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   amount: Money;
 
   /**
    * Percentage of the total that should be paid by the date.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   percent?: Percentage;
 
   /**
    * If different from the parent document's base currency.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   currency?: CurrencyCode;
 }
 
@@ -76,13 +76,13 @@ model GenericPaymentTerms<T extends PaymentTermType> {
   /**
    * Text detail of the chosen payment terms.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   detail?: string;
 
   /**
    * Description of the conditions for payment.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   notes?: string;
 }
 
@@ -105,7 +105,7 @@ model PaymentTermDueDate {
    * When the payment is due.
    */
   @minItems(1)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   dueAt: PaymentDueDate[];
 }
 

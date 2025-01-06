@@ -56,19 +56,19 @@ model Invoice {
    * - standard: A regular commercial invoice document between a supplier and customer.
    * - credit_note: Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   type: InvoiceType;
 
   /**
    * The taxable entity supplying the goods or services.
    */
-  @visibility("read", "update", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   supplier: BillingParty;
 
   /**
    * Legal entity receiving the goods or services.
    */
-  @visibility("read", "update", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   customer: BillingParty;
 
   /**
@@ -80,7 +80,7 @@ model Invoice {
    * whole organization or unique for the customer, or in multi (stripe) account setups unique for the
    * account.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   number?: InvoiceNumber;
 
   /**
@@ -88,19 +88,19 @@ model Invoice {
    *
    * Multi currency invoices are not supported yet.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   currency: CurrencyCode;
 
   /**
    * Key information regarding previous invoices and potentially details as to why they were corrected.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   preceding?: InvoiceDocumentRef[];
 
   /**
    * Summary of all the invoice totals, including taxes (calculated).
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   totals: InvoiceTotals;
 
   /**
@@ -108,13 +108,13 @@ model Invoice {
    *
    * This field only conatins a simplified status, for more detailed information use the statusDetails field.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   status: InvoiceStatus;
 
   /**
    * The details of the current invoice status.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   statusDetails: InvoiceStatusDetails;
 
   /**
@@ -124,7 +124,7 @@ model Invoice {
    * - draft, gathering: The time the invoice will be issued based on the workflow settings.
    * - issued: The time the invoice was issued.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   issuedAt?: DateTime;
 
   /**
@@ -134,19 +134,19 @@ model Invoice {
    *
    * If manual approval is required, the draftUntil time is set.
    */
-  @visibility("read", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   draftUntil?: DateTime;
 
   /**
    * Due time of the fulfillment of the invoice (if available).
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   dueAt?: DateTime;
 
   /**
    * The period the invoice covers. If the invoice has no line items, it's not set.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   period?: Period;
 
   /**
@@ -154,7 +154,7 @@ model Invoice {
    *
    * If the invoice was voided, this field will be set to the time the invoice was voided.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   voidedAt?: DateTime;
 
   /**
@@ -163,37 +163,37 @@ model Invoice {
    * It is always a snapshot of the workflow settings at the time of invoice creation. The
    * field is optional as it should be explicitly requested with expand options.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   workflow?: InvoiceWorkflowSettings;
 
   /**
    * List of invoice lines representing each of the items sold to the customer.
    */
-  @visibility("read") // Seperate API endpoint is available for updating
+  @visibility(Lifecycle.Read) // Seperate API endpoint is available for updating
   lines?: InvoiceLine[];
 
   /**
    * Discounts or allowances applied to the complete invoice.
    */
-  @visibility("read", "create") // Updates and later deletions are handled by the restful API
+  @visibility(Lifecycle.Read, Lifecycle.Create) // Updates and later deletions are handled by the restful API
   discounts?: Discount[];
 
   /**
    * Information on when, how, and to whom the invoice should be paid.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   payment?: InvoicePaymentTerms;
 
   /**
    * Validation issues reported by the invoice workflow.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   validationIssues?: ValidationIssue[];
 
   /**
    * External IDs of the invoice in other apps such as Stripe.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   externalIDs?: InvoiceAppExternalIDs;
 }
 
@@ -239,19 +239,19 @@ model InvoiceStatusDetails {
   /**
    * Is the invoice editable?
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   immutable: boolean;
 
   /**
    * Is the invoice in a failed state?
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   failed: boolean;
 
   /**
    * Extended status information for the invoice.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   extendedStatus: InvoiceExtendedStatus;
 
   /**
@@ -274,7 +274,7 @@ model InvoiceWorkflowSettings {
   /**
    * The apps that will be used to orchestrate the invoice's workflow.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   apps?: OpenMeter.Billing.BillingProfileAppsOrReference;
 
   /**
@@ -283,19 +283,19 @@ model InvoiceWorkflowSettings {
    * The profile is snapshotted on invoice creation, after which it can be altered independently
    * of the profile itself.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   sourceBillingProfileID: ULID;
 
   /**
    * The workflow details used by this invoice.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   workflow: OpenMeter.Billing.BillingWorkflowSettings;
 
   /**
    * Timezone of the invoice's date fields.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   timezone: string;
 }
 
@@ -354,25 +354,25 @@ model InvoiceDiscount {
   /**
    * Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   base?: Numeric;
 
   /**
    * Percentage to apply to the base or invoice's sum.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   percent?: Percentage;
 
   /**
    * Fixed discount amount to apply (calculated if percent present).
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   amount: Numeric;
 
   /**
    * Text description as to why the discount was applied.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   reason?: string;
 
   // TODO: Add reference fields to plan/subscriptions if the discount is coming from there.
@@ -422,7 +422,7 @@ model InvoiceUsageBasedPendingLineCreate {
   /**
    * The customer this line item belongs to.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   customerId: ULID;
 }
 
@@ -440,7 +440,7 @@ model InvoiceFlatFeePendingLineCreate {
   /**
    * The customer this line item belongs to.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   customerId: ULID;
 }
 
@@ -487,7 +487,7 @@ model InvoiceLineBase {
   // Note: ID has updated visibility as we support batch line creations and upserts
   ...OmitProperties<global.Resource, "id">;
 
-  @visibility("read", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   id: ULID;
 
   /**
@@ -495,7 +495,7 @@ model InvoiceLineBase {
    *
    * A line's type cannot be changed after creation.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   type: InvoiceLineTypes;
 
   /**
@@ -504,7 +504,7 @@ model InvoiceLineBase {
    * External calls always create valid lines, other line types are managed by the
    * billing engine of OpenMeter.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   status: InvoiceLineStatus;
 
   /**
@@ -513,7 +513,7 @@ model InvoiceLineBase {
    * New discounts can be added via the invoice's discounts API, to facilitate
    * discounts that are affecting multiple lines.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   discounts?: InvoiceLineDiscount[];
 
   /**
@@ -522,43 +522,43 @@ model InvoiceLineBase {
    * New charges can be added via the invoice's charges API, to facilitate
    * charges that are affecting multiple lines.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   charges?: InvoiceLineCharge[];
 
   /**
    * The invoice this item belongs to.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   invoice?: InvoiceReference;
 
   /**
    * The currency of this line.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   currency: CurrencyCode;
 
   /**
    * Taxes applied to the invoice totals.
    */
-  @visibility("read") // Tax is handled by the tax provider, we only need to show the output of that here
+  @visibility(Lifecycle.Read) // Tax is handled by the tax provider, we only need to show the output of that here
   taxes?: InvoiceLineTaxItem[];
 
   /**
    * Tax config specify the tax configuration for this line.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   taxConfig?: OpenMeter.ProductCatalog.TaxConfig;
 
   /**
    * The lines detailing the item or service sold.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   children?: InvoiceLine[];
 
   /**
    * Totals for this line.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   totals: InvoiceTotals;
 
   /**
@@ -566,25 +566,25 @@ model InvoiceLineBase {
    *
    * Billing always treats periods as start being inclusive and end being exclusive.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   period: Period;
 
   /**
    * The time this line item should be invoiced.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   invoiceAt: DateTime;
 
   /**
    * External IDs of the invoice in other apps such as Stripe.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   externalIDs?: InvoiceLineAppExternalIDs;
 
   /**
    * Subscription are the references to the subscritpions that this line is related to.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   subscriptions?: InvoiceLineSubscriptionReference;
 }
 
@@ -596,13 +596,13 @@ model InvoiceReference {
   /**
    * The ID of the invoice.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id: ULID;
 
   /**
    * The number of the invoice.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   number?: InvoiceNumber;
 }
 
@@ -618,13 +618,13 @@ model InvoiceUsageBasedLine {
   /**
    * The feature that the usage is based on.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   featureKey: Key;
 
   /**
    * The quantity of the item being sold.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   quantity?: Numeric;
 
   /**
@@ -632,7 +632,7 @@ model InvoiceUsageBasedLine {
    *
    * It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   preLinePeriodQuantity?: Numeric;
 }
 
@@ -647,19 +647,19 @@ model InvoiceFlatFeeLine {
   /**
    * Price of the item being sold.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   perUnitAmount: Money;
 
   /**
    * Payment term of the line.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   paymentTerm?: OpenMeter.ProductCatalog.PricePaymentTerm = OpenMeter.ProductCatalog.PricePaymentTerm.inAdvance;
 
   /**
    * Quantity of the item being sold.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   quantity: Numeric;
 }
 
@@ -673,31 +673,31 @@ model InvoiceGenericCharge {
   /**
    * ID of the charge or discount.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id: ULID;
 
   /**
    * Percentage if fixed amount not applied
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   percent?: Percentage;
 
   /**
    * Fixed discount amount to apply (calculated if percent present).
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   amount: Numeric;
 
   /**
    * Reason code.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   code?: string;
 
   /**
    * Text description as to why the discount was applied.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   description?: string;
 }
 
@@ -711,7 +711,7 @@ model InvoiceLineDiscount {
   /**
    * External IDs of the invoice in other apps such as Stripe.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   externalIDs?: InvoiceLineAppExternalIDs;
 }
 
@@ -736,43 +736,43 @@ model InvoiceTotals {
   /**
    * The total value of the line before taxes, discounts and commitments.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   amount: Numeric;
 
   /**
    * The amount of value of the line that are due to additional charges.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   chargesTotal: Numeric;
 
   /**
    * The amount of value of the line that are due to discounts.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   discountsTotal: Numeric;
 
   /**
    * The total amount of taxes that are included in the line.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   taxesInclusiveTotal: Numeric;
 
   /**
    * The total amount of taxes that are added on top of amount from the line.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   taxesExclusiveTotal: Numeric;
 
   /**
    * The total amount of taxes for this line.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   taxesTotal: Numeric;
 
   /**
    * The total amount value of the line after taxes, discounts and commitments.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   total: Numeric;
 }
 
@@ -794,7 +794,7 @@ model InvoicePaymentTerms {
   /**
    * The terms of payment for the invoice.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   terms?: PaymentTerms;
 }
 
@@ -821,43 +821,43 @@ model ValidationIssue {
   /**
    * ID of the charge or discount.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id: ULID;
 
   /**
    * The severity of the issue.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   severity: ValidationIssueSeverity;
 
   /**
    * The field that the issue is related to, if available in JSON path format.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   field?: string;
 
   /**
    * Machine indentifiable code for the issue, if available.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   code?: string;
 
   /**
    * Component reporting the issue.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   component: string;
 
   /**
    * A human-readable description of the issue.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   message: string;
 
   /**
    * Additional context for the issue.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   metadata?: Metadata;
 }
 
@@ -869,19 +869,19 @@ model InvoiceAppExternalIDs {
   /**
    * The external ID of the invoice in the invoicing app if available.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   Invoicing?: string;
 
   /**
    * The external ID of the invoice in the tax app if available.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   Tax?: string;
 
   /**
    * The external ID of the invoice in the payment app if available.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   Payment?: string;
 }
 
@@ -893,13 +893,13 @@ model InvoiceLineAppExternalIDs {
   /**
    * The external ID of the invoice in the invoicing app if available.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   Invoicing?: string;
 
   /**
    * The external ID of the invoice in the tax app if available.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   Tax?: string;
 }
 
@@ -911,18 +911,18 @@ model InvoiceLineSubscriptionReference {
   /**
    * The subscription.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   subscription: IDResource;
 
   /**
    * The phase of the subscription.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   phase: IDResource;
 
   /**
    * The item this line is related to.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   item: IDResource;
 }

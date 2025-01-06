@@ -119,13 +119,13 @@ model BillingProfile {
   /**
    * The name and contact information for the supplier this billing profile represents
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   supplier: Invoices.BillingParty;
 
   /**
    * The billing workflow settings for this profile
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   workflow: BillingWorkflow;
 
   /**
@@ -133,13 +133,13 @@ model BillingProfile {
    *
    * Expand settings govern if this includes the whole app object or just the ID references.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   apps: BillingProfileAppsOrReference;
 
   /**
    * Is this the default profile?
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   default: boolean;
 }
 
@@ -152,13 +152,13 @@ model BillingProfileCreate
   /**
    * The billing workflow settings for this profile.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   workflow: Rest.Resource.ResourceCreateModel<BillingWorkflow>;
 
   /**
    * The apps used by this billing profile.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   apps: BillingProfileAppsCreate;
 }
 
@@ -176,7 +176,7 @@ model BillingProfileReplaceUpdate
   /**
    * The billing workflow settings for this profile.
    */
-  @visibility("update")
+  @visibility(Lifecycle.Update)
   workflow: BillingWorkflow;
 }
 
@@ -188,19 +188,19 @@ model BillingProfileApps {
   /*
    * The tax app used for this workflow
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   tax: OpenMeter.App.App;
 
   /*
    * The invoicing app used for this workflow
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   invoicing: OpenMeter.App.App;
 
   /*
    * The payment app used for this workflow
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   payment: OpenMeter.App.App;
 }
 
@@ -212,19 +212,19 @@ model BillingProfileAppReferences {
   /**
    * The tax app used for this workflow
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   tax: OpenMeter.App.AppReference;
 
   /**
    * The invoicing app used for this workflow
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   invoicing: OpenMeter.App.AppReference;
 
   /**
    * The payment app used for this workflow
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   payment: OpenMeter.App.AppReference;
 }
 
@@ -255,7 +255,7 @@ model BillingProfileAppsCreate {
   /**
    * The tax app used for this workflow
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   @extension("x-go-type", "string")
   tax: ULID | string;
 
@@ -263,14 +263,14 @@ model BillingProfileAppsCreate {
    * The invoicing app used for this workflow
    */
   @extension("x-go-type", "string")
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   invoicing: ULID | string;
 
   /**
    * The payment app used for this workflow
    */
   @extension("x-go-type", "string")
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   payment: ULID | string;
 }
 
@@ -285,7 +285,7 @@ model BillingWorkflow {
   /**
    * A unique identifier for the resource.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   id: ULID;
 }
@@ -298,19 +298,19 @@ model BillingWorkflowSettings {
   /**
    * The collection settings for this workflow
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   collection?: BillingWorkflowCollectionSettings;
 
   /**
    * The invoicing settings for this workflow
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   invoicing?: BillingWorkflowInvoicingSettings;
 
   /**
    * The payment settings for this workflow
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   payment?: BillingWorkflowPaymentSettings;
 }
 
@@ -331,7 +331,7 @@ model BillingWorkflowCollectionSettings {
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   interval?: string = "PT1H";
 }
 
@@ -366,7 +366,7 @@ union BillingWorkflowCollectionAlignment {
  */
 @friendlyName("BillingWorkflowCollectionAlignmentSubscription")
 model BillingWorkflowCollectionAlignmentSubscription {
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: BillingCollectionAlignment.subscription;
 }
 
@@ -379,7 +379,7 @@ model BillingWorkflowPaymentSettings {
   /**
    * The payment method for the invoice.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   collectionMethod?: CollectionMethod = CollectionMethod.chargeAutomatically;
 }
 
@@ -392,7 +392,7 @@ model BillingWorkflowInvoicingSettings {
   /**
    * Whether to automatically issue the invoice after the draftPeriod has passed.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   autoAdvance?: boolean = true;
 
   /**
@@ -400,7 +400,7 @@ model BillingWorkflowInvoicingSettings {
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   draftPeriod?: string = "P1D";
 
   /**
@@ -408,7 +408,7 @@ model BillingWorkflowInvoicingSettings {
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   dueAfter?: string = "P7D";
 }
 

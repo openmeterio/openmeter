@@ -271,13 +271,13 @@ model VoidInvoiceActionInput {
   /**
    * The action to take on the voided line items.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   action: VoidInvoiceAction;
 
   /**
    * The reason for voiding the invoice.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   reason: string;
 
   /**
@@ -285,7 +285,7 @@ model VoidInvoiceActionInput {
    *
    * If not specified, the `action` will be applied to all line items.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   overrides?: VoidInvoiceActionLineOverride[] | null;
 }
 
@@ -297,7 +297,7 @@ model VoidInvoiceAction {
   /**
    * How much of the total line items to be voided? (e.g. 100% means all charges are voided)
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   percentage: Percentage;
 
   action: VoidInvoiceLineAction;
@@ -349,7 +349,7 @@ model VoidInvoiceLinePendingAction {
    *
    * If not provided, the line item will be re-invoiced now.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   nextInvoiceAt?: DateTime;
 }
 
@@ -361,13 +361,13 @@ model VoidInvoiceActionLineOverride {
   /**
    * The line item ID to override.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   lineId: ULID;
 
   /**
    * The action to take on the line item.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   action: VoidInvoiceAction;
 }
 
@@ -439,7 +439,7 @@ model InvoicePendingLinesActionInput {
    * - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
    *   of the billing cycle
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   includePendingLines?: ULID[];
 
   /**
@@ -447,12 +447,12 @@ model InvoicePendingLinesActionInput {
    *
    * If not provided, the current time is used.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   asOf?: DateTime;
 
   /**
    * The customer ID for which to create the invoice.
    */
-  @visibility("create")
+  @visibility(Lifecycle.Create)
   customerId: ULID;
 }

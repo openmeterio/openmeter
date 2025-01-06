@@ -67,27 +67,27 @@ model Plan {
    */
   @summary("Version")
   @minValue(1)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   version: integer = 1;
 
   /**
    * The currency code of the plan.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
   currency: CurrencyCode = "USD";
 
   /**
    * The date and time when the plan becomes effective. When not specified, the plan is a draft.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Effective start date")
   effectiveFrom?: DateTime;
 
   /**
    * The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Effective end date")
   effectiveTo?: DateTime;
 
@@ -100,14 +100,14 @@ model Plan {
    *  - scheduled = now < effectiveFrom < effectiveTo
    */
   @summary("Status")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   status: PlanStatus;
 
   /**
    * The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
    * A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Plan phases")
   @minItems(1)
   phases: PlanPhase[];
@@ -121,7 +121,7 @@ model PlanPhase {
   /**
    * A semi-unique identifier for the resource.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Key")
   key: Key;
 
@@ -149,23 +149,23 @@ model PlanPhase {
   /**
    * The duration of the phase.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Duration")
   @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1Y1D"))
+  @example(duration.fromISO("P1Y"))
   duration: duration | null;
 
   /**
    * The rate cards of the plan.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rate cards")
   rateCards: RateCard[];
 
   /**
    * The discounts on the plan.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Discounts")
   discounts?: Discount[];
 

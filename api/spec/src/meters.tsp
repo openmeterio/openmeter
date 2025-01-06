@@ -102,7 +102,7 @@ model Meter {
   /**
    * A unique identifier for the meter.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   id: ULID;
 

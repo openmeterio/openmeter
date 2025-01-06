@@ -25,14 +25,14 @@ model NotificationEventDeliveryStatus {
   /**
    * Delivery state of the notification event to the channel.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example(NotificationEventDeliveryStatusState.Success)
   state: NotificationEventDeliveryStatusState;
 
   /**
    * The reason of the last deliverry state update.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("State Reason")
   @example("Failed to dispatch event due to provider error.")
   reason: string;
@@ -40,7 +40,7 @@ model NotificationEventDeliveryStatus {
   /**
    * Timestamp of when the status was last updated in RFC 3339 format.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Last Update Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   updatedAt: DateTime;
@@ -48,7 +48,7 @@ model NotificationEventDeliveryStatus {
   /**
    * Notification channel the delivery sattus associated with.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Notification Channel")
   channel: NotificationChannelMeta;
 }
@@ -84,7 +84,7 @@ model NotificationEventBalanceThresholdPayload {
   /**
    * A unique identifier for the notification event the payload belongs to.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Notification Event Identifier")
   @example("01J2KNP1YTXQRXHTDJ4KPR7PZ0")
   id: ULID;
@@ -92,14 +92,14 @@ model NotificationEventBalanceThresholdPayload {
   /**
    * Type of the notification event.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Notification Event Type")
   type: NotificationEventType.entitlementsBalanceThreshold;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Creation Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   timestamp: DateTime;
@@ -107,7 +107,7 @@ model NotificationEventBalanceThresholdPayload {
   /**
    * The data of the payload.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Payload Data")
   data: NotificationEventBalanceThresholdPayloadData;
 }
@@ -117,23 +117,23 @@ model NotificationEventBalanceThresholdPayload {
  */
 @friendlyName("NotificationEventBalanceThresholdPayloadData")
 model NotificationEventBalanceThresholdPayloadData {
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Entitlement")
   entitlement: OpenMeter.Entitlements.EntitlementMetered;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Feature")
   feature: OpenMeter.Entitlements.Feature;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Subject")
   subject: OpenMeter.Subject;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Entitlement Value")
   value: OpenMeter.Entitlements.EntitlementValue;
 
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Threshold")
   threshold: NotificationRuleBalanceThresholdValue;
 }
@@ -146,7 +146,7 @@ model NotificationEvent {
   /**
    * A unique identifier of the notification event.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Event Identifier")
   @example("01J2KNP1YTXQRXHTDJ4KPR7PZ0")
   id: ULID;
@@ -154,14 +154,14 @@ model NotificationEvent {
   /**
    * Type of the notification event.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Event Type")
   type: NotificationEventType;
 
   /**
    * Timestamp when the notification event was created in RFC 3339 format.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Creation Time")
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
   createdAt: DateTime;
@@ -169,26 +169,26 @@ model NotificationEvent {
   /*
    * The nnotification rule which generated this event.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   rule: NotificationRule;
 
   /**
    * The delivery status of the notification event.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Delivery Status")
   deliveryStatus: Array<NotificationEventDeliveryStatus>;
 
   /*
    * Timestamp when the notification event was created in RFC 3339 format.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   payload: NotificationEventPayload;
 
   /**
    * Set of key-value pairs managed by the system. Cannot be modified by user.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Annotations")
   annotations?: Annotations;
 }
