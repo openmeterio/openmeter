@@ -5443,7 +5443,7 @@ export interface components {
        * Duration
        * Format: duration
        * @description The duration of the phase.
-       * @example P1Y1D
+       * @example P1Y
        */
       duration: string | null
       /**
@@ -6521,7 +6521,7 @@ export interface components {
        * Format: duration
        * @description Interval after the subscription starts to transition to the phase.
        *     When null, the phase starts immediately after the subscription starts.
-       * @example P1Y1D
+       * @example P1Y
        */
       startAfter: string | null
       /**
