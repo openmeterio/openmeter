@@ -361,9 +361,7 @@ func mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 			Immutable:      invoice.StatusDetails.Immutable,
 			ExtendedStatus: string(invoice.Status),
 
-			AvailableActions: lo.Map(invoice.StatusDetails.AvailableActions, func(a billing.InvoiceAction, _ int) api.InvoiceAction {
-				return api.InvoiceAction(a)
-			}),
+			AvailableActions: mapInvoiceAvailableActionsToAPI(invoice.StatusDetails.AvailableActions),
 		},
 		Supplier: mapSupplierContactToAPI(invoice.Supplier),
 		Totals:   mapTotalsToAPI(invoice.Totals),
@@ -476,5 +474,26 @@ func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {
 		TaxesExclusiveTotal: t.TaxesExclusiveTotal.String(),
 		TaxesTotal:          t.TaxesTotal.String(),
 		Total:               t.Total.String(),
+	}
+}
+
+func mapInvoiceAvailableActionsToAPI(actions billing.InvoiceAvailableActions) api.InvoiceAvailableActions {
+	return api.InvoiceAvailableActions{
+		Advance: mapInvoiceAvailableActionDetailsToAPI(actions.Advance),
+		Approve: mapInvoiceAvailableActionDetailsToAPI(actions.Approve),
+		Delete:  mapInvoiceAvailableActionDetailsToAPI(actions.Delete),
+		Retry:   mapInvoiceAvailableActionDetailsToAPI(actions.Retry),
+		Void:    mapInvoiceAvailableActionDetailsToAPI(actions.Void),
+		Invoice: lo.If(actions.Invoice != nil, &api.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
+	}
+}
+
+func mapInvoiceAvailableActionDetailsToAPI(actions *billing.InvoiceAvailableActionDetails) *api.InvoiceAvailableActionDetails {
+	if actions == nil {
+		return nil
+	}
+
+	return &api.InvoiceAvailableActionDetails{
+		ResultingState: string(actions.ResultingState),
 	}
 }

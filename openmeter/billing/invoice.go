@@ -321,20 +321,25 @@ type InvoiceExternalIDs struct {
 	Payment   string `json:"payment,omitempty"`
 }
 
-type InvoiceAction string
+type InvoiceAvailableActions struct {
+	Advance *InvoiceAvailableActionDetails        `json:"advance,omitempty"`
+	Approve *InvoiceAvailableActionDetails        `json:"approve,omitempty"`
+	Delete  *InvoiceAvailableActionDetails        `json:"delete,omitempty"`
+	Retry   *InvoiceAvailableActionDetails        `json:"retry,omitempty"`
+	Void    *InvoiceAvailableActionDetails        `json:"void,omitempty"`
+	Invoice *InvoiceAvailableActionInvoiceDetails `json:"invoice,omitempty"`
+}
 
-const (
-	InvoiceActionAdvance InvoiceAction = "advance"
-	InvoiceActionApprove InvoiceAction = "approve"
-	InvoiceActionDelete  InvoiceAction = "delete"
-	InvoiceActionRetry   InvoiceAction = "retry"
-	InvoiceActionVoid    InvoiceAction = "void"
-)
+type InvoiceAvailableActionDetails struct {
+	ResultingState InvoiceStatus `json:"resultingState"`
+}
+
+type InvoiceAvailableActionInvoiceDetails struct{}
 
 type InvoiceStatusDetails struct {
-	Immutable        bool            `json:"immutable"`
-	Failed           bool            `json:"failed"`
-	AvailableActions []InvoiceAction `json:"availableActions"`
+	Immutable        bool                    `json:"immutable"`
+	Failed           bool                    `json:"failed"`
+	AvailableActions InvoiceAvailableActions `json:"availableActions"`
 }
 
 const (

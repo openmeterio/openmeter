@@ -256,10 +256,14 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Namespace: namespace,
 				ID:        usdInvoice.ID,
 
-				Type:          billing.InvoiceTypeStandard,
-				Currency:      currencyx.Code(currency.USD),
-				Status:        billing.InvoiceStatusGathering,
-				StatusDetails: billing.InvoiceStatusDetails{},
+				Type:     billing.InvoiceTypeStandard,
+				Currency: currencyx.Code(currency.USD),
+				Status:   billing.InvoiceStatusGathering,
+				StatusDetails: billing.InvoiceStatusDetails{
+					AvailableActions: billing.InvoiceAvailableActions{
+						Invoice: &billing.InvoiceAvailableActionInvoiceDetails{},
+					},
+				},
 
 				CreatedAt: usdInvoice.CreatedAt,
 				UpdatedAt: usdInvoice.UpdatedAt,
@@ -818,7 +822,11 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			advance: func(t *testing.T, ctx context.Context, invoice billing.Invoice) {
 				require.Equal(s.T(), billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
-					AvailableActions: []billing.InvoiceAction{billing.InvoiceActionApprove},
+					AvailableActions: billing.InvoiceAvailableActions{
+						Approve: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusIssued,
+						},
+					},
 				}, invoice.StatusDetails)
 
 				// Approve the invoice, should become Issued
@@ -940,8 +948,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billing.InvoiceStatusDraftInvalid, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
-					AvailableActions: []billing.InvoiceAction{
-						billing.InvoiceActionRetry,
+					AvailableActions: billing.InvoiceAvailableActions{
+						Retry: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusIssued,
+						},
+						Delete: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusDeleted,
+						},
 					},
 					Immutable: false,
 				}, invoice.StatusDetails)
@@ -992,8 +1005,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billing.InvoiceStatusDraftInvalid, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
-					AvailableActions: []billing.InvoiceAction{
-						billing.InvoiceActionRetry,
+					AvailableActions: billing.InvoiceAvailableActions{
+						Retry: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusIssued,
+						},
+						Delete: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusDeleted,
+						},
 					},
 					Immutable: false,
 				}, invoice.StatusDetails)
@@ -1080,8 +1098,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billing.InvoiceStatusDraftInvalid, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
-					AvailableActions: []billing.InvoiceAction{
-						billing.InvoiceActionRetry,
+					AvailableActions: billing.InvoiceAvailableActions{
+						Retry: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusIssued,
+						},
+						Delete: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusDeleted,
+						},
 					},
 					Immutable: false,
 				}, invoice.StatusDetails)
@@ -1154,7 +1177,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
-					AvailableActions: []billing.InvoiceAction{},
+					AvailableActions: billing.InvoiceAvailableActions{},
 					Immutable:        true,
 				}, invoice.StatusDetails)
 				require.Equal(s.T(), billing.ValidationIssues{
