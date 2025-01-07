@@ -246,31 +246,30 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.Invoic
 		// cross invoice operations
 		return billing.InvoiceStatusDetails{
 			Immutable: false,
+			AvailableActions: billing.InvoiceAvailableActions{
+				// TODO[OM-1032]: This is only true if progressive billing is enabled
+				Invoice: &billing.InvoiceAvailableActionInvoiceDetails{},
+			},
 		}, nil
 	}
 
-	var outErr error
-	actions := make([]billing.InvoiceAction, 0, 4)
+	var outErr, err error
+	availableActions := billing.InvoiceAvailableActions{}
 
-	ok, err := m.StateMachine.CanFireCtx(ctx, triggerNext)
-	if err != nil {
+	if availableActions.Advance, err = m.calculateAvailableActionDetails(ctx, triggerNext); err != nil {
 		outErr = errors.Join(outErr, err)
-	} else if ok {
-		actions = append(actions, billing.InvoiceActionAdvance)
 	}
 
-	ok, err = m.StateMachine.CanFireCtx(ctx, triggerRetry)
-	if err != nil {
+	if availableActions.Delete, err = m.calculateAvailableActionDetails(ctx, triggerDelete); err != nil {
 		outErr = errors.Join(outErr, err)
-	} else if ok {
-		actions = append(actions, billing.InvoiceActionRetry)
 	}
 
-	ok, err = m.StateMachine.CanFireCtx(ctx, triggerApprove)
-	if err != nil {
+	if availableActions.Retry, err = m.calculateAvailableActionDetails(ctx, triggerRetry); err != nil {
 		outErr = errors.Join(outErr, err)
-	} else if ok {
-		actions = append(actions, billing.InvoiceActionApprove)
+	}
+
+	if availableActions.Approve, err = m.calculateAvailableActionDetails(ctx, triggerApprove); err != nil {
+		outErr = errors.Join(outErr, err)
 	}
 
 	mutable, err := m.StateMachine.CanFireCtx(ctx, triggerUpdated)
@@ -283,8 +282,54 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.Invoic
 	return billing.InvoiceStatusDetails{
 		Immutable:        !mutable,
 		Failed:           m.Invoice.Status.IsFailed(),
-		AvailableActions: actions,
+		AvailableActions: availableActions,
 	}, outErr
+}
+
+func (m *InvoiceStateMachine) calculateAvailableActionDetails(ctx context.Context, baseTrigger stateless.Trigger) (*billing.InvoiceAvailableActionDetails, error) {
+	ok, err := m.StateMachine.CanFireCtx(ctx, baseTrigger)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, nil
+	}
+
+	// Given we don't have access to the underlying graph we need to emulate the state transitions without any side-effects.
+	// To achieve this, we are temporary modifying the invoice object, but never invoke the
+	// ActiveCtx to prevent any callbacks from being executed.
+
+	originalState := m.Invoice.Status
+	originalValidationErrors := m.Invoice.ValidationIssues
+	m.Invoice.ValidationIssues = nil
+
+	if err := m.StateMachine.FireCtx(ctx, baseTrigger); err != nil {
+		return nil, err
+	}
+
+	for {
+		canFire, err := m.StateMachine.CanFireCtx(ctx, triggerNext)
+		if err != nil {
+			return nil, err
+		}
+
+		if !canFire {
+			break
+		}
+
+		if err := m.StateMachine.FireCtx(ctx, triggerNext); err != nil {
+			return nil, err
+		}
+	}
+
+	resultingState := m.Invoice.Status
+	m.Invoice.Status = originalState
+	m.Invoice.ValidationIssues = originalValidationErrors
+
+	return &billing.InvoiceAvailableActionDetails{
+		ResultingState: resultingState,
+	}, nil
 }
 
 func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error {

@@ -198,35 +198,70 @@ model Invoice {
 }
 
 /**
- * InvoiceAction represents the actions that can be performed on an invoice.
+ * InvoiceAvailableActions represents the actions that can be performed on the invoice.
  */
-@friendlyName("InvoiceAction")
-enum InvoiceAction {
+@friendlyName("InvoiceAvailableActions")
+model InvoiceAvailableActions {
   /**
    * Advance the invoice to the next status.
    */
-  advance: "advance",
+  @visibility(Lifecycle.Read)
+  advance?: InvoiceAvailableActionDetails;
 
   /**
    * Approve an invoice that requires manual approval.
    */
-  approve: "approve",
+  @visibility(Lifecycle.Read)
+  approve?: InvoiceAvailableActionDetails;
 
   /**
    * Delete the invoice (only non-issued invoices can be deleted).
    */
-  delete: "delete",
+  @visibility(Lifecycle.Read)
+  delete?: InvoiceAvailableActionDetails;
 
   /**
    * Retry an invoice issuing step that failed.
    */
-  retry: "retry",
+  @visibility(Lifecycle.Read)
+  retry?: InvoiceAvailableActionDetails;
 
   /**
    * Void an already issued invoice.
    */
-  `void`: "void",
+  @visibility(Lifecycle.Read)
+  `void`?: InvoiceAvailableActionDetails;
+
+  /**
+   * Invoice a gathering invoice
+   */
+  @visibility(Lifecycle.Read)
+  invoice?: InvoiceAvailableActionInvoiceDetails;
 }
+
+/**
+ * InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+ * non-gathering invoices.
+ */
+@friendlyName("InvoiceAvailableActionDetails")
+model InvoiceAvailableActionDetails {
+  /**
+   * The state the invoice will reach if the action is activated and
+   * all intermediate steps are successful.
+   *
+   * For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice.
+   */
+  @visibility(Lifecycle.Read)
+  resultingState: InvoiceExtendedStatus;
+}
+
+/**
+ * InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+ * gathering invoices.
+ */
+// Note: this is a placeholder for future extensibility
+@friendlyName("InvoiceAvailableActionInvoiceDetails")
+model InvoiceAvailableActionInvoiceDetails {}
 
 /**
  * InvoiceStatusDetails represents the details of the invoice status.
@@ -257,7 +292,7 @@ model InvoiceStatusDetails {
   /**
    * The actions that can be performed on the invoice.
    */
-  availableActions: InvoiceAction[];
+  availableActions: InvoiceAvailableActions;
 }
 
 // TODO[later]: we can make this an enum, but only if we have reached a stable state with the statuses.
