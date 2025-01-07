@@ -88,14 +88,14 @@ model Grant {
    * Readonly unique ULID identifier.
    */
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id: ULID;
 
   /**
    * The unique entitlement ULID that the grant is associated with.
    */
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   entitlementId: string;
 
   /**
@@ -108,7 +108,7 @@ model Grant {
    * The time the grant expires.
    */
   @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   expiresAt?: DateTime;
 
   /**

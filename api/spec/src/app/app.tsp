@@ -106,13 +106,13 @@ model AppBase {
   /**
    * The marketplace listing that this installed app is based on.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   listing: MarketplaceListing;
 
   /**
    * Status of the app connection.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   status: AppStatus;
 }
 

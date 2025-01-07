@@ -73,7 +73,7 @@ model UniqueResource {
   /**
    * A semi-unique identifier for the resource.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Key")
   key: Key;
 }
@@ -88,7 +88,7 @@ model IDResource {
   /**
    * A unique identifier for the resource.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   @summary("ID")
   id: ULID;
@@ -102,7 +102,7 @@ model Resource {
   /**
    * A unique identifier for the resource.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   @summary("ID")
   id: ULID;
@@ -156,7 +156,7 @@ model ResourceTimestamps {
    * Timestamp of when the resource was created.
    */
   @summary("Creation Time")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   createdAt: DateTime;
 
@@ -164,7 +164,7 @@ model ResourceTimestamps {
    * Timestamp of when the resource was last updated.
    */
   @summary("Last Update Time")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   updatedAt: DateTime;
 
@@ -172,7 +172,7 @@ model ResourceTimestamps {
    * Timestamp of when the resource was permanently deleted.
    */
   @summary("Deletion Time")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example(DateTime.fromISO("2024-01-01T01:01:01.001Z"))
   deletedAt?: DateTime;
 }
@@ -186,7 +186,7 @@ model Archiveable {
    * Timestamp of when the resource was archived.
    */
   @summary("Archival Time")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   archivedAt?: DateTime;
 }
 

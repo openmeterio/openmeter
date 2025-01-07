@@ -20,14 +20,14 @@ model RateCardBase<T extends RateCardType> {
   /**
    * The type of the RateCard.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("RateCard type")
   type: T;
 
   /**
    * A semi-unique identifier for the resource.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Key")
   key: Key;
 
@@ -55,7 +55,7 @@ model RateCardBase<T extends RateCardType> {
   /**
    * The feature the customer is entitled to use.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Feature key")
   featureKey?: Key;
 
@@ -63,14 +63,14 @@ model RateCardBase<T extends RateCardType> {
    * The entitlement of the rate card.
    * Only available when featureKey is set.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   entitlementTemplate?: RateCardEntitlement;
 
   /**
    * The tax config of the rate card.
    * When undefined, the tax config of the feature or the default tax config of the plan is used.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tax config")
   taxConfig?: TaxConfig;
 }
@@ -97,7 +97,7 @@ model RateCardFlatFee {
    * The billing cadence of the rate card.
    * When null it means it is a one time fee.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
   billingCadence: duration | null;
@@ -106,7 +106,7 @@ model RateCardFlatFee {
    * The price of the rate card.
    * When null, the feature or service is free.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Price")
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
   price: FlatPriceWithPaymentTerm | null;
@@ -142,7 +142,7 @@ model RateCardUsageBased {
   /**
    * The billing cadence of the rate card.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
   billingCadence: duration;
@@ -151,7 +151,7 @@ model RateCardUsageBased {
    * The price of the rate card.
    * When null, the feature or service is free.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   price: RateCardUsageBasedPrice | null;
 
   // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
@@ -219,7 +219,7 @@ model RateCardMeteredEntitlement {
    * The interval of the metered entitlement.
    * Defaults to the billing cadence of the rate card.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Usage Period")
   @encode(DurationKnownEncoding.ISO8601)
   usagePeriod?: duration;

@@ -17,7 +17,7 @@ model InvoiceLineTaxItem {
   /**
    * Tax provider configuration.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   config?: TaxConfig;
 
   /**
@@ -25,19 +25,19 @@ model InvoiceLineTaxItem {
    * the rate key (calculated if rate present). A nil percent implies that
    * this tax combo is **exempt** from tax.")
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   percent?: Percentage;
 
   /**
    * Some countries require an additional surcharge (calculated if rate present).
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   surcharge?: Numeric;
 
   /**
    * Is the tax item inclusive or exclusive of the base amount.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   behavior?: InvoiceLineTaxBehavior;
 }
 

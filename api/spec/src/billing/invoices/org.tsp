@@ -33,27 +33,27 @@ model BillingParty {
   /**
    * Unique identifier for the party (if available)
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id?: string;
 
   /**
    * Legal name or representation of the organization.
    */
-  @visibility("read", "update", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   name?: string;
 
   /**
    * The entity's legal ID code used for tax purposes. They may have
    * other numbers, but we're only interested in those valid for tax purposes.
    */
-  @visibility("read", "update", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   taxId?: BillingPartyTaxIdentity;
 
   /**
    * Regular post addresses for where information should be sent if needed.
    */
   @maxItems(1)
-  @visibility("read", "update", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   addresses?: Address[];
 }
 
@@ -65,6 +65,6 @@ model BillingPartyTaxIdentity {
   /**
    * Normalized tax code shown on the original identity document.
    */
-  @visibility("read", "update", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   code?: TaxIdentificationCode;
 }

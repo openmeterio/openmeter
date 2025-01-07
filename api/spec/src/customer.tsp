@@ -234,7 +234,7 @@ model Customer {
    * The ID of the Subscription if the customer has one.
    */
   @summary("Current Subscription ID")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   currentSubscriptionId?: ULID;
 }
 

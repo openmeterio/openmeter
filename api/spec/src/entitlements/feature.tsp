@@ -150,6 +150,6 @@ model Feature {
    * Readonly unique ULID identifier.
    */
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   id: ULID;
 }

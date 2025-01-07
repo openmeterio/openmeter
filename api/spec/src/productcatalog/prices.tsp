@@ -55,13 +55,13 @@ union PricePaymentTerm {
  */
 @friendlyName("FlatPrice")
 model FlatPrice {
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.flat;
 
   /**
    * The amount of the flat price.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   amount: Money;
 }
 
@@ -76,7 +76,7 @@ model FlatPriceWithPaymentTerm {
    * The payment term of the flat price.
    * Defaults to in advance.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   paymentTerm?: PricePaymentTerm = PricePaymentTerm.inAdvance;
 }
 
@@ -85,13 +85,13 @@ model FlatPriceWithPaymentTerm {
  */
 @friendlyName("UnitPrice")
 model UnitPrice {
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.unit;
 
   /**
    * The amount of the unit price.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   amount: Money;
 }
 
@@ -109,7 +109,7 @@ enum TieredPriceMode {
  */
 @friendlyName("TieredPrice")
 model TieredPrice {
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.tiered;
 
   /**
@@ -117,7 +117,7 @@ model TieredPrice {
    * - In `volume`-based tiering, the maximum quantity within a period determines the per unit price.
    * - In `graduated` tiering, pricing can change as the quantity grows.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Mode")
   mode: TieredPriceMode;
 
@@ -125,7 +125,7 @@ model TieredPrice {
    * The tiers of the tiered price.
    * At least one price component is required in each tier.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tiers")
   @minItems(1)
   tiers: PriceTier[];
@@ -141,21 +141,21 @@ model PriceTier {
    * Up to and including to this quantity will be contained in the tier.
    * If null, the tier is open-ended.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Up to quantity")
   upToAmount: float64 | null;
 
   /**
    * The flat price component of the tier.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Flat price component")
   flatPrice: FlatPrice | null;
 
   /**
    * The unit price component of the tier.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Unit price component")
   unitPrice: UnitPrice | null;
 }
@@ -169,14 +169,14 @@ model SpendCommitments {
   /**
    * The customer is committed to spend at least the amount.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Minimum amount")
   minimumAmount?: Money;
 
   /**
    * The customer is limited to spend at most the amount.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Maximum amount")
   maximumAmount?: Money;
 }

@@ -13171,7 +13171,7 @@ components:
           type: string
           format: duration
           nullable: true
-          example: P1Y1D
+          example: P1Y
           description: The duration of the phase.
           title: Duration
         rateCards:
@@ -14610,7 +14610,7 @@ components:
           type: string
           format: duration
           nullable: true
-          example: P1Y1D
+          example: P1Y
           description: |-
             Interval after the subscription starts to transition to the phase.
             When null, the phase starts immediately after the subscription starts.

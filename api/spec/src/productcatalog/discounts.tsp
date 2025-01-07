@@ -35,14 +35,14 @@ model DiscountPercentage {
   /**
    * The type of the discount.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Type")
   type: DiscountType.percentage;
 
   /**
    * The percentage of the discount.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Percentage")
   @minValue(0)
   @maxValue(100)
@@ -52,7 +52,7 @@ model DiscountPercentage {
    * The rate cards that the discount applies to.
    * When not specified, the discount applies to all rate cards.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Discounted RateCards")
   rateCards?: Key[];
 }

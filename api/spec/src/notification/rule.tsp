@@ -16,7 +16,7 @@ model NotificationRuleMeta {
   /**
    * Identifies the notification rule.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Rule Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -24,7 +24,7 @@ model NotificationRuleMeta {
   /**
    * Notification rule type.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Rule Type")
   type: NotificationEventType;
 }
@@ -40,7 +40,7 @@ model NotificationRuleCommon<T extends NotificationEventType> {
   /**
    * Notification rule type.
    */
-  @visibility("read", "create", "query")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rule Type")
   type: T;
 
@@ -49,13 +49,13 @@ model NotificationRuleCommon<T extends NotificationEventType> {
    */
   @summary("Rule Name")
   @example("Balance threshold reached")
-  @visibility("read", "create", "query", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   name: string;
 
   /**
    * Whether the rule is disabled or not.
    */
-  @visibility("read", "create", "query", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rule Disabled")
   @example(true)
   disabled?: boolean = false;
@@ -63,7 +63,7 @@ model NotificationRuleCommon<T extends NotificationEventType> {
   /**
    * List of notification channels the rule applies to.
    */
-  @visibility("read", "create", "query", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Channels assigned to Rule")
   channels: Array<NotificationChannelMeta>;
 }
@@ -76,7 +76,7 @@ model NotificationRuleBalanceThresholdValue {
   /**
    * Value of the threshold.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Threshold Value")
   @example(100)
   value: float64;
@@ -84,7 +84,7 @@ model NotificationRuleBalanceThresholdValue {
   /**
    * Type of the threshold.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @example(NotificationRuleBalanceThresholdValueType.NUMBER)
   type: NotificationRuleBalanceThresholdValueType;
 }
@@ -108,7 +108,7 @@ model FeatureMeta {
   /**
    * Unique identifier of a feature.
    */
-  @visibility("read", "query")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Feature Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -117,7 +117,7 @@ model FeatureMeta {
    * The key is an immutable unique identifier of the feature used throughout the API,
    * for example when interacting with a subject's entitlements.
    */
-  @visibility("read", "query")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Feature Key")
   @example("gpt4_tokens")
   key: string;
@@ -133,7 +133,7 @@ model NotificationRuleBalanceThreshold {
   /**
    * List of thresholds the rule suppose to be triggered.
    */
-  @visibility("read", "create", "query", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Entitlement Balance Thresholds")
   @minItems(1)
   @maxItems(10)
@@ -142,7 +142,7 @@ model NotificationRuleBalanceThreshold {
   /**
    * Optional field containing list of features the rule applies to.
    */
-  @visibility("read", "query")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Features")
   @minItems(1)
   features?: Array<FeatureMeta>;
@@ -171,15 +171,15 @@ union NotificationRuleCreateRequest {
 /**
  * Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
  */
-@withVisibility("create", "update")
 @friendlyName("NotificationRuleBalanceThresholdCreateRequest")
+@withVisibility(Lifecycle.Create, Lifecycle.Update)
 model NotificationRuleBalanceThresholdCreateRequest {
   ...OmitProperties<NotificationRuleBalanceThreshold, "channels" | "features">;
 
   /**
    * List of notification channels the rule is applied to.
    */
-  @visibility("create", "update")
+  @visibility(Lifecycle.Create, Lifecycle.Update)
   @summary("Channels")
   @minItems(1)
   channels: Array<ULID>;
@@ -187,7 +187,7 @@ model NotificationRuleBalanceThresholdCreateRequest {
   /**
    * Optional field for defining the scope of notification by feature. It may contain features by id or key.
    */
-  @visibility("create", "update")
+  @visibility(Lifecycle.Create, Lifecycle.Update)
   @summary("Features")
   @minItems(1)
   features?: Array<ULIDOrKey>;

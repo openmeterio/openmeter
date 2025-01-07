@@ -26,7 +26,7 @@ model NotificationChannelMeta {
   /**
    * Identifies the notification channel.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Channel Unique Identifier")
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")
   id: ULID;
@@ -34,7 +34,7 @@ model NotificationChannelMeta {
   /**
    * Notification channel type.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @summary("Channel Type")
   type: NotificationChannelType;
 }
@@ -50,14 +50,14 @@ model NotificationChannelCommon<T extends NotificationChannelType> {
   /**
    * Notification channel type.
    */
-  @visibility("read", "create")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Channel Type")
   type: T;
 
   /**
    * User friendly name of the channel.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Channel Name")
   @example("customer-webhook")
   name: string;
@@ -65,7 +65,7 @@ model NotificationChannelCommon<T extends NotificationChannelType> {
   /**
    * Whether the channel is disabled or not.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Channel Disabled")
   @example(true)
   disabled?: boolean = false;
@@ -81,7 +81,7 @@ model NotificationChannelWebhook {
   /**
    * Webhook URL where the notification is sent.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Webhook URL")
   @example("https://example.com/webhook")
   url: string;
@@ -89,7 +89,7 @@ model NotificationChannelWebhook {
   /**
    * Custom HTTP headers sent as part of the webhook request.
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Custom HTTP Headers")
   customHeaders?: Record<string>;
 
@@ -98,7 +98,7 @@ model NotificationChannelWebhook {
    *
    * Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
    */
-  @visibility("read", "create", "update")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Signing Secret")
   @pattern("^(whsec_)?[a-zA-Z0-9+/=]{32,100}$")
   @example("whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8")

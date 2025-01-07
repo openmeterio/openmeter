@@ -207,7 +207,7 @@ model EntitlementValue {
   /**
    * Whether the subject has access to the feature. Shared accross all entitlement types.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   @example(true)
   hasAccess: boolean;
 
@@ -215,28 +215,28 @@ model EntitlementValue {
    * Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   balance?: float64;
 
   /**
    * Only available for metered entitlements. Returns the total feature usage in the current period.
    */
   @example(50)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   usage?: float64;
 
   /**
    * Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
    */
   @example(0)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   overage?: float64;
 
   /**
    * Only available for static entitlements. The JSON parsable config of the entitlement.
    */
   @example("{ key: \"value\" }")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   config?: string;
 }
 
@@ -270,14 +270,14 @@ model BalanceHistoryWindow {
    * The total usage of the feature in the period.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   usage: float64;
 
   /**
    * The entitlement balance at the start of the period.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   balanceAtStart: float64;
 }
 
@@ -297,48 +297,48 @@ model GrantBurnDownHistorySegment {
    * The total usage of the grant in the period.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   usage: float64;
 
   /**
    * Overuse that wasn't covered by grants.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   overage: float64;
 
   /**
    * entitlement balance at the start of the period.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   balanceAtStart: float64;
 
   /**
    * The balance breakdown of each active grant at the start of the period: GrantID: Balance
    */
   @example(#{ `01G65Z755AFWAKHE12NY0CQ9FH`: 100 })
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   grantBalancesAtStart: Record<float64>;
 
   /**
    * The entitlement balance at the end of the period.
    */
   @example(100)
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   balanceAtEnd: float64;
 
   /**
    * The balance breakdown of each active grant at the end of the period: GrantID: Balance
    */
   @example(#{ `01G65Z755AFWAKHE12NY0CQ9FH`: 100 })
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   grantBalancesAtEnd: Record<float64>;
 
   /**
    * Which grants were actually burnt down in the period and by what amount.
    */
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   grantUsages: GrantUsageRecord[];
 }
 
