@@ -13,6 +13,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// Sync manages the synchronization of a subscription with a new spec.
+// It consists of 3 steps:
+// 1. Remove anything that's changed or got removed
+// 2. Create anything that's been changed
+// 3. Create anything that's new
+//
+// Some remarks:
+// 1. Change comparison is done on the relevant create inputs.
+// 2. Things being deleted are marked via a `touched` map.
+//
 // TODO: localize error so phase and item keys are always included (alongside subscription reference)
 // TODO (OM-1074): clean up this control flow
 func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
@@ -426,10 +436,6 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 		return s.Get(ctx, view.Subscription.NamespacedID)
 	})
 }
-
-// First, we need to check any "touched" resource and remove it, while marking it as touched
-// Then we need to create the new versions of the resource
-// Then we create completely new resources
 
 // touched is a map of touched paths (honoring sub-resource relationships)
 type touched map[subscription.PatchPath]bool
