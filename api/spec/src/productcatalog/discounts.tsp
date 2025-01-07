@@ -11,7 +11,7 @@ enum DiscountType {
 }
 
 /**
- * A discount on a price.
+ * A discount on a plan phase.
  * One of: percentage, amount, or usage.
  */
 @discriminator("type")

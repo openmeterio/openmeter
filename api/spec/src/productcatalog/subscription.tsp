@@ -9,6 +9,7 @@ import "../errors.tsp";
 import "./prices.tsp";
 import "./ratecards.tsp";
 import "./discounts.tsp";
+import "./commitments.tsp";
 import "../entitlements/main.tsp";
 
 using TypeSpec.Http;
@@ -127,10 +128,16 @@ model SubscriptionPhaseCreate {
   duration?: duration;
 
   /**
-   * The discounts on the plan.
+   * The discounts on the phase.
    */
   @summary("Discounts")
   discounts?: Discount[];
+
+  /**
+   * The commitments on the phase.
+   */
+  @summary("Commitments")
+  commitments?: Commitment[];
 
   /**
    * A locally unique identifier for the phase.
@@ -186,8 +193,8 @@ model SubscriptionItem {
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
   price:
     | FlatPriceWithPaymentTerm
-    | UnitPriceWithCommitments
-    | TieredPriceWithCommitments
+    | UnitPrice
+    | TieredPrice
     | null;
 
   /**

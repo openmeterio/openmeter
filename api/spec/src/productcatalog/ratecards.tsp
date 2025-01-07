@@ -128,8 +128,8 @@ model RateCardFlatFee {
 @oneOf
 union RateCardUsageBasedPrice {
   flat: FlatPriceWithPaymentTerm,
-  unit: UnitPriceWithCommitments,
-  tiered: TieredPriceWithCommitments,
+  unit: UnitPrice,
+  tiered: TieredPrice,
 }
 
 /**
@@ -153,39 +153,6 @@ model RateCardUsageBased {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   price: RateCardUsageBasedPrice | null;
-
-  // NOTE(chrisgacsal): discount on RateCard level going to be implemented in upcoming releases
-  // /**
-  //  * The discount of the rate card.
-  //  */
-  // @summary("Discount")
-  // discount?: Discount;
-}
-
-/**
- * Rate card override.
- */
-@friendlyName("RateCardOverride")
-@discriminator("type")
-union RateCardOverride {
-  flatFee: RateCardOverrideFlatFee,
-  usageBased: RateCardOverrideUsageBased,
-}
-
-/**
- * Flat fee rate card override.
- */
-@friendlyName("RateCardOverrideFlatFee")
-model RateCardOverrideFlatFee {
-  ...PickProperties<RateCardFlatFee, "type" | "price">;
-}
-
-/**
- * Usage-based rate card override.
- */
-@friendlyName("RateCardOverrideUsageBased")
-model RateCardOverrideUsageBased {
-  ...PickProperties<RateCardUsageBased, "type" | "price">;
 }
 
 /**
