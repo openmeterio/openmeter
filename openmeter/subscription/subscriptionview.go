@@ -260,7 +260,7 @@ func NewSubscriptionView(
 		for key, itemsByKey := range phaseSpec.ItemsByKey {
 			itemViews := make([]SubscriptionItemView, 0, len(itemsByKey))
 			for _, itemSpec := range itemsByKey {
-				specEntityInput, err := itemSpec.ToCreateSubscriptionItemEntityInput(phase, phaseCadenceBySpec, nil)
+				specEntityInput, err := itemSpec.ToCreateSubscriptionItemEntityInput(phase.NamespacedID, phaseCadenceBySpec, nil)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert item spec %+v to entity input: %w", itemSpec, err)
 				}

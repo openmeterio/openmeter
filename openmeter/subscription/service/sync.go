@@ -14,6 +14,7 @@ import (
 )
 
 // TODO: localize error so phase and item keys are always included (alongside subscription reference)
+// TODO (OM-1074): clean up this control flow
 func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
 		var def subscription.Subscription
@@ -26,10 +27,12 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 			return def, fmt.Errorf("cannot change plan")
 		}
 		if !view.Subscription.ActiveFrom.Equal(newSpec.ActiveFrom) {
-			return def, fmt.Errorf("cannot change subscription active from")
+			return def, fmt.Errorf("cannot change subscription start")
 		}
 
-		// 1. Subscription Cadence has to match
+		dirty := make(touched)
+
+		// Let's make sure the Subscription Cadence is up to date
 		if !view.Subscription.CadencedModel.Equal(models.CadencedModel{ActiveFrom: newSpec.ActiveFrom, ActiveTo: newSpec.ActiveTo}) {
 			_, err := s.SubscriptionRepo.SetEndOfCadence(ctx, view.Subscription.NamespacedID, newSpec.ActiveTo)
 			if err != nil {
@@ -37,7 +40,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 			}
 		}
 
-		// 2. Anything that's changed or was removed has to be updated
+		// 1. Let's remove anything that's changed or got removed
 		newSortedPhaseSpecs := newSpec.GetSortedPhases()
 		for _, currentPhaseView := range view.Phases {
 			// Let's try find a matching phase in the new spec
@@ -50,6 +53,8 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 				if err := s.deletePhase(ctx, currentPhaseView); err != nil {
 					return def, fmt.Errorf("failed to delete phase: %w", err)
 				}
+
+				dirty.mark(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key))
 
 				// There's nothing more to be done for this phase, so lets skip to the next one
 				continue
@@ -78,9 +83,6 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 			curr := currentPhaseView.Spec.ToCreateSubscriptionPhaseEntityInput(view.Subscription, currentPhaseView.SubscriptionPhase.ActiveFrom)
 			new := matchingPhaseFromNewSpec.ToCreateSubscriptionPhaseEntityInput(view.Subscription, newPhaseStartTime)
 
-			currentPhaseIntact := true
-			phaseToLinkToForNewResources := currentPhaseView.SubscriptionPhase
-
 			// If the phase has any changes, we need to recreate it. That means also all sub-resources of it have to be relinked.
 			if !curr.Equal(new) {
 				// This means deleting the phase with all its sub-resources
@@ -88,16 +90,15 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					return def, fmt.Errorf("failed to delete phase: %w", err)
 				}
 
-				currentPhaseIntact = false
+				dirty.mark(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key))
+
+				// The phase is deleted, there's nothing more to be done
+				continue
 			}
 
-			if !currentPhaseIntact {
-				// Then we also need to re-create the phase
-				newPhase, err := s.SubscriptionPhaseRepo.Create(ctx, new)
-				if err != nil {
-					return def, fmt.Errorf("failed to create phase: %w", err)
-				}
-				phaseToLinkToForNewResources = newPhase
+			// Sanity check, the current phase cannot be dirty
+			if dirty.isTouched(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key)) {
+				return def, fmt.Errorf("current phase is dirty but should not be")
 			}
 
 			// Now let's iterate through all items in the phase
@@ -110,14 +111,14 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 				// If no matching key is found in the new spec lets delete everything
 				if !found || len(matchingItemsByKeyFromNewSpec) == 0 {
 					for _, currentItemView := range currentItemViews {
-						if currentPhaseIntact {
-							if err := s.deleteItem(ctx, currentItemView); err != nil {
-								return def, fmt.Errorf("failed to delete item: %w", err)
-							}
+						if err := s.deleteItem(ctx, currentItemView); err != nil {
+							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
+
+						dirty.mark(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey))
 					}
 
-					// There's nothing more to be done for this item, so lets skip to the next one
+					// There's nothing more to be done for this item(key), so lets skip to the next one
 					continue
 				}
 
@@ -130,21 +131,17 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
 
+						dirty.mark(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey))
+
 						// There's nothing more to be done for this item, so lets skip to the next one
 						continue
 					}
 
 					matchingItemFromNewSpec := matchingItemsByKeyFromNewSpec[currentItemIdx]
 
-					currentItemIntact := currentPhaseIntact
-
-					// First, let's check if the entitlemnet needs to be changed. The entitlement needs to change if:
-					// 1. The item itself changes
-					// 2. Or the create input based on the entitlement changes.
-
 					// First, let's check if the item itself needs to be changed
 					curr, err := currentItemView.Spec.ToCreateSubscriptionItemEntityInput(
-						currentPhaseView.SubscriptionPhase,
+						currentPhaseView.SubscriptionPhase.NamespacedID,
 						cadenceOfCurrentPhaseBasedOnSpec,
 						convert.SafeDeRef(currentItemView.Entitlement, func(s subscription.SubscriptionEntitlement) *entitlement.Entitlement {
 							return &s.Entitlement
@@ -155,9 +152,9 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					}
 
 					// Let's try to figure out what the cadence of new items would be
-					cadenceOfThisPhaseBasedOnNewSpec, err := newSpec.GetPhaseCadence(phaseToLinkToForNewResources.Key)
+					cadenceOfThisPhaseBasedOnNewSpec, err := newSpec.GetPhaseCadence(matchingPhaseFromNewSpec.PhaseKey)
 					if err != nil {
-						return def, fmt.Errorf("failed to get cadence for phase %s: %w", phaseToLinkToForNewResources.Key, err)
+						return def, fmt.Errorf("failed to get cadence for phase %s: %w", matchingPhaseFromNewSpec.PhaseKey, err)
 					}
 
 					cadenceForItem, err := matchingItemFromNewSpec.GetCadence(cadenceOfThisPhaseBasedOnNewSpec)
@@ -165,11 +162,20 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						return def, fmt.Errorf("failed to get cadence for item %s: %w", matchingItemFromNewSpec.ItemKey, err)
 					}
 
-					newOnlyForComparisonWithInvalidEntitlement, err := matchingItemFromNewSpec.ToCreateSubscriptionItemEntityInput(
-						phaseToLinkToForNewResources,
+					// Here we don't preamptively know all the properties but fortunately all we need to know is whether they'd change or not
+					// We're prepopulating changing fields with invalid values, which is a lie and a bad method, but it's necessary for now due to the hard linking
+
+					newPhaseID := currentPhaseView.SubscriptionPhase.NamespacedID
+					if dirty.isTouched(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key)) {
+						newPhaseID = impossibleNamespacedId
+					}
+
+					newOnlyForComparisonWithInvalidProperties, err := matchingItemFromNewSpec.ToCreateSubscriptionItemEntityInput(
+						newPhaseID,
 						cadenceOfNewPhaseBasedOnSpec,
 						// Without the "new" entitlement already present we cannot properly compare the two create inputs.
 						// To work around this, we'll reuse the current entitlement for comparison.
+						// This won't cause an issue as all relevant properties of the entitlement are specced on the Item (as part of RateCard)
 						// FIXME: This is a lie
 						convert.SafeDeRef(currentItemView.Entitlement, func(s subscription.SubscriptionEntitlement) *entitlement.Entitlement {
 							return &s.Entitlement
@@ -179,21 +185,21 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						return def, fmt.Errorf("failed to convert item to entity input: %w", err)
 					}
 
-					doesItemNeedToBeChanged := !curr.Equal(newOnlyForComparisonWithInvalidEntitlement)
+					doesItemNeedToBeChanged := !curr.Equal(newOnlyForComparisonWithInvalidProperties)
 
 					if doesItemNeedToBeChanged {
-						if currentPhaseIntact {
-							// This means deleting the item with all its sub-resources
-							if err := s.deleteItem(ctx, currentItemView); err != nil {
-								return def, fmt.Errorf("failed to delete item: %w", err)
-							}
+						// This means deleting the item with all its sub-resources
+						if err := s.deleteItem(ctx, currentItemView); err != nil {
+							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
 
-						currentItemIntact = false
+						dirty.mark(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey))
+
+						// There's nothing more to be done here, so lets skip to the next one
+						continue
 					}
 
-					var entitlementForNewItem *entitlement.Entitlement
-
+					// Second, let's check if the entitlement needs to be changed
 					// Let's not pollute the scope
 					{
 						// Let's figure out what the cadence for the new entitlement should be
@@ -208,73 +214,143 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 							return def, fmt.Errorf("failed to determine entitlement input for item %s: %w", currentItemView.SubscriptionItem.Key, err)
 						}
 
-						currentEntitlementIntact := currentItemIntact && hasCurrEnt // TODO: all "intact"s can only ever set to be false, create a custom type that ensures it
+						// If there was an entitlement and now there isnt we should delete it
+						if hasCurrEnt && !hasNewEnt {
+							if err := s.EntitlementAdapter.DeleteByItemID(ctx, currentItemView.SubscriptionItem.NamespacedID); err != nil {
+								return def, fmt.Errorf("failed to delete entitlement: %w", err)
+							}
 
-						// We need to delete the current entitlement if it exists, and the new would be nil or different
-						if currentEntitlementIntact {
-							if !hasNewEnt {
+							dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemView.Entitlement.Entitlement.FeatureKey))
+
+							// nothing more to do here
+							continue
+						}
+
+						// If there was an entitlement and now its different we should delete it
+						if hasCurrEnt && hasNewEnt {
+							// Let's compare if it needs changing
+
+							// We can compare the two to see if it needs changing
+							currToCompare := currentItemView.Entitlement.ToScheduleSubscriptionEntitlementInput()
+							if err := newEntInp.CreateEntitlementInputs.Validate(); err != nil {
+								return def, fmt.Errorf("failed to validate new entitlement input: %w", err)
+							}
+
+							// We have to be careful of feature comparison, the current will have feature ID information while the new will not
+							if newEntInp.CreateEntitlementInputs.FeatureID == nil {
+								currToCompare.CreateEntitlementInputs.FeatureID = nil
+							} else if newEntInp.CreateEntitlementInputs.FeatureKey == nil {
+								currToCompare.CreateEntitlementInputs.FeatureKey = nil
+							}
+
+							if !currToCompare.Equal(newEntInp) {
 								if err := s.EntitlementAdapter.DeleteByItemID(ctx, currentItemView.SubscriptionItem.NamespacedID); err != nil {
 									return def, fmt.Errorf("failed to delete entitlement: %w", err)
 								}
 
-								currentEntitlementIntact = false
-							} else {
-								// Let's compare if it needs changing
-								// We can compare the two to see if it needs changing
-								// We have to be careful of feature comparison, the current will have feature ID informatino while the new will not
-								currToCompare := currentItemView.Entitlement.ToScheduleSubscriptionEntitlementInput()
-								if err := newEntInp.CreateEntitlementInputs.Validate(); err != nil {
-									return def, fmt.Errorf("failed to validate new entitlement input: %w", err)
-								}
+								dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemView.Entitlement.Entitlement.FeatureKey))
 
-								if newEntInp.CreateEntitlementInputs.FeatureID == nil {
-									currToCompare.CreateEntitlementInputs.FeatureID = nil
-								} else if newEntInp.CreateEntitlementInputs.FeatureKey == nil {
-									currToCompare.CreateEntitlementInputs.FeatureKey = nil
-								}
-
-								if !currToCompare.Equal(newEntInp) || doesItemNeedToBeChanged {
-									// First we need to delete the old entitlement
-									if err := s.EntitlementAdapter.DeleteByItemID(ctx, currentItemView.SubscriptionItem.NamespacedID); err != nil {
-										return def, fmt.Errorf("failed to delete entitlement: %w", err)
-									}
-
-									currentEntitlementIntact = false
-								}
+								// nothing more to do here
+								continue
 							}
-						}
-
-						// We need to create the entitlement, if any previous has already been deleted and the new one exists
-						if !currentEntitlementIntact && hasNewEnt {
-							sEnt, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, newEntInp)
-							if err != nil {
-								return def, fmt.Errorf("failed to create entitlement: %w", err)
-							}
-
-							entitlementForNewItem = &sEnt.Entitlement
-						}
-					}
-
-					if !currentItemIntact {
-						// Then we also need to recreate the item
-						new, err := matchingItemFromNewSpec.ToCreateSubscriptionItemEntityInput(
-							phaseToLinkToForNewResources,
-							cadenceOfNewPhaseBasedOnSpec,
-							entitlementForNewItem,
-						)
-						if err != nil {
-							return def, fmt.Errorf("failed to convert item to entity input: %w", err)
-						}
-
-						if _, err := s.SubscriptionItemRepo.Create(ctx, new); err != nil {
-							return def, fmt.Errorf("failed to create item: %w", err)
 						}
 					}
 				}
 			}
 		}
 
-		// 3. Now, we have to check for any new phases and items as those were left out by the previous logic
+		// 2. Let's create anything that's been changed
+		for _, currentPhaseView := range view.Phases {
+			// Let's try find a matching phase in the new spec
+			matchingPhaseFromNewSpec, found := lo.Find(newSortedPhaseSpecs, func(s *subscription.SubscriptionPhaseSpec) bool {
+				return s.PhaseKey == currentPhaseView.SubscriptionPhase.Key
+			})
+
+			if !found {
+				// If the phase wasn't found there's nothing to create
+				continue
+			}
+
+			// Sanity check
+			if matchingPhaseFromNewSpec == nil {
+				return def, fmt.Errorf("failed to find matching phase in new spec but no error was returned")
+			}
+
+			newPhaseCadence, err := newSpec.GetPhaseCadence(matchingPhaseFromNewSpec.PhaseKey)
+			if err != nil {
+				return def, fmt.Errorf("failed to get cadence for phase %s: %w", matchingPhaseFromNewSpec.PhaseKey, err)
+			}
+
+			// If the phase got deleted, we can create it as a whole
+			if dirty.isTouched(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key)) {
+				if _, err := s.createPhase(ctx, view.Customer, *matchingPhaseFromNewSpec, view.Subscription, newPhaseCadence); err != nil {
+					return def, fmt.Errorf("failed to create phase: %w", err)
+				}
+
+				// There's nothing more to be done for this phase, so lets skip to the next one
+				continue
+			}
+
+			// Now let's check each of the items in the phase
+			for currentItemViewsKey, currentItemViews := range currentPhaseView.ItemsByKey {
+				// Let's try find a matching item in the new spec
+				// Here as we do an update, we rely on the previously verified integrity of both view and spec
+				// Due to this, we use a simple matching based on the index of the item under the given key
+				matchingItemsByKeyFromNewSpec, found := matchingPhaseFromNewSpec.ItemsByKey[currentItemViewsKey]
+				if !found {
+					// If the item wasn't found there's nothing to create
+					continue
+				}
+
+				for currentItemIdx, currentItemView := range currentItemViews {
+					// Let's get the item with the same index from the new spec
+					if currentItemIdx >= len(matchingItemsByKeyFromNewSpec) {
+						// We went out of bounds, these items are not present in the new spec so we can just break
+
+						break
+					}
+
+					matchingItemFromNewSpec := matchingItemsByKeyFromNewSpec[currentItemIdx]
+					itemCadence, err := matchingItemFromNewSpec.GetCadence(newPhaseCadence)
+					if err != nil {
+						return def, fmt.Errorf("failed to get cadence for item %s: %w", matchingItemFromNewSpec.ItemKey, err)
+					}
+
+					// If the item got deleted, we can create it as a whole
+					if dirty.isTouched(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey)) {
+						if _, err := s.createItem(
+							ctx,
+							view.Customer,
+							matchingItemFromNewSpec,
+							currentPhaseView.SubscriptionPhase,
+							itemCadence,
+						); err != nil {
+							return def, fmt.Errorf("failed to create item: %w", err)
+						}
+
+						// There's nothing more to be done for this item, so lets skip to the next one
+						continue
+					}
+
+					// Finally, let's check the entitlement of it
+					newEntInp, hasNewEnt, err := matchingItemFromNewSpec.ToScheduleSubscriptionEntitlementInput(
+						view.Customer,
+						itemCadence, // entitlement cadence will be same as item cadence
+					)
+					if err != nil {
+						return def, fmt.Errorf("failed to determine entitlement input for item %s: %w", currentItemView.SubscriptionItem.Key, err)
+					}
+
+					if hasNewEnt && dirty.isTouched(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemView.Entitlement.Entitlement.FeatureKey)) {
+						if _, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, newEntInp); err != nil {
+							return def, fmt.Errorf("failed to schedule entitlement for item %s: %w", currentItemView.SubscriptionItem.Key, err)
+						}
+					}
+				}
+			}
+		}
+
+		// 3. Finally, let's create anything that's new
 		for _, phase := range newSpec.GetSortedPhases() {
 			// Sanity check
 			if phase == nil {
@@ -349,4 +425,41 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 		// 4. Finally we're done with syncing everything, we should just re-fetch the subscription
 		return s.Get(ctx, view.Subscription.NamespacedID)
 	})
+}
+
+// First, we need to check any "touched" resource and remove it, while marking it as touched
+// Then we need to create the new versions of the resource
+// Then we create completely new resources
+
+// touched is a map of touched paths (honoring sub-resource relationships)
+type touched map[subscription.PatchPath]bool
+
+// Mark a given path as touched
+func (t touched) mark(key subscription.PatchPath) {
+	t[key] = true
+}
+
+// Check if a given path has been touched
+// If path X has been touched, then all sub-resources of X have been touched
+func (t touched) isTouched(key subscription.PatchPath) bool {
+	for k := range t {
+		// IsParentOf check returns true for identity as well
+		if k.IsParentOf(key) {
+			return true
+		}
+	}
+	return false
+}
+
+// NewEntitlementPath returns an invalid PatchPath thats still usable for IsParentOf checks
+// FIXME: this is a hack. For instance, is featureKey were to contain `/` it would completely break (though that exact scenario is otherwise prohibited)
+func NewEntitlementPath(phaseKey, itemKey, featureKey string) subscription.PatchPath {
+	itemPath := subscription.NewItemPath(phaseKey, itemKey)
+	return subscription.PatchPath(fmt.Sprintf("%s/entitlements/%s", itemPath, featureKey))
+}
+
+// an ID that can never occur in normal control flow
+var impossibleNamespacedId = models.NamespacedID{
+	ID:        "impossible",
+	Namespace: "impossible",
 }

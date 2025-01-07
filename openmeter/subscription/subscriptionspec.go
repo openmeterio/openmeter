@@ -421,7 +421,7 @@ func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (mod
 }
 
 func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
-	phase SubscriptionPhase,
+	phaseID models.NamespacedID,
 	phaseCadence models.CadencedModel,
 	entitlement *entitlement.Entitlement,
 ) (CreateSubscriptionItemEntityInput, error) {
@@ -432,12 +432,12 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 
 	res := CreateSubscriptionItemEntityInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: phase.Namespace,
+			Namespace: phaseID.Namespace,
 		},
 		CadencedModel:                          itemCadence,
 		ActiveFromOverrideRelativeToPhaseStart: s.CreateSubscriptionItemCustomerInput.ActiveFromOverrideRelativeToPhaseStart,
 		ActiveToOverrideRelativeToPhaseStart:   s.CreateSubscriptionItemCustomerInput.ActiveToOverrideRelativeToPhaseStart,
-		PhaseID:                                phase.ID,
+		PhaseID:                                phaseID.ID,
 		Key:                                    s.ItemKey,
 		RateCard:                               s.CreateSubscriptionItemPlanInput.RateCard,
 		Name:                                   s.RateCard.Name,

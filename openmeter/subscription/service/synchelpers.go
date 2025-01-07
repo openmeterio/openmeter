@@ -94,7 +94,7 @@ func (s *service) createItem(
 
 		// Second, let's create the item itself
 		itemEntityInput, err := itemSpec.ToCreateSubscriptionItemEntityInput(
-			phase,
+			phase.NamespacedID,
 			phaseCadence,
 			newEnt,
 		)
