@@ -43,6 +43,10 @@ func TestCustomer(t *testing.T) {
 			testSuite.TestUpdate(ctx, t)
 		})
 
+		t.Run("TestUpdateWithSubscriptionPresent", func(t *testing.T) {
+			testSuite.TestUpdateWithSubscriptionPresent(ctx, t)
+		})
+
 		t.Run("TestDelete", func(t *testing.T) {
 			testSuite.TestDelete(ctx, t)
 		})

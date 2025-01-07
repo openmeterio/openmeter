@@ -88,7 +88,7 @@ func TestEdit(t *testing.T) {
 			clock.SetTime(currentTime)
 
 			dbDeps := subscriptiontestutils.SetupDBDeps(t)
-			defer dbDeps.Cleanup()
+			defer dbDeps.Cleanup(t)
 
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			service := services.Service

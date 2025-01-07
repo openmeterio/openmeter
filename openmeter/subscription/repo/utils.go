@@ -7,7 +7,7 @@ import (
 	db_subscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 )
 
-func subscriptionActiveAfter(at time.Time) []predicate.Subscription {
+func SubscriptionActiveAfter(at time.Time) []predicate.Subscription {
 	return []predicate.Subscription{
 		db_subscription.Or(
 			db_subscription.ActiveToIsNil(),
@@ -16,7 +16,7 @@ func subscriptionActiveAfter(at time.Time) []predicate.Subscription {
 	}
 }
 
-func subscriptionNotDeletedAt(at time.Time) []predicate.Subscription {
+func SubscriptionNotDeletedAt(at time.Time) []predicate.Subscription {
 	return []predicate.Subscription{
 		db_subscription.Or(
 			db_subscription.DeletedAtGT(at),
