@@ -385,6 +385,7 @@ func MapAPISubscriptionToAPIExpanded(sub api.Subscription) api.SubscriptionExpan
 		Phases:      nil,
 		Plan:        sub.Plan,
 		UpdatedAt:   sub.UpdatedAt,
+		Status:      sub.Status,
 	}
 }
 

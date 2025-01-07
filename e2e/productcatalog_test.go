@@ -304,6 +304,7 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, subscription.Id)
 
 		assert.Equal(t, subscriptionId, *subscription.Id)
+		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
 	})
 
 	t.Run("Should edit the subscription", func(t *testing.T) {
