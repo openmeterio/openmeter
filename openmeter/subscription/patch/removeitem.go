@@ -43,7 +43,7 @@ func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subsc
 	phaseStartTime, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 
 	if items, exists := phase.ItemsByKey[r.ItemKey]; !exists || len(items) == 0 {
-		return &subscription.PatchConflictError{Msg: fmt.Sprintf("items for key %s doesn't exists in phase %s", r.ItemKey, r.PhaseKey)}
+		return &subscription.PatchValidationError{Msg: fmt.Sprintf("items for key %s doesn't exists in phase %s", r.ItemKey, r.PhaseKey)}
 	}
 
 	// Checks we need:
