@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -652,6 +653,21 @@ func (bic *BillingInvoiceCreate) SetPaymentApp(a *App) *BillingInvoiceCreate {
 	return bic.SetPaymentAppID(a.ID)
 }
 
+// AddInvoiceDiscountIDs adds the "invoice_discounts" edge to the BillingInvoiceDiscount entity by IDs.
+func (bic *BillingInvoiceCreate) AddInvoiceDiscountIDs(ids ...string) *BillingInvoiceCreate {
+	bic.mutation.AddInvoiceDiscountIDs(ids...)
+	return bic
+}
+
+// AddInvoiceDiscounts adds the "invoice_discounts" edges to the BillingInvoiceDiscount entity.
+func (bic *BillingInvoiceCreate) AddInvoiceDiscounts(b ...*BillingInvoiceDiscount) *BillingInvoiceCreate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return bic.AddInvoiceDiscountIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (bic *BillingInvoiceCreate) Mutation() *BillingInvoiceMutation {
 	return bic.mutation
@@ -1186,6 +1202,22 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.PaymentAppID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.InvoiceDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

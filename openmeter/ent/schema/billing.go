@@ -405,6 +405,9 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_lines").
 			Field("subscription_item_id").
 			Unique(),
+		edge.From("invoice_discounts", BillingInvoiceDiscount.Type).
+			Ref("lines").
+			Unique(),
 	}
 }
 
@@ -522,6 +525,62 @@ func (BillingInvoiceLineDiscount) Edges() []ent.Edge {
 			Field("line_id").
 			Unique().
 			Required(),
+	}
+}
+
+type BillingInvoiceDiscount struct {
+	ent.Schema
+}
+
+func (BillingInvoiceDiscount) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingInvoiceDiscount) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("invoice_id").
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}),
+
+		// TODO: name for better alignmentwith other parts
+		field.String("description").
+			Optional().
+			Nillable(),
+
+		field.Enum("type").
+			GoType(billing.DiscountType("")),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+
+		field.Strings("line_ids").
+			Optional(),
+	}
+}
+
+func (BillingInvoiceDiscount) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id"),
+	}
+}
+
+func (BillingInvoiceDiscount) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("invoice", BillingInvoice.Type).
+			Ref("invoice_discounts").
+			Field("invoice_id").
+			Unique().
+			Required(),
+		edge.To("lines", BillingInvoiceLine.Type).
+			StorageKey(edge.Column("line_ids")).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 
@@ -713,6 +772,8 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Unique().
 			Immutable().
 			Required(),
+		edge.To("invoice_discounts", BillingInvoiceDiscount.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

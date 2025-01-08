@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
@@ -40,6 +41,7 @@ type BillingInvoiceLineQuery struct {
 	withSubscription      *SubscriptionQuery
 	withSubscriptionPhase *SubscriptionPhaseQuery
 	withSubscriptionItem  *SubscriptionItemQuery
+	withInvoiceDiscounts  *BillingInvoiceDiscountQuery
 	withFKs               bool
 	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -276,6 +278,28 @@ func (bilq *BillingInvoiceLineQuery) QuerySubscriptionItem() *SubscriptionItemQu
 	return query
 }
 
+// QueryInvoiceDiscounts chains the current query on the "invoice_discounts" edge.
+func (bilq *BillingInvoiceLineQuery) QueryInvoiceDiscounts() *BillingInvoiceDiscountQuery {
+	query := (&BillingInvoiceDiscountClient{config: bilq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := bilq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := bilq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(billinginvoicediscount.Table, billinginvoicediscount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.InvoiceDiscountsTable, billinginvoiceline.InvoiceDiscountsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(bilq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first BillingInvoiceLine entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceLine was found.
 func (bilq *BillingInvoiceLineQuery) First(ctx context.Context) (*BillingInvoiceLine, error) {
@@ -477,6 +501,7 @@ func (bilq *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		withSubscription:      bilq.withSubscription.Clone(),
 		withSubscriptionPhase: bilq.withSubscriptionPhase.Clone(),
 		withSubscriptionItem:  bilq.withSubscriptionItem.Clone(),
+		withInvoiceDiscounts:  bilq.withInvoiceDiscounts.Clone(),
 		// clone intermediate query.
 		sql:  bilq.sql.Clone(),
 		path: bilq.path,
@@ -582,6 +607,17 @@ func (bilq *BillingInvoiceLineQuery) WithSubscriptionItem(opts ...func(*Subscrip
 	return bilq
 }
 
+// WithInvoiceDiscounts tells the query-builder to eager-load the nodes that are connected to
+// the "invoice_discounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (bilq *BillingInvoiceLineQuery) WithInvoiceDiscounts(opts ...func(*BillingInvoiceDiscountQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceDiscountClient{config: bilq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	bilq.withInvoiceDiscounts = query
+	return bilq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -661,7 +697,7 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = bilq.withFKs
 		_spec       = bilq.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			bilq.withBillingInvoice != nil,
 			bilq.withFlatFeeLine != nil,
 			bilq.withUsageBasedLine != nil,
@@ -671,9 +707,10 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 			bilq.withSubscription != nil,
 			bilq.withSubscriptionPhase != nil,
 			bilq.withSubscriptionItem != nil,
+			bilq.withInvoiceDiscounts != nil,
 		}
 	)
-	if bilq.withFlatFeeLine != nil || bilq.withUsageBasedLine != nil {
+	if bilq.withFlatFeeLine != nil || bilq.withUsageBasedLine != nil || bilq.withInvoiceDiscounts != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -757,6 +794,12 @@ func (bilq *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := bilq.withSubscriptionItem; query != nil {
 		if err := bilq.loadSubscriptionItem(ctx, query, nodes, nil,
 			func(n *BillingInvoiceLine, e *SubscriptionItem) { n.Edges.SubscriptionItem = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := bilq.withInvoiceDiscounts; query != nil {
+		if err := bilq.loadInvoiceDiscounts(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *BillingInvoiceDiscount) { n.Edges.InvoiceDiscounts = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1041,6 +1084,38 @@ func (bilq *BillingInvoiceLineQuery) loadSubscriptionItem(ctx context.Context, q
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "subscription_item_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (bilq *BillingInvoiceLineQuery) loadInvoiceDiscounts(ctx context.Context, query *BillingInvoiceDiscountQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingInvoiceDiscount)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingInvoiceLine)
+	for i := range nodes {
+		if nodes[i].line_ids == nil {
+			continue
+		}
+		fk := *nodes[i].line_ids
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billinginvoicediscount.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "line_ids" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
