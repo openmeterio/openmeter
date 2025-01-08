@@ -78,6 +78,7 @@ require (
 	golang.org/x/net v0.33.0
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.1
+	gotest.tools/gotestsum v1.12.0
 	k8s.io/apimachinery v0.32.0
 	k8s.io/client-go v0.32.0
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
@@ -85,6 +86,9 @@ require (
 )
 
 require (
+	github.com/bitfield/gotestdox v0.2.2 // indirect
+	github.com/dnephin/pflag v1.0.7 // indirect
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/invopop/validation v0.8.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect

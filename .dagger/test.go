@@ -26,7 +26,7 @@ func (m *Openmeter) Test() *dagger.Container {
 		WithEnvVariable("SVIX_JWT_SECRET", SvixJWTSingingSecret).
 		WithServiceBinding("postgres", postgres.Service()).
 		WithServiceBinding("svix", svix.Service()).
-		Exec([]string{"go", "test", "-tags", "musl", "-v", "./..."})
+		Exec([]string{"go", "run", "-mod=mod", "gotest.tools/gotestsum", "--", "-tags", "musl", "-v", "./..."})
 }
 
 func (m *Openmeter) QuickstartTest(
