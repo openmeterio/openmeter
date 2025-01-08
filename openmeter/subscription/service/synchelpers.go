@@ -36,7 +36,7 @@ func (s *service) createPhase(
 		for key, itemSpecs := range phaseSpec.ItemsByKey {
 			itemsByKey := make([]subscription.SubscriptionItemView, 0, len(itemSpecs))
 			for _, itemSpec := range itemSpecs {
-				item, err := s.createItem(ctx, cust, itemSpec, phase, cadence)
+				item, err := s.createItem(ctx, cust, *itemSpec, phase, cadence)
 				if err != nil {
 					return res, fmt.Errorf("failed to create item: %w", err)
 				}

@@ -324,6 +324,10 @@ var _ models.Equaler[RateCards] = (*RateCards)(nil)
 
 type RateCards []RateCard
 
+func (c RateCards) At(idx int) RateCard {
+	return c[idx]
+}
+
 func (c RateCards) Equal(v RateCards) bool {
 	if len(c) != len(v) {
 		return false

@@ -55,10 +55,6 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 
 	phaseStartTime, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 
-	if _, exists := phase.ItemsByKey[a.ItemKey]; exists {
-		return &subscription.PatchConflictError{Msg: fmt.Sprintf("item %s already exists in phase %s", a.ItemKey, a.PhaseKey)}
-	}
-
 	// Checks we need:
 
 	// 1. You cannot add items to previous phases
@@ -111,7 +107,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 	// Finally, let's try to add it to the phase
 
 	if phase.ItemsByKey[a.ItemKey] == nil {
-		phase.ItemsByKey[a.ItemKey] = make([]subscription.SubscriptionItemSpec, 0)
+		phase.ItemsByKey[a.ItemKey] = make([]*subscription.SubscriptionItemSpec, 0)
 	}
 
 	// If it's added to the current phase, we need to close the activity of any current item if present
@@ -154,6 +150,6 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 
 	// Finally, we simply add it as the last Spec for its key in the phase
 
-	phase.ItemsByKey[a.ItemKey] = append(phase.ItemsByKey[a.ItemKey], a.CreateInput)
+	phase.ItemsByKey[a.ItemKey] = append(phase.ItemsByKey[a.ItemKey], &a.CreateInput)
 	return nil
 }

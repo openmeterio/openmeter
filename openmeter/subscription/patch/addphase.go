@@ -102,7 +102,7 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 	spec.Phases[a.PhaseKey] = &subscription.SubscriptionPhaseSpec{
 		CreateSubscriptionPhasePlanInput:     a.CreateInput.CreateSubscriptionPhasePlanInput,
 		CreateSubscriptionPhaseCustomerInput: a.CreateInput.CreateSubscriptionPhaseCustomerInput,
-		ItemsByKey:                           make(map[string][]subscription.SubscriptionItemSpec),
+		ItemsByKey:                           make(map[string][]*subscription.SubscriptionItemSpec),
 	}
 
 	return nil

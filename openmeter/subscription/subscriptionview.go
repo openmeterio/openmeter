@@ -302,7 +302,7 @@ func NewSubscriptionView(
 
 				itemView := SubscriptionItemView{
 					SubscriptionItem: matchingItem,
-					Spec:             itemSpec,
+					Spec:             *itemSpec,
 					Entitlement:      subEnt,
 				}
 

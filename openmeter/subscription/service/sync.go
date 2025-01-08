@@ -331,7 +331,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if _, err := s.createItem(
 							ctx,
 							view.Customer,
-							matchingItemFromNewSpec,
+							*matchingItemFromNewSpec,
 							currentPhaseView.SubscriptionPhase,
 							itemCadence,
 						); err != nil {
@@ -404,7 +404,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if _, err := s.createItem(
 							ctx,
 							view.Customer,
-							item,
+							*item,
 							matchingPhaseInCurrentView.SubscriptionPhase,
 							itemCadence,
 						); err != nil {
@@ -421,7 +421,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if _, err := s.createItem(
 							ctx,
 							view.Customer,
-							item,
+							*item,
 							matchingPhaseInCurrentView.SubscriptionPhase,
 							itemCadence,
 						); err != nil {
