@@ -155,7 +155,27 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		return def, err
 	}
 
-	return s.sync(ctx, view, newSpec)
+	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		subs, err := s.sync(ctx, view, newSpec)
+		if err != nil {
+			return subs, err
+		}
+
+		// Let's fetch the view for event generation
+		updatedView, err := s.GetView(ctx, subs.NamespacedID)
+		if err != nil {
+			return subs, err
+		}
+
+		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
+			UpdatedView: updatedView,
+		})
+		if err != nil {
+			return subs, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return subs, nil
+	})
 }
 
 func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
@@ -185,6 +205,14 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 		// Then let's delete the subscription itself
 		if err := s.SubscriptionRepo.Delete(ctx, view.Subscription.NamespacedID); err != nil {
 			return fmt.Errorf("failed to delete subscription: %w", err)
+		}
+
+		// Let's publish the event for the deletion
+		err = s.Publisher.Publish(ctx, subscription.DeletedEvent{
+			SubscriptionView: view,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to publish event: %w", err)
 		}
 
 		return nil
@@ -228,7 +256,7 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return sub, err
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
+		err = s.Publisher.Publish(ctx, subscription.CancelledEvent{
 			SubscriptionView: view,
 		})
 		if err != nil {
@@ -276,7 +304,7 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 			return sub, err
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
+		err = s.Publisher.Publish(ctx, subscription.ContinuedEvent{
 			SubscriptionView: view,
 		})
 		if err != nil {
