@@ -48,6 +48,30 @@ func (s CreatedEvent) Validate() error {
 	return viewEvent(s).Validate()
 }
 
+type DeletedEvent viewEvent
+
+var (
+	_ marshaler.Event = CreatedEvent{}
+
+	subscriptionDeletedEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "subscription.deleted",
+		Version:   "v1",
+	})
+)
+
+func (s DeletedEvent) EventName() string {
+	return subscriptionDeletedEventName
+}
+
+func (s DeletedEvent) EventMetadata() metadata.EventMetadata {
+	return viewEvent(s).EventMetadata()
+}
+
+func (s DeletedEvent) Validate() error {
+	return viewEvent(s).Validate()
+}
+
 type CancelledEvent viewEvent
 
 var (
@@ -104,15 +128,15 @@ type UpdatedEvent struct {
 var (
 	_ marshaler.Event = UpdatedEvent{}
 
-	subscriptionEditedEventName = metadata.GetEventName(metadata.EventType{
+	subscriptionUpdatedEventName = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,
-		Name:      "subscription.edited",
+		Name:      "subscription.updated",
 		Version:   "v1",
 	})
 )
 
 func (s UpdatedEvent) EventName() string {
-	return subscriptionEditedEventName
+	return subscriptionUpdatedEventName
 }
 
 func (s UpdatedEvent) EventMetadata() metadata.EventMetadata {
