@@ -307,7 +307,7 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 
 			return DeleteInvoiceResponse{}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteInvoiceResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteInvoiceResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("DeleteInvoice"),
