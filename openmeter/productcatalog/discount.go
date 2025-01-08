@@ -193,11 +193,7 @@ func (f PercentageDiscount) Validate() error {
 		errs = append(errs, errors.New("discount percentage must be between 0 and 100"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ models.Equaler[Discounts] = (*Discounts)(nil)

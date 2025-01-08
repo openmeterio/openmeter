@@ -136,15 +136,11 @@ func (r RateCardMeta) Validate() error {
 
 	if r.Feature != nil {
 		if r.Key != r.Feature.Key {
-			errs = append(errs, errors.New("Feature key mismatch"))
+			errs = append(errs, errors.New("invalid Feature: key mismatch"))
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ RateCard = (*FlatFeeRateCard)(nil)
@@ -228,11 +224,7 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ RateCard = (*UsageBasedRateCard)(nil)
@@ -313,11 +305,7 @@ func (r *UsageBasedRateCard) Validate() error {
 		errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ models.Equaler[RateCards] = (*RateCards)(nil)

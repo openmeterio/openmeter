@@ -31,7 +31,11 @@ func TestStripeTaxConfig(t *testing.T) {
 
 	for _, test := range tests {
 		err := test.TaxConfig.Validate()
-		assert.Equal(t, test.ExpectedError, err)
+		if test.ExpectedError == nil {
+			assert.NoError(t, err)
+		} else {
+			assert.EqualError(t, err, test.ExpectedError.Error())
+		}
 	}
 }
 

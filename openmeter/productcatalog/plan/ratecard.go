@@ -51,11 +51,7 @@ func (m RateCardManagedFields) Validate() error {
 		errs = append(errs, errors.New("phaseID must not be empty"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return productcatalog.NewValidationError(errors.Join(errs...))
 }
 
 type ManagedRateCard interface {
@@ -177,11 +173,7 @@ func (r *FlatFeeRateCard) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return productcatalog.NewValidationError(errors.Join(errs...))
 }
 
 func (r *FlatFeeRateCard) Merge(v productcatalog.RateCard) error {
@@ -280,11 +272,7 @@ func (r *UsageBasedRateCard) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return productcatalog.NewValidationError(errors.Join(errs...))
 }
 
 func (r *UsageBasedRateCard) Merge(v productcatalog.RateCard) error {

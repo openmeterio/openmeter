@@ -73,11 +73,7 @@ func (p PhaseMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("the Duration period must not be negative"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var (
@@ -145,9 +141,5 @@ func (p Phase) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
