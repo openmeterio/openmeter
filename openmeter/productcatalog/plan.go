@@ -55,11 +55,7 @@ func (p Plan) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 // ValidForCreatingSubscriptions checks if the Plan is valid for creating Subscriptions, a stricter version of Validate
@@ -158,11 +154,7 @@ func (p PlanMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid Name: must not be empty"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 // Equal returns true if the two PlanMetas are equal.
@@ -213,7 +205,7 @@ type EffectivePeriod struct {
 
 func (p EffectivePeriod) Validate() error {
 	if p.Status() == InvalidStatus {
-		return fmt.Errorf("invalid effective time range: to is before from")
+		return NewValidationError(fmt.Errorf("invalid effective time range: to is before from"))
 	}
 
 	return nil

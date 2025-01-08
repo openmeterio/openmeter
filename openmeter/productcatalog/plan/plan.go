@@ -36,11 +36,7 @@ func (p Plan) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return productcatalog.NewValidationError(errors.Join(errs...))
 }
 
 func (p Plan) AsProductCatalogPlan(at time.Time) (productcatalog.Plan, error) {

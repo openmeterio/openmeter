@@ -6,8 +6,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -32,7 +32,7 @@ func errorEncoder() httptransport.ErrorEncoder {
 			// FIXME: dependency errors should not have to be matched everywhere
 			// dependency: plan
 			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusBadRequest, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[plan.ValidationError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*productcatalog.ValidationError](ctx, http.StatusBadRequest, err, w) ||
 			// dependency: customer
 			commonhttp.HandleErrorIfTypeMatches[customerentity.NotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customerentity.ValidationError](ctx, http.StatusBadRequest, err, w) ||

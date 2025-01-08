@@ -47,11 +47,7 @@ func (m PhaseManagedFields) Validate() error {
 		errs = append(errs, errors.New("planID must not be empty"))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return productcatalog.NewValidationError(errors.Join(errs...))
 }
 
 type ManagedPhase interface {
@@ -102,11 +98,7 @@ func (p Phase) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return productcatalog.NewValidationError(errors.Join(errs...))
 }
 
 func (p Phase) AsProductCatalogPhase() productcatalog.Phase {

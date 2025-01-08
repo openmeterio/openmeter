@@ -308,11 +308,7 @@ func (f *FlatPrice) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid PaymentTerm: %s", f.PaymentTerm))
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 type UnitPrice struct {
@@ -389,11 +385,7 @@ func (u *UnitPrice) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 const (
@@ -539,11 +531,7 @@ func (t *TieredPrice) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 func (t *TieredPrice) WithSortedTiers() TieredPrice {
@@ -610,11 +598,7 @@ func (p PriceTier) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var _ models.Validator = (*PriceTierFlatPrice)(nil)
@@ -626,7 +610,7 @@ type PriceTierFlatPrice struct {
 
 func (f PriceTierFlatPrice) Validate() error {
 	if f.Amount.IsNegative() {
-		return errors.New("the Amount must not be negative")
+		return NewValidationError(errors.New("the Amount must not be negative"))
 	}
 
 	return nil
@@ -641,7 +625,7 @@ type PriceTierUnitPrice struct {
 
 func (u PriceTierUnitPrice) Validate() error {
 	if u.Amount.IsNegative() {
-		return errors.New("the Amount must not be negative")
+		return NewValidationError(errors.New("the Amount must not be negative"))
 	}
 
 	return nil

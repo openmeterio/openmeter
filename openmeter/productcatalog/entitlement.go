@@ -308,7 +308,7 @@ func (t *MeteredEntitlementTemplate) Equal(v *MeteredEntitlementTemplate) bool {
 
 func (t *MeteredEntitlementTemplate) Validate() error {
 	if t.IssueAfterResetPriority != nil && t.IssueAfterReset == nil {
-		return errors.New("IssueAfterReset is required for IssueAfterResetPriority")
+		return NewValidationError(errors.New("IssueAfterReset is required for IssueAfterResetPriority"))
 	}
 
 	return nil
@@ -348,7 +348,7 @@ func (t *StaticEntitlementTemplate) Equal(v *StaticEntitlementTemplate) bool {
 func (t *StaticEntitlementTemplate) Validate() error {
 	if len(t.Config) > 0 {
 		if ok := json.Valid(t.Config); !ok {
-			return errors.New("invalid JSON in config")
+			return NewValidationError(errors.New("invalid JSON in config"))
 		}
 	}
 

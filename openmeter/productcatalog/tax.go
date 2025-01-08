@@ -32,11 +32,7 @@ func (c *TaxConfig) Validate() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return NewValidationError(errors.Join(errs...))
 }
 
 var StripeProductTaxCodeRegexp = regexp.MustCompile(`^txcd_\d{8}$`)
@@ -62,7 +58,7 @@ func (s *StripeTaxConfig) Equal(v *StripeTaxConfig) bool {
 
 func (s *StripeTaxConfig) Validate() error {
 	if s.Code != "" && !StripeProductTaxCodeRegexp.MatchString(s.Code) {
-		return fmt.Errorf("invalid product tax code: %s", s.Code)
+		return NewValidationError(fmt.Errorf("invalid product tax code: %s", s.Code))
 	}
 
 	return nil
