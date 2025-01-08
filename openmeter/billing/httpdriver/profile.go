@@ -151,7 +151,7 @@ func (h *handler) DeleteProfile() DeleteProfileHandler {
 
 			return DeleteProfileResponse{}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteProfileResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteProfileResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("DeleteBillingProfile"),

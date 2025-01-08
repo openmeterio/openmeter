@@ -166,7 +166,7 @@ func (h *handler) DeleteLine() DeleteLineHandler {
 
 			return struct{}{}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[struct{}](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[struct{}](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("DeleteInvoiceLine"),
