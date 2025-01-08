@@ -179,6 +179,20 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceCollectionMethod(bm
 	return bcoc
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceProgressiveBilling(b bool) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetInvoiceProgressiveBilling(b)
+	return bcoc
+}
+
+// SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceProgressiveBilling(b *bool) *BillingCustomerOverrideCreate {
+	if b != nil {
+		bcoc.SetInvoiceProgressiveBilling(*b)
+	}
+	return bcoc
+}
+
 // SetID sets the "id" field.
 func (bcoc *BillingCustomerOverrideCreate) SetID(s string) *BillingCustomerOverrideCreate {
 	bcoc.mutation.SetID(s)
@@ -359,6 +373,10 @@ func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverrid
 	if value, ok := bcoc.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 		_node.InvoiceCollectionMethod = &value
+	}
+	if value, ok := bcoc.mutation.InvoiceProgressiveBilling(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+		_node.InvoiceProgressiveBilling = &value
 	}
 	if nodes := bcoc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -602,6 +620,24 @@ func (u *BillingCustomerOverrideUpsert) ClearInvoiceCollectionMethod() *BillingC
 	return u
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (u *BillingCustomerOverrideUpsert) SetInvoiceProgressiveBilling(v bool) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldInvoiceProgressiveBilling, v)
+	return u
+}
+
+// UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateInvoiceProgressiveBilling() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldInvoiceProgressiveBilling)
+	return u
+}
+
+// ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
+func (u *BillingCustomerOverrideUpsert) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldInvoiceProgressiveBilling)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -838,6 +874,27 @@ func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceCollectionMethod() *Bill
 func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceCollectionMethod() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearInvoiceCollectionMethod()
+	})
+}
+
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceProgressiveBilling(v bool) *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetInvoiceProgressiveBilling(v)
+	})
+}
+
+// UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceProgressiveBilling() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateInvoiceProgressiveBilling()
+	})
+}
+
+// ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearInvoiceProgressiveBilling()
 	})
 }
 
@@ -1244,6 +1301,27 @@ func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceCollectionMethod() *Bil
 func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceCollectionMethod() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearInvoiceCollectionMethod()
+	})
+}
+
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceProgressiveBilling(v bool) *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetInvoiceProgressiveBilling(v)
+	})
+}
+
+// UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceProgressiveBilling() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateInvoiceProgressiveBilling()
+	})
+}
+
+// ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearInvoiceProgressiveBilling()
 	})
 }
 

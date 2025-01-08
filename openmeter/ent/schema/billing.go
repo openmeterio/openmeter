@@ -125,6 +125,8 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")),
+
+		field.Bool("invoice_progressive_billing"),
 	}
 }
 
@@ -202,6 +204,10 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 
 		field.Enum("invoice_collection_method").
 			GoType(billing.CollectionMethod("")).
+			Optional().
+			Nillable(),
+
+		field.Bool("invoice_progressive_billing").
 			Optional().
 			Nillable(),
 	}

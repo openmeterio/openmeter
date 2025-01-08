@@ -396,9 +396,10 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 		},
 
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance: lo.FromPtrOr(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
-			DraftPeriod: draftPeriod,
-			DueAfter:    dueAfter,
+			AutoAdvance:        lo.FromPtrOr(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
+			DraftPeriod:        draftPeriod,
+			DueAfter:           dueAfter,
+			ProgressiveBilling: lo.FromPtrOr(i.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
 		},
 
 		Payment: billing.PaymentConfig{
@@ -586,9 +587,10 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance: lo.ToPtr(c.Invoicing.AutoAdvance),
-			DraftPeriod: lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
-			DueAfter:    lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			AutoAdvance:        lo.ToPtr(c.Invoicing.AutoAdvance),
+			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
@@ -607,9 +609,10 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflo
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance: lo.ToPtr(c.Invoicing.AutoAdvance),
-			DraftPeriod: lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
-			DueAfter:    lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			AutoAdvance:        lo.ToPtr(c.Invoicing.AutoAdvance),
+			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{

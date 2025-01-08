@@ -3,7 +3,6 @@ package lineservice
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -66,7 +65,16 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 	return nil
 }
 
-func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (*billing.Period, error) {
+func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedAsOfInput) (*billing.Period, error) {
+	if !in.ProgressiveBilling {
+		// If we are not doing progressive billing, we can only bill the line if asof >= line.period.end
+		if in.AsOf.Before(l.line.Period.End) {
+			return nil, nil
+		}
+
+		return &l.line.Period, nil
+	}
+
 	if l.line.UsageBased.Price.Type() == productcatalog.TieredPriceType {
 		tiered, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
@@ -75,7 +83,7 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 
 		if tiered.Mode == productcatalog.VolumeTieredPrice {
 			if l.line.ParentLine != nil {
-				if asof.Before(l.line.ParentLine.Period.End) {
+				if in.AsOf.Before(l.line.ParentLine.Period.End) {
 					return nil, nil
 				}
 
@@ -84,7 +92,7 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 
 			// Volume tiers are only billable if we have all the data acquired, as otherwise
 			// we might overcharge the customer (if we are at tier bundaries)
-			if asof.Before(l.line.Period.End) {
+			if in.AsOf.Before(l.line.Period.End) {
 				return nil, nil
 			}
 			return &l.line.Period, nil
@@ -98,7 +106,7 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, asof time.Time) (
 
 	meter := meterAndFactory.meter
 
-	asOfTruncated := asof.Truncate(billing.DefaultMeterResolution)
+	asOfTruncated := in.AsOf.Truncate(billing.DefaultMeterResolution)
 
 	switch meter.Aggregation {
 	case models.MeterAggregationSum, models.MeterAggregationCount,

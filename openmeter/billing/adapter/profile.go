@@ -75,6 +75,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOString()).
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
+		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		Save(ctx)
 }
 
@@ -273,6 +274,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOString()).
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
+		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		Save(ctx)
 }
 
@@ -368,9 +370,10 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 		},
 
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance: dbWC.InvoiceAutoAdvance,
-			DraftPeriod: draftPeriod,
-			DueAfter:    dueAfter,
+			AutoAdvance:        dbWC.InvoiceAutoAdvance,
+			DraftPeriod:        draftPeriod,
+			DueAfter:           dueAfter,
+			ProgressiveBilling: dbWC.InvoiceProgressiveBilling,
 		},
 
 		Payment: billing.PaymentConfig{

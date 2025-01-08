@@ -30,6 +30,7 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			SetNillableInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
 			SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
 			SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
+			SetNillableInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 			Save(ctx)
 		if err != nil {
 			return nil, err
@@ -69,7 +70,8 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 			SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
 			SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
 			SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
-			SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod)
+			SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod).
+			SetOrClearInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling)
 
 		if input.ResetDeletedAt {
 			update = update.ClearDeletedAt()
@@ -257,9 +259,10 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 		},
 
 		Invoicing: billing.InvoicingOverrideConfig{
-			AutoAdvance: dbOverride.InvoiceAutoAdvance,
-			DraftPeriod: draftPeriod,
-			DueAfter:    dueAfter,
+			AutoAdvance:        dbOverride.InvoiceAutoAdvance,
+			DraftPeriod:        draftPeriod,
+			DueAfter:           dueAfter,
+			ProgressiveBilling: dbOverride.InvoiceProgressiveBilling,
 		},
 
 		Payment: billing.PaymentOverrideConfig{

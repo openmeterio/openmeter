@@ -76,9 +76,10 @@ func (c *CollectionOverrideConfig) Validate() error {
 }
 
 type InvoicingOverrideConfig struct {
-	AutoAdvance *bool         `json:"autoAdvance,omitempty"`
-	DraftPeriod *datex.Period `json:"draftPeriod,omitempty"`
-	DueAfter    *datex.Period `json:"dueAfter,omitempty"`
+	AutoAdvance        *bool         `json:"autoAdvance,omitempty"`
+	DraftPeriod        *datex.Period `json:"draftPeriod,omitempty"`
+	DueAfter           *datex.Period `json:"dueAfter,omitempty"`
+	ProgressiveBilling *bool         `json:"progressiveBilling,omitempty"`
 }
 
 func (c *InvoicingOverrideConfig) Validate() error {

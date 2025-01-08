@@ -238,6 +238,20 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceCollectionMethod(val
 	return u.SetInvoiceCollectionMethod(*value)
 }
 
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceProgressiveBilling(value *bool) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearInvoiceProgressiveBilling()
+	}
+	return u.SetInvoiceProgressiveBilling(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceProgressiveBilling(value *bool) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceProgressiveBilling()
+	}
+	return u.SetInvoiceProgressiveBilling(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearMetadata()

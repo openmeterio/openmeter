@@ -2,7 +2,6 @@ package lineservice
 
 import (
 	"context"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -20,10 +19,10 @@ func (l feeLine) PrepareForCreate(context.Context) (Line, error) {
 	return &l, nil
 }
 
-func (l feeLine) CanBeInvoicedAsOf(_ context.Context, t time.Time) (*billing.Period, error) {
-	// TODO[later]: Prorate can be implemented here for progressive billing/pro-rating of the fee
+func (l feeLine) CanBeInvoicedAsOf(_ context.Context, in CanBeInvoicedAsOfInput) (*billing.Period, error) {
+	// TODO[OM-1085]: Prorate can be implemented here for progressive billing/pro-rating of the fee
 
-	if !t.Before(l.line.InvoiceAt) {
+	if !in.AsOf.Before(l.line.InvoiceAt) {
 		return &l.line.Period, nil
 	}
 

@@ -256,6 +256,7 @@ var (
 		{Name: "invoice_draft_period", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_due_after", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
+		{Name: "invoice_progressive_billing", Type: field.TypeBool, Nullable: true},
 		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -267,13 +268,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_customer_overrides_billing_profiles_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[11]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[12]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_customer_overrides_customers_billing_customer_override",
-				Columns:    []*schema.Column{BillingCustomerOverridesColumns[12]},
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[13]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -297,7 +298,7 @@ var (
 			{
 				Name:    "billingcustomeroverride_namespace_customer_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[12]},
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[13]},
 			},
 		},
 	}
@@ -788,6 +789,7 @@ var (
 		{Name: "invoice_draft_period", Type: field.TypeString},
 		{Name: "invoice_due_after", Type: field.TypeString},
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
+		{Name: "invoice_progressive_billing", Type: field.TypeBool},
 	}
 	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsTable = &schema.Table{

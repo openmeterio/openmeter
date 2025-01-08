@@ -45,6 +45,8 @@ type BillingCustomerOverride struct {
 	InvoiceDueAfter *datex.ISOString `json:"invoice_due_after,omitempty"`
 	// InvoiceCollectionMethod holds the value of the "invoice_collection_method" field.
 	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
+	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
+	InvoiceProgressiveBilling *bool `json:"invoice_progressive_billing,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -89,7 +91,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingcustomeroverride.FieldInvoiceAutoAdvance:
+		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
 		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod:
 			values[i] = new(sql.NullString)
@@ -196,6 +198,13 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 				bco.InvoiceCollectionMethod = new(billing.CollectionMethod)
 				*bco.InvoiceCollectionMethod = billing.CollectionMethod(value.String)
 			}
+		case billingcustomeroverride.FieldInvoiceProgressiveBilling:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_progressive_billing", values[i])
+			} else if value.Valid {
+				bco.InvoiceProgressiveBilling = new(bool)
+				*bco.InvoiceProgressiveBilling = value.Bool
+			}
 		default:
 			bco.selectValues.Set(columns[i], values[i])
 		}
@@ -291,6 +300,11 @@ func (bco *BillingCustomerOverride) String() string {
 	builder.WriteString(", ")
 	if v := bco.InvoiceCollectionMethod; v != nil {
 		builder.WriteString("invoice_collection_method=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bco.InvoiceProgressiveBilling; v != nil {
+		builder.WriteString("invoice_progressive_billing=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

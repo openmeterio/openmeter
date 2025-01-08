@@ -262,6 +262,20 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 		}
 	}
 
+	// Let's get the customer's active billing profile
+	lineOwnership, err := s.adapter.GetInvoiceLineOwnership(ctx, input.Line)
+	if err != nil {
+		return nil, err
+	}
+
+	billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+		Namespace:  lineOwnership.Namespace,
+		CustomerID: lineOwnership.CustomerID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("fetching customer profile: %w", err)
+	}
+
 	triggeredInvoice, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Invoice, error) {
 		existingLine, err := s.adapter.GetInvoiceLine(ctx, input.Line)
 		if err != nil {
@@ -293,7 +307,10 @@ func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInv
 					return fmt.Errorf("creating line service: %w", err)
 				}
 
-				period, err := targetStateLineSrv.CanBeInvoicedAsOf(ctx, targetState.Period.End)
+				period, err := targetStateLineSrv.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
+					AsOf:               targetState.Period.End,
+					ProgressiveBilling: billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
+				})
 				if err != nil {
 					return fmt.Errorf("line[%s]: can be invoiced as of: %w", targetState.ID, err)
 				}
