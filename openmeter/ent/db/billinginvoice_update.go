@@ -14,6 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
@@ -787,6 +788,21 @@ func (biu *BillingInvoiceUpdate) AddBillingInvoiceValidationIssues(b ...*Billing
 	return biu.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddInvoiceDiscountIDs adds the "invoice_discounts" edge to the BillingInvoiceDiscount entity by IDs.
+func (biu *BillingInvoiceUpdate) AddInvoiceDiscountIDs(ids ...string) *BillingInvoiceUpdate {
+	biu.mutation.AddInvoiceDiscountIDs(ids...)
+	return biu
+}
+
+// AddInvoiceDiscounts adds the "invoice_discounts" edges to the BillingInvoiceDiscount entity.
+func (biu *BillingInvoiceUpdate) AddInvoiceDiscounts(b ...*BillingInvoiceDiscount) *BillingInvoiceUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biu.AddInvoiceDiscountIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (biu *BillingInvoiceUpdate) Mutation() *BillingInvoiceMutation {
 	return biu.mutation
@@ -838,6 +854,27 @@ func (biu *BillingInvoiceUpdate) RemoveBillingInvoiceValidationIssues(b ...*Bill
 		ids[i] = b[i].ID
 	}
 	return biu.RemoveBillingInvoiceValidationIssueIDs(ids...)
+}
+
+// ClearInvoiceDiscounts clears all "invoice_discounts" edges to the BillingInvoiceDiscount entity.
+func (biu *BillingInvoiceUpdate) ClearInvoiceDiscounts() *BillingInvoiceUpdate {
+	biu.mutation.ClearInvoiceDiscounts()
+	return biu
+}
+
+// RemoveInvoiceDiscountIDs removes the "invoice_discounts" edge to BillingInvoiceDiscount entities by IDs.
+func (biu *BillingInvoiceUpdate) RemoveInvoiceDiscountIDs(ids ...string) *BillingInvoiceUpdate {
+	biu.mutation.RemoveInvoiceDiscountIDs(ids...)
+	return biu
+}
+
+// RemoveInvoiceDiscounts removes "invoice_discounts" edges to BillingInvoiceDiscount entities.
+func (biu *BillingInvoiceUpdate) RemoveInvoiceDiscounts(b ...*BillingInvoiceDiscount) *BillingInvoiceUpdate {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biu.RemoveInvoiceDiscountIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1254,6 +1291,51 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biu.mutation.InvoiceDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biu.mutation.RemovedInvoiceDiscountsIDs(); len(nodes) > 0 && !biu.mutation.InvoiceDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biu.mutation.InvoiceDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2034,6 +2116,21 @@ func (biuo *BillingInvoiceUpdateOne) AddBillingInvoiceValidationIssues(b ...*Bil
 	return biuo.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddInvoiceDiscountIDs adds the "invoice_discounts" edge to the BillingInvoiceDiscount entity by IDs.
+func (biuo *BillingInvoiceUpdateOne) AddInvoiceDiscountIDs(ids ...string) *BillingInvoiceUpdateOne {
+	biuo.mutation.AddInvoiceDiscountIDs(ids...)
+	return biuo
+}
+
+// AddInvoiceDiscounts adds the "invoice_discounts" edges to the BillingInvoiceDiscount entity.
+func (biuo *BillingInvoiceUpdateOne) AddInvoiceDiscounts(b ...*BillingInvoiceDiscount) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biuo.AddInvoiceDiscountIDs(ids...)
+}
+
 // Mutation returns the BillingInvoiceMutation object of the builder.
 func (biuo *BillingInvoiceUpdateOne) Mutation() *BillingInvoiceMutation {
 	return biuo.mutation
@@ -2085,6 +2182,27 @@ func (biuo *BillingInvoiceUpdateOne) RemoveBillingInvoiceValidationIssues(b ...*
 		ids[i] = b[i].ID
 	}
 	return biuo.RemoveBillingInvoiceValidationIssueIDs(ids...)
+}
+
+// ClearInvoiceDiscounts clears all "invoice_discounts" edges to the BillingInvoiceDiscount entity.
+func (biuo *BillingInvoiceUpdateOne) ClearInvoiceDiscounts() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearInvoiceDiscounts()
+	return biuo
+}
+
+// RemoveInvoiceDiscountIDs removes the "invoice_discounts" edge to BillingInvoiceDiscount entities by IDs.
+func (biuo *BillingInvoiceUpdateOne) RemoveInvoiceDiscountIDs(ids ...string) *BillingInvoiceUpdateOne {
+	biuo.mutation.RemoveInvoiceDiscountIDs(ids...)
+	return biuo
+}
+
+// RemoveInvoiceDiscounts removes "invoice_discounts" edges to BillingInvoiceDiscount entities.
+func (biuo *BillingInvoiceUpdateOne) RemoveInvoiceDiscounts(b ...*BillingInvoiceDiscount) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return biuo.RemoveInvoiceDiscountIDs(ids...)
 }
 
 // Where appends a list predicates to the BillingInvoiceUpdate builder.
@@ -2531,6 +2649,51 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if biuo.mutation.InvoiceDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biuo.mutation.RemovedInvoiceDiscountsIDs(); len(nodes) > 0 && !biuo.mutation.InvoiceDiscountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := biuo.mutation.InvoiceDiscountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.InvoiceDiscountsTable,
+			Columns: []string{billinginvoice.InvoiceDiscountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoicediscount.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -38,6 +39,7 @@ type BillingInvoiceQuery struct {
 	withTaxApp                         *AppQuery
 	withInvoicingApp                   *AppQuery
 	withPaymentApp                     *AppQuery
+	withInvoiceDiscounts               *BillingInvoiceDiscountQuery
 	modifiers                          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -251,6 +253,28 @@ func (biq *BillingInvoiceQuery) QueryPaymentApp() *AppQuery {
 	return query
 }
 
+// QueryInvoiceDiscounts chains the current query on the "invoice_discounts" edge.
+func (biq *BillingInvoiceQuery) QueryInvoiceDiscounts() *BillingInvoiceDiscountQuery {
+	query := (&BillingInvoiceDiscountClient{config: biq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := biq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := biq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(billinginvoicediscount.Table, billinginvoicediscount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.InvoiceDiscountsTable, billinginvoice.InvoiceDiscountsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first BillingInvoice entity from the query.
 // Returns a *NotFoundError when no BillingInvoice was found.
 func (biq *BillingInvoiceQuery) First(ctx context.Context) (*BillingInvoice, error) {
@@ -451,6 +475,7 @@ func (biq *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withTaxApp:                         biq.withTaxApp.Clone(),
 		withInvoicingApp:                   biq.withInvoicingApp.Clone(),
 		withPaymentApp:                     biq.withPaymentApp.Clone(),
+		withInvoiceDiscounts:               biq.withInvoiceDiscounts.Clone(),
 		// clone intermediate query.
 		sql:  biq.sql.Clone(),
 		path: biq.path,
@@ -545,6 +570,17 @@ func (biq *BillingInvoiceQuery) WithPaymentApp(opts ...func(*AppQuery)) *Billing
 	return biq
 }
 
+// WithInvoiceDiscounts tells the query-builder to eager-load the nodes that are connected to
+// the "invoice_discounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (biq *BillingInvoiceQuery) WithInvoiceDiscounts(opts ...func(*BillingInvoiceDiscountQuery)) *BillingInvoiceQuery {
+	query := (&BillingInvoiceDiscountClient{config: biq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	biq.withInvoiceDiscounts = query
+	return biq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -623,7 +659,7 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = biq.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [9]bool{
 			biq.withSourceBillingProfile != nil,
 			biq.withBillingWorkflowConfig != nil,
 			biq.withBillingInvoiceLines != nil,
@@ -632,6 +668,7 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			biq.withTaxApp != nil,
 			biq.withInvoicingApp != nil,
 			biq.withPaymentApp != nil,
+			biq.withInvoiceDiscounts != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -706,6 +743,15 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if query := biq.withPaymentApp; query != nil {
 		if err := biq.loadPaymentApp(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *App) { n.Edges.PaymentApp = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := biq.withInvoiceDiscounts; query != nil {
+		if err := biq.loadInvoiceDiscounts(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.InvoiceDiscounts = []*BillingInvoiceDiscount{} },
+			func(n *BillingInvoice, e *BillingInvoiceDiscount) {
+				n.Edges.InvoiceDiscounts = append(n.Edges.InvoiceDiscounts, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -944,6 +990,36 @@ func (biq *BillingInvoiceQuery) loadPaymentApp(ctx context.Context, query *AppQu
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (biq *BillingInvoiceQuery) loadInvoiceDiscounts(ctx context.Context, query *BillingInvoiceDiscountQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingInvoiceDiscount)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicediscount.FieldInvoiceID)
+	}
+	query.Where(predicate.BillingInvoiceDiscount(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.InvoiceDiscountsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
