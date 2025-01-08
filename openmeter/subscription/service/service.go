@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,6 +28,8 @@ type ServiceConfig struct {
 	// framework
 	TransactionManager transaction.Creator
 	Publisher          eventbus.Publisher
+	// External validations (optional)
+	Validators []subscription.SubscriptionValidator
 }
 
 func New(conf ServiceConfig) subscription.Service {
@@ -127,6 +130,13 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, err
 		}
 
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
+			return v.ValidateCreate(ctx, view)
+		})...)
+		if err != nil {
+			return sub, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
 			SubscriptionView: view,
 		})
@@ -167,6 +177,13 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, err
 		}
 
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
+			return v.ValidateUpdate(ctx, view)
+		})...)
+		if err != nil {
+			return subs, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
 			UpdatedView: updatedView,
 		})
@@ -192,6 +209,13 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 		view.Subscription.GetStatusAt(currentTime),
 	).CanTransitionOrErr(ctx, subscription.SubscriptionActionDelete); err != nil {
 		return err
+	}
+
+	err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
+		return v.ValidateDelete(ctx, view)
+	})...)
+	if err != nil {
+		return fmt.Errorf("failed to validate subscription: %w", err)
 	}
 
 	return transaction.RunWithNoValue(ctx, s.TransactionManager, func(ctx context.Context) error {
@@ -256,6 +280,13 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return sub, err
 		}
 
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
+			return v.ValidateCancel(ctx, view)
+		})...)
+		if err != nil {
+			return sub, fmt.Errorf("failed to validate subscription: %w", err)
+		}
+
 		err = s.Publisher.Publish(ctx, subscription.CancelledEvent{
 			SubscriptionView: view,
 		})
@@ -302,6 +333,13 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 		view, err := s.GetView(ctx, sub.NamespacedID)
 		if err != nil {
 			return sub, err
+		}
+
+		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
+			return v.ValidateContinue(ctx, view)
+		})...)
+		if err != nil {
+			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
 		err = s.Publisher.Publish(ctx, subscription.ContinuedEvent{

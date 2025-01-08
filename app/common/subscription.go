@@ -6,6 +6,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/subscription"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -22,6 +23,7 @@ import (
 
 var Subscription = wire.NewSet(
 	NewSubscriptionServices,
+	BillingSubscriptionValidator,
 )
 
 // Combine Srvice and WorkflowService into one struct
@@ -43,6 +45,7 @@ func NewSubscriptionServices(
 	customerService customer.Service,
 	planService plan.Service,
 	eventPublisher eventbus.Publisher,
+	billingSubscriptionValidator *billingsubscription.Validator,
 ) (SubscriptionServiceWithWorkflow, error) {
 	if !productcatalogConfig.Enabled {
 		return SubscriptionServiceWithWorkflow{}, nil
@@ -58,6 +61,11 @@ func NewSubscriptionServices(
 		subscriptionItemRepo,
 	)
 
+	validators := []subscription.SubscriptionValidator{}
+	if billingSubscriptionValidator != nil {
+		validators = append(validators, billingSubscriptionValidator)
+	}
+
 	subscriptionService := subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subscriptionRepo,
 		SubscriptionPhaseRepo: subscriptionPhaseRepo,
@@ -66,6 +74,7 @@ func NewSubscriptionServices(
 		EntitlementAdapter:    subscriptionEntitlementAdapter,
 		TransactionManager:    subscriptionRepo,
 		Publisher:             eventPublisher,
+		Validators:            validators,
 	})
 
 	subscriptionWorkflowService := subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
