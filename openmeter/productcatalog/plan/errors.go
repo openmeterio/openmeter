@@ -3,52 +3,48 @@ package plan
 import (
 	"errors"
 	"fmt"
-
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ error = (*NotFoundError)(nil)
 
 type NotFoundError struct {
-	models.NamespacedModel
+	Namespace string
+	ID        string
+	Key       string
+	Version   int
 }
 
-func (e NotFoundError) Error() string {
-	return fmt.Sprintf("resource not found in %s namespace", e.Namespace)
+func (e *NotFoundError) Error() string {
+	var m string
+
+	if e.Namespace != "" {
+		m += fmt.Sprintf(" namespace=%s", e.Namespace)
+	}
+
+	if e.ID != "" {
+		m += fmt.Sprintf(" id=%s", e.ID)
+	}
+
+	if e.Key != "" {
+		m += fmt.Sprintf(" key=%s", e.Key)
+	}
+
+	if e.Version != 0 {
+		m += fmt.Sprintf(" version=%d", e.Version)
+	}
+
+	if len(m) > 0 {
+		return fmt.Sprintf("plan not found. [%s]", m[1:])
+	}
+
+	return "plan not found"
 }
 
 func IsNotFound(err error) bool {
 	if err == nil {
 		return false
 	}
-	var e NotFoundError
+	var e *NotFoundError
+
 	return errors.As(err, &e)
-}
-
-type genericError struct {
-	Err error
-}
-
-var _ error = (*ValidationError)(nil)
-
-type ValidationError genericError
-
-func (e ValidationError) Error() string {
-	return e.Err.Error()
-}
-
-func (e ValidationError) Unwrap() error {
-	return e.Err
-}
-
-var _ error = (*UpdateAfterDeleteError)(nil)
-
-type UpdateAfterDeleteError genericError
-
-func (e UpdateAfterDeleteError) Error() string {
-	return e.Err.Error()
-}
-
-func (e UpdateAfterDeleteError) Unwrap() error {
-	return e.Err
 }

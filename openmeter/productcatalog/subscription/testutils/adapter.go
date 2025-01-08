@@ -53,7 +53,7 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubs
 		Version: version,
 	})
 
-	if _, ok := lo.ErrorsAs[plan.NotFoundError](err); ok {
+	if _, ok := lo.ErrorsAs[*plan.NotFoundError](err); ok {
 		return nil, subscription.PlanNotFoundError{
 			Key:     planKey,
 			Version: version,
