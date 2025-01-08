@@ -2192,6 +2192,11 @@ export interface components {
        * @example P1D
        */
       dueAfter: string
+      /**
+       * @description Should progressive billing be allowed for this workflow?
+       * @default false
+       */
+      progressiveBilling: boolean
     }
     /**
      * Workflow payment settings
@@ -3807,11 +3812,6 @@ export interface components {
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceAppExternalIDs']
     }
-    /**
-     * @description InvoiceAction represents the actions that can be performed on an invoice.
-     * @enum {string}
-     */
-    InvoiceAction: 'advance' | 'approve' | 'delete' | 'retry' | 'void'
     /** @description InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe. */
     InvoiceAppExternalIDs: {
       /** @description The external ID of the invoice in the invoicing app if available. */
@@ -3820,6 +3820,33 @@ export interface components {
       readonly Tax?: string
       /** @description The external ID of the invoice in the payment app if available. */
       readonly Payment?: string
+    }
+    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     non-gathering invoices. */
+    InvoiceAvailableActionDetails: {
+      /** @description The state the invoice will reach if the action is activated and
+       *     all intermediate steps are successful.
+       *
+       *     For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice. */
+      readonly resultingState: string
+    }
+    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     gathering invoices. */
+    InvoiceAvailableActionInvoiceDetails: Record<string, never>
+    /** @description InvoiceAvailableActions represents the actions that can be performed on the invoice. */
+    InvoiceAvailableActions: {
+      /** @description Advance the invoice to the next status. */
+      readonly advance?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Approve an invoice that requires manual approval. */
+      readonly approve?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Delete the invoice (only non-issued invoices can be deleted). */
+      readonly delete?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Retry an invoice issuing step that failed. */
+      readonly retry?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Void an already issued invoice. */
+      readonly void?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Invoice a gathering invoice */
+      readonly invoice?: components['schemas']['InvoiceAvailableActionInvoiceDetails']
     }
     /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
     InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
@@ -4222,7 +4249,7 @@ export interface components {
       /** @description Extended status information for the invoice. */
       readonly extendedStatus: string
       /** @description The actions that can be performed on the invoice. */
-      availableActions: components['schemas']['InvoiceAction'][]
+      availableActions: components['schemas']['InvoiceAvailableActions']
     }
     /** @description Totals contains the summaries of all calculations for the invoice. */
     InvoiceTotals: {
@@ -5443,7 +5470,7 @@ export interface components {
        * Duration
        * Format: duration
        * @description The duration of the phase.
-       * @example P1Y1D
+       * @example P1Y
        */
       duration: string | null
       /**
@@ -6521,7 +6548,7 @@ export interface components {
        * Format: duration
        * @description Interval after the subscription starts to transition to the phase.
        *     When null, the phase starts immediately after the subscription starts.
-       * @example P1Y1D
+       * @example P1Y
        */
       startAfter: string | null
       /**
