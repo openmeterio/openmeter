@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
+	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/subscription"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -58,4 +59,15 @@ func BillingService(
 		MeterRepo:          meterRepo,
 		StreamingConnector: streamingConnector,
 	})
+}
+
+func BillingSubscriptionValidator(
+	billingService billing.Service,
+	billingConfig config.BillingConfiguration,
+) (*billingsubscription.Validator, error) {
+	if !billingConfig.Enabled {
+		return nil, nil
+	}
+
+	return billingsubscription.NewValidator(billingService)
 }
