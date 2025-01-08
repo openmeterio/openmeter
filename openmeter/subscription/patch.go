@@ -83,6 +83,24 @@ func (p PatchPath) seg() []string {
 	return strings.Split(string(p), "/")[1:]
 }
 
+// Checks whether p is a parent of other where parent means all segments of p are present and in order in other
+func (p PatchPath) IsParentOf(other PatchPath) bool {
+	segments := p.seg()
+	otherSegments := other.seg()
+
+	if len(otherSegments) < len(segments) {
+		return false
+	}
+
+	for i, s := range segments {
+		if otherSegments[i] != s {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Lets implement validation for Path
 func (p PatchPath) Validate() error {
 	strVal := string(p)
