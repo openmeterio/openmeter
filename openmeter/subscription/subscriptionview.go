@@ -289,7 +289,7 @@ func NewSubscriptionView(
 					return false
 				})
 				if !ok {
-					return nil, fmt.Errorf("item %s in phase %s not found for spec %+v", itemSpec.ItemKey, phaseSpec.PhaseKey, itemSpec)
+					return nil, fmt.Errorf("while building SubscriptionView item %s in phase %s not found for spec %+v", itemSpec.ItemKey, phaseSpec.PhaseKey, itemSpec)
 				}
 
 				var subEnt *SubscriptionEntitlement

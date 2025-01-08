@@ -338,12 +338,6 @@ func TestEdit(t *testing.T) {
 				subscriptiontestutils.ValidateSpecAndView(t, spec, v2)
 			},
 		},
-		{
-			Name: "Should update contents of current phase",
-			Handler: func(t *testing.T, deps TDeps) {
-				t.Skip("TODO")
-			},
-		},
 	}
 
 	for _, tc := range tt {

@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAddItem(t *testing.T) {
@@ -20,7 +21,7 @@ func TestAddItem(t *testing.T) {
 
 	s, p := getDefaultSpec(t, now)
 
-	getSpec := func(t *testing.T) *subscription.SubscriptionSpec {
+	getSpec := func(_ *testing.T) *subscription.SubscriptionSpec {
 		return s
 	}
 

@@ -723,8 +723,13 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 			// Any arbitrary time works as long as its consistent for the comparisons
 			someTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
-				iT, _ := i.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
-				jT, _ := j.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+				iT, jT := someTime, someTime
+				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
+					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+				}
+				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
+					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+				}
 				return int(iT.Sub(jT))
 			})
 		}
