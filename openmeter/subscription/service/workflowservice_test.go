@@ -385,7 +385,6 @@ func TestEditRunning(t *testing.T) {
 						assert.Equal(t, lo.ToPtr(deps.SubView.AsSpec()), spec, "expected spec to be equal to the current spec")
 						assert.Equal(t, subscription.ApplyContext{
 							CurrentTime: deps.CurrentTime,
-							Operation:   subscription.SpecOperationEdit,
 						}, c, "apply context is incorrect")
 
 						// Lets modify the spec to see if its passed to the next

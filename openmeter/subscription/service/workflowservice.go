@@ -92,7 +92,6 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	spec := curr.AsSpec()
 
 	err = spec.ApplyPatches(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
-		Operation:   subscription.SpecOperationEdit,
 		CurrentTime: clock.Now(),
 	})
 	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {

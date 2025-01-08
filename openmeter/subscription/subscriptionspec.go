@@ -773,15 +773,7 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 	return spec, nil
 }
 
-type SpecOperation int
-
-const (
-	SpecOperationCreate = iota
-	SpecOperationEdit
-)
-
 type ApplyContext struct {
-	Operation   SpecOperation
 	CurrentTime time.Time
 }
 
