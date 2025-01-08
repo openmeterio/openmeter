@@ -120,6 +120,11 @@ func InvoiceDueAfter(v datex.ISOString) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldInvoiceDueAfter, vc))
 }
 
+// InvoiceProgressiveBilling applies equality check predicate on the "invoice_progressive_billing" field. It's identical to InvoiceProgressiveBillingEQ.
+func InvoiceProgressiveBilling(v bool) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldNamespace, v))
@@ -835,6 +840,26 @@ func InvoiceCollectionMethodIsNil() predicate.BillingCustomerOverride {
 // InvoiceCollectionMethodNotNil applies the NotNil predicate on the "invoice_collection_method" field.
 func InvoiceCollectionMethodNotNil() predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldInvoiceCollectionMethod))
+}
+
+// InvoiceProgressiveBillingEQ applies the EQ predicate on the "invoice_progressive_billing" field.
+func InvoiceProgressiveBillingEQ(v bool) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
+}
+
+// InvoiceProgressiveBillingNEQ applies the NEQ predicate on the "invoice_progressive_billing" field.
+func InvoiceProgressiveBillingNEQ(v bool) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldInvoiceProgressiveBilling, v))
+}
+
+// InvoiceProgressiveBillingIsNil applies the IsNil predicate on the "invoice_progressive_billing" field.
+func InvoiceProgressiveBillingIsNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldInvoiceProgressiveBilling))
+}
+
+// InvoiceProgressiveBillingNotNil applies the NotNil predicate on the "invoice_progressive_billing" field.
+func InvoiceProgressiveBillingNotNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldInvoiceProgressiveBilling))
 }
 
 // HasCustomer applies the HasEdge predicate on the "customer" edge.

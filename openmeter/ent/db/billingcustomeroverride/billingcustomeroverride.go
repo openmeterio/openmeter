@@ -40,6 +40,8 @@ const (
 	FieldInvoiceDueAfter = "invoice_due_after"
 	// FieldInvoiceCollectionMethod holds the string denoting the invoice_collection_method field in the database.
 	FieldInvoiceCollectionMethod = "invoice_collection_method"
+	// FieldInvoiceProgressiveBilling holds the string denoting the invoice_progressive_billing field in the database.
+	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
@@ -77,6 +79,7 @@ var Columns = []string{
 	FieldInvoiceDraftPeriod,
 	FieldInvoiceDueAfter,
 	FieldInvoiceCollectionMethod,
+	FieldInvoiceProgressiveBilling,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -188,6 +191,11 @@ func ByInvoiceDueAfter(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceCollectionMethod orders the results by the invoice_collection_method field.
 func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceCollectionMethod, opts...).ToFunc()
+}
+
+// ByInvoiceProgressiveBilling orders the results by the invoice_progressive_billing field.
+func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
 }
 
 // ByCustomerField orders the results by customer field.

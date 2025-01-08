@@ -102,9 +102,10 @@ func (c *CollectionConfig) Validate() error {
 
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
-	AutoAdvance bool         `json:"autoAdvance,omitempty"`
-	DraftPeriod datex.Period `json:"draftPeriod,omitempty"`
-	DueAfter    datex.Period `json:"dueAfter,omitempty"`
+	AutoAdvance        bool         `json:"autoAdvance,omitempty"`
+	DraftPeriod        datex.Period `json:"draftPeriod,omitempty"`
+	DueAfter           datex.Period `json:"dueAfter,omitempty"`
+	ProgressiveBilling bool         `json:"progressiveBilling,omitempty"`
 }
 
 func (c *InvoicingConfig) Validate() error {
@@ -267,9 +268,10 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 	}
 
 	p.WorkflowConfig.Invoicing = InvoicingConfig{
-		AutoAdvance: lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
-		DraftPeriod: lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
-		DueAfter:    lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
+		AutoAdvance:        lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
+		DraftPeriod:        lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
+		DueAfter:           lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
+		ProgressiveBilling: lo.FromPtrOr(o.Invoicing.ProgressiveBilling, p.WorkflowConfig.Invoicing.ProgressiveBilling),
 	}
 
 	p.WorkflowConfig.Payment = PaymentConfig{

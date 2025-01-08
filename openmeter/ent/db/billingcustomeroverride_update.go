@@ -197,6 +197,26 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceCollectionMethod() *Billi
 	return bcou
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceProgressiveBilling(b bool) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceProgressiveBilling(b)
+	return bcou
+}
+
+// SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceProgressiveBilling(b *bool) *BillingCustomerOverrideUpdate {
+	if b != nil {
+		bcou.SetInvoiceProgressiveBilling(*b)
+	}
+	return bcou
+}
+
+// ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearInvoiceProgressiveBilling()
+	return bcou
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (bcou *BillingCustomerOverrideUpdate) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideUpdate {
 	return bcou.SetBillingProfileID(b.ID)
@@ -323,6 +343,12 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 	}
 	if bcou.mutation.InvoiceCollectionMethodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum)
+	}
+	if value, ok := bcou.mutation.InvoiceProgressiveBilling(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+	}
+	if bcou.mutation.InvoiceProgressiveBillingCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
 	}
 	if bcou.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -539,6 +565,26 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceCollectionMethod() *B
 	return bcouo
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceProgressiveBilling(b bool) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceProgressiveBilling(b)
+	return bcouo
+}
+
+// SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceProgressiveBilling(b *bool) *BillingCustomerOverrideUpdateOne {
+	if b != nil {
+		bcouo.SetInvoiceProgressiveBilling(*b)
+	}
+	return bcouo
+}
+
+// ClearInvoiceProgressiveBilling clears the value of the "invoice_progressive_billing" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearInvoiceProgressiveBilling()
+	return bcouo
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (bcouo *BillingCustomerOverrideUpdateOne) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideUpdateOne {
 	return bcouo.SetBillingProfileID(b.ID)
@@ -695,6 +741,12 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 	}
 	if bcouo.mutation.InvoiceCollectionMethodCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceCollectionMethod, field.TypeEnum)
+	}
+	if value, ok := bcouo.mutation.InvoiceProgressiveBilling(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+	}
+	if bcouo.mutation.InvoiceProgressiveBillingCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
 	}
 	if bcouo.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

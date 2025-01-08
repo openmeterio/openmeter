@@ -142,6 +142,20 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceCollectionMethod(bm *
 	return bwcu
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceProgressiveBilling(b bool) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceProgressiveBilling(b)
+	return bwcu
+}
+
+// SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceProgressiveBilling(b *bool) *BillingWorkflowConfigUpdate {
+	if b != nil {
+		bwcu.SetInvoiceProgressiveBilling(*b)
+	}
+	return bwcu
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
 func (bwcu *BillingWorkflowConfigUpdate) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetBillingInvoicesID(id)
@@ -286,6 +300,9 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	}
 	if value, ok := bwcu.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
+	}
+	if value, ok := bwcu.mutation.InvoiceProgressiveBilling(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -475,6 +492,20 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceCollectionMethod(
 	return bwcuo
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceProgressiveBilling(b bool) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceProgressiveBilling(b)
+	return bwcuo
+}
+
+// SetNillableInvoiceProgressiveBilling sets the "invoice_progressive_billing" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceProgressiveBilling(b *bool) *BillingWorkflowConfigUpdateOne {
+	if b != nil {
+		bwcuo.SetInvoiceProgressiveBilling(*b)
+	}
+	return bwcuo
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
 func (bwcuo *BillingWorkflowConfigUpdateOne) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetBillingInvoicesID(id)
@@ -649,6 +680,9 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if value, ok := bwcuo.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
+	}
+	if value, ok := bwcuo.mutation.InvoiceProgressiveBilling(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -177,13 +177,23 @@ func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.
 	return s.FromEntities(lineEntities)
 }
 
+type InvoicingCapabilityQueryInput struct {
+	AsOf               time.Time
+	ProgressiveBilling bool
+}
+
+type (
+	CanBeInvoicedAsOfInput     = InvoicingCapabilityQueryInput
+	ResolveBillablePeriodInput = InvoicingCapabilityQueryInput
+)
+
 type Line interface {
 	LineBase
 
 	Service() *Service
 
-	Validate(ctx context.Context, invoice *billing.Invoice) error
-	CanBeInvoicedAsOf(context.Context, time.Time) (*billing.Period, error)
+	Validate(context.Context, *billing.Invoice) error
+	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)
 	SnapshotQuantity(context.Context, *billing.Invoice) error
 	CalculateDetailedLines() error
 	PrepareForCreate(context.Context) (Line, error)
@@ -203,10 +213,10 @@ type LineWithBillablePeriod struct {
 	BillablePeriod billing.Period
 }
 
-func (s Lines) ResolveBillablePeriod(ctx context.Context, asOf time.Time) ([]LineWithBillablePeriod, error) {
+func (s Lines) ResolveBillablePeriod(ctx context.Context, in ResolveBillablePeriodInput) ([]LineWithBillablePeriod, error) {
 	out := make([]LineWithBillablePeriod, 0, len(s))
 	for _, lineSrv := range s {
-		billablePeriod, err := lineSrv.CanBeInvoicedAsOf(ctx, asOf)
+		billablePeriod, err := lineSrv.CanBeInvoicedAsOf(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("checking if line can be invoiced: %w", err)
 		}

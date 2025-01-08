@@ -189,6 +189,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = namespace
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 	s.NoError(err)

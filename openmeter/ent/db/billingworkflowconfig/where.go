@@ -110,6 +110,11 @@ func InvoiceDueAfter(v datex.ISOString) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceDueAfter, vc))
 }
 
+// InvoiceProgressiveBilling applies equality check predicate on the "invoice_progressive_billing" field. It's identical to InvoiceProgressiveBillingEQ.
+func InvoiceProgressiveBilling(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldNamespace, v))
@@ -625,6 +630,16 @@ func InvoiceCollectionMethodNotIn(vs ...billing.CollectionMethod) predicate.Bill
 		v[i] = vs[i]
 	}
 	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceCollectionMethod, v...))
+}
+
+// InvoiceProgressiveBillingEQ applies the EQ predicate on the "invoice_progressive_billing" field.
+func InvoiceProgressiveBillingEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
+}
+
+// InvoiceProgressiveBillingNEQ applies the NEQ predicate on the "invoice_progressive_billing" field.
+func InvoiceProgressiveBillingNEQ(v bool) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceProgressiveBilling, v))
 }
 
 // HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.

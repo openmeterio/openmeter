@@ -18,9 +18,10 @@ var DefaultWorkflowConfig = WorkflowConfig{
 		Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
 	},
 	Invoicing: InvoicingConfig{
-		AutoAdvance: true,
-		DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
-		DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+		AutoAdvance:        true,
+		DraftPeriod:        lo.Must(datex.ISOString("P1D").Parse()),
+		DueAfter:           lo.Must(datex.ISOString("P1W").Parse()),
+		ProgressiveBilling: false,
 	},
 	Payment: PaymentConfig{
 		CollectionMethod: CollectionMethodChargeAutomatically,

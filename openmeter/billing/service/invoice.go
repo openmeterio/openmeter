@@ -10,9 +10,11 @@ import (
 
 	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -174,7 +176,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			asof := lo.FromPtrOr(input.AsOf, clock.Now())
 
 			// let's gather the in-scope lines and validate it
-			inScopeLines, err := s.gatherInscopeLines(ctx, input, asof)
+			inScopeLines, err := s.gatherInscopeLines(ctx, gatherInScopeLineInput{
+				Customer:           input.Customer,
+				LinesToInclude:     input.IncludePendingLines,
+				AsOf:               asof,
+				ProgressiveBilling: customerProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -299,9 +306,18 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		})
 }
 
-func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoicePendingLinesInput, asOf time.Time) ([]lineservice.LineWithBillablePeriod, error) {
-	if input.IncludePendingLines.IsPresent() {
-		lineIDs := input.IncludePendingLines.OrEmpty()
+type gatherInScopeLineInput struct {
+	Customer customerentity.CustomerID
+	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
+	// to determine the lines to be included.
+	LinesToInclude     mo.Option[[]string]
+	AsOf               time.Time
+	ProgressiveBilling bool
+}
+
+func (s *Service) gatherInscopeLines(ctx context.Context, in gatherInScopeLineInput) ([]lineservice.LineWithBillablePeriod, error) {
+	if in.LinesToInclude.IsPresent() {
+		lineIDs := in.LinesToInclude.OrEmpty()
 
 		if len(lineIDs) == 0 {
 			return nil, billing.ValidationError{
@@ -311,10 +327,10 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 
 		inScopeLines, err := s.adapter.ListInvoiceLines(ctx,
 			billing.ListInvoiceLinesAdapterInput{
-				Namespace:  input.Customer.Namespace,
-				CustomerID: input.Customer.ID,
+				Namespace:  in.Customer.Namespace,
+				CustomerID: in.Customer.ID,
 
-				LineIDs: input.IncludePendingLines.OrEmpty(),
+				LineIDs: lineIDs,
 			})
 		if err != nil {
 			return nil, fmt.Errorf("resolving in scope lines: %w", err)
@@ -326,7 +342,10 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 		}
 
 		// output validation
-		resolvedLines, err := lines.ResolveBillablePeriod(ctx, asOf)
+		resolvedLines, err := lines.ResolveBillablePeriod(ctx, lineservice.ResolveBillablePeriodInput{
+			AsOf:               in.AsOf,
+			ProgressiveBilling: in.ProgressiveBilling,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -351,8 +370,8 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 
 	lines, err := s.adapter.ListInvoiceLines(ctx,
 		billing.ListInvoiceLinesAdapterInput{
-			Namespace:  input.Customer.Namespace,
-			CustomerID: input.Customer.ID,
+			Namespace:  in.Customer.Namespace,
+			CustomerID: in.Customer.ID,
 
 			InvoiceStatuses: []billing.InvoiceStatus{
 				billing.InvoiceStatusGathering,
@@ -370,7 +389,10 @@ func (s *Service) gatherInscopeLines(ctx context.Context, input billing.InvoiceP
 		return nil, err
 	}
 
-	return lineSrvs.ResolveBillablePeriod(ctx, asOf)
+	return lineSrvs.ResolveBillablePeriod(ctx, lineservice.ResolveBillablePeriodInput{
+		AsOf:               in.AsOf,
+		ProgressiveBilling: in.ProgressiveBilling,
+	})
 }
 
 func (s *Service) withLockedInvoiceStateMachine(

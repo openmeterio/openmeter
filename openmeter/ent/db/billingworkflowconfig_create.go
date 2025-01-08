@@ -111,6 +111,12 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceCollectionMethod(bm billing.C
 	return bwcc
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceProgressiveBilling(b bool) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceProgressiveBilling(b)
+	return bwcc
+}
+
 // SetID sets the "id" field.
 func (bwcc *BillingWorkflowConfigCreate) SetID(s string) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetID(s)
@@ -256,6 +262,9 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
+	if _, ok := bwcc.mutation.InvoiceProgressiveBilling(); !ok {
+		return &ValidationError{Name: "invoice_progressive_billing", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_progressive_billing"`)}
+	}
 	return nil
 }
 
@@ -331,6 +340,10 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 	if value, ok := bwcc.mutation.InvoiceCollectionMethod(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceCollectionMethod, field.TypeEnum, value)
 		_node.InvoiceCollectionMethod = value
+	}
+	if value, ok := bwcc.mutation.InvoiceProgressiveBilling(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+		_node.InvoiceProgressiveBilling = value
 	}
 	if nodes := bwcc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -518,6 +531,18 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceCollectionMethod() *BillingWo
 	return u
 }
 
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceProgressiveBilling(v bool) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceProgressiveBilling, v)
+	return u
+}
+
+// UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceProgressiveBilling)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -688,6 +713,20 @@ func (u *BillingWorkflowConfigUpsertOne) SetInvoiceCollectionMethod(v billing.Co
 func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceCollectionMethod() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceCollectionMethod()
+	})
+}
+
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceProgressiveBilling(v bool) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetInvoiceProgressiveBilling(v)
+	})
+}
+
+// UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateInvoiceProgressiveBilling()
 	})
 }
 
@@ -1028,6 +1067,20 @@ func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceCollectionMethod(v billing.C
 func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceCollectionMethod() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceCollectionMethod()
+	})
+}
+
+// SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceProgressiveBilling(v bool) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetInvoiceProgressiveBilling(v)
+	})
+}
+
+// UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateInvoiceProgressiveBilling()
 	})
 }
 

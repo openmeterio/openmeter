@@ -1253,8 +1253,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 	}
 }
 
-func (s *InvoicingTestSuite) TestUBPInvoicing() {
-	namespace := "ns-ubp-invoicing"
+func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
+	namespace := "ns-ubp-invoicing-progressive"
 	ctx := context.Background()
 
 	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
@@ -1358,6 +1358,7 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	// Given we have a default profile for the namespace
 	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = namespace
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 
@@ -2127,6 +2128,411 @@ func (s *InvoicingTestSuite) TestUBPInvoicing() {
 	})
 }
 
+func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
+	namespace := "ns-ubp-invoicing-non-progressive"
+	ctx := context.Background()
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
+		{
+			Namespace:   namespace,
+			Slug:        "flat-per-unit",
+			WindowSize:  models.WindowSizeMinute,
+			Aggregation: models.MeterAggregationSum,
+		},
+		{
+			Namespace:   namespace,
+			Slug:        "flat-per-usage",
+			WindowSize:  models.WindowSizeMinute,
+			Aggregation: models.MeterAggregationSum,
+		},
+		{
+			Namespace:   namespace,
+			Slug:        "tiered-graduated",
+			WindowSize:  models.WindowSizeMinute,
+			Aggregation: models.MeterAggregationSum,
+		},
+		{
+			Namespace:   namespace,
+			Slug:        "tiered-volume",
+			WindowSize:  models.WindowSizeMinute,
+			Aggregation: models.MeterAggregationSum,
+		},
+	})
+	defer s.MeterRepo.ReplaceMeters(ctx, []models.Meter{})
+
+	// Let's initialize the mock streaming connector with data that is out of the period so that we
+	// can start with empty values
+	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-graduated", "tiered-volume"} {
+		s.MockStreamingConnector.AddSimpleEvent(slug, 0, periodStart.Add(-time.Minute))
+	}
+
+	defer s.MockStreamingConnector.Reset()
+
+	// Let's create the features
+	// TODO[later]: we need to handle archived features, do we want to issue a warning? Can features be archived when used
+	// by a draft invoice?
+	features := ubpFeatures{
+		flatPerUnit: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "flat-per-unit",
+			Key:       "flat-per-unit",
+			MeterSlug: lo.ToPtr("flat-per-unit"),
+		})),
+		flatPerUsage: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "flat-per-usage",
+			Key:       "flat-per-usage",
+			MeterSlug: lo.ToPtr("flat-per-usage"),
+		})),
+		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "tiered-graduated",
+			Key:       "tiered-graduated",
+			MeterSlug: lo.ToPtr("tiered-graduated"),
+		})),
+		tieredVolume: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "tiered-volume",
+			Key:       "tiered-volume",
+			MeterSlug: lo.ToPtr("tiered-volume"),
+		})),
+	}
+
+	// Given we have a test customer
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:         "Test Customer",
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			BillingAddress: &models.Address{
+				Country:     lo.ToPtr(models.CountryCode("US")),
+				PostalCode:  lo.ToPtr("12345"),
+				State:       lo.ToPtr("NY"),
+				City:        lo.ToPtr("New York"),
+				Line1:       lo.ToPtr("1234 Test St"),
+				Line2:       lo.ToPtr("Apt 1"),
+				PhoneNumber: lo.ToPtr("1234567890"),
+			},
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customerentity.CustomerUsageAttribution{
+				SubjectKeys: []string{"test"},
+			},
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), customerEntity)
+	require.NotEmpty(s.T(), customerEntity.ID)
+
+	// Given we have a default profile for the namespace
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	lines := ubpPendingLines{}
+	s.Run("create pending invoice items", func() {
+		// When we create pending invoice items
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+			billing.CreateInvoiceLinesInput{
+				Namespace: namespace,
+				Lines: []billing.LineWithCustomer{
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - FLAT per unit",
+							},
+							UsageBased: &billing.UsageBasedLine{
+								FeatureKey: features.flatPerUnit.Key,
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount:        alpacadecimal.NewFromFloat(100),
+									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+								}),
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - FLAT per any usage",
+							},
+							UsageBased: &billing.UsageBasedLine{
+								FeatureKey: features.flatPerUsage.Key,
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(100),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - Tiered graduated",
+							},
+							UsageBased: &billing.UsageBasedLine{
+								FeatureKey: features.tieredGraduated.Key,
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.GraduatedTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(100),
+											},
+										},
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(90),
+											},
+										},
+										{
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(80),
+											},
+										},
+									},
+								}),
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - Tiered volume",
+							},
+							UsageBased: &billing.UsageBasedLine{
+								FeatureKey: features.tieredVolume.Key,
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.VolumeTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(100),
+											},
+										},
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(90),
+											},
+										},
+										{
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(80),
+											},
+										},
+									},
+									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+								}),
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+				},
+			},
+		)
+		require.NoError(s.T(), err)
+		require.Len(s.T(), pendingLines, 4)
+
+		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
+		for _, line := range pendingLines {
+			require.Equal(s.T(),
+				billing.Period{
+					Start: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:00Z")),
+					End:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:00Z")),
+				},
+				line.Period,
+				"period should be truncated to 1 min resolution",
+			)
+
+			require.Equal(s.T(),
+				line.InvoiceAt,
+				periodEnd,
+				"invoice at should be unchanged",
+			)
+		}
+
+		lines = ubpPendingLines{
+			flatPerUnit:     pendingLines[0],
+			flatPerUsage:    pendingLines[1],
+			tieredGraduated: pendingLines[2],
+			tieredVolume:    pendingLines[3],
+		}
+	})
+
+	// Usage:
+	s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 10, periodStart)
+	s.MockStreamingConnector.AddSimpleEvent("flat-per-unit", 20, periodStart.Add(time.Minute*100))
+	s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*100))
+	s.MockStreamingConnector.AddSimpleEvent("tiered-volume", 25, periodStart.Add(3*time.Hour))
+	s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(3*time.Hour))
+
+	s.Run("create invoice with empty truncated periods", func() {
+		asOf := periodStart.Add(time.Second)
+		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     &asOf,
+		})
+
+		require.ErrorIs(s.T(), err, billing.ErrInvoiceCreateNoLines)
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+	})
+
+	s.Run("create mid period invoice", func() {
+		// Period
+		asOf := periodStart.Add(time.Hour)
+		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     &asOf,
+		})
+
+		require.ErrorIs(s.T(), err, billing.ErrInvoiceCreateNoLines)
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+	})
+
+	s.Run("create end of period invoice", func() {
+		asOf := periodEnd
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     &asOf,
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), out, 1)
+
+		invoiceLines := out[0].Lines.MustGet()
+
+		require.Len(s.T(), invoiceLines, 4)
+
+		// Given that we didn't have to do a split the line IDs should be the same as the original lines
+		flatPerUnit := s.lineByID(invoiceLines, lines.flatPerUnit.ID)
+		flatPerUsage := s.lineByID(invoiceLines, lines.flatPerUsage.ID)
+		tieredGraduated := s.lineByID(invoiceLines, lines.tieredGraduated.ID)
+		tieredVolume := s.lineByID(invoiceLines, lines.tieredVolume.ID)
+
+		expectedPeriod := billing.Period{
+			Start: periodStart.Truncate(time.Minute),
+			End:   periodEnd.Truncate(time.Minute),
+		}
+		for _, line := range []*billing.Line{flatPerUnit, flatPerUsage, tieredGraduated, tieredVolume} {
+			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should not be changed for the line items")
+		}
+
+		// Details
+		requireDetailedLines(s.T(), flatPerUsage, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.FlatPriceChildUniqueReferenceID: {
+					Quantity:      1,
+					PerUnitAmount: 100,
+				},
+			},
+		})
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 100,
+			Total:  100,
+		}, flatPerUsage.Totals)
+
+		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.UnitPriceUsageChildUniqueReferenceID: {
+					Quantity:      30,
+					PerUnitAmount: 100,
+					Discounts: map[string]float64{
+						billing.LineMaximumSpendReferenceID: 1000,
+					},
+				},
+			},
+		})
+
+		requireTotals(s.T(), expectedTotals{
+			Amount:         3000,
+			DiscountsTotal: 1000,
+			Total:          2000,
+		}, flatPerUnit.Totals)
+
+		requireDetailedLines(s.T(), tieredVolume, lineExpectations{
+			Details: map[string]feeLineExpect{
+				lineservice.VolumeUnitPriceChildUniqueReferenceID: {
+					Quantity:      25,
+					PerUnitAmount: 80,
+				},
+				lineservice.VolumeMinSpendChildUniqueReferenceID: {
+					Quantity:      1,
+					PerUnitAmount: 1000,
+				},
+			},
+		})
+
+		requireTotals(s.T(), expectedTotals{
+			Amount:       2000,
+			ChargesTotal: 1000,
+			Total:        3000,
+		}, tieredVolume.Totals)
+
+		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
+			Details: map[string]feeLineExpect{
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
+					Quantity:      10,
+					PerUnitAmount: 100,
+				},
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+					Quantity:      10,
+					PerUnitAmount: 90,
+				},
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 3): {
+					Quantity:      10,
+					PerUnitAmount: 80,
+				},
+			},
+		})
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 2700,
+			Total:  2700,
+		}, tieredGraduated.Totals)
+
+		// invoice totals
+		requireTotals(s.T(), expectedTotals{
+			Amount:         7800,
+			ChargesTotal:   1000,
+			DiscountsTotal: 1000,
+			Total:          7800,
+		}, out[0].Totals)
+	})
+}
+
 func (s *InvoicingTestSuite) lineWithParent(lines []*billing.Line, parentID string) *billing.Line {
 	s.T().Helper()
 	for _, line := range lines {
@@ -2136,6 +2542,18 @@ func (s *InvoicingTestSuite) lineWithParent(lines []*billing.Line, parentID stri
 	}
 
 	require.Fail(s.T(), "line with parent not found")
+	return nil
+}
+
+func (s *InvoicingTestSuite) lineByID(lines []*billing.Line, id string) *billing.Line {
+	s.T().Helper()
+	for _, line := range lines {
+		if line.ID == id {
+			return line
+		}
+	}
+
+	require.Fail(s.T(), "line not found")
 	return nil
 }
 

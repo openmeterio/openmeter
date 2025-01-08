@@ -410,6 +410,12 @@ model BillingWorkflowInvoicingSettings {
   @example("P1D")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   dueAfter?: string = "P7D";
+
+  /**
+   * Should progressive billing be allowed for this workflow?
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  progressiveBilling?: boolean = false;
 }
 
 /**
