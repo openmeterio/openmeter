@@ -153,11 +153,14 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		// status that we can use to filter for.
 
 		query := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.Namespace(input.Namespace)).
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
 			}).
 			WithBillingWorkflowConfig()
+
+		if len(input.Namespaces) > 0 {
+			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
+		}
 
 		if len(input.Customers) > 0 {
 			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))

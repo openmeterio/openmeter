@@ -345,8 +345,8 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace: namespace,
-			Customers: []string{customerEntity.ID},
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
 			Page: pagination.Page{
 				PageSize:   10,
 				PageNumber: 1,
@@ -655,8 +655,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace: namespace,
-			Customers: []string{customerEntity.ID},
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
 			Page: pagination.Page{
 				PageSize:   10,
 				PageNumber: 1,
@@ -702,8 +702,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace: namespace,
-			Customers: []string{customerEntity.ID},
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
 			Page: pagination.Page{
 				PageSize:   10,
 				PageNumber: 1,

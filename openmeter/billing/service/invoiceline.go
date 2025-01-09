@@ -9,7 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -134,7 +134,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 			PageSize:   10,
 		},
 		Customers:        []string{customerProfile.Customer.ID},
-		Namespace:        input.Namespace,
+		Namespaces:       []string{input.Namespace},
 		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 		Currencies:       []currencyx.Code{line.Currency},
 		OrderBy:          api.InvoiceOrderByCreatedAt,
