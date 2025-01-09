@@ -13,66 +13,16 @@ import (
 )
 
 // The main test runner
-func TestMigrations(t *testing.T) {
-	testDB := testutils.InitPostgresDB(t)
-	defer testDB.PGDriver.Close()
-
-	migrator, err := migrate.NewMigrate(testDB.URL, migrate.OMMigrations, "migrations")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		err1, err2 := migrator.Close()
-		err := errors.Join(err1, err2)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	// Let's go through all the stops
-	t.Logf("Running migrations with %d stops", len(breaks))
-
-	for _, stop := range breaks.ups() {
-		if err := migrator.Migrate(stop.version); err != nil {
-			t.Fatal(err)
-		}
-
-		stop.action(t, testDB.PGDriver.DB())
-	}
-
-	// We go till the very end either way
-	if err := migrator.Up(); err != nil {
-		t.Fatal(err)
-	}
-
-	for _, stop := range breaks.downs() {
-		if err := migrator.Migrate(stop.version); err != nil {
-			t.Fatal(err)
-		}
-
-		stop.action(t, testDB.PGDriver.DB())
-	}
-
-	if err := migrator.Down(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Then let's go up again to make sure nothing's bricked
-	if err := migrator.Up(); err != nil {
-		t.Fatal(err)
-	}
+func TestUpDownUp(t *testing.T) {
+	runner{}.Test(t)
 }
 
-// helpers
+// Helpers
 
 const (
 	directionUp int = iota
 	directionDown
 )
-
-// Define the stops
-var breaks = stops{}
 
 type stop struct {
 	// The migration version AT WHICH the break occurs (after applied = inclusive)
@@ -128,4 +78,58 @@ func (s stops) downs() stops {
 	})
 
 	return downs
+}
+
+type runner struct {
+	stops stops
+}
+
+func (r runner) Test(t *testing.T) {
+	testDB := testutils.InitPostgresDB(t)
+	defer testDB.PGDriver.Close()
+
+	migrator, err := migrate.NewMigrate(testDB.URL, migrate.OMMigrations, "migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		err1, err2 := migrator.Close()
+		err := errors.Join(err1, err2)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	t.Logf("Running migrations with %d stops", len(r.stops))
+
+	for _, stop := range r.stops.ups() {
+		if err := migrator.Migrate(stop.version); err != nil {
+			t.Fatal(err)
+		}
+
+		stop.action(t, testDB.PGDriver.DB())
+	}
+
+	// We go till the very end either way
+	if err := migrator.Up(); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, stop := range r.stops.downs() {
+		if err := migrator.Migrate(stop.version); err != nil {
+			t.Fatal(err)
+		}
+
+		stop.action(t, testDB.PGDriver.DB())
+	}
+
+	if err := migrator.Down(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Then let's go up again to make sure nothing's bricked
+	if err := migrator.Up(); err != nil {
+		t.Fatal(err)
+	}
 }

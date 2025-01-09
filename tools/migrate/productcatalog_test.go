@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
+func TestStartAfterChange(t *testing.T) {
 	// This is an example test adding a plan phase before start_after is changed to duration
 	// and asserting in the next step that it is in fact deleted as per the migration
-	breaks.add(stops{
+	runner{stops{
 		{
 			// before: 20241230152834_app_stripe_account_id_unique.up.sql
 			// after: 20250103121359_plan-phase-duration.up.sql
@@ -51,5 +51,5 @@ func init() {
 				require.Equal(t, 1, count)
 			},
 		},
-	})
+	}}.Test(t)
 }
