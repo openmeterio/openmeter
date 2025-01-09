@@ -2,6 +2,7 @@ package balanceworker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -38,6 +39,8 @@ type SubjectResolver interface {
 	GetSubjectByKey(ctx context.Context, namespace, key string) (models.Subject, error)
 }
 
+type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
+
 type WorkerOptions struct {
 	SystemEventsTopic string
 	IngestEventsTopic string
@@ -67,6 +70,9 @@ type Worker struct {
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
 	metricRecalculationTime metric.Int64Histogram
+
+	// Handlers
+	batchedIngestEventHandlers []BatchedIngestEventHandler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -121,6 +127,13 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	return worker, nil
+}
+
+// AddBatchedIngestEventHandler adds a handler to the list of batched ingest event handlers.
+// Useful to add additional batched ingest event handlers.
+// Handlers are called in the order they are added after the balance worker has processed the batched ingest event.
+func (w *Worker) AddBatchedIngestEventHandler(handler BatchedIngestEventHandler) {
+	w.batchedIngestEventHandlers = append(w.batchedIngestEventHandlers, handler)
 }
 
 func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandlerFunc, error) {
@@ -184,7 +197,28 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 		// Ingest batched event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
-			return w.handleBatchedIngestEvent(ctx, *event)
+			var errs []error
+
+			if event == nil {
+				return errors.New("nil batched ingest event")
+			}
+
+			// Balance worker handles the batched ingest event
+			err := w.handleBatchedIngestEvent(ctx, *event)
+			if err != nil {
+				errs = append(errs, err)
+			}
+
+			// Additional handlers defined in config if any
+			for _, handler := range w.batchedIngestEventHandlers {
+				err := handler(ctx, *event)
+				if err != nil {
+					errs = append(errs, err)
+				}
+
+			}
+
+			return errors.Join(errs...)
 		}),
 
 		// Edge Cache Miss Event
