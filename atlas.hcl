@@ -41,30 +41,6 @@ env "ci" {
   dev = "${local.ci_url}"
 }
 
-// CAN be used for all remote deployments
-env "remote" {
-  src = "${local.schema_src}"
-
-  migration {
-    // Define the directory where the migrations are stored.
-    dir = "file://tools/migrate/migrations"
-    // We use golang-migrate
-    format = "${local.migrations_format}"
-    // Remote deployments already had auto deploy present
-    baseline = "${local.init_migration_ts}"
-  }
-
-  format {
-    migrate {
-      diff = "{{ sql . \"  \" }}"
-    }
-  }
-
-  // Define the URL of the Dev Database for this environment
-  // See: https://atlasgo.io/concepts/dev-database
-  dev = "docker://postgres/15/dev?search_path=public"
-}
-
 locals {
     // Define the directory where the schema definition resides.
     schema_src = "ent://openmeter/ent/schema"

@@ -15,6 +15,14 @@ OpenMeter uses [atlas](https://atlasgo.io/) to generate versioned migrations fro
 
 After changing the schema and running `go generate` you can create a new migration diff via `atlas migrate --env local diff <migration-name>`, the generated migration files will be placed in the `migrations` directory.
 
+## Data Migrations
+
+Data migrations can be written alongside the schema migrations code.
+
+### Testing Data Migrations
+
+To test your data migrations in hypothetical scenarios, you can use the `tools/migrate` package to write assertions on how data changes after applying the migration. Examples can be found int the package.
+
 ## Running Migrations
 
 The recommended way to run migrations is to use the `golang-migrate` CLI tool. You can run the migrations via
