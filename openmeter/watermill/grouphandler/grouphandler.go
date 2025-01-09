@@ -34,7 +34,7 @@ type NoPublishingHandler struct {
 	meters         *meters
 	marshaler      cqrs.CommandEventMarshaler
 	typeHandlerMap map[string][]cqrs.GroupEventHandler
-	handlerLock    sync.RWMutex
+	mux            sync.RWMutex
 }
 
 func (h *NoPublishingHandler) Handle(msg *message.Message) error {
@@ -42,8 +42,8 @@ func (h *NoPublishingHandler) Handle(msg *message.Message) error {
 
 	meterAttributeCEType := attribute.String("ce_type", eventName)
 
-	h.handlerLock.Lock()
-	defer h.handlerLock.Unlock()
+	h.mux.RLock()
+	defer h.mux.RUnlock()
 
 	groupHandler, ok := h.typeHandlerMap[eventName]
 	if !ok || len(groupHandler) == 0 {
@@ -90,8 +90,8 @@ func (h *NoPublishingHandler) Handle(msg *message.Message) error {
 }
 
 func (h *NoPublishingHandler) AddHandler(handler GroupEventHandler) {
-	h.handlerLock.Lock()
-	defer h.handlerLock.Unlock()
+	h.mux.Lock()
+	defer h.mux.Unlock()
 
 	event := handler.NewEvent()
 	h.typeHandlerMap[h.marshaler.Name(event)] = append(h.typeHandlerMap[h.marshaler.Name(event)], handler)
