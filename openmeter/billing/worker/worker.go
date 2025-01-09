@@ -106,7 +106,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 }
 
 func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc, error) {
-	return grouphandler.NewNoPublishingHandler(
+	handler, err := grouphandler.NewNoPublishingHandler(
 		opts.EventBus.Marshaler(),
 		opts.Router.MetricMeter,
 
@@ -123,6 +123,11 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
 		}),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event handler: %w", err)
+	}
+
+	return handler.Handle, nil
 }
 
 func (w *Worker) Run(ctx context.Context) error {

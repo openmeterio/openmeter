@@ -129,9 +129,9 @@ func New(opts WorkerOptions) (*Worker, error) {
 	return worker, nil
 }
 
-// AddBatchedIngestEventHandler adds a handler to the list of batched ingest event handlers.
-// Useful to add additional batched ingest event handlers.
-// Handlers are called in the order they are added after the balance worker has processed the batched ingest event.
+// AddBatchedIngestEventHandler adds an additional handler to the list of batched ingest event handlers.
+// Handlers are called in the order they are added and run after the riginal balance worker handler.
+// In the case of any handler returning an error, the event will be retried so it is important that all handlers are idempotent.
 func (w *Worker) AddBatchedIngestEventHandler(handler grouphandler.GroupEventHandler) {
 	w.nonPublishingHandler.AddHandler(handler)
 }
@@ -220,7 +220,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 		}),
 	)
 	if err != nil {
-		///
+		return nil, fmt.Errorf("failed to create publishing handler: %w", err)
 	}
 
 	w.nonPublishingHandler = publishingHandler

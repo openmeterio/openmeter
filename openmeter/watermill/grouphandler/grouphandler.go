@@ -3,6 +3,7 @@ package grouphandler
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
@@ -30,16 +31,19 @@ func NewGroupEventHandler[T any](handleFunc func(ctx context.Context, event *T) 
 }
 
 type NoPublishingHandler struct {
-	// TODO: add locking!
 	meters         *meters
 	marshaler      cqrs.CommandEventMarshaler
 	typeHandlerMap map[string][]cqrs.GroupEventHandler
+	handlerLock    sync.RWMutex
 }
 
 func (h *NoPublishingHandler) Handle(msg *message.Message) error {
 	eventName := h.marshaler.NameFromMessage(msg)
 
 	meterAttributeCEType := attribute.String("ce_type", eventName)
+
+	h.handlerLock.Lock()
+	defer h.handlerLock.Unlock()
 
 	groupHandler, ok := h.typeHandlerMap[eventName]
 	if !ok || len(groupHandler) == 0 {
@@ -86,6 +90,9 @@ func (h *NoPublishingHandler) Handle(msg *message.Message) error {
 }
 
 func (h *NoPublishingHandler) AddHandler(handler GroupEventHandler) {
+	h.handlerLock.Lock()
+	defer h.handlerLock.Unlock()
+
 	event := handler.NewEvent()
 	h.typeHandlerMap[h.marshaler.Name(event)] = append(h.typeHandlerMap[h.marshaler.Name(event)], handler)
 }
