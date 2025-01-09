@@ -129,10 +129,10 @@ func New(opts WorkerOptions) (*Worker, error) {
 	return worker, nil
 }
 
-// AddBatchedIngestEventHandler adds an additional handler to the list of batched ingest event handlers.
+// AddHandler adds an additional handler to the list of batched ingest event handlers.
 // Handlers are called in the order they are added and run after the riginal balance worker handler.
 // In the case of any handler returning an error, the event will be retried so it is important that all handlers are idempotent.
-func (w *Worker) AddBatchedIngestEventHandler(handler grouphandler.GroupEventHandler) {
+func (w *Worker) AddHandler(handler grouphandler.GroupEventHandler) {
 	w.nonPublishingHandler.AddHandler(handler)
 }
 
@@ -197,19 +197,11 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 		// Ingest batched event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
-			var errs []error
-
 			if event == nil {
 				return errors.New("nil batched ingest event")
 			}
 
-			// Balance worker handles the batched ingest event
-			err := w.handleBatchedIngestEvent(ctx, *event)
-			if err != nil {
-				errs = append(errs, err)
-			}
-
-			return errors.Join(errs...)
+			return w.handleBatchedIngestEvent(ctx, *event)
 		}),
 
 		// Edge Cache Miss Event
