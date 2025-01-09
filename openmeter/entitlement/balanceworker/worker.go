@@ -72,7 +72,7 @@ type Worker struct {
 	metricRecalculationTime metric.Int64Histogram
 
 	// Handlers
-	batchedIngestEventHandlers []BatchedIngestEventHandler
+	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -132,12 +132,12 @@ func New(opts WorkerOptions) (*Worker, error) {
 // AddBatchedIngestEventHandler adds a handler to the list of batched ingest event handlers.
 // Useful to add additional batched ingest event handlers.
 // Handlers are called in the order they are added after the balance worker has processed the batched ingest event.
-func (w *Worker) AddBatchedIngestEventHandler(handler BatchedIngestEventHandler) {
-	w.batchedIngestEventHandlers = append(w.batchedIngestEventHandlers, handler)
+func (w *Worker) AddBatchedIngestEventHandler(handler grouphandler.GroupEventHandler) {
+	w.nonPublishingHandler.AddHandler(handler)
 }
 
 func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandlerFunc, error) {
-	return grouphandler.NewNoPublishingHandler(
+	publishingHandler, err := grouphandler.NewNoPublishingHandler(
 		w.opts.EventBus.Marshaler(),
 		metricMeter,
 
@@ -209,15 +209,6 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				errs = append(errs, err)
 			}
 
-			// Additional handlers defined in config if any
-			for _, handler := range w.batchedIngestEventHandlers {
-				err := handler(ctx, *event)
-				if err != nil {
-					errs = append(errs, err)
-				}
-
-			}
-
 			return errors.Join(errs...)
 		}),
 
@@ -228,6 +219,13 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleCacheMissEvent(ctx, event, metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntitySubjectKey, event.SubjectKey)))
 		}),
 	)
+	if err != nil {
+		///
+	}
+
+	w.nonPublishingHandler = publishingHandler
+
+	return publishingHandler.Handle, nil
 }
 
 func (w *Worker) Run(ctx context.Context) error {
