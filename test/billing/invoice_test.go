@@ -208,7 +208,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace:        namespace,
+			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			Expand:           billing.InvoiceExpandAll,
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
@@ -326,7 +326,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace:        namespace,
+			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			Expand:           billing.InvoiceExpandAll,
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
@@ -383,7 +383,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace:        namespace,
+			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			Expand:           billing.InvoiceExpand{},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
@@ -405,8 +405,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespace: namespace,
-			Customers: []string{customerEntity.ID},
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
 			Expand: billing.InvoiceExpand{
 				WorkflowApps: true,
 			},
@@ -2792,7 +2792,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	s.Run("fetch gathering invoice", func() {
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace:        namespace,
+			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Expand: billing.InvoiceExpand{
@@ -2812,7 +2812,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace:        namespace,
+			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Expand: billing.InvoiceExpand{
@@ -2832,7 +2832,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 30, periodStart.Add(2*time.Minute))
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespace:        namespace,
+			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Expand: billing.InvoiceExpand{

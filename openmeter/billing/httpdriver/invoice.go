@@ -36,7 +36,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}
 
 			return ListInvoicesRequest{
-				Namespace: ns,
+				Namespaces: []string{ns},
 
 				Customers: lo.FromPtrOr(input.Customers, nil),
 				Statuses: lo.Map(

@@ -418,9 +418,9 @@ type (
 type ListInvoicesInput struct {
 	pagination.Page
 
-	Namespace string
-	IDs       []string
-	Customers []string
+	Namespaces []string
+	IDs        []string
+	Customers  []string
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
 	Statuses []string
 	// ExtendedStatuses searches by exact InvoiceStatus
@@ -437,10 +437,6 @@ type ListInvoicesInput struct {
 }
 
 func (i ListInvoicesInput) Validate() error {
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
 	if i.IssuedAfter != nil && i.IssuedBefore != nil && i.IssuedAfter.After(*i.IssuedBefore) {
 		return errors.New("issuedAfter must be before issuedBefore")
 	}
