@@ -941,7 +941,7 @@ var (
 		{Name: "is_soft_limit", Type: field.TypeBool, Nullable: true},
 		{Name: "preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
 		{Name: "config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "usage_period_interval", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
+		{Name: "usage_period_interval", Type: field.TypeString, Nullable: true},
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
@@ -1052,7 +1052,7 @@ var (
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
 		{Name: "reset_max_rollover", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "reset_min_rollover", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "recurrence_period", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
+		{Name: "recurrence_period", Type: field.TypeString, Nullable: true},
 		{Name: "recurrence_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}

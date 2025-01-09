@@ -52,7 +52,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
@@ -21301,7 +21300,7 @@ type EntitlementMutation struct {
 	preserve_overage_at_reset     *bool
 	_config                       *[]uint8
 	append_config                 []uint8
-	usage_period_interval         *entitlement.UsagePeriodInterval
+	usage_period_interval         *datex.ISOString
 	usage_period_anchor           *time.Time
 	current_usage_period_start    *time.Time
 	current_usage_period_end      *time.Time
@@ -22231,12 +22230,12 @@ func (m *EntitlementMutation) ResetConfig() {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (m *EntitlementMutation) SetUsagePeriodInterval(epi entitlement.UsagePeriodInterval) {
-	m.usage_period_interval = &epi
+func (m *EntitlementMutation) SetUsagePeriodInterval(ds datex.ISOString) {
+	m.usage_period_interval = &ds
 }
 
 // UsagePeriodInterval returns the value of the "usage_period_interval" field in the mutation.
-func (m *EntitlementMutation) UsagePeriodInterval() (r entitlement.UsagePeriodInterval, exists bool) {
+func (m *EntitlementMutation) UsagePeriodInterval() (r datex.ISOString, exists bool) {
 	v := m.usage_period_interval
 	if v == nil {
 		return
@@ -22247,7 +22246,7 @@ func (m *EntitlementMutation) UsagePeriodInterval() (r entitlement.UsagePeriodIn
 // OldUsagePeriodInterval returns the old "usage_period_interval" field's value of the Entitlement entity.
 // If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EntitlementMutation) OldUsagePeriodInterval(ctx context.Context) (v *entitlement.UsagePeriodInterval, err error) {
+func (m *EntitlementMutation) OldUsagePeriodInterval(ctx context.Context) (v *datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUsagePeriodInterval is only allowed on UpdateOne operations")
 	}
@@ -23053,7 +23052,7 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		m.SetConfig(v)
 		return nil
 	case entitlement.FieldUsagePeriodInterval:
-		v, ok := value.(entitlement.UsagePeriodInterval)
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -24621,7 +24620,7 @@ type GrantMutation struct {
 	addreset_max_rollover *float64
 	reset_min_rollover    *float64
 	addreset_min_rollover *float64
-	recurrence_period     *recurrence.RecurrenceInterval
+	recurrence_period     *datex.ISOString
 	recurrence_anchor     *time.Time
 	clearedFields         map[string]struct{}
 	entitlement           *string
@@ -25359,12 +25358,12 @@ func (m *GrantMutation) ResetResetMinRollover() {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (m *GrantMutation) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) {
-	m.recurrence_period = &ri
+func (m *GrantMutation) SetRecurrencePeriod(ds datex.ISOString) {
+	m.recurrence_period = &ds
 }
 
 // RecurrencePeriod returns the value of the "recurrence_period" field in the mutation.
-func (m *GrantMutation) RecurrencePeriod() (r recurrence.RecurrenceInterval, exists bool) {
+func (m *GrantMutation) RecurrencePeriod() (r datex.ISOString, exists bool) {
 	v := m.recurrence_period
 	if v == nil {
 		return
@@ -25375,7 +25374,7 @@ func (m *GrantMutation) RecurrencePeriod() (r recurrence.RecurrenceInterval, exi
 // OldRecurrencePeriod returns the old "recurrence_period" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *recurrence.RecurrenceInterval, err error) {
+func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *datex.ISOString, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRecurrencePeriod is only allowed on UpdateOne operations")
 	}
@@ -25768,7 +25767,7 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		m.SetResetMinRollover(v)
 		return nil
 	case dbgrant.FieldRecurrencePeriod:
-		v, ok := value.(recurrence.RecurrenceInterval)
+		v, ok := value.(datex.ISOString)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

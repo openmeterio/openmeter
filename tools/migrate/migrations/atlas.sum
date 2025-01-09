@@ -1,4 +1,4 @@
-h1:buyWTeTUqzZsgfagzpJtjKq6Ifw+BFtN7IIRe0+/U8I=
+h1:LXg5wAL5RZZhBsA/+sI0FRpl3NuYE0VlNeCpAk60wAs=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -75,3 +75,5 @@ h1:buyWTeTUqzZsgfagzpJtjKq6Ifw+BFtN7IIRe0+/U8I=
 20250103121359_plan-phase-duration.up.sql h1:a6mnE11ePlmC9gIh217m8v7gULmCDsFMQhbeLUs0ljQ=
 20250108103427_billing-profile-progressive-billing-flag.down.sql h1:7IQyS1nD2SiCmXJomf6NI0WBRTMjZ1vcZOmBOSAedIo=
 20250108103427_billing-profile-progressive-billing-flag.up.sql h1:xG88d17PQ3crQRSdWzM3aBpTlOe2muzMBcoEQ2cVbtM=
+20250109231835_entitlements-usage-period-iso.down.sql h1:euBQHsrHwPM37s2gBkg6RUSvo//h122gcny/Us5+A20=
+20250109231835_entitlements-usage-period-iso.up.sql h1:bCvF+oeFEvNVJ8I9Ht9Z5pOGsRWxzdv1hW/KDqBRyQY=

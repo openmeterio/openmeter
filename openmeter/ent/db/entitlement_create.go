@@ -18,6 +18,7 @@ import (
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // EntitlementCreate is the builder for creating a Entitlement entity.
@@ -211,15 +212,15 @@ func (ec *EntitlementCreate) SetConfig(u []uint8) *EntitlementCreate {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (ec *EntitlementCreate) SetUsagePeriodInterval(epi entitlement.UsagePeriodInterval) *EntitlementCreate {
-	ec.mutation.SetUsagePeriodInterval(epi)
+func (ec *EntitlementCreate) SetUsagePeriodInterval(ds datex.ISOString) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodInterval(ds)
 	return ec
 }
 
 // SetNillableUsagePeriodInterval sets the "usage_period_interval" field if the given value is not nil.
-func (ec *EntitlementCreate) SetNillableUsagePeriodInterval(epi *entitlement.UsagePeriodInterval) *EntitlementCreate {
-	if epi != nil {
-		ec.SetUsagePeriodInterval(*epi)
+func (ec *EntitlementCreate) SetNillableUsagePeriodInterval(ds *datex.ISOString) *EntitlementCreate {
+	if ds != nil {
+		ec.SetUsagePeriodInterval(*ds)
 	}
 	return ec
 }
@@ -451,11 +452,6 @@ func (ec *EntitlementCreate) check() error {
 			return &ValidationError{Name: "subject_key", err: fmt.Errorf(`db: validator failed for field "Entitlement.subject_key": %w`, err)}
 		}
 	}
-	if v, ok := ec.mutation.UsagePeriodInterval(); ok {
-		if err := entitlement.UsagePeriodIntervalValidator(v); err != nil {
-			return &ValidationError{Name: "usage_period_interval", err: fmt.Errorf(`db: validator failed for field "Entitlement.usage_period_interval": %w`, err)}
-		}
-	}
 	if len(ec.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "Entitlement.feature"`)}
 	}
@@ -560,7 +556,7 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_node.Config = value
 	}
 	if value, ok := ec.mutation.UsagePeriodInterval(); ok {
-		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeEnum, value)
+		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeString, value)
 		_node.UsagePeriodInterval = &value
 	}
 	if value, ok := ec.mutation.UsagePeriodAnchor(); ok {

@@ -176,7 +176,7 @@ func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	}
 	return &api.RecurringPeriod{
 		Anchor:   u.Anchor,
-		Interval: api.RecurringPeriodInterval(u.Interval),
+		Interval: MapRecurrenceToAPI(u.Interval),
 	}
 }
 
@@ -214,7 +214,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 			IssueAfterResetPriority: v.IssueAfterResetPriority,
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
-				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
+				Interval: MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval),
 			},
 			PreserveOverageAtReset: v.PreserveOverageAtReset,
 		}
@@ -259,7 +259,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 		if v.UsagePeriod != nil {
 			request.UsagePeriod = &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
-				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
+				Interval: MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval),
 			}
 		}
 		if v.Metadata != nil {
@@ -276,7 +276,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 		if v.UsagePeriod != nil {
 			request.UsagePeriod = &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
-				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
+				Interval: MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval),
 			}
 		}
 		if v.Metadata != nil {
@@ -291,4 +291,44 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 	request.ActiveTo = nil
 
 	return request, nil
+}
+
+func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) recurrence.RecurrenceInterval {
+	switch interval {
+	case api.RecurringPeriodIntervalDAY:
+		return recurrence.RecurrencePeriodDaily
+	case api.RecurringPeriodIntervalWEEK:
+		return recurrence.RecurrencePeriodWeek
+	case api.RecurringPeriodIntervalMONTH:
+		return recurrence.RecurrencePeriodMonth
+	case api.RecurringPeriodIntervalYEAR:
+		return recurrence.RecurrencePeriodYear
+	default:
+		return recurrence.RecurrenceInterval{}
+	}
+}
+
+func MapRecurrenceToAPI(r recurrence.RecurrenceInterval) api.RecurringPeriodInterval {
+	// FIXME: due to the facts that
+	// 1. not all components of period.Period are normalizable (e.g. 24h != 1d)
+	// 2. `Diff(t1, t2 time.Time) period.Period` always calculates in seconds
+	// the results of those diff calculations won't match with exact month, year, etc... values
+	//
+	// Due to that, this attempt at mapping here happens on a best effort basis, as it's only temporary either way. In cases where it cannot be mapped, we return a new (unexpected by the client value) of the ISO string representation.
+	normalised := r.Normalise(false)
+
+	if d, err := normalised.Subtract(recurrence.RecurrencePeriodDaily.Period.Period); err == nil && d.IsZero() {
+		return api.RecurringPeriodIntervalDAY
+	}
+	if w, err := normalised.Subtract(recurrence.RecurrencePeriodWeek.Period.Period); err == nil && w.IsZero() {
+		return api.RecurringPeriodIntervalWEEK
+	}
+	if m, err := normalised.Subtract(recurrence.RecurrencePeriodMonth.Period.Period); err == nil && m.IsZero() {
+		return api.RecurringPeriodIntervalMONTH
+	}
+	if y, err := normalised.Subtract(recurrence.RecurrencePeriodYear.Period.Period); err == nil && y.IsZero() {
+		return api.RecurringPeriodIntervalYEAR
+	}
+
+	return api.RecurringPeriodInterval(r.ISOString())
 }

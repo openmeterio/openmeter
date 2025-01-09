@@ -89,13 +89,15 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Interval)
 }
 
-type RecurrenceInterval string
+type RecurrenceInterval struct {
+	datex.Period
+}
 
-const (
-	RecurrencePeriodDaily RecurrenceInterval = "DAY"
-	RecurrencePeriodWeek  RecurrenceInterval = "WEEK"
-	RecurrencePeriodMonth RecurrenceInterval = "MONTH"
-	RecurrencePeriodYear  RecurrenceInterval = "YEAR"
+var (
+	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 0, 0, 1, 0, 0, 0)}
+	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 0, 1, 0, 0, 0, 0)}
+	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
+	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
 )
 
 func (RecurrenceInterval) Values() (kinds []string) {
@@ -105,7 +107,7 @@ func (RecurrenceInterval) Values() (kinds []string) {
 		RecurrencePeriodMonth,
 		RecurrencePeriodYear,
 	} {
-		kinds = append(kinds, string(s))
+		kinds = append(kinds, s.String())
 	}
 	return
 }

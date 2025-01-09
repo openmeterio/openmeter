@@ -20,6 +20,12 @@ func (i ISOString) Parse() (Period, error) {
 	return Period{res}, err
 }
 
+func NewPeriod(years, months, weeks, days, hours, minutes, seconds int) Period {
+	return Period{
+		period.New(years, months, weeks, days, hours, minutes, seconds),
+	}
+}
+
 // ParsePtrOrNil parses the ISO8601 string representation of the period or if ISOString is nil, returns nil
 func (i *ISOString) ParsePtrOrNil() (*Period, error) {
 	if i == nil {

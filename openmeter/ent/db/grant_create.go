@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // GrantCreate is the builder for creating a Grant entity.
@@ -151,15 +151,15 @@ func (gc *GrantCreate) SetResetMinRollover(f float64) *GrantCreate {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (gc *GrantCreate) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) *GrantCreate {
-	gc.mutation.SetRecurrencePeriod(ri)
+func (gc *GrantCreate) SetRecurrencePeriod(ds datex.ISOString) *GrantCreate {
+	gc.mutation.SetRecurrencePeriod(ds)
 	return gc
 }
 
 // SetNillableRecurrencePeriod sets the "recurrence_period" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrencePeriod(ri *recurrence.RecurrenceInterval) *GrantCreate {
-	if ri != nil {
-		gc.SetRecurrencePeriod(*ri)
+func (gc *GrantCreate) SetNillableRecurrencePeriod(ds *datex.ISOString) *GrantCreate {
+	if ds != nil {
+		gc.SetRecurrencePeriod(*ds)
 	}
 	return gc
 }
@@ -296,11 +296,6 @@ func (gc *GrantCreate) check() error {
 	if _, ok := gc.mutation.ResetMinRollover(); !ok {
 		return &ValidationError{Name: "reset_min_rollover", err: errors.New(`db: missing required field "Grant.reset_min_rollover"`)}
 	}
-	if v, ok := gc.mutation.RecurrencePeriod(); ok {
-		if err := dbgrant.RecurrencePeriodValidator(v); err != nil {
-			return &ValidationError{Name: "recurrence_period", err: fmt.Errorf(`db: validator failed for field "Grant.recurrence_period": %w`, err)}
-		}
-	}
 	if len(gc.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "Grant.entitlement"`)}
 	}
@@ -393,7 +388,7 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_node.ResetMinRollover = value
 	}
 	if value, ok := gc.mutation.RecurrencePeriod(); ok {
-		_spec.SetField(dbgrant.FieldRecurrencePeriod, field.TypeEnum, value)
+		_spec.SetField(dbgrant.FieldRecurrencePeriod, field.TypeString, value)
 		_node.RecurrencePeriod = &value
 	}
 	if value, ok := gc.mutation.RecurrenceAnchor(); ok {

@@ -186,31 +186,6 @@ func EntitlementTypeValidator(et EntitlementType) error {
 	}
 }
 
-// UsagePeriodInterval defines the type for the "usage_period_interval" enum field.
-type UsagePeriodInterval string
-
-// UsagePeriodInterval values.
-const (
-	UsagePeriodIntervalDAY   UsagePeriodInterval = "DAY"
-	UsagePeriodIntervalWEEK  UsagePeriodInterval = "WEEK"
-	UsagePeriodIntervalMONTH UsagePeriodInterval = "MONTH"
-	UsagePeriodIntervalYEAR  UsagePeriodInterval = "YEAR"
-)
-
-func (upi UsagePeriodInterval) String() string {
-	return string(upi)
-}
-
-// UsagePeriodIntervalValidator is a validator for the "usage_period_interval" field enum values. It is called by the builders before save.
-func UsagePeriodIntervalValidator(upi UsagePeriodInterval) error {
-	switch upi {
-	case UsagePeriodIntervalDAY, UsagePeriodIntervalWEEK, UsagePeriodIntervalMONTH, UsagePeriodIntervalYEAR:
-		return nil
-	default:
-		return fmt.Errorf("entitlement: invalid enum value for usage_period_interval field: %q", upi)
-	}
-}
-
 // OrderOption defines the ordering options for the Entitlement queries.
 type OrderOption func(*sql.Selector)
 

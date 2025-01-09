@@ -112,7 +112,7 @@ func (r runner) Test(t *testing.T) {
 	}
 
 	// We go till the very end either way
-	if err := migrator.Up(); err != nil {
+	if err := migrator.Up(); err != nil && err.Error() != "no change" {
 		t.Fatal(err)
 	}
 

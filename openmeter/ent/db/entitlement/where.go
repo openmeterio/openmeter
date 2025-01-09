@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // ID filters vertices based on their ID field.
@@ -133,6 +134,12 @@ func IsSoftLimit(v bool) predicate.Entitlement {
 // PreserveOverageAtReset applies equality check predicate on the "preserve_overage_at_reset" field. It's identical to PreserveOverageAtResetEQ.
 func PreserveOverageAtReset(v bool) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldPreserveOverageAtReset, v))
+}
+
+// UsagePeriodInterval applies equality check predicate on the "usage_period_interval" field. It's identical to UsagePeriodIntervalEQ.
+func UsagePeriodInterval(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodAnchor applies equality check predicate on the "usage_period_anchor" field. It's identical to UsagePeriodAnchorEQ.
@@ -876,23 +883,75 @@ func ConfigNotNil() predicate.Entitlement {
 }
 
 // UsagePeriodIntervalEQ applies the EQ predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalEQ(v UsagePeriodInterval) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodInterval, v))
+func UsagePeriodIntervalEQ(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalNEQ applies the NEQ predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalNEQ(v UsagePeriodInterval) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldNEQ(FieldUsagePeriodInterval, v))
+func UsagePeriodIntervalNEQ(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldNEQ(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalIn applies the In predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalIn(vs ...UsagePeriodInterval) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldIn(FieldUsagePeriodInterval, vs...))
+func UsagePeriodIntervalIn(vs ...datex.ISOString) predicate.Entitlement {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Entitlement(sql.FieldIn(FieldUsagePeriodInterval, v...))
 }
 
 // UsagePeriodIntervalNotIn applies the NotIn predicate on the "usage_period_interval" field.
-func UsagePeriodIntervalNotIn(vs ...UsagePeriodInterval) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldNotIn(FieldUsagePeriodInterval, vs...))
+func UsagePeriodIntervalNotIn(vs ...datex.ISOString) predicate.Entitlement {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Entitlement(sql.FieldNotIn(FieldUsagePeriodInterval, v...))
+}
+
+// UsagePeriodIntervalGT applies the GT predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalGT(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldGT(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalGTE applies the GTE predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalGTE(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldGTE(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalLT applies the LT predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalLT(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldLT(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalLTE applies the LTE predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalLTE(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldLTE(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalContains applies the Contains predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalContains(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldContains(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalHasPrefix applies the HasPrefix predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalHasPrefix(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldHasPrefix(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalHasSuffix applies the HasSuffix predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalHasSuffix(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldHasSuffix(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodIntervalIsNil applies the IsNil predicate on the "usage_period_interval" field.
@@ -903,6 +962,18 @@ func UsagePeriodIntervalIsNil() predicate.Entitlement {
 // UsagePeriodIntervalNotNil applies the NotNil predicate on the "usage_period_interval" field.
 func UsagePeriodIntervalNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldUsagePeriodInterval))
+}
+
+// UsagePeriodIntervalEqualFold applies the EqualFold predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalEqualFold(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldEqualFold(FieldUsagePeriodInterval, vc))
+}
+
+// UsagePeriodIntervalContainsFold applies the ContainsFold predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalContainsFold(v datex.ISOString) predicate.Entitlement {
+	vc := string(v)
+	return predicate.Entitlement(sql.FieldContainsFold(FieldUsagePeriodInterval, vc))
 }
 
 // UsagePeriodAnchorEQ applies the EQ predicate on the "usage_period_anchor" field.
