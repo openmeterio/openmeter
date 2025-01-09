@@ -49,10 +49,6 @@ func (r PatchRemovePhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subs
 	}
 
 	// Checks we need:
-	// 1. You can only remove a phase in edit
-	if actx.Operation != subscription.SpecOperationEdit {
-		return &subscription.PatchForbiddenError{Msg: "you can only remove a phase in edit"}
-	}
 	// 2. You can only remove future phases
 	if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); !st.After(actx.CurrentTime) {
 		return &subscription.PatchForbiddenError{Msg: "cannot remove already started phase"}

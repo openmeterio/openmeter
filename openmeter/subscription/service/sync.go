@@ -141,7 +141,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
 
-						dirty.mark(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey))
+						dirty.mark(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
 
 						// There's nothing more to be done for this item, so lets skip to the next one
 						continue
@@ -203,7 +203,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
 
-						dirty.mark(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey))
+						dirty.mark(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
 
 						// There's nothing more to be done here, so lets skip to the next one
 						continue
@@ -230,7 +230,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 								return def, fmt.Errorf("failed to delete entitlement: %w", err)
 							}
 
-							dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemView.Entitlement.Entitlement.FeatureKey))
+							dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx, currentItemView.Entitlement.Entitlement.FeatureKey))
 
 							// nothing more to do here
 							continue
@@ -258,7 +258,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 									return def, fmt.Errorf("failed to delete entitlement: %w", err)
 								}
 
-								dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemView.Entitlement.Entitlement.FeatureKey))
+								dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx, currentItemView.Entitlement.Entitlement.FeatureKey))
 
 								// nothing more to do here
 								continue
@@ -321,19 +321,15 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					}
 
 					matchingItemFromNewSpec := matchingItemsByKeyFromNewSpec[currentItemIdx]
-					itemCadence, err := matchingItemFromNewSpec.GetCadence(newPhaseCadence)
-					if err != nil {
-						return def, fmt.Errorf("failed to get cadence for item %s: %w", matchingItemFromNewSpec.ItemKey, err)
-					}
 
 					// If the item got deleted, we can create it as a whole
-					if dirty.isTouched(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey)) {
+					if dirty.isTouched(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx)) {
 						if _, err := s.createItem(
 							ctx,
 							view.Customer,
-							matchingItemFromNewSpec,
+							*matchingItemFromNewSpec,
 							currentPhaseView.SubscriptionPhase,
-							itemCadence,
+							newPhaseCadence,
 						); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
@@ -343,6 +339,13 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					}
 
 					// Finally, let's check the entitlement of it
+
+					// First lets get the item cadence
+					itemCadence, err := matchingItemFromNewSpec.GetCadence(newPhaseCadence)
+					if err != nil {
+						return def, fmt.Errorf("failed to get cadence for item %s: %w", matchingItemFromNewSpec.ItemKey, err)
+					}
+
 					newEntInp, hasNewEnt, err := matchingItemFromNewSpec.ToScheduleSubscriptionEntitlementInput(
 						view.Customer,
 						itemCadence, // entitlement cadence will be same as item cadence
@@ -351,7 +354,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						return def, fmt.Errorf("failed to determine entitlement input for item %s: %w", currentItemView.SubscriptionItem.Key, err)
 					}
 
-					if hasNewEnt && dirty.isTouched(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemView.Entitlement.Entitlement.FeatureKey)) {
+					if hasNewEnt && dirty.isTouched(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx, currentItemView.Entitlement.Entitlement.FeatureKey)) {
 						if _, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, newEntInp); err != nil {
 							return def, fmt.Errorf("failed to schedule entitlement for item %s: %w", currentItemView.SubscriptionItem.Key, err)
 						}
@@ -394,19 +397,14 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						return def, fmt.Errorf("failed to get cadence for phase %s: %w", phase.PhaseKey, err)
 					}
 
-					itemCadence, err := item.GetCadence(phaseCadence)
-					if err != nil {
-						return def, fmt.Errorf("failed to get cadence for item %s: %w", item.ItemKey, err)
-					}
-
 					// If we didn't find a matching key in the current view, we need to create the item
 					if !foundMatchingItemsByKeyInCurrentView {
 						if _, err := s.createItem(
 							ctx,
 							view.Customer,
-							item,
+							*item,
 							matchingPhaseInCurrentView.SubscriptionPhase,
-							itemCadence,
+							phaseCadence,
 						); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
@@ -421,9 +419,9 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if _, err := s.createItem(
 							ctx,
 							view.Customer,
-							item,
+							*item,
 							matchingPhaseInCurrentView.SubscriptionPhase,
-							itemCadence,
+							phaseCadence,
 						); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
@@ -459,9 +457,16 @@ func (t touched) isTouched(key subscription.PatchPath) bool {
 
 // NewEntitlementPath returns an invalid PatchPath thats still usable for IsParentOf checks
 // FIXME: this is a hack. For instance, is featureKey were to contain `/` it would completely break (though that exact scenario is otherwise prohibited)
-func NewEntitlementPath(phaseKey, itemKey, featureKey string) subscription.PatchPath {
-	itemPath := subscription.NewItemPath(phaseKey, itemKey)
+func NewEntitlementPath(phaseKey, itemKey string, idx int, featureKey string) subscription.PatchPath {
+	itemPath := NewItemVersionPath(phaseKey, itemKey, idx)
 	return subscription.PatchPath(fmt.Sprintf("%s/entitlements/%s", itemPath, featureKey))
+}
+
+// NewItemVersionPath returns an invalid PatchPath thats still usable for IsParentOf checks
+// FIXME: this is a hack. For instance, is featureKey were to contain `/` it would completely break (though that exact scenario is otherwise prohibited)
+func NewItemVersionPath(phaseKey, itemKey string, idx int) subscription.PatchPath {
+	itemPath := subscription.NewItemPath(phaseKey, itemKey)
+	return subscription.PatchPath(fmt.Sprintf("%s/idx/%d", itemPath, idx))
 }
 
 // an ID that can never occur in normal control flow

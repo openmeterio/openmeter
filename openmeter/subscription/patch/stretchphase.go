@@ -56,10 +56,6 @@ func (p PatchStretchPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 	sortedPhases := spec.GetSortedPhases()
 
 	// Checks we need:
-	// 1. You can only extend a phase in edit
-	if actx.Operation != subscription.SpecOperationEdit {
-		return &subscription.PatchForbiddenError{Msg: "you can only extend a phase in edit"}
-	}
 	pST, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 	// 2. You cannot extend past phases, only current or future ones
 	current, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)

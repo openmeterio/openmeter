@@ -254,7 +254,7 @@ func TestEdit(t *testing.T) {
 				rc := subscriptiontestutils.ExampleRateCard2
 
 				// Let's add the item
-				spec.Phases[pKey].ItemsByKey[iKey] = []subscription.SubscriptionItemSpec{
+				spec.Phases[pKey].ItemsByKey[iKey] = []*subscription.SubscriptionItemSpec{
 					{
 						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
@@ -324,7 +324,7 @@ func TestEdit(t *testing.T) {
 				item.RateCard.EntitlementTemplate = nil
 
 				// Let's add the item
-				spec.Phases[pKey].ItemsByKey[iKey] = []subscription.SubscriptionItemSpec{
+				spec.Phases[pKey].ItemsByKey[iKey] = []*subscription.SubscriptionItemSpec{
 					item,
 				}
 
@@ -336,12 +336,6 @@ func TestEdit(t *testing.T) {
 
 				// Let's validate the update
 				subscriptiontestutils.ValidateSpecAndView(t, spec, v2)
-			},
-		},
-		{
-			Name: "Should update contents of current phase",
-			Handler: func(t *testing.T, deps TDeps) {
-				t.Skip("TODO")
 			},
 		},
 	}

@@ -43,31 +43,28 @@ func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subsc
 	phaseStartTime, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 
 	if items, exists := phase.ItemsByKey[r.ItemKey]; !exists || len(items) == 0 {
-		return &subscription.PatchConflictError{Msg: fmt.Sprintf("items for key %s doesn't exists in phase %s", r.ItemKey, r.PhaseKey)}
+		return &subscription.PatchValidationError{Msg: fmt.Sprintf("items for key %s doesn't exists in phase %s", r.ItemKey, r.PhaseKey)}
 	}
 
 	// Checks we need:
 	// 1. You cannot remove items from previous phases
-	if actx.Operation == subscription.SpecOperationEdit {
-		currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
-		if !exists {
-			// either all phases are in the past or in the future
-			// if all phases are in the past then no removal is possible
-			//
-			// If all phases are in the past then the selected one is also in the past
-			if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
-				return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
-			}
-		} else {
-			currentPhaseStartTime, _ := currentPhase.StartAfter.AddTo(spec.ActiveFrom)
-			if phaseStartTime.Before(currentPhaseStartTime) {
-				return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
-			}
+	currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
+	if !exists {
+		// either all phases are in the past or in the future
+		// if all phases are in the past then no removal is possible
+		//
+		// If all phases are in the past then the selected one is also in the past
+		if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
+			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
+		}
+	} else {
+		currentPhaseStartTime, _ := currentPhase.StartAfter.AddTo(spec.ActiveFrom)
+		if phaseStartTime.Before(currentPhaseStartTime) {
+			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
 		}
 	}
 
 	// Finally, lets try to remove the item
-	currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
 	if exists && currentPhase.PhaseKey == r.PhaseKey {
 		// If it's removed from the current phase, we should set its end time to the current time, instead of deleting it (as we cannot falsify history)
 

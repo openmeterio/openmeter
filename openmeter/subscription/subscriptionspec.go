@@ -130,7 +130,7 @@ func (s *SubscriptionSpec) GetSortedPhases() []*SubscriptionPhaseSpec {
 func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpec, bool) {
 	var current *SubscriptionPhaseSpec
 	for _, phase := range s.GetSortedPhases() {
-		if st, _ := phase.StartAfter.AddTo(s.ActiveFrom); st.Before(t) {
+		if st, _ := phase.StartAfter.AddTo(s.ActiveFrom); !st.After(t) {
 			current = phase
 		} else {
 			break
@@ -220,7 +220,7 @@ type SubscriptionPhaseSpec struct {
 	CreateSubscriptionPhaseCustomerInput `json:",inline"`
 
 	// In each key, for each phase, we have a list of item specs to account for mid-phase changes
-	ItemsByKey map[string][]SubscriptionItemSpec `json:"itemsByKey"`
+	ItemsByKey map[string][]*SubscriptionItemSpec `json:"itemsByKey"`
 }
 
 func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
@@ -604,7 +604,7 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
 				AnnotatedModel: models.AnnotatedModel{}, // TODO: where should we source this from? inherit from PlanPhase, or Subscription?
 			},
-			ItemsByKey: make(map[string][]SubscriptionItemSpec),
+			ItemsByKey: make(map[string][]*SubscriptionItemSpec),
 		}
 
 		if len(planPhase.GetRateCards()) == 0 {
@@ -629,9 +629,9 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 			}
 
 			if phase.ItemsByKey[rateCard.GetKey()] == nil {
-				phase.ItemsByKey[rateCard.GetKey()] = make([]SubscriptionItemSpec, 0)
+				phase.ItemsByKey[rateCard.GetKey()] = make([]*SubscriptionItemSpec, 0)
 			}
-			phase.ItemsByKey[rateCard.GetKey()] = append(phase.ItemsByKey[rateCard.GetKey()], itemSpec)
+			phase.ItemsByKey[rateCard.GetKey()] = append(phase.ItemsByKey[rateCard.GetKey()], &itemSpec)
 		}
 
 		spec.Phases[phase.PhaseKey] = phase
@@ -689,7 +689,7 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
 				AnnotatedModel: phase.AnnotatedModel,
 			},
-			ItemsByKey: make(map[string][]SubscriptionItemSpec),
+			ItemsByKey: make(map[string][]*SubscriptionItemSpec),
 		}
 
 		spec.Phases[phase.Key] = phaseSpec
@@ -723,8 +723,13 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 			// Any arbitrary time works as long as its consistent for the comparisons
 			someTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
-				iT, _ := i.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
-				jT, _ := j.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+				iT, jT := someTime, someTime
+				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
+					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+				}
+				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
+					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+				}
 				return int(iT.Sub(jT))
 			})
 		}
@@ -756,7 +761,7 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 						},
 					},
 				}
-				phaseSpec.ItemsByKey[key] = append(phaseSpec.ItemsByKey[item.Key], itemSpec)
+				phaseSpec.ItemsByKey[key] = append(phaseSpec.ItemsByKey[item.Key], &itemSpec)
 			}
 		}
 	}
@@ -773,15 +778,7 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 	return spec, nil
 }
 
-type SpecOperation int
-
-const (
-	SpecOperationCreate = iota
-	SpecOperationEdit
-)
-
 type ApplyContext struct {
-	Operation   SpecOperation
 	CurrentTime time.Time
 }
 

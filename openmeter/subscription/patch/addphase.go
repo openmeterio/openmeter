@@ -52,11 +52,6 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 	}
 
 	// Checks we need:
-	// 1. You can only add a phase in edits
-	if actx.Operation != subscription.SpecOperationEdit {
-		return &subscription.PatchForbiddenError{Msg: "you can only add a phase in edit"}
-	}
-
 	vST, _ := a.Value().StartAfter.AddTo(spec.ActiveFrom)
 
 	// 2. You can only add a phase for future
@@ -107,7 +102,7 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 	spec.Phases[a.PhaseKey] = &subscription.SubscriptionPhaseSpec{
 		CreateSubscriptionPhasePlanInput:     a.CreateInput.CreateSubscriptionPhasePlanInput,
 		CreateSubscriptionPhaseCustomerInput: a.CreateInput.CreateSubscriptionPhaseCustomerInput,
-		ItemsByKey:                           make(map[string][]subscription.SubscriptionItemSpec),
+		ItemsByKey:                           make(map[string][]*subscription.SubscriptionItemSpec),
 	}
 
 	return nil
