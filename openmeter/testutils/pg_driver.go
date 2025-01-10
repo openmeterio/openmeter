@@ -54,7 +54,6 @@ func (*NoopMigrator) Verify(
 type TestDB struct {
 	EntDriver *entdriver.EntPostgresDriver
 	PGDriver  *pgdriver.Driver
-	SQLDriver *sql.DB
 	URL       string
 }
 
