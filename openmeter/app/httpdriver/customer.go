@@ -307,7 +307,10 @@ func (h *handler) customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData
 			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
 		}
 
-		apiApp := h.appMapper.mapStripeAppToAPI(stripeApp)
+		apiApp, err := h.appMapper.mapStripeAppToAPI(stripeApp)
+		if err != nil {
+			return apiCustomerAppData, fmt.Errorf("error mapping stripe app to api: %w", err)
+		}
 
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
@@ -317,7 +320,7 @@ func (h *handler) customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData
 			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
 		}
 
-		err := apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
+		err = apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
 		if err != nil {
 			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
 		}

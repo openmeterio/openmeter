@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -12,6 +13,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 // NewAppMapper creates a new app mapper
@@ -37,7 +39,10 @@ func (a *AppMapper) MapAppToAPI(item appentity.App) (api.App, error) {
 	case appentitybase.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
 
-		stripeAPIApp := a.mapStripeAppToAPI(stripeApp)
+		stripeAPIApp, err := a.mapStripeAppToAPI(stripeApp)
+		if err != nil {
+			return api.App{}, fmt.Errorf("failed to map stripe app to api: %w", err)
+		}
 
 		app := api.App{}
 		if err := app.FromStripeApp(stripeAPIApp); err != nil {
@@ -74,11 +79,17 @@ func (a *AppMapper) mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 
 func (a *AppMapper) mapStripeAppToAPI(
 	stripeApp appstripeentityapp.App,
-) api.StripeApp {
+) (api.StripeApp, error) {
 	// Get masked API key
 	maskedAPIKey, err := a.stripeAppService.GetMaskedSecretAPIKey(stripeApp.APIKey)
 	if err != nil {
-		a.logger.Error("failed to get stripe app masked api key", "id", stripeApp.GetID())
+		var secretNotFoundError *secretentity.SecretNotFoundError
+
+		if !errors.As(err, &secretNotFoundError) {
+			return api.StripeApp{}, fmt.Errorf("failed to get stripe app masked api key: %w", err)
+		}
+
+		a.logger.Debug("stripe api key not found", "id", stripeApp.GetID())
 
 		// Fallback to empty string
 		maskedAPIKey = ""
@@ -104,5 +115,5 @@ func (a *AppMapper) mapStripeAppToAPI(
 		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())
 	}
 
-	return apiStripeApp
+	return apiStripeApp, nil
 }
