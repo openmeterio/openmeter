@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -79,6 +80,10 @@ func (a DeleteCustomerInput) Validate() error {
 		if err := a.CustomerID.Validate(); err != nil {
 			return err
 		}
+	}
+
+	if a.AppID != nil && a.CustomerID != nil && a.AppID.Namespace != a.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
 	}
 
 	return nil

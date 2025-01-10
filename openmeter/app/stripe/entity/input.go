@@ -212,10 +212,10 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 		if i.AppID.Namespace == "" {
 			return errors.New("app namespace is required")
 		}
+	}
 
-		if i.AppID.Namespace != i.CustomerID.Namespace {
-			return errors.New("app and customer must be in the same namespace")
-		}
+	if i.AppID != nil && i.CustomerID != nil && i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
 	}
 
 	return nil
