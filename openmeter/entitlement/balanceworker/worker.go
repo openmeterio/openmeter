@@ -2,6 +2,7 @@ package balanceworker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -38,6 +39,8 @@ type SubjectResolver interface {
 	GetSubjectByKey(ctx context.Context, namespace, key string) (models.Subject, error)
 }
 
+type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
+
 type WorkerOptions struct {
 	SystemEventsTopic string
 	IngestEventsTopic string
@@ -67,6 +70,9 @@ type Worker struct {
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
 	metricRecalculationTime metric.Int64Histogram
+
+	// Handlers
+	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -123,8 +129,15 @@ func New(opts WorkerOptions) (*Worker, error) {
 	return worker, nil
 }
 
+// AddHandler adds an additional handler to the list of batched ingest event handlers.
+// Handlers are called in the order they are added and run after the riginal balance worker handler.
+// In the case of any handler returning an error, the event will be retried so it is important that all handlers are idempotent.
+func (w *Worker) AddHandler(handler grouphandler.GroupEventHandler) {
+	w.nonPublishingHandler.AddHandler(handler)
+}
+
 func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandlerFunc, error) {
-	return grouphandler.NewNoPublishingHandler(
+	publishingHandler, err := grouphandler.NewNoPublishingHandler(
 		w.opts.EventBus.Marshaler(),
 		metricMeter,
 
@@ -184,6 +197,10 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 		// Ingest batched event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
+			if event == nil {
+				return errors.New("nil batched ingest event")
+			}
+
 			return w.handleBatchedIngestEvent(ctx, *event)
 		}),
 
@@ -194,6 +211,13 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleCacheMissEvent(ctx, event, metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntitySubjectKey, event.SubjectKey)))
 		}),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create publishing handler: %w", err)
+	}
+
+	w.nonPublishingHandler = publishingHandler
+
+	return publishingHandler.Handle, nil
 }
 
 func (w *Worker) Run(ctx context.Context) error {
