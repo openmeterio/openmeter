@@ -87,7 +87,7 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 
 		Multiplier:          1.5,
 		RandomizationFactor: 0.25,
-		Logger:              watermill.NewSlogLogger(opts.Logger),
+		Logger:              newWarningOnlyLogger(opts.Logger),
 	}.Middleware)
 
 	// This should be after Retry, so that we can retry on timeouts before pushing to DLQ

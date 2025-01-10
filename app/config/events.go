@@ -185,13 +185,17 @@ func (c RetryConfiguration) Validate() error {
 		errs = append(errs, errors.New("max interval must be greater than 0"))
 	}
 
+	if c.MaxElapsedTime > 0 && c.MaxRetries == 0 {
+		errs = append(errs, errors.New("max elapsed time is set but max retries is disabled, set max retries to enable retries"))
+	}
+
 	return errors.Join(errs...)
 }
 
 func ConfigureConsumer(v *viper.Viper, prefix string) {
 	v.SetDefault(prefix+".processingTimeout", 30*time.Second)
 
-	v.SetDefault(prefix+".retry.maxRetries", 0)
+	v.SetDefault(prefix+".retry.maxRetries", 10)
 	v.SetDefault(prefix+".retry.initialInterval", 10*time.Millisecond)
 	v.SetDefault(prefix+".retry.maxInterval", time.Second)
 	v.SetDefault(prefix+".retry.maxElapsedTime", time.Minute)

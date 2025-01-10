@@ -138,6 +138,7 @@ func TestComplete(t *testing.T) {
 				ConsumerConfiguration: ConsumerConfiguration{
 					ProcessingTimeout: 30 * time.Second,
 					Retry: RetryConfiguration{
+						MaxRetries:      10,
 						InitialInterval: 10 * time.Millisecond,
 						MaxInterval:     time.Second,
 						MaxElapsedTime:  time.Minute,
@@ -287,6 +288,7 @@ func TestComplete(t *testing.T) {
 			ConsumerConfiguration: ConsumerConfiguration{
 				ProcessingTimeout: 30 * time.Second,
 				Retry: RetryConfiguration{
+					MaxRetries:      10,
 					InitialInterval: 10 * time.Millisecond,
 					MaxInterval:     time.Second,
 					MaxElapsedTime:  time.Minute,
@@ -307,6 +309,7 @@ func TestComplete(t *testing.T) {
 			Consumer: ConsumerConfiguration{
 				ProcessingTimeout: 30 * time.Second,
 				Retry: RetryConfiguration{
+					MaxRetries:      10,
 					InitialInterval: 10 * time.Millisecond,
 					MaxInterval:     time.Second,
 					MaxElapsedTime:  time.Minute,
