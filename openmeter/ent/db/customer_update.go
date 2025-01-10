@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // CustomerUpdate is the builder for updating Customer entities.
@@ -268,26 +267,6 @@ func (cu *CustomerUpdate) ClearPrimaryEmail() *CustomerUpdate {
 	return cu
 }
 
-// SetTimezone sets the "timezone" field.
-func (cu *CustomerUpdate) SetTimezone(t timezone.Timezone) *CustomerUpdate {
-	cu.mutation.SetTimezone(t)
-	return cu
-}
-
-// SetNillableTimezone sets the "timezone" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableTimezone(t *timezone.Timezone) *CustomerUpdate {
-	if t != nil {
-		cu.SetTimezone(*t)
-	}
-	return cu
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (cu *CustomerUpdate) ClearTimezone() *CustomerUpdate {
-	cu.mutation.ClearTimezone()
-	return cu
-}
-
 // SetCurrency sets the "currency" field.
 func (cu *CustomerUpdate) SetCurrency(c currencyx.Code) *CustomerUpdate {
 	cu.mutation.SetCurrency(c)
@@ -525,11 +504,6 @@ func (cu *CustomerUpdate) check() error {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
 		}
 	}
-	if v, ok := cu.mutation.Timezone(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "timezone", err: fmt.Errorf(`db: validator failed for field "Customer.timezone": %w`, err)}
-		}
-	}
 	if v, ok := cu.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
@@ -621,12 +595,6 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.PrimaryEmailCleared() {
 		_spec.ClearField(customer.FieldPrimaryEmail, field.TypeString)
-	}
-	if value, ok := cu.mutation.Timezone(); ok {
-		_spec.SetField(customer.FieldTimezone, field.TypeString, value)
-	}
-	if cu.mutation.TimezoneCleared() {
-		_spec.ClearField(customer.FieldTimezone, field.TypeString)
 	}
 	if value, ok := cu.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
@@ -1095,26 +1063,6 @@ func (cuo *CustomerUpdateOne) ClearPrimaryEmail() *CustomerUpdateOne {
 	return cuo
 }
 
-// SetTimezone sets the "timezone" field.
-func (cuo *CustomerUpdateOne) SetTimezone(t timezone.Timezone) *CustomerUpdateOne {
-	cuo.mutation.SetTimezone(t)
-	return cuo
-}
-
-// SetNillableTimezone sets the "timezone" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableTimezone(t *timezone.Timezone) *CustomerUpdateOne {
-	if t != nil {
-		cuo.SetTimezone(*t)
-	}
-	return cuo
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (cuo *CustomerUpdateOne) ClearTimezone() *CustomerUpdateOne {
-	cuo.mutation.ClearTimezone()
-	return cuo
-}
-
 // SetCurrency sets the "currency" field.
 func (cuo *CustomerUpdateOne) SetCurrency(c currencyx.Code) *CustomerUpdateOne {
 	cuo.mutation.SetCurrency(c)
@@ -1365,11 +1313,6 @@ func (cuo *CustomerUpdateOne) check() error {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
 		}
 	}
-	if v, ok := cuo.mutation.Timezone(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "timezone", err: fmt.Errorf(`db: validator failed for field "Customer.timezone": %w`, err)}
-		}
-	}
 	if v, ok := cuo.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
@@ -1478,12 +1421,6 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.PrimaryEmailCleared() {
 		_spec.ClearField(customer.FieldPrimaryEmail, field.TypeString)
-	}
-	if value, ok := cuo.mutation.Timezone(); ok {
-		_spec.SetField(customer.FieldTimezone, field.TypeString, value)
-	}
-	if cuo.mutation.TimezoneCleared() {
-		_spec.ClearField(customer.FieldTimezone, field.TypeString)
 	}
 	if value, ok := cuo.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)

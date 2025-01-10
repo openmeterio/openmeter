@@ -121,7 +121,6 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 					PrimaryEmail:     body.PrimaryEmail,
 					BillingAddress:   mapAddress(body.BillingAddress),
 					Currency:         mapCurrency(body.Currency),
-					Timezone:         mapTimezone(body.Timezone),
 				},
 			}
 
@@ -180,7 +179,6 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 					PrimaryEmail:     body.PrimaryEmail,
 					BillingAddress:   mapAddress(body.BillingAddress),
 					Currency:         mapCurrency(body.Currency),
-					Timezone:         mapTimezone(body.Timezone),
 				},
 			}
 

@@ -52,7 +52,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 const (
@@ -6284,7 +6283,6 @@ type BillingInvoiceMutation struct {
 	supplier_name                            *string
 	supplier_tax_code                        *string
 	customer_name                            *string
-	customer_timezone                        *timezone.Timezone
 	customer_usage_attribution               **billing.VersionedCustomerUsageAttribution
 	number                                   *string
 	_type                                    *billing.InvoiceType
@@ -7692,55 +7690,6 @@ func (m *BillingInvoiceMutation) ResetCustomerName() {
 	m.customer_name = nil
 }
 
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (m *BillingInvoiceMutation) SetCustomerTimezone(t timezone.Timezone) {
-	m.customer_timezone = &t
-}
-
-// CustomerTimezone returns the value of the "customer_timezone" field in the mutation.
-func (m *BillingInvoiceMutation) CustomerTimezone() (r timezone.Timezone, exists bool) {
-	v := m.customer_timezone
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCustomerTimezone returns the old "customer_timezone" field's value of the BillingInvoice entity.
-// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldCustomerTimezone(ctx context.Context) (v *timezone.Timezone, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomerTimezone is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomerTimezone requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomerTimezone: %w", err)
-	}
-	return oldValue.CustomerTimezone, nil
-}
-
-// ClearCustomerTimezone clears the value of the "customer_timezone" field.
-func (m *BillingInvoiceMutation) ClearCustomerTimezone() {
-	m.customer_timezone = nil
-	m.clearedFields[billinginvoice.FieldCustomerTimezone] = struct{}{}
-}
-
-// CustomerTimezoneCleared returns if the "customer_timezone" field was cleared in this mutation.
-func (m *BillingInvoiceMutation) CustomerTimezoneCleared() bool {
-	_, ok := m.clearedFields[billinginvoice.FieldCustomerTimezone]
-	return ok
-}
-
-// ResetCustomerTimezone resets all changes to the "customer_timezone" field.
-func (m *BillingInvoiceMutation) ResetCustomerTimezone() {
-	m.customer_timezone = nil
-	delete(m.clearedFields, billinginvoice.FieldCustomerTimezone)
-}
-
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
 func (m *BillingInvoiceMutation) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) {
 	m.customer_usage_attribution = &bcua
@@ -8921,7 +8870,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 50)
+	fields := make([]string, 0, 49)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -9008,9 +8957,6 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.customer_name != nil {
 		fields = append(fields, billinginvoice.FieldCustomerName)
-	}
-	if m.customer_timezone != nil {
-		fields = append(fields, billinginvoice.FieldCustomerTimezone)
 	}
 	if m.customer_usage_attribution != nil {
 		fields = append(fields, billinginvoice.FieldCustomerUsageAttribution)
@@ -9138,8 +9084,6 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.SupplierTaxCode()
 	case billinginvoice.FieldCustomerName:
 		return m.CustomerName()
-	case billinginvoice.FieldCustomerTimezone:
-		return m.CustomerTimezone()
 	case billinginvoice.FieldCustomerUsageAttribution:
 		return m.CustomerUsageAttribution()
 	case billinginvoice.FieldNumber:
@@ -9247,8 +9191,6 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldSupplierTaxCode(ctx)
 	case billinginvoice.FieldCustomerName:
 		return m.OldCustomerName(ctx)
-	case billinginvoice.FieldCustomerTimezone:
-		return m.OldCustomerTimezone(ctx)
 	case billinginvoice.FieldCustomerUsageAttribution:
 		return m.OldCustomerUsageAttribution(ctx)
 	case billinginvoice.FieldNumber:
@@ -9501,13 +9443,6 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCustomerName(v)
 		return nil
-	case billinginvoice.FieldCustomerTimezone:
-		v, ok := value.(timezone.Timezone)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCustomerTimezone(v)
-		return nil
 	case billinginvoice.FieldCustomerUsageAttribution:
 		v, ok := value.(*billing.VersionedCustomerUsageAttribution)
 		if !ok {
@@ -9729,9 +9664,6 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldSupplierTaxCode) {
 		fields = append(fields, billinginvoice.FieldSupplierTaxCode)
 	}
-	if m.FieldCleared(billinginvoice.FieldCustomerTimezone) {
-		fields = append(fields, billinginvoice.FieldCustomerTimezone)
-	}
 	if m.FieldCleared(billinginvoice.FieldNumber) {
 		fields = append(fields, billinginvoice.FieldNumber)
 	}
@@ -9826,9 +9758,6 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldSupplierTaxCode:
 		m.ClearSupplierTaxCode()
-		return nil
-	case billinginvoice.FieldCustomerTimezone:
-		m.ClearCustomerTimezone()
 		return nil
 	case billinginvoice.FieldNumber:
 		m.ClearNumber()
@@ -9954,9 +9883,6 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldCustomerName:
 		m.ResetCustomerName()
-		return nil
-	case billinginvoice.FieldCustomerTimezone:
-		m.ResetCustomerTimezone()
 		return nil
 	case billinginvoice.FieldCustomerUsageAttribution:
 		m.ResetCustomerUsageAttribution()
@@ -18777,7 +18703,6 @@ type CustomerMutation struct {
 	billing_address_line2            *string
 	billing_address_phone_number     *string
 	primary_email                    *string
-	timezone                         *timezone.Timezone
 	currency                         *currencyx.Code
 	clearedFields                    map[string]struct{}
 	apps                             map[int]struct{}
@@ -19586,55 +19511,6 @@ func (m *CustomerMutation) ResetPrimaryEmail() {
 	delete(m.clearedFields, customer.FieldPrimaryEmail)
 }
 
-// SetTimezone sets the "timezone" field.
-func (m *CustomerMutation) SetTimezone(t timezone.Timezone) {
-	m.timezone = &t
-}
-
-// Timezone returns the value of the "timezone" field in the mutation.
-func (m *CustomerMutation) Timezone() (r timezone.Timezone, exists bool) {
-	v := m.timezone
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTimezone returns the old "timezone" field's value of the Customer entity.
-// If the Customer object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CustomerMutation) OldTimezone(ctx context.Context) (v *timezone.Timezone, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTimezone is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTimezone requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTimezone: %w", err)
-	}
-	return oldValue.Timezone, nil
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (m *CustomerMutation) ClearTimezone() {
-	m.timezone = nil
-	m.clearedFields[customer.FieldTimezone] = struct{}{}
-}
-
-// TimezoneCleared returns if the "timezone" field was cleared in this mutation.
-func (m *CustomerMutation) TimezoneCleared() bool {
-	_, ok := m.clearedFields[customer.FieldTimezone]
-	return ok
-}
-
-// ResetTimezone resets all changes to the "timezone" field.
-func (m *CustomerMutation) ResetTimezone() {
-	m.timezone = nil
-	delete(m.clearedFields, customer.FieldTimezone)
-}
-
 // SetCurrency sets the "currency" field.
 func (m *CustomerMutation) SetCurrency(c currencyx.Code) {
 	m.currency = &c
@@ -19973,7 +19849,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, customer.FieldNamespace)
 	}
@@ -20019,9 +19895,6 @@ func (m *CustomerMutation) Fields() []string {
 	if m.primary_email != nil {
 		fields = append(fields, customer.FieldPrimaryEmail)
 	}
-	if m.timezone != nil {
-		fields = append(fields, customer.FieldTimezone)
-	}
 	if m.currency != nil {
 		fields = append(fields, customer.FieldCurrency)
 	}
@@ -20063,8 +19936,6 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingAddressPhoneNumber()
 	case customer.FieldPrimaryEmail:
 		return m.PrimaryEmail()
-	case customer.FieldTimezone:
-		return m.Timezone()
 	case customer.FieldCurrency:
 		return m.Currency()
 	}
@@ -20106,8 +19977,6 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldBillingAddressPhoneNumber(ctx)
 	case customer.FieldPrimaryEmail:
 		return m.OldPrimaryEmail(ctx)
-	case customer.FieldTimezone:
-		return m.OldTimezone(ctx)
 	case customer.FieldCurrency:
 		return m.OldCurrency(ctx)
 	}
@@ -20224,13 +20093,6 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrimaryEmail(v)
 		return nil
-	case customer.FieldTimezone:
-		v, ok := value.(timezone.Timezone)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTimezone(v)
-		return nil
 	case customer.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -20301,9 +20163,6 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldPrimaryEmail) {
 		fields = append(fields, customer.FieldPrimaryEmail)
 	}
-	if m.FieldCleared(customer.FieldTimezone) {
-		fields = append(fields, customer.FieldTimezone)
-	}
 	if m.FieldCleared(customer.FieldCurrency) {
 		fields = append(fields, customer.FieldCurrency)
 	}
@@ -20353,9 +20212,6 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldPrimaryEmail:
 		m.ClearPrimaryEmail()
-		return nil
-	case customer.FieldTimezone:
-		m.ClearTimezone()
 		return nil
 	case customer.FieldCurrency:
 		m.ClearCurrency()
@@ -20412,9 +20268,6 @@ func (m *CustomerMutation) ResetField(name string) error {
 		return nil
 	case customer.FieldPrimaryEmail:
 		m.ResetPrimaryEmail()
-		return nil
-	case customer.FieldTimezone:
-		m.ResetTimezone()
 		return nil
 	case customer.FieldCurrency:
 		m.ResetCurrency()

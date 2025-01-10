@@ -274,7 +274,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
 						UpdatedAt: usdInvoice.Workflow.Config.UpdatedAt,
 
-						Timezone:   billingProfile.WorkflowConfig.Timezone,
 						Collection: billingProfile.WorkflowConfig.Collection,
 						Invoicing:  billingProfile.WorkflowConfig.Invoicing,
 						Payment:    billingProfile.WorkflowConfig.Payment,

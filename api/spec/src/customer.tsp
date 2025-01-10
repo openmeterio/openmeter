@@ -189,14 +189,6 @@ model Customer {
   ...Resource;
 
   /**
-   * Timezone of the customer.
-   *
-   * @TODO: use a Timezone type to validate the value
-   */
-  @summary("Timezone")
-  timezone?: string;
-
-  /**
    * Mapping to attribute metered usage to the customer
    */
   @summary("Usage Attribution")

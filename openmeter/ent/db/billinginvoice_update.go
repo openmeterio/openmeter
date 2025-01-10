@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingInvoiceUpdate is the builder for updating BillingInvoice entities.
@@ -499,26 +498,6 @@ func (biu *BillingInvoiceUpdate) SetNillableCustomerName(s *string) *BillingInvo
 	return biu
 }
 
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (biu *BillingInvoiceUpdate) SetCustomerTimezone(t timezone.Timezone) *BillingInvoiceUpdate {
-	biu.mutation.SetCustomerTimezone(t)
-	return biu
-}
-
-// SetNillableCustomerTimezone sets the "customer_timezone" field if the given value is not nil.
-func (biu *BillingInvoiceUpdate) SetNillableCustomerTimezone(t *timezone.Timezone) *BillingInvoiceUpdate {
-	if t != nil {
-		biu.SetCustomerTimezone(*t)
-	}
-	return biu
-}
-
-// ClearCustomerTimezone clears the value of the "customer_timezone" field.
-func (biu *BillingInvoiceUpdate) ClearCustomerTimezone() *BillingInvoiceUpdate {
-	biu.mutation.ClearCustomerTimezone()
-	return biu
-}
-
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
 func (biu *BillingInvoiceUpdate) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpdate {
 	biu.mutation.SetCustomerUsageAttribution(bcua)
@@ -919,11 +898,6 @@ func (biu *BillingInvoiceUpdate) check() error {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
 		}
 	}
-	if v, ok := biu.mutation.CustomerTimezone(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "customer_timezone", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_timezone": %w`, err)}
-		}
-	}
 	if v, ok := biu.mutation.GetType(); ok {
 		if err := billinginvoice.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
@@ -1098,12 +1072,6 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if value, ok := biu.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
-	}
-	if value, ok := biu.mutation.CustomerTimezone(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerTimezone, field.TypeString, value)
-	}
-	if biu.mutation.CustomerTimezoneCleared() {
-		_spec.ClearField(billinginvoice.FieldCustomerTimezone, field.TypeString)
 	}
 	if value, ok := biu.mutation.CustomerUsageAttribution(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
@@ -1777,26 +1745,6 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableCustomerName(s *string) *Billing
 	return biuo
 }
 
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (biuo *BillingInvoiceUpdateOne) SetCustomerTimezone(t timezone.Timezone) *BillingInvoiceUpdateOne {
-	biuo.mutation.SetCustomerTimezone(t)
-	return biuo
-}
-
-// SetNillableCustomerTimezone sets the "customer_timezone" field if the given value is not nil.
-func (biuo *BillingInvoiceUpdateOne) SetNillableCustomerTimezone(t *timezone.Timezone) *BillingInvoiceUpdateOne {
-	if t != nil {
-		biuo.SetCustomerTimezone(*t)
-	}
-	return biuo
-}
-
-// ClearCustomerTimezone clears the value of the "customer_timezone" field.
-func (biuo *BillingInvoiceUpdateOne) ClearCustomerTimezone() *BillingInvoiceUpdateOne {
-	biuo.mutation.ClearCustomerTimezone()
-	return biuo
-}
-
 // SetCustomerUsageAttribution sets the "customer_usage_attribution" field.
 func (biuo *BillingInvoiceUpdateOne) SetCustomerUsageAttribution(bcua *billing.VersionedCustomerUsageAttribution) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetCustomerUsageAttribution(bcua)
@@ -2210,11 +2158,6 @@ func (biuo *BillingInvoiceUpdateOne) check() error {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
 		}
 	}
-	if v, ok := biuo.mutation.CustomerTimezone(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "customer_timezone", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_timezone": %w`, err)}
-		}
-	}
 	if v, ok := biuo.mutation.GetType(); ok {
 		if err := billinginvoice.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
@@ -2406,12 +2349,6 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if value, ok := biuo.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
-	}
-	if value, ok := biuo.mutation.CustomerTimezone(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerTimezone, field.TypeString, value)
-	}
-	if biuo.mutation.CustomerTimezoneCleared() {
-		_spec.ClearField(billinginvoice.FieldCustomerTimezone, field.TypeString)
 	}
 	if value, ok := biuo.mutation.CustomerUsageAttribution(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)

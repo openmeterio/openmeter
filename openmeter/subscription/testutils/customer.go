@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
@@ -69,7 +68,6 @@ var ExampleCustomerEntity customerentity.Customer = customerentity.Customer{
 	},
 	PrimaryEmail: lo.ToPtr("mail@me.uk"),
 	Currency:     lo.ToPtr(currencyx.Code("USD")),
-	Timezone:     lo.ToPtr(timezone.Timezone("America/Los_Angeles")),
 	UsageAttribution: customerentity.CustomerUsageAttribution{
 		SubjectKeys: []string{"john-doe"},
 	},
@@ -79,7 +77,6 @@ var ExampleCreateCustomerInput customerentity.CreateCustomerInput = customerenti
 	Namespace: ExampleNamespace,
 	CustomerMutate: customerentity.CustomerMutate{
 		Name:             ExampleCustomerEntity.Name,
-		Timezone:         ExampleCustomerEntity.Timezone,
 		PrimaryEmail:     ExampleCustomerEntity.PrimaryEmail,
 		Currency:         ExampleCustomerEntity.Currency,
 		UsageAttribution: ExampleCustomerEntity.UsageAttribution,

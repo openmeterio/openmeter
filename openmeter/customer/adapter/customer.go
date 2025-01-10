@@ -130,8 +130,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 				SetName(input.Name).
 				SetNillableDescription(input.Description).
 				SetNillablePrimaryEmail(input.PrimaryEmail).
-				SetNillableCurrency(input.Currency).
-				SetNillableTimezone(input.Timezone)
+				SetNillableCurrency(input.Currency)
 
 			if input.BillingAddress != nil {
 				query = query.
@@ -315,7 +314,6 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				SetName(input.Name).
 				SetOrClearDescription(input.Description).
 				SetNillablePrimaryEmail(input.PrimaryEmail).
-				SetNillableTimezone(input.Timezone).
 				SetNillableCurrency(input.Currency)
 
 			if input.BillingAddress != nil {

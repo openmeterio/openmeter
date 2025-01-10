@@ -60,7 +60,6 @@ func CustomerFromDBEntity(e db.Customer) (*customerentity.Customer, error) {
 		},
 		PrimaryEmail:          e.PrimaryEmail,
 		Currency:              e.Currency,
-		Timezone:              e.Timezone,
 		CurrentSubscriptionID: currentSubID,
 	}
 

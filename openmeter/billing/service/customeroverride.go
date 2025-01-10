@@ -209,11 +209,6 @@ func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter bi
 		return nil, err
 	}
 
-	// Let's apply the customer specific overrides
-	if customer.Timezone != nil {
-		billingProfileWithOverrides.WorkflowConfig.Timezone = customer.Timezone
-	}
-
 	return &billing.ProfileWithCustomerDetails{
 		Profile:  *billingProfileWithOverrides,
 		Customer: *customer,

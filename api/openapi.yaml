@@ -8568,10 +8568,6 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
-        timezone:
-          type: string
-          description: Timezone of the customer.
-          title: Timezone
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
@@ -8674,10 +8670,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        timezone:
-          type: string
-          description: Timezone of the customer.
-          title: Timezone
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
@@ -8770,10 +8762,6 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        timezone:
-          type: string
-          description: Timezone of the customer.
-          title: Timezone
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
@@ -11547,7 +11535,6 @@ components:
       required:
         - sourceBillingProfileID
         - workflow
-        - timezone
       properties:
         apps:
           allOf:
@@ -11568,10 +11555,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowSettings'
           description: The workflow details used by this invoice.
-          readOnly: true
-        timezone:
-          type: string
-          description: Timezone of the invoice's date fields.
           readOnly: true
       description: |-
         InvoiceWorkflowSettings represents the workflow settings used by the invoice.

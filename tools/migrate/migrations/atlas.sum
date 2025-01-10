@@ -1,4 +1,4 @@
-h1:ZneFCMnNKff0n9OJalB1FYD1W2RCPUKwDfocL7J8ueY=
+h1:jwf2aPT6CW+FEi5DdfdpmF+BPBHGBxs6b+85oTtz0Ms=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -77,3 +77,5 @@ h1:ZneFCMnNKff0n9OJalB1FYD1W2RCPUKwDfocL7J8ueY=
 20250108103427_billing-profile-progressive-billing-flag.up.sql h1:xG88d17PQ3crQRSdWzM3aBpTlOe2muzMBcoEQ2cVbtM=
 20250109231835_entitlements-usage-period-iso.down.sql h1:gofSv5Wfi4yYITymM0TxeKGukSpE6FOch0U8hWzJAaM=
 20250109231835_entitlements-usage-period-iso.up.sql h1:tH8m40gChvwZS4CcvyxQin7Q/fLZHCExojSu5tUM0K0=
+20250110164610_customer-remove-tz.down.sql h1:F702xuh5KKYHSbWh8zQ7ncRJKwRg04/NjXeLr5G2nD0=
+20250110164610_customer-remove-tz.up.sql h1:hbLmrvf3hRguKmDcZxQI4recioKsP9I42O9SmLfZPcM=

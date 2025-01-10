@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // ID filters vertices based on their ID field.
@@ -137,12 +136,6 @@ func BillingAddressPhoneNumber(v string) predicate.Customer {
 // PrimaryEmail applies equality check predicate on the "primary_email" field. It's identical to PrimaryEmailEQ.
 func PrimaryEmail(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
-}
-
-// Timezone applies equality check predicate on the "timezone" field. It's identical to TimezoneEQ.
-func Timezone(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldEQ(FieldTimezone, vc))
 }
 
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
@@ -1113,100 +1106,6 @@ func PrimaryEmailEqualFold(v string) predicate.Customer {
 // PrimaryEmailContainsFold applies the ContainsFold predicate on the "primary_email" field.
 func PrimaryEmailContainsFold(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldPrimaryEmail, v))
-}
-
-// TimezoneEQ applies the EQ predicate on the "timezone" field.
-func TimezoneEQ(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldEQ(FieldTimezone, vc))
-}
-
-// TimezoneNEQ applies the NEQ predicate on the "timezone" field.
-func TimezoneNEQ(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldNEQ(FieldTimezone, vc))
-}
-
-// TimezoneIn applies the In predicate on the "timezone" field.
-func TimezoneIn(vs ...timezone.Timezone) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.Customer(sql.FieldIn(FieldTimezone, v...))
-}
-
-// TimezoneNotIn applies the NotIn predicate on the "timezone" field.
-func TimezoneNotIn(vs ...timezone.Timezone) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.Customer(sql.FieldNotIn(FieldTimezone, v...))
-}
-
-// TimezoneGT applies the GT predicate on the "timezone" field.
-func TimezoneGT(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldGT(FieldTimezone, vc))
-}
-
-// TimezoneGTE applies the GTE predicate on the "timezone" field.
-func TimezoneGTE(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldGTE(FieldTimezone, vc))
-}
-
-// TimezoneLT applies the LT predicate on the "timezone" field.
-func TimezoneLT(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldLT(FieldTimezone, vc))
-}
-
-// TimezoneLTE applies the LTE predicate on the "timezone" field.
-func TimezoneLTE(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldLTE(FieldTimezone, vc))
-}
-
-// TimezoneContains applies the Contains predicate on the "timezone" field.
-func TimezoneContains(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldContains(FieldTimezone, vc))
-}
-
-// TimezoneHasPrefix applies the HasPrefix predicate on the "timezone" field.
-func TimezoneHasPrefix(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldHasPrefix(FieldTimezone, vc))
-}
-
-// TimezoneHasSuffix applies the HasSuffix predicate on the "timezone" field.
-func TimezoneHasSuffix(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldHasSuffix(FieldTimezone, vc))
-}
-
-// TimezoneIsNil applies the IsNil predicate on the "timezone" field.
-func TimezoneIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldTimezone))
-}
-
-// TimezoneNotNil applies the NotNil predicate on the "timezone" field.
-func TimezoneNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldTimezone))
-}
-
-// TimezoneEqualFold applies the EqualFold predicate on the "timezone" field.
-func TimezoneEqualFold(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldEqualFold(FieldTimezone, vc))
-}
-
-// TimezoneContainsFold applies the ContainsFold predicate on the "timezone" field.
-func TimezoneContainsFold(v timezone.Timezone) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldContainsFold(FieldTimezone, vc))
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.

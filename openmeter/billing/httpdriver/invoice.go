@@ -394,7 +394,6 @@ func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) 
 			Apps:                   apps,
 			SourceBillingProfileID: invoice.Workflow.SourceBillingProfileID,
 			Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config),
-			Timezone:               string(invoice.Timezone),
 		}
 	}
 
