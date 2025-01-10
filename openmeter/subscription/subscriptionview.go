@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -204,17 +205,37 @@ func NewSubscriptionView(
 	items []SubscriptionItem,
 	ents []SubscriptionEntitlement,
 ) (*SubscriptionView, error) {
-	spec, err := NewSpecFromEntities(sub, phases, items)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create spec: %w", err)
+	spec := SubscriptionSpec{
+		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef},
+		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
+			CustomerId:     sub.CustomerId,
+			Currency:       sub.Currency,
+			ActiveFrom:     sub.ActiveFrom,
+			ActiveTo:       sub.ActiveTo,
+			AnnotatedModel: sub.AnnotatedModel,
+			Name:           sub.Name,
+			Description:    sub.Description,
+		},
+		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}
 
-	if spec == nil {
-		return nil, fmt.Errorf("spec is nil")
+	view := &SubscriptionView{
+		Subscription: sub,
+		Customer:     cust,
 	}
 
-	// Spec already has to validate that sub, phases and items are linked together so we don't need to do that again here
-	// Lets validate that all ents are linked correctly
+	// Let's validate that all items are used
+	unvisitedItems := make(map[string]struct{})
+	for _, item := range items {
+		// And also that there are no duplicates
+		if _, ok := unvisitedItems[item.ID]; ok {
+			return nil, fmt.Errorf("item %s is duplicated", item.ID)
+		}
+
+		unvisitedItems[item.ID] = struct{}{}
+	}
+
+	// Lets validate that all ents are used
 	unvisitedEnts := map[string]struct{}{}
 	for _, ent := range ents {
 		// While here, lets also validate that there are no duplicates
@@ -225,116 +246,144 @@ func NewSubscriptionView(
 		unvisitedEnts[ent.Entitlement.ID] = struct{}{}
 	}
 
-	// Needed for item - spec matching, see below
-	visitedItemIDs := map[string]struct{}{}
+	// Let's sort the phases
+	sortedPhases := make([]SubscriptionPhase, len(phases))
+	copy(sortedPhases, phases)
+	slices.SortStableFunc(sortedPhases, func(i, j SubscriptionPhase) int {
+		return i.ActiveFrom.Compare(j.ActiveFrom)
+	})
 
-	sv := SubscriptionView{
-		Subscription: sub,
-		Customer:     cust,
-		Spec:         *spec,
-	}
+	itemsByPhase := lo.GroupBy(items, func(item SubscriptionItem) string {
+		return item.PhaseId
+	})
 
-	phaseViews := make([]SubscriptionPhaseView, 0, len(spec.Phases))
-	for _, phaseSpec := range spec.GetSortedPhases() {
-		if phaseSpec == nil {
-			return nil, fmt.Errorf("phase spec is nil")
+	// Let's start with all the phases
+	for _, phase := range sortedPhases {
+		// Let's guard against duplicates
+		if _, ok := spec.Phases[phase.Key]; ok {
+			return nil, fmt.Errorf("phase %s is duplicated", phase.Key)
 		}
 
-		phase, ok := lo.Find(phases, func(i SubscriptionPhase) bool {
-			return i.Key == phaseSpec.PhaseKey
-		})
-		if !ok {
-			return nil, fmt.Errorf("phase %s not found", phaseSpec.PhaseKey)
+		phaseStartAfter := datex.Between(sub.ActiveFrom, phase.ActiveFrom)
+
+		phaseSpec := SubscriptionPhaseSpec{
+			CreateSubscriptionPhasePlanInput: CreateSubscriptionPhasePlanInput{
+				PhaseKey:    phase.Key,
+				StartAfter:  phaseStartAfter,
+				Name:        phase.Name,
+				Description: phase.Description,
+			},
+			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
+				AnnotatedModel: phase.AnnotatedModel,
+			},
+			ItemsByKey: make(map[string][]*SubscriptionItemSpec),
 		}
+
 		phaseView := SubscriptionPhaseView{
-			Spec:              *phaseSpec,
 			SubscriptionPhase: phase,
+			ItemsByKey:        make(map[string][]SubscriptionItemView),
 		}
 
-		phaseCadenceBySpec, err := spec.GetPhaseCadence(phaseSpec.PhaseKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get phase cadence for phase %s: %w", phaseSpec.PhaseKey, err)
+		phaseItems, ok := itemsByPhase[phase.ID]
+		if !ok {
+			return nil, fmt.Errorf("items for phase %s not found", phase.Key)
 		}
 
-		itemViewsByKey := make(map[string][]SubscriptionItemView)
-		for key, itemsByKey := range phaseSpec.ItemsByKey {
-			itemViews := make([]SubscriptionItemView, 0, len(itemsByKey))
-			for _, itemSpec := range itemsByKey {
-				specEntityInput, err := itemSpec.ToCreateSubscriptionItemEntityInput(phase.NamespacedID, phaseCadenceBySpec, nil)
-				if err != nil {
-					return nil, fmt.Errorf("failed to convert item spec %+v to entity input: %w", itemSpec, err)
+		// Let's group the items by key
+		phaseItemsByKey := lo.GroupBy(phaseItems, func(item SubscriptionItem) string {
+			return item.Key
+		})
+
+		// Let's sort the items by start time
+		for key := range phaseItemsByKey {
+			// Any arbitrary time works as long as its consistent for the comparisons
+			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
+				iT, jT := phase.ActiveFrom, phase.ActiveFrom
+				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
+					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
-				// To find the exact matching item requires for ItemSpecs of a given key to be unique.
-				// This is not enforced or required otherwise.
-				// As a result, the best we can do is find an item that matches the spec fully, for all specs.
-				// We also have to take care not to reuse the same item for multiple specs.
-				matchingItem, ok := lo.Find(items, func(i SubscriptionItem) bool {
-					itemEntityInput := i.AsEntityInput()
-
-					// Let's ignore the linking fields as they cannot be calculated from the spec
-					// FIXME: We can no longer compare based on entity inputs properly, figure out a new method
-					itemEntityInput.EntitlementID = nil
-
-					if specEntityInput.Equal(itemEntityInput) {
-						// If it's already been used, even if it matches, we cannot reuse it
-						if _, ok := visitedItemIDs[i.ID]; ok {
-							return false
-						}
-
-						visitedItemIDs[i.ID] = struct{}{}
-
-						return true
-					}
-
-					return false
-				})
-				if !ok {
-					return nil, fmt.Errorf("while building SubscriptionView item %s in phase %s not found for spec %+v", itemSpec.ItemKey, phaseSpec.PhaseKey, itemSpec)
+				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
+					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
+				return int(iT.Sub(jT))
+			})
+		}
+
+		for key, items := range phaseItemsByKey {
+			for _, item := range items {
+				// Sanity check
+				if item.PhaseId != phase.ID {
+					return nil, fmt.Errorf("item %s of phase %s is not in the correct phase", item.Key, phase.Key)
+				}
+
+				// Sanity check 2
+				if item.Key != key {
+					return nil, fmt.Errorf("item %s of phase %s is not in the correct group", item.Key, phase.Key)
+				}
+
+				delete(unvisitedItems, item.ID)
+
+				itemSpec := SubscriptionItemSpec{
+					CreateSubscriptionItemInput: CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: CreateSubscriptionItemPlanInput{
+							PhaseKey: phase.Key,
+							ItemKey:  item.Key,
+							RateCard: item.RateCard,
+						},
+						CreateSubscriptionItemCustomerInput: CreateSubscriptionItemCustomerInput{
+							ActiveFromOverrideRelativeToPhaseStart: item.ActiveFromOverrideRelativeToPhaseStart,
+							ActiveToOverrideRelativeToPhaseStart:   item.ActiveToOverrideRelativeToPhaseStart,
+						},
+					},
+				}
+
+				// Let's find the entitlement
 
 				var subEnt *SubscriptionEntitlement
 				if ent, ok := lo.Find(ents, func(i SubscriptionEntitlement) bool {
-					return reflect.DeepEqual(&i.Entitlement.ID, matchingItem.EntitlementID)
+					return reflect.DeepEqual(&i.Entitlement.ID, item.EntitlementID)
 				}); ok {
 					subEnt = &ent
 					delete(unvisitedEnts, ent.Entitlement.ID)
 				}
 
 				itemView := SubscriptionItemView{
-					SubscriptionItem: matchingItem,
-					Spec:             *itemSpec,
+					SubscriptionItem: item,
 					Entitlement:      subEnt,
+					Spec:             itemSpec,
 				}
 
-				itemViews = append(itemViews, itemView)
+				phaseSpec.ItemsByKey[key] = append(phaseSpec.ItemsByKey[item.Key], &itemSpec)
+				phaseView.ItemsByKey[key] = append(phaseView.ItemsByKey[key], itemView)
 			}
-			itemViewsByKey[key] = itemViews
 		}
 
-		phaseView.ItemsByKey = itemViewsByKey
-		phaseViews = append(phaseViews, phaseView)
+		spec.Phases[phase.Key] = &phaseSpec
+		// Let's add spec to view
+
+		phaseView.Spec = phaseSpec
+
+		view.Phases = append(view.Phases, phaseView)
 	}
 
 	if len(unvisitedEnts) > 0 {
 		return nil, fmt.Errorf("unvisited entitlements: %v", unvisitedEnts)
 	}
 
-	// Lets sort phases by start time
-	slices.SortStableFunc(phaseViews, func(i, j SubscriptionPhaseView) int {
-		if i.ActiveFrom(sub.CadencedModel).Before(j.ActiveFrom(sub.CadencedModel)) {
-			return -1
-		} else if i.ActiveFrom(sub.CadencedModel).After(j.ActiveFrom(sub.CadencedModel)) {
-			return 1
-		} else {
-			return 0
-		}
-	})
+	if len(unvisitedItems) > 0 {
+		return nil, fmt.Errorf("unvisited items: %v", unvisitedItems)
+	}
 
-	sv.Phases = phaseViews
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("spec is invalid: %w", err)
+	}
 
-	if err := sv.Validate(true); err != nil {
+	// Let's add spec to view
+	view.Spec = spec
+
+	if err := view.Validate(true); err != nil {
 		return nil, fmt.Errorf("subscription view is invalid: %w", err)
 	}
 
-	return &sv, nil
+	return view, nil
 }
