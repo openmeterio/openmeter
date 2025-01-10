@@ -138,7 +138,9 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	apiKeySecret, err := s.secretService.GetAppSecret(ctx, stripeApp.APIKey)
 
 	// If the secret is not found, we continue with the uninstallation
-	if err != nil && !errors.Is(err, secretentity.SecretNotFoundError{}) {
+	var secretNotFoundError *secretentity.SecretNotFoundError
+
+	if err != nil && !errors.As(err, secretNotFoundError) {
 		return fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}
 
@@ -167,11 +169,11 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	}
 
 	// Delete secrets
-	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.APIKey); err != nil && !errors.Is(err, secretentity.SecretNotFoundError{}) {
+	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.APIKey); err != nil && !errors.As(err, secretNotFoundError) {
 		return fmt.Errorf("failed to delete stripe api key secret")
 	}
 
-	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.WebhookSecret); err != nil && !errors.Is(err, secretentity.SecretNotFoundError{}) {
+	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.WebhookSecret); err != nil && !errors.As(err, secretNotFoundError) {
 		return fmt.Errorf("failed to delete stripe webhook secret")
 	}
 
