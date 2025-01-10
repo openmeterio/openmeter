@@ -62,31 +62,19 @@ func (r Recurrence) PrevBefore(t time.Time) (time.Time, error) {
 }
 
 func (r Recurrence) Next(t time.Time) (time.Time, error) {
-	switch r.Interval {
-	case RecurrencePeriodDaily:
-		return t.AddDate(0, 0, 1), nil
-	case RecurrencePeriodWeek:
-		return t.AddDate(0, 0, 7), nil
-	case RecurrencePeriodMonth:
-		return t.AddDate(0, 1, 0), nil
-	case RecurrencePeriodYear:
-		return t.AddDate(1, 0, 0), nil
+	n, ok := r.Interval.AddTo(t)
+	if !ok {
+		return time.Time{}, fmt.Errorf("next recurrence calculation wasn't exact, likely a fractional duration: %v", r.Interval)
 	}
-	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Interval)
+	return n, nil
 }
 
 func (r Recurrence) Prev(t time.Time) (time.Time, error) {
-	switch r.Interval {
-	case RecurrencePeriodDaily:
-		return t.AddDate(0, 0, -1), nil
-	case RecurrencePeriodWeek:
-		return t.AddDate(0, 0, -7), nil
-	case RecurrencePeriodMonth:
-		return t.AddDate(0, -1, 0), nil
-	case RecurrencePeriodYear:
-		return t.AddDate(-1, 0, 0), nil
+	n, ok := r.Interval.Negate().AddTo(t)
+	if !ok {
+		return time.Time{}, fmt.Errorf("previous recurrence calculation wasn't exact, likely a fractional duration: %v", r.Interval)
 	}
-	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Interval)
+	return n, nil
 }
 
 type RecurrenceInterval struct {
@@ -99,29 +87,6 @@ var (
 	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
 	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
 )
-
-func (RecurrenceInterval) Values() (kinds []string) {
-	for _, s := range []RecurrenceInterval{
-		RecurrencePeriodDaily,
-		RecurrencePeriodWeek,
-		RecurrencePeriodMonth,
-		RecurrencePeriodYear,
-	} {
-		kinds = append(kinds, s.String())
-	}
-	return
-}
-
-func (rp RecurrenceInterval) IsValid() bool {
-	switch rp {
-	case RecurrencePeriodDaily,
-		RecurrencePeriodWeek,
-		RecurrencePeriodMonth,
-		RecurrencePeriodYear:
-		return true
-	}
-	return false
-}
 
 func FromISODuration(p *datex.Period, anchor time.Time) (Recurrence, error) {
 	day, err := datex.ISOString("P1D").Parse()
