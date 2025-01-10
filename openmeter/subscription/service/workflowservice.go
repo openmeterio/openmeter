@@ -95,7 +95,6 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		CurrentTime: clock.Now(),
 	})
 	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
-		// FIXME: error details are lost here
 		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
 	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
