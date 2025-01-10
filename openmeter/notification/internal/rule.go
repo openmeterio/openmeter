@@ -48,8 +48,9 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				Type:                   api.EntitlementMeteredTypeMetered,
 				UpdatedAt:              updatedAt,
 				UsagePeriod: api.RecurringPeriod{
-					Anchor:   from,
-					Interval: *day,
+					Anchor:      from,
+					Interval:    *day,
+					IntervalISO: "P1D",
 				},
 			},
 			Feature: api.Feature{

@@ -13498,13 +13498,18 @@ components:
       type: object
       required:
         - interval
+        - intervalISO
         - anchor
       properties:
         interval:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriodInterval'
-          description: The unit of time for the interval.
+          description: The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.
           title: Interval
+        intervalISO:
+          type: string
+          format: duration
+          description: The unit of time for the interval in ISO8601 format.
         anchor:
           type: string
           format: date-time
@@ -13513,6 +13518,7 @@ components:
           title: Anchor time
       example:
         interval: DAY
+        intervalISO: P1D
         anchor: 2023-01-01T01:01:01.001Z
       description: Recurring period with an interval and an anchor.
     RecurringPeriodCreateInput:

@@ -220,15 +220,22 @@ enum RecurringPeriodIntervalEnum {
  */
 @example(#{
   interval: RecurringPeriodIntervalEnum.Day,
+  intervalISO: duration.fromISO("P1D"),
   anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
 })
 @friendlyName("RecurringPeriod")
 model RecurringPeriod {
   /**
-   * The unit of time for the interval.
+   * The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.
    */
   @summary("Interval")
   interval: RecurringPeriodInterval;
+
+  /**
+   * The unit of time for the interval in ISO8601 format.
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  intervalISO: duration;
 
   /**
    * A date-time anchor to base the recurring period on.

@@ -176,8 +176,9 @@ func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 		return nil
 	}
 	return &api.RecurringPeriod{
-		Anchor:   u.Anchor,
-		Interval: MapRecurrenceToAPI(u.Interval),
+		Anchor:      u.Anchor,
+		Interval:    MapRecurrenceToAPI(u.Interval),
+		IntervalISO: u.Interval.ISOString().String(),
 	}
 }
 
