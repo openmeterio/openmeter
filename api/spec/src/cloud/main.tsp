@@ -65,6 +65,18 @@ using TypeSpec.OpenAPI;
     description: "With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time. [Read more](https://openmeter.io/docs/guides/customer-dashboard).",
   }
 )
+@tagMetadata(
+  "Billing (Experimental)",
+  #{
+    description: "Billing is a set of APIs that allow you to manage your product catalog, subscriptions, and customers' billing information and invoices.",
+  }
+)
+@tagMetadata(
+  "Apps (Experimental)",
+  #{
+    description: "Apps are a set of APIs that allow you to manage your app integrations.",
+  }
+)
 namespace OpenMeterCloud;
 
 @route("/api/v1/events")
@@ -135,14 +147,14 @@ interface Debug extends OpenMeter.Debug {}
 
 namespace OpenMeterCloud.App {
   @route("/api/v1/marketplace")
-  @tag("Apps")
+  @tag("Apps (Experimental)")
   interface Marketplace extends OpenMeter.App.Marketplace {}
 
   @route("/api/v1/apps")
-  @tag("Apps")
+  @tag("Apps (Experimental)")
   interface Apps extends OpenMeter.App.Apps {}
 
-  @tag("Apps")
+  @tag("Apps (Experimental)")
   interface AppStripe extends OpenMeter.App.AppStripe {}
 }
 
@@ -185,7 +197,7 @@ namespace OpenMeterCloud.Entitlements {
 
 namespace OpenMeterCloud.Billing {
   @route("/api/v1/customers")
-  @tag("Customers")
+  @tag("Billing (Experimental)")
   interface Customers extends OpenMeter.Customers {}
 
   @route("/api/v1/billing/customer")
@@ -207,11 +219,11 @@ namespace OpenMeterCloud.Billing {
 
 namespace OpenMeterCloud.ProductCatalog {
   @route("/api/v1/plans")
-  @tag("Plan (Experimental)")
+  @tag("Billing (Experimental)")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}
 
   @route("/api/v1/subscriptions")
-  @tag("Subscriptions")
+  @tag("Billing (Experimental)")
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
 }
 

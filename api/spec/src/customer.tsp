@@ -16,7 +16,7 @@ namespace OpenMeter;
  * Customer API.
  */
 @route("/api/v1/customers")
-@tag("Customers")
+@tag("Billing (Experimental)")
 interface Customers {
   /**
    * Create a new customer.
@@ -24,7 +24,6 @@ interface Customers {
   @post
   @operationId("createCustomer")
   @summary("Create customer")
-  @extension("x-internal", true)
   create(@body customer: Rest.Resource.ResourceCreateModel<Customer>): {
     @statusCode _: 201;
     @body body: Customer;
@@ -36,7 +35,6 @@ interface Customers {
   @get
   @operationId("listCustomers")
   @summary("List customers")
-  @extension("x-internal", true)
   list(...ListCustomersParams): PaginatedResponse<Customer> | CommonErrors;
 
   /**
@@ -46,7 +44,6 @@ interface Customers {
   @route("/{id}")
   @operationId("getCustomer")
   @summary("Get customer")
-  @extension("x-internal", true)
   get(@path id: ULID): Customer | NotFoundError | CommonErrors;
 
   /**
@@ -56,7 +53,6 @@ interface Customers {
   @route("/{id}")
   @operationId("updateCustomer")
   @summary("Update customer")
-  @extension("x-internal", true)
   update(
     @path id: ULID,
     @body customer: Rest.Resource.ResourceReplaceModel<Customer>,
@@ -69,7 +65,6 @@ interface Customers {
   @route("/{id}")
   @operationId("deleteCustomer")
   @summary("Delete customer")
-  @extension("x-internal", true)
   delete(@path id: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
@@ -81,7 +76,6 @@ interface Customers {
   @route("/{customerId}/apps")
   @operationId("listCustomerAppData")
   @summary("List customer app data")
-  @extension("x-internal", true)
   listAppData(
     @path customerId: ULID,
     ...ListCustomerAppDataParams,
@@ -94,7 +88,6 @@ interface Customers {
   @route("/{customerId}/apps")
   @operationId("upsertCustomerAppData")
   @summary("Upsert customer app data")
-  @extension("x-internal", true)
   upsertAppData(
     @path customerId: ULID,
     @body appData: App.CustomerAppData[],
@@ -107,7 +100,6 @@ interface Customers {
   @route("/{customerId}/apps/{appId}")
   @operationId("deleteCustomerAppData")
   @summary("Delete customer app data")
-  @extension("x-internal", true)
   deleteAppData(@path customerId: ULID, @path appId: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;

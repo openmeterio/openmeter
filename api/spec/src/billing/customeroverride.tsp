@@ -12,7 +12,6 @@ interface CustomerOverrides {
   @get
   @summary("List customer overrides")
   @operationId("listBillingProfileCustomerOverrides")
-  @extension("x-internal", true)
   list(
     @query
     billingProfile?: ULID[],
@@ -29,7 +28,6 @@ interface CustomerOverrides {
   @route("/{customerId}")
   @operationId("upsertBillingProfileCustomerOverride")
   @summary("Create a new or update a customer override")
-  @extension("x-internal", true)
   upsert(
     @path
     customerId: ULID,
@@ -60,7 +58,6 @@ interface CustomerOverrides {
   @route("/{customerId}")
   @summary("Get a customer override")
   @operationId("getBillingProfileCustomerOverride")
-  @extension("x-internal", true)
   get(
     @path
     customerId: ULID,
@@ -73,7 +70,6 @@ interface CustomerOverrides {
   @route("/{customerId}")
   @summary("Delete a customer override")
   @operationId("deleteBillingProfileCustomerOverride")
-  @extension("x-internal", true)
   delete(
     @path
     customerId: ULID,

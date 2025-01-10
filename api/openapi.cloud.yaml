@@ -9,12 +9,11 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
-  - name: Apps
-  - name: Customers
-  - name: Billing (Experimental)
-  - name: Plan (Experimental)
-  - name: Subscriptions
   - name: Debug
+  - name: Apps (Experimental)
+    description: Apps are a set of APIs that allow you to manage your app integrations.
+  - name: Billing (Experimental)
+    description: Billing is a set of APIs that allow you to manage your product catalog, subscriptions, and customers' billing information and invoices.
   - name: Portal
     description: With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time. [Read more](https://openmeter.io/docs/guides/customer-dashboard).
   - name: Notification (Beta)
@@ -80,8 +79,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
   /api/v1/apps/{id}:
     get:
       operationId: getApp
@@ -145,8 +143,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
     delete:
       operationId: uninstallApp
       summary: Uninstall app
@@ -205,8 +202,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
   /api/v1/apps/{id}/stripe/api-key:
     put:
       operationId: updateStripeAPIKey
@@ -260,14 +256,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - Apps (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeAPIKeyInput'
-      x-internal: true
   /api/v1/apps/{id}/stripe/webhook:
     post:
       operationId: appStripeWebhook
@@ -331,14 +326,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - Apps (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeWebhookEvent'
-      x-internal: true
   /api/v1/billing/customer:
     get:
       operationId: listBillingProfileCustomerOverrides
@@ -407,7 +401,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/customer/{customerId}:
     post:
       operationId: upsertBillingProfileCustomerOverride
@@ -486,7 +479,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileCustomerOverrideCreate'
-      x-internal: true
     get:
       operationId: getBillingProfileCustomerOverride
       summary: Get a customer override
@@ -550,7 +542,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     delete:
       operationId: deleteBillingProfileCustomerOverride
       summary: Delete a customer override
@@ -610,7 +601,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices:
     get:
       operationId: listInvoices
@@ -674,7 +664,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices/invoice:
     post:
       operationId: invoicePendingLinesAction
@@ -743,7 +732,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoicePendingLinesActionInput'
-      x-internal: true
   /api/v1/billing/invoices/lines:
     post:
       operationId: createPendingInvoiceLine
@@ -813,7 +801,6 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/InvoicePendingLineCreate'
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}:
     get:
       operationId: getInvoice
@@ -895,7 +882,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     delete:
       operationId: deleteInvoice
       summary: Delete an invoice
@@ -958,7 +944,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}/advance:
     post:
       operationId: advanceInvoiceAction
@@ -1028,7 +1013,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approveInvoiceAction
@@ -1100,7 +1084,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}/lines/{lineId}:
     get:
       operationId: getInvoiceLine
@@ -1172,7 +1155,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     delete:
       operationId: deleteInvoiceLine
       summary: Delete an invoice line
@@ -1239,7 +1221,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     post:
       operationId: updateInvoiceLine
       summary: Update an invoice line
@@ -1316,7 +1297,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvoiceLineReplaceUpdate'
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}/retry:
     post:
       operationId: retryInvoiceAction
@@ -1384,7 +1364,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}/tax/recalculate:
     post:
       operationId: recalculateInvoiceTaxAction
@@ -1452,7 +1431,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
   /api/v1/billing/invoices/{invoiceId}/void:
     post:
       operationId: voidInvoiceAction
@@ -1528,7 +1506,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidInvoiceActionInput'
-      x-internal: true
   /api/v1/billing/profile:
     get:
       operationId: listBillingProfiles
@@ -1601,7 +1578,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     post:
       operationId: createBillingProfile
       summary: Create a new billing profile
@@ -1662,7 +1638,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileCreate'
-      x-internal: true
   /api/v1/billing/profile/{id}:
     delete:
       operationId: deleteBillingProfile
@@ -1723,7 +1698,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     get:
       operationId: getBillingProfile
       summary: Get a billing profile
@@ -1795,7 +1769,6 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Experimental)
-      x-internal: true
     put:
       operationId: updateBillingProfile
       summary: Update a billing profile
@@ -1865,7 +1838,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileReplaceUpdateWithWorkflow'
-      x-internal: true
   /api/v1/customers:
     post:
       operationId: createCustomer
@@ -1916,14 +1888,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CustomerCreate'
-      x-internal: true
     get:
       operationId: listCustomers
       summary: List customers
@@ -1981,8 +1952,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/customers/{customerId}/apps:
     get:
       operationId: listCustomerAppData
@@ -2049,8 +2019,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
-      x-internal: true
+        - Billing (Experimental)
     put:
       operationId: upsertCustomerAppData
       summary: Upsert customer app data
@@ -2115,7 +2084,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
@@ -2124,7 +2093,6 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/CustomerAppData'
-      x-internal: true
   /api/v1/customers/{customerId}/apps/{appId}:
     delete:
       operationId: deleteCustomerAppData
@@ -2191,8 +2159,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/customers/{id}:
     get:
       operationId: getCustomer
@@ -2256,8 +2223,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
-      x-internal: true
+        - Billing (Experimental)
     put:
       operationId: updateCustomer
       summary: Update customer
@@ -2320,14 +2286,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CustomerReplaceUpdate'
-      x-internal: true
     delete:
       operationId: deleteCustomer
       summary: Delete customer
@@ -2386,8 +2351,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/debug/metrics:
     get:
       operationId: getDebugMetrics
@@ -3261,8 +3225,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
   /api/v1/marketplace/listings/{type}:
     get:
       operationId: getMarketplaceListing
@@ -3318,8 +3281,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
@@ -3371,7 +3333,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - Apps (Experimental)
       requestBody:
         required: true
         content:
@@ -3392,7 +3354,6 @@ paths:
                     If not set defaults to the marketplace item's description.
               required:
                 - apiKey
-      x-internal: true
   /api/v1/marketplace/listings/{type}/install/oauth2:
     get:
       operationId: marketplaceOAuth2InstallGetURL
@@ -3450,8 +3411,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
   /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
     get:
       operationId: marketplaceOAuth2InstallAuthorize
@@ -3506,8 +3466,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
-      x-internal: true
+        - Apps (Experimental)
   /api/v1/meters:
     get:
       operationId: listMeters
@@ -4961,8 +4920,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
-      x-internal: true
+        - Billing (Experimental)
     post:
       operationId: createPlan
       summary: Create a plan
@@ -5012,14 +4970,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanCreate'
-      x-internal: true
   /api/v1/plans/{planIdOrKey}/next:
     post:
       operationId: nextPlan
@@ -5094,8 +5051,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/plans/{planId}:
     put:
       operationId: updatePlan
@@ -5159,14 +5115,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanReplaceUpdate'
-      x-internal: true
     get:
       operationId: getPlan
       summary: Get plan
@@ -5249,8 +5204,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
-      x-internal: true
+        - Billing (Experimental)
     delete:
       operationId: deletePlan
       summary: Delete plan
@@ -5312,8 +5266,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
@@ -5377,8 +5330,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/plans/{planId}/publish:
     post:
       operationId: publishPlan
@@ -5442,8 +5394,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Plan (Experimental)
-      x-internal: true
+        - Billing (Experimental)
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
@@ -5754,14 +5705,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps
+        - Apps (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateStripeCheckoutSessionRequest'
-      x-internal: true
   /api/v1/subjects:
     get:
       operationId: listSubjects
@@ -6813,14 +6763,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionCreate'
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}:
     get:
       operationId: getSubscription
@@ -6892,8 +6841,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
-      x-internal: true
+        - Billing (Experimental)
     patch:
       operationId: editSubscription
       summary: Edit subscription
@@ -6964,14 +6912,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionEdit'
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancelSubscription
@@ -7041,7 +6988,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
@@ -7054,7 +7001,6 @@ paths:
                   format: date-time
                   example: 2023-01-01T01:01:01.001Z
                   description: If not provided the subscription is canceled immediately.
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/change:
     post:
       operationId: changeSubscription
@@ -7126,14 +7072,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionChange'
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/migrate:
     post:
       operationId: migrateSubscription
@@ -7203,7 +7148,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
+        - Billing (Experimental)
       requestBody:
         required: true
         content:
@@ -7214,7 +7159,6 @@ paths:
                 targetVersion:
                   type: integer
                   minimum: 1
-      x-internal: true
   /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unscheduleCancelation
@@ -7284,8 +7228,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions
-      x-internal: true
+        - Billing (Experimental)
 security:
   - CloudTokenAuth: []
   - CloudCookieAuth: []

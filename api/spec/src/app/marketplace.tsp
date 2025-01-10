@@ -16,7 +16,7 @@ namespace OpenMeter.App;
  * Marketplace API.
  */
 @route("/api/v1/marketplace")
-@tag("Apps")
+@tag("Apps (Experimental)")
 interface Marketplace {
   /**
    * List available apps of the app marketplace.
@@ -25,7 +25,6 @@ interface Marketplace {
   @route("/listings")
   @operationId("listMarketplaceListings")
   @summary("List available apps")
-  @extension("x-internal", true)
   list(...PaginatedQuery): Paginated<MarketplaceListing> | CommonErrors;
 
   /**
@@ -35,7 +34,6 @@ interface Marketplace {
   @route("/listings/{type}")
   @operationId("getMarketplaceListing")
   @summary("Get app details by type")
-  @extension("x-internal", true)
   get(type: Type): MarketplaceListing | CommonErrors;
 
   /* **************** Install App via OAuth2 **************** */
@@ -48,7 +46,6 @@ interface Marketplace {
   @route("/listings/{type}/install/oauth2")
   @operationId("marketplaceOAuth2InstallGetURL")
   @summary("Get OAuth2 install URL")
-  @extension("x-internal", true)
   getOAuth2InstallURL(
     @path type: Type,
   ): OAuth2.ClientAppStartResponse | CommonErrors;
@@ -61,7 +58,6 @@ interface Marketplace {
   @route("/listings/{type}/install/oauth2/authorize")
   @operationId("marketplaceOAuth2InstallAuthorize")
   @summary("Install app via OAuth2")
-  @extension("x-internal", true)
   authorizeOAuth2Install(...MarketplaceOAuth2InstallAuthorizeRequest): {
     @statusCode _: 303;
   } | CommonErrors;
@@ -75,7 +71,6 @@ interface Marketplace {
   @route("/listings/{type}/install/apikey")
   @operationId("marketplaceAppAPIKeyInstall")
   @summary("Install app via API key")
-  @extension("x-internal", true)
   installWithAPIKey(
     ...MarketplaceApiKeyInstallRequest,
   ): MarketplaceInstallResponse | CommonErrors;
