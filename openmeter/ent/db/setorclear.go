@@ -644,6 +644,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearPeriodEnd(value *time.Time) *Billing
 	return u.SetPeriodEnd(*value)
 }
 
+func (u *BillingInvoiceDiscountUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceDiscountUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingInvoiceDiscountUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
 func (u *BillingInvoiceDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceDiscountUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

@@ -33,6 +33,18 @@ func (bidu *BillingInvoiceDiscountUpdate) Where(ps ...predicate.BillingInvoiceDi
 	return bidu
 }
 
+// SetMetadata sets the "metadata" field.
+func (bidu *BillingInvoiceDiscountUpdate) SetMetadata(m map[string]string) *BillingInvoiceDiscountUpdate {
+	bidu.mutation.SetMetadata(m)
+	return bidu
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (bidu *BillingInvoiceDiscountUpdate) ClearMetadata() *BillingInvoiceDiscountUpdate {
+	bidu.mutation.ClearMetadata()
+	return bidu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (bidu *BillingInvoiceDiscountUpdate) SetUpdatedAt(t time.Time) *BillingInvoiceDiscountUpdate {
 	bidu.mutation.SetUpdatedAt(t)
@@ -59,16 +71,16 @@ func (bidu *BillingInvoiceDiscountUpdate) ClearDeletedAt() *BillingInvoiceDiscou
 	return bidu
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (bidu *BillingInvoiceDiscountUpdate) SetInvoiceID(s string) *BillingInvoiceDiscountUpdate {
-	bidu.mutation.SetInvoiceID(s)
+// SetName sets the "name" field.
+func (bidu *BillingInvoiceDiscountUpdate) SetName(s string) *BillingInvoiceDiscountUpdate {
+	bidu.mutation.SetName(s)
 	return bidu
 }
 
-// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (bidu *BillingInvoiceDiscountUpdate) SetNillableInvoiceID(s *string) *BillingInvoiceDiscountUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (bidu *BillingInvoiceDiscountUpdate) SetNillableName(s *string) *BillingInvoiceDiscountUpdate {
 	if s != nil {
-		bidu.SetInvoiceID(*s)
+		bidu.SetName(*s)
 	}
 	return bidu
 }
@@ -93,16 +105,30 @@ func (bidu *BillingInvoiceDiscountUpdate) ClearDescription() *BillingInvoiceDisc
 	return bidu
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (bidu *BillingInvoiceDiscountUpdate) SetInvoiceID(s string) *BillingInvoiceDiscountUpdate {
+	bidu.mutation.SetInvoiceID(s)
+	return bidu
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (bidu *BillingInvoiceDiscountUpdate) SetNillableInvoiceID(s *string) *BillingInvoiceDiscountUpdate {
+	if s != nil {
+		bidu.SetInvoiceID(*s)
+	}
+	return bidu
+}
+
 // SetType sets the "type" field.
-func (bidu *BillingInvoiceDiscountUpdate) SetType(bt billing.DiscountType) *BillingInvoiceDiscountUpdate {
-	bidu.mutation.SetType(bt)
+func (bidu *BillingInvoiceDiscountUpdate) SetType(bdt billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdate {
+	bidu.mutation.SetType(bdt)
 	return bidu
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (bidu *BillingInvoiceDiscountUpdate) SetNillableType(bt *billing.DiscountType) *BillingInvoiceDiscountUpdate {
-	if bt != nil {
-		bidu.SetType(*bt)
+func (bidu *BillingInvoiceDiscountUpdate) SetNillableType(bdt *billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdate {
+	if bdt != nil {
+		bidu.SetType(*bdt)
 	}
 	return bidu
 }
@@ -252,6 +278,12 @@ func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, e
 			}
 		}
 	}
+	if value, ok := bidu.mutation.Metadata(); ok {
+		_spec.SetField(billinginvoicediscount.FieldMetadata, field.TypeJSON, value)
+	}
+	if bidu.mutation.MetadataCleared() {
+		_spec.ClearField(billinginvoicediscount.FieldMetadata, field.TypeJSON)
+	}
 	if value, ok := bidu.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicediscount.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -260,6 +292,9 @@ func (bidu *BillingInvoiceDiscountUpdate) sqlSave(ctx context.Context) (n int, e
 	}
 	if bidu.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicediscount.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := bidu.mutation.Name(); ok {
+		_spec.SetField(billinginvoicediscount.FieldName, field.TypeString, value)
 	}
 	if value, ok := bidu.mutation.Description(); ok {
 		_spec.SetField(billinginvoicediscount.FieldDescription, field.TypeString, value)
@@ -378,6 +413,18 @@ type BillingInvoiceDiscountUpdateOne struct {
 	mutation *BillingInvoiceDiscountMutation
 }
 
+// SetMetadata sets the "metadata" field.
+func (biduo *BillingInvoiceDiscountUpdateOne) SetMetadata(m map[string]string) *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.SetMetadata(m)
+	return biduo
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (biduo *BillingInvoiceDiscountUpdateOne) ClearMetadata() *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.ClearMetadata()
+	return biduo
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (biduo *BillingInvoiceDiscountUpdateOne) SetUpdatedAt(t time.Time) *BillingInvoiceDiscountUpdateOne {
 	biduo.mutation.SetUpdatedAt(t)
@@ -404,16 +451,16 @@ func (biduo *BillingInvoiceDiscountUpdateOne) ClearDeletedAt() *BillingInvoiceDi
 	return biduo
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetInvoiceID(s string) *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.SetInvoiceID(s)
+// SetName sets the "name" field.
+func (biduo *BillingInvoiceDiscountUpdateOne) SetName(s string) *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.SetName(s)
 	return biduo
 }
 
-// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableInvoiceID(s *string) *BillingInvoiceDiscountUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableName(s *string) *BillingInvoiceDiscountUpdateOne {
 	if s != nil {
-		biduo.SetInvoiceID(*s)
+		biduo.SetName(*s)
 	}
 	return biduo
 }
@@ -438,16 +485,30 @@ func (biduo *BillingInvoiceDiscountUpdateOne) ClearDescription() *BillingInvoice
 	return biduo
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (biduo *BillingInvoiceDiscountUpdateOne) SetInvoiceID(s string) *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.SetInvoiceID(s)
+	return biduo
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableInvoiceID(s *string) *BillingInvoiceDiscountUpdateOne {
+	if s != nil {
+		biduo.SetInvoiceID(*s)
+	}
+	return biduo
+}
+
 // SetType sets the "type" field.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetType(bt billing.DiscountType) *BillingInvoiceDiscountUpdateOne {
-	biduo.mutation.SetType(bt)
+func (biduo *BillingInvoiceDiscountUpdateOne) SetType(bdt billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdateOne {
+	biduo.mutation.SetType(bdt)
 	return biduo
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableType(bt *billing.DiscountType) *BillingInvoiceDiscountUpdateOne {
-	if bt != nil {
-		biduo.SetType(*bt)
+func (biduo *BillingInvoiceDiscountUpdateOne) SetNillableType(bdt *billing.InvoiceDiscountType) *BillingInvoiceDiscountUpdateOne {
+	if bdt != nil {
+		biduo.SetType(*bdt)
 	}
 	return biduo
 }
@@ -627,6 +688,12 @@ func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_nod
 			}
 		}
 	}
+	if value, ok := biduo.mutation.Metadata(); ok {
+		_spec.SetField(billinginvoicediscount.FieldMetadata, field.TypeJSON, value)
+	}
+	if biduo.mutation.MetadataCleared() {
+		_spec.ClearField(billinginvoicediscount.FieldMetadata, field.TypeJSON)
+	}
 	if value, ok := biduo.mutation.UpdatedAt(); ok {
 		_spec.SetField(billinginvoicediscount.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -635,6 +702,9 @@ func (biduo *BillingInvoiceDiscountUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if biduo.mutation.DeletedAtCleared() {
 		_spec.ClearField(billinginvoicediscount.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := biduo.mutation.Name(); ok {
+		_spec.SetField(billinginvoicediscount.FieldName, field.TypeString, value)
 	}
 	if value, ok := biduo.mutation.Description(); ok {
 		_spec.SetField(billinginvoicediscount.FieldDescription, field.TypeString, value)

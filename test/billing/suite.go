@@ -7,7 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -30,6 +33,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -167,6 +172,30 @@ func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) appentity.App {
 
 	require.NoError(t, err)
 	return defaultApp
+}
+
+func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customerentity.Customer {
+	s.T().Helper()
+
+	customer, err := s.CustomerService.CreateCustomer(context.Background(), customerentity.CreateCustomerInput{
+		Namespace: ns,
+
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:         "Test Customer",
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			BillingAddress: &models.Address{
+				Country:    lo.ToPtr(models.CountryCode("US")),
+				PostalCode: lo.ToPtr("12345"),
+			},
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customerentity.CustomerUsageAttribution{
+				SubjectKeys: []string{subjectKey},
+			},
+		},
+	})
+
+	s.NoError(err)
+	return customer
 }
 
 func (s *BaseSuite) TearDownSuite() {

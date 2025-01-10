@@ -18,16 +18,20 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
-	FieldInvoiceID = "invoice_id"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
+	FieldInvoiceID = "invoice_id"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldAmount holds the string denoting the amount field in the database.
@@ -60,11 +64,13 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
+	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldInvoiceID,
+	FieldName,
 	FieldDescription,
+	FieldInvoiceID,
 	FieldType,
 	FieldAmount,
 	FieldLineIds,
@@ -94,7 +100,7 @@ var (
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billing.DiscountType) error {
+func TypeValidator(_type billing.InvoiceDiscountType) error {
 	switch _type {
 	case "percentage", "amount":
 		return nil
@@ -131,14 +137,19 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByInvoiceID orders the results by the invoice_id field.
-func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByInvoiceID orders the results by the invoice_id field.
+func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
 }
 
 // ByType orders the results by the type field.

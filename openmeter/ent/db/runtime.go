@@ -313,22 +313,18 @@ func init() {
 	billinginvoicediscountMixin := schema.BillingInvoiceDiscount{}.Mixin()
 	billinginvoicediscountMixinFields0 := billinginvoicediscountMixin[0].Fields()
 	_ = billinginvoicediscountMixinFields0
-	billinginvoicediscountMixinFields1 := billinginvoicediscountMixin[1].Fields()
-	_ = billinginvoicediscountMixinFields1
-	billinginvoicediscountMixinFields2 := billinginvoicediscountMixin[2].Fields()
-	_ = billinginvoicediscountMixinFields2
 	billinginvoicediscountFields := schema.BillingInvoiceDiscount{}.Fields()
 	_ = billinginvoicediscountFields
 	// billinginvoicediscountDescNamespace is the schema descriptor for namespace field.
-	billinginvoicediscountDescNamespace := billinginvoicediscountMixinFields1[0].Descriptor()
+	billinginvoicediscountDescNamespace := billinginvoicediscountMixinFields0[1].Descriptor()
 	// billinginvoicediscount.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	billinginvoicediscount.NamespaceValidator = billinginvoicediscountDescNamespace.Validators[0].(func(string) error)
 	// billinginvoicediscountDescCreatedAt is the schema descriptor for created_at field.
-	billinginvoicediscountDescCreatedAt := billinginvoicediscountMixinFields2[0].Descriptor()
+	billinginvoicediscountDescCreatedAt := billinginvoicediscountMixinFields0[3].Descriptor()
 	// billinginvoicediscount.DefaultCreatedAt holds the default value on creation for the created_at field.
 	billinginvoicediscount.DefaultCreatedAt = billinginvoicediscountDescCreatedAt.Default.(func() time.Time)
 	// billinginvoicediscountDescUpdatedAt is the schema descriptor for updated_at field.
-	billinginvoicediscountDescUpdatedAt := billinginvoicediscountMixinFields2[1].Descriptor()
+	billinginvoicediscountDescUpdatedAt := billinginvoicediscountMixinFields0[4].Descriptor()
 	// billinginvoicediscount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	billinginvoicediscount.DefaultUpdatedAt = billinginvoicediscountDescUpdatedAt.Default.(func() time.Time)
 	// billinginvoicediscount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

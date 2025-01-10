@@ -23,18 +23,22 @@ type BillingInvoiceDiscount struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// InvoiceID holds the value of the "invoice_id" field.
-	InvoiceID string `json:"invoice_id,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// InvoiceID holds the value of the "invoice_id" field.
+	InvoiceID string `json:"invoice_id,omitempty"`
 	// Type holds the value of the "type" field.
-	Type billing.DiscountType `json:"type,omitempty"`
+	Type billing.InvoiceDiscountType `json:"type,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// LineIds holds the value of the "line_ids" field.
@@ -81,11 +85,11 @@ func (*BillingInvoiceDiscount) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoicediscount.FieldLineIds:
+		case billinginvoicediscount.FieldMetadata, billinginvoicediscount.FieldLineIds:
 			values[i] = new([]byte)
 		case billinginvoicediscount.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicediscount.FieldID, billinginvoicediscount.FieldNamespace, billinginvoicediscount.FieldInvoiceID, billinginvoicediscount.FieldDescription, billinginvoicediscount.FieldType:
+		case billinginvoicediscount.FieldID, billinginvoicediscount.FieldNamespace, billinginvoicediscount.FieldName, billinginvoicediscount.FieldDescription, billinginvoicediscount.FieldInvoiceID, billinginvoicediscount.FieldType:
 			values[i] = new(sql.NullString)
 		case billinginvoicediscount.FieldCreatedAt, billinginvoicediscount.FieldUpdatedAt, billinginvoicediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -116,6 +120,14 @@ func (bid *BillingInvoiceDiscount) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				bid.Namespace = value.String
 			}
+		case billinginvoicediscount.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bid.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
 		case billinginvoicediscount.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -135,11 +147,11 @@ func (bid *BillingInvoiceDiscount) assignValues(columns []string, values []any) 
 				bid.DeletedAt = new(time.Time)
 				*bid.DeletedAt = value.Time
 			}
-		case billinginvoicediscount.FieldInvoiceID:
+		case billinginvoicediscount.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				bid.InvoiceID = value.String
+				bid.Name = value.String
 			}
 		case billinginvoicediscount.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -148,11 +160,17 @@ func (bid *BillingInvoiceDiscount) assignValues(columns []string, values []any) 
 				bid.Description = new(string)
 				*bid.Description = value.String
 			}
+		case billinginvoicediscount.FieldInvoiceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
+			} else if value.Valid {
+				bid.InvoiceID = value.String
+			}
 		case billinginvoicediscount.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				bid.Type = billing.DiscountType(value.String)
+				bid.Type = billing.InvoiceDiscountType(value.String)
 			}
 		case billinginvoicediscount.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -217,6 +235,9 @@ func (bid *BillingInvoiceDiscount) String() string {
 	builder.WriteString("namespace=")
 	builder.WriteString(bid.Namespace)
 	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", bid.Metadata))
+	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(bid.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
@@ -228,13 +249,16 @@ func (bid *BillingInvoiceDiscount) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("invoice_id=")
-	builder.WriteString(bid.InvoiceID)
+	builder.WriteString("name=")
+	builder.WriteString(bid.Name)
 	builder.WriteString(", ")
 	if v := bid.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("invoice_id=")
+	builder.WriteString(bid.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", bid.Type))

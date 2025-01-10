@@ -133,17 +133,21 @@ func (i InvoiceID) Validate() error {
 }
 
 type InvoiceExpand struct {
+	Discounts    bool
 	Preceding    bool
 	WorkflowApps bool
+
 	Lines        bool
 	DeletedLines bool
 	SplitLines   bool
+
 	// GatheringTotals is used to calculate the totals of the invoice when gathering, this is temporary
 	// until we implement the full progressive billing stack.
 	GatheringTotals bool
 }
 
 var InvoiceExpandAll = InvoiceExpand{
+	Discounts:    true,
 	Preceding:    true,
 	WorkflowApps: true,
 	Lines:        true,
@@ -212,16 +216,109 @@ type InvoiceBase struct {
 	ExternalIDs InvoiceExternalIDs `json:"externalIds,omitempty"`
 }
 
+func (i InvoiceBase) Validate() error {
+	var outErr error
+
+	if err := i.Type.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("type", err))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("currency", err))
+	}
+
+	if err := i.Status.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("status", err))
+	}
+
+	if err := i.Customer.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("customer", err))
+	}
+
+	if err := i.Supplier.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("supplier", err))
+	}
+
+	if i.Period != nil {
+		if err := i.Period.Validate(); err != nil {
+			outErr = errors.Join(outErr, ValidationWithFieldPrefix("period", err))
+		}
+	}
+
+	return outErr
+}
+
 type Invoice struct {
 	InvoiceBase `json:",inline"`
 
-	// Line items
+	// Entities external to the invoice itself
 	Lines            LineChildren     `json:"lines,omitempty"`
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`
-	Totals           Totals           `json:"totals"`
+	Discounts        InvoiceDiscounts `json:"discounts,omitempty"`
+
+	Totals Totals `json:"totals"`
 
 	// private fields required by the service
-	ExpandedFields InvoiceExpand `json:"-"`
+	ExpandedFields InvoiceExpand    `json:"-"`
+	snapshots      invoiceSnapshots `json:"-"`
+}
+
+func (i Invoice) Validate() error {
+	var outErr error
+
+	if err := i.InvoiceBase.Validate(); err != nil {
+		outErr = errors.Join(outErr, err)
+	}
+
+	if err := i.Discounts.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("discounts", err))
+	}
+
+	if err := i.validateDiscountReferences(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("discounts", err))
+	}
+
+	if err := i.Lines.Validate(); err != nil {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("lines", err))
+	}
+
+	return outErr
+}
+
+func (i Invoice) validateDiscountReferences() error {
+	if i.Discounts.IsAbsent() {
+		return nil
+	}
+
+	if i.Lines.IsAbsent() {
+		// This is a code problem, so we don't need a coded error
+		return fmt.Errorf("discounts are present, but lines are missing, cannot validate references")
+	}
+
+	linesById := i.FlattenLinesByID()
+
+	return errors.Join(lo.Map(i.Discounts.OrEmpty(), func(discount InvoiceDiscount, idx int) error {
+		base, err := discount.DiscountBase()
+		if err != nil {
+			return err
+		}
+
+		if len(base.LineIDs) == 0 && i.Status == InvoiceStatusGathering {
+			return ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices
+		}
+
+		var outErr error
+		for _, lineID := range base.LineIDs {
+			if _, found := linesById[lineID]; !found {
+				outErr = errors.Join(outErr,
+					ValidationWithFieldPrefix(fmt.Sprintf("%d/lineIds", idx),
+						fmt.Errorf("%w [id=%s]", ErrInvoiceDiscountInvalidLineReference, lineID),
+					),
+				)
+			}
+		}
+		return outErr
+	})...)
 }
 
 func (i Invoice) InvoiceID() InvoiceID {
@@ -262,6 +359,8 @@ func (i Invoice) RemoveMetaForCompare() Invoice {
 	invoice.Lines = i.Lines.Map(func(line *Line) *Line {
 		return line.RemoveMetaForCompare()
 	})
+
+	invoice.snapshots = invoiceSnapshots{}
 
 	return invoice
 }
@@ -314,6 +413,22 @@ func (i Invoice) RemoveCircularReferences() Invoice {
 	})
 
 	return clone
+}
+
+func (i *Invoice) Snapshot() {
+	// TODO[OM-1089]: Refactor line snapshots and add it here as we should not do standalone line manipulation
+	// anymore
+	i.snapshots = invoiceSnapshots{
+		Discounts: i.Discounts.Clone(),
+	}
+}
+
+func (i *Invoice) GetDiscountSnapshot() InvoiceDiscounts {
+	return i.snapshots.Discounts
+}
+
+type invoiceSnapshots struct {
+	Discounts InvoiceDiscounts
 }
 
 type InvoiceExternalIDs struct {
@@ -554,6 +669,23 @@ func (i UpdateInvoiceLinesInternalInput) Validate() error {
 
 	if i.CustomerID == "" {
 		return errors.New("customer ID is required")
+	}
+
+	return nil
+}
+
+type UpdateInvoiceInput struct {
+	Invoice InvoiceID
+	EditFn  func(*Invoice) error
+}
+
+func (i UpdateInvoiceInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("id: %w", err)
+	}
+
+	if i.EditFn == nil {
+		return errors.New("edit function is required")
 	}
 
 	return nil

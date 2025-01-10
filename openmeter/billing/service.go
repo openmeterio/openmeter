@@ -51,6 +51,8 @@ type InvoiceService interface {
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (Invoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (Invoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
+	// UpdateInvoice updates an invoice as a whole
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 
 	// UpdateInvoiceLinesInternal updates the specified invoice lines and ensures that invoice states are properly syncronized
 	// This method is intended to be used by OpenMeter internal services only, as it allows for updating invoice line values,

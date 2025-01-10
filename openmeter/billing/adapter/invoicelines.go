@@ -175,7 +175,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 		// Step 4: Let's upsert anything else, that doesn't have strict ID requirements
 
-		// Step 4a: Discounts
+		// Step 4a: Line Discounts
 
 		allDiscountDiffs := unionOfDiffs(lineDiffs.Discounts, lineDiffs.ChildrenDiff.Discounts)
 		err = upsertWithOptions(ctx, tx.db, allDiscountDiffs, upsertInput[discountWithLine, *db.BillingInvoiceLineDiscountCreate]{

@@ -534,9 +534,7 @@ type BillingInvoiceDiscount struct {
 
 func (BillingInvoiceDiscount) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.IDMixin{},
-		entutils.NamespaceMixin{},
-		entutils.TimeMixin{},
+		entutils.ResourceMixin{},
 	}
 }
 
@@ -547,13 +545,8 @@ func (BillingInvoiceDiscount) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}),
 
-		// TODO: name for better alignmentwith other parts
-		field.String("description").
-			Optional().
-			Nillable(),
-
 		field.Enum("type").
-			GoType(billing.DiscountType("")),
+			GoType(billing.InvoiceDiscountType("")),
 
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
