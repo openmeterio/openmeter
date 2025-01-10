@@ -40,6 +40,11 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 				SetIsDefault(count == 0).
 				SetStatus(appentitybase.AppStatusReady)
 
+			// Set ID if provided by the input
+			if input.ID != nil {
+				appCreateQuery = appCreateQuery.SetID(input.ID.ID)
+			}
+
 			dbApp, err := appCreateQuery.Save(ctx)
 			if err != nil {
 				return appentitybase.AppBase{}, fmt.Errorf("failed to create app: %w", err)

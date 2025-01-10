@@ -45,12 +45,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripeentity.AppBase, error) {
 		// Create the base app
-		appBase, err := repo.appService.CreateApp(ctx, appentity.CreateAppInput{
-			Namespace:   input.Namespace,
-			Name:        input.Name,
-			Description: input.Description,
-			Type:        appentitybase.AppTypeStripe,
-		})
+		appBase, err := repo.appService.CreateApp(ctx, input.CreateAppInput)
 		if err != nil {
 			return appstripeentity.AppBase{}, fmt.Errorf("failed to create app: %w", err)
 		}
