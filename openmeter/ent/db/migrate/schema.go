@@ -431,7 +431,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"percentage", "amount"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"percentage"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "line_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
