@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -715,4 +716,47 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 		Start: start.In(time.UTC),
 		End:   end.In(time.UTC),
 	}
+}
+
+// IsAppUsed checks if the app is used in any invoice.
+func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
+	if err := appID.Validate(); err != nil {
+		return false, billing.ValidationError{
+			Err: fmt.Errorf("invalid app ID: %w", err),
+		}
+	}
+
+	// Check if the app is used in any billing profile
+	isUsedInBillingProfile, err := a.isBillingProfileUsed(ctx, appID)
+	if err != nil {
+		return false, err
+	}
+
+	if isUsedInBillingProfile {
+		return true, nil
+	}
+
+	// Check if the app is used in any invoice in gathering or issued states
+	count, err := a.db.BillingInvoice.
+		Query().
+		Where(billinginvoice.Namespace(appID.Namespace)).
+		Where(
+			billinginvoice.StatusIn(
+				billing.InvoiceStatusGathering,
+				billing.InvoiceStatusIssued,
+			),
+		).
+		Where(
+			billinginvoice.Or(
+				billinginvoice.InvoicingAppID(appID.ID),
+				billinginvoice.PaymentAppID(appID.ID),
+				billinginvoice.TaxAppID(appID.ID),
+			),
+		).
+		Count(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if invoices are correctly associated with apps: %w", err)
+	}
+
+	return count > 0, nil
 }

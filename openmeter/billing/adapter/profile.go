@@ -266,8 +266,8 @@ func (a *adapter) UnsetDefaultProfile(ctx context.Context, input billing.UnsetDe
 	})
 }
 
-// IsAppUsed checks if the app is used in any billing profile
-func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
+// isBillingProfileUsed checks if the app is used in any billing profile
+func (a *adapter) isBillingProfileUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
 	if err := appID.Validate(); err != nil {
 		return false, fmt.Errorf("invalid app id: %w", err)
 	}
