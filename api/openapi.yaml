@@ -13608,6 +13608,12 @@ components:
         anchor: 2023-01-01T01:01:01.001Z
       description: Recurring period with an interval and an anchor.
     RecurringPeriodInterval:
+      anyOf:
+        - type: string
+          format: duration
+        - $ref: '#/components/schemas/RecurringPeriodIntervalEnum'
+      description: Period duration for the recurrence
+    RecurringPeriodIntervalEnum:
       type: string
       enum:
         - DAY

@@ -11,6 +11,7 @@ import (
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -203,6 +204,11 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 
 	switch v := value.(type) {
 	case api.EntitlementMeteredCreateInputs:
+		iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
+		if err != nil {
+			return request, fmt.Errorf("failed to map interval: %w", err)
+		}
+
 		request = entitlement.CreateEntitlementInputs{
 			Namespace:               ns,
 			FeatureID:               v.FeatureId,
@@ -214,7 +220,7 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 			IssueAfterResetPriority: v.IssueAfterResetPriority,
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
-				Interval: MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval),
+				Interval: iv,
 			},
 			PreserveOverageAtReset: v.PreserveOverageAtReset,
 		}
@@ -257,9 +263,14 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 			Config:          []byte(v.Config),
 		}
 		if v.UsagePeriod != nil {
+			iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
+			if err != nil {
+				return request, fmt.Errorf("failed to map interval: %w", err)
+			}
+
 			request.UsagePeriod = &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
-				Interval: MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval),
+				Interval: iv,
 			}
 		}
 		if v.Metadata != nil {
@@ -274,9 +285,14 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 			EntitlementType: entitlement.EntitlementTypeBoolean,
 		}
 		if v.UsagePeriod != nil {
+			iv, err := MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
+			if err != nil {
+				return request, fmt.Errorf("failed to map interval: %w", err)
+			}
+
 			request.UsagePeriod = &entitlement.UsagePeriod{
 				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
-				Interval: MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval),
+				Interval: iv,
 			}
 		}
 		if v.Metadata != nil {
@@ -293,18 +309,25 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 	return request, nil
 }
 
-func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) recurrence.RecurrenceInterval {
-	switch interval {
-	case api.RecurringPeriodIntervalDAY:
-		return recurrence.RecurrencePeriodDaily
-	case api.RecurringPeriodIntervalWEEK:
-		return recurrence.RecurrencePeriodWeek
-	case api.RecurringPeriodIntervalMONTH:
-		return recurrence.RecurrencePeriodMonth
-	case api.RecurringPeriodIntervalYEAR:
-		return recurrence.RecurrencePeriodYear
+func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (recurrence.RecurrenceInterval, error) {
+	str, err := interval.AsRecurringPeriodInterval0()
+	if err != nil {
+		return recurrence.RecurrenceInterval{}, err
+	}
+
+	switch str {
+	case string(api.RecurringPeriodIntervalEnumDAY):
+		return recurrence.RecurrencePeriodDaily, nil
+	case string(api.RecurringPeriodIntervalEnumWEEK):
+		return recurrence.RecurrencePeriodWeek, nil
+	case string(api.RecurringPeriodIntervalEnumMONTH):
+		return recurrence.RecurrencePeriodMonth, nil
+	case string(api.RecurringPeriodIntervalEnumYEAR):
+		return recurrence.RecurrencePeriodYear, nil
 	default:
-		return recurrence.RecurrenceInterval{}
+		p, err := datex.ISOString(str).Parse()
+
+		return recurrence.RecurrenceInterval{Period: p}, err
 	}
 }
 
@@ -317,18 +340,19 @@ func MapRecurrenceToAPI(r recurrence.RecurrenceInterval) api.RecurringPeriodInte
 	// Due to that, this attempt at mapping here happens on a best effort basis, as it's only temporary either way. In cases where it cannot be mapped, we return a new (unexpected by the client value) of the ISO string representation.
 	normalised := r.Normalise(false)
 
+	apiInt := &api.RecurringPeriodInterval{}
+
 	if d, err := normalised.Subtract(recurrence.RecurrencePeriodDaily.Period.Period); err == nil && d.IsZero() {
-		return api.RecurringPeriodIntervalDAY
-	}
-	if w, err := normalised.Subtract(recurrence.RecurrencePeriodWeek.Period.Period); err == nil && w.IsZero() {
-		return api.RecurringPeriodIntervalWEEK
-	}
-	if m, err := normalised.Subtract(recurrence.RecurrencePeriodMonth.Period.Period); err == nil && m.IsZero() {
-		return api.RecurringPeriodIntervalMONTH
-	}
-	if y, err := normalised.Subtract(recurrence.RecurrencePeriodYear.Period.Period); err == nil && y.IsZero() {
-		return api.RecurringPeriodIntervalYEAR
+		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumDAY)
+	} else if w, err := normalised.Subtract(recurrence.RecurrencePeriodWeek.Period.Period); err == nil && w.IsZero() {
+		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumWEEK)
+	} else if m, err := normalised.Subtract(recurrence.RecurrencePeriodMonth.Period.Period); err == nil && m.IsZero() {
+		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
+	} else if y, err := normalised.Subtract(recurrence.RecurrencePeriodYear.Period.Period); err == nil && y.IsZero() {
+		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR)
+	} else {
+		_ = apiInt.FromRecurringPeriodInterval0(r.ISOString().String())
 	}
 
-	return api.RecurringPeriodInterval(r.ISOString())
+	return *apiInt
 }

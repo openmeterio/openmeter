@@ -18,6 +18,8 @@ import (
 )
 
 func NewBalanceThresholdPayload() notification.EventPayload {
+	month := &api.RecurringPeriodInterval{}
+	_ = month.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeBalanceThreshold,
@@ -45,7 +47,7 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 				UpdatedAt:               time.Now().Add(-2 * time.Hour).UTC(),
 				UsagePeriod: api.RecurringPeriod{
 					Anchor:   time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
-					Interval: "MONTH",
+					Interval: *month,
 				},
 			},
 			Feature: api.Feature{

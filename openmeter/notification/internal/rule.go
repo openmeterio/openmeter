@@ -17,6 +17,8 @@ var (
 )
 
 func NewTestEventPayload(eventType notification.EventType) notification.EventPayload {
+	day := &api.RecurringPeriodInterval{}
+	_ = day.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumDAY)
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: eventType,
@@ -47,7 +49,7 @@ func NewTestEventPayload(eventType notification.EventType) notification.EventPay
 				UpdatedAt:              updatedAt,
 				UsagePeriod: api.RecurringPeriod{
 					Anchor:   from,
-					Interval: api.RecurringPeriodIntervalDAY,
+					Interval: *day,
 				},
 			},
 			Feature: api.Feature{
