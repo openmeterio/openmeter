@@ -76,7 +76,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}
 
 			for _, invoice := range invoices.Items {
-				invoice, err := mapInvoiceToAPI(invoice)
+				invoice, err := h.mapInvoiceToAPI(invoice)
 				if err != nil {
 					return ListInvoicesResponse{}, err
 				}
@@ -134,7 +134,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 			out := make([]api.Invoice, 0, len(invoices))
 
 			for _, invoice := range invoices {
-				invoice, err := mapInvoiceToAPI(invoice)
+				invoice, err := h.mapInvoiceToAPI(invoice)
 				if err != nil {
 					return nil, err
 				}
@@ -186,7 +186,7 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 				return GetInvoiceResponse{}, err
 			}
 
-			return mapInvoiceToAPI(invoice)
+			return h.mapInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -267,7 +267,7 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 				return ProgressInvoiceResponse{}, err
 			}
 
-			return mapInvoiceToAPI(invoice)
+			return h.mapInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ProgressInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -316,7 +316,7 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 	)
 }
 
-func mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
+func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 
 	// If the workflow is not expanded we won't have this
@@ -324,7 +324,7 @@ func mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 		var err error
 
 		if invoice.Workflow.Apps != nil {
-			apps, err = mapProfileAppsToAPI(invoice.Workflow.Apps)
+			apps, err = h.mapProfileAppsToAPI(invoice.Workflow.Apps)
 			if err != nil {
 				return api.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
 			}

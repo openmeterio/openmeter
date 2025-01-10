@@ -245,6 +245,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	// App
 	router.appHandler = apphttpdriver.New(
+		config.Logger,
 		staticNamespaceDecoder,
 		config.App,
 		config.Billing,
@@ -261,8 +262,10 @@ func NewRouter(config Config) (*Router, error) {
 
 	if config.BillingEnabled {
 		router.billingHandler = billinghttpdriver.New(
+			config.Logger,
 			staticNamespaceDecoder,
 			config.Billing,
+			config.AppStripe,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}

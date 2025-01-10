@@ -3,8 +3,11 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
+	appshttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -41,6 +44,7 @@ type InvoiceHandler interface {
 }
 
 type handler struct {
+	appMapper        *appshttpdriver.AppMapper
 	service          billing.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
@@ -56,11 +60,14 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 }
 
 func New(
+	logger *slog.Logger,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service billing.Service,
+	stripeAppService appstripe.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
+		appMapper:        appshttpdriver.NewAppMapper(logger, stripeAppService),
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,

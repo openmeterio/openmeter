@@ -69,7 +69,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			items := make([]api.CustomerAppData, 0, len(resp.Items))
 
 			for _, customerApp := range resp.Items {
-				item, err := customerAppToAPI(customerApp)
+				item, err := h.customerAppToAPI(customerApp)
 				if err != nil {
 					return ListCustomerDataResponse{}, fmt.Errorf("failed to cast app customer data: %w", err)
 				}
@@ -296,7 +296,7 @@ func (h *handler) getApp(ctx context.Context, namespace string, appID *string, a
 }
 
 // customerAppToAPI converts a CustomerApp to an API CustomerAppData
-func customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
+func (h *handler) customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 
@@ -307,7 +307,7 @@ func customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
 			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
 		}
 
-		apiApp := mapStripeAppToAPI(stripeApp)
+		apiApp := h.appMapper.mapStripeAppToAPI(stripeApp)
 
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
@@ -328,7 +328,7 @@ func customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
 			return apiCustomerAppData, fmt.Errorf("error casting app to sandbox app")
 		}
 
-		apiApp := mapSandboxAppToAPI(sandboxApp)
+		apiApp := h.appMapper.mapSandboxAppToAPI(sandboxApp)
 
 		apiSandboxCustomerAppData := api.SandboxCustomerAppData{
 			Id:   &appId,

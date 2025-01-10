@@ -10,9 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -52,7 +49,7 @@ func (h *handler) ListApps() ListAppsHandler {
 
 			items := make([]api.App, 0, len(result.Items))
 			for _, item := range result.Items {
-				app, err := MapAppToAPI(item)
+				app, err := h.appMapper.MapAppToAPI(item)
 				if err != nil {
 					return ListAppsResponse{}, fmt.Errorf("failed to map app to api: %w", err)
 				}
@@ -104,7 +101,7 @@ func (h *handler) GetApp() GetAppHandler {
 				return GetAppResponse{}, fmt.Errorf("failed to get app: %w", err)
 			}
 
-			return MapAppToAPI(app)
+			return h.appMapper.MapAppToAPI(app)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAppResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -152,65 +149,4 @@ func (h *handler) UninstallApp() UninstallAppHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
-}
-
-func MapAppToAPI(item appentity.App) (api.App, error) {
-	switch item.GetType() {
-	case appentitybase.AppTypeStripe:
-		stripeApp := item.(appstripeentityapp.App)
-
-		app := api.App{}
-		if err := app.FromStripeApp(mapStripeAppToAPI(stripeApp)); err != nil {
-			return app, err
-		}
-
-		return app, nil
-	case appentitybase.AppTypeSandbox:
-		sandboxApp := item.(appsandbox.App)
-
-		app := api.App{}
-		if err := app.FromSandboxApp(mapSandboxAppToAPI(sandboxApp)); err != nil {
-			return app, err
-		}
-
-		return app, nil
-	default:
-		return api.App{}, fmt.Errorf("unsupported app type: %s", item.GetType())
-	}
-}
-
-func mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
-	return api.SandboxApp{
-		Id:        app.GetID().ID,
-		Type:      api.SandboxAppTypeSandbox,
-		Name:      app.GetName(),
-		Status:    api.AppStatus(app.GetStatus()),
-		Listing:   mapMarketplaceListing(app.GetListing()),
-		CreatedAt: app.CreatedAt,
-		UpdatedAt: app.UpdatedAt,
-		DeletedAt: app.DeletedAt,
-	}
-}
-
-func mapStripeAppToAPI(stripeApp appstripeentityapp.App) api.StripeApp {
-	apiStripeApp := api.StripeApp{
-		Id:              stripeApp.GetID().ID,
-		Type:            api.StripeAppType(stripeApp.GetType()),
-		Name:            stripeApp.Name,
-		Status:          api.AppStatus(stripeApp.GetStatus()),
-		Listing:         mapMarketplaceListing(stripeApp.GetListing()),
-		CreatedAt:       stripeApp.CreatedAt,
-		UpdatedAt:       stripeApp.UpdatedAt,
-		DeletedAt:       stripeApp.DeletedAt,
-		StripeAccountId: stripeApp.StripeAccountID,
-		Livemode:        stripeApp.Livemode,
-	}
-
-	apiStripeApp.Description = stripeApp.GetDescription()
-
-	if stripeApp.GetMetadata() != nil {
-		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())
-	}
-
-	return apiStripeApp
 }

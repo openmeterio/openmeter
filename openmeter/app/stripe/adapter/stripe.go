@@ -528,6 +528,27 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	return supplierContact, nil
 }
 
+// GetMaskedSecretAPIKey returns a masked secret API key
+func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {
+	// Validate input
+	if err := secretAPIKeyID.Validate(); err != nil {
+		return "", appstripe.ValidationError{
+			Err: fmt.Errorf("error validate input: %w", err),
+		}
+	}
+
+	// Get the secret API key
+	secretAPIKey, err := a.secretService.GetAppSecret(context.Background(), secretAPIKeyID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get secret api key: %w", err)
+	}
+
+	// Mask the secret API key
+	maskedAPIKey := fmt.Sprintf("%s***%s", secretAPIKey.Value[:8], secretAPIKey.Value[len(secretAPIKey.Value)-3:])
+
+	return maskedAPIKey, nil
+}
+
 // getStripeAppClient returns a Stripe App Client based on App ID
 func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.AppID) (stripeclient.StripeAppClient, error) {
 	// Validate app id
