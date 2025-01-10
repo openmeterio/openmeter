@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -263,6 +264,30 @@ func (a *adapter) UnsetDefaultProfile(ctx context.Context, input billing.UnsetDe
 			SetDefault(false).
 			Exec(ctx)
 	})
+}
+
+// IsAppUsed checks if the app is used in any billing profile
+func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
+	if err := appID.Validate(); err != nil {
+		return false, fmt.Errorf("invalid app id: %w", err)
+	}
+
+	count, err := a.db.BillingProfile.Query().
+		Where(
+
+			billingprofile.Namespace(appID.Namespace),
+			billingprofile.Or(
+				billingprofile.InvoicingAppID(appID.ID),
+				billingprofile.PaymentAppID(appID.ID),
+				billingprofile.TaxAppID(appID.ID),
+			),
+		).
+		Count(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {

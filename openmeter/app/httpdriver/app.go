@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -135,7 +136,18 @@ func (h *handler) UninstallApp() UninstallAppHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UninstallAppRequest) (UninstallAppResponse, error) {
-			err := h.service.UninstallApp(ctx, request)
+			// Check if the app is not used by any billing profile
+			ok, err := h.billingService.IsAppUsed(ctx, request)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check if app is used: %w", err)
+			}
+
+			if ok {
+				return nil, commonhttp.NewHTTPError(http.StatusConflict, errors.New("app is used by billing profile"))
+			}
+
+			// Uninstall app
+			err = h.service.UninstallApp(ctx, request)
 			if err != nil {
 				return nil, fmt.Errorf("failed to uninstall app: %w", err)
 			}
