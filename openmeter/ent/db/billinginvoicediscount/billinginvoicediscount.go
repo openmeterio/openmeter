@@ -102,7 +102,7 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type billing.InvoiceDiscountType) error {
 	switch _type {
-	case "percentage", "amount":
+	case "percentage":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoicediscount: invalid enum value for type field: %q", _type)
