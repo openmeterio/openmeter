@@ -297,14 +297,13 @@ func NewSubscriptionView(
 		// Let's sort the items by start time
 		for key := range phaseItemsByKey {
 			// Any arbitrary time works as long as its consistent for the comparisons
-			someTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
-				iT, jT := someTime, someTime
+				iT, jT := phase.ActiveFrom, phase.ActiveFrom
 				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
-					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
 				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
-					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(someTime)
+					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
 				}
 				return int(iT.Sub(jT))
 			})
