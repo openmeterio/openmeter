@@ -142,6 +142,9 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	err = s.adapter.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
 		AppID: &input,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to delete stripe customer data: %w", err)
+	}
 
 	// Delete stripe app data
 	err = s.adapter.DeleteStripeAppData(ctx, appstripeentity.DeleteStripeAppDataInput{
