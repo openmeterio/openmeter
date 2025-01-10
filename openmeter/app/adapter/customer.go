@@ -3,6 +3,7 @@ package appadapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
@@ -110,20 +111,41 @@ func (a adapter) DeleteCustomer(ctx context.Context, input app.DeleteCustomerInp
 		}
 	}
 
+	// Determine namespace
+	var namespace string
+
+	if input.AppID != nil {
+		namespace = input.AppID.Namespace
+	}
+
+	if input.CustomerID != nil {
+		namespace = input.CustomerID.Namespace
+	}
+
+	if namespace == "" {
+		return app.ValidationError{
+			Err: fmt.Errorf("error delete customer: namespace is empty"),
+		}
+	}
+
 	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
 		// Delete app customer
 		query := repo.db.AppCustomer.
-			Delete().
+			Update().
+			SetDeletedAt(time.Now()).
 			Where(
-				appcustomerdb.Namespace(input.CustomerID.Namespace),
-				appcustomerdb.CustomerID(input.CustomerID.ID),
+				appcustomerdb.Namespace(namespace),
 			)
 
 		if input.AppID != nil {
 			query = query.Where(appcustomerdb.AppID(input.AppID.ID))
 		}
 
-		_, err := query.Exec(ctx)
+		if input.CustomerID != nil {
+			query = query.Where(appcustomerdb.CustomerID(input.CustomerID.ID))
+		}
+
+		_, err := query.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete app customer: %w", err)
 		}

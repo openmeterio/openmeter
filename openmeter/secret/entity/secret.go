@@ -28,19 +28,19 @@ func NewSecretID(appID appentitybase.AppID, id string, key string) SecretID {
 
 func (i SecretID) Validate() error {
 	if err := i.NamespacedID.Validate(); err != nil {
-		return ValidationError{
+		return &ValidationError{
 			Err: fmt.Errorf("secret: %w", err),
 		}
 	}
 
 	if err := i.AppID.Validate(); err != nil {
-		return ValidationError{
+		return &ValidationError{
 			Err: fmt.Errorf("secret app id: %w", err),
 		}
 	}
 
 	if i.Key == "" {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("secret key is required"),
 		}
 	}
@@ -56,13 +56,13 @@ type Secret struct {
 
 func (s Secret) Validate() error {
 	if err := s.SecretID.Validate(); err != nil {
-		return ValidationError{
+		return &ValidationError{
 			Err: fmt.Errorf("secret %w", err),
 		}
 	}
 
 	if s.Value == "" {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("secret value is required"),
 		}
 	}

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -59,18 +60,30 @@ func (a EnsureCustomerInput) Validate() error {
 
 type DeleteCustomerInput struct {
 	AppID      *appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	CustomerID *customerentity.CustomerID
 }
 
 func (a DeleteCustomerInput) Validate() error {
+	if a.AppID == nil && a.CustomerID == nil {
+		return ValidationError{
+			Err: fmt.Errorf("app ID and customer ID cannot be nil"),
+		}
+	}
+
 	if a.AppID != nil {
 		if err := a.AppID.Validate(); err != nil {
 			return err
 		}
 	}
 
-	if err := a.CustomerID.Validate(); err != nil {
-		return err
+	if a.CustomerID != nil {
+		if err := a.CustomerID.Validate(); err != nil {
+			return err
+		}
+	}
+
+	if a.AppID != nil && a.CustomerID != nil && a.AppID.Namespace != a.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
 	}
 
 	return nil

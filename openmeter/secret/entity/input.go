@@ -14,19 +14,19 @@ type CreateAppSecretInput struct {
 
 func (i CreateAppSecretInput) Validate() error {
 	if err := i.AppID.Validate(); err != nil {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("app id is invalid"),
 		}
 	}
 
 	if i.Key == "" {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("key is required"),
 		}
 	}
 
 	if i.Value == "" {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("value is required"),
 		}
 	}
@@ -51,13 +51,13 @@ func (i UpdateAppSecretInput) Validate() error {
 	}
 
 	if i.Key == "" {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("key is required"),
 		}
 	}
 
 	if i.Value == "" {
-		return ValidationError{
+		return &ValidationError{
 			Err: errors.New("value is required"),
 		}
 	}

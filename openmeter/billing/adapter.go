@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -25,6 +26,7 @@ type ProfileAdapter interface {
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*BaseProfile, error)
 	UnsetDefaultProfile(ctx context.Context, input UnsetDefaultProfileInput) error
+	IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error)
 }
 
 type CustomerOverrideAdapter interface {

@@ -2,6 +2,8 @@ package billing
 
 import (
 	"context"
+
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
 
 type Service interface {
@@ -19,6 +21,7 @@ type ProfileService interface {
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*Profile, error)
 	ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error
+	IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error)
 }
 
 type CustomerOverrideService interface {

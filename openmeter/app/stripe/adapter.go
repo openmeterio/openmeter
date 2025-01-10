@@ -27,6 +27,7 @@ type AppStripeAdapter interface {
 	// App
 	CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error)
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)
+	DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error
 	// Billing
 	GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error)
 	// Customer

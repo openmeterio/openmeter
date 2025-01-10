@@ -7,6 +7,7 @@ import (
 
 	"github.com/stripe/stripe-go/v80"
 
+	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -19,10 +20,8 @@ const (
 )
 
 type CreateAppStripeInput struct {
-	ID              *string
-	Namespace       string
-	Name            string
-	Description     string
+	appentity.CreateAppInput
+
 	StripeAccountID string
 	Livemode        bool
 	APIKey          secretentity.SecretID
@@ -31,16 +30,16 @@ type CreateAppStripeInput struct {
 }
 
 func (i CreateAppStripeInput) Validate() error {
-	if i.ID != nil && *i.ID == "" {
+	if i.CreateAppInput.Type != appentitybase.AppTypeStripe {
+		return errors.New("app type must be stripe")
+	}
+
+	if err := i.ID.Validate(); err != nil {
 		return errors.New("id cannot be empty if provided")
 	}
 
-	if i.Namespace == "" {
-		return errors.New("namespace is required")
-	}
-
-	if i.Name == "" {
-		return errors.New("name is required")
+	if err := i.CreateAppInput.Validate(); err != nil {
+		return fmt.Errorf("error validating create app input: %w", err)
 	}
 
 	if i.StripeAccountID == "" {
@@ -51,7 +50,7 @@ func (i CreateAppStripeInput) Validate() error {
 		return fmt.Errorf("error validating api key: %w", err)
 	}
 
-	if i.APIKey.Namespace != i.Namespace {
+	if i.ID != nil && i.APIKey.Namespace != i.ID.Namespace {
 		return errors.New("api key must be in the same namespace as the app")
 	}
 
@@ -63,7 +62,7 @@ func (i CreateAppStripeInput) Validate() error {
 		return errors.New("stripe webhook id is required")
 	}
 
-	if i.WebhookSecret.Namespace != i.Namespace {
+	if i.ID != nil && i.WebhookSecret.Namespace != i.ID.Namespace {
 		return errors.New("webhook secret must be in the same namespace as the app")
 	}
 
@@ -75,6 +74,18 @@ type GetStripeAppDataInput struct {
 }
 
 func (i GetStripeAppDataInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	return nil
+}
+
+type DeleteStripeAppDataInput struct {
+	AppID appentitybase.AppID
+}
+
+func (i DeleteStripeAppDataInput) Validate() error {
 	if err := i.AppID.Validate(); err != nil {
 		return fmt.Errorf("error validating app id: %w", err)
 	}
@@ -175,16 +186,22 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 
 type DeleteStripeCustomerDataInput struct {
 	AppID      *appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	CustomerID *customerentity.CustomerID
 }
 
 func (i DeleteStripeCustomerDataInput) Validate() error {
-	if i.CustomerID.ID == "" {
-		return errors.New("customer id is required")
+	if i.AppID == nil && i.CustomerID == nil {
+		return errors.New("app id or customer id is required")
 	}
 
-	if i.CustomerID.Namespace == "" {
-		return errors.New("customer namespace is required")
+	if i.CustomerID != nil {
+		if i.CustomerID.ID == "" {
+			return errors.New("customer id is required")
+		}
+
+		if i.CustomerID.Namespace == "" {
+			return errors.New("customer namespace is required")
+		}
 	}
 
 	if i.AppID != nil {
@@ -195,10 +212,10 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 		if i.AppID.Namespace == "" {
 			return errors.New("app namespace is required")
 		}
+	}
 
-		if i.AppID.Namespace != i.CustomerID.Namespace {
-			return errors.New("app and customer must be in the same namespace")
-		}
+	if i.AppID != nil && i.CustomerID != nil && i.AppID.Namespace != i.CustomerID.Namespace {
+		return errors.New("app and customer must be in the same namespace")
 	}
 
 	return nil

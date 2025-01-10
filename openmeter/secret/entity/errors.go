@@ -10,7 +10,7 @@ type SecretNotFoundError struct {
 	SecretID
 }
 
-func (e SecretNotFoundError) Error() string {
+func (e *SecretNotFoundError) Error() string {
 	return fmt.Sprintf("app with id %s not found in %s namespace", e.ID, e.ID)
 }
 
@@ -22,10 +22,10 @@ var _ error = (*ValidationError)(nil)
 
 type ValidationError genericError
 
-func (e ValidationError) Error() string {
+func (e *ValidationError) Error() string {
 	return e.Err.Error()
 }
 
-func (e ValidationError) Unwrap() error {
+func (e *ValidationError) Unwrap() error {
 	return e.Err
 }

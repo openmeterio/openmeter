@@ -111,15 +111,35 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 		}
 	}
 
+	// Determine namespace
+	var namespace string
+
+	if input.AppID != nil {
+		namespace = input.AppID.Namespace
+	}
+
+	if input.CustomerID != nil {
+		namespace = input.CustomerID.Namespace
+	}
+
+	if namespace == "" {
+		return appstripe.ValidationError{
+			Err: fmt.Errorf("error delete stripe customer data: namespace is empty"),
+		}
+	}
+
 	// Start transaction
 	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
 		// Delete stripe app customer data
 		query := repo.db.AppStripeCustomer.
 			Delete().
 			Where(
-				appstripecustomerdb.Namespace(input.CustomerID.Namespace),
-				appstripecustomerdb.CustomerID(input.CustomerID.ID),
+				appstripecustomerdb.Namespace(namespace),
 			)
+
+		if input.CustomerID != nil {
+			query = query.Where(appstripecustomerdb.CustomerID(input.CustomerID.ID))
+		}
 
 		if input.AppID != nil {
 			query = query.Where(appstripecustomerdb.AppID(input.AppID.ID))

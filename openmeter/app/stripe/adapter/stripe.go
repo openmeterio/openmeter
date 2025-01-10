@@ -45,12 +45,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripeentity.AppBase, error) {
 		// Create the base app
-		appBase, err := repo.appService.CreateApp(ctx, appentity.CreateAppInput{
-			Namespace:   input.Namespace,
-			Name:        input.Name,
-			Description: input.Description,
-			Type:        appentitybase.AppTypeStripe,
-		})
+		appBase, err := repo.appService.CreateApp(ctx, input.CreateAppInput)
 		if err != nil {
 			return appstripeentity.AppBase{}, fmt.Errorf("failed to create app: %w", err)
 		}
@@ -199,6 +194,35 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 		}
 
 		return appData, nil
+	})
+}
+
+// DeleteStripeAppData deletes the stripe app data
+func (a adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error {
+	if err := input.Validate(); err != nil {
+		return appstripe.ValidationError{
+			Err: fmt.Errorf("error delete stripe app: %w", err),
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		// Delete the stripe app data
+		_, err := repo.db.AppStripe.
+			Delete().
+			Where(appstripedb.Namespace(input.AppID.Namespace)).
+			Where(appstripedb.ID(input.AppID.ID)).
+			Exec(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return app.AppNotFoundError{
+					AppID: input.AppID,
+				}
+			}
+
+			return fmt.Errorf("failed to delete stripe app: %w", err)
+		}
+
+		return nil
 	})
 }
 
