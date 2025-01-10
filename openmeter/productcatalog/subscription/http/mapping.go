@@ -219,20 +219,21 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	}
 
 	return api.SubscriptionItem{
-		ActiveFrom:      item.SubscriptionItem.ActiveFrom,
-		ActiveTo:        item.SubscriptionItem.ActiveTo,
-		BillingCandence: (*string)(item.SubscriptionItem.RateCard.BillingCadence.ISOStringPtrOrNil()),
-		CreatedAt:       item.SubscriptionItem.CreatedAt,
-		DeletedAt:       item.SubscriptionItem.DeletedAt,
-		Description:     item.SubscriptionItem.Description,
-		Id:              item.SubscriptionItem.ID,
-		Included:        included,
-		Key:             item.SubscriptionItem.Key,
-		Metadata:        &item.SubscriptionItem.Metadata,
-		Name:            item.SubscriptionItem.Name,
-		Price:           pr,
-		TaxConfig:       tx,
-		UpdatedAt:       item.SubscriptionItem.UpdatedAt,
+		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
+		ActiveTo:       item.SubscriptionItem.ActiveTo,
+		BillingCadence: (*string)(item.SubscriptionItem.RateCard.BillingCadence.ISOStringPtrOrNil()),
+		CreatedAt:      item.SubscriptionItem.CreatedAt,
+		DeletedAt:      item.SubscriptionItem.DeletedAt,
+		Description:    item.SubscriptionItem.Description,
+		Id:             item.SubscriptionItem.ID,
+		Included:       included,
+		Key:            item.SubscriptionItem.Key,
+		FeatureKey:     item.SubscriptionItem.RateCard.FeatureKey,
+		Metadata:       &item.SubscriptionItem.Metadata,
+		Name:           item.SubscriptionItem.Name,
+		Price:          pr,
+		TaxConfig:      tx,
+		UpdatedAt:      item.SubscriptionItem.UpdatedAt,
 	}, nil
 }
 

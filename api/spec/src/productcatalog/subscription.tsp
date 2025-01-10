@@ -171,12 +171,17 @@ model SubscriptionItem {
   key: Key;
 
   /**
+   * The feature's key (if present).
+   */
+  featureKey?: Key;
+
+  /**
    * The billing cadence of the rate card.
    * When null, the rate card is a one-time purchase.
    */
   @summary("Billing cadence")
   @encode(DurationKnownEncoding.ISO8601)
-  billingCandence: duration | null;
+  billingCadence: duration | null;
 
   /**
    * The price of the rate card.
