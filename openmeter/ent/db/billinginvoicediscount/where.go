@@ -87,14 +87,19 @@ func DeletedAt(v time.Time) predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
-func InvoiceID(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldInvoiceID, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldName, v))
 }
 
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
 func Description(v string) predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldDescription, v))
+}
+
+// InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
+func InvoiceID(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldInvoiceID, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -165,6 +170,16 @@ func NamespaceEqualFold(v string) predicate.BillingInvoiceDiscount {
 // NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
 func NamespaceContainsFold(v string) predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldNamespace, v))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNotNull(FieldMetadata))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -297,69 +312,69 @@ func DeletedAtNotNil() predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// InvoiceIDEQ applies the EQ predicate on the "invoice_id" field.
-func InvoiceIDEQ(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldInvoiceID, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldName, v))
 }
 
-// InvoiceIDNEQ applies the NEQ predicate on the "invoice_id" field.
-func InvoiceIDNEQ(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldInvoiceID, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldName, v))
 }
 
-// InvoiceIDIn applies the In predicate on the "invoice_id" field.
-func InvoiceIDIn(vs ...string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldInvoiceID, vs...))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldName, vs...))
 }
 
-// InvoiceIDNotIn applies the NotIn predicate on the "invoice_id" field.
-func InvoiceIDNotIn(vs ...string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldInvoiceID, vs...))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldName, vs...))
 }
 
-// InvoiceIDGT applies the GT predicate on the "invoice_id" field.
-func InvoiceIDGT(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldGT(FieldInvoiceID, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldGT(FieldName, v))
 }
 
-// InvoiceIDGTE applies the GTE predicate on the "invoice_id" field.
-func InvoiceIDGTE(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldGTE(FieldInvoiceID, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldGTE(FieldName, v))
 }
 
-// InvoiceIDLT applies the LT predicate on the "invoice_id" field.
-func InvoiceIDLT(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldLT(FieldInvoiceID, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldLT(FieldName, v))
 }
 
-// InvoiceIDLTE applies the LTE predicate on the "invoice_id" field.
-func InvoiceIDLTE(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldLTE(FieldInvoiceID, v))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldLTE(FieldName, v))
 }
 
-// InvoiceIDContains applies the Contains predicate on the "invoice_id" field.
-func InvoiceIDContains(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldContains(FieldInvoiceID, v))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldContains(FieldName, v))
 }
 
-// InvoiceIDHasPrefix applies the HasPrefix predicate on the "invoice_id" field.
-func InvoiceIDHasPrefix(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldHasPrefix(FieldInvoiceID, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldHasPrefix(FieldName, v))
 }
 
-// InvoiceIDHasSuffix applies the HasSuffix predicate on the "invoice_id" field.
-func InvoiceIDHasSuffix(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldHasSuffix(FieldInvoiceID, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldHasSuffix(FieldName, v))
 }
 
-// InvoiceIDEqualFold applies the EqualFold predicate on the "invoice_id" field.
-func InvoiceIDEqualFold(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldEqualFold(FieldInvoiceID, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEqualFold(FieldName, v))
 }
 
-// InvoiceIDContainsFold applies the ContainsFold predicate on the "invoice_id" field.
-func InvoiceIDContainsFold(v string) predicate.BillingInvoiceDiscount {
-	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldInvoiceID, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldName, v))
 }
 
 // DescriptionEQ applies the EQ predicate on the "description" field.
@@ -437,20 +452,85 @@ func DescriptionContainsFold(v string) predicate.BillingInvoiceDiscount {
 	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldDescription, v))
 }
 
+// InvoiceIDEQ applies the EQ predicate on the "invoice_id" field.
+func InvoiceIDEQ(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldInvoiceID, v))
+}
+
+// InvoiceIDNEQ applies the NEQ predicate on the "invoice_id" field.
+func InvoiceIDNEQ(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldInvoiceID, v))
+}
+
+// InvoiceIDIn applies the In predicate on the "invoice_id" field.
+func InvoiceIDIn(vs ...string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldIn(FieldInvoiceID, vs...))
+}
+
+// InvoiceIDNotIn applies the NotIn predicate on the "invoice_id" field.
+func InvoiceIDNotIn(vs ...string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldNotIn(FieldInvoiceID, vs...))
+}
+
+// InvoiceIDGT applies the GT predicate on the "invoice_id" field.
+func InvoiceIDGT(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldGT(FieldInvoiceID, v))
+}
+
+// InvoiceIDGTE applies the GTE predicate on the "invoice_id" field.
+func InvoiceIDGTE(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldGTE(FieldInvoiceID, v))
+}
+
+// InvoiceIDLT applies the LT predicate on the "invoice_id" field.
+func InvoiceIDLT(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldLT(FieldInvoiceID, v))
+}
+
+// InvoiceIDLTE applies the LTE predicate on the "invoice_id" field.
+func InvoiceIDLTE(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldLTE(FieldInvoiceID, v))
+}
+
+// InvoiceIDContains applies the Contains predicate on the "invoice_id" field.
+func InvoiceIDContains(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldContains(FieldInvoiceID, v))
+}
+
+// InvoiceIDHasPrefix applies the HasPrefix predicate on the "invoice_id" field.
+func InvoiceIDHasPrefix(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldHasPrefix(FieldInvoiceID, v))
+}
+
+// InvoiceIDHasSuffix applies the HasSuffix predicate on the "invoice_id" field.
+func InvoiceIDHasSuffix(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldHasSuffix(FieldInvoiceID, v))
+}
+
+// InvoiceIDEqualFold applies the EqualFold predicate on the "invoice_id" field.
+func InvoiceIDEqualFold(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldEqualFold(FieldInvoiceID, v))
+}
+
+// InvoiceIDContainsFold applies the ContainsFold predicate on the "invoice_id" field.
+func InvoiceIDContainsFold(v string) predicate.BillingInvoiceDiscount {
+	return predicate.BillingInvoiceDiscount(sql.FieldContainsFold(FieldInvoiceID, v))
+}
+
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billing.DiscountType) predicate.BillingInvoiceDiscount {
+func TypeEQ(v billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
 	vc := v
 	return predicate.BillingInvoiceDiscount(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billing.DiscountType) predicate.BillingInvoiceDiscount {
+func TypeNEQ(v billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
 	vc := v
 	return predicate.BillingInvoiceDiscount(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billing.DiscountType) predicate.BillingInvoiceDiscount {
+func TypeIn(vs ...billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -459,7 +539,7 @@ func TypeIn(vs ...billing.DiscountType) predicate.BillingInvoiceDiscount {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billing.DiscountType) predicate.BillingInvoiceDiscount {
+func TypeNotIn(vs ...billing.InvoiceDiscountType) predicate.BillingInvoiceDiscount {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

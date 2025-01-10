@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -13,26 +17,48 @@ type InvoiceDiscountType string
 
 const (
 	PercentageDiscountType InvoiceDiscountType = "percentage"
-	AmountDiscountType     InvoiceDiscountType = "amount"
+	// TODO[OM-1076]: implement amount discount
+	// AmountDiscountType     InvoiceDiscountType = "amount"
 )
 
 func (d InvoiceDiscountType) Values() []string {
-	return []string{string(PercentageDiscountType), string(AmountDiscountType)}
+	return []string{string(PercentageDiscountType)}
 }
 
-type InvoiceDiscountBase struct {
-	models.NamespacedModel
-	models.ManagedModel
+type InvoiceDiscountID models.NamespacedID
 
-	ID          string              `json:"id"`
-	InvoiceID   string              `json:"invoice_id"`
-	Description *string             `json:"description"`
-	Type        InvoiceDiscountType `json:"type"`
+type InvoiceDiscountBase struct {
+	models.ManagedResource
+
+	InvoiceID string              `json:"invoice_id"`
+	Type      InvoiceDiscountType `json:"type"`
+	LineIDs   []string            `json:"line_ids"`
 }
 
 func (d *InvoiceDiscountBase) Validate() error {
-	// TODO
-	return nil
+	var err error
+
+	if d.InvoiceID == "" {
+		err = errors.Join(err, errors.New("invoice ID is required"))
+	}
+
+	if d.Type == "" || !lo.Contains(d.Type.Values(), string(d.Type)) {
+		err = errors.Join(err, errors.New("invalid discount type"))
+	}
+
+	return err
+}
+
+func (d InvoiceDiscountBase) Equals(other InvoiceDiscountBase) bool {
+	// TODO[later]: Use hashing instead of reflection if we have performance issues
+	return reflect.DeepEqual(d, other)
+}
+
+func (d InvoiceDiscountBase) DiscountID() InvoiceDiscountID {
+	return InvoiceDiscountID{
+		Namespace: d.Namespace,
+		ID:        d.ID,
+	}
 }
 
 type InvoiceDiscountPercentage struct {
@@ -42,11 +68,26 @@ type InvoiceDiscountPercentage struct {
 }
 
 func (d *InvoiceDiscountPercentage) Validate() error {
+	err := d.InvoiceDiscountBase.Validate()
+
 	if d.Percentage.LessThan(alpacadecimal.Zero) || d.Percentage.GreaterThan(alpacadecimal.NewFromInt(100)) {
-		return errors.New("discount percentage must be between 0 and 100")
+		err = errors.Join(err, errors.New("discount percentage must be between 0 and 100"))
 	}
 
-	return d.InvoiceDiscountBase.Validate()
+	return err
+}
+
+func (d *InvoiceDiscountPercentage) Equals(other InvoiceDiscountPercentage) bool {
+	return d.Percentage.Equal(other.Percentage) || d.InvoiceDiscountBase.Equals(other.InvoiceDiscountBase)
+}
+
+func (d InvoiceDiscountPercentage) Clone() *InvoiceDiscountPercentage {
+	clone := &d
+
+	clone.LineIDs = make([]string, 0, len(d.LineIDs))
+	copy(clone.LineIDs, d.LineIDs)
+
+	return clone
 }
 
 type invoiceDiscount interface {
@@ -57,6 +98,9 @@ type invoiceDiscount interface {
 	Type() InvoiceDiscountType
 	AsPercentage() (InvoiceDiscountPercentage, error)
 	FromPercentage(InvoiceDiscountPercentage)
+	DiscountBase() (InvoiceDiscountBase, error)
+
+	Equals(InvoiceDiscount) bool
 }
 
 var _ invoiceDiscount = (*InvoiceDiscount)(nil)
@@ -66,8 +110,8 @@ type InvoiceDiscount struct {
 	percentage *InvoiceDiscountPercentage
 }
 
-func NewInvoiceDiscountFrom[T InvoiceDiscountPercentage](v T) *InvoiceDiscount {
-	discount := &InvoiceDiscount{}
+func NewInvoiceDiscountFrom[T InvoiceDiscountPercentage](v T) InvoiceDiscount {
+	discount := InvoiceDiscount{}
 
 	switch any(v).(type) {
 	case InvoiceDiscountPercentage:
@@ -155,6 +199,79 @@ func (d *InvoiceDiscount) Validate() error {
 	default:
 		return fmt.Errorf("unsupported discount type %s", d.t)
 	}
+}
 
-	return nil
+func (d *InvoiceDiscount) DiscountBase() (InvoiceDiscountBase, error) {
+	switch d.t {
+	case PercentageDiscountType:
+		return d.percentage.InvoiceDiscountBase, nil
+	default:
+		return InvoiceDiscountBase{}, fmt.Errorf("unsupported discount type %s", d.t)
+	}
+}
+
+func (d *InvoiceDiscount) Equals(other InvoiceDiscount) bool {
+	if d.t != other.t {
+		return false
+	}
+
+	switch d.t {
+	case PercentageDiscountType:
+		return d.percentage.Equals(*other.percentage)
+	default:
+		return true
+	}
+}
+
+func (d *InvoiceDiscount) Clone() InvoiceDiscount {
+	clone := InvoiceDiscount{
+		t: d.t,
+	}
+
+	switch d.t {
+	case PercentageDiscountType:
+		clone.percentage = d.percentage.Clone()
+	}
+
+	return clone
+}
+
+type InvoiceDiscounts struct {
+	mo.Option[[]InvoiceDiscount]
+}
+
+func NewInvoiceDiscounts(v []InvoiceDiscount) InvoiceDiscounts {
+	// Normalize empty slice to nil for equality checking
+	if len(v) == 0 {
+		v = nil
+	}
+
+	return InvoiceDiscounts{mo.Some(v)}
+}
+
+func (d InvoiceDiscounts) Clone() InvoiceDiscounts {
+	if d.IsAbsent() {
+		return InvoiceDiscounts{}
+	}
+
+	clone := make([]InvoiceDiscount, 0, len(d.OrEmpty()))
+	for _, disc := range d.OrEmpty() {
+		clone = append(clone, disc.Clone())
+	}
+
+	return NewInvoiceDiscounts(clone)
+}
+
+func (d *InvoiceDiscounts) Append(discounts ...InvoiceDiscount) {
+	d.Option = mo.Some(append(d.OrEmpty(), discounts...))
+}
+
+func (d InvoiceDiscounts) Validate() error {
+	if d.IsAbsent() {
+		return nil
+	}
+
+	return errors.Join(lo.Map(d.OrEmpty(), func(discount InvoiceDiscount, idx int) error {
+		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), discount.Validate())
+	})...)
 }

@@ -425,9 +425,11 @@ var (
 	BillingInvoiceDiscountsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"percentage", "amount"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -442,7 +444,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_discounts_billing_invoices_invoice_discounts",
-				Columns:    []*schema.Column{BillingInvoiceDiscountsColumns[9]},
+				Columns:    []*schema.Column{BillingInvoiceDiscountsColumns[11]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -459,9 +461,14 @@ var (
 				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1]},
 			},
 			{
+				Name:    "billinginvoicediscount_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[0]},
+			},
+			{
 				Name:    "billinginvoicediscount_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[9]},
+				Columns: []*schema.Column{BillingInvoiceDiscountsColumns[1], BillingInvoiceDiscountsColumns[11]},
 			},
 		},
 	}

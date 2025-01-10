@@ -10258,11 +10258,13 @@ type BillingInvoiceDiscountMutation struct {
 	typ            string
 	id             *string
 	namespace      *string
+	metadata       *map[string]string
 	created_at     *time.Time
 	updated_at     *time.Time
 	deleted_at     *time.Time
+	name           *string
 	description    *string
-	_type          *billing.DiscountType
+	_type          *billing.InvoiceDiscountType
 	amount         *alpacadecimal.Decimal
 	line_ids       *[]string
 	appendline_ids []string
@@ -10417,6 +10419,55 @@ func (m *BillingInvoiceDiscountMutation) ResetNamespace() {
 	m.namespace = nil
 }
 
+// SetMetadata sets the "metadata" field.
+func (m *BillingInvoiceDiscountMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *BillingInvoiceDiscountMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the BillingInvoiceDiscount entity.
+// If the BillingInvoiceDiscount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceDiscountMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *BillingInvoiceDiscountMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[billinginvoicediscount.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *BillingInvoiceDiscountMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[billinginvoicediscount.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *BillingInvoiceDiscountMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, billinginvoicediscount.FieldMetadata)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *BillingInvoiceDiscountMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -10538,40 +10589,40 @@ func (m *BillingInvoiceDiscountMutation) ResetDeletedAt() {
 	delete(m.clearedFields, billinginvoicediscount.FieldDeletedAt)
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (m *BillingInvoiceDiscountMutation) SetInvoiceID(s string) {
-	m.invoice = &s
+// SetName sets the "name" field.
+func (m *BillingInvoiceDiscountMutation) SetName(s string) {
+	m.name = &s
 }
 
-// InvoiceID returns the value of the "invoice_id" field in the mutation.
-func (m *BillingInvoiceDiscountMutation) InvoiceID() (r string, exists bool) {
-	v := m.invoice
+// Name returns the value of the "name" field in the mutation.
+func (m *BillingInvoiceDiscountMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInvoiceID returns the old "invoice_id" field's value of the BillingInvoiceDiscount entity.
+// OldName returns the old "name" field's value of the BillingInvoiceDiscount entity.
 // If the BillingInvoiceDiscount object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceDiscountMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
+func (m *BillingInvoiceDiscountMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInvoiceID requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInvoiceID: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.InvoiceID, nil
+	return oldValue.Name, nil
 }
 
-// ResetInvoiceID resets all changes to the "invoice_id" field.
-func (m *BillingInvoiceDiscountMutation) ResetInvoiceID() {
-	m.invoice = nil
+// ResetName resets all changes to the "name" field.
+func (m *BillingInvoiceDiscountMutation) ResetName() {
+	m.name = nil
 }
 
 // SetDescription sets the "description" field.
@@ -10623,13 +10674,49 @@ func (m *BillingInvoiceDiscountMutation) ResetDescription() {
 	delete(m.clearedFields, billinginvoicediscount.FieldDescription)
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (m *BillingInvoiceDiscountMutation) SetInvoiceID(s string) {
+	m.invoice = &s
+}
+
+// InvoiceID returns the value of the "invoice_id" field in the mutation.
+func (m *BillingInvoiceDiscountMutation) InvoiceID() (r string, exists bool) {
+	v := m.invoice
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceID returns the old "invoice_id" field's value of the BillingInvoiceDiscount entity.
+// If the BillingInvoiceDiscount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceDiscountMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceID: %w", err)
+	}
+	return oldValue.InvoiceID, nil
+}
+
+// ResetInvoiceID resets all changes to the "invoice_id" field.
+func (m *BillingInvoiceDiscountMutation) ResetInvoiceID() {
+	m.invoice = nil
+}
+
 // SetType sets the "type" field.
-func (m *BillingInvoiceDiscountMutation) SetType(bt billing.DiscountType) {
-	m._type = &bt
+func (m *BillingInvoiceDiscountMutation) SetType(bdt billing.InvoiceDiscountType) {
+	m._type = &bdt
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceDiscountMutation) GetType() (r billing.DiscountType, exists bool) {
+func (m *BillingInvoiceDiscountMutation) GetType() (r billing.InvoiceDiscountType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -10640,7 +10727,7 @@ func (m *BillingInvoiceDiscountMutation) GetType() (r billing.DiscountType, exis
 // OldType returns the old "type" field's value of the BillingInvoiceDiscount entity.
 // If the BillingInvoiceDiscount object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceDiscountMutation) OldType(ctx context.Context) (v billing.DiscountType, err error) {
+func (m *BillingInvoiceDiscountMutation) OldType(ctx context.Context) (v billing.InvoiceDiscountType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -10875,9 +10962,12 @@ func (m *BillingInvoiceDiscountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceDiscountMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicediscount.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, billinginvoicediscount.FieldMetadata)
 	}
 	if m.created_at != nil {
 		fields = append(fields, billinginvoicediscount.FieldCreatedAt)
@@ -10888,11 +10978,14 @@ func (m *BillingInvoiceDiscountMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, billinginvoicediscount.FieldDeletedAt)
 	}
-	if m.invoice != nil {
-		fields = append(fields, billinginvoicediscount.FieldInvoiceID)
+	if m.name != nil {
+		fields = append(fields, billinginvoicediscount.FieldName)
 	}
 	if m.description != nil {
 		fields = append(fields, billinginvoicediscount.FieldDescription)
+	}
+	if m.invoice != nil {
+		fields = append(fields, billinginvoicediscount.FieldInvoiceID)
 	}
 	if m._type != nil {
 		fields = append(fields, billinginvoicediscount.FieldType)
@@ -10913,16 +11006,20 @@ func (m *BillingInvoiceDiscountMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case billinginvoicediscount.FieldNamespace:
 		return m.Namespace()
+	case billinginvoicediscount.FieldMetadata:
+		return m.Metadata()
 	case billinginvoicediscount.FieldCreatedAt:
 		return m.CreatedAt()
 	case billinginvoicediscount.FieldUpdatedAt:
 		return m.UpdatedAt()
 	case billinginvoicediscount.FieldDeletedAt:
 		return m.DeletedAt()
-	case billinginvoicediscount.FieldInvoiceID:
-		return m.InvoiceID()
+	case billinginvoicediscount.FieldName:
+		return m.Name()
 	case billinginvoicediscount.FieldDescription:
 		return m.Description()
+	case billinginvoicediscount.FieldInvoiceID:
+		return m.InvoiceID()
 	case billinginvoicediscount.FieldType:
 		return m.GetType()
 	case billinginvoicediscount.FieldAmount:
@@ -10940,16 +11037,20 @@ func (m *BillingInvoiceDiscountMutation) OldField(ctx context.Context, name stri
 	switch name {
 	case billinginvoicediscount.FieldNamespace:
 		return m.OldNamespace(ctx)
+	case billinginvoicediscount.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case billinginvoicediscount.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case billinginvoicediscount.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	case billinginvoicediscount.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case billinginvoicediscount.FieldInvoiceID:
-		return m.OldInvoiceID(ctx)
+	case billinginvoicediscount.FieldName:
+		return m.OldName(ctx)
 	case billinginvoicediscount.FieldDescription:
 		return m.OldDescription(ctx)
+	case billinginvoicediscount.FieldInvoiceID:
+		return m.OldInvoiceID(ctx)
 	case billinginvoicediscount.FieldType:
 		return m.OldType(ctx)
 	case billinginvoicediscount.FieldAmount:
@@ -10972,6 +11073,13 @@ func (m *BillingInvoiceDiscountMutation) SetField(name string, value ent.Value) 
 		}
 		m.SetNamespace(v)
 		return nil
+	case billinginvoicediscount.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
 	case billinginvoicediscount.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -10993,12 +11101,12 @@ func (m *BillingInvoiceDiscountMutation) SetField(name string, value ent.Value) 
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case billinginvoicediscount.FieldInvoiceID:
+	case billinginvoicediscount.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInvoiceID(v)
+		m.SetName(v)
 		return nil
 	case billinginvoicediscount.FieldDescription:
 		v, ok := value.(string)
@@ -11007,8 +11115,15 @@ func (m *BillingInvoiceDiscountMutation) SetField(name string, value ent.Value) 
 		}
 		m.SetDescription(v)
 		return nil
+	case billinginvoicediscount.FieldInvoiceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceID(v)
+		return nil
 	case billinginvoicediscount.FieldType:
-		v, ok := value.(billing.DiscountType)
+		v, ok := value.(billing.InvoiceDiscountType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -11058,6 +11173,9 @@ func (m *BillingInvoiceDiscountMutation) AddField(name string, value ent.Value) 
 // mutation.
 func (m *BillingInvoiceDiscountMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(billinginvoicediscount.FieldMetadata) {
+		fields = append(fields, billinginvoicediscount.FieldMetadata)
+	}
 	if m.FieldCleared(billinginvoicediscount.FieldDeletedAt) {
 		fields = append(fields, billinginvoicediscount.FieldDeletedAt)
 	}
@@ -11081,6 +11199,9 @@ func (m *BillingInvoiceDiscountMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *BillingInvoiceDiscountMutation) ClearField(name string) error {
 	switch name {
+	case billinginvoicediscount.FieldMetadata:
+		m.ClearMetadata()
+		return nil
 	case billinginvoicediscount.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
@@ -11101,6 +11222,9 @@ func (m *BillingInvoiceDiscountMutation) ResetField(name string) error {
 	case billinginvoicediscount.FieldNamespace:
 		m.ResetNamespace()
 		return nil
+	case billinginvoicediscount.FieldMetadata:
+		m.ResetMetadata()
+		return nil
 	case billinginvoicediscount.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -11110,11 +11234,14 @@ func (m *BillingInvoiceDiscountMutation) ResetField(name string) error {
 	case billinginvoicediscount.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case billinginvoicediscount.FieldInvoiceID:
-		m.ResetInvoiceID()
+	case billinginvoicediscount.FieldName:
+		m.ResetName()
 		return nil
 	case billinginvoicediscount.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case billinginvoicediscount.FieldInvoiceID:
+		m.ResetInvoiceID()
 		return nil
 	case billinginvoicediscount.FieldType:
 		m.ResetType()

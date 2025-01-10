@@ -494,6 +494,12 @@ func (c LineChildren) Map(fn func(*Line) *Line) LineChildren {
 	}
 }
 
+func (c LineChildren) Validate() error {
+	return errors.Join(lo.Map(c.OrEmpty(), func(line *Line, idx int) error {
+		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), line.Validate())
+	})...)
+}
+
 func (c *LineChildren) Append(l ...*Line) {
 	c.Option = mo.Some(append(c.OrEmpty(), l...))
 }

@@ -33,6 +33,12 @@ func (bidc *BillingInvoiceDiscountCreate) SetNamespace(s string) *BillingInvoice
 	return bidc
 }
 
+// SetMetadata sets the "metadata" field.
+func (bidc *BillingInvoiceDiscountCreate) SetMetadata(m map[string]string) *BillingInvoiceDiscountCreate {
+	bidc.mutation.SetMetadata(m)
+	return bidc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (bidc *BillingInvoiceDiscountCreate) SetCreatedAt(t time.Time) *BillingInvoiceDiscountCreate {
 	bidc.mutation.SetCreatedAt(t)
@@ -75,9 +81,9 @@ func (bidc *BillingInvoiceDiscountCreate) SetNillableDeletedAt(t *time.Time) *Bi
 	return bidc
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (bidc *BillingInvoiceDiscountCreate) SetInvoiceID(s string) *BillingInvoiceDiscountCreate {
-	bidc.mutation.SetInvoiceID(s)
+// SetName sets the "name" field.
+func (bidc *BillingInvoiceDiscountCreate) SetName(s string) *BillingInvoiceDiscountCreate {
+	bidc.mutation.SetName(s)
 	return bidc
 }
 
@@ -95,9 +101,15 @@ func (bidc *BillingInvoiceDiscountCreate) SetNillableDescription(s *string) *Bil
 	return bidc
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (bidc *BillingInvoiceDiscountCreate) SetInvoiceID(s string) *BillingInvoiceDiscountCreate {
+	bidc.mutation.SetInvoiceID(s)
+	return bidc
+}
+
 // SetType sets the "type" field.
-func (bidc *BillingInvoiceDiscountCreate) SetType(bt billing.DiscountType) *BillingInvoiceDiscountCreate {
-	bidc.mutation.SetType(bt)
+func (bidc *BillingInvoiceDiscountCreate) SetType(bdt billing.InvoiceDiscountType) *BillingInvoiceDiscountCreate {
+	bidc.mutation.SetType(bdt)
 	return bidc
 }
 
@@ -212,6 +224,9 @@ func (bidc *BillingInvoiceDiscountCreate) check() error {
 	if _, ok := bidc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "BillingInvoiceDiscount.updated_at"`)}
 	}
+	if _, ok := bidc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "BillingInvoiceDiscount.name"`)}
+	}
 	if _, ok := bidc.mutation.InvoiceID(); !ok {
 		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "BillingInvoiceDiscount.invoice_id"`)}
 	}
@@ -269,6 +284,10 @@ func (bidc *BillingInvoiceDiscountCreate) createSpec() (*BillingInvoiceDiscount,
 		_spec.SetField(billinginvoicediscount.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
+	if value, ok := bidc.mutation.Metadata(); ok {
+		_spec.SetField(billinginvoicediscount.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := bidc.mutation.CreatedAt(); ok {
 		_spec.SetField(billinginvoicediscount.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -280,6 +299,10 @@ func (bidc *BillingInvoiceDiscountCreate) createSpec() (*BillingInvoiceDiscount,
 	if value, ok := bidc.mutation.DeletedAt(); ok {
 		_spec.SetField(billinginvoicediscount.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := bidc.mutation.Name(); ok {
+		_spec.SetField(billinginvoicediscount.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := bidc.mutation.Description(); ok {
 		_spec.SetField(billinginvoicediscount.FieldDescription, field.TypeString, value)
@@ -382,6 +405,24 @@ type (
 	}
 )
 
+// SetMetadata sets the "metadata" field.
+func (u *BillingInvoiceDiscountUpsert) SetMetadata(v map[string]string) *BillingInvoiceDiscountUpsert {
+	u.Set(billinginvoicediscount.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsert) UpdateMetadata() *BillingInvoiceDiscountUpsert {
+	u.SetExcluded(billinginvoicediscount.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingInvoiceDiscountUpsert) ClearMetadata() *BillingInvoiceDiscountUpsert {
+	u.SetNull(billinginvoicediscount.FieldMetadata)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BillingInvoiceDiscountUpsert) SetUpdatedAt(v time.Time) *BillingInvoiceDiscountUpsert {
 	u.Set(billinginvoicediscount.FieldUpdatedAt, v)
@@ -412,15 +453,15 @@ func (u *BillingInvoiceDiscountUpsert) ClearDeletedAt() *BillingInvoiceDiscountU
 	return u
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (u *BillingInvoiceDiscountUpsert) SetInvoiceID(v string) *BillingInvoiceDiscountUpsert {
-	u.Set(billinginvoicediscount.FieldInvoiceID, v)
+// SetName sets the "name" field.
+func (u *BillingInvoiceDiscountUpsert) SetName(v string) *BillingInvoiceDiscountUpsert {
+	u.Set(billinginvoicediscount.FieldName, v)
 	return u
 }
 
-// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
-func (u *BillingInvoiceDiscountUpsert) UpdateInvoiceID() *BillingInvoiceDiscountUpsert {
-	u.SetExcluded(billinginvoicediscount.FieldInvoiceID)
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsert) UpdateName() *BillingInvoiceDiscountUpsert {
+	u.SetExcluded(billinginvoicediscount.FieldName)
 	return u
 }
 
@@ -442,8 +483,20 @@ func (u *BillingInvoiceDiscountUpsert) ClearDescription() *BillingInvoiceDiscoun
 	return u
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (u *BillingInvoiceDiscountUpsert) SetInvoiceID(v string) *BillingInvoiceDiscountUpsert {
+	u.Set(billinginvoicediscount.FieldInvoiceID, v)
+	return u
+}
+
+// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsert) UpdateInvoiceID() *BillingInvoiceDiscountUpsert {
+	u.SetExcluded(billinginvoicediscount.FieldInvoiceID)
+	return u
+}
+
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsert) SetType(v billing.DiscountType) *BillingInvoiceDiscountUpsert {
+func (u *BillingInvoiceDiscountUpsert) SetType(v billing.InvoiceDiscountType) *BillingInvoiceDiscountUpsert {
 	u.Set(billinginvoicediscount.FieldType, v)
 	return u
 }
@@ -538,6 +591,27 @@ func (u *BillingInvoiceDiscountUpsertOne) Update(set func(*BillingInvoiceDiscoun
 	return u
 }
 
+// SetMetadata sets the "metadata" field.
+func (u *BillingInvoiceDiscountUpsertOne) SetMetadata(v map[string]string) *BillingInvoiceDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsertOne) UpdateMetadata() *BillingInvoiceDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingInvoiceDiscountUpsertOne) ClearMetadata() *BillingInvoiceDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.ClearMetadata()
+	})
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BillingInvoiceDiscountUpsertOne) SetUpdatedAt(v time.Time) *BillingInvoiceDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
@@ -573,17 +647,17 @@ func (u *BillingInvoiceDiscountUpsertOne) ClearDeletedAt() *BillingInvoiceDiscou
 	})
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (u *BillingInvoiceDiscountUpsertOne) SetInvoiceID(v string) *BillingInvoiceDiscountUpsertOne {
+// SetName sets the "name" field.
+func (u *BillingInvoiceDiscountUpsertOne) SetName(v string) *BillingInvoiceDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
-		s.SetInvoiceID(v)
+		s.SetName(v)
 	})
 }
 
-// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
-func (u *BillingInvoiceDiscountUpsertOne) UpdateInvoiceID() *BillingInvoiceDiscountUpsertOne {
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsertOne) UpdateName() *BillingInvoiceDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
-		s.UpdateInvoiceID()
+		s.UpdateName()
 	})
 }
 
@@ -608,8 +682,22 @@ func (u *BillingInvoiceDiscountUpsertOne) ClearDescription() *BillingInvoiceDisc
 	})
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (u *BillingInvoiceDiscountUpsertOne) SetInvoiceID(v string) *BillingInvoiceDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.SetInvoiceID(v)
+	})
+}
+
+// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsertOne) UpdateInvoiceID() *BillingInvoiceDiscountUpsertOne {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.UpdateInvoiceID()
+	})
+}
+
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsertOne) SetType(v billing.DiscountType) *BillingInvoiceDiscountUpsertOne {
+func (u *BillingInvoiceDiscountUpsertOne) SetType(v billing.InvoiceDiscountType) *BillingInvoiceDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
 		s.SetType(v)
 	})
@@ -878,6 +966,27 @@ func (u *BillingInvoiceDiscountUpsertBulk) Update(set func(*BillingInvoiceDiscou
 	return u
 }
 
+// SetMetadata sets the "metadata" field.
+func (u *BillingInvoiceDiscountUpsertBulk) SetMetadata(v map[string]string) *BillingInvoiceDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsertBulk) UpdateMetadata() *BillingInvoiceDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *BillingInvoiceDiscountUpsertBulk) ClearMetadata() *BillingInvoiceDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.ClearMetadata()
+	})
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BillingInvoiceDiscountUpsertBulk) SetUpdatedAt(v time.Time) *BillingInvoiceDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
@@ -913,17 +1022,17 @@ func (u *BillingInvoiceDiscountUpsertBulk) ClearDeletedAt() *BillingInvoiceDisco
 	})
 }
 
-// SetInvoiceID sets the "invoice_id" field.
-func (u *BillingInvoiceDiscountUpsertBulk) SetInvoiceID(v string) *BillingInvoiceDiscountUpsertBulk {
+// SetName sets the "name" field.
+func (u *BillingInvoiceDiscountUpsertBulk) SetName(v string) *BillingInvoiceDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
-		s.SetInvoiceID(v)
+		s.SetName(v)
 	})
 }
 
-// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
-func (u *BillingInvoiceDiscountUpsertBulk) UpdateInvoiceID() *BillingInvoiceDiscountUpsertBulk {
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsertBulk) UpdateName() *BillingInvoiceDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
-		s.UpdateInvoiceID()
+		s.UpdateName()
 	})
 }
 
@@ -948,8 +1057,22 @@ func (u *BillingInvoiceDiscountUpsertBulk) ClearDescription() *BillingInvoiceDis
 	})
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (u *BillingInvoiceDiscountUpsertBulk) SetInvoiceID(v string) *BillingInvoiceDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.SetInvoiceID(v)
+	})
+}
+
+// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
+func (u *BillingInvoiceDiscountUpsertBulk) UpdateInvoiceID() *BillingInvoiceDiscountUpsertBulk {
+	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
+		s.UpdateInvoiceID()
+	})
+}
+
 // SetType sets the "type" field.
-func (u *BillingInvoiceDiscountUpsertBulk) SetType(v billing.DiscountType) *BillingInvoiceDiscountUpsertBulk {
+func (u *BillingInvoiceDiscountUpsertBulk) SetType(v billing.InvoiceDiscountType) *BillingInvoiceDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceDiscountUpsert) {
 		s.SetType(v)
 	})
