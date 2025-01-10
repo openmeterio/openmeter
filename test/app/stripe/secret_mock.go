@@ -49,7 +49,7 @@ func (s *MockSecretService) CreateAppSecret(ctx context.Context, input secretent
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return secretentity.SecretID{}, secretentity.ValidationError{
+			return secretentity.SecretID{}, &secretentity.ValidationError{
 				Err: fmt.Errorf("error create app secret: %w", err),
 			}
 		}
@@ -64,7 +64,7 @@ func (s *MockSecretService) UpdateAppSecret(ctx context.Context, input secretent
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return secretentity.ValidationError{
+			return &secretentity.ValidationError{
 				Err: fmt.Errorf("error update app secret: %w", err),
 			}
 		}
@@ -79,7 +79,7 @@ func (s *MockSecretService) GetAppSecret(ctx context.Context, input secretentity
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return secretentity.Secret{}, secretentity.ValidationError{
+			return secretentity.Secret{}, &secretentity.ValidationError{
 				Err: fmt.Errorf("error get app secret: %w", err),
 			}
 		}
@@ -94,7 +94,7 @@ func (s *MockSecretService) DeleteAppSecret(ctx context.Context, input secretent
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return secretentity.ValidationError{
+			return &secretentity.ValidationError{
 				Err: fmt.Errorf("error delete app secret: %w", err),
 			}
 		}
