@@ -72,7 +72,7 @@ type Worker struct {
 	metricRecalculationTime metric.Int64Histogram
 
 	// Handlers
-	batchedIngestEventHandlers []BatchedIngestEventHandler
+	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -129,15 +129,15 @@ func New(opts WorkerOptions) (*Worker, error) {
 	return worker, nil
 }
 
-// AddBatchedIngestEventHandler adds a handler to the list of batched ingest event handlers.
-// Useful to add additional batched ingest event handlers.
-// Handlers are called in the order they are added after the balance worker has processed the batched ingest event.
-func (w *Worker) AddBatchedIngestEventHandler(handler BatchedIngestEventHandler) {
-	w.batchedIngestEventHandlers = append(w.batchedIngestEventHandlers, handler)
+// AddHandler adds an additional handler to the list of batched ingest event handlers.
+// Handlers are called in the order they are added and run after the riginal balance worker handler.
+// In the case of any handler returning an error, the event will be retried so it is important that all handlers are idempotent.
+func (w *Worker) AddHandler(handler grouphandler.GroupEventHandler) {
+	w.nonPublishingHandler.AddHandler(handler)
 }
 
 func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandlerFunc, error) {
-	return grouphandler.NewNoPublishingHandler(
+	publishingHandler, err := grouphandler.NewNoPublishingHandler(
 		w.opts.EventBus.Marshaler(),
 		metricMeter,
 
@@ -197,28 +197,11 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 
 		// Ingest batched event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
-			var errs []error
-
 			if event == nil {
 				return errors.New("nil batched ingest event")
 			}
 
-			// Balance worker handles the batched ingest event
-			err := w.handleBatchedIngestEvent(ctx, *event)
-			if err != nil {
-				errs = append(errs, err)
-			}
-
-			// Additional handlers defined in config if any
-			for _, handler := range w.batchedIngestEventHandlers {
-				err := handler(ctx, *event)
-				if err != nil {
-					errs = append(errs, err)
-				}
-
-			}
-
-			return errors.Join(errs...)
+			return w.handleBatchedIngestEvent(ctx, *event)
 		}),
 
 		// Edge Cache Miss Event
@@ -228,6 +211,13 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleCacheMissEvent(ctx, event, metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntitySubjectKey, event.SubjectKey)))
 		}),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create publishing handler: %w", err)
+	}
+
+	w.nonPublishingHandler = publishingHandler
+
+	return publishingHandler.Handle, nil
 }
 
 func (w *Worker) Run(ctx context.Context) error {

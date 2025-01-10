@@ -67,7 +67,7 @@ func New(opts Options) (*Consumer, error) {
 		"balance_consumer_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
-		handler,
+		handler.Handle,
 	)
 
 	return consumer, nil
