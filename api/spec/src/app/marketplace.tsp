@@ -139,7 +139,6 @@ model MarketplaceApiKeyInstallRequest {
   type: Type.Stripe,
   name: "Stripe",
   description: "Stripe interation allows you to collect payments with Stripe.",
-  iconUrl: "/images/stripe.png",
   capabilities: #[
     #{
       type: CapabilityType.CalculateTax,
@@ -176,11 +175,6 @@ model MarketplaceListing {
    * The app's description.
    */
   description: string;
-
-  /**
-   * The app's icon URL.
-   */
-  iconUrl: string;
 
   /**
    * The app's capabilities.

@@ -9,7 +9,6 @@ var (
 		Type:        appentitybase.AppTypeSandbox,
 		Name:        "Sandbox",
 		Description: "Sandbox can be used to test OpenMeter without external connections.",
-		IconURL:     "https://openmeter.cloud/favicon.ico",
 		Capabilities: []appentitybase.Capability{
 			CollectPaymentCapability,
 			CalculateTaxCapability,

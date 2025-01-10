@@ -9,7 +9,6 @@ type MarketplaceListing struct {
 	Type         AppType      `json:"type"`
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
-	IconURL      string       `json:"iconUrl"`
 	Capabilities []Capability `json:"capabilities"`
 }
 
@@ -24,10 +23,6 @@ func (p MarketplaceListing) Validate() error {
 
 	if p.Description == "" {
 		return errors.New("description is required")
-	}
-
-	if p.IconURL == "" {
-		return errors.New("icon url is required")
 	}
 
 	for i, capability := range p.Capabilities {

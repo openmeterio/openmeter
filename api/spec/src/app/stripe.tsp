@@ -243,7 +243,6 @@ model CheckoutSessionCustomTextParams {
     type: Type.Stripe,
     name: "Stripe",
     description: "Stripe interation allows you to collect payments with Stripe.",
-    iconUrl: "/images/stripe.png",
     capabilities: #[
       #{
         type: CapabilityType.CalculateTax,

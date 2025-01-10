@@ -8,8 +8,7 @@ var (
 	StripeMarketplaceListing = appentitybase.MarketplaceListing{
 		Type:        appentitybase.AppTypeStripe,
 		Name:        "Stripe",
-		Description: "Stripe is a payment processing platform.",
-		IconURL:     "https://stripe.com/favicon.ico",
+		Description: "Send invoices, calculate tax and collect payments.",
 		Capabilities: []appentitybase.Capability{
 			StripeCollectPaymentCapability,
 			StripeCalculateTaxCapability,

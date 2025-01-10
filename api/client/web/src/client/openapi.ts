@@ -1194,60 +1194,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/plans/{planId}/phases': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List phases in plan
-     * @description List all phases in plan.
-     */
-    get: operations['listPlanPhases']
-    put?: never
-    /**
-     * Create new phase in plan
-     * @description Create new phase in plan.
-     */
-    post: operations['createPlanPhase']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/plans/{planId}/phases/{planPhaseKey}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get phase for plan
-     * @description Get phase in plan.
-     */
-    get: operations['getPlanPhase']
-    /**
-     * Update phase in plan
-     * @description Update phase in plan.
-     */
-    put: operations['updatePlanPhase']
-    post?: never
-    /**
-     * Delete phase for plan
-     * @description Delete phase in plan.
-     *
-     *     Once a phase is deleted it cannot be undeleted.
-     */
-    delete: operations['deletePlanPhase']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/plans/{planId}/publish': {
     parameters: {
       query?: never
@@ -2246,6 +2192,11 @@ export interface components {
        * @example P1D
        */
       dueAfter: string
+      /**
+       * @description Should progressive billing be allowed for this workflow?
+       * @default false
+       */
+      progressiveBilling: boolean
     }
     /**
      * Workflow payment settings
@@ -2471,11 +2422,6 @@ export interface components {
        */
       readonly deletedAt?: string
       /**
-       * Timezone
-       * @description Timezone of the customer.
-       */
-      timezone?: string
-      /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
@@ -2547,11 +2493,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Timezone
-       * @description Timezone of the customer.
-       */
-      timezone?: string
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
@@ -2625,11 +2566,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Timezone
-       * @description Timezone of the customer.
-       */
-      timezone?: string
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
@@ -3861,11 +3797,6 @@ export interface components {
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceAppExternalIDs']
     }
-    /**
-     * @description InvoiceAction represents the actions that can be performed on an invoice.
-     * @enum {string}
-     */
-    InvoiceAction: 'advance' | 'approve' | 'delete' | 'retry' | 'void'
     /** @description InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe. */
     InvoiceAppExternalIDs: {
       /** @description The external ID of the invoice in the invoicing app if available. */
@@ -3874,6 +3805,33 @@ export interface components {
       readonly Tax?: string
       /** @description The external ID of the invoice in the payment app if available. */
       readonly Payment?: string
+    }
+    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     non-gathering invoices. */
+    InvoiceAvailableActionDetails: {
+      /** @description The state the invoice will reach if the action is activated and
+       *     all intermediate steps are successful.
+       *
+       *     For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice. */
+      readonly resultingState: string
+    }
+    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     gathering invoices. */
+    InvoiceAvailableActionInvoiceDetails: Record<string, never>
+    /** @description InvoiceAvailableActions represents the actions that can be performed on the invoice. */
+    InvoiceAvailableActions: {
+      /** @description Advance the invoice to the next status. */
+      readonly advance?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Approve an invoice that requires manual approval. */
+      readonly approve?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Delete the invoice (only non-issued invoices can be deleted). */
+      readonly delete?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Retry an invoice issuing step that failed. */
+      readonly retry?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Void an already issued invoice. */
+      readonly void?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Invoice a gathering invoice */
+      readonly invoice?: components['schemas']['InvoiceAvailableActionInvoiceDetails']
     }
     /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
     InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
@@ -4276,7 +4234,7 @@ export interface components {
       /** @description Extended status information for the invoice. */
       readonly extendedStatus: string
       /** @description The actions that can be performed on the invoice. */
-      availableActions: components['schemas']['InvoiceAction'][]
+      availableActions: components['schemas']['InvoiceAvailableActions']
     }
     /** @description Totals contains the summaries of all calculations for the invoice. */
     InvoiceTotals: {
@@ -4490,8 +4448,6 @@ export interface components {
       readonly sourceBillingProfileID: string
       /** @description The workflow details used by this invoice. */
       readonly workflow: components['schemas']['BillingWorkflowSettings']
-      /** @description Timezone of the invoice's date fields. */
-      readonly timezone: string
     }
     /** @description List entitlements result */
     ListEntitlementsResult:
@@ -4516,7 +4472,6 @@ export interface components {
      *       "type": "stripe",
      *       "name": "Stripe",
      *       "description": "Stripe interation allows you to collect payments with Stripe.",
-     *       "iconUrl": "/images/stripe.png",
      *       "capabilities": [
      *         {
      *           "type": "calculateTax",
@@ -4546,8 +4501,6 @@ export interface components {
       name: string
       /** @description The app's description. */
       description: string
-      /** @description The app's icon URL. */
-      iconUrl: string
       /** @description The app's capabilities. */
       capabilities: components['schemas']['AppCapability'][]
     }
@@ -5319,11 +5272,6 @@ export interface components {
        */
       to: string
     }
-    /**
-     * @description Order by options for plan phases.
-     * @enum {string}
-     */
-    PhasesOrderBy: 'key' | 'start_after'
     /** @description Plans provide a template for subscriptions. */
     Plan: {
       /**
@@ -5499,112 +5447,17 @@ export interface components {
        */
       metadata?: components['schemas']['Metadata'] | null
       /**
-       * Rate cards
-       * @description The rate cards of the plan.
-       */
-      rateCards: components['schemas']['RateCard'][]
-      /**
-       * Start after
+       * Duration
        * Format: duration
-       * @description The time after which the plan starts compared to subscription start
-       * @example P1Y1D
+       * @description The duration of the phase.
+       * @example P1Y
        */
-      startAfter: string | null
-      /**
-       * Discounts
-       * @description The discounts on the plan.
-       */
-      discounts?: components['schemas']['Discount'][]
-    }
-    /** @description Resource create operation model. */
-    PlanPhaseCreate: {
-      /**
-       * Key
-       * @description A semi-unique identifier for the resource.
-       */
-      key: string
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
+      duration: string | null
       /**
        * Rate cards
        * @description The rate cards of the plan.
        */
       rateCards: components['schemas']['RateCard'][]
-      /**
-       * Start after
-       * Format: duration
-       * @description The time after which the plan starts compared to subscription start
-       * @example P1Y1D
-       */
-      startAfter: string | null
-      /**
-       * Discounts
-       * @description The discounts on the plan.
-       */
-      discounts?: components['schemas']['Discount'][]
-    }
-    /** @description Paginated response */
-    PlanPhasePaginatedResponse: {
-      /**
-       * @description The items in the current page.
-       * @example 500
-       */
-      totalCount: number
-      /**
-       * @description The items in the current page.
-       * @example 1
-       */
-      page: number
-      /**
-       * @description The items in the current page.
-       * @example 100
-       */
-      pageSize: number
-      /** @description The items in the current page. */
-      items: components['schemas']['PlanPhase'][]
-    }
-    /** @description Resource create or update operation model. */
-    PlanPhaseUpdate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name?: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Rate cards
-       * @description The rate cards of the plan.
-       */
-      rateCards?: components['schemas']['RateCard'][]
-      /**
-       * Start after
-       * Format: duration
-       * @description The time after which the plan starts compared to subscription start
-       * @example P1Y1D
-       */
-      startAfter?: string | null
       /**
        * Discounts
        * @description The discounts on the plan.
@@ -5980,12 +5833,16 @@ export interface components {
        */
       anchor?: string
     }
+    /** @description Period duration for the recurrence */
+    RecurringPeriodInterval:
+      | string
+      | components['schemas']['RecurringPeriodIntervalEnum']
     /**
      * @description The unit of time for the interval.
      *     One of: `day`, `week`, `month`, or `year`.
      * @enum {string}
      */
-    RecurringPeriodInterval: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
+    RecurringPeriodIntervalEnum: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
     /**
      * @description The direction of the phase shift when a phase is removed.
      * @enum {string}
@@ -6106,7 +5963,6 @@ export interface components {
      *         "type": "stripe",
      *         "name": "Stripe",
      *         "description": "Stripe interation allows you to collect payments with Stripe.",
-     *         "iconUrl": "/images/stripe.png",
      *         "capabilities": [
      *           {
      *             "type": "calculateTax",
@@ -6636,13 +6492,15 @@ export interface components {
        *
        *     We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item. */
       key: string
+      /** @description The feature's key (if present). */
+      featureKey?: string
       /**
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
        *     When null, the rate card is a one-time purchase.
        */
-      billingCandence: string | null
+      billingCadence: string | null
       /**
        * Price
        * @description The price of the rate card.
@@ -6675,7 +6533,7 @@ export interface components {
        * Format: duration
        * @description Interval after the subscription starts to transition to the phase.
        *     When null, the phase starts immediately after the subscription starts.
-       * @example P1Y1D
+       * @example P1Y
        */
       startAfter: string | null
       /**
@@ -7158,10 +7016,6 @@ export interface components {
      *
      *     Default is 100. */
     'Pagination.pageSize': number
-    /** @description The order direction. */
-    'PhasesOrderByOrdering.order': components['schemas']['SortOrder']
-    /** @description The order by field. */
-    'PhasesOrderByOrdering.orderBy': components['schemas']['PhasesOrderBy']
     /** @description The order direction. */
     'PlanOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
@@ -13885,437 +13739,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Plan']
         }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  listPlanPhases: {
-    parameters: {
-      query?: {
-        /** @description Filter by phase.key attribute */
-        key?: string[]
-        /** @description Start date-time in RFC 3339 format.
-         *
-         *     Inclusive. */
-        page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
-         *
-         *     Default is 100. */
-        pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description The order direction. */
-        order?: components['parameters']['PhasesOrderByOrdering.order']
-        /** @description The order by field. */
-        orderBy?: components['parameters']['PhasesOrderByOrdering.orderBy']
-      }
-      header?: never
-      path: {
-        planId: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description The request has succeeded. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PlanPhasePaginatedResponse']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  createPlanPhase: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        planId: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PlanPhaseCreate']
-      }
-    }
-    responses: {
-      /** @description The request has succeeded and a new resource has been created as a result. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PlanPhase']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  getPlanPhase: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        planId: string
-        planPhaseKey: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description The request has succeeded. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PlanPhase']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  updatePlanPhase: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        planId: string
-        planPhaseKey: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PlanPhaseUpdate']
-      }
-    }
-    responses: {
-      /** @description The request has succeeded. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PlanPhase']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  deletePlanPhase: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        planId: string
-        planPhaseKey: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
