@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
-	"github.com/samber/lo"
 )
 
 // NewAppMapper creates a new app mapper
@@ -36,10 +37,7 @@ func (a *AppMapper) MapAppToAPI(item appentity.App) (api.App, error) {
 	case appentitybase.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
 
-		stripeAPIApp, err := a.mapStripeAppToAPI(stripeApp)
-		if err != nil {
-			return api.App{}, fmt.Errorf("failed to map stripe app to api: %w", err)
-		}
+		stripeAPIApp := a.mapStripeAppToAPI(stripeApp)
 
 		app := api.App{}
 		if err := app.FromStripeApp(stripeAPIApp); err != nil {
@@ -76,7 +74,7 @@ func (a *AppMapper) mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 
 func (a *AppMapper) mapStripeAppToAPI(
 	stripeApp appstripeentityapp.App,
-) (api.StripeApp, error) {
+) api.StripeApp {
 	// Get masked API key
 	maskedAPIKey, err := a.stripeAppService.GetMaskedSecretAPIKey(stripeApp.APIKey)
 	if err != nil {
@@ -106,5 +104,5 @@ func (a *AppMapper) mapStripeAppToAPI(
 		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())
 	}
 
-	return apiStripeApp, nil
+	return apiStripeApp
 }
