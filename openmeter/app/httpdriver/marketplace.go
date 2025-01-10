@@ -237,7 +237,6 @@ func mapMarketplaceListing(listing appentitybase.MarketplaceListing) api.Marketp
 		Type:        api.AppType(listing.Type),
 		Name:        listing.Name,
 		Description: listing.Description,
-		IconUrl:     listing.IconURL,
 		Capabilities: lo.Map(listing.Capabilities, func(v appentitybase.Capability, _ int) api.AppCapability {
 			return api.AppCapability{
 				Type:        api.AppCapabilityType(v.Type),

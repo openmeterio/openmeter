@@ -2192,6 +2192,11 @@ export interface components {
        * @example P1D
        */
       dueAfter: string
+      /**
+       * @description Should progressive billing be allowed for this workflow?
+       * @default false
+       */
+      progressiveBilling: boolean
     }
     /**
      * Workflow payment settings
@@ -2417,11 +2422,6 @@ export interface components {
        */
       readonly deletedAt?: string
       /**
-       * Timezone
-       * @description Timezone of the customer.
-       */
-      timezone?: string
-      /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
@@ -2493,11 +2493,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Timezone
-       * @description Timezone of the customer.
-       */
-      timezone?: string
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
@@ -2571,11 +2566,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * Timezone
-       * @description Timezone of the customer.
-       */
-      timezone?: string
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
@@ -3807,11 +3797,6 @@ export interface components {
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceAppExternalIDs']
     }
-    /**
-     * @description InvoiceAction represents the actions that can be performed on an invoice.
-     * @enum {string}
-     */
-    InvoiceAction: 'advance' | 'approve' | 'delete' | 'retry' | 'void'
     /** @description InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe. */
     InvoiceAppExternalIDs: {
       /** @description The external ID of the invoice in the invoicing app if available. */
@@ -3820,6 +3805,33 @@ export interface components {
       readonly Tax?: string
       /** @description The external ID of the invoice in the payment app if available. */
       readonly Payment?: string
+    }
+    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     non-gathering invoices. */
+    InvoiceAvailableActionDetails: {
+      /** @description The state the invoice will reach if the action is activated and
+       *     all intermediate steps are successful.
+       *
+       *     For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice. */
+      readonly resultingState: string
+    }
+    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     gathering invoices. */
+    InvoiceAvailableActionInvoiceDetails: Record<string, never>
+    /** @description InvoiceAvailableActions represents the actions that can be performed on the invoice. */
+    InvoiceAvailableActions: {
+      /** @description Advance the invoice to the next status. */
+      readonly advance?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Approve an invoice that requires manual approval. */
+      readonly approve?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Delete the invoice (only non-issued invoices can be deleted). */
+      readonly delete?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Retry an invoice issuing step that failed. */
+      readonly retry?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Void an already issued invoice. */
+      readonly void?: components['schemas']['InvoiceAvailableActionDetails']
+      /** @description Invoice a gathering invoice */
+      readonly invoice?: components['schemas']['InvoiceAvailableActionInvoiceDetails']
     }
     /** @description InvoiceDocumentRef is used to describe a reference to an existing document (invoice). */
     InvoiceDocumentRef: components['schemas']['CreditNoteOriginalInvoiceRef']
@@ -4222,7 +4234,7 @@ export interface components {
       /** @description Extended status information for the invoice. */
       readonly extendedStatus: string
       /** @description The actions that can be performed on the invoice. */
-      availableActions: components['schemas']['InvoiceAction'][]
+      availableActions: components['schemas']['InvoiceAvailableActions']
     }
     /** @description Totals contains the summaries of all calculations for the invoice. */
     InvoiceTotals: {
@@ -4436,8 +4448,6 @@ export interface components {
       readonly sourceBillingProfileID: string
       /** @description The workflow details used by this invoice. */
       readonly workflow: components['schemas']['BillingWorkflowSettings']
-      /** @description Timezone of the invoice's date fields. */
-      readonly timezone: string
     }
     /** @description List entitlements result */
     ListEntitlementsResult:
@@ -4462,7 +4472,6 @@ export interface components {
      *       "type": "stripe",
      *       "name": "Stripe",
      *       "description": "Stripe interation allows you to collect payments with Stripe.",
-     *       "iconUrl": "/images/stripe.png",
      *       "capabilities": [
      *         {
      *           "type": "calculateTax",
@@ -4492,8 +4501,6 @@ export interface components {
       name: string
       /** @description The app's description. */
       description: string
-      /** @description The app's icon URL. */
-      iconUrl: string
       /** @description The app's capabilities. */
       capabilities: components['schemas']['AppCapability'][]
     }
@@ -5443,7 +5450,7 @@ export interface components {
        * Duration
        * Format: duration
        * @description The duration of the phase.
-       * @example P1Y1D
+       * @example P1Y
        */
       duration: string | null
       /**
@@ -5826,12 +5833,16 @@ export interface components {
        */
       anchor?: string
     }
+    /** @description Period duration for the recurrence */
+    RecurringPeriodInterval:
+      | string
+      | components['schemas']['RecurringPeriodIntervalEnum']
     /**
      * @description The unit of time for the interval.
      *     One of: `day`, `week`, `month`, or `year`.
      * @enum {string}
      */
-    RecurringPeriodInterval: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
+    RecurringPeriodIntervalEnum: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
     /**
      * @description The direction of the phase shift when a phase is removed.
      * @enum {string}
@@ -5952,7 +5963,6 @@ export interface components {
      *         "type": "stripe",
      *         "name": "Stripe",
      *         "description": "Stripe interation allows you to collect payments with Stripe.",
-     *         "iconUrl": "/images/stripe.png",
      *         "capabilities": [
      *           {
      *             "type": "calculateTax",
@@ -6482,13 +6492,15 @@ export interface components {
        *
        *     We say “referenced by the Price” regardless of how a price itself is referenced, it colloquially makes sense to say “paying the same price for the same thing”. In practice this should be derived from what's printed on the invoice line-item. */
       key: string
+      /** @description The feature's key (if present). */
+      featureKey?: string
       /**
        * Billing cadence
        * Format: duration
        * @description The billing cadence of the rate card.
        *     When null, the rate card is a one-time purchase.
        */
-      billingCandence: string | null
+      billingCadence: string | null
       /**
        * Price
        * @description The price of the rate card.
@@ -6521,7 +6533,7 @@ export interface components {
        * Format: duration
        * @description Interval after the subscription starts to transition to the phase.
        *     When null, the phase starts immediately after the subscription starts.
-       * @example P1Y1D
+       * @example P1Y
        */
       startAfter: string | null
       /**

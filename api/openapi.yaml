@@ -11607,7 +11607,6 @@ components:
         - type
         - name
         - description
-        - iconUrl
         - capabilities
       properties:
         type:
@@ -11620,9 +11619,6 @@ components:
         description:
           type: string
           description: The app's description.
-        iconUrl:
-          type: string
-          description: The app's icon URL.
         capabilities:
           type: array
           items:
@@ -11632,7 +11628,6 @@ components:
         type: stripe
         name: Stripe
         description: Stripe interation allows you to collect payments with Stripe.
-        iconUrl: /images/stripe.png
         capabilities:
           - type: calculateTax
             key: stripe_calculate_tax
@@ -13810,7 +13805,6 @@ components:
           type: stripe
           name: Stripe
           description: Stripe interation allows you to collect payments with Stripe.
-          iconUrl: /images/stripe.png
           capabilities:
             - type: calculateTax
               key: stripe_calculate_tax
