@@ -23,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingInvoiceCreate is the builder for creating a BillingInvoice entity.
@@ -349,20 +348,6 @@ func (bic *BillingInvoiceCreate) SetNillableSupplierTaxCode(s *string) *BillingI
 // SetCustomerName sets the "customer_name" field.
 func (bic *BillingInvoiceCreate) SetCustomerName(s string) *BillingInvoiceCreate {
 	bic.mutation.SetCustomerName(s)
-	return bic
-}
-
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (bic *BillingInvoiceCreate) SetCustomerTimezone(t timezone.Timezone) *BillingInvoiceCreate {
-	bic.mutation.SetCustomerTimezone(t)
-	return bic
-}
-
-// SetNillableCustomerTimezone sets the "customer_timezone" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableCustomerTimezone(t *timezone.Timezone) *BillingInvoiceCreate {
-	if t != nil {
-		bic.SetCustomerTimezone(*t)
-	}
 	return bic
 }
 
@@ -764,11 +749,6 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_name": %w`, err)}
 		}
 	}
-	if v, ok := bic.mutation.CustomerTimezone(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "customer_timezone", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.customer_timezone": %w`, err)}
-		}
-	}
 	if _, ok := bic.mutation.CustomerUsageAttribution(); !ok {
 		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
 	}
@@ -993,10 +973,6 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.CustomerName(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerName, field.TypeString, value)
 		_node.CustomerName = value
-	}
-	if value, ok := bic.mutation.CustomerTimezone(); ok {
-		_spec.SetField(billinginvoice.FieldCustomerTimezone, field.TypeString, value)
-		_node.CustomerTimezone = &value
 	}
 	if value, ok := bic.mutation.CustomerUsageAttribution(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerUsageAttribution, field.TypeJSON, value)
@@ -1663,24 +1639,6 @@ func (u *BillingInvoiceUpsert) SetCustomerName(v string) *BillingInvoiceUpsert {
 // UpdateCustomerName sets the "customer_name" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdateCustomerName() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldCustomerName)
-	return u
-}
-
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (u *BillingInvoiceUpsert) SetCustomerTimezone(v timezone.Timezone) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldCustomerTimezone, v)
-	return u
-}
-
-// UpdateCustomerTimezone sets the "customer_timezone" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateCustomerTimezone() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldCustomerTimezone)
-	return u
-}
-
-// ClearCustomerTimezone clears the value of the "customer_timezone" field.
-func (u *BillingInvoiceUpsert) ClearCustomerTimezone() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldCustomerTimezone)
 	return u
 }
 
@@ -2478,27 +2436,6 @@ func (u *BillingInvoiceUpsertOne) SetCustomerName(v string) *BillingInvoiceUpser
 func (u *BillingInvoiceUpsertOne) UpdateCustomerName() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateCustomerName()
-	})
-}
-
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (u *BillingInvoiceUpsertOne) SetCustomerTimezone(v timezone.Timezone) *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetCustomerTimezone(v)
-	})
-}
-
-// UpdateCustomerTimezone sets the "customer_timezone" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateCustomerTimezone() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateCustomerTimezone()
-	})
-}
-
-// ClearCustomerTimezone clears the value of the "customer_timezone" field.
-func (u *BillingInvoiceUpsertOne) ClearCustomerTimezone() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearCustomerTimezone()
 	})
 }
 
@@ -3501,27 +3438,6 @@ func (u *BillingInvoiceUpsertBulk) SetCustomerName(v string) *BillingInvoiceUpse
 func (u *BillingInvoiceUpsertBulk) UpdateCustomerName() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateCustomerName()
-	})
-}
-
-// SetCustomerTimezone sets the "customer_timezone" field.
-func (u *BillingInvoiceUpsertBulk) SetCustomerTimezone(v timezone.Timezone) *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetCustomerTimezone(v)
-	})
-}
-
-// UpdateCustomerTimezone sets the "customer_timezone" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateCustomerTimezone() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateCustomerTimezone()
-	})
-}
-
-// ClearCustomerTimezone clears the value of the "customer_timezone" field.
-func (u *BillingInvoiceUpsertBulk) ClearCustomerTimezone() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearCustomerTimezone()
 	})
 }
 

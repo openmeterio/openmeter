@@ -8,14 +8,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // Customer represents a customer
 type Customer struct {
 	models.ManagedResource
 
-	Timezone         *timezone.Timezone       `json:"timezone,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 	PrimaryEmail     *string                  `json:"primaryEmail,omitempty"`
 	Currency         *currencyx.Code          `json:"currency,omitempty"`
@@ -28,14 +26,6 @@ func (c Customer) Validate() error {
 	if err := c.ManagedResource.Validate(); err != nil {
 		return ValidationError{
 			Err: err,
-		}
-	}
-
-	if c.Timezone != nil {
-		if err := c.Timezone.Validate(); err != nil {
-			return ValidationError{
-				Err: err,
-			}
 		}
 	}
 
@@ -56,7 +46,6 @@ func (c Customer) GetID() CustomerID {
 type CustomerMutate struct {
 	Name             string                   `json:"name"`
 	Description      *string                  `json:"description,omitempty"`
-	Timezone         *timezone.Timezone       `json:"timezone"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 	PrimaryEmail     *string                  `json:"primaryEmail"`
 	Currency         *currencyx.Code          `json:"currency"`
@@ -67,14 +56,6 @@ func (c CustomerMutate) Validate() error {
 	if c.Name == "" {
 		return ValidationError{
 			Err: errors.New("name is required"),
-		}
-	}
-
-	if c.Timezone != nil {
-		if err := c.Timezone.Validate(); err != nil {
-			return ValidationError{
-				Err: err,
-			}
 		}
 	}
 

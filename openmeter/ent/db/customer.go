@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // Customer is the model entity for the Customer schema.
@@ -52,8 +51,6 @@ type Customer struct {
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
 	PrimaryEmail *string `json:"primary_email,omitempty"`
-	// Timezone holds the value of the "timezone" field.
-	Timezone *timezone.Timezone `json:"timezone,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency *currencyx.Code `json:"currency,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -133,7 +130,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldPrimaryEmail, customer.FieldTimezone, customer.FieldCurrency:
+		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldPrimaryEmail, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -259,13 +256,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.PrimaryEmail = new(string)
 				*c.PrimaryEmail = value.String
-			}
-		case customer.FieldTimezone:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field timezone", values[i])
-			} else if value.Valid {
-				c.Timezone = new(timezone.Timezone)
-				*c.Timezone = timezone.Timezone(value.String)
 			}
 		case customer.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -398,11 +388,6 @@ func (c *Customer) String() string {
 	if v := c.PrimaryEmail; v != nil {
 		builder.WriteString("primary_email=")
 		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := c.Timezone; v != nil {
-		builder.WriteString("timezone=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := c.Currency; v != nil {

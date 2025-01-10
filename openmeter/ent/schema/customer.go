@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // Customer stores information about a customer
@@ -31,7 +30,6 @@ func (Customer) Mixin() []ent.Mixin {
 func (Customer) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("primary_email").Optional().Nillable(),
-		field.String("timezone").GoType(timezone.Timezone("")).Optional().Nillable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).Optional().Nillable(),
 	}
 }

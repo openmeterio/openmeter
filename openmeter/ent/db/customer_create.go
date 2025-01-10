@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // CustomerCreate is the builder for creating a Customer entity.
@@ -217,20 +216,6 @@ func (cc *CustomerCreate) SetNillablePrimaryEmail(s *string) *CustomerCreate {
 	return cc
 }
 
-// SetTimezone sets the "timezone" field.
-func (cc *CustomerCreate) SetTimezone(t timezone.Timezone) *CustomerCreate {
-	cc.mutation.SetTimezone(t)
-	return cc
-}
-
-// SetNillableTimezone sets the "timezone" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableTimezone(t *timezone.Timezone) *CustomerCreate {
-	if t != nil {
-		cc.SetTimezone(*t)
-	}
-	return cc
-}
-
 // SetCurrency sets the "currency" field.
 func (cc *CustomerCreate) SetCurrency(c currencyx.Code) *CustomerCreate {
 	cc.mutation.SetCurrency(c)
@@ -411,11 +396,6 @@ func (cc *CustomerCreate) check() error {
 			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
 		}
 	}
-	if v, ok := cc.mutation.Timezone(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "timezone", err: fmt.Errorf(`db: validator failed for field "Customer.timezone": %w`, err)}
-		}
-	}
 	if v, ok := cc.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
@@ -516,10 +496,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 		_node.PrimaryEmail = &value
-	}
-	if value, ok := cc.mutation.Timezone(); ok {
-		_spec.SetField(customer.FieldTimezone, field.TypeString, value)
-		_node.Timezone = &value
 	}
 	if value, ok := cc.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
@@ -879,24 +855,6 @@ func (u *CustomerUpsert) ClearPrimaryEmail() *CustomerUpsert {
 	return u
 }
 
-// SetTimezone sets the "timezone" field.
-func (u *CustomerUpsert) SetTimezone(v timezone.Timezone) *CustomerUpsert {
-	u.Set(customer.FieldTimezone, v)
-	return u
-}
-
-// UpdateTimezone sets the "timezone" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateTimezone() *CustomerUpsert {
-	u.SetExcluded(customer.FieldTimezone)
-	return u
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (u *CustomerUpsert) ClearTimezone() *CustomerUpsert {
-	u.SetNull(customer.FieldTimezone)
-	return u
-}
-
 // SetCurrency sets the "currency" field.
 func (u *CustomerUpsert) SetCurrency(v currencyx.Code) *CustomerUpsert {
 	u.Set(customer.FieldCurrency, v)
@@ -1225,27 +1183,6 @@ func (u *CustomerUpsertOne) UpdatePrimaryEmail() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearPrimaryEmail() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearPrimaryEmail()
-	})
-}
-
-// SetTimezone sets the "timezone" field.
-func (u *CustomerUpsertOne) SetTimezone(v timezone.Timezone) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetTimezone(v)
-	})
-}
-
-// UpdateTimezone sets the "timezone" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateTimezone() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateTimezone()
-	})
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (u *CustomerUpsertOne) ClearTimezone() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearTimezone()
 	})
 }
 
@@ -1747,27 +1684,6 @@ func (u *CustomerUpsertBulk) UpdatePrimaryEmail() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearPrimaryEmail() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearPrimaryEmail()
-	})
-}
-
-// SetTimezone sets the "timezone" field.
-func (u *CustomerUpsertBulk) SetTimezone(v timezone.Timezone) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetTimezone(v)
-	})
-}
-
-// UpdateTimezone sets the "timezone" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateTimezone() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateTimezone()
-	})
-}
-
-// ClearTimezone clears the value of the "timezone" field.
-func (u *CustomerUpsertBulk) ClearTimezone() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.ClearTimezone()
 	})
 }
 

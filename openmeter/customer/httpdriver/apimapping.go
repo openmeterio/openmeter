@@ -7,7 +7,6 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 func MapCustomerCreate(body api.CustomerCreate) customerentity.CustomerMutate {
@@ -18,7 +17,6 @@ func MapCustomerCreate(body api.CustomerCreate) customerentity.CustomerMutate {
 		PrimaryEmail:     body.PrimaryEmail,
 		BillingAddress:   mapAddress(body.BillingAddress),
 		Currency:         mapCurrency(body.Currency),
-		Timezone:         mapTimezone(body.Timezone),
 	}
 }
 
@@ -28,14 +26,6 @@ func mapCurrency(apiCurrency *string) *currencyx.Code {
 	}
 
 	return lo.ToPtr(currencyx.Code(*apiCurrency))
-}
-
-func mapTimezone(apiTimezone *string) *timezone.Timezone {
-	if apiTimezone == nil {
-		return nil
-	}
-
-	return lo.ToPtr(timezone.Timezone(*apiTimezone))
 }
 
 func mapAddress(apiAddress *api.Address) *models.Address {

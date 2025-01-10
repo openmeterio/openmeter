@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 func (u *AppUpdate) SetOrClearMetadata(value *map[string]string) *AppUpdate {
@@ -488,20 +487,6 @@ func (u *BillingInvoiceUpdateOne) SetOrClearSupplierTaxCode(value *string) *Bill
 		return u.ClearSupplierTaxCode()
 	}
 	return u.SetSupplierTaxCode(*value)
-}
-
-func (u *BillingInvoiceUpdate) SetOrClearCustomerTimezone(value *timezone.Timezone) *BillingInvoiceUpdate {
-	if value == nil {
-		return u.ClearCustomerTimezone()
-	}
-	return u.SetCustomerTimezone(*value)
-}
-
-func (u *BillingInvoiceUpdateOne) SetOrClearCustomerTimezone(value *timezone.Timezone) *BillingInvoiceUpdateOne {
-	if value == nil {
-		return u.ClearCustomerTimezone()
-	}
-	return u.SetCustomerTimezone(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearNumber(value *string) *BillingInvoiceUpdate {
@@ -1230,20 +1215,6 @@ func (u *CustomerUpdateOne) SetOrClearPrimaryEmail(value *string) *CustomerUpdat
 		return u.ClearPrimaryEmail()
 	}
 	return u.SetPrimaryEmail(*value)
-}
-
-func (u *CustomerUpdate) SetOrClearTimezone(value *timezone.Timezone) *CustomerUpdate {
-	if value == nil {
-		return u.ClearTimezone()
-	}
-	return u.SetTimezone(*value)
-}
-
-func (u *CustomerUpdateOne) SetOrClearTimezone(value *timezone.Timezone) *CustomerUpdateOne {
-	if value == nil {
-		return u.ClearTimezone()
-	}
-	return u.SetTimezone(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearCurrency(value *currencyx.Code) *CustomerUpdate {

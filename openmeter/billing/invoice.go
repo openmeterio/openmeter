@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type InvoiceType string
@@ -187,7 +186,6 @@ type InvoiceBase struct {
 	Metadata map[string]string `json:"metadata"`
 
 	Currency      currencyx.Code       `json:"currency,omitempty"`
-	Timezone      timezone.Timezone    `json:"timezone,omitempty"`
 	Status        InvoiceStatus        `json:"status"`
 	StatusDetails InvoiceStatusDetails `json:"statusDetail,omitempty"`
 
@@ -359,7 +357,6 @@ type InvoiceCustomer struct {
 
 	Name             string                   `json:"name"`
 	BillingAddress   *models.Address          `json:"billingAddress,omitempty"`
-	Timezone         *timezone.Timezone       `json:"timezone,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 }
 

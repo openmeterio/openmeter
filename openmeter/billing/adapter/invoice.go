@@ -279,7 +279,6 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetType(input.Type).
 			SetNillableDescription(input.Description).
 			SetNillableDueAt(input.DueAt).
-			SetNillableCustomerTimezone(customer.Timezone).
 			SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
 			SetCustomerUsageAttribution(&billing.VersionedCustomerUsageAttribution{
 				Type:                     billing.CustomerUsageAttributionTypeVersion,
@@ -322,8 +321,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 				SetNillableCustomerAddressPhoneNumber(customer.BillingAddress.PhoneNumber)
 		}
 		createMut = createMut.
-			SetCustomerName(customer.Name).
-			SetNillableCustomerTimezone(customer.Timezone)
+			SetCustomerName(customer.Name)
 
 		newInvoice, err := createMut.Save(ctx)
 		if err != nil {
@@ -465,8 +463,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		// Customer
 		updateQuery = updateQuery.
 			// CustomerID is immutable
-			SetCustomerName(in.Customer.Name).
-			SetOrClearCustomerTimezone(in.Customer.Timezone)
+			SetCustomerName(in.Customer.Name)
 
 		if in.Customer.BillingAddress != nil {
 			updateQuery = updateQuery.
@@ -632,7 +629,6 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 					Line2:       invoice.CustomerAddressLine2,
 					PhoneNumber: invoice.CustomerAddressPhoneNumber,
 				},
-				Timezone:         invoice.CustomerTimezone,
 				UsageAttribution: invoice.CustomerUsageAttribution.CustomerUsageAttribution,
 			},
 			Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),

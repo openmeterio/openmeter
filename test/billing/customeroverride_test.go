@@ -12,7 +12,6 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type CustomerOverrideTestSuite struct {
@@ -316,8 +315,7 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 		Namespace: ns,
 
 		CustomerMutate: customerentity.CustomerMutate{
-			Name:     "Johny the Doe",
-			Timezone: lo.ToPtr(timezone.Timezone("Europe/Berlin")),
+			Name: "Johny the Doe",
 			BillingAddress: &models.Address{
 				City:    lo.ToPtr("Berlin"),
 				Country: lo.ToPtr(models.CountryCode("DE")),
@@ -344,11 +342,9 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customerProfile)
 
-	// Then we get the customer object, also the timezone gets overridden in the workflow configuration
+	// Then we get the customer object, name and billing address gets overridden
 	require.Equal(s.T(), customer.Name, customerProfile.Customer.Name)
-	require.Equal(s.T(), customer.Timezone, customerProfile.Customer.Timezone)
 	require.Equal(s.T(), customer.BillingAddress, customerProfile.Customer.BillingAddress)
-	require.Equal(s.T(), customer.Timezone, customerProfile.Profile.WorkflowConfig.Timezone)
 }
 
 func (s *CustomerOverrideTestSuite) TestNullSetting() {

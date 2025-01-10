@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 type BillingProfile struct {
@@ -558,11 +557,6 @@ func (BillingInvoice) Fields() []ent.Field {
 
 		field.String("customer_name").
 			NotEmpty(),
-
-		field.String("customer_timezone").
-			GoType(timezone.Timezone("")).
-			Optional().
-			Nillable(),
 
 		field.JSON("customer_usage_attribution", &billing.VersionedCustomerUsageAttribution{}),
 

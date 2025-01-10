@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // BillingInvoice is the model entity for the BillingInvoice schema.
@@ -85,8 +84,6 @@ type BillingInvoice struct {
 	SupplierTaxCode *string `json:"supplier_tax_code,omitempty"`
 	// CustomerName holds the value of the "customer_name" field.
 	CustomerName string `json:"customer_name,omitempty"`
-	// CustomerTimezone holds the value of the "customer_timezone" field.
-	CustomerTimezone *timezone.Timezone `json:"customer_timezone,omitempty"`
 	// CustomerUsageAttribution holds the value of the "customer_usage_attribution" field.
 	CustomerUsageAttribution *billing.VersionedCustomerUsageAttribution `json:"customer_usage_attribution,omitempty"`
 	// Number holds the value of the "number" field.
@@ -249,7 +246,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldCustomerTimezone, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -465,13 +462,6 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field customer_name", values[i])
 			} else if value.Valid {
 				bi.CustomerName = value.String
-			}
-		case billinginvoice.FieldCustomerTimezone:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field customer_timezone", values[i])
-			} else if value.Valid {
-				bi.CustomerTimezone = new(timezone.Timezone)
-				*bi.CustomerTimezone = timezone.Timezone(value.String)
 			}
 		case billinginvoice.FieldCustomerUsageAttribution:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -799,11 +789,6 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("customer_name=")
 	builder.WriteString(bi.CustomerName)
-	builder.WriteString(", ")
-	if v := bi.CustomerTimezone; v != nil {
-		builder.WriteString("customer_timezone=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_usage_attribution=")
 	builder.WriteString(fmt.Sprintf("%v", bi.CustomerUsageAttribution))

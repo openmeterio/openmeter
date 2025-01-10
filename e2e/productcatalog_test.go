@@ -30,7 +30,6 @@ func TestPlan(t *testing.T) {
 		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 		Description:  lo.ToPtr("Test Customer Description"),
 		PrimaryEmail: lo.ToPtr("customer1@mail.com"),
-		Timezone:     lo.ToPtr(time.UTC.String()),
 		BillingAddress: &api.Address{
 			City:        lo.ToPtr("City"),
 			Country:     lo.ToPtr("US"),
@@ -54,7 +53,6 @@ func TestPlan(t *testing.T) {
 		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 		Description:  lo.ToPtr("Test Customer Description"),
 		PrimaryEmail: lo.ToPtr("customer2@mail.com"),
-		Timezone:     lo.ToPtr(time.UTC.String()),
 		BillingAddress: &api.Address{
 			City:        lo.ToPtr("City"),
 			Country:     lo.ToPtr("US"),

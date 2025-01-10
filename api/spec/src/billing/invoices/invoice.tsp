@@ -326,12 +326,6 @@ model InvoiceWorkflowSettings {
    */
   @visibility(Lifecycle.Read)
   workflow: OpenMeter.Billing.BillingWorkflowSettings;
-
-  /**
-   * Timezone of the invoice's date fields.
-   */
-  @visibility(Lifecycle.Read)
-  timezone: string;
 }
 
 /**

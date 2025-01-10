@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // ID filters vertices based on their ID field.
@@ -210,12 +209,6 @@ func SupplierTaxCode(v string) predicate.BillingInvoice {
 // CustomerName applies equality check predicate on the "customer_name" field. It's identical to CustomerNameEQ.
 func CustomerName(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerName, v))
-}
-
-// CustomerTimezone applies equality check predicate on the "customer_timezone" field. It's identical to CustomerTimezoneEQ.
-func CustomerTimezone(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerTimezone, vc))
 }
 
 // Number applies equality check predicate on the "number" field. It's identical to NumberEQ.
@@ -2080,100 +2073,6 @@ func CustomerNameEqualFold(v string) predicate.BillingInvoice {
 // CustomerNameContainsFold applies the ContainsFold predicate on the "customer_name" field.
 func CustomerNameContainsFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCustomerName, v))
-}
-
-// CustomerTimezoneEQ applies the EQ predicate on the "customer_timezone" field.
-func CustomerTimezoneEQ(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneNEQ applies the NEQ predicate on the "customer_timezone" field.
-func CustomerTimezoneNEQ(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldNEQ(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneIn applies the In predicate on the "customer_timezone" field.
-func CustomerTimezoneIn(vs ...timezone.Timezone) predicate.BillingInvoice {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.BillingInvoice(sql.FieldIn(FieldCustomerTimezone, v...))
-}
-
-// CustomerTimezoneNotIn applies the NotIn predicate on the "customer_timezone" field.
-func CustomerTimezoneNotIn(vs ...timezone.Timezone) predicate.BillingInvoice {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.BillingInvoice(sql.FieldNotIn(FieldCustomerTimezone, v...))
-}
-
-// CustomerTimezoneGT applies the GT predicate on the "customer_timezone" field.
-func CustomerTimezoneGT(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldGT(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneGTE applies the GTE predicate on the "customer_timezone" field.
-func CustomerTimezoneGTE(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldGTE(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneLT applies the LT predicate on the "customer_timezone" field.
-func CustomerTimezoneLT(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldLT(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneLTE applies the LTE predicate on the "customer_timezone" field.
-func CustomerTimezoneLTE(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldLTE(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneContains applies the Contains predicate on the "customer_timezone" field.
-func CustomerTimezoneContains(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldContains(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneHasPrefix applies the HasPrefix predicate on the "customer_timezone" field.
-func CustomerTimezoneHasPrefix(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldHasPrefix(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneHasSuffix applies the HasSuffix predicate on the "customer_timezone" field.
-func CustomerTimezoneHasSuffix(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneIsNil applies the IsNil predicate on the "customer_timezone" field.
-func CustomerTimezoneIsNil() predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldIsNull(FieldCustomerTimezone))
-}
-
-// CustomerTimezoneNotNil applies the NotNil predicate on the "customer_timezone" field.
-func CustomerTimezoneNotNil() predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldNotNull(FieldCustomerTimezone))
-}
-
-// CustomerTimezoneEqualFold applies the EqualFold predicate on the "customer_timezone" field.
-func CustomerTimezoneEqualFold(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldEqualFold(FieldCustomerTimezone, vc))
-}
-
-// CustomerTimezoneContainsFold applies the ContainsFold predicate on the "customer_timezone" field.
-func CustomerTimezoneContainsFold(v timezone.Timezone) predicate.BillingInvoice {
-	vc := string(v)
-	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCustomerTimezone, vc))
 }
 
 // NumberEQ applies the EQ predicate on the "number" field.

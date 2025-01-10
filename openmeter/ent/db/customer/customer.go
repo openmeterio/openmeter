@@ -44,8 +44,6 @@ const (
 	FieldBillingAddressPhoneNumber = "billing_address_phone_number"
 	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
 	FieldPrimaryEmail = "primary_email"
-	// FieldTimezone holds the string denoting the timezone field in the database.
-	FieldTimezone = "timezone"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// EdgeApps holds the string denoting the apps edge name in mutations.
@@ -115,7 +113,6 @@ var Columns = []string{
 	FieldBillingAddressLine2,
 	FieldBillingAddressPhoneNumber,
 	FieldPrimaryEmail,
-	FieldTimezone,
 	FieldCurrency,
 }
 
@@ -222,11 +219,6 @@ func ByBillingAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 // ByPrimaryEmail orders the results by the primary_email field.
 func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrimaryEmail, opts...).ToFunc()
-}
-
-// ByTimezone orders the results by the timezone field.
-func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
 }
 
 // ByCurrency orders the results by the currency field.
