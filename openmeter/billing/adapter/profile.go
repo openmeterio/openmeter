@@ -281,6 +281,7 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (boo
 				billingprofile.PaymentAppID(appID.ID),
 				billingprofile.TaxAppID(appID.ID),
 			),
+			billingprofile.DeletedAtIsNil(),
 		).
 		Count(ctx)
 	if err != nil {
