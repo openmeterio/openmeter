@@ -2,10 +2,12 @@ package appservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/oklog/ulid/v2"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
@@ -125,7 +127,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 // UninstallApp uninstalls an app by id
 func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
 	// Get Stripe App
-	app, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
 		AppID: input,
 	})
 	if err != nil {
@@ -133,28 +135,44 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	}
 
 	// Get Stripe API Key
-	apiKeySecret, err := s.secretService.GetAppSecret(ctx, app.APIKey)
-	if err != nil {
+	apiKeySecret, err := s.secretService.GetAppSecret(ctx, stripeApp.APIKey)
+
+	// If the secret is not found, we continue with the uninstallation
+	if err != nil && !errors.Is(err, secretentity.SecretNotFoundError{}) {
 		return fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}
 
-	// Create Stripe Client
-	stripeClient, err := s.adapter.GetStripeAppClientFactory()(stripeclient.StripeAppClientConfig{
-		AppID:      input,
-		AppService: s.appService,
-		APIKey:     apiKeySecret.Value,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create stripe client")
+	// Try to delete the webhook, it may fail if the token is invalid
+	if err == nil {
+		// Create Stripe Client
+		stripeClient, err := s.adapter.GetStripeAppClientFactory()(stripeclient.StripeAppClientConfig{
+			AppID:      input,
+			AppService: s.appService,
+			APIKey:     apiKeySecret.Value,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create stripe client")
+		}
+
+		// Delete Webhook
+		err = stripeClient.DeleteWebhook(ctx, stripeclient.DeleteWebhookInput{
+			AppID:           input,
+			StripeWebhookID: stripeApp.StripeWebhookID,
+		})
+
+		// If the error is not an authentication error, we return it
+		if err != nil && !errors.Is(err, app.AppProviderAuthenticationError{}) {
+			return fmt.Errorf("failed to delete stripe webhook")
+		}
 	}
 
-	// Delete Webhook
-	err = stripeClient.DeleteWebhook(ctx, stripeclient.DeleteWebhookInput{
-		AppID:           input,
-		StripeWebhookID: app.StripeWebhookID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to delete stripe webhook")
+	// Delete secrets
+	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.APIKey); err != nil && !errors.Is(err, secretentity.SecretNotFoundError{}) {
+		return fmt.Errorf("failed to delete stripe api key secret")
+	}
+
+	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.WebhookSecret); err != nil && !errors.Is(err, secretentity.SecretNotFoundError{}) {
+		return fmt.Errorf("failed to delete stripe webhook secret")
 	}
 
 	// We don't need to delete Stripe specific rows from DB because of cascade delete in app.
