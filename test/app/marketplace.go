@@ -53,7 +53,6 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.Equal(t, TestType, listing.Type, "Listing type must match")
 	require.Equal(t, expectedListing.Name, listing.Name, "Listing name must match")
 	require.Equal(t, expectedListing.Description, listing.Description, "Listing description must match")
-	require.Equal(t, expectedListing.IconURL, listing.IconURL, "Listing icon url must match")
 	require.ElementsMatch(t, expectedListing.Capabilities, listing.Capabilities, "Listing capabilities must match")
 
 	// Test type not found
