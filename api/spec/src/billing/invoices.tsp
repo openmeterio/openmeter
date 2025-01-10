@@ -25,7 +25,6 @@ interface InvoicesEndpoints {
   @route("/invoice")
   @summary("Invoice a customer based on the pending line items")
   @operationId("invoicePendingLinesAction")
-  @extension("x-internal", true)
   invoicePendingLinesAction(
     @body
     request: InvoicePendingLinesActionInput,
@@ -42,7 +41,6 @@ interface InvoicesEndpoints {
   @get
   @summary("List invoices")
   @operationId("listInvoices")
-  @extension("x-internal", true)
   list(
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
@@ -64,7 +62,6 @@ interface InvoicesEndpoints {
   @route("/lines")
   @summary("Create pending line items")
   @operationId("createPendingInvoiceLine")
-  @extension("x-internal", true)
   createPendingInvoiceLine(
     @body
     request: Invoices.InvoicePendingLineCreate[],
@@ -86,7 +83,6 @@ interface InvoiceEndpoints {
   @get
   @summary("Get an invoice")
   @operationId("getInvoice")
-  @extension("x-internal", true)
   getInvoice(
     @path
     invoiceId: ULID,
@@ -106,7 +102,6 @@ interface InvoiceEndpoints {
   @delete
   @summary("Delete an invoice")
   @operationId("deleteInvoice")
-  @extension("x-internal", true)
   deleteInvoice(
     @path
     invoiceId: ULID,
@@ -123,7 +118,6 @@ interface InvoiceEndpoints {
   @route("/tax/recalculate")
   @summary("Recalculate an invoice's tax amounts")
   @operationId("recalculateInvoiceTaxAction")
-  @extension("x-internal", true)
   recalculateTaxAction(
     @path
     invoiceId: ULID,
@@ -142,7 +136,6 @@ interface InvoiceEndpoints {
   @route("/approve")
   @summary("Send the invoice to the customer")
   @operationId("approveInvoiceAction")
-  @extension("x-internal", true)
   approveAction(
     @path
     invoiceId: ULID,
@@ -159,7 +152,6 @@ interface InvoiceEndpoints {
   @route("/void")
   @summary("Void an invoice")
   @operationId("voidInvoiceAction")
-  @extension("x-internal", true)
   voidInvoiceAction(
     @path
     invoiceId: ULID,
@@ -179,7 +171,6 @@ interface InvoiceEndpoints {
   @route("/advance")
   @summary("Advance the invoice's state to the next status")
   @operationId("advanceInvoiceAction")
-  @extension("x-internal", true)
   advanceAction(
     @path
     invoiceId: ULID,
@@ -194,7 +185,6 @@ interface InvoiceEndpoints {
   @route("/retry")
   @summary("Retry advancing the invoice after a failed attempt.")
   @operationId("retryInvoiceAction")
-  @extension("x-internal", true)
   retryAction(
     @path
     invoiceId: ULID,
@@ -209,7 +199,6 @@ interface InvoiceEndpoints {
   @route("/lines/{lineId}")
   @summary("Get an invoice line")
   @operationId("getInvoiceLine")
-  @extension("x-internal", true)
   getInvoiceLine(
     @path invoiceId: ULID,
     @path lineId: ULID,
@@ -222,7 +211,6 @@ interface InvoiceEndpoints {
   @route("/lines/{lineId}")
   @summary("Delete an invoice line")
   @operationId("deleteInvoiceLine")
-  @extension("x-internal", true)
   deleteInvoiceLine(@path invoiceId: ULID, @path lineId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -234,7 +222,6 @@ interface InvoiceEndpoints {
   @route("/lines/{lineId}")
   @summary("Update an invoice line")
   @operationId("updateInvoiceLine")
-  @extension("x-internal", true)
   updateInvoiceLine(
     @path invoiceId: ULID,
     @path lineId: ULID,

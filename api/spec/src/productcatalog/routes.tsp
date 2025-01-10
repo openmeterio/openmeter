@@ -8,7 +8,7 @@ using TypeSpec.OpenAPI;
 alias PlanIdOrKey = ULID | Key;
 
 @route("/api/v1/plans")
-@tag("Plan (Experimental)")
+@tag("Billing (Experimental)")
 interface Plans {
   /**
    * List all plans.
@@ -16,7 +16,6 @@ interface Plans {
   @list
   @operationId("listPlans")
   @summary("List plans")
-  @extension("x-internal", true)
   list(
     /**
      * Include deleted plans in response.
@@ -55,7 +54,6 @@ interface Plans {
   @post
   @operationId("createPlan")
   @summary("Create a plan")
-  @extension("x-internal", true)
   create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>): {
     @statusCode _: 201;
     @body body: Plan;
@@ -67,7 +65,6 @@ interface Plans {
   @put
   @operationId("updatePlan")
   @summary("Update a plan")
-  @extension("x-internal", true)
   update(
     @path planId: ULID,
     @body request: TypeSpec.Rest.Resource.ResourceReplaceModel<Plan>,
@@ -79,7 +76,6 @@ interface Plans {
   @get
   @operationId("getPlan")
   @summary("Get plan")
-  @extension("x-internal", true)
   get(
     @extension("x-go-type", "string")
     @path
@@ -103,7 +99,6 @@ interface Plans {
   @delete
   @operationId("deletePlan")
   @summary("Delete plan")
-  @extension("x-internal", true)
   delete(@path planId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -115,7 +110,6 @@ interface Plans {
   @route("/{planId}/publish")
   @operationId("publishPlan")
   @summary("Publish plan")
-  @extension("x-internal", true)
   publish(
     @path planId: ULID,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -127,7 +121,6 @@ interface Plans {
   @route("/{planId}/archive")
   @operationId("archivePlan")
   @summary("Archive plan version")
-  @extension("x-internal", true)
   archive(
     @path planId: ULID,
   ): Plan | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
@@ -140,7 +133,6 @@ interface Plans {
   @route("/{planIdOrKey}/next")
   @operationId("nextPlan")
   @summary("New draft plan")
-  @extension("x-internal", true)
   next(
     @extension("x-go-type", "string")
     @path
@@ -152,13 +144,12 @@ interface Plans {
 }
 
 @route("/api/v1/subscriptions")
-@tag("Subscriptions")
+@tag("Billing (Experimental)")
 interface Subscriptions {
   @get
   @sharedRoute
   @operationId("getSubscription")
   @summary("Get subscription")
-  @extension("x-internal", true)
   getExpanded(
     @path subscriptionId: ULID,
 
@@ -171,7 +162,6 @@ interface Subscriptions {
   @post
   @operationId("createSubscription")
   @summary("Create subscription")
-  @extension("x-internal", true)
   create(@body body: SubscriptionCreate): {
     @statusCode _: 201;
     @body body: Subscription;
@@ -186,7 +176,6 @@ interface Subscriptions {
   @summary("Edit subscription")
   @route("/{subscriptionId}")
   @parameterVisibility("create")
-  @extension("x-internal", true)
   edit(
     @path subscriptionId: ULID,
 
@@ -206,7 +195,6 @@ interface Subscriptions {
   @operationId("changeSubscription")
   @summary("Change subscription")
   @route("/{subscriptionId}/change")
-  @extension("x-internal", true)
   change(
     @path subscriptionId: ULID,
 
@@ -225,7 +213,6 @@ interface Subscriptions {
   @operationId("migrateSubscription")
   @summary("Migrate subscription")
   @route("/{subscriptionId}/migrate")
-  @extension("x-internal", true)
   migrate(
     @path subscriptionId: ULID,
     @body body: {
@@ -245,7 +232,6 @@ interface Subscriptions {
   @operationId("cancelSubscription")
   @summary("Cancel subscription")
   @route("/{subscriptionId}/cancel")
-  @extension("x-internal", true)
   cancel(
     @path subscriptionId: ULID,
     @body body: {
@@ -267,7 +253,6 @@ interface Subscriptions {
   @operationId("unscheduleCancelation")
   @summary("Unschedule cancelation")
   @route("/{subscriptionId}/unschedule-cancelation")
-  @extension("x-internal", true)
   unscheduleCancelation(@path subscriptionId: ULID):
     | Subscription
     | OpenMeter.ConflictError

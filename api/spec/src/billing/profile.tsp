@@ -14,7 +14,6 @@ interface Profiles {
   @get
   @operationId("listBillingProfiles")
   @summary("List billing profiles")
-  @extension("x-internal", true)
   list(
     @query
     includeArchived?: boolean = false,
@@ -36,7 +35,6 @@ interface Profiles {
   @post
   @summary("Create a new billing profile")
   @operationId("createBillingProfile")
-  @extension("x-internal", true)
   create(@body profile: BillingProfileCreate): {
     @statusCode _: 201;
     @body profile: BillingProfile;
@@ -49,7 +47,6 @@ interface Profiles {
   @delete
   @summary("Delete a billing profile")
   @operationId("deleteBillingProfile")
-  @extension("x-internal", true)
   delete(
     @path
     id: ULID,
@@ -64,7 +61,6 @@ interface Profiles {
   @get
   @summary("Get a billing profile")
   @operationId("getBillingProfile")
-  @extension("x-internal", true)
   get(
     @path
     id: ULID,
@@ -79,7 +75,6 @@ interface Profiles {
   @put
   @summary("Update a billing profile")
   @operationId("updateBillingProfile")
-  @extension("x-internal", true)
   update(
     @path
     id: ULID,

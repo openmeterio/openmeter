@@ -71,4 +71,16 @@ using TypeSpec.Versioning;
     description: "With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time.",
   }
 )
+@tagMetadata(
+  "Billing (Experimental)",
+  #{
+    description: "Billing is a set of APIs that allow you to manage your product catalog, subscriptions, and customers' billing information and invoices.",
+  }
+)
+@tagMetadata(
+  "Apps (Experimental)",
+  #{
+    description: "Apps are a set of APIs that allow you to manage your app integrations.",
+  }
+)
 namespace OpenMeter;
