@@ -28,6 +28,12 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	var featureId string
 	var entitlementId string
 
+	apiMONTH := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+	apiYEAR := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiYEAR.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR))
+
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := fmt.Sprintf("entitlement_uc_test_feature_%d", time.Now().Unix())
 		resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
@@ -48,7 +54,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
@@ -87,7 +93,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 			MinRolloverAmount: &minRolloverAmount,
 			Recurrence: &api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "YEAR",
+				Interval: *apiYEAR,
 			},
 		})
 		require.NoError(t, err)
@@ -166,5 +172,87 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 		// Grant can roll over with full amount
 		assert.Equal(t, grantAmount-float64(uniqueEventCount), *resp.JSON200.Balance)
 		assert.Equal(t, float64(0), *resp.JSON200.Usage)
+	})
+}
+
+func TestEntitlementISOUsagePeriod(t *testing.T) {
+	t.Run("Should create entitlement with ISO usage period", func(t *testing.T) {
+		client := initClient(t)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		meterSlug := "entitlement_uc_meter"
+		subject := "ent_customer_2"
+		var featureId string
+		var entitlementId string
+
+		iv2w := &api.RecurringPeriodInterval{}
+		require.Nil(t, iv2w.FromRecurringPeriodInterval0("P2W"))
+
+		t.Run("Create Feature", func(t *testing.T) {
+			randKey := fmt.Sprintf("entitlement_uc_test_feature_%d", time.Now().Unix())
+			resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+				Name:      "Entitlement Test Feature",
+				MeterSlug: convert.ToPointer(meterSlug),
+				Key:       randKey,
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+			featureId = *resp.JSON201.Id
+		})
+
+		t.Run("Create a Entitlement", func(t *testing.T) {
+			meteredEntitlement := api.EntitlementMeteredCreateInputs{
+				Type:      "metered",
+				FeatureId: &featureId,
+				UsagePeriod: api.RecurringPeriodCreateInput{
+					Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					Interval: *iv2w,
+				},
+			}
+			body := &api.CreateEntitlementJSONRequestBody{}
+			err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+			require.NoError(t, err)
+			resp, err := client.CreateEntitlementWithResponse(ctx, subject, *body)
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+			metered, err := resp.JSON201.AsEntitlementMetered()
+			require.NoError(t, err)
+
+			require.Equal(t, metered.SubjectKey, subject)
+			entitlementId = *metered.Id
+		})
+
+		t.Run("Create Grant", func(t *testing.T) {
+			effectiveAt := time.Now().Truncate(time.Minute)
+
+			priority := uint8(1)
+			maxRolloverAmount := 100.0
+			minRolloverAmount := 0.0
+
+			// Create grant
+			resp, err := client.CreateGrantWithResponse(ctx, subject, entitlementId, api.EntitlementGrantCreateInput{
+				Amount:      100,
+				EffectiveAt: effectiveAt,
+				Expiration: api.ExpirationPeriod{
+					Duration: "MONTH",
+					Count:    1,
+				},
+				Priority:          &priority,
+				MaxRolloverAmount: &maxRolloverAmount,
+				MinRolloverAmount: &minRolloverAmount,
+				Recurrence: &api.RecurringPeriodCreateInput{
+					Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					Interval: *iv2w,
+				},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
+		})
 	})
 }

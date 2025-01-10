@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -54,7 +55,7 @@ type Entitlement struct {
 	// Config holds the value of the "config" field.
 	Config []uint8 `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
-	UsagePeriodInterval *entitlement.UsagePeriodInterval `json:"usage_period_interval,omitempty"`
+	UsagePeriodInterval *datex.ISOString `json:"usage_period_interval,omitempty"`
 	// UsagePeriodAnchor holds the value of the "usage_period_anchor" field.
 	UsagePeriodAnchor *time.Time `json:"usage_period_anchor,omitempty"`
 	// CurrentUsagePeriodStart holds the value of the "current_usage_period_start" field.
@@ -289,8 +290,8 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
 			} else if value.Valid {
-				e.UsagePeriodInterval = new(entitlement.UsagePeriodInterval)
-				*e.UsagePeriodInterval = entitlement.UsagePeriodInterval(value.String)
+				e.UsagePeriodInterval = new(datex.ISOString)
+				*e.UsagePeriodInterval = datex.ISOString(value.String)
 			}
 		case entitlement.FieldUsagePeriodAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {

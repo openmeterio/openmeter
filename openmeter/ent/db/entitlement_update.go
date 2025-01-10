@@ -425,7 +425,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
 	if eu.mutation.UsagePeriodIntervalCleared() {
-		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
+		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)
 	}
 	if value, ok := eu.mutation.UsagePeriodAnchor(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
@@ -1070,7 +1070,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
 	if euo.mutation.UsagePeriodIntervalCleared() {
-		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
+		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)
 	}
 	if value, ok := euo.mutation.UsagePeriodAnchor(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)

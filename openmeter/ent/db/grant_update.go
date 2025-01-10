@@ -169,7 +169,7 @@ func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.ClearField(dbgrant.FieldVoidedAt, field.TypeTime)
 	}
 	if gu.mutation.RecurrencePeriodCleared() {
-		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeEnum)
+		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeString)
 	}
 	if gu.mutation.RecurrenceAnchorCleared() {
 		_spec.ClearField(dbgrant.FieldRecurrenceAnchor, field.TypeTime)
@@ -365,7 +365,7 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 		_spec.ClearField(dbgrant.FieldVoidedAt, field.TypeTime)
 	}
 	if guo.mutation.RecurrencePeriodCleared() {
-		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeEnum)
+		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeString)
 	}
 	if guo.mutation.RecurrenceAnchorCleared() {
 		_spec.ClearField(dbgrant.FieldRecurrenceAnchor, field.TypeTime)

@@ -106,8 +106,13 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if apiGrant.Recurrence != nil {
+				iv, err := MapAPIPeriodIntervalToRecurrence(apiGrant.Recurrence.Interval)
+				if err != nil {
+					return req, fmt.Errorf("invalid interval: %w", err)
+				}
+
 				req.GrantInput.Recurrence = &recurrence.Recurrence{
-					Interval: recurrence.RecurrenceInterval(apiGrant.Recurrence.Interval),
+					Interval: iv,
 					Anchor:   defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt),
 				}
 			}
@@ -403,7 +408,7 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 	if grant.Recurrence != nil {
 		apiGrant.Recurrence = &api.RecurringPeriod{
 			Anchor:   grant.Recurrence.Anchor,
-			Interval: api.RecurringPeriodInterval(grant.Recurrence.Interval),
+			Interval: MapRecurrenceToAPI(grant.Recurrence.Interval),
 		}
 	}
 

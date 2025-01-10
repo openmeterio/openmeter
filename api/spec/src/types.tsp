@@ -191,11 +191,20 @@ model Archiveable {
 }
 
 /**
+ * Period duration for the recurrence
+ */
+@friendlyName("RecurringPeriodInterval")
+union RecurringPeriodInterval {
+  duration,
+  RecurringPeriodIntervalEnum,
+}
+
+/**
  * The unit of time for the interval.
  * One of: `day`, `week`, `month`, or `year`.
  */
-@friendlyName("RecurringPeriodInterval")
-enum RecurringPeriodInterval {
+@friendlyName("RecurringPeriodIntervalEnum")
+enum RecurringPeriodIntervalEnum {
   #suppress "@openmeter/api-spec/casing" "Use existing values"
   Day: "DAY",
   #suppress "@openmeter/api-spec/casing" "Use existing values"
@@ -210,7 +219,7 @@ enum RecurringPeriodInterval {
  * Recurring period with an interval and an anchor.
  */
 @example(#{
-  interval: RecurringPeriodInterval.Day,
+  interval: RecurringPeriodIntervalEnum.Day,
   anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
 })
 @friendlyName("RecurringPeriod")
@@ -233,7 +242,7 @@ model RecurringPeriod {
  * Recurring period with an interval and an anchor.
  */
 @example(#{
-  interval: RecurringPeriodInterval.Day,
+  interval: RecurringPeriodIntervalEnum.Day,
   anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
 })
 @friendlyName("RecurringPeriodCreateInput")

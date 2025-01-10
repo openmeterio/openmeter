@@ -652,6 +652,12 @@ func TestCredit(t *testing.T) {
 
 	const waitTime = time.Second * 30
 
+	apiMONTH := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+	apiYEAR := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiYEAR.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR))
+
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := fmt.Sprintf("credit_test_feature_%d", time.Now().Unix())
 		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
@@ -695,7 +701,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
@@ -720,7 +726,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
@@ -747,7 +753,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 			MeasureUsageFrom:        muf,
 			IssueAfterReset:         convert.ToPointer(100.0),
@@ -792,7 +798,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   &periodAnchor,
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 			MeasureUsageFrom: muf,
 		}
@@ -831,7 +837,7 @@ func TestCredit(t *testing.T) {
 			MinRolloverAmount: &minRolloverAmount,
 			Recurrence: &api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "YEAR",
+				Interval: *apiYEAR,
 			},
 		})
 		require.NoError(t, err)
@@ -856,7 +862,7 @@ func TestCredit(t *testing.T) {
 			},
 			Recurrence: &api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "YEAR",
+				Interval: *apiYEAR,
 			},
 		}
 
@@ -1007,7 +1013,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 			IssueAfterReset: convert.ToPointer(50.0),
 		}
@@ -1038,7 +1044,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				Interval: "MONTH",
+				Interval: *apiMONTH,
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}

@@ -3,12 +3,10 @@
 package dbgrant
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 const (
@@ -106,16 +104,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// RecurrencePeriodValidator is a validator for the "recurrence_period" field enum values. It is called by the builders before save.
-func RecurrencePeriodValidator(rp recurrence.RecurrenceInterval) error {
-	switch rp {
-	case "DAY", "WEEK", "MONTH", "YEAR":
-		return nil
-	default:
-		return fmt.Errorf("dbgrant: invalid enum value for recurrence_period field: %q", rp)
-	}
-}
 
 // OrderOption defines the ordering options for the Grant queries.
 type OrderOption func(*sql.Selector)

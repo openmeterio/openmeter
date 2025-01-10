@@ -125,10 +125,8 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				SetSubscriptionManaged(ent.SubscriptionManaged)
 
 			if ent.UsagePeriod != nil {
-				dbInterval := db_entitlement.UsagePeriodInterval(ent.UsagePeriod.Interval)
-
 				cmd.SetNillableUsagePeriodAnchor(&ent.UsagePeriod.Anchor).
-					SetNillableUsagePeriodInterval(&dbInterval)
+					SetNillableUsagePeriodInterval(ent.UsagePeriod.Interval.ISOStringPtrOrNil())
 			}
 
 			if ent.CurrentUsagePeriod != nil {
@@ -445,9 +443,11 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
+		parsed, _ := e.UsagePeriodInterval.Parse()
+
 		ent.UsagePeriod = &entitlement.UsagePeriod{
 			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
-			Interval: recurrence.RecurrenceInterval(*e.UsagePeriodInterval),
+			Interval: recurrence.RecurrenceInterval{Period: parsed},
 		}
 	}
 

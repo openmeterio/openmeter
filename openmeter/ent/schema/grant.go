@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type Grant struct {
@@ -46,7 +46,7 @@ func (Grant) Fields() []ent.Field {
 		field.Float("reset_min_rollover").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}),
-		field.Enum("recurrence_period").Optional().Nillable().GoType(recurrence.RecurrenceInterval("")).Immutable(),
+		field.String("recurrence_period").Optional().Nillable().GoType(datex.ISOString("")).Immutable(),
 		field.Time("recurrence_anchor").Optional().Nillable().Immutable(),
 	}
 }
