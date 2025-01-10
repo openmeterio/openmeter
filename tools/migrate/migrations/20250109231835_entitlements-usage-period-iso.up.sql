@@ -7,7 +7,7 @@ SET
         WHEN usage_period_interval = 'MONTH' THEN 'P1M'
         WHEN usage_period_interval = 'WEEK' THEN 'P1W'
         WHEN usage_period_interval = 'DAY' THEN 'P1D' -- Should not happen as cases up exhaust all programmatic values
-        ELSE 'P10Y'
+        ELSE usage_period_interval
     END;
 
 -- Let's update grants as well
@@ -19,5 +19,5 @@ SET
         WHEN recurrence_period = 'MONTH' THEN 'P1M'
         WHEN recurrence_period = 'WEEK' THEN 'P1W'
         WHEN recurrence_period = 'DAY' THEN 'P1D' -- Should not happen as cases up exhaust all programmatic values
-        ELSE 'P10Y'
+        ELSE recurrence_period
     END;

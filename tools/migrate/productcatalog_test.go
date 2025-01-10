@@ -55,6 +55,12 @@ func TestStartAfterChange(t *testing.T) {
 }
 
 func TestEntitlementISO(t *testing.T) {
+	keptEntId := ulid.Make()
+	lostEntId := ulid.Make()
+
+	keptGrantId := ulid.Make()
+	lostGrantId := ulid.Make()
+
 	runner{stops{
 		{
 			// before: 20250108103427_billing-profile-progressive-billing-flag.up.sql
@@ -71,12 +77,12 @@ func TestEntitlementISO(t *testing.T) {
 				)
 				require.NoError(t, err)
 
+				// Kept
 				// We're chancing the duration format in entitlements and credits
-				someUlid := ulid.Make()
 				_, err = db.Exec(`
 					INSERT INTO entitlements (namespace, id, created_at, updated_at, entitlement_type, feature_key, feature_id, subject_key, usage_period_interval)
-					VALUES ('default', $1, NOW(), NOW(), 'BOOL', 'feature_1', $2, 'subject_1', 'MONTH')`,
-					someUlid.String(),
+					VALUES ('default', $1, '2025-01-08 23:18:35', NOW(), 'BOOL', 'feature_1', $2, 'subject_1', 'MONTH')`,
+					keptEntId.String(),
 					featId.String(),
 				)
 				require.NoError(t, err)
@@ -84,7 +90,24 @@ func TestEntitlementISO(t *testing.T) {
 				_, err = db.Exec(`
 					INSERT INTO grants (namespace, id, owner_id, created_at, updated_at, recurrence_period, amount, effective_at, expiration, expires_at, reset_max_rollover, reset_min_rollover)
 					VALUES ('default', $1, $2, NOW(), NOW(), 'MONTH', 0, NOW(), '{}'::jsonb, NOW(), 0, 0)`,
-					ulid.Make().String(), someUlid.String(),
+					keptGrantId.String(), keptEntId.String(),
+				)
+				require.NoError(t, err)
+
+				// Lost
+				// We're changing the duration format in entitlements and credits
+				_, err = db.Exec(`
+					INSERT INTO entitlements (namespace, id, created_at, updated_at, entitlement_type, feature_key, feature_id, subject_key, usage_period_interval)
+					VALUES ('default', $1, '2025-02-12 23:18:35', NOW(), 'BOOL', 'feature_1', $2, 'subject_1', 'P2W')`,
+					lostEntId.String(),
+					featId.String(),
+				)
+				require.NoError(t, err)
+
+				_, err = db.Exec(`
+					INSERT INTO grants (namespace, id, owner_id, created_at, updated_at, recurrence_period, amount, effective_at, expiration, expires_at, reset_max_rollover, reset_min_rollover)
+					VALUES ('default', $1, $2, NOW(), NOW(), 'P2W', 0, NOW(), '{}'::jsonb, NOW(), 0, 0)`,
+					lostGrantId.String(), lostEntId.String(),
 				)
 				require.NoError(t, err)
 			},
@@ -97,7 +120,7 @@ func TestEntitlementISO(t *testing.T) {
 				// Let's validate that the usage_period_interval has been changed to iso format
 				var usagePeriodInterval string
 
-				res := db.QueryRow(`SELECT usage_period_interval FROM entitlements`)
+				res := db.QueryRow(`SELECT usage_period_interval FROM entitlements WHERE id = $1`, keptEntId.String())
 				require.NoError(t, res.Scan(&usagePeriodInterval))
 
 				require.Equal(t, "P1M", usagePeriodInterval)
@@ -105,7 +128,7 @@ func TestEntitlementISO(t *testing.T) {
 				// Let's validate that the grants table has been updated as well
 				var recurrencePeriod string
 
-				res = db.QueryRow(`SELECT recurrence_period FROM grants`)
+				res = db.QueryRow(`SELECT recurrence_period FROM grants WHERE id = $1`, keptGrantId.String())
 				require.NoError(t, res.Scan(&recurrencePeriod))
 
 				require.Equal(t, "P1M", recurrencePeriod)
@@ -118,14 +141,26 @@ func TestEntitlementISO(t *testing.T) {
 			action: func(t *testing.T, db *sql.DB) {
 				// Let's check that deleted_at is set for both the entitlements and grants table
 
-				var deletedAt string
+				var deletedAt sql.NullString
 
-				res := db.QueryRow(`SELECT deleted_at FROM entitlements`)
+				// Let's check it was kept
+				res := db.QueryRow(`SELECT deleted_at FROM entitlements WHERE id = $1`, keptEntId.String())
+				require.NoError(t, res.Scan(&deletedAt))
+
+				require.Empty(t, deletedAt)
+
+				res = db.QueryRow(`SELECT deleted_at FROM grants WHERE id = $1`, keptGrantId.String())
+				require.NoError(t, res.Scan(&deletedAt))
+
+				require.Empty(t, deletedAt)
+
+				// Let's check it was lost
+				res = db.QueryRow(`SELECT deleted_at FROM entitlements WHERE id = $1`, lostEntId.String())
 				require.NoError(t, res.Scan(&deletedAt))
 
 				require.NotEmpty(t, deletedAt)
 
-				res = db.QueryRow(`SELECT deleted_at FROM grants`)
+				res = db.QueryRow(`SELECT deleted_at FROM grants WHERE id = $1`, lostGrantId.String())
 				require.NoError(t, res.Scan(&deletedAt))
 
 				require.NotEmpty(t, deletedAt)
