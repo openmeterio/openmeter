@@ -138,6 +138,19 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 		return fmt.Errorf("failed to get stripe app: %w", err)
 	}
 
+	// Delete stripe customer data
+	err = s.adapter.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
+		AppID: &input,
+	})
+
+	// Delete stripe app data
+	err = s.adapter.DeleteStripeAppData(ctx, appstripeentity.DeleteStripeAppDataInput{
+		AppID: input,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete app: %w", err)
+	}
+
 	// Get Stripe API Key
 	apiKeySecret, err := s.secretService.GetAppSecret(ctx, stripeApp.APIKey)
 
@@ -180,8 +193,6 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	if err := s.secretService.DeleteAppSecret(ctx, stripeApp.WebhookSecret); err != nil && !errors.As(err, &secretNotFoundError) {
 		return fmt.Errorf("failed to delete stripe webhook secret")
 	}
-
-	// We don't need to delete Stripe specific rows from DB because of cascade delete in app.
 
 	return nil
 }

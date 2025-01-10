@@ -197,6 +197,35 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 	})
 }
 
+// DeleteStripeAppData deletes the stripe app data
+func (a adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error {
+	if err := input.Validate(); err != nil {
+		return appstripe.ValidationError{
+			Err: fmt.Errorf("error delete stripe app: %w", err),
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		// Delete the stripe app data
+		_, err := repo.db.AppStripe.
+			Delete().
+			Where(appstripedb.Namespace(input.AppID.Namespace)).
+			Where(appstripedb.ID(input.AppID.ID)).
+			Exec(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return app.AppNotFoundError{
+					AppID: input.AppID,
+				}
+			}
+
+			return fmt.Errorf("failed to delete stripe app: %w", err)
+		}
+
+		return nil
+	})
+}
+
 // GetWebhookSecret gets the webhook secret
 func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
 	if err := input.Validate(); err != nil {

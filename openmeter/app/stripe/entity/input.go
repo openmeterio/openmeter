@@ -81,6 +81,18 @@ func (i GetStripeAppDataInput) Validate() error {
 	return nil
 }
 
+type DeleteStripeAppDataInput struct {
+	AppID appentitybase.AppID
+}
+
+func (i DeleteStripeAppDataInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	return nil
+}
+
 type GetStripeCustomerDataInput struct {
 	AppID      appentitybase.AppID
 	CustomerID customerentity.CustomerID
@@ -174,16 +186,22 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 
 type DeleteStripeCustomerDataInput struct {
 	AppID      *appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	CustomerID *customerentity.CustomerID
 }
 
 func (i DeleteStripeCustomerDataInput) Validate() error {
-	if i.CustomerID.ID == "" {
-		return errors.New("customer id is required")
+	if i.AppID == nil && i.CustomerID == nil {
+		return errors.New("app id or customer id is required")
 	}
 
-	if i.CustomerID.Namespace == "" {
-		return errors.New("customer namespace is required")
+	if i.CustomerID != nil {
+		if i.CustomerID.ID == "" {
+			return errors.New("customer id is required")
+		}
+
+		if i.CustomerID.Namespace == "" {
+			return errors.New("customer namespace is required")
+		}
 	}
 
 	if i.AppID != nil {

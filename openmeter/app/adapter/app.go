@@ -3,6 +3,7 @@ package appadapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
@@ -237,24 +238,14 @@ func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppI
 			return nil, fmt.Errorf("failed to uninstall app: %w", err)
 		}
 
-		// Delete app, app types and customer app data is a cascading delete
-		// we don't need to clean them up specifically
-		deleteCount, err := repo.db.App.Delete().
+		// Delete app from database
+		_, err = repo.db.App.Update().
 			Where(appdb.Namespace(input.Namespace)).
 			Where(appdb.ID(input.ID)).
-			Exec(ctx)
+			SetDeletedAt(time.Now()).
+			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete app from database: %w", err)
-		}
-
-		// Should be exactly one
-		if deleteCount != 1 {
-			return nil, fmt.Errorf(
-				"inconsistent app delete for %s in namespace %s, count: %d",
-				app.GetID().ID,
-				app.GetID().Namespace,
-				deleteCount,
-			)
 		}
 
 		return nil, nil

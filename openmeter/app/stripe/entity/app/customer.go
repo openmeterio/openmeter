@@ -162,7 +162,7 @@ func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppIn
 	// Delete stripe customer data
 	if err := a.StripeAppService.DeleteStripeCustomerData(ctx, appstripeentity.DeleteStripeCustomerDataInput{
 		AppID:      &appId,
-		CustomerID: input.CustomerID,
+		CustomerID: &input.CustomerID,
 	}); err != nil {
 		return fmt.Errorf("failed to delete stripe customer data: %w", err)
 	}
