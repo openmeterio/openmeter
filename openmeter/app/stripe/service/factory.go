@@ -98,6 +98,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 	createStripeAppInput := appstripeentity.CreateAppStripeInput{
 		CreateAppInput: appentity.CreateAppInput{
 			ID:          &appID,
+			Namespace:   input.Namespace,
 			Name:        input.Name,
 			Description: fmt.Sprintf("Stripe account %s", stripeAccount.StripeAccountID),
 			Type:        appentitybase.AppTypeStripe,
