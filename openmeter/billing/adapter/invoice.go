@@ -201,6 +201,10 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.CurrencyIn(input.Currencies...))
 		}
 
+		if input.DraftUntil != nil {
+			query = query.Where(billinginvoice.DraftUntilLTE(*input.DraftUntil))
+		}
+
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !input.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(input.Order)
