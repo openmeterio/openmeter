@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -37,7 +38,9 @@ type AppHandler interface {
 var _ Handler = (*handler)(nil)
 
 type handler struct {
-	service          app.Service
+	appMapper *AppMapper
+	service   app.Service
+
 	billingService   billing.Service
 	stripeAppService stripeapp.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
@@ -54,6 +57,7 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 }
 
 func New(
+	logger *slog.Logger,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service app.Service,
 	billingService billing.Service,
@@ -61,6 +65,7 @@ func New(
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
+		appMapper:        NewAppMapper(logger, stripeAppService),
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		billingService:   billingService,

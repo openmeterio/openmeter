@@ -38,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -789,6 +790,10 @@ func (n NoopAppStripeService) DeleteStripeCustomerData(ctx context.Context, inpu
 
 func (n NoopAppStripeService) GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error) {
 	return billing.SupplierContact{}, nil
+}
+
+func (n NoopAppStripeService) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {
+	return "", nil
 }
 
 // Factory methods

@@ -7,6 +7,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 type Service interface {
@@ -21,8 +22,9 @@ type AppService interface {
 	// Stripe App methods
 	UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error
 	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
-	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
+	GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error)
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)
+	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 	// Billing
 	GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error)
 	// Stripe App Customer methods

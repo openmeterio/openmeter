@@ -12,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appshttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -71,7 +70,7 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 				return CreateProfileResponse{}, fmt.Errorf("failed to create profile: %w", err)
 			}
 
-			return MapProfileToApi(profile)
+			return h.MapProfileToApi(profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateProfileResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -114,7 +113,7 @@ func (h *handler) GetProfile() GetProfileHandler {
 				return GetProfileResponse{}, fmt.Errorf("failed to get profile: %w", err)
 			}
 
-			return MapProfileToApi(profile)
+			return h.MapProfileToApi(profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -206,7 +205,7 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 				return UpdateProfileResponse{}, fmt.Errorf("failed to update profile: %w", err)
 			}
 
-			return MapProfileToApi(profile)
+			return h.MapProfileToApi(profile)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateProfileResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -258,7 +257,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 			}
 
 			for _, profile := range profiles.Items {
-				apiProfile, err := MapProfileToApi(&profile)
+				apiProfile, err := h.MapProfileToApi(&profile)
 				if err != nil {
 					return ListProfilesResponse{}, fmt.Errorf("failed to convert profile to API: %w", err)
 				}
@@ -424,7 +423,7 @@ func parseDurationPtr(d *string, defaultDuration datex.Period) (datex.Period, er
 	return datex.ISOString(*d).Parse()
 }
 
-func MapProfileToApi(p *billing.Profile) (api.BillingProfile, error) {
+func (h *handler) MapProfileToApi(p *billing.Profile) (api.BillingProfile, error) {
 	if p == nil {
 		return api.BillingProfile{}, errors.New("profile is nil")
 	}
@@ -445,7 +444,7 @@ func MapProfileToApi(p *billing.Profile) (api.BillingProfile, error) {
 	}
 
 	if p.Apps != nil {
-		apps, err := mapProfileAppsToAPI(p.Apps)
+		apps, err := h.mapProfileAppsToAPI(p.Apps)
 		if err != nil {
 			return api.BillingProfile{}, fmt.Errorf("failed to map profile apps: %w", err)
 		}
@@ -467,22 +466,22 @@ func MapProfileToApi(p *billing.Profile) (api.BillingProfile, error) {
 	return out, nil
 }
 
-func mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
+func (h *handler) mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}
 
-	tax, err := appshttpdriver.MapAppToAPI(a.Tax)
+	tax, err := h.appMapper.MapAppToAPI(a.Tax)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map tax app: %w", err)
 	}
 
-	invoicing, err := appshttpdriver.MapAppToAPI(a.Invoicing)
+	invoicing, err := h.appMapper.MapAppToAPI(a.Invoicing)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map invoicing app: %w", err)
 	}
 
-	payment, err := appshttpdriver.MapAppToAPI(a.Payment)
+	payment, err := h.appMapper.MapAppToAPI(a.Payment)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map payment app: %w", err)
 	}
