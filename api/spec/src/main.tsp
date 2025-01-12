@@ -41,46 +41,72 @@ using TypeSpec.Versioning;
   },
 })
 @server("https://127.0.0.1", "Local")
+// Tags will appear in reverse order in the API documentation
 @tagMetadata(
-  "Meters",
+  "Apps (Private Preview)",
   #{
-    description: "Meters are used to aggregate usage events. They are designed to offer multiple aggregation methods and window sizes, making it highly adaptable to your specific needs.",
+    description: "Manage integrations for extending OpenMeter's functionality. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
   }
 )
 @tagMetadata(
-  "Events",
+  "Billing (Private Preview)",
   #{
-    description: "A usage event can be anything you need to track accurately over time for billing or analytics purposes. [Read more](https://openmeter.io/docs/concepts/usage-events).",
+    description: "Manage your billing profiles and invoices. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+  }
+)
+@tagMetadata(
+  "Customers (Private Preview)",
+  #{
+    description: "Manage customer subscription lifecycles and plan assignments. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+  }
+)
+@tagMetadata(
+  "Subscriptions (Private Preview)",
+  #{
+    description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
+  }
+)
+@tagMetadata(
+  "Product Catalog (Private Preview)",
+  #{
+    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+  }
+)
+@tagMetadata(
+  "Notifications (Beta)",
+  #{
+    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
   }
 )
 @tagMetadata(
   "Entitlements (Beta)",
   #{
-    description: "Entitlements make it possible to implement complex pricing scenarios such as monthly quotas, prepaid billing, and per-customer pricing. Don't just list usage limits on your marketing page—enforce them within your application to control the cost of expensive resources like LLMs.",
+    description: "With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.",
   }
 )
-@tagMetadata(
-  "Notification (Beta)",
-  #{
-    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. For example, you can email your customers when they reach 75%, 100%, and 150% of their monthly token allowance and notify your sales team when an overage happens to drive expansions.",
-  }
-)
+@tagMetadata("Debug", #{ description: "Debugging and testing endpoints." })
 @tagMetadata(
   "Portal",
   #{
-    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time.",
+    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.",
   }
 )
 @tagMetadata(
-  "Billing (Experimental)",
+  "Subjects",
   #{
-    description: "Billing is a set of APIs that allow you to manage your product catalog, subscriptions, and customers' billing information and invoices.",
+    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
   }
 )
 @tagMetadata(
-  "Apps (Experimental)",
+  "Events",
   #{
-    description: "Apps are a set of APIs that allow you to manage your app integrations.",
+    description: "Events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.",
+  }
+)
+@tagMetadata(
+  "Meters",
+  #{
+    description: "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.",
   }
 )
 namespace OpenMeter;
