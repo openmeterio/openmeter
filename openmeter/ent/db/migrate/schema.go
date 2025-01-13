@@ -54,7 +54,7 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{AppsColumns[1], AppsColumns[8], AppsColumns[10]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "is_default = true",
+					Where: "is_default = true AND deleted_at IS NULL",
 				},
 			},
 		},

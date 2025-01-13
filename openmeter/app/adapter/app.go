@@ -27,6 +27,7 @@ func (a adapter) CreateApp(ctx context.Context, input appentity.CreateAppInput) 
 			count, err := repo.db.App.Query().
 				Where(appdb.Namespace(input.Namespace)).
 				Where(appdb.Type(input.Type)).
+				Where(appdb.DeletedAtIsNil()).
 				Count(ctx)
 			if err != nil {
 				return appentitybase.AppBase{}, fmt.Errorf("failed to count apps from same type: %w", err)

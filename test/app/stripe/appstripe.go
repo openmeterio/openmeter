@@ -188,6 +188,81 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 	require.Equal(t, createApp1.GetID(), getApp.GetID(), "apps must be equal with first")
 }
 
+// TestGetDefaultAfterDelete tests getting the default stripe app after delete
+func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	s.Env.StripeClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: getStripeAccountId(),
+		}, nil)
+
+	s.Env.StripeClient().
+		On("SetupWebhook", mock.Anything).
+		Return(stripeclient.StripeWebhookEndpoint{
+			EndpointID: "we_123",
+			Secret:     "whsec_123",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeClient().Restore()
+
+	// Create a stripe app first
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+
+	// Delete the app to test the default app can be deleted
+	s.Env.StripeAppClient().
+		On("DeleteWebhook", stripeclient.DeleteWebhookInput{
+			AppID:           createApp.GetID(),
+			StripeWebhookID: "we_123",
+		}).
+		Return(nil)
+
+	err = s.Env.App().UninstallApp(ctx, createApp.GetID())
+	require.NoError(t, err, "Uninstall stripe app must not return error")
+
+	// Getting the deleted default app should return error
+	_, err = s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: s.namespace,
+		Type:      appentitybase.AppTypeStripe,
+	})
+
+	require.ErrorAs(t, err, &app.AppDefaultNotFoundError{}, "Get default stripe app must return app not found error")
+
+	// Create a new stripe app that should become the new default
+	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, createApp2, "Create stripe app must return app")
+	require.NotEqual(t, createApp.GetID(), createApp2.GetID(), "apps must not be equal")
+
+	// Get the default app
+	getApp, err := s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: s.namespace,
+		Type:      appentitybase.AppTypeStripe,
+	})
+
+	require.NoError(t, err, "Get default stripe app must not return error")
+	require.Equal(t, createApp2.GetID(), getApp.GetID(), "apps must be equal with second")
+}
+
 // TestUninstall tests uninstalling a stripe app
 func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
