@@ -106,6 +106,7 @@ export const mockEntitlement: Entitlement = {
   featureKey: mockFeature.key,
   subjectKey: mockSubject.key,
   usagePeriod: {
+    intervalISO: 'P1M',
     interval: mockCreateEntitlementInput.usagePeriod.interval,
     anchor: '2024-01-01T00:00:00Z',
   },
@@ -182,6 +183,7 @@ export const mockEntitlementGrantCreateInput: EntitlementGrantCreateInput = {
 export const mockEntitlementGrant: EntitlementGrant = {
   ...mockEntitlementGrantCreateInput,
   recurrence: {
+    intervalISO: 'P1M',
     interval: 'MONTH',
     anchor: '2024-06-28T18:29:44.867Z',
   },

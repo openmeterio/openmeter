@@ -263,6 +263,38 @@ func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *
 	require.Equal(t, createApp2.GetID(), getApp.GetID(), "apps must be equal with second")
 }
 
+// TestUpdate tests updating an app
+func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Create an app first
+	app, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	// Update the app
+	updateApp, err := s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
+		AppID:       app.GetID(),
+		Name:        lo.ToPtr("Updated Stripe App 1"),
+		Description: lo.ToPtr("Updated description 1"),
+		Default:     lo.ToPtr(true),
+		Metadata:    &map[string]string{"key": "value"},
+	})
+
+	require.NoError(t, err, "Update app must not return error")
+	require.NotNil(t, updateApp, "Update app must return app")
+
+	// Partial update (only name)
+	updateApp, err = s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
+		AppID: app.GetID(),
+		Name:  lo.ToPtr("Updated Stripe App 2"),
+	})
+
+	require.NoError(t, err, "Update app must not return error")
+	require.NotNil(t, updateApp, "Update app must return app")
+
+	require.Equal(t, true, updateApp.GetAppBase().Default, "Default must remain the same")
+}
+
 // TestUninstall tests uninstalling a stripe app
 func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)

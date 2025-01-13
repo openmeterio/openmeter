@@ -37,10 +37,11 @@ const (
 type AppBase struct {
 	models.ManagedResource
 
-	Type     AppType            `json:"type"`
-	Status   AppStatus          `json:"status"`
-	Listing  MarketplaceListing `json:"listing"`
-	Metadata map[string]string  `json:"metadata"`
+	Type     AppType
+	Status   AppStatus
+	Default  bool
+	Listing  MarketplaceListing
+	Metadata map[string]string
 }
 
 func (a AppBase) GetAppBase() AppBase {

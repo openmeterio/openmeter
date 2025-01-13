@@ -26,6 +26,17 @@ func (a *Router) ListApps(w http.ResponseWriter, r *http.Request, params api.Lis
 	a.appHandler.ListApps().With(params).ServeHTTP(w, r)
 }
 
+// Handle to update an app
+// (PUT /api/v1/apps/{appId})
+func (a *Router) UpdateApp(w http.ResponseWriter, r *http.Request, appID string) {
+	if !a.config.AppsEnabled {
+		unimplemented.UpdateApp(w, r, appID)
+		return
+	}
+
+	a.appHandler.UpdateApp().With(appID).ServeHTTP(w, r)
+}
+
 // Uninstall an app by id
 // (DELETE /api/v1/apps/{id})
 func (a *Router) UninstallApp(w http.ResponseWriter, r *http.Request, appID string) {

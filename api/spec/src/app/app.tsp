@@ -41,6 +41,18 @@ interface Apps {
   get(@path id: ULID): App | NotFoundError | CommonErrors;
 
   /**
+   * Update an app.
+   */
+  @patch
+  @route("/{id}")
+  @operationId("updateApp")
+  @summary("Update app")
+  update(
+    @path id: ULID,
+    @body app: Rest.Resource.ResourceReplaceModel<AppBase>,
+  ): App | NotFoundError | CommonErrors;
+
+  /**
    * Uninstall an app.
    */
   @delete
@@ -111,6 +123,12 @@ model AppBase {
    */
   @visibility(Lifecycle.Read)
   status: AppStatus;
+
+  /**
+   * Default for the app type
+   * Only one app of each type can be default.
+   */
+  default: boolean;
 }
 
 /**

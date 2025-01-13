@@ -46,6 +46,10 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestGetDefaultAfterDelete(ctx, t)
 		})
 
+		t.Run("Update", func(t *testing.T) {
+			testSuite.TestUpdate(ctx, t)
+		})
+
 		t.Run("Uninstall", func(t *testing.T) {
 			testSuite.TestUninstall(ctx, t)
 		})

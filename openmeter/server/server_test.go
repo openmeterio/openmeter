@@ -732,6 +732,10 @@ func (n NoopAppService) GetDefaultApp(ctx context.Context, input appentity.GetDe
 	return appstripeentityapp.App{}, nil
 }
 
+func (n NoopAppService) UpdateApp(ctx context.Context, input appentity.UpdateAppInput) (appentity.App, error) {
+	return appstripeentityapp.App{}, nil
+}
+
 func (n NoopAppService) ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
 	return pagination.PagedResponse[appentity.App]{}, nil
 }

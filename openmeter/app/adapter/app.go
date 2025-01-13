@@ -217,6 +217,68 @@ func (a adapter) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAp
 		})
 }
 
+// UpdateApp updates an app
+func (a adapter) UpdateApp(ctx context.Context, input appentity.UpdateAppInput) (appentity.App, error) {
+	return entutils.TransactingRepo(
+		ctx,
+		a,
+		func(ctx context.Context, repo *adapter) (appentity.App, error) {
+			// Get the app
+			dbApp, err := repo.db.App.Query().
+				Where(appdb.Namespace(input.AppID.Namespace)).
+				Where(appdb.ID(input.AppID.ID)).
+				Where(appdb.DeletedAtIsNil()).
+				First(ctx)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return nil, app.AppNotFoundError{
+						AppID: input.AppID,
+					}
+				}
+
+				return nil, fmt.Errorf("failed to get app: %s: %w", input.AppID.ID, err)
+			}
+
+			// Clear the default flag for the app type
+			if input.Default != nil && *input.Default {
+				_, err = repo.db.App.Update().
+					Where(appdb.Namespace(input.AppID.Namespace)).
+					Where(appdb.Type(dbApp.Type)).
+					Where(appdb.IsDefault(true)).
+					SetIsDefault(false).
+					Save(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to clear default flag for app type %s with id %s: %w", dbApp.Type, dbApp.ID, err)
+				}
+			}
+
+			// Update the app
+			query := repo.db.App.Update().
+				Where(appdb.Namespace(input.AppID.Namespace)).
+				Where(appdb.ID(input.AppID.ID)).
+				SetNillableName(input.Name).
+				SetNillableDescription(input.Description).
+				SetNillableIsDefault(input.Default)
+
+			if input.Metadata != nil {
+				query.SetMetadata(*input.Metadata)
+			}
+
+			_, err = query.Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update the app with id %s: %w", dbApp.ID, err)
+			}
+
+			// Get the updated app
+			app, err := a.GetApp(ctx, input.AppID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get updated app: %s: %w", input.AppID.ID, err)
+			}
+
+			return app, nil
+		})
+}
+
 // UninstallApp uninstalls an app
 func (a adapter) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
 	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
@@ -268,6 +330,7 @@ func mapAppBaseFromDB(dbApp *db.App, registryItem appentity.RegistryItem) appent
 		}),
 		Type:     dbApp.Type,
 		Status:   dbApp.Status,
+		Default:  dbApp.IsDefault,
 		Listing:  registryItem.Listing,
 		Metadata: dbApp.Metadata,
 	}

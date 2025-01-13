@@ -45,7 +45,11 @@ export interface paths {
     delete: operations['uninstallApp']
     options?: never
     head?: never
-    patch?: never
+    /**
+     * Update app
+     * @description Update an app.
+     */
+    patch: operations['updateApp']
     trace?: never
   }
   '/api/v1/apps/{id}/stripe/api-key': {
@@ -1678,6 +1682,27 @@ export interface components {
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
+    /** @description Resource update operation model. */
+    AppBaseReplaceUpdate: {
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name?: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default?: boolean
+    }
     /**
      * @description App capability.
      *
@@ -5795,15 +5820,21 @@ export interface components {
      * @description Recurring period with an interval and an anchor.
      * @example {
      *       "interval": "DAY",
+     *       "intervalISO": "P1D",
      *       "anchor": "2023-01-01T01:01:01.001Z"
      *     }
      */
     RecurringPeriod: {
       /**
        * Interval
-       * @description The unit of time for the interval.
+       * @description The unit of time for the interval. Heuristically maps ISO duraitons to enum values or returns the ISO duration.
        */
       interval: components['schemas']['RecurringPeriodInterval']
+      /**
+       * Format: duration
+       * @description The unit of time for the interval in ISO8601 format.
+       */
+      intervalISO: string
       /**
        * Anchor time
        * Format: date-time
@@ -5916,6 +5947,9 @@ export interface components {
       readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
       readonly status: components['schemas']['AppStatus']
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
       /**
        * @description The app's type is Sandbox.
        * @enum {string}
@@ -5959,6 +5993,7 @@ export interface components {
      *       "type": "stripe",
      *       "name": "Stripe",
      *       "status": "ready",
+     *       "default": true,
      *       "listing": {
      *         "type": "stripe",
      *         "name": "Stripe",
@@ -6038,6 +6073,9 @@ export interface components {
       readonly listing: components['schemas']['MarketplaceListing']
       /** @description Status of the app connection. */
       readonly status: components['schemas']['AppStatus']
+      /** @description Default for the app type
+       *     Only one app of each type can be default. */
+      default: boolean
       /**
        * @description The app's type is Stripe.
        * @enum {string}
@@ -7221,6 +7259,95 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  updateApp: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AppBaseReplaceUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['App']
+        }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

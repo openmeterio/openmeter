@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -108,6 +109,56 @@ func (h *handler) GetApp() GetAppHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getApp"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+// UpdateAppHandler is a handler to update an app
+type (
+	UpdateAppRequest  = appentity.UpdateAppInput
+	UpdateAppResponse = api.App
+	UpdateAppHandler  httptransport.HandlerWithArgs[UpdateAppRequest, UpdateAppResponse, string]
+)
+
+// UpdateApp returns an app handler
+func (h *handler) UpdateApp() UpdateAppHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, appId string) (UpdateAppRequest, error) {
+			// Resolve namespace
+			namespace, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return UpdateAppRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			var body api.UpdateAppJSONRequestBody
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return UpdateAppRequest{}, fmt.Errorf("field to decode upsert customer data request: %w", err)
+			}
+
+			return UpdateAppRequest{
+				AppID: appentitybase.AppID{
+					ID:        appId,
+					Namespace: namespace,
+				},
+				Name:        body.Name,
+				Description: body.Description,
+				Default:     body.Default,
+				Metadata:    body.Metadata,
+			}, nil
+		},
+		func(ctx context.Context, request UpdateAppRequest) (UpdateAppResponse, error) {
+			app, err := h.service.UpdateApp(ctx, request)
+			if err != nil {
+				return UpdateAppResponse{}, fmt.Errorf("failed to update app: %w", err)
+			}
+
+			return h.appMapper.MapAppToAPI(app)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[UpdateAppResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("updateApp"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
