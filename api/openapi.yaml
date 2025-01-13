@@ -9,23 +9,30 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
-  - name: Debug
-  - name: Apps (Experimental)
-    description: Apps are a set of APIs that allow you to manage your app integrations.
-  - name: Billing (Experimental)
-    description: Billing is a set of APIs that allow you to manage your product catalog, subscriptions, and customers' billing information and invoices.
-  - name: Portal
-    description: With the Consumer Portal, you can build in-app user-facing dashboards where your customers can follow their consumption in real-time.
-  - name: Notification (Beta)
-    description: Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. For example, you can email your customers when they reach 75%, 100%, and 150% of their monthly token allowance and notify your sales team when an overage happens to drive expansions.
-  - name: Entitlements (Beta)
-    description: Entitlements make it possible to implement complex pricing scenarios such as monthly quotas, prepaid billing, and per-customer pricing. Don't just list usage limits on your marketing page—enforce them within your application to control the cost of expensive resources like LLMs.
-  - name: Subjects
-    description: Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. [Read more](https://openmeter.io/docs/cloud/subjects).
-  - name: Events
-    description: A usage event can be anything you need to track accurately over time for billing or analytics purposes. [Read more](https://openmeter.io/docs/concepts/usage-events).
   - name: Meters
-    description: Meters are used to aggregate usage events. They are designed to offer multiple aggregation methods and window sizes, making it highly adaptable to your specific needs.
+    description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
+  - name: Events
+    description: Events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
+  - name: Subjects
+    description: Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.
+  - name: Portal
+    description: With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.
+  - name: Debug
+    description: Debugging and testing endpoints.
+  - name: Entitlements (Beta)
+    description: With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.
+  - name: Notifications (Beta)
+    description: Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).
+  - name: Product Catalog (Private Preview)
+    description: Configure and manage your product plans, pricing tiers, and subscription offerings. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.
+  - name: Subscriptions (Private Preview)
+    description: With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).
+  - name: Customers (Private Preview)
+    description: Manage customer subscription lifecycles and plan assignments. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.
+  - name: Billing (Private Preview)
+    description: Manage your billing profiles and invoices. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.
+  - name: Apps (Private Preview)
+    description: Manage integrations for extending OpenMeter's functionality. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.
 paths:
   /api/v1/apps:
     get:
@@ -79,7 +86,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
   /api/v1/apps/{id}:
     get:
       operationId: getApp
@@ -143,7 +150,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
     delete:
       operationId: uninstallApp
       summary: Uninstall app
@@ -202,7 +209,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
   /api/v1/apps/{id}/stripe/api-key:
     put:
       operationId: updateStripeAPIKey
@@ -256,7 +263,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
       requestBody:
         required: true
         content:
@@ -326,7 +333,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
       requestBody:
         required: true
         content:
@@ -400,7 +407,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/customer/{customerId}:
     post:
       operationId: upsertBillingProfileCustomerOverride
@@ -472,7 +479,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -541,7 +548,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     delete:
       operationId: deleteBillingProfileCustomerOverride
       summary: Delete a customer override
@@ -600,7 +607,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices:
     get:
       operationId: listInvoices
@@ -663,7 +670,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices/invoice:
     post:
       operationId: invoicePendingLinesAction
@@ -725,7 +732,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -792,7 +799,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -881,7 +888,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     delete:
       operationId: deleteInvoice
       summary: Delete an invoice
@@ -943,7 +950,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices/{invoiceId}/advance:
     post:
       operationId: advanceInvoiceAction
@@ -1012,7 +1019,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approveInvoiceAction
@@ -1083,7 +1090,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices/{invoiceId}/lines/{lineId}:
     get:
       operationId: getInvoiceLine
@@ -1154,7 +1161,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     delete:
       operationId: deleteInvoiceLine
       summary: Delete an invoice line
@@ -1220,7 +1227,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     post:
       operationId: updateInvoiceLine
       summary: Update an invoice line
@@ -1290,7 +1297,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -1363,7 +1370,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices/{invoiceId}/tax/recalculate:
     post:
       operationId: recalculateInvoiceTaxAction
@@ -1430,7 +1437,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
   /api/v1/billing/invoices/{invoiceId}/void:
     post:
       operationId: voidInvoiceAction
@@ -1499,7 +1506,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -1577,7 +1584,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     post:
       operationId: createBillingProfile
       summary: Create a new billing profile
@@ -1631,7 +1638,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -1697,7 +1704,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     get:
       operationId: getBillingProfile
       summary: Get a billing profile
@@ -1768,7 +1775,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
     put:
       operationId: updateBillingProfile
       summary: Update a billing profile
@@ -1831,7 +1838,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Billing (Private Preview)
       requestBody:
         required: true
         content:
@@ -1888,7 +1895,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
       requestBody:
         required: true
         content:
@@ -1952,7 +1959,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
   /api/v1/customers/{customerId}/apps:
     get:
       operationId: listCustomerAppData
@@ -2019,7 +2026,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
     put:
       operationId: upsertCustomerAppData
       summary: Upsert customer app data
@@ -2084,7 +2091,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
       requestBody:
         required: true
         content:
@@ -2159,7 +2166,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
   /api/v1/customers/{id}:
     get:
       operationId: getCustomer
@@ -2223,7 +2230,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
     put:
       operationId: updateCustomer
       summary: Update customer
@@ -2286,7 +2293,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
       requestBody:
         required: true
         content:
@@ -2351,7 +2358,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Customers (Private Preview)
   /api/v1/debug/metrics:
     get:
       operationId: getDebugMetrics
@@ -3225,7 +3232,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
   /api/v1/marketplace/listings/{type}:
     get:
       operationId: getMarketplaceListing
@@ -3281,7 +3288,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
@@ -3333,7 +3340,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
       requestBody:
         required: true
         content:
@@ -3411,7 +3418,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
   /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
     get:
       operationId: marketplaceOAuth2InstallAuthorize
@@ -3466,7 +3473,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
   /api/v1/meters:
     get:
       operationId: listMeters
@@ -3797,7 +3804,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
     post:
       operationId: createNotificationChannel
       summary: Create a notification channel
@@ -3847,7 +3854,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
       requestBody:
         required: true
         content:
@@ -3917,7 +3924,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
       requestBody:
         required: true
         content:
@@ -3986,7 +3993,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
     delete:
       operationId: deleteNotificationChannel
       summary: Delete a notification channel
@@ -4048,7 +4055,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
   /api/v1/notification/events:
     get:
       operationId: listNotificationEvents
@@ -4173,7 +4180,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
   /api/v1/notification/events/{eventId}:
     get:
       operationId: getNotificationEvent
@@ -4235,7 +4242,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
   /api/v1/notification/rules:
     get:
       operationId: listNotificationRules
@@ -4342,7 +4349,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
     post:
       operationId: createNotificationRule
       summary: Create a notification rule
@@ -4392,7 +4399,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
       requestBody:
         required: true
         content:
@@ -4462,7 +4469,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
       requestBody:
         required: true
         content:
@@ -4531,7 +4538,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
     delete:
       operationId: deleteNotificationRule
       summary: Delete a notification rule
@@ -4593,7 +4600,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
   /api/v1/notification/rules/{ruleId}/test:
     post:
       operationId: testNotificationRule
@@ -4657,7 +4664,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
   /api/v1/notification/webhook/svix:
     post:
       operationId: receiveSvixOperationalEvent
@@ -4704,7 +4711,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notification (Beta)
+        - Notifications (Beta)
       requestBody:
         required: true
         content:
@@ -4810,7 +4817,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
     post:
       operationId: createPlan
       summary: Create a plan
@@ -4860,7 +4867,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
       requestBody:
         required: true
         content:
@@ -4941,7 +4948,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
   /api/v1/plans/{planId}:
     put:
       operationId: updatePlan
@@ -5005,7 +5012,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
       requestBody:
         required: true
         content:
@@ -5094,7 +5101,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
     delete:
       operationId: deletePlan
       summary: Delete plan
@@ -5156,7 +5163,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
   /api/v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
@@ -5220,7 +5227,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
   /api/v1/plans/{planId}/publish:
     post:
       operationId: publishPlan
@@ -5284,7 +5291,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Product Catalog (Private Preview)
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
@@ -5535,7 +5542,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Experimental)
+        - Apps (Private Preview)
       requestBody:
         required: true
         content:
@@ -6363,7 +6370,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6441,7 +6448,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
     patch:
       operationId: editSubscription
       summary: Edit subscription
@@ -6512,7 +6519,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6588,7 +6595,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6672,7 +6679,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6748,7 +6755,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6828,7 +6835,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Experimental)
+        - Subscriptions (Private Preview)
 components:
   parameters:
     BillingProfileCustomerOverrideOrderByOrdering.order:

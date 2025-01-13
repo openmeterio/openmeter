@@ -4,7 +4,7 @@ using TypeSpec.OpenAPI;
 namespace OpenMeter.Billing;
 
 @route("/api/v1/billing/customer")
-@tag("Billing (Experimental)")
+@tag("Billing (Private Preview)")
 interface CustomerOverrides {
   /**
    * List customer overrides

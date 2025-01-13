@@ -20,7 +20,7 @@ namespace OpenMeter.App;
 /**
  * Stripe specific APIs.
  */
-@tag("Apps (Experimental)")
+@tag("Apps (Private Preview)")
 interface AppStripe {
   /**
    * Handle stripe webhooks for apps.
