@@ -42,6 +42,7 @@ interface SvixOperationalWebhooks {
   @post
   @operationId("receiveSvixOperationalEvent")
   @summary("Receive Svix operational events")
+  @extension("x-internal", true)
   create(@body request: SvixOperationalWebhookRequest): {
     @statusCode _: 204;
   } | OpenMeter.CommonErrors;
