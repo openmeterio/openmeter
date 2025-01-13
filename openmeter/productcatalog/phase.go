@@ -69,8 +69,15 @@ func (p PhaseMeta) Validate() error {
 		errs = append(errs, errors.New("missing Name"))
 	}
 
-	if p.Duration != nil && p.Duration.IsNegative() {
-		errs = append(errs, fmt.Errorf("the Duration period must not be negative"))
+	if p.Duration != nil {
+		if p.Duration.IsNegative() {
+			errs = append(errs, fmt.Errorf("the Duration period must not be negative"))
+		}
+
+		// The duration must be at least 1 hour.
+		if per, err := p.Duration.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+			errs = append(errs, fmt.Errorf("the Duration period must be at least 1 hour"))
+		}
 	}
 
 	return NewValidationError(errors.Join(errs...))

@@ -20,12 +20,8 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
 		activeFromTime := defaultx.WithDefault(input.ActiveFrom, clock.Now())
 
-		if input.ActiveTo != nil && input.ActiveFrom == nil {
-			return nil, &models.GenericUserError{Inner: fmt.Errorf("ActiveFrom must be set if ActiveTo is set")}
-		}
-		// We can allow an active period of 0 (ActiveFrom = ActiveTo)
-		if input.ActiveTo != nil && input.ActiveTo.Before(activeFromTime) {
-			return nil, &models.GenericUserError{Inner: fmt.Errorf("ActiveTo cannot be before ActiveFrom")}
+		if err := input.Validate(); err != nil {
+			return nil, &models.GenericUserError{Inner: err}
 		}
 
 		// ID has priority over key
