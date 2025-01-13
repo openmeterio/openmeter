@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -117,6 +118,31 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 		require.NoError(t, err)
 		require.NotNil(t, defaultProfile)
 		require.Equal(t, profile2.ID, defaultProfile.ID)
+	})
+
+	s.T().Run("app used", func(t *testing.T) {
+		s.T().Run("app should be used", func(t *testing.T) {
+			profile := s.createProfileFixture(true)
+			require.NotNil(t, profile)
+
+			ok, err := s.BillingService.IsAppUsed(ctx, profile.Apps.Invoicing.GetID())
+			require.NoError(t, err)
+			require.True(t, ok)
+		})
+
+		s.T().Run("app should not be used", func(t *testing.T) {
+			profile := s.createProfileFixture(true)
+			require.NotNil(t, profile)
+
+			anotherAppID := appentitybase.AppID{
+				Namespace: profile.Namespace,
+				ID:        ulid.Make().String(),
+			}
+
+			ok, err := s.BillingService.IsAppUsed(ctx, anotherAppID)
+			require.NoError(t, err)
+			require.False(t, ok)
+		})
 	})
 
 	s.T().Run("deleted profile handling", func(t *testing.T) {
