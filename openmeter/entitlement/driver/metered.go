@@ -407,8 +407,9 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 
 	if grant.Recurrence != nil {
 		apiGrant.Recurrence = &api.RecurringPeriod{
-			Anchor:   grant.Recurrence.Anchor,
-			Interval: MapRecurrenceToAPI(grant.Recurrence.Interval),
+			Anchor:      grant.Recurrence.Anchor,
+			Interval:    MapRecurrenceToAPI(grant.Recurrence.Interval),
+			IntervalISO: grant.Recurrence.Interval.ISOString().String(),
 		}
 	}
 

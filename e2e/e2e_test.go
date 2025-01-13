@@ -861,8 +861,9 @@ func TestCredit(t *testing.T) {
 				Count:    1,
 			},
 			Recurrence: &api.RecurringPeriod{
-				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: *apiYEAR,
+				Anchor:      time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval:    *apiYEAR,
+				IntervalISO: "P1Y",
 			},
 		}
 

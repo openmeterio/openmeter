@@ -46,8 +46,9 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 				Type:                    "",
 				UpdatedAt:               time.Now().Add(-2 * time.Hour).UTC(),
 				UsagePeriod: api.RecurringPeriod{
-					Anchor:   time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
-					Interval: *month,
+					Anchor:      time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
+					Interval:    *month,
+					IntervalISO: "P1M",
 				},
 			},
 			Feature: api.Feature{
