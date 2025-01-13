@@ -4829,6 +4829,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SvixOperationalWebhookRequest'
+      x-internal: true
   /api/v1/plans:
     get:
       operationId: listPlans
@@ -6771,7 +6772,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6849,7 +6850,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
     patch:
       operationId: editSubscription
       summary: Edit subscription
@@ -6920,7 +6921,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -6996,7 +6997,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -7080,7 +7081,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -7156,7 +7157,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
       requestBody:
         required: true
         content:
@@ -7236,7 +7237,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Private Preview)
+        - Subscriptions (Private Preview)
 security:
   - CloudTokenAuth: []
   - CloudCookieAuth: []
