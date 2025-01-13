@@ -798,9 +798,7 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/InvoicePendingLineCreate'
+              $ref: '#/components/schemas/InvoicePendingLineCreate'
   /api/v1/billing/invoices/{invoiceId}:
     get:
       operationId: getInvoice

@@ -64,7 +64,7 @@ interface InvoicesEndpoints {
   @operationId("createPendingInvoiceLine")
   createPendingInvoiceLine(
     @body
-    request: Invoices.InvoicePendingLineCreate[],
+    request: Invoices.InvoicePendingLineCreate,
   ): {
     @statusCode _: 201;
     @body body: Invoices.InvoiceLine[];

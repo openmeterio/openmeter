@@ -439,7 +439,7 @@ union InvoiceLineReplaceUpdate {
 @friendlyName("InvoicePendingLineCreate")
 @discriminator("type")
 union InvoicePendingLineCreate {
-  usageBased: InvoiceUsageBasedPendingLineCreate,
+  //  usageBased: InvoiceUsageBasedPendingLineCreate,
   flatFee: InvoiceFlatFeePendingLineCreate,
 }
 

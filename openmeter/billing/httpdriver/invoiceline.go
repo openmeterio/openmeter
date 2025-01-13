@@ -29,9 +29,9 @@ type (
 func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreatePendingLineRequest, error) {
-			lines := []api.InvoicePendingLineCreate{}
+			line := api.InvoicePendingLineCreate{}
 
-			if err := commonhttp.JSONRequestBodyDecoder(r, &lines); err != nil {
+			if err := commonhttp.JSONRequestBodyDecoder(r, &line); err != nil {
 				return CreatePendingLineRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 			}
 
@@ -42,25 +42,14 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				return CreatePendingLineRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			if len(lines) == 0 {
-				return CreatePendingLineRequest{}, billing.ValidationError{
-					Err: fmt.Errorf("no lines provided"),
-				}
-			}
-
-			lineEntities := make([]billing.LineWithCustomer, 0, len(lines))
-			for _, line := range lines {
-				lineEntity, err := mapCreateLineToEntity(line, ns)
-				if err != nil {
-					return CreatePendingLineRequest{}, fmt.Errorf("failed to map line: %w", err)
-				}
-
-				lineEntities = append(lineEntities, lineEntity)
+			lineEntity, err := mapCreateLineToEntity(line, ns)
+			if err != nil {
+				return CreatePendingLineRequest{}, fmt.Errorf("failed to map line: %w", err)
 			}
 
 			return CreatePendingLineRequest{
 				Namespace: ns,
-				Lines:     lineEntities,
+				Lines:     []billing.LineWithCustomer{lineEntity},
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {
