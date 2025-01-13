@@ -100,6 +100,9 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
+	// All edits result in custom subscriptions
+	spec.IsCustom = true
+
 	// Finally, let's update the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		sub, err := s.Service.Update(ctx, subscriptionID, spec)

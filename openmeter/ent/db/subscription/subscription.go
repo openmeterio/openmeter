@@ -38,6 +38,8 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldIsCustom holds the string denoting the is_custom field in the database.
+	FieldIsCustom = "is_custom"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -93,6 +95,7 @@ var Columns = []string{
 	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldIsCustom,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -122,6 +125,8 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultIsCustom holds the default value on creation for the "is_custom" field.
+	DefaultIsCustom bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -187,6 +192,11 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByIsCustom orders the results by the is_custom field.
+func ByIsCustom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsCustom, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.

@@ -21,6 +21,8 @@ type Subscription struct {
 
 	CustomerId string         `json:"customerId,omitempty"`
 	Currency   currencyx.Code `json:"currency,omitempty"`
+
+	IsCustom bool `json:"isCustom,omitempty"`
 }
 
 func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
@@ -35,6 +37,7 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		Description:    s.Description,
 		CustomerId:     s.CustomerId,
 		Currency:       s.Currency,
+		IsCustom:       s.IsCustom,
 	}
 }
 

@@ -156,6 +156,20 @@ func (sc *SubscriptionCreate) SetCurrency(c currencyx.Code) *SubscriptionCreate 
 	return sc
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (sc *SubscriptionCreate) SetIsCustom(b bool) *SubscriptionCreate {
+	sc.mutation.SetIsCustom(b)
+	return sc
+}
+
+// SetNillableIsCustom sets the "is_custom" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillableIsCustom(b *bool) *SubscriptionCreate {
+	if b != nil {
+		sc.SetIsCustom(*b)
+	}
+	return sc
+}
+
 // SetID sets the "id" field.
 func (sc *SubscriptionCreate) SetID(s string) *SubscriptionCreate {
 	sc.mutation.SetID(s)
@@ -257,6 +271,10 @@ func (sc *SubscriptionCreate) defaults() {
 		v := subscription.DefaultName
 		sc.mutation.SetName(v)
 	}
+	if _, ok := sc.mutation.IsCustom(); !ok {
+		v := subscription.DefaultIsCustom
+		sc.mutation.SetIsCustom(v)
+	}
 	if _, ok := sc.mutation.ID(); !ok {
 		v := subscription.DefaultID()
 		sc.mutation.SetID(v)
@@ -305,6 +323,9 @@ func (sc *SubscriptionCreate) check() error {
 		if err := subscription.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Subscription.currency": %w`, err)}
 		}
+	}
+	if _, ok := sc.mutation.IsCustom(); !ok {
+		return &ValidationError{Name: "is_custom", err: errors.New(`db: missing required field "Subscription.is_custom"`)}
 	}
 	if len(sc.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "Subscription.customer"`)}
@@ -384,6 +405,10 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := sc.mutation.Currency(); ok {
 		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := sc.mutation.IsCustom(); ok {
+		_spec.SetField(subscription.FieldIsCustom, field.TypeBool, value)
+		_node.IsCustom = value
 	}
 	if nodes := sc.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -617,6 +642,18 @@ func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
 	return u
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (u *SubscriptionUpsert) SetIsCustom(v bool) *SubscriptionUpsert {
+	u.Set(subscription.FieldIsCustom, v)
+	return u
+}
+
+// UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateIsCustom() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldIsCustom)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -810,6 +847,20 @@ func (u *SubscriptionUpsertOne) UpdatePlanID() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetIsCustom sets the "is_custom" field.
+func (u *SubscriptionUpsertOne) SetIsCustom(v bool) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetIsCustom(v)
+	})
+}
+
+// UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateIsCustom() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateIsCustom()
 	})
 }
 
@@ -1173,6 +1224,20 @@ func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetIsCustom sets the "is_custom" field.
+func (u *SubscriptionUpsertBulk) SetIsCustom(v bool) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetIsCustom(v)
+	})
+}
+
+// UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateIsCustom() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateIsCustom()
 	})
 }
 

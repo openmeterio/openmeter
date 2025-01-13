@@ -41,6 +41,7 @@ func getExampleCreateSubscriptionInput(customerId string, planRef subscription.P
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: clock.Now(),
 		},
+		IsCustom: false,
 	}
 }
 

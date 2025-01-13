@@ -45,6 +45,8 @@ type Subscription struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// IsCustom holds the value of the "is_custom" field.
+	IsCustom bool `json:"is_custom,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionQuery when eager-loading is set.
 	Edges        SubscriptionEdges `json:"edges"`
@@ -113,6 +115,8 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscription.FieldMetadata:
 			values[i] = new([]byte)
+		case subscription.FieldIsCustom:
+			values[i] = new(sql.NullBool)
 		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
@@ -216,6 +220,12 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.Currency = currencyx.Code(value.String)
 			}
+		case subscription.FieldIsCustom:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_custom", values[i])
+			} else if value.Valid {
+				s.IsCustom = value.Bool
+			}
 		default:
 			s.selectValues.Set(columns[i], values[i])
 		}
@@ -315,6 +325,9 @@ func (s *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", s.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("is_custom=")
+	builder.WriteString(fmt.Sprintf("%v", s.IsCustom))
 	builder.WriteByte(')')
 	return builder.String()
 }

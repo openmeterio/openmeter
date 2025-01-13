@@ -1028,6 +1028,10 @@ func init() {
 			return nil
 		}
 	}()
+	// subscriptionDescIsCustom is the schema descriptor for is_custom field.
+	subscriptionDescIsCustom := subscriptionFields[5].Descriptor()
+	// subscription.DefaultIsCustom holds the default value on creation for the is_custom field.
+	subscription.DefaultIsCustom = subscriptionDescIsCustom.Default.(bool)
 	// subscriptionDescID is the schema descriptor for id field.
 	subscriptionDescID := subscriptionMixinFields0[0].Descriptor()
 	// subscription.DefaultID holds the default value on creation for the id field.

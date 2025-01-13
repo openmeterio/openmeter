@@ -27,7 +27,8 @@ import (
 // Third is the final spec which is a combination of the above two, it is suffixed with Spec.
 
 type CreateSubscriptionPlanInput struct {
-	Plan *PlanRef `json:"plan"`
+	Plan     *PlanRef `json:"plan"`
+	IsCustom bool     `json:"isCustom,omitempty"`
 }
 
 type CreateSubscriptionCustomerInput struct {
@@ -63,6 +64,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 			ActiveFrom: s.ActiveFrom,
 			ActiveTo:   s.ActiveTo,
 		},
+		IsCustom: s.IsCustom,
 	}
 }
 

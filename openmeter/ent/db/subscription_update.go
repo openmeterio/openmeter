@@ -143,6 +143,20 @@ func (su *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
 	return su
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (su *SubscriptionUpdate) SetIsCustom(b bool) *SubscriptionUpdate {
+	su.mutation.SetIsCustom(b)
+	return su
+}
+
+// SetNillableIsCustom sets the "is_custom" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillableIsCustom(b *bool) *SubscriptionUpdate {
+	if b != nil {
+		su.SetIsCustom(*b)
+	}
+	return su
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (su *SubscriptionUpdate) SetPlan(p *Plan) *SubscriptionUpdate {
 	return su.SetPlanID(p.ID)
@@ -321,6 +335,9 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := su.mutation.IsCustom(); ok {
+		_spec.SetField(subscription.FieldIsCustom, field.TypeBool, value)
 	}
 	if su.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -573,6 +590,20 @@ func (suo *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
 	return suo
 }
 
+// SetIsCustom sets the "is_custom" field.
+func (suo *SubscriptionUpdateOne) SetIsCustom(b bool) *SubscriptionUpdateOne {
+	suo.mutation.SetIsCustom(b)
+	return suo
+}
+
+// SetNillableIsCustom sets the "is_custom" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillableIsCustom(b *bool) *SubscriptionUpdateOne {
+	if b != nil {
+		suo.SetIsCustom(*b)
+	}
+	return suo
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (suo *SubscriptionUpdateOne) SetPlan(p *Plan) *SubscriptionUpdateOne {
 	return suo.SetPlanID(p.ID)
@@ -781,6 +812,9 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := suo.mutation.IsCustom(); ok {
+		_spec.SetField(subscription.FieldIsCustom, field.TypeBool, value)
 	}
 	if suo.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{

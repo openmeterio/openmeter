@@ -122,6 +122,11 @@ func Currency(v currencyx.Code) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
 }
 
+// IsCustom applies equality check predicate on the "is_custom" field. It's identical to IsCustomEQ.
+func IsCustom(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldIsCustom, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldNamespace, v))
@@ -779,6 +784,16 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// IsCustomEQ applies the EQ predicate on the "is_custom" field.
+func IsCustomEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldIsCustom, v))
+}
+
+// IsCustomNEQ applies the NEQ predicate on the "is_custom" field.
+func IsCustomNEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldIsCustom, v))
 }
 
 // HasPlan applies the HasEdge predicate on the "plan" edge.

@@ -55,7 +55,8 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	}
 
 	return &plansubscription.Plan{
-		Plan: p,
+		Plan:     p,
+		IsCustom: true,
 	}, nil
 }
 

@@ -52,6 +52,12 @@ model Subscription {
   status: SubscriptionStatus;
 
   /**
+   * Describes whether the subscription is custom or based on a plan.
+   * Subscriptions created with adjustments and subscriptions that have been edited are considered custom.
+   */
+  isCustom: boolean;
+
+  /**
    * The customer ID of the subscription.
    */
   customerId: ULID;

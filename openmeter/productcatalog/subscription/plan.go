@@ -49,7 +49,8 @@ type PlanRefInput struct {
 
 type Plan struct {
 	productcatalog.Plan
-	Ref *models.NamespacedID
+	Ref      *models.NamespacedID
+	IsCustom bool
 }
 
 var _ subscription.Plan = &Plan{}
@@ -67,7 +68,8 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 	}
 
 	return subscription.CreateSubscriptionPlanInput{
-		Plan: ref,
+		Plan:     ref,
+		IsCustom: p.IsCustom,
 	}
 }
 

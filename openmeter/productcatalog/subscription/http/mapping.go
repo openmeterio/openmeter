@@ -181,6 +181,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		CreatedAt:   sub.CreatedAt,
 		UpdatedAt:   sub.UpdatedAt,
 		DeletedAt:   sub.DeletedAt,
+		IsCustom:    sub.IsCustom,
 	}
 }
 

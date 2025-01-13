@@ -413,7 +413,7 @@ func TestEditRunning(t *testing.T) {
 			},
 		},
 		{
-			Name: "Should use the output of patches without modifications",
+			Name: "Should use the output of patches without modifications (except setting custom flag)",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -442,8 +442,10 @@ func TestEditRunning(t *testing.T) {
 
 				mSvc := subscriptiontestutils.MockService{
 					UpdateFn: func(ctx context.Context, id models.NamespacedID, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+						returnedSpec.IsCustom = true
+
 						// Let's validate that the spec is passed as is
-						assert.Equal(t, returnedSpec, spec, "expected spec to be equal to the returned spec")
+						assert.Equal(t, returnedSpec, spec, "expected spec to be equal to the returned spec (except setting custom flag)")
 
 						return deps.Service.Update(ctx, id, spec)
 					},

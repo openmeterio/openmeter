@@ -14033,6 +14033,7 @@ components:
         - updatedAt
         - activeFrom
         - status
+        - isCustom
         - customerId
         - currency
       properties:
@@ -14097,6 +14098,11 @@ components:
             - $ref: '#/components/schemas/SubscriptionStatus'
           description: The status of the subscription.
           readOnly: true
+        isCustom:
+          type: boolean
+          description: |-
+            Describes whether the subscription is custom or based on a plan.
+            Subscriptions created with adjustments and subscriptions that have been edited are considered custom.
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -14178,6 +14184,7 @@ components:
         - updatedAt
         - activeFrom
         - status
+        - isCustom
         - customerId
         - currency
         - phases
@@ -14243,6 +14250,11 @@ components:
             - $ref: '#/components/schemas/SubscriptionStatus'
           description: The status of the subscription.
           readOnly: true
+        isCustom:
+          type: boolean
+          description: |-
+            Describes whether the subscription is custom or based on a plan.
+            Subscriptions created with adjustments and subscriptions that have been edited are considered custom.
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
