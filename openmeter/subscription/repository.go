@@ -43,6 +43,8 @@ type SubscriptionRepository interface {
 
 	// Delete a subscription
 	Delete(ctx context.Context, id models.NamespacedID) error
+
+	MarkAsCustom(ctx context.Context, id models.NamespacedID, isCustom bool) error
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

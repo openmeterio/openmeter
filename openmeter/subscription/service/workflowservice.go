@@ -101,7 +101,9 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	}
 
 	// All edits result in custom subscriptions
-	spec.IsCustom = true
+	if len(customizations) > 0 {
+		spec.IsCustom = true
+	}
 
 	// Finally, let's update the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {

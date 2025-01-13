@@ -24,7 +24,7 @@ func TestPlan(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Let's set up two customers
+	// Let's set up three customers
 	customerAPIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer 1",
 		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
@@ -70,6 +70,29 @@ func TestPlan(t *testing.T) {
 
 	customer2 := customerAPIRes.JSON201
 	require.NotNil(t, customer1)
+
+	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
+		Name:         "Test Customer 3",
+		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+		Description:  lo.ToPtr("Test Customer Description"),
+		PrimaryEmail: lo.ToPtr("customer3@mail.com"),
+		BillingAddress: &api.Address{
+			City:        lo.ToPtr("City"),
+			Country:     lo.ToPtr("US"),
+			Line1:       lo.ToPtr("Line 1"),
+			Line2:       lo.ToPtr("Line 2"),
+			State:       lo.ToPtr("State"),
+			PhoneNumber: lo.ToPtr("1234567890"),
+			PostalCode:  lo.ToPtr("12345"),
+		},
+		UsageAttribution: api.CustomerUsageAttribution{
+			SubjectKeys: []string{"test_customer_subject_3"},
+		},
+	})
+	require.Nil(t, err)
+
+	customer3 := customerAPIRes.JSON201
+	require.NotNil(t, customer3)
 
 	// Now, let's create dedicated features for the plan
 	featureAPIRes, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
@@ -289,6 +312,41 @@ func TestPlan(t *testing.T) {
 		subscriptionId = *subscription.Id
 	})
 
+	var subscriptionToMigrateId string
+	t.Run("Should create a subscription that we can later migrate", func(t *testing.T) {
+		// We need to create a new pristine subscripiton for this
+		require.NotNil(t, customer3)
+		require.NotNil(t, customer3.Id)
+
+		create := api.SubscriptionCreate{}
+		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
+			ActiveFrom:  startTime,
+			CustomerId:  *customer3.Id,
+			Name:        "Test Subscription",
+			Description: lo.ToPtr("Test Subscription Description"),
+			Plan: api.PlanReferenceInput{
+				Key:     PlanKey,
+				Version: lo.ToPtr(1),
+			},
+		})
+		require.Nil(t, err)
+
+		subApiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
+		require.Nil(t, err)
+
+		assert.Equal(t, 201, subApiRes.StatusCode(), "received the following body: %s", subApiRes.Body)
+
+		subscription := subApiRes.JSON201
+		require.NotNil(t, subscription)
+		require.NotNil(t, subscription.Id)
+		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
+		assert.Equal(t, planId, subscription.Plan.Id)
+
+		require.NotNil(t, subscription.Id)
+		require.NotEmpty(t, *subscription.Id)
+		subscriptionToMigrateId = *subscription.Id
+	})
+
 	t.Run("Should retrieve the subscription", func(t *testing.T) {
 		require.NotEmpty(t, subscriptionId)
 
@@ -420,9 +478,9 @@ func TestPlan(t *testing.T) {
 	var migratedSubView api.SubscriptionExpanded
 
 	t.Run("Should migrate the subscription to a newer version", func(t *testing.T) {
-		require.NotNil(t, subscriptionId)
+		require.NotEmpty(t, subscriptionToMigrateId)
 
-		apiRes, err := client.MigrateSubscriptionWithResponse(ctx, subscriptionId, api.MigrateSubscriptionJSONRequestBody{
+		apiRes, err := client.MigrateSubscriptionWithResponse(ctx, subscriptionToMigrateId, api.MigrateSubscriptionJSONRequestBody{
 			TargetVersion: lo.ToPtr(2),
 		})
 		require.Nil(t, err)
@@ -432,8 +490,8 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, apiRes.JSON200.Next.Id)
 		require.NotNil(t, apiRes.JSON200.Current.Id)
 
-		require.Equal(t, subscriptionId, *apiRes.JSON200.Current.Id)
-		require.NotEqual(t, subscriptionId, *apiRes.JSON200.Next.Id)
+		require.Equal(t, subscriptionToMigrateId, *apiRes.JSON200.Current.Id)
+		require.NotEqual(t, subscriptionToMigrateId, *apiRes.JSON200.Next.Id)
 
 		migratedSubscriptionId = *apiRes.JSON200.Next.Id
 		migratedSubView = apiRes.JSON200.Next

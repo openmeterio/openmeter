@@ -47,6 +47,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Description: sub.Description,
 		CustomerId:  sub.CustomerID,
 		Currency:    sub.Currency,
+		IsCustom:    sub.IsCustom,
 	}, nil
 }
 

@@ -192,6 +192,81 @@ func TestMigrate(t *testing.T) {
 		})
 	})
 
+	t.Run("Should not allow migrating a custom subscription", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps tDeps) {
+			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			ctx := context.Background()
+
+			svc := service.New(service.Config{
+				SubscriptionService: deps.subSvc,
+				WorkflowService:     deps.wfSvc,
+				Logger:              logger,
+				PlanService:         deps.subDeps.PlanService,
+			})
+
+			// Let's set up the feature & customer
+			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeature(t)
+
+			// Let's create the plan
+			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)
+
+			ps1, ok := plan1.(*plansubscription.Plan)
+			require.True(t, ok)
+
+			// Let's create the subscription
+			p1Inp := plansubscription.PlanInput{}
+			p1Inp.FromInput(&plan.CreatePlanInput{
+				Plan: ps1.Plan,
+			})
+
+			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
+				PlanInput: p1Inp,
+				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+						Name:       "test",
+						ActiveFrom: now.Add(time.Second),
+					},
+					Namespace:  cust.Namespace,
+					CustomerID: cust.ID,
+				},
+			})
+			require.Nil(t, err)
+
+			pv2Input := examplePlanInput1
+			pv2Input.Plan.PlanMeta.Name = "New Name"
+
+			// Let's create a new version of the plan
+			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
+			require.Nil(t, err)
+
+			eFrom := clock.Now().Add(5 * time.Second)
+
+			// Let's publish the new version
+			plan2, err = deps.subDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{
+				NamespacedID: plan2.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &eFrom,
+				},
+			})
+			require.Nil(t, err)
+			require.NotNil(t, plan2)
+
+			clock.SetTime(eFrom.Add(time.Second))
+
+			// Let's migrate the subscription to the new version
+			_, err = svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
+				ID:            sub.NamespacedID,
+				TargetVersion: lo.ToPtr(plan1.ToCreateSubscriptionPlanInput().Plan.Version),
+			})
+			require.NotNil(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&subscription.ForbiddenError{}))
+		})
+	})
+
 	t.Run("Should not allow migrating to archived version", func(t *testing.T) {
 		t.Skip("Should it or should it not? Right now it allows it")
 	})

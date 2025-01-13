@@ -46,6 +46,18 @@ func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.Namesp
 	})
 }
 
+func (r *subscriptionRepo) MarkAsCustom(ctx context.Context, id models.NamespacedID, isCustom bool) error {
+	return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, repo *subscriptionRepo) error {
+		_, err := repo.db.Subscription.UpdateOneID(id.ID).SetIsCustom(isCustom).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
+		if db.IsNotFound(err) {
+			return &subscription.NotFoundError{
+				ID: id.ID,
+			}
+		}
+		return err
+	})
+}
+
 func (r *subscriptionRepo) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
 	return entutils.TransactingRepo(
 		ctx,
@@ -104,7 +116,8 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetActiveFrom(sub.ActiveFrom).
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).
-			SetMetadata(sub.Metadata)
+			SetMetadata(sub.Metadata).
+			SetIsCustom(sub.IsCustom)
 
 		if sub.ActiveTo != nil {
 			command = command.SetActiveTo(*sub.ActiveTo)

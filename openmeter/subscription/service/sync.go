@@ -50,6 +50,14 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 			}
 		}
 
+		// We can also change the IsCustom field
+		if view.Subscription.IsCustom != newSpec.IsCustom {
+			err := s.SubscriptionRepo.MarkAsCustom(ctx, view.Subscription.NamespacedID, newSpec.IsCustom)
+			if err != nil {
+				return def, fmt.Errorf("failed to set is custom: %w", err)
+			}
+		}
+
 		// 1. Let's remove anything that's changed or got removed
 		newSortedPhaseSpecs := newSpec.GetSortedPhases()
 		for _, currentPhaseView := range view.Phases {

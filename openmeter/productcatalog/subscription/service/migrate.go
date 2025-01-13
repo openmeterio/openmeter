@@ -19,6 +19,12 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		return def, err
 	}
 
+	if sub.IsCustom {
+		return def, &subscription.ForbiddenError{
+			Msg: fmt.Sprintf("Subscription %s is custom, cannot be migrated", request.ID.ID),
+		}
+	}
+
 	if sub.PlanRef == nil {
 		return def, &models.GenericUserError{
 			Inner: fmt.Errorf("Subscription %s has no plan, cannot be migrated", request.ID.ID),
