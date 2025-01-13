@@ -222,6 +222,11 @@ func (r *FlatFeeRateCard) Validate() error {
 		if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
 			errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
 		}
+
+		// Billing Cadence has to be at least 1 ohur
+		if per, err := r.BillingCadence.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+			errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
+		}
 	}
 
 	return NewValidationError(errors.Join(errs...))
@@ -303,6 +308,11 @@ func (r *UsageBasedRateCard) Validate() error {
 
 	if r.BillingCadence.IsNegative() || r.BillingCadence.IsZero() {
 		errs = append(errs, errors.New("invalid BillingCadence: must not be negative or zero"))
+	}
+
+	// Billing Cadence has to be at least 1 ohur
+	if per, err := r.BillingCadence.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
 	}
 
 	return NewValidationError(errors.Join(errs...))

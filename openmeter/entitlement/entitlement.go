@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -188,6 +189,25 @@ func (c CreateEntitlementInputs) Equal(other CreateEntitlementInputs) bool {
 func (c CreateEntitlementInputs) Validate() error {
 	if c.FeatureID == nil && c.FeatureKey == nil {
 		return fmt.Errorf("feature id or key must be set")
+	}
+
+	// Let's validate the Scheduling Params
+	activeFromTime := defaultx.WithDefault(c.ActiveFrom, clock.Now())
+
+	if c.ActiveTo != nil && c.ActiveFrom == nil {
+		return fmt.Errorf("ActiveFrom must be set if ActiveTo is set")
+	}
+
+	// We can allow an active period of 0 (ActiveFrom = ActiveTo)
+	if c.ActiveTo != nil && c.ActiveTo.Before(activeFromTime) {
+		return fmt.Errorf("ActiveTo cannot be before ActiveFrom")
+	}
+
+	// Let's validate the Usage Period
+	if c.UsagePeriod != nil {
+		if per, err := c.UsagePeriod.Interval.Period.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+			return fmt.Errorf("UsagePeriod must be at least 1 hour")
+		}
 	}
 
 	return nil
