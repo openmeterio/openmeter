@@ -8475,6 +8475,25 @@ components:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: The payment settings for this workflow
       description: BillingWorkflowSettings represents the settings for a billing workflow.
+    CadencedDiscount:
+      type: object
+      required:
+        - activeFrom
+        - discount
+      properties:
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
+        discount:
+          $ref: '#/components/schemas/Discount'
+      description: Discount with information about when it applies.
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
@@ -9090,6 +9109,32 @@ components:
         - add_phase
         - remove_phase
         - stretch_phase
+        - add_discount
+        - remove_discount
+    EditSubscriptionAddDiscount:
+      type: object
+      required:
+        - op
+        - phaseKey
+        - insertAt
+        - discount
+      properties:
+        op:
+          type: string
+          enum:
+            - add_discount
+        phaseKey:
+          type: string
+        insertAt:
+          type: integer
+          description: |-
+            The index at which to insert the discount.
+            The new discount will become the discount at the specified index.
+            If there is already a discount at the specified index, that and all later indexes will be shifted.
+            If the index is greater than the number of discounts, the new discount will be appended to the end.
+        discount:
+          $ref: '#/components/schemas/Discount'
+      description: Add a new discount to a phase.
     EditSubscriptionAddItem:
       type: object
       required:
@@ -9119,6 +9164,22 @@ components:
         phase:
           $ref: '#/components/schemas/SubscriptionPhaseCreate'
       description: Add a new phase
+    EditSubscriptionRemoveDiscount:
+      type: object
+      required:
+        - op
+        - phaseKey
+        - discountIndex
+      properties:
+        op:
+          type: string
+          enum:
+            - remove_discount
+        phaseKey:
+          type: string
+        discountIndex:
+          type: integer
+      description: Remove a discount from a phase.
     EditSubscriptionRemoveItem:
       type: object
       required:
@@ -14888,6 +14949,7 @@ components:
         - createdAt
         - updatedAt
         - key
+        - discounts
         - activeFrom
       properties:
         id:
@@ -14945,9 +15007,8 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/Discount'
-          description: The discounts on the plan.
-          title: Discounts
+            $ref: '#/components/schemas/CadencedDiscount'
+          description: The discounts on the phase.
         activeFrom:
           type: string
           format: date-time
@@ -15010,6 +15071,7 @@ components:
         - createdAt
         - updatedAt
         - key
+        - discounts
         - activeFrom
         - items
       properties:
@@ -15068,9 +15130,8 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/Discount'
-          description: The discounts on the plan.
-          title: Discounts
+            $ref: '#/components/schemas/CadencedDiscount'
+          description: The discounts on the phase.
         activeFrom:
           type: string
           format: date-time

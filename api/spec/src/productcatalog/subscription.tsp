@@ -89,8 +89,13 @@ model SubscriptionPhase {
   // TODO: lets try this with visibility
   ...OmitProperties<
     SubscriptionPhaseCreate,
-    "startAfter" | "duration" | "key" | "name" | "description"
+    "startAfter" | "duration" | "key" | "name" | "description" | "discounts"
   >;
+
+  /**
+   * The discounts on the phase.
+   */
+  discounts: CadencedDiscount[];
 
   /**
    * The time from which the phase is active.
@@ -101,6 +106,15 @@ model SubscriptionPhase {
    * The until which the Phase is active.
    */
   activeTo?: DateTime;
+}
+
+/**
+ * Discount with information about when it applies.
+ */
+@friendlyName("CadencedDiscount")
+model CadencedDiscount {
+  ...CadencedResource;
+  discount: Discount;
 }
 
 /**
@@ -337,6 +351,8 @@ enum EditOp {
   AddPhase: "add_phase",
   RemovePhase: "remove_phase",
   StretchPhase: "stretch_phase",
+  AddDiscount: "add_discount",
+  RemoveDiscount: "remove_discount",
 }
 
 /**
@@ -357,6 +373,35 @@ model EditSubscriptionRemoveItem {
   `op`: EditOp.RemoveItem;
   phaseKey: string;
   itemKey: string;
+}
+
+/**
+ * Add a new discount to a phase.
+ */
+@friendlyName("EditSubscriptionAddDiscount")
+model EditSubscriptionAddDiscount {
+  `op`: EditOp.AddDiscount;
+  phaseKey: string;
+
+  /**
+   * The index at which to insert the discount.
+   * The new discount will become the discount at the specified index.
+   * If there is already a discount at the specified index, that and all later indexes will be shifted.
+   * If the index is greater than the number of discounts, the new discount will be appended to the end.
+   */
+  insertAt: integer;
+
+  discount: Discount;
+}
+
+/**
+ * Remove a discount from a phase.
+ */
+@friendlyName("EditSubscriptionRemoveDiscount")
+model EditSubscriptionRemoveDiscount {
+  `op`: EditOp.RemoveDiscount;
+  phaseKey: string;
+  discountIndex: integer;
 }
 
 /**
