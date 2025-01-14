@@ -36,7 +36,11 @@ export interface paths {
      * @description Get the app.
      */
     get: operations['getApp']
-    put?: never
+    /**
+     * Update app
+     * @description Update an app.
+     */
+    put: operations['updateApp']
     post?: never
     /**
      * Uninstall app
@@ -45,11 +49,7 @@ export interface paths {
     delete: operations['uninstallApp']
     options?: never
     head?: never
-    /**
-     * Update app
-     * @description Update an app.
-     */
-    patch: operations['updateApp']
+    patch?: never
     trace?: never
   }
   '/api/v1/apps/{id}/stripe/api-key': {
@@ -1688,7 +1688,7 @@ export interface components {
        * Display name
        * @description Human-readable name for the resource. Between 1 and 256 characters.
        */
-      name?: string
+      name: string
       /**
        * Description
        * @description Optional description of the resource. Maximum 1024 characters.
@@ -1701,7 +1701,7 @@ export interface components {
       metadata?: components['schemas']['Metadata'] | null
       /** @description Default for the app type
        *     Only one app of each type can be default. */
-      default?: boolean
+      default: boolean
     }
     /**
      * @description App capability.
@@ -7242,7 +7242,7 @@ export interface operations {
       }
     }
   }
-  uninstallApp: {
+  updateApp: {
     parameters: {
       query?: never
       header?: never
@@ -7251,14 +7251,20 @@ export interface operations {
       }
       cookie?: never
     }
-    requestBody?: never
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AppBaseReplaceUpdate']
+      }
+    }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
-      204: {
+      /** @description The request has succeeded. */
+      200: {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['App']
+        }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
@@ -7325,7 +7331,7 @@ export interface operations {
       }
     }
   }
-  updateApp: {
+  uninstallApp: {
     parameters: {
       query?: never
       header?: never
@@ -7334,20 +7340,14 @@ export interface operations {
       }
       cookie?: never
     }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['AppBaseReplaceUpdate']
-      }
-    }
+    requestBody?: never
     responses: {
-      /** @description The request has succeeded. */
-      200: {
+      /** @description There is no content to send for this request, but the headers may be useful.  */
+      204: {
         headers: {
           [name: string]: unknown
         }
-        content: {
-          'application/json': components['schemas']['App']
-        }
+        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

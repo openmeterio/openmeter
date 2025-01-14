@@ -142,8 +142,8 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 					Namespace: namespace,
 				},
 				Name:        body.Name,
-				Description: body.Description,
 				Default:     body.Default,
+				Description: body.Description,
 				Metadata:    body.Metadata,
 			}, nil
 		},

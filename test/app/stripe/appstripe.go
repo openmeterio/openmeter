@@ -274,25 +274,32 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	// Update the app
 	updateApp, err := s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
 		AppID:       app.GetID(),
-		Name:        lo.ToPtr("Updated Stripe App 1"),
+		Name:        "Updated Stripe App 1",
 		Description: lo.ToPtr("Updated description 1"),
-		Default:     lo.ToPtr(true),
+		Default:     true,
 		Metadata:    &map[string]string{"key": "value"},
 	})
 
 	require.NoError(t, err, "Update app must not return error")
 	require.NotNil(t, updateApp, "Update app must return app")
 
-	// Partial update (only name)
+	// Partial update (only required fields)
 	updateApp, err = s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
-		AppID: app.GetID(),
-		Name:  lo.ToPtr("Updated Stripe App 2"),
+		AppID:   app.GetID(),
+		Name:    "Updated Stripe App 2",
+		Default: false,
 	})
 
 	require.NoError(t, err, "Update app must not return error")
 	require.NotNil(t, updateApp, "Update app must return app")
 
-	require.Equal(t, true, updateApp.GetAppBase().Default, "Default must remain the same")
+	// Updated fields
+	require.Equal(t, "Updated Stripe App 2", updateApp.GetAppBase().Name, "Name must be updated")
+	require.Equal(t, false, updateApp.GetAppBase().Default, "Default must remain the same")
+
+	// Remains the same
+	require.Equal(t, "Updated description 1", *updateApp.GetAppBase().Description, "Description must be updated")
+	require.Equal(t, map[string]string{"key": "value"}, updateApp.GetAppBase().Metadata, "Metadata must be updated")
 }
 
 // TestUninstall tests uninstalling a stripe app

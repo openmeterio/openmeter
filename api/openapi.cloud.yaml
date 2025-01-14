@@ -152,7 +152,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps (Private Preview)
-    patch:
+    put:
       operationId: updateApp
       summary: Update app
       description: Update an app.
@@ -7859,6 +7859,9 @@ components:
         One of: stripe
     AppBaseReplaceUpdate:
       type: object
+      required:
+        - name
+        - default
       properties:
         name:
           type: string

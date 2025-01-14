@@ -240,8 +240,9 @@ func (a adapter) UpdateApp(ctx context.Context, input appentity.UpdateAppInput) 
 			}
 
 			// Clear the default flag for the app type
-			if input.Default != nil && *input.Default {
+			if input.Default {
 				_, err = repo.db.App.Update().
+					Where(appdb.IDNEQ(dbApp.ID)).
 					Where(appdb.Namespace(input.AppID.Namespace)).
 					Where(appdb.Type(dbApp.Type)).
 					Where(appdb.IsDefault(true)).
@@ -256,9 +257,9 @@ func (a adapter) UpdateApp(ctx context.Context, input appentity.UpdateAppInput) 
 			query := repo.db.App.Update().
 				Where(appdb.Namespace(input.AppID.Namespace)).
 				Where(appdb.ID(input.AppID.ID)).
-				SetNillableName(input.Name).
+				SetName(input.Name).
 				SetNillableDescription(input.Description).
-				SetNillableIsDefault(input.Default)
+				SetIsDefault(input.Default)
 
 			if input.Metadata != nil {
 				query.SetMetadata(*input.Metadata)

@@ -43,7 +43,7 @@ interface Apps {
   /**
    * Update an app.
    */
-  @patch
+  @put
   @route("/{id}")
   @operationId("updateApp")
   @summary("Update app")

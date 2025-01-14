@@ -151,7 +151,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Apps (Private Preview)
-    patch:
+    put:
       operationId: updateApp
       summary: Update app
       description: Update an app.
@@ -7532,6 +7532,9 @@ components:
         This is an actual instance, with its own configuration and credentials.
     AppBaseReplaceUpdate:
       type: object
+      required:
+        - name
+        - default
       properties:
         name:
           type: string

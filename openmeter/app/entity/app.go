@@ -95,9 +95,9 @@ func (i GetDefaultAppInput) Validate() error {
 // UpdateAppInput is the input for setting an app as default for a type
 type UpdateAppInput struct {
 	AppID       appentitybase.AppID
-	Name        *string
+	Name        string
 	Description *string
-	Default     *bool
+	Default     bool
 	Metadata    *map[string]string
 }
 
@@ -106,10 +106,12 @@ func (i UpdateAppInput) Validate() error {
 		return fmt.Errorf("error validating app ID: %w", err)
 	}
 
-	if i.Name != nil && *i.Name == "" {
+	// Required fields
+	if i.Name == "" {
 		return errors.New("name is required")
 	}
 
+	// Optional fields
 	if i.Description != nil && *i.Description == "" {
 		return errors.New("description is required")
 	}
