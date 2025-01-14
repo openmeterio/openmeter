@@ -295,7 +295,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Supplier: billingProfile.Supplier,
 			},
 
-			Lines: billing.NewLineChildren([]*billing.Line{expectedUSDLine}),
+			Lines:     billing.NewLineChildren([]*billing.Line{expectedUSDLine}),
+			Discounts: billing.NewInvoiceDiscounts(nil),
 
 			ExpandedFields: billing.InvoiceExpandAll,
 		}

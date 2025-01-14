@@ -130,6 +130,8 @@ const (
 	EdgeInvoicingApp = "invoicing_app"
 	// EdgePaymentApp holds the string denoting the payment_app edge name in mutations.
 	EdgePaymentApp = "payment_app"
+	// EdgeInvoiceDiscounts holds the string denoting the invoice_discounts edge name in mutations.
+	EdgeInvoiceDiscounts = "invoice_discounts"
 	// Table holds the table name of the billinginvoice in the database.
 	Table = "billing_invoices"
 	// SourceBillingProfileTable is the table that holds the source_billing_profile relation/edge.
@@ -188,6 +190,13 @@ const (
 	PaymentAppInverseTable = "apps"
 	// PaymentAppColumn is the table column denoting the payment_app relation/edge.
 	PaymentAppColumn = "payment_app_id"
+	// InvoiceDiscountsTable is the table that holds the invoice_discounts relation/edge.
+	InvoiceDiscountsTable = "billing_invoice_discounts"
+	// InvoiceDiscountsInverseTable is the table name for the BillingInvoiceDiscount entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicediscount" package.
+	InvoiceDiscountsInverseTable = "billing_invoice_discounts"
+	// InvoiceDiscountsColumn is the table column denoting the invoice_discounts relation/edge.
+	InvoiceDiscountsColumn = "invoice_id"
 )
 
 // Columns holds all SQL columns for billinginvoice fields.
@@ -613,6 +622,20 @@ func ByPaymentAppField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPaymentAppStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByInvoiceDiscountsCount orders the results by invoice_discounts count.
+func ByInvoiceDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newInvoiceDiscountsStep(), opts...)
+	}
+}
+
+// ByInvoiceDiscounts orders the results by invoice_discounts terms.
+func ByInvoiceDiscounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newInvoiceDiscountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSourceBillingProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -667,5 +690,12 @@ func newPaymentAppStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PaymentAppInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, PaymentAppTable, PaymentAppColumn),
+	)
+}
+func newInvoiceDiscountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(InvoiceDiscountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, InvoiceDiscountsTable, InvoiceDiscountsColumn),
 	)
 }

@@ -1,4 +1,4 @@
-h1:jwf2aPT6CW+FEi5DdfdpmF+BPBHGBxs6b+85oTtz0Ms=
+h1:2tfz53CataQ6SHtJjQTFEYP6wdDk68bxAONZXXodWdM=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -79,3 +79,5 @@ h1:jwf2aPT6CW+FEi5DdfdpmF+BPBHGBxs6b+85oTtz0Ms=
 20250109231835_entitlements-usage-period-iso.up.sql h1:tH8m40gChvwZS4CcvyxQin7Q/fLZHCExojSu5tUM0K0=
 20250110164610_customer-remove-tz.down.sql h1:F702xuh5KKYHSbWh8zQ7ncRJKwRg04/NjXeLr5G2nD0=
 20250110164610_customer-remove-tz.up.sql h1:hbLmrvf3hRguKmDcZxQI4recioKsP9I42O9SmLfZPcM=
+20250114104811_billing-invoice-discounts.down.sql h1:xhwEwLbRtxSZW/kJ1hH9usEGjU5DeRIjsX3tFASr31U=
+20250114104811_billing-invoice-discounts.up.sql h1:hVcLH43mxxkW6zHXmQCuEqbJwcHBGeuce3PYMvTMn+k=

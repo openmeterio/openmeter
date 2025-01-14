@@ -619,6 +619,7 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 	return err
 }
 
+// TODO[OM-1090]: this needs to be refactored as discounts would require whole invoice updates
 func (s *Service) UpdateInvoiceLinesInternal(ctx context.Context, input billing.UpdateInvoiceLinesInternalInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{
@@ -785,6 +786,8 @@ func (s *Service) handleNonGatheringInvoiceLineUpdate(ctx context.Context, invoi
 		ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
 		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
 			for _, line := range changedLines {
+				// Warning: this will never work as it should be sm.Invoice.Lines.ReplaceByID(line.ID, line)
+				// but we will get rid of this code as part of the OM-1090
 				if !invoice.Lines.ReplaceByID(line.ID, line) {
 					return fmt.Errorf("line[%s] not found in invoice[%s]", line.ID, invoice.ID)
 				}
@@ -808,4 +811,72 @@ func (s *Service) flattenSplitLines(lines []*billing.Line) []*billing.Line {
 	}
 
 	return out
+}
+
+func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return billing.Invoice{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: input.Invoice,
+		Expand:  billing.InvoiceExpand{}, // We don't want to expand anything as we will have to refetch the invoice anyway
+	})
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
+	}
+
+	if invoice.Status == billing.InvoiceStatusGathering {
+		return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
+			// let's lock the invoice for update, we are using the dedicated call, so that
+			// edges won't end up having SELECT FOR UPDATE locks
+			if err := s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
+				Namespace:  input.Invoice.Namespace,
+				InvoiceIDs: []string{input.Invoice.ID},
+			}); err != nil {
+				return billing.Invoice{}, fmt.Errorf("locking invoice: %w", err)
+			}
+
+			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: input.Invoice,
+				Expand:  billing.InvoiceExpandAll,
+			})
+			if err != nil {
+				return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
+			}
+
+			if err := input.EditFn(&invoice); err != nil {
+				return billing.Invoice{}, fmt.Errorf("editing invoice: %w", err)
+			}
+
+			if err := invoice.Validate(); err != nil {
+				return billing.Invoice{}, billing.ValidationError{
+					Err: err,
+				}
+			}
+
+			return s.adapter.UpdateInvoice(ctx, invoice)
+		})
+	}
+
+	return s.executeTriggerOnInvoice(
+		ctx,
+		input.Invoice,
+		triggerUpdated,
+		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
+			if err := input.EditFn(&sm.Invoice); err != nil {
+				return fmt.Errorf("editing invoice: %w", err)
+			}
+
+			if err := sm.Invoice.Validate(); err != nil {
+				return billing.ValidationError{
+					Err: err,
+				}
+			}
+
+			return nil
+		}),
+	)
 }

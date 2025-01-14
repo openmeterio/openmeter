@@ -13,6 +13,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
@@ -89,6 +90,7 @@ type BillingInvoiceLine struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                      BillingInvoiceLineEdges `json:"edges"`
+	line_ids                   *string
 	fee_line_config_id         *string
 	usage_based_line_config_id *string
 	selectValues               sql.SelectValues
@@ -114,9 +116,11 @@ type BillingInvoiceLineEdges struct {
 	SubscriptionPhase *SubscriptionPhase `json:"subscription_phase,omitempty"`
 	// SubscriptionItem holds the value of the subscription_item edge.
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
+	// InvoiceDiscounts holds the value of the invoice_discounts edge.
+	InvoiceDiscounts *BillingInvoiceDiscount `json:"invoice_discounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -214,6 +218,17 @@ func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, err
 	return nil, &NotLoadedError{edge: "subscription_item"}
 }
 
+// InvoiceDiscountsOrErr returns the InvoiceDiscounts value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) InvoiceDiscountsOrErr() (*BillingInvoiceDiscount, error) {
+	if e.InvoiceDiscounts != nil {
+		return e.InvoiceDiscounts, nil
+	} else if e.loadedTypes[9] {
+		return nil, &NotFoundError{label: billinginvoicediscount.Label}
+	}
+	return nil, &NotLoadedError{edge: "invoice_discounts"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -229,9 +244,11 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
-		case billinginvoiceline.ForeignKeys[0]: // fee_line_config_id
+		case billinginvoiceline.ForeignKeys[0]: // line_ids
 			values[i] = new(sql.NullString)
-		case billinginvoiceline.ForeignKeys[1]: // usage_based_line_config_id
+		case billinginvoiceline.ForeignKeys[1]: // fee_line_config_id
+			values[i] = new(sql.NullString)
+		case billinginvoiceline.ForeignKeys[2]: // usage_based_line_config_id
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -443,12 +460,19 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field line_ids", values[i])
+			} else if value.Valid {
+				bil.line_ids = new(string)
+				*bil.line_ids = value.String
+			}
+		case billinginvoiceline.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field fee_line_config_id", values[i])
 			} else if value.Valid {
 				bil.fee_line_config_id = new(string)
 				*bil.fee_line_config_id = value.String
 			}
-		case billinginvoiceline.ForeignKeys[1]:
+		case billinginvoiceline.ForeignKeys[2]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field usage_based_line_config_id", values[i])
 			} else if value.Valid {
@@ -511,6 +535,11 @@ func (bil *BillingInvoiceLine) QuerySubscriptionPhase() *SubscriptionPhaseQuery 
 // QuerySubscriptionItem queries the "subscription_item" edge of the BillingInvoiceLine entity.
 func (bil *BillingInvoiceLine) QuerySubscriptionItem() *SubscriptionItemQuery {
 	return NewBillingInvoiceLineClient(bil.config).QuerySubscriptionItem(bil)
+}
+
+// QueryInvoiceDiscounts queries the "invoice_discounts" edge of the BillingInvoiceLine entity.
+func (bil *BillingInvoiceLine) QueryInvoiceDiscounts() *BillingInvoiceDiscountQuery {
+	return NewBillingInvoiceLineClient(bil.config).QueryInvoiceDiscounts(bil)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.

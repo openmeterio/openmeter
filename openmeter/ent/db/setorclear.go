@@ -629,6 +629,62 @@ func (u *BillingInvoiceUpdateOne) SetOrClearPeriodEnd(value *time.Time) *Billing
 	return u.SetPeriodEnd(*value)
 }
 
+func (u *BillingInvoiceDiscountUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceDiscountUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingInvoiceDiscountUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceDiscountUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceDiscountUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdate) SetOrClearDescription(value *string) *BillingInvoiceDiscountUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdateOne) SetOrClearDescription(value *string) *BillingInvoiceDiscountUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdate) SetOrClearLineIds(value *[]string) *BillingInvoiceDiscountUpdate {
+	if value == nil {
+		return u.ClearLineIds()
+	}
+	return u.SetLineIds(*value)
+}
+
+func (u *BillingInvoiceDiscountUpdateOne) SetOrClearLineIds(value *[]string) *BillingInvoiceDiscountUpdateOne {
+	if value == nil {
+		return u.ClearLineIds()
+	}
+	return u.SetLineIds(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearMetadata()
