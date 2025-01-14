@@ -10,6 +10,7 @@ import (
 
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -221,6 +222,8 @@ type SubscriptionPhaseSpec struct {
 
 	// In each key, for each phase, we have a list of item specs to account for mid-phase changes
 	ItemsByKey map[string][]*SubscriptionItemSpec `json:"itemsByKey"`
+
+	Discounts []DiscountSpec `json:"discounts"`
 }
 
 func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
@@ -361,7 +364,36 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 		}
 	}
 
+	for idx, discount := range s.Discounts {
+		if err := discount.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("discount %d validation failed: %w", idx, err))
+		}
+
+		// TODO(discounts): Validate discount-item linking check
+		// We need to check that
+		// 1. the item with the provided key is present
+		for _, key := range discount.Discount.RateCardKeys() {
+			if _, ok := s.ItemsByKey[key]; !ok {
+				errs = append(errs, &AllowedDuringApplyingPatchesError{Inner: fmt.Errorf("discount %d references non-existing item key %s", idx, key)})
+			}
+		}
+	}
+
 	return errors.Join(errs...)
+}
+
+type DiscountSpec struct {
+	PhaseKey string `json:"phaseKey"`
+	Discount productcatalog.Discount
+	CadenceOverrideRelativeToPhaseStart
+}
+
+func (d DiscountSpec) Validate() error {
+	if err := d.Discount.Validate(); err != nil {
+		return fmt.Errorf("discount validation failed: %w", err)
+	}
+
+	return nil
 }
 
 type CreateSubscriptionItemPlanInput struct {
@@ -371,8 +403,7 @@ type CreateSubscriptionItemPlanInput struct {
 }
 
 type CreateSubscriptionItemCustomerInput struct {
-	ActiveFromOverrideRelativeToPhaseStart *datex.Period `json:"activeFromOverrideRelativeToPhaseStart"`
-	ActiveToOverrideRelativeToPhaseStart   *datex.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+	CadenceOverrideRelativeToPhaseStart
 }
 
 type CreateSubscriptionItemInput struct {
@@ -386,8 +417,8 @@ type SubscriptionItemSpec struct {
 
 func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (models.CadencedModel, error) {
 	start := phaseCadence.ActiveFrom
-	if s.ActiveFromOverrideRelativeToPhaseStart != nil {
-		start, _ = s.ActiveFromOverrideRelativeToPhaseStart.AddTo(phaseCadence.ActiveFrom)
+	if s.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
+		start, _ = s.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phaseCadence.ActiveFrom)
 	}
 
 	if phaseCadence.ActiveTo != nil {
@@ -403,8 +434,8 @@ func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (mod
 
 	end := phaseCadence.ActiveTo
 
-	if s.ActiveToOverrideRelativeToPhaseStart != nil {
-		endTime, _ := s.ActiveToOverrideRelativeToPhaseStart.AddTo(phaseCadence.ActiveFrom)
+	if s.CadenceOverrideRelativeToPhaseStart.ActiveToOverride != nil {
+		endTime, _ := s.CadenceOverrideRelativeToPhaseStart.ActiveToOverride.AddTo(phaseCadence.ActiveFrom)
 
 		if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(endTime) {
 			// Phase Cadence overrides item cadence in all cases
@@ -435,8 +466,8 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 			Namespace: phaseID.Namespace,
 		},
 		CadencedModel:                          itemCadence,
-		ActiveFromOverrideRelativeToPhaseStart: s.CreateSubscriptionItemCustomerInput.ActiveFromOverrideRelativeToPhaseStart,
-		ActiveToOverrideRelativeToPhaseStart:   s.CreateSubscriptionItemCustomerInput.ActiveToOverrideRelativeToPhaseStart,
+		ActiveFromOverrideRelativeToPhaseStart: s.CreateSubscriptionItemCustomerInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride,
+		ActiveToOverrideRelativeToPhaseStart:   s.CreateSubscriptionItemCustomerInput.CadenceOverrideRelativeToPhaseStart.ActiveToOverride,
 		PhaseID:                                phaseID.ID,
 		Key:                                    s.ItemKey,
 		RateCard:                               s.CreateSubscriptionItemPlanInput.RateCard,

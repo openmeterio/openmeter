@@ -84,15 +84,15 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 			}
 
 			// 2. If it's added to the current phase, the specified start time cannot point to the past
-			if a.CreateInput.ActiveFromOverrideRelativeToPhaseStart != nil {
-				iST, _ := a.CreateInput.ActiveFromOverrideRelativeToPhaseStart.AddTo(phaseStartTime)
+			if a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
+				iST, _ := a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phaseStartTime)
 				if iST.Before(actx.CurrentTime) {
 					return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which would become active in the past at %s", a.PhaseKey, iST)}
 				}
 			} else {
 				// 3. If it's added to the current phase, and start time is not specified, it will be set for the current time, as you cannot change the past
 				diff := datex.Between(phaseStartTime, actx.CurrentTime)
-				a.CreateInput.ActiveFromOverrideRelativeToPhaseStart = &diff
+				a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride = &diff
 			}
 		} else if phaseStartTime.After(currentPhaseStartTime) {
 			// 4. If you're adding it to a future phase, the matching key for the phase has to be empty
@@ -129,15 +129,15 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 
 		// If it already has a scheduled end time, which is later than the time this new item should start, we should error.
 		// The user can circumvent this, by first issuing a delete for the item, and then adding a new one.
-		if itemToClose.ActiveToOverrideRelativeToPhaseStart != nil {
-			itemToCloseEndTime, _ := itemToClose.ActiveToOverrideRelativeToPhaseStart.AddTo(phaseStartTime)
+		if itemToClose.CadenceOverrideRelativeToPhaseStart.ActiveToOverride != nil {
+			itemToCloseEndTime, _ := itemToClose.CadenceOverrideRelativeToPhaseStart.ActiveToOverride.AddTo(phaseStartTime)
 
 			// Sanity check
-			if a.CreateInput.ActiveFromOverrideRelativeToPhaseStart == nil {
+			if a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride == nil {
 				return fmt.Errorf("ActiveFromOverrideRelativeToPhaseStart should already be set when adding after an already existing item for the current phase")
 			}
 
-			itemToAddStartTime, _ := a.CreateInput.ActiveFromOverrideRelativeToPhaseStart.AddTo(phaseStartTime)
+			itemToAddStartTime, _ := a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phaseStartTime)
 
 			if itemToCloseEndTime.After(itemToAddStartTime) {
 				return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which would overlap with a current item, you should delete first", a.PhaseKey)}
@@ -145,7 +145,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 		}
 
 		// Let's update the current item to close to actually close as the new item starts
-		itemToClose.ActiveToOverrideRelativeToPhaseStart = a.CreateInput.ActiveFromOverrideRelativeToPhaseStart
+		itemToClose.CadenceOverrideRelativeToPhaseStart.ActiveToOverride = a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride
 	}
 
 	// Finally, we simply add it as the last Spec for its key in the phase

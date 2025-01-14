@@ -3,6 +3,7 @@ package subscription
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,4 +25,9 @@ type SubscriptionPhase struct {
 
 	// Description
 	Description *string `json:"description,omitempty"`
+}
+
+type CadenceOverrideRelativeToPhaseStart struct {
+	ActiveFromOverride *datex.Period `json:"activeFromOverrideRelativeToPhaseStart"`
+	ActiveToOverride   *datex.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 }

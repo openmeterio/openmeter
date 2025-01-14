@@ -123,8 +123,8 @@ func TestRemoveAdd(t *testing.T) {
 		found := s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
 
 		assert.Len(t, found, 2)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[0].ActiveToOverrideRelativeToPhaseStart)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[1].ActiveFromOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[0].CadenceOverrideRelativeToPhaseStart.ActiveToOverride)
+		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[1].CadenceOverrideRelativeToPhaseStart.ActiveFromOverride)
 
 		// Now lets simulate some time passing
 		now = now.Add(time.Hour * 1)
@@ -140,11 +140,11 @@ func TestRemoveAdd(t *testing.T) {
 		found = s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
 
 		assert.Len(t, found, 3)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[0].ActiveToOverrideRelativeToPhaseStart)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[1].ActiveFromOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[0].CadenceOverrideRelativeToPhaseStart.ActiveToOverride)
+		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT86400S")), found[1].CadenceOverrideRelativeToPhaseStart.ActiveFromOverride)
 		// 90000s = 25h = 1d + 1h
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT90000S")), found[1].ActiveToOverrideRelativeToPhaseStart)
-		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT90000S")), found[2].ActiveFromOverrideRelativeToPhaseStart)
+		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT90000S")), found[1].CadenceOverrideRelativeToPhaseStart.ActiveToOverride)
+		assert.Equal(t, lo.ToPtr(testutils.GetISODuration(t, "PT90000S")), found[2].CadenceOverrideRelativeToPhaseStart.ActiveFromOverride)
 	})
 }
 

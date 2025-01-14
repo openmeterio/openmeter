@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -11,9 +10,7 @@ type SubscriptionItem struct {
 	models.AnnotatedModel `json:",inline"`
 
 	// SubscriptionItem doesn't have a separate Cadence, only one relative to the phase, denoting if it's intentionally different from the phase's cadence.
-	// The durations are relative to phase start.
-	ActiveFromOverrideRelativeToPhaseStart *datex.Period `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
-	ActiveToOverrideRelativeToPhaseStart   *datex.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+	CadenceOverrideRelativeToPhaseStart
 
 	// The defacto cadence of the item is calculated and persisted after each change.
 	models.CadencedModel `json:",inline"`
@@ -38,14 +35,14 @@ type SubscriptionItem struct {
 func (i SubscriptionItem) GetCadence(phaseCadence models.CadencedModel) models.CadencedModel {
 	start := phaseCadence.ActiveFrom
 
-	if i.ActiveFromOverrideRelativeToPhaseStart != nil {
-		start, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(start)
+	if i.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
+		start, _ = i.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(start)
 	}
 
 	end := phaseCadence.ActiveTo
 
-	if i.ActiveToOverrideRelativeToPhaseStart != nil {
-		iEnd, _ := i.ActiveToOverrideRelativeToPhaseStart.AddTo(start)
+	if i.CadenceOverrideRelativeToPhaseStart.ActiveToOverride != nil {
+		iEnd, _ := i.CadenceOverrideRelativeToPhaseStart.ActiveToOverride.AddTo(start)
 
 		if end == nil || iEnd.Before(*end) {
 			end = &iEnd
@@ -65,8 +62,8 @@ func (i SubscriptionItem) AsEntityInput() CreateSubscriptionItemEntityInput {
 		},
 		AnnotatedModel:                         i.AnnotatedModel,
 		CadencedModel:                          i.CadencedModel,
-		ActiveFromOverrideRelativeToPhaseStart: i.ActiveFromOverrideRelativeToPhaseStart,
-		ActiveToOverrideRelativeToPhaseStart:   i.ActiveToOverrideRelativeToPhaseStart,
+		ActiveFromOverrideRelativeToPhaseStart: i.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride,
+		ActiveToOverrideRelativeToPhaseStart:   i.CadenceOverrideRelativeToPhaseStart.ActiveToOverride,
 		PhaseID:                                i.PhaseId,
 		Key:                                    i.Key,
 		RateCard:                               i.RateCard,

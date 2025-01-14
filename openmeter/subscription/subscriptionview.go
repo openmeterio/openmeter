@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -77,6 +78,7 @@ type SubscriptionPhaseView struct {
 	SubscriptionPhase SubscriptionPhase                 `json:"subscriptionPhase"`
 	Spec              SubscriptionPhaseSpec             `json:"spec"`
 	ItemsByKey        map[string][]SubscriptionItemView `json:"itemsByKey"`
+	Discounts         []DiscountView                    `json:"discounts"`
 }
 
 func (s *SubscriptionPhaseView) ActiveFrom(subscriptionCadence models.CadencedModel) time.Time {
@@ -93,11 +95,41 @@ func (s *SubscriptionPhaseView) Validate(includeItems bool) error {
 		for _, items := range s.ItemsByKey {
 			for _, item := range items {
 				if err := item.Validate(); err != nil {
-					return fmt.Errorf("item %s in phase %s starting after %s is invalid: %w", item.Spec.ItemKey, item.Spec.ActiveFromOverrideRelativeToPhaseStart.ISOStringPtrOrNil(), s.Spec.PhaseKey, err)
+					return fmt.Errorf("item %s in phase %s starting after %s is invalid: %w", item.Spec.ItemKey, item.Spec.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.ISOStringPtrOrNil(), s.Spec.PhaseKey, err)
 				}
 			}
 		}
+
+		for _, discount := range s.Discounts {
+			if err := discount.Validate(); err != nil {
+				return fmt.Errorf("discount %s in phase %s is invalid: %w", discount.Discount.ID, s.Spec.PhaseKey, err)
+			}
+		}
 	}
+
+	return nil
+}
+
+type DiscountView struct {
+	Discount Discount `json:"discount"`
+	Spec     DiscountSpec
+}
+
+func (d *DiscountView) Validate() error {
+	var errs []error
+
+	if err := d.Discount.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("discount %s is invalid: %w", d.Discount.ID, err))
+	}
+
+	if err := d.Spec.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("discount %s spec is invalid: %w", d.Discount.ID, err))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
 	return nil
 }
 
@@ -315,11 +347,11 @@ func NewSubscriptionView(
 			// Any arbitrary time works as long as its consistent for the comparisons
 			slices.SortStableFunc(phaseItemsByKey[key], func(i, j SubscriptionItem) int {
 				iT, jT := phase.ActiveFrom, phase.ActiveFrom
-				if i.ActiveFromOverrideRelativeToPhaseStart != nil {
-					iT, _ = i.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
+				if i.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
+					iT, _ = i.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phase.ActiveFrom)
 				}
-				if j.ActiveFromOverrideRelativeToPhaseStart != nil {
-					jT, _ = j.ActiveFromOverrideRelativeToPhaseStart.AddTo(phase.ActiveFrom)
+				if j.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
+					jT, _ = j.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phase.ActiveFrom)
 				}
 				return int(iT.Sub(jT))
 			})
@@ -347,8 +379,10 @@ func NewSubscriptionView(
 							RateCard: item.RateCard,
 						},
 						CreateSubscriptionItemCustomerInput: CreateSubscriptionItemCustomerInput{
-							ActiveFromOverrideRelativeToPhaseStart: item.ActiveFromOverrideRelativeToPhaseStart,
-							ActiveToOverrideRelativeToPhaseStart:   item.ActiveToOverrideRelativeToPhaseStart,
+							CadenceOverrideRelativeToPhaseStart: CadenceOverrideRelativeToPhaseStart{
+								ActiveFromOverride: item.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride,
+								ActiveToOverride:   item.CadenceOverrideRelativeToPhaseStart.ActiveToOverride,
+							},
 						},
 					},
 				}

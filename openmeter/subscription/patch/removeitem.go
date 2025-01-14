@@ -70,7 +70,7 @@ func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subsc
 
 		diff := datex.Between(phaseStartTime, actx.CurrentTime)
 
-		phase.ItemsByKey[r.ItemKey][len(phase.ItemsByKey[r.ItemKey])-1].ActiveToOverrideRelativeToPhaseStart = &diff
+		phase.ItemsByKey[r.ItemKey][len(phase.ItemsByKey[r.ItemKey])-1].CadenceOverrideRelativeToPhaseStart.ActiveToOverride = &diff
 	} else {
 		// Otherwise (if its a future phase), we can just remove it
 		phase.ItemsByKey[r.ItemKey] = phase.ItemsByKey[r.ItemKey][:len(phase.ItemsByKey[r.ItemKey])-1]
