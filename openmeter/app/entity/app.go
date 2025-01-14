@@ -74,6 +74,7 @@ func (i DeleteAppInstanceCustomerDataInput) Validate() error {
 // GetAppInput is the input for getting an installed app
 type GetAppInput = appentitybase.AppID
 
+// GetAppInput is the input for getting the default app for a type
 type GetDefaultAppInput struct {
 	Namespace string
 	Type      appentitybase.AppType
@@ -86,6 +87,45 @@ func (i GetDefaultAppInput) Validate() error {
 
 	if i.Type == "" {
 		return errors.New("type is required")
+	}
+
+	return nil
+}
+
+// UpdateAppInput is the input for setting an app as default for a type
+type UpdateAppInput struct {
+	AppID       appentitybase.AppID
+	Name        string
+	Description *string
+	Default     bool
+	Metadata    *map[string]string
+}
+
+func (i UpdateAppInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app ID: %w", err)
+	}
+
+	// Required fields
+	if i.Name == "" {
+		return errors.New("name is required")
+	}
+
+	// Optional fields
+	if i.Description != nil && *i.Description == "" {
+		return errors.New("description is required")
+	}
+
+	if i.Metadata != nil {
+		for k, v := range *i.Metadata {
+			if k == "" {
+				return errors.New("metadata key is required")
+			}
+
+			if v == "" {
+				return errors.New("metadata value is required")
+			}
+		}
 	}
 
 	return nil

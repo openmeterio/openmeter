@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,6 +21,9 @@ func errorEncoder() httptransport.ErrorEncoder {
 			// TODO (pmarton): We need to add this customer error because Stripe Checkout Session creation can create a customer and fail with this error
 			// On the long term all errors should implement a common interface that controls the HTTP status code.
 			commonhttp.HandleErrorIfTypeMatches[customerentity.SubjectKeyConflictError](ctx, http.StatusPreconditionFailed, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w)
+			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
+
+			// App errors
+			commonhttp.HandleErrorIfTypeMatches[app.AppDefaultNotFoundError](ctx, http.StatusPreconditionFailed, err, w)
 	}
 }

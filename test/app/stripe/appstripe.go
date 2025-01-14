@@ -188,6 +188,120 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 	require.Equal(t, createApp1.GetID(), getApp.GetID(), "apps must be equal with first")
 }
 
+// TestGetDefaultAfterDelete tests getting the default stripe app after delete
+func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	s.Env.StripeClient().
+		On("GetAccount").
+		Return(stripeclient.StripeAccount{
+			StripeAccountID: getStripeAccountId(),
+		}, nil)
+
+	s.Env.StripeClient().
+		On("SetupWebhook", mock.Anything).
+		Return(stripeclient.StripeWebhookEndpoint{
+			EndpointID: "we_123",
+			Secret:     "whsec_123",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeClient().Restore()
+
+	// Create a stripe app first
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+
+	// Delete the app to test the default app can be deleted
+	s.Env.StripeAppClient().
+		On("DeleteWebhook", stripeclient.DeleteWebhookInput{
+			AppID:           createApp.GetID(),
+			StripeWebhookID: "we_123",
+		}).
+		Return(nil)
+
+	err = s.Env.App().UninstallApp(ctx, createApp.GetID())
+	require.NoError(t, err, "Uninstall stripe app must not return error")
+
+	// Getting the deleted default app should return error
+	_, err = s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: s.namespace,
+		Type:      appentitybase.AppTypeStripe,
+	})
+
+	require.ErrorAs(t, err, &app.AppDefaultNotFoundError{}, "Get default stripe app must return app not found error")
+
+	// Create a new stripe app that should become the new default
+	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: appentity.MarketplaceListingID{
+			Type: appentitybase.AppTypeStripe,
+		},
+
+		Namespace: s.namespace,
+		APIKey:    TestStripeAPIKey,
+	})
+
+	require.NoError(t, err, "Create stripe app must not return error")
+	require.NotNil(t, createApp2, "Create stripe app must return app")
+	require.NotEqual(t, createApp.GetID(), createApp2.GetID(), "apps must not be equal")
+
+	// Get the default app
+	getApp, err := s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		Namespace: s.namespace,
+		Type:      appentitybase.AppTypeStripe,
+	})
+
+	require.NoError(t, err, "Get default stripe app must not return error")
+	require.Equal(t, createApp2.GetID(), getApp.GetID(), "apps must be equal with second")
+}
+
+// TestUpdate tests updating an app
+func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Create an app first
+	app, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	// Update the app
+	updateApp, err := s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
+		AppID:       app.GetID(),
+		Name:        "Updated Stripe App 1",
+		Description: lo.ToPtr("Updated description 1"),
+		Default:     true,
+		Metadata:    &map[string]string{"key": "value"},
+	})
+
+	require.NoError(t, err, "Update app must not return error")
+	require.NotNil(t, updateApp, "Update app must return app")
+
+	// Partial update (only required fields)
+	updateApp, err = s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
+		AppID:   app.GetID(),
+		Name:    "Updated Stripe App 2",
+		Default: false,
+	})
+
+	require.NoError(t, err, "Update app must not return error")
+	require.NotNil(t, updateApp, "Update app must return app")
+
+	// Updated fields
+	require.Equal(t, "Updated Stripe App 2", updateApp.GetAppBase().Name, "Name must be updated")
+	require.Equal(t, false, updateApp.GetAppBase().Default, "Default must remain the same")
+
+	// Remains the same
+	require.Equal(t, "Updated description 1", *updateApp.GetAppBase().Description, "Description must be updated")
+	require.Equal(t, map[string]string{"key": "value"}, updateApp.GetAppBase().Metadata, "Metadata must be updated")
+}
+
 // TestUninstall tests uninstalling a stripe app
 func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)

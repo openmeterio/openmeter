@@ -23,6 +23,7 @@ type AppHandler interface {
 	ListApps() ListAppsHandler
 	GetApp() GetAppHandler
 	UninstallApp() UninstallAppHandler
+	UpdateApp() UpdateAppHandler
 
 	// Customer Data handlers
 	ListCustomerData() ListCustomerDataHandler

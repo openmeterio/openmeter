@@ -239,6 +239,7 @@ model CheckoutSessionCustomTextParams {
   type: Type.Stripe,
   name: "Stripe",
   status: AppStatus.Ready,
+  default: true,
   listing: #{
     type: Type.Stripe,
     name: "Stripe",
