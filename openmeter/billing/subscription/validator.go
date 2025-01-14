@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Validator struct {
@@ -26,11 +27,21 @@ func NewValidator(billingService billing.Service) (*Validator, error) {
 }
 
 func (v Validator) ValidateCreate(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.validateBillingSetup(ctx, view)
+	err := v.validateBillingSetup(ctx, view)
+	if err != nil {
+		return &models.GenericConflictError{Inner: fmt.Errorf("invalid billing setup: %w", err)}
+	}
+
+	return nil
 }
 
 func (v Validator) ValidateUpdate(ctx context.Context, view subscription.SubscriptionView) error {
-	return v.validateBillingSetup(ctx, view)
+	err := v.validateBillingSetup(ctx, view)
+	if err != nil {
+		return &models.GenericConflictError{Inner: fmt.Errorf("invalid billing setup: %w", err)}
+	}
+
+	return nil
 }
 
 func (v Validator) validateBillingSetup(ctx context.Context, view subscription.SubscriptionView) error {
