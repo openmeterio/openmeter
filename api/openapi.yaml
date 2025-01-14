@@ -409,6 +409,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeWebhookEvent'
+      security:
+        - {}
   /api/v1/billing/customer:
     get:
       operationId: listBillingProfileCustomerOverrides

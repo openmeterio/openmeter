@@ -28,6 +28,7 @@ interface AppStripe {
   @post
   @route("/api/v1/apps/{id}/stripe/webhook")
   @operationId("appStripeWebhook")
+  @useAuth(NoAuth)
   @summary("Stripe webhook")
   webhook(
     @path id: ULID,
