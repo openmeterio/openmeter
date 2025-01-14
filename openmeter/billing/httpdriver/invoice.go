@@ -172,6 +172,10 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 				return GetInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
+			if len(params.Expand) == 0 {
+				params.Expand = []api.InvoiceExpand{api.InvoiceExpandLines}
+			}
+
 			return GetInvoiceRequest{
 				Invoice: billing.InvoiceID{
 					ID:        params.InvoiceID,

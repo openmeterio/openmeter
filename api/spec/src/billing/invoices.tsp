@@ -88,10 +88,10 @@ interface InvoiceEndpoints {
     invoiceId: ULID,
 
     @query
-    expand: InvoiceExpand[] = #[InvoiceExpand.lines],
+    expand?: InvoiceExpand[] = #[InvoiceExpand.lines],
 
     @query
-    includeDeletedLines: boolean = false,
+    includeDeletedLines?: boolean = false,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
