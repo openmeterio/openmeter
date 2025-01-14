@@ -78,8 +78,8 @@ func (a *Router) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId st
 
 	a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{
 		InvoiceID:           invoiceId,
-		Expand:              params.Expand,
-		IncludeDeletedLines: params.IncludeDeletedLines,
+		Expand:              lo.FromPtr(params.Expand),
+		IncludeDeletedLines: lo.FromPtr(params.IncludeDeletedLines),
 	}).ServeHTTP(w, r)
 }
 
