@@ -8210,9 +8210,9 @@ export interface operations {
   }
   getInvoice: {
     parameters: {
-      query: {
-        expand: components['schemas']['InvoiceExpand'][]
-        includeDeletedLines: boolean
+      query?: {
+        expand?: components['schemas']['InvoiceExpand'][]
+        includeDeletedLines?: boolean
       }
       header?: never
       path: {
