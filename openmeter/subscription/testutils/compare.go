@@ -90,6 +90,9 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					entInp := ent.ToScheduleSubscriptionEntitlementInput()
 					assert.Equal(t, rcEnt.Type(), entInp.CreateEntitlementInputs.GetType())
 
+					// Let's validate that the Entitlement is marked as SubscriptionManaged
+					assert.True(t, foundItem.Entitlement.Entitlement.SubscriptionManaged)
+
 					// Let's validate that the UsagePeriod is aligned
 					require.NotNil(t, specItem.RateCard.EntitlementTemplate)
 					period := GetEntitlementTemplateUsagePeriod(t, *specItem.RateCard.EntitlementTemplate)
@@ -116,6 +119,9 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 						require.NotNil(t, ent.Entitlement.ActiveTo)
 						assert.Equal(t, nextPhaseStart.UTC(), *ent.Entitlement.ActiveTo)
 					}
+				} else {
+					// If an entitlement wasn't defined then there shouldn't be an entitlement
+					assert.Nil(t, foundItem.Entitlement)
 				}
 			}
 		}
