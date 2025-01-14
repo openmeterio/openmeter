@@ -24,10 +24,6 @@ func (r PatchRemovePhase) Value() subscription.RemoveSubscriptionPhaseInput {
 	return r.RemoveInput
 }
 
-func (r PatchRemovePhase) ValueAsAny() any {
-	return r.RemoveInput
-}
-
 func (r PatchRemovePhase) Validate() error {
 	if err := r.Path().Validate(); err != nil {
 		return err

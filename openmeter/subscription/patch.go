@@ -1,8 +1,8 @@
 package subscription
 
 import (
-	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
@@ -52,15 +52,17 @@ func (o PatchOperation) Validate() error {
 type PatchPath string
 
 const (
-	phasePathPrefix = "phases"
-	itemPathPrefix  = "items"
+	phasePathPrefix    = "phases"
+	itemPathPrefix     = "items"
+	discountPathPrefix = "discounts"
 )
 
 type PatchPathType string
 
 const (
-	PatchPathTypePhase PatchPathType = "phase"
-	PatchPathTypeItem  PatchPathType = "item"
+	PatchPathTypePhase    PatchPathType = "phase"
+	PatchPathTypeItem     PatchPathType = "item"
+	PatchPathTypeDiscount PatchPathType = "discount"
 )
 
 // Lets implement JSON Unmarshaler for Path
@@ -122,8 +124,8 @@ func (p PatchPath) Validate() error {
 		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, first segment should be %s", strVal, phasePathPrefix)}
 	}
 
-	if len(segments) == 4 && segments[2] != itemPathPrefix {
-		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, third segment should be %s", strVal, itemPathPrefix)}
+	if len(segments) == 4 && slices.Contains([]string{itemPathPrefix, discountPathPrefix}, segments[2]) {
+		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, third segment should be one of %v", strVal, []string{itemPathPrefix, discountPathPrefix})}
 	}
 
 	if lo.SomeBy(segments, func(s string) bool { return s == "" }) {
@@ -134,23 +136,16 @@ func (p PatchPath) Validate() error {
 }
 
 func (p PatchPath) Type() PatchPathType {
-	if len(p.seg()) == 4 {
+	segs := p.seg()
+	if len(segs) == 4 {
+		if segs[2] == discountPathPrefix {
+			return PatchPathTypeDiscount
+		}
+
 		return PatchPathTypeItem
 	}
 
 	return PatchPathTypePhase
-}
-
-func (p PatchPath) PhaseKey() string {
-	return p.seg()[1]
-}
-
-func (p PatchPath) ItemKey() string {
-	if p.Type() != PatchPathTypeItem {
-		return ""
-	}
-
-	return p.seg()[3]
 }
 
 func NewPhasePath(phaseKey string) PatchPath {
@@ -161,22 +156,21 @@ func NewItemPath(phaseKey, itemKey string) PatchPath {
 	return PatchPath(fmt.Sprintf("/%s/%s/%s/%s", phasePathPrefix, phaseKey, itemPathPrefix, itemKey))
 }
 
+func NewDiscountPath(phaseKey, discountKey string) PatchPath {
+	return PatchPath(fmt.Sprintf("/%s/%s/%s/%s", phasePathPrefix, phaseKey, discountPathPrefix, discountKey))
+}
+
 type Patch interface {
-	json.Marshaler
+	// json.Marshaler
 	Applies
 	Validate() error
 	Op() PatchOperation
 	Path() PatchPath
 }
 
-type AnyValuePatch interface {
-	ValueAsAny() any
-}
-
 type ValuePatch[T any] interface {
 	Patch
 	Value() T
-	AnyValuePatch
 }
 
 func ToApplies(p Patch, _ int) Applies {

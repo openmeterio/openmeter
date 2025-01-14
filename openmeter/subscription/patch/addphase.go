@@ -24,10 +24,6 @@ func (a PatchAddPhase) Value() subscription.CreateSubscriptionPhaseInput {
 	return a.CreateInput
 }
 
-func (a PatchAddPhase) ValueAsAny() any {
-	return a.CreateInput
-}
-
 func (a PatchAddPhase) Validate() error {
 	if err := a.Path().Validate(); err != nil {
 		return err

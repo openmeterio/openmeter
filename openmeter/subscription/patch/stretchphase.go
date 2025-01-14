@@ -25,10 +25,6 @@ func (p PatchStretchPhase) Value() datex.Period {
 	return p.Duration
 }
 
-func (p PatchStretchPhase) ValueAsAny() any {
-	return p.Duration
-}
-
 func (p PatchStretchPhase) Validate() error {
 	if err := p.Path().Validate(); err != nil {
 		return err

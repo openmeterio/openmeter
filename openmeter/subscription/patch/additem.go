@@ -41,10 +41,6 @@ func (a PatchAddItem) Validate() error {
 	return nil
 }
 
-func (a PatchAddItem) ValueAsAny() any {
-	return a.CreateInput
-}
-
 var _ subscription.ValuePatch[subscription.SubscriptionItemSpec] = PatchAddItem{}
 
 func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
