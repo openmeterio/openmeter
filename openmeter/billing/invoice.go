@@ -715,3 +715,20 @@ func (i SimulateInvoiceInput) Validate() error {
 
 	return nil
 }
+
+type UpsertValidationIssuesInput struct {
+	Invoice InvoiceID
+	Issues  ValidationIssues
+}
+
+func (i UpsertValidationIssuesInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("id: %w", err)
+	}
+
+	if len(i.Issues) == 0 {
+		return errors.New("issues are required")
+	}
+
+	return nil
+}

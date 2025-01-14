@@ -410,3 +410,23 @@ func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.Get
 
 	return s.adapter.GetLinesForSubscription(ctx, input)
 }
+
+func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	lineSvc, err := s.lineService.FromEntity(input.Line)
+	if err != nil {
+		return nil, fmt.Errorf("creating line service: %w", err)
+	}
+
+	err = lineSvc.SnapshotQuantity(ctx, input.Invoice)
+	if err != nil {
+		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
+	}
+
+	return lineSvc.ToEntity(), nil
+}
