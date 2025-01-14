@@ -78,7 +78,7 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
 	}
 
-	webhookURL, err := url.JoinPath(input.BaseURL, "/api/v1/apps/%s/stripe/webhook", input.AppID.ID)
+	webhookURL, err := url.JoinPath(input.BaseURL, "/api/v1/apps/", input.AppID.ID, "/stripe/webhook")
 	if err != nil {
 		return StripeWebhookEndpoint{}, fmt.Errorf("failed to join url path: %w", err)
 	}
