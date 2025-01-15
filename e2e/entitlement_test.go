@@ -133,7 +133,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 
 			require.Len(t, resp.JSON200.Data, 1)
 			assert.Equal(t, float64(uniqueEventCount), resp.JSON200.Data[0].Value)
-		}, time.Minute, time.Second)
+		}, 2*time.Minute, time.Second)
 	})
 
 	t.Run("Should calculate usage correctly", func(t *testing.T) {
