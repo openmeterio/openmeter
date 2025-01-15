@@ -27,6 +27,8 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}
 
 	return &api.EntitlementMetered{
+		ActiveFrom:  metered.ActiveFromTime(),
+		ActiveTo:    metered.ActiveToTime(),
 		CreatedAt:   metered.CreatedAt,
 		DeletedAt:   metered.DeletedAt,
 		FeatureId:   metered.FeatureID,
@@ -61,6 +63,8 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	}
 
 	apiRes := &api.EntitlementStatic{
+		ActiveFrom:         static.ActiveFromTime(),
+		ActiveTo:           static.ActiveToTime(),
 		CreatedAt:          static.CreatedAt,
 		DeletedAt:          static.DeletedAt,
 		FeatureId:          static.FeatureID,
@@ -85,6 +89,8 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	}
 
 	apiRes := &api.EntitlementBoolean{
+		ActiveFrom:         boolean.ActiveFromTime(),
+		ActiveTo:           boolean.ActiveToTime(),
 		CreatedAt:          boolean.CreatedAt,
 		DeletedAt:          boolean.DeletedAt,
 		FeatureId:          boolean.FeatureID,
