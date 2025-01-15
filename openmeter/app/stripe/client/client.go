@@ -93,6 +93,10 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 			SetupIntentDataMetadataNamespace: input.AppID.Namespace,
 			SetupIntentDataMetadataAppID:     input.AppID.ID,
 		},
+		// We set the API version to a specific date to ensure that
+		// the webhook is compatible with the Stripe client's API version.
+		// https://docs.stripe.com/sdks/set-version
+		APIVersion: lo.ToPtr(stripe.APIVersion),
 	}
 	result, err := c.client.WebhookEndpoints.New(params)
 	if err != nil {
