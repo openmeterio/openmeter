@@ -70,6 +70,11 @@ build-notification-service: ## Build notification-service binary
 	$(call print-target)
 	go build -o build/notification-service ./cmd/notification-service
 
+.PHONY: build-jobs
+build-jobs: ## Build jobs binary
+	$(call print-target)
+	go build -o build/jobs ./cmd/jobs
+
 config.yaml:
 	cp config.example.yaml config.yaml
 

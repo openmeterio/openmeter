@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/cmd/jobs/billing"
 	"github.com/openmeterio/openmeter/cmd/jobs/config"
 	"github.com/openmeterio/openmeter/cmd/jobs/entitlement"
 	"github.com/openmeterio/openmeter/cmd/jobs/service"
@@ -38,6 +39,7 @@ func main() {
 			telemetry, err = service.NewTelemetry(cmd.Context(), conf.Telemetry, conf.Environment, version, otelName)
 			return err
 		},
+		SilenceErrors: true,
 	}
 
 	var configFileName string
@@ -47,9 +49,10 @@ func main() {
 
 	rootCmd.AddCommand(versionCommand())
 	rootCmd.AddCommand(entitlement.RootCommand())
+	rootCmd.AddCommand(billing.Cmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		slog.Default().Error("failed to execute command", "error", err)
+		slog.Error("failed to execute command", "error", err)
 		os.Exit(1)
 	}
 }
