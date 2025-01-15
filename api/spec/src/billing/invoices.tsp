@@ -115,7 +115,7 @@ interface InvoiceEndpoints {
    * Note: charges might apply, depending on the tax provider.
    */
   @post
-  @route("/tax/recalculate")
+  @route("/taxes/recalculate")
   @summary("Recalculate an invoice's tax amounts")
   @operationId("recalculateInvoiceTaxAction")
   recalculateTaxAction(
