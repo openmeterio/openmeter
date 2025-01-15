@@ -56,7 +56,10 @@ func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInp
 	return response, nil
 }
 
-// EnsureCustomer upserts app customer relationship
+// EnsureCustomer upserts app customer relationship:
+// If the app or customer does not exist, an error is returned
+// If the app customer relationship already exists, nothing is done
+// If the app customer relationship is deleted, it is restored
 func (a adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInput) error {
 	if err := input.Validate(); err != nil {
 		return app.ValidationError{
@@ -74,9 +77,14 @@ func (a adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInp
 				SetNamespace(input.AppID.Namespace).
 				SetAppID(input.AppID.ID).
 				SetCustomerID(input.CustomerID.ID).
+				SetNillableDeletedAt(nil).
 				// Upsert
-				OnConflict().
-				DoNothing().
+				OnConflictColumns(
+					appcustomerdb.FieldNamespace,
+					appcustomerdb.FieldAppID,
+					appcustomerdb.FieldCustomerID,
+				).
+				UpdateDeletedAt().
 				Exec(ctx)
 			if err != nil {
 				// TODO: differentiate between app or customer not found

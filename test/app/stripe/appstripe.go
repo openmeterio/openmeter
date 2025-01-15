@@ -21,6 +21,7 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var TestStripeAPIKey = "test_stripe_api_key"
@@ -348,6 +349,19 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		StripeCustomerID: customerData.StripeCustomerID,
 	}, getCustomerData, "Customer data must match")
 
+	// List customer data should return the customer data
+	listCustomerData, err := s.Env.App().ListCustomerData(ctx, app.ListCustomerInput{
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "List customer data must not return error")
+	require.Equal(t, 1, len(listCustomerData.Items), "List customer data must return one item")
+	require.Equal(t, testApp.GetID(), listCustomerData.Items[0].App.GetID(), "App ID must match")
+
 	// Update customer data
 	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
@@ -375,6 +389,18 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.NoError(t, err, "Delete customer data must not return error")
 
+	// List customer data should return no customer data
+	listCustomerData, err = s.Env.App().ListCustomerData(ctx, app.ListCustomerInput{
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "List customer data must not return error")
+	require.Equal(t, 0, len(listCustomerData.Items), "List customer data must return no item")
+
 	// Get customer data should return 404
 	_, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
@@ -386,6 +412,29 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		CustomerID: customer.GetID(),
 		Condition:  "customer has no data for stripe app",
 	})
+
+	// Restore customer data
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			StripeCustomerID: customerData.StripeCustomerID,
+		},
+	})
+
+	require.NoError(t, err, "Restore customer data must not return error")
+
+	// List customer data should return the restores customer data
+	listCustomerData, err = s.Env.App().ListCustomerData(ctx, app.ListCustomerInput{
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+		CustomerID: customer.GetID(),
+	})
+
+	require.NoError(t, err, "List customer data must not return error")
+	require.Equal(t, 1, len(listCustomerData.Items), "List customer data must return one item")
+	require.Equal(t, testApp.GetID(), listCustomerData.Items[0].App.GetID(), "App ID must match")
 }
 
 // TestCustomerValidate tests stripe app behavior when validating a customer
