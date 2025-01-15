@@ -241,6 +241,7 @@ model EntitlementSharedFields {
     EntitlementCreateSharedFields,
     "featureKey" | "featureId" | "usagePeriod"
   >;
+  ...CadencedResource;
 
   /**
    * Readonly unique ULID identifier.

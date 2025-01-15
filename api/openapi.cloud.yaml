@@ -410,6 +410,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/StripeWebhookEvent'
+      security:
+        - {}
   /api/v1/billing/customer:
     get:
       operationId: listBillingProfileCustomerOverrides
@@ -9357,6 +9359,7 @@ components:
       required:
         - createdAt
         - updatedAt
+        - activeFrom
         - id
         - type
         - subjectKey
@@ -9388,6 +9391,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         id:
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
@@ -9433,6 +9446,7 @@ components:
         - type
         - createdAt
         - updatedAt
+        - activeFrom
         - id
         - subjectKey
         - featureKey
@@ -9467,6 +9481,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         id:
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
@@ -9731,6 +9755,7 @@ components:
         - type
         - createdAt
         - updatedAt
+        - activeFrom
         - id
         - subjectKey
         - featureKey
@@ -9802,6 +9827,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         id:
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
@@ -9963,6 +9998,7 @@ components:
         - config
         - createdAt
         - updatedAt
+        - activeFrom
         - id
         - subjectKey
         - featureKey
@@ -10002,6 +10038,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           description: Additional metadata for the feature.
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         id:
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV

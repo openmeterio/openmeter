@@ -263,19 +263,6 @@ func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 	return i
 }
 
-// ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
-func (e Entitlement) ActiveFromTime() time.Time {
-	return defaultx.WithDefault(e.ActiveFrom, e.CreatedAt)
-}
-
-// ActiveToTime returns the time the entitlement is active to. Its either the ActiveTo field or the DeletedAt field or nil
-func (e Entitlement) ActiveToTime() *time.Time {
-	if e.ActiveTo != nil {
-		return e.ActiveTo
-	}
-	return e.DeletedAt
-}
-
 // IsActive returns if the entitlement is active at the given time
 // Period start is determined by
 func (e Entitlement) IsActive(at time.Time) bool {
@@ -350,6 +337,19 @@ type GenericProperties struct {
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
+}
+
+// ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field
+func (e GenericProperties) ActiveFromTime() time.Time {
+	return defaultx.WithDefault(e.ActiveFrom, e.CreatedAt)
+}
+
+// ActiveToTime returns the time the entitlement is active to. Its either the ActiveTo field or the DeletedAt field or nil
+func (e GenericProperties) ActiveToTime() *time.Time {
+	if e.ActiveTo != nil {
+		return e.ActiveTo
+	}
+	return e.DeletedAt
 }
 
 type UsagePeriod recurrence.Recurrence
