@@ -54,11 +54,6 @@
       "pin": "691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
-      "name": "nix",
-      "source": "github.com/tsirysndr/daggerverse/nix@06ff14707b36c781eaa41a01072564fbe4172eef",
-      "pin": "06ff14707b36c781eaa41a01072564fbe4172eef"
-    },
-    {
       "name": "openapi-changes",
       "source": "github.com/sagikazarmark/daggerverse/openapi-changes@b2bd806a2c43a5a58459aa7969d0e3740e66ec43",
       "pin": "b2bd806a2c43a5a58459aa7969d0e3740e66ec43"
