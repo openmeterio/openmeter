@@ -111,6 +111,19 @@ func (a *Router) ApproveInvoiceAction(w http.ResponseWriter, r *http.Request, in
 		}).ServeHTTP(w, r)
 }
 
+// Simulate an invoice for a customer
+// (POST /api/v1/billing/customers/{customerId}/invoices/simulate)
+func (a *Router) SimulateInvoice(w http.ResponseWriter, r *http.Request, customerId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.SimulateInvoice(w, r, customerId)
+		return
+	}
+
+	a.billingHandler.SimulateInvoice().With(httpdriver.SimulateInvoiceParams{
+		CustomerID: customerId,
+	}).ServeHTTP(w, r)
+}
+
 // Delete an invoice line
 // (DELETE /api/v1/billing/invoices/{invoiceId}/lines/{lineId})
 func (a *Router) DeleteInvoiceLine(w http.ResponseWriter, r *http.Request, invoiceId string, lineId string) {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -879,4 +880,125 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			return nil
 		}),
 	)
+}
+
+func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvoiceInput) (billing.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return billing.Invoice{}, fmt.Errorf("validating input: %w", err)
+	}
+
+	billingProfile, err := s.getProfileWithCustomerOverride(ctx, s.adapter, billing.GetProfileWithCustomerOverrideInput{
+		Namespace:  input.CustomerID.Namespace,
+		CustomerID: input.CustomerID.ID,
+	})
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("getting profile with customer override: %w", err)
+	}
+
+	now := time.Now()
+
+	invoice := billing.Invoice{
+		InvoiceBase: billing.InvoiceBase{
+			Namespace: input.CustomerID.Namespace,
+			ID:        ulid.Make().String(),
+
+			Number: input.Number,
+
+			Type: billing.InvoiceTypeStandard,
+
+			Currency:      input.Currency,
+			Status:        billing.InvoiceStatusDraftCreated,
+			StatusDetails: billing.InvoiceStatusDetails{},
+			CreatedAt:     now,
+			UpdatedAt:     now,
+
+			Customer: billing.InvoiceCustomer{
+				CustomerID: input.CustomerID.ID,
+
+				Name:             billingProfile.Customer.Name,
+				BillingAddress:   billingProfile.Customer.BillingAddress,
+				UsageAttribution: billingProfile.Customer.UsageAttribution,
+			},
+
+			Supplier: billing.SupplierContact{
+				ID:      billingProfile.Profile.Supplier.ID,
+				Name:    billingProfile.Profile.Supplier.Name,
+				Address: billingProfile.Profile.Supplier.Address,
+				TaxCode: billingProfile.Profile.Supplier.TaxCode,
+			},
+
+			Workflow: &billing.InvoiceWorkflow{
+				AppReferences:          lo.FromPtrOr(billingProfile.Profile.AppReferences, billing.ProfileAppReferences{}),
+				Apps:                   billingProfile.Profile.Apps,
+				SourceBillingProfileID: billingProfile.Profile.ID,
+				Config:                 billingProfile.Profile.WorkflowConfig,
+			},
+		},
+	}
+
+	inputLines := input.Lines.OrEmpty()
+
+	invoice.Lines = billing.NewLineChildren(
+		lo.Map(inputLines, func(line *billing.Line, _ int) *billing.Line {
+			line.Namespace = input.CustomerID.Namespace
+			if line.ID == "" {
+				line.ID = ulid.Make().String()
+			}
+			line.CreatedAt = now
+			line.UpdatedAt = now
+			line.Currency = input.Currency
+			line.InvoiceID = invoice.ID
+
+			return line
+		}),
+	)
+
+	if err := invoice.Validate(); err != nil {
+		return billing.Invoice{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	// Let's update the lines and the detailed lines
+	for _, line := range invoice.Lines.OrEmpty() {
+		if err := line.Validate(); err != nil {
+			return billing.Invoice{}, billing.ValidationError{
+				Err: err,
+			}
+		}
+
+		lineSvc, err := s.lineService.FromEntity(line)
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("creating line service from entity: %w", err)
+		}
+
+		if err := lineSvc.Validate(ctx, &invoice); err != nil {
+			return billing.Invoice{}, billing.ValidationError{
+				Err: err,
+			}
+		}
+
+		if err := lineSvc.CalculateDetailedLines(); err != nil {
+			return billing.Invoice{}, fmt.Errorf("calculating detailed lines: %w", err)
+		}
+
+		if err := lineSvc.UpdateTotals(); err != nil {
+			return billing.Invoice{}, fmt.Errorf("updating totals: %w", err)
+		}
+	}
+
+	// Let's simulate a recalculation of the invoice
+	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
+		return billing.Invoice{}, err
+	}
+
+	for _, validationIssue := range invoice.ValidationIssues {
+		if validationIssue.Severity == billing.ValidationIssueSeverityCritical {
+			invoice.Status = billing.InvoiceStatusDraftInvalid
+			invoice.StatusDetails.Failed = true
+			break
+		}
+	}
+
+	return invoice, nil
 }

@@ -63,4 +63,8 @@ type InvoiceService interface {
 	//
 	// The call also ensures that the invoice's state is properly updated and invoice immutability is also considered.
 	UpdateInvoiceLinesInternal(ctx context.Context, input UpdateInvoiceLinesInternalInput) error
+
+	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
+	// can be used to execute the invoice generation logic without actually creating an invoice in the database
+	SimulateInvoice(ctx context.Context, input SimulateInvoiceInput) (Invoice, error)
 }

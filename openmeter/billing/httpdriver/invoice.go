@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -315,6 +316,63 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("DeleteInvoice"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type (
+	SimulateInvoiceRequest  = billing.SimulateInvoiceInput
+	SimulateInvoiceResponse = api.Invoice
+	SimulateInvoiceParams   struct {
+		CustomerID string
+	}
+	SimulateInvoiceHandler httptransport.HandlerWithArgs[SimulateInvoiceRequest, SimulateInvoiceResponse, SimulateInvoiceParams]
+)
+
+func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params SimulateInvoiceParams) (SimulateInvoiceRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return SimulateInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			body := api.InvoiceSimulationInput{}
+
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return SimulateInvoiceRequest{}, err
+			}
+
+			lines, err := slicesx.MapWithErr(body.Lines, mapSimulationLineToEntity)
+			if err != nil {
+				return SimulateInvoiceRequest{}, billing.ValidationError{
+					Err: fmt.Errorf("failed to map simulation lines to entity: %w", err),
+				}
+			}
+
+			return SimulateInvoiceRequest{
+				CustomerID: customerentity.CustomerID{
+					Namespace: ns,
+					ID:        params.CustomerID,
+				},
+				Number:   body.Number,
+				Currency: currencyx.Code(body.Currency),
+				Lines:    billing.NewLineChildren(lines),
+			}, nil
+		},
+		func(ctx context.Context, request SimulateInvoiceRequest) (SimulateInvoiceResponse, error) {
+			invoice, err := h.service.SimulateInvoice(ctx, request)
+			if err != nil {
+				return SimulateInvoiceResponse{}, err
+			}
+
+			return h.mapInvoiceToAPI(invoice)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[SimulateInvoiceResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("SimulateInvoice"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

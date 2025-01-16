@@ -554,9 +554,10 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 
-		FeatureKey: line.UsageBased.FeatureKey,
-		Quantity:   decimalPtrToStringPtr(line.UsageBased.Quantity),
-		Price:      price,
+		FeatureKey:            line.UsageBased.FeatureKey,
+		Quantity:              decimalPtrToStringPtr(line.UsageBased.Quantity),
+		PreLinePeriodQuantity: decimalPtrToStringPtr(line.UsageBased.PreLinePeriodQuantity),
+		Price:                 price,
 
 		Discounts: mapDiscountsToAPI(line.Discounts),
 		Children:  children,
@@ -738,4 +739,112 @@ func mapTieredPriceToAPI(p productcatalog.TieredPrice) (api.RateCardUsageBasedPr
 	}
 
 	return out, nil
+}
+
+func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, error) {
+	lineType, err := line.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get type discriminator: %w", err)
+	}
+
+	switch lineType {
+	case string(api.InvoiceFlatFeeLineTypeFlatFee):
+		flatFee, err := line.AsInvoiceSimulationFlatFeeLine()
+		if err != nil {
+			return nil, fmt.Errorf("failed to map flat fee line: %w", err)
+		}
+
+		return mapSimulationFlatFeeLineToEntity(flatFee)
+
+	case string(api.InvoiceUsageBasedLineTypeUsageBased):
+		usageBased, err := line.AsInvoiceSimulationUsageBasedLine()
+		if err != nil {
+			return nil, fmt.Errorf("failed to map usage based line: %w", err)
+		}
+
+		return mapUsageBasedSimulationLineToEntity(usageBased)
+	default:
+		return nil, fmt.Errorf("unsupported type: %s", lineType)
+	}
+}
+
+func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*billing.Line, error) {
+	perUnitAmount, err := alpacadecimal.NewFromString(line.PerUnitAmount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse price: %w", err)
+	}
+
+	qty, err := alpacadecimal.NewFromString(line.Quantity)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse quantity: %w", err)
+	}
+
+	return &billing.Line{
+		LineBase: billing.LineBase{
+			ID:          lo.FromPtrOr(line.Id, ""),
+			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Name:        line.Name,
+			Type:        billing.InvoiceLineTypeFee,
+			Description: line.Description,
+
+			Status: billing.InvoiceLineStatusValid,
+			Period: billing.Period{
+				Start: line.Period.From,
+				End:   line.Period.To,
+			},
+
+			InvoiceAt: line.InvoiceAt,
+			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+		},
+		FlatFee: &billing.FlatFeeLine{
+			PerUnitAmount: perUnitAmount,
+			PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
+			Quantity:      qty,
+		},
+	}, nil
+}
+
+func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLine) (*billing.Line, error) {
+	qty, err := alpacadecimal.NewFromString(line.Quantity)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse quantity: %w", err)
+	}
+
+	prePeriodQty := alpacadecimal.Zero
+	if line.PreLinePeriodQuantity != nil {
+		prePeriodQty, err = alpacadecimal.NewFromString(*line.PreLinePeriodQuantity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse pre period quantity: %w", err)
+		}
+	}
+
+	price, err := planhttpdriver.AsPrice(line.Price)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map price: %w", err)
+	}
+
+	return &billing.Line{
+		LineBase: billing.LineBase{
+			ID:          lo.FromPtrOr(line.Id, ""),
+			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
+			Name:        line.Name,
+			Type:        billing.InvoiceLineTypeUsageBased,
+			Description: line.Description,
+
+			Status: billing.InvoiceLineStatusValid,
+			Period: billing.Period{
+				Start: line.Period.From,
+				End:   line.Period.To,
+			},
+
+			InvoiceAt: line.InvoiceAt,
+			TaxConfig: mapTaxConfigToEntity(line.TaxConfig),
+		},
+		UsageBased: &billing.UsageBasedLine{
+			Price:                 price,
+			FeatureKey:            line.FeatureKey,
+			Quantity:              &qty,
+			PreLinePeriodQuantity: &prePeriodQty,
+		},
+	}, nil
 }

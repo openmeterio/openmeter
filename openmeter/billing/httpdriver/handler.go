@@ -41,6 +41,7 @@ type InvoiceHandler interface {
 	DeleteInvoice() DeleteInvoiceHandler
 	GetInvoice() GetInvoiceHandler
 	ProgressInvoice(ProgressAction) ProgressInvoiceHandler
+	SimulateInvoice() SimulateInvoiceHandler
 }
 
 type handler struct {
