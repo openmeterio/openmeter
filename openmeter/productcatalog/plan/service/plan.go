@@ -71,7 +71,7 @@ func (s service) expandFeatures(ctx context.Context, namespace string, rateCards
 		missing, r := lo.Difference(rateCardFeatureKeys, visited)
 		missing = append(missing, r...)
 
-		return fmt.Errorf("non-existing Features: %+v", missing)
+		return productcatalog.NewValidationError(fmt.Errorf("non-existing Features: %+v", missing))
 	}
 
 	return nil
@@ -112,7 +112,9 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		if len(allVersions.Items) >= 0 {
 			for _, p := range allVersions.Items {
 				if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
-					return nil, fmt.Errorf("only a single draft version is allowed for Plan")
+					return nil, productcatalog.NewValidationError(
+						fmt.Errorf("only a single draft version is allowed for Plan"),
+					)
 				}
 
 				if p.Version >= params.Version {
@@ -175,7 +177,9 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
-			return nil, fmt.Errorf("only Plans in %+v can be deleted, but it has %s state", allowedPlanStatuses, planStatus)
+			return nil, productcatalog.NewValidationError(
+				fmt.Errorf("only Plans in %+v can be deleted, but it has %s state", allowedPlanStatuses, planStatus),
+			)
 		}
 
 		err = s.adapter.DeletePlan(ctx, params)
@@ -259,7 +263,9 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
-			return nil, fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus)
+			return nil, productcatalog.NewValidationError(
+				fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus),
+			)
 		}
 
 		logger.Debug("updating plan")
@@ -319,10 +325,10 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			return nil, fmt.Errorf("failed to convert Plan to ProductCatalog Plan: %w", err)
 		}
 
-		// First, let's validate that the a Subscription can successfully be created from this Plan
+		// First, let's validate that the Subscription can successfully be created from this Plan
 
 		if err := pp.ValidForCreatingSubscriptions(); err != nil {
-			return nil, &models.GenericUserError{Inner: fmt.Errorf("invalid Plan for creating subscriptions: %s", err)}
+			return nil, fmt.Errorf("invalid Plan for creating subscriptions: %s", err)
 		}
 
 		// Second, let's validate that the plan status and the version history is correct
@@ -332,7 +338,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 		planStatus := pp.Status()
 		if !lo.Contains(allowedPlanStatuses, pp.Status()) {
-			return nil, fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus)
+			return nil, productcatalog.NewValidationError(
+				fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus),
+			)
 		}
 
 		// Find and archive Plan version with plan.ActiveStatus if there is one. Only perform lookup if
@@ -419,7 +427,9 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		activeStatuses := []productcatalog.PlanStatus{productcatalog.ActiveStatus}
 		status := p.Status()
 		if !lo.Contains(activeStatuses, status) {
-			return nil, fmt.Errorf("only Plans in %+v can be archived, but it is in %s state", activeStatuses, status)
+			return nil, productcatalog.NewValidationError(
+				fmt.Errorf("only Plans in %+v can be archived, but it is in %s state", activeStatuses, status),
+			)
 		}
 
 		// TODO(chrisgacsal): in order to ensure that there are not time gaps where no active version of a Plan is available
@@ -485,7 +495,9 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		}
 
 		if len(allVersions.Items) == 0 {
-			return nil, fmt.Errorf("no versions available for this plan")
+			return nil, productcatalog.NewValidationError(
+				fmt.Errorf("no versions available for this plan"),
+			)
 		}
 
 		// Generate source plan filter from input parameters
@@ -525,7 +537,9 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		var match, stop bool
 		for _, p := range allVersions.Items {
 			if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
-				return nil, fmt.Errorf("only a single draft version is allowed for Plan")
+				return nil, productcatalog.NewValidationError(
+					fmt.Errorf("only a single draft version is allowed for Plan"),
+				)
 			}
 
 			if !stop {
@@ -541,7 +555,9 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		}
 
 		if sourcePlan == nil {
-			return nil, fmt.Errorf("no versions available for plan to use as source for next draft version")
+			return nil, productcatalog.NewValidationError(
+				fmt.Errorf("no versions available for plan to use as source for next draft version"),
+			)
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{

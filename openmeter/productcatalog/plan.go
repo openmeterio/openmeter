@@ -67,17 +67,21 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 	}
 
 	if len(p.Phases) == 0 {
-		return fmt.Errorf("invalid Plan: at least one PlanPhase is required")
+		return NewValidationError(fmt.Errorf("invalid Plan: at least one PlanPhase is required"))
 	}
 
 	// Check if only the last phase has no duration
 	for i, phase := range p.Phases {
 		if phase.Duration == nil && i != len(p.Phases)-1 {
-			errs = append(errs, fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i))
+			errs = append(errs, NewValidationError(
+				fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i),
+			))
 		}
 
 		if phase.Duration != nil && i == len(p.Phases)-1 {
-			errs = append(errs, fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i))
+			errs = append(errs, NewValidationError(
+				fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i),
+			))
 		}
 	}
 
