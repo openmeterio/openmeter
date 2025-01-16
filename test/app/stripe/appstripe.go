@@ -20,6 +20,7 @@ import (
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -576,6 +577,45 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	})
 
 	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
+
+	// Test if we pass down customer currency if set
+	s.Env.StripeAppClient().Restore()
+
+	s.Env.StripeAppClient().
+		On("CreateCheckoutSession", stripeclient.CreateCheckoutSessionInput{
+			AppID:            appID,
+			CustomerID:       customerID,
+			StripeCustomerID: "cus_123",
+			Options: stripeclient.StripeCheckoutSessionOptions{
+				Currency: lo.ToPtr("usd"),
+			},
+		}).
+		Return(stripeclient.StripeCheckoutSession{
+			SessionID:     "cs_123",
+			SetupIntentID: "seti_123",
+			Mode:          stripe.CheckoutSessionModeSetup,
+			URL:           "https://checkout.stripe.com/cs_123/test",
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.Env.StripeAppClient().Restore()
+
+	_, err = s.Env.Customer().UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+		CustomerID: customer.GetID(),
+		CustomerMutate: customerentity.CustomerMutate{
+			Name:             customer.Name,
+			UsageAttribution: customer.UsageAttribution,
+			Currency:         lo.ToPtr(currencyx.Code("USD")),
+		},
+	})
+	require.NoError(t, err, "Update customer must not return error")
+
+	_, err = s.Env.AppStripe().CreateCheckoutSession(ctx, appstripeentity.CreateCheckoutSessionInput{
+		Namespace:  s.namespace,
+		AppID:      &appID,
+		CustomerID: &customerID,
+	})
+	require.NoError(t, err, "Create checkout session must not return error")
 }
 
 // TestUpdateAPIKey tests stripe app behavior when updating the API key

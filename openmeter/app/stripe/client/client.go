@@ -7,12 +7,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/client"
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -142,4 +144,15 @@ func (c *stripeClient) providerError(err error) error {
 	}
 
 	return err
+}
+
+// Stripe uses lowercase three-letter ISO codes for currency codes.
+// See: https://docs.stripe.com/currencies
+func Currency(c currencyx.Code) string {
+	return strings.ToLower(string(c))
+}
+
+// CurrencyPtr is a helper function for pointer currency codes.
+func CurrencyPtr(c *currencyx.Code) *string {
+	return lo.ToPtr(Currency(*c))
 }
