@@ -412,7 +412,7 @@ paths:
               $ref: '#/components/schemas/StripeWebhookEvent'
       security:
         - {}
-  /api/v1/billing/customer:
+  /api/v1/billing/customers:
     get:
       operationId: listBillingProfileCustomerOverrides
       summary: List customer overrides
@@ -480,7 +480,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Private Preview)
-  /api/v1/billing/customer/{customerId}:
+  /api/v1/billing/customers/{customerId}:
     post:
       operationId: upsertBillingProfileCustomerOverride
       summary: Create a new or update a customer override
@@ -1585,7 +1585,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidInvoiceActionInput'
-  /api/v1/billing/profile:
+  /api/v1/billing/profiles:
     get:
       operationId: listBillingProfiles
       summary: List billing profiles
@@ -1717,7 +1717,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingProfileCreate'
-  /api/v1/billing/profile/{id}:
+  /api/v1/billing/profiles/{id}:
     delete:
       operationId: deleteBillingProfile
       summary: Delete a billing profile

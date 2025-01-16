@@ -221,11 +221,11 @@ namespace OpenMeterCloud.Billing {
   @tag("Customers (Private Preview)")
   interface Customers extends OpenMeter.Customers {}
 
-  @route("/api/v1/billing/customer")
+  @route("/api/v1/billing/customers")
   @tag("Billing (Private Preview)")
   interface CustomerOverrides extends OpenMeter.Billing.CustomerOverrides {}
 
-  @route("/api/v1/billing/profile")
+  @route("/api/v1/billing/profiles")
   @tag("Billing (Private Preview)")
   interface BillingProfiles extends OpenMeter.Billing.Profiles {}
 
