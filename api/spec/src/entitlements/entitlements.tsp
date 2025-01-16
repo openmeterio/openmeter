@@ -56,6 +56,12 @@ interface Entitlements {
     @query(#{ explode: true })
     entitlementType?: EntitlementType[],
 
+    /**
+     * Exclude inactive entitlements in the response (those scheduled for later or earlier)
+     */
+    @query
+    excludeInactive?: boolean = false,
+
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<EntitlementOrderBy>,
