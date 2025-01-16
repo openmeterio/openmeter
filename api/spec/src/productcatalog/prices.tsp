@@ -143,7 +143,7 @@ model PriceTier {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Up to quantity")
-  upToAmount: float64 | null;
+  upToAmount: Numeric | null;
 
   /**
    * The flat price component of the tier.

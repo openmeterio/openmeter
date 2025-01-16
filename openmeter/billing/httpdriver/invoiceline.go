@@ -637,14 +637,6 @@ func decimalPtrToStringPtr(d *alpacadecimal.Decimal) *string {
 	return lo.ToPtr(d.String())
 }
 
-func decimalPtrToFloat64Ptr(d *alpacadecimal.Decimal) *float64 {
-	if d == nil {
-		return nil
-	}
-
-	return lo.ToPtr(d.InexactFloat64())
-}
-
 func mapPriceToAPI(price *productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
 	switch price.Type() {
 	case productcatalog.FlatPriceType:
@@ -708,7 +700,7 @@ func mapTieredPriceToAPI(p productcatalog.TieredPrice) (api.RateCardUsageBasedPr
 
 	tiers := lo.Map(p.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
 		res := api.PriceTier{
-			UpToAmount: decimalPtrToFloat64Ptr(t.UpToAmount),
+			UpToAmount: decimalPtrToStringPtr(t.UpToAmount),
 		}
 
 		if t.FlatPrice != nil {
