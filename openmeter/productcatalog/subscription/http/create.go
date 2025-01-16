@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	planhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -63,7 +62,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to decode request body: %w", err)
 				}
 
-				req, err := planhttp.AsCreatePlanRequest(parsedBody.CustomPlan, ns)
+				req, err := CustomPlanToCreatePlanRequest(parsedBody.CustomPlan, ns)
 				if err != nil {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}

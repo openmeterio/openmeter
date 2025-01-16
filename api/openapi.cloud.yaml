@@ -8977,6 +8977,50 @@ components:
       description: |-
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
+    CustomPlanInput:
+      type: object
+      allOf:
+        - type: object
+          required:
+            - name
+            - currency
+            - phases
+          properties:
+            name:
+              type: string
+              minLength: 1
+              maxLength: 256
+              description: Human-readable name for the resource. Between 1 and 256 characters.
+              title: Display name
+            description:
+              type: string
+              maxLength: 1024
+              description: Optional description of the resource. Maximum 1024 characters.
+              title: Description
+            metadata:
+              type: object
+              allOf:
+                - $ref: '#/components/schemas/Metadata'
+              nullable: true
+              description: Additional metadata for the resource.
+              title: Metadata
+            currency:
+              allOf:
+                - $ref: '#/components/schemas/CurrencyCode'
+              description: The currency code of the plan.
+              title: Currency
+              default: USD
+            phases:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlanPhase'
+              minItems: 1
+              description: |-
+                The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+                A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
+              title: Plan phases
+          description: The template for omitting properties.
+      description: Plan input for custom subscription creation (without key and version).
     CustomSubscriptionChange:
       type: object
       required:
@@ -8989,7 +9033,7 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
         customPlan:
-          $ref: '#/components/schemas/PlanCreate'
+          $ref: '#/components/schemas/CustomPlanInput'
       description: Change a custom subscription.
     CustomSubscriptionCreate:
       type: object
@@ -9004,7 +9048,7 @@ components:
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
         customPlan:
-          $ref: '#/components/schemas/PlanCreate'
+          $ref: '#/components/schemas/CustomPlanInput'
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
