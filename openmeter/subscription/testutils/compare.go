@@ -127,3 +127,53 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 		}
 	}
 }
+
+func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
+	// Let's validate the Subscription itself
+	assert.Equal(t, s1.Name, s2.Name)
+	assert.Equal(t, s1.Description, s2.Description)
+	assert.Equal(t, s1.Plan, s2.Plan)
+	assert.Equal(t, s1.Currency, s2.Currency)
+	assert.Equal(t, s1.CustomerId, s2.CustomerId)
+	assert.Equal(t, s1.ActiveFrom, s2.ActiveFrom)
+	assert.Equal(t, s1.ActiveTo, s2.ActiveTo)
+	assert.Equal(t, s1.Metadata, s2.Metadata)
+
+	// Let's validate the phases
+	require.Equal(t, len(s1.Phases), len(s2.Phases), "phase count mismatch")
+
+	for key := range s1.Phases {
+		p1 := s1.Phases[key]
+		p2, ok := s2.Phases[key]
+		require.True(t, ok, "phase %s not found in second spec", key)
+
+		// Let's validate the phase properties
+		assert.Equal(t, p1.Name, p2.Name, "mismatch for phase %s", key)
+		assert.Equal(t, p1.Description, p2.Description, "mismatch for phase %s", key)
+		assert.Equal(t, p1.Metadata, p2.Metadata, "mismatch for phase %s", key)
+		assert.Equal(t, p1.PhaseKey, p2.PhaseKey, "mismatch for phase %s", key)
+		assert.Equal(t, p1.StartAfter, p2.StartAfter, "mismatch for phase %s", key)
+
+		// Let's validate the items
+		require.Equal(t, len(p1.ItemsByKey), len(p2.ItemsByKey), "item count mismatch for phase %s", key)
+
+		for itemKey := range p1.ItemsByKey {
+			p1Items := p1.ItemsByKey[itemKey]
+			p2Items, ok := p2.ItemsByKey[itemKey]
+			require.True(t, ok, "item %s not found in phase %s", itemKey, key)
+
+			require.Equal(t, len(p1Items), len(p2Items), "item count mismatch for item %s in phase %s", itemKey, key)
+
+			for i := range p1Items {
+				i1 := p1Items[i]
+				i2 := p2Items[i]
+
+				// Let's validate the item properties
+				assert.Equal(t, i1.ItemKey, i2.ItemKey)
+				assert.True(t, i1.RateCard.Equal(i2.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, i1.RateCard, i2.RateCard)
+				assert.Equal(t, i1.CreateSubscriptionItemPlanInput, i2.CreateSubscriptionItemPlanInput)
+				assert.Equal(t, i1.CreateSubscriptionItemCustomerInput, i2.CreateSubscriptionItemCustomerInput)
+			}
+		}
+	}
+}
