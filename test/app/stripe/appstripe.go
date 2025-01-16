@@ -600,7 +600,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	// TODO: do not share env between tests
 	defer s.Env.StripeAppClient().Restore()
 
-	customer, err = s.Env.Customer().UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+	_, err = s.Env.Customer().UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
 		CustomerID: customer.GetID(),
 		CustomerMutate: customerentity.CustomerMutate{
 			Name:             customer.Name,
