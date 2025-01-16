@@ -11442,6 +11442,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Quantity of the item being sold.
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            ID of the line. If not specified it will be auto-generated.
+
+            When discounts are specified, this must be provided, so that the discount can reference it.
       description: InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint.
     InvoiceSimulationInput:
       type: object
@@ -11541,6 +11549,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: The quantity of the item used before this line's period, if the line is billed progressively.
+        id:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            ID of the line. If not specified it will be auto-generated.
+
+            When discounts are specified, this must be provided, so that the discount can reference it.
       description: InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint.
     InvoiceStatus:
       type: string

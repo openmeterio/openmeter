@@ -528,6 +528,14 @@ model InvoiceSimulationUsageBasedLine {
    */
   @visibility(Lifecycle.Create)
   preLinePeriodQuantity?: Numeric;
+
+  /**
+   * ID of the line. If not specified it will be auto-generated.
+   *
+   * When discounts are specified, this must be provided, so that the discount can reference it.
+   */
+  @visibility(Lifecycle.Create)
+  id?: ULID;
 }
 
 /**
@@ -539,4 +547,12 @@ model InvoiceSimulationFlatFeeLine {
     Invoices.InvoiceFlatFeeLine,
     "invoice" | "currency"
   >>;
+
+  /**
+   * ID of the line. If not specified it will be auto-generated.
+   *
+   * When discounts are specified, this must be provided, so that the discount can reference it.
+   */
+  @visibility(Lifecycle.Create)
+  id?: ULID;
 }

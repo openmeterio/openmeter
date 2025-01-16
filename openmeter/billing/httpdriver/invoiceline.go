@@ -781,6 +781,7 @@ func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*b
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
+			ID:          lo.FromPtrOr(line.Id, ""),
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
 			Type:        billing.InvoiceLineTypeFee,
@@ -809,14 +810,12 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 		return nil, fmt.Errorf("failed to parse quantity: %w", err)
 	}
 
-	var prePeriodQty *alpacadecimal.Decimal
+	prePeriodQty := alpacadecimal.Zero
 	if line.PreLinePeriodQuantity != nil {
-		prePeriodQtyParsed, err := alpacadecimal.NewFromString(*line.PreLinePeriodQuantity)
+		prePeriodQty, err = alpacadecimal.NewFromString(*line.PreLinePeriodQuantity)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse pre period quantity: %w", err)
 		}
-
-		prePeriodQty = &prePeriodQtyParsed
 	}
 
 	price, err := planhttpdriver.AsPrice(line.Price)
@@ -826,6 +825,7 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 
 	return &billing.Line{
 		LineBase: billing.LineBase{
+			ID:          lo.FromPtrOr(line.Id, ""),
 			Metadata:    lo.FromPtrOr(line.Metadata, map[string]string{}),
 			Name:        line.Name,
 			Type:        billing.InvoiceLineTypeUsageBased,
@@ -844,7 +844,7 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 			Price:                 price,
 			FeatureKey:            line.FeatureKey,
 			Quantity:              &qty,
-			PreLinePeriodQuantity: prePeriodQty,
+			PreLinePeriodQuantity: &prePeriodQty,
 		},
 	}, nil
 }
