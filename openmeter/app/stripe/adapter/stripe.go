@@ -460,6 +460,11 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create stripe client: %w", err)
 		}
 
+		// Set the currency if customer has one and it is not provided
+		if input.Options.Currency == nil && customer.Currency != nil {
+			input.Options.Currency = stripeclient.CurrencyPtr(customer.Currency)
+		}
+
 		// Create the checkout session
 		checkoutSession, err := stripeClient.CreateCheckoutSession(ctx, stripeclient.CreateCheckoutSessionInput{
 			StripeCustomerID: stripeCustomerId,
