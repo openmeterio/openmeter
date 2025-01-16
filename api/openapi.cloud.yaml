@@ -2596,6 +2596,14 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/EntitlementType'
+        - name: excludeInactive
+          in: query
+          required: false
+          description: Exclude inactive entitlements in the response (those scheduled for later or earlier)
+          schema:
+            type: boolean
+            default: false
+          explode: false
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'

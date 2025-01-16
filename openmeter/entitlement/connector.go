@@ -51,6 +51,7 @@ type ListEntitlementsParams struct {
 	Order               sortx.Order
 	IncludeDeleted      bool
 	IncludeDeletedAfter time.Time
+	ExcludeInactive     bool
 	Page                pagination.Page
 	// will be deprecated
 	Limit int

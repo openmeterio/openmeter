@@ -291,7 +291,8 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			}
 
 			p := entitlement.ListEntitlementsParams{
-				Namespaces: []string{ns},
+				ExcludeInactive: defaultx.WithDefault(params.ExcludeInactive, false),
+				Namespaces:      []string{ns},
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, 0),
 					PageNumber: defaultx.WithDefault(params.Page, 0),
