@@ -57,6 +57,16 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 	return nil
 }
 
+func (v SubscriptionView) WithoutItemHistory() SubscriptionView {
+	v2 := v
+	for i, phase := range v.Phases {
+		phase2 := phase
+		phase2.ItemsByKey = make(map[string][]SubscriptionItemView)
+		v2.Phases[i] = phase2
+	}
+	return v2
+}
+
 type SubscriptionPhaseView struct {
 	SubscriptionPhase SubscriptionPhase                 `json:"subscriptionPhase"`
 	Spec              SubscriptionPhaseSpec             `json:"spec"`

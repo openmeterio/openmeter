@@ -203,6 +203,13 @@ func TestPlan(t *testing.T) {
 		},
 	}
 
+	customPlanInput := api.CustomPlanInput{
+		Currency:    planCreate.Currency,
+		Name:        planCreate.Name,
+		Description: planCreate.Description,
+		Phases:      planCreate.Phases,
+	}
+
 	t.Run("Should create a plan on happy path", func(t *testing.T) {
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, planCreate)
 		require.Nil(t, err)
@@ -242,7 +249,7 @@ func TestPlan(t *testing.T) {
 		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
 			ActiveFrom: startTime,
 			CustomerId: *customer2.Id,
-			CustomPlan: planCreate, // For simplicity we can reuse the same plan input, we know its valid
+			CustomPlan: customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
 		})
 		require.Nil(t, err)
 
@@ -449,7 +456,7 @@ func TestPlan(t *testing.T) {
 
 		err := req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
 			ActiveFrom: migratedSubView.ActiveFrom.Add(time.Minute),
-			CustomPlan: planCreate, // It will functionally be the same as the old plan
+			CustomPlan: customPlanInput, // It will functionally be the same as the old plan
 		})
 		require.Nil(t, err)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -16,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
@@ -410,4 +412,42 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	base.Phases = phases
 
 	return base, nil
+}
+
+func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (planhttpdriver.CreatePlanRequest, error) {
+	var err error
+
+	req := planhttpdriver.CreatePlanRequest{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:        a.Name,
+				Description: a.Description,
+				Metadata:    lo.FromPtrOr(a.Metadata, nil),
+			},
+			Phases: nil,
+		},
+	}
+
+	req.Currency = currency.Code(a.Currency)
+	if err = req.Currency.Validate(); err != nil {
+		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
+	}
+
+	if len(a.Phases) > 0 {
+		req.Phases = make([]productcatalog.Phase, 0, len(a.Phases))
+
+		for _, phase := range a.Phases {
+			planPhase, err := planhttpdriver.AsPlanPhase(phase)
+			if err != nil {
+				return req, fmt.Errorf("failed to cast PlanPhase: %w", err)
+			}
+
+			req.Phases = append(req.Phases, planPhase)
+		}
+	}
+
+	return req, nil
 }

@@ -201,7 +201,6 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 		},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
-				Key:      "empty-plan",
 				Name:     "Empty Plan",
 				Currency: currency.Code("USD"),
 			},
