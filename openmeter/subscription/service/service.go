@@ -72,6 +72,12 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, fmt.Errorf("customer is nil")
 	}
 
+	if cust.Currency != nil {
+		if string(*cust.Currency) != string(spec.Currency) {
+			return def, &models.GenericUserError{Inner: fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency)}
+		}
+	}
+
 	// Let's build a timeline of every already schedueld subscription along with the new one
 	// so we can validate the timeline
 	scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
@@ -121,6 +127,32 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 
 			if _, err := s.createPhase(ctx, *cust, *phase, sub, phaseCadence); err != nil {
 				return def, err
+			}
+		}
+
+		// Re-Fetch the customer
+		cust, err := s.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+			Namespace: namespace,
+			ID:        spec.CustomerId,
+		})
+		if err != nil {
+			return def, err
+		}
+
+		// Let's set the customer's currency to the subscription currency (if not already set)
+		if cust.Currency == nil {
+			if _, err := s.CustomerService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+				CustomerID: cust.GetID(),
+				CustomerMutate: customerentity.CustomerMutate{
+					Name:             cust.Name,
+					Description:      cust.Description,
+					UsageAttribution: cust.UsageAttribution,
+					PrimaryEmail:     cust.PrimaryEmail,
+					BillingAddress:   cust.BillingAddress,
+					Currency:         &spec.Currency,
+				},
+			}); err != nil {
+				return def, fmt.Errorf("failed to update customer currency: %w", err)
 			}
 		}
 
