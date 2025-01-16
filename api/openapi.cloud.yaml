@@ -1443,7 +1443,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Private Preview)
-  /api/v1/billing/invoices/{invoiceId}/tax/recalculate:
+  /api/v1/billing/invoices/{invoiceId}/taxes/recalculate:
     post:
       operationId: recalculateInvoiceTaxAction
       summary: Recalculate an invoice's tax amounts
