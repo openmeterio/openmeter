@@ -238,6 +238,33 @@ interface InvoiceEndpoints {
    */
 }
 
+@route("/api/v1/billing/customers/{customerId}/invoices/simulate")
+@tag("Billing (Private Preview)")
+interface InvoiceSimulationEndpoints {
+  /**
+   * Simulate an invoice for a customer.
+   *
+   * This call will simulate an invoice for a customer based on the pending line items.
+   *
+   * The call will return the total amount of the invoice and the line items that will be included in the invoice.
+   */
+  @post
+  @summary("Simulate an invoice for a customer")
+  @operationId("simulateInvoice")
+  simulateInvoice(
+    @path
+    customerId: ULID,
+
+    @body
+    request: InvoiceSimulationInput,
+  ): {
+    @statusCode _: 200;
+
+    @body
+    body: Invoices.Invoice;
+  } | OpenMeter.CommonErrors;
+}
+
 /**
  * InvoiceOrderBy specifies the ordering options for invoice listing.
  */
@@ -442,4 +469,74 @@ model InvoicePendingLinesActionInput {
    */
   @visibility(Lifecycle.Create)
   customerId: ULID;
+}
+
+/**
+ * InvoiceSimulationInput is the input for simulating an invoice.
+ */
+@friendlyName("InvoiceSimulationInput")
+model InvoiceSimulationInput {
+  /**
+   * The number of the invoice.
+   */
+  @visibility(Lifecycle.Create)
+  number?: Invoices.InvoiceNumber;
+
+  /**
+   * Currency for all invoice line items.
+   *
+   * Multi currency invoices are not supported yet.
+   */
+  @visibility(Lifecycle.Create)
+  currency: CurrencyCode;
+
+  /**
+   * Lines to be included in the generated invoice.
+   */
+  @visibility(Lifecycle.Create)
+  lines: InvoiceSimulationLine[];
+}
+
+/**
+ * InvoiceSimulationInput represents a line item that can be input to the simulation endpoint.
+ */
+@friendlyName("InvoiceSimulationLine")
+@discriminator("type")
+union InvoiceSimulationLine {
+  usageBased: InvoiceSimulationUsageBasedLine,
+  flatFee: InvoiceSimulationFlatFeeLine,
+}
+
+/**
+ * InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint.
+ */
+@friendlyName("InvoiceSimulationUsageBasedLine")
+model InvoiceSimulationUsageBasedLine {
+  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+    Invoices.InvoiceUsageBasedLine,
+    "invoice" | "currency"
+  >>;
+
+  /**
+   * The quantity of the item being sold.
+   */
+  @visibility(Lifecycle.Create)
+  quantity: Numeric;
+
+  /**
+   * The quantity of the item used before this line's period, if the line is billed progressively.
+   */
+  @visibility(Lifecycle.Create)
+  preLinePeriodQuantity?: Numeric;
+}
+
+/**
+ * InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint.
+ */
+@friendlyName("InvoiceSimulationFlatFeeLine")
+model InvoiceSimulationFlatFeeLine {
+  ...Rest.Resource.ResourceCreateModel<OmitProperties<
+    Invoices.InvoiceFlatFeeLine,
+    "invoice" | "currency"
+  >>;
 }

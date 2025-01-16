@@ -691,3 +691,27 @@ func (i UpdateInvoiceInput) Validate() error {
 
 	return nil
 }
+
+type SimulateInvoiceInput struct {
+	CustomerID customerentity.CustomerID
+
+	Number   *string
+	Currency currencyx.Code
+	Lines    LineChildren
+}
+
+func (i SimulateInvoiceInput) Validate() error {
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("customer ID: %w", err)
+	}
+
+	if i.Currency == "" {
+		return errors.New("currency is required")
+	}
+
+	if i.Lines.IsAbsent() || len(i.Lines.OrEmpty()) == 0 {
+		return errors.New("lines are required")
+	}
+
+	return nil
+}

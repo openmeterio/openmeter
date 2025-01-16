@@ -679,6 +679,75 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Billing (Private Preview)
+  /api/v1/billing/customers/{customerId}/invoices/simulate:
+    post:
+      operationId: simulateInvoice
+      summary: Simulate an invoice for a customer
+      description: |-
+        Simulate an invoice for a customer.
+
+        This call will simulate an invoice for a customer based on the pending line items.
+
+        The call will return the total amount of the invoice and the line items that will be included in the invoice.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Billing (Private Preview)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceSimulationInput'
   /api/v1/billing/invoices:
     get:
       operationId: listInvoices
@@ -11312,6 +11381,167 @@ components:
           description: The number of the invoice.
           readOnly: true
       description: Reference to an invoice.
+    InvoiceSimulationFlatFeeLine:
+      type: object
+      required:
+        - name
+        - period
+        - invoiceAt
+        - type
+        - perUnitAmount
+        - quantity
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - flat_fee
+        perUnitAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Price of the item being sold.
+        paymentTerm:
+          allOf:
+            - $ref: '#/components/schemas/PricePaymentTerm'
+          description: Payment term of the line.
+          default: in_advance
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Quantity of the item being sold.
+      description: InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint.
+    InvoiceSimulationInput:
+      type: object
+      required:
+        - currency
+        - lines
+      properties:
+        number:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceNumber'
+          description: The number of the invoice.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Currency for all invoice line items.
+
+            Multi currency invoices are not supported yet.
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceSimulationLine'
+          description: Lines to be included in the generated invoice.
+      description: InvoiceSimulationInput is the input for simulating an invoice.
+    InvoiceSimulationLine:
+      anyOf:
+        - $ref: '#/components/schemas/InvoiceSimulationUsageBasedLine'
+        - $ref: '#/components/schemas/InvoiceSimulationFlatFeeLine'
+      discriminator:
+        propertyName: type
+        mapping:
+          usage_based: '#/components/schemas/InvoiceSimulationUsageBasedLine'
+          flat_fee: '#/components/schemas/InvoiceSimulationFlatFeeLine'
+      description: InvoiceSimulationInput represents a line item that can be input to the simulation endpoint.
+    InvoiceSimulationUsageBasedLine:
+      type: object
+      required:
+        - name
+        - period
+        - invoiceAt
+        - type
+        - price
+        - featureKey
+        - quantity
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        taxConfig:
+          allOf:
+            - $ref: '#/components/schemas/TaxConfig'
+          description: Tax config specify the tax configuration for this line.
+        period:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: |-
+            Period of the line item applies to for revenue recognition pruposes.
+
+            Billing always treats periods as start being inclusive and end being exclusive.
+        invoiceAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The time this line item should be invoiced.
+        type:
+          type: string
+          enum:
+            - usage_based
+        price:
+          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+        featureKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The feature that the usage is based on.
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity of the item being sold.
+        preLinePeriodQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity of the item used before this line's period, if the line is billed progressively.
+      description: InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint.
     InvoiceStatus:
       type: string
       enum:
