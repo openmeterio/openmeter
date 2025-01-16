@@ -257,12 +257,7 @@ interface InvoiceSimulationEndpoints {
 
     @body
     request: InvoiceSimulationInput,
-  ): {
-    @statusCode _: 200;
-
-    @body
-    body: Invoices.Invoice;
-  } | OpenMeter.CommonErrors;
+  ):  Invoices.Invoice | OpenMeter.CommonErrors;
 }
 
 /**
