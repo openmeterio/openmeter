@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -80,6 +81,101 @@ func TestCreation(t *testing.T) {
 			// Let's validate the spec & the view
 			subscriptiontestutils.ValidateSpecAndView(t, defaultSpecFromPlan, found)
 		})
+	})
+
+	t.Run("Should not allow creating a subscription with different currency compared to the customer", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		services, deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := services.Service
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		_, err := deps.CustomerService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+			CustomerID: cust.GetID(),
+			CustomerMutate: customerentity.CustomerMutate{
+				Name:             cust.Name,
+				Description:      cust.Description,
+				UsageAttribution: cust.UsageAttribution,
+				PrimaryEmail:     cust.PrimaryEmail,
+				BillingAddress:   cust.BillingAddress,
+				Currency:         lo.ToPtr(currencyx.Code("EUR")),
+			},
+		})
+		require.Nil(t, err)
+
+		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId: cust.ID,
+			Currency:   "USD",
+			ActiveFrom: currentTime,
+			Name:       "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		_, err = service.Create(ctx, subscriptiontestutils.ExampleNamespace, defaultSpecFromPlan)
+
+		require.Error(t, err)
+		require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}))
+	})
+
+	t.Run("Should set customer currency based on subscription", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		services, deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := services.Service
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		_, err := deps.CustomerService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+			CustomerID: cust.GetID(),
+			CustomerMutate: customerentity.CustomerMutate{
+				Name:             cust.Name,
+				Description:      cust.Description,
+				UsageAttribution: cust.UsageAttribution,
+				PrimaryEmail:     cust.PrimaryEmail,
+				BillingAddress:   cust.BillingAddress,
+				Currency:         nil,
+			},
+		})
+		require.Nil(t, err)
+
+		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId: cust.ID,
+			Currency:   "USD",
+			ActiveFrom: currentTime,
+			Name:       "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		_, err = service.Create(ctx, subscriptiontestutils.ExampleNamespace, defaultSpecFromPlan)
+
+		require.NoError(t, err)
+
+		c, err := deps.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+			Namespace: cust.Namespace,
+			ID:        cust.ID,
+		})
+		require.NoError(t, err)
+
+		assert.Equal(t, currencyx.Code("USD"), *c.Currency)
 	})
 }
 
