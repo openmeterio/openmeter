@@ -257,7 +257,7 @@ interface InvoiceSimulationEndpoints {
 
     @body
     request: InvoiceSimulationInput,
-  ):  Invoices.Invoice | OpenMeter.CommonErrors;
+  ): Invoices.Invoice | OpenMeter.CommonErrors;
 }
 
 /**

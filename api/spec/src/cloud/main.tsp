@@ -239,7 +239,8 @@ namespace OpenMeterCloud.Billing {
 
   @route("/api/v1/billing/customers/{customerId}/invoices/simulate")
   @tag("Billing (Private Preview)")
-  interface InvoiceSimulationEndpoints extends OpenMeter.Billing.InvoiceSimulationEndpoints {}
+  interface InvoiceSimulationEndpoints
+    extends OpenMeter.Billing.InvoiceSimulationEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {
