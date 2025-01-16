@@ -302,10 +302,9 @@ func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, erro
 			MinimumAmount: minimumAmount,
 			MaximumAmount: maximumAmount,
 			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
-				var upToAmount *float64
+				var upToAmount *string
 				if t.UpToAmount != nil {
-					a, _ := t.UpToAmount.Float64()
-					upToAmount = lo.ToPtr(a)
+					upToAmount = lo.ToPtr(t.UpToAmount.String())
 				}
 
 				var unitPrice *api.UnitPrice

@@ -252,10 +252,9 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 					MinimumAmount: minimumAmount,
 					MaximumAmount: maximumAmount,
 					Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
-						var upToAmount *float64
+						var upToAmount *api.Numeric
 						if t.UpToAmount != nil {
-							a, _ := t.UpToAmount.Float64()
-							upToAmount = lo.ToPtr(a)
+							upToAmount = lo.ToPtr(t.UpToAmount.String())
 						}
 
 						var unitPrice *api.UnitPrice
@@ -769,7 +768,12 @@ func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
 	}
 
 	if t.UpToAmount != nil {
-		tier.UpToAmount = lo.ToPtr(decimal.NewFromFloat(*t.UpToAmount))
+		upToAmount, err := decimal.NewFromString(*t.UpToAmount)
+		if err != nil {
+			return tier, fmt.Errorf("invalid UpToAmount for PriceTier: %w", err)
+		}
+
+		tier.UpToAmount = &upToAmount
 	}
 
 	if t.FlatPrice != nil {

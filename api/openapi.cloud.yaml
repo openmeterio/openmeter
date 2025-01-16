@@ -13751,8 +13751,9 @@ components:
         - unitPrice
       properties:
         upToAmount:
-          type: number
-          format: double
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
           nullable: true
           description: |-
             Up to and including to this quantity will be contained in the tier.
