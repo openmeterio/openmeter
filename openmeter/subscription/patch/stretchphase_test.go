@@ -1,15 +1,15 @@
 package patch_test
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datex"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStretchPhase(t *testing.T) {
@@ -166,10 +166,10 @@ func TestStretchPhase(t *testing.T) {
 				Ctx: subscription.ApplyContext{
 					CurrentTime: now,
 				},
-				ExpectedError: &subscription.PatchConflictError{Msg: fmt.Sprintf("phase test_phase_1 would disappear due to stretching")},
+				ExpectedError: &subscription.PatchConflictError{Msg: "phase test_phase_1 would disappear due to stretching"},
 			},
 			{
-				Name: "Should work when strecthing past next phase",
+				Name: "Should work when stretching past next phase",
 				Patch: patch.PatchStretchPhase{
 					PhaseKey: "test_phase_1",
 					Duration: testutils.GetISODuration(t, "P5M"),

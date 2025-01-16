@@ -103,7 +103,6 @@ func (p PatchStretchPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 
 			sortedPhases[i].StartAfter = sa
 		}
-
 	}
 
 	return nil
