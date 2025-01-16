@@ -277,19 +277,23 @@ func (i Line) FlattenDiscountsByID() map[string]LineDiscount {
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
 // for creating a new line without any references to the parent or children (or config IDs).
 func (i Line) CloneWithoutDependencies() *Line {
-	clone := i.Clone()
+	clone := i.clone(cloneOptions{
+		skipDBState:   true,
+		skipChildren:  true,
+		skipDiscounts: true,
+	})
+
 	clone.ID = ""
 	clone.ParentLineID = nil
 	clone.ParentLine = nil
-	clone.Children = LineChildren{}
-	clone.Discounts = LineDiscounts{}
+
 	if clone.FlatFee != nil {
 		clone.FlatFee.ConfigID = ""
 	}
+
 	if clone.UsageBased != nil {
 		clone.UsageBased.ConfigID = ""
 	}
-	clone.DBState = nil
 
 	return clone
 }
@@ -345,9 +349,20 @@ func (i Line) RemoveMetaForCompare() *Line {
 }
 
 func (i Line) Clone() *Line {
-	res := &Line{
+	return i.clone(cloneOptions{})
+}
+
+type cloneOptions struct {
+	skipDBState   bool
+	skipChildren  bool
+	skipDiscounts bool
+}
+
+func (i Line) clone(opts cloneOptions) *Line {
+	res := &Line{}
+	if !opts.skipDBState {
 		// DBStates are considered immutable, so it's safe to clone
-		DBState: i.DBState,
+		res.DBState = i.DBState
 	}
 
 	switch i.Type {
@@ -359,17 +374,27 @@ func (i Line) Clone() *Line {
 
 	res.LineBase = i.LineBase.Clone(res)
 
-	res.Children = i.Children.Map(func(line *Line) *Line {
-		cloned := line.Clone()
-		cloned.ParentLine = line
-		return cloned
-	})
+	if !opts.skipChildren {
+		res.Children = i.Children.Map(func(line *Line) *Line {
+			cloned := line.Clone()
+			cloned.ParentLine = line
+			return cloned
+		})
+	}
 
-	res.Discounts = i.Discounts.Map(func(ld LineDiscount) LineDiscount {
-		return ld
-	})
+	if !opts.skipDiscounts {
+		res.Discounts = i.Discounts.Map(func(ld LineDiscount) LineDiscount {
+			return ld
+		})
+	}
 
 	return res
+}
+
+func (i Line) CloneWithoutChildren() *Line {
+	return i.clone(cloneOptions{
+		skipChildren: true,
+	})
 }
 
 func (i *Line) SaveDBSnapshot() {
@@ -594,6 +619,12 @@ func (c Line) ChildrenWithIDReuse(l []*Line) LineChildren {
 func (c LineChildren) Clone() LineChildren {
 	return c.Map(func(l *Line) *Line {
 		return l.Clone()
+	})
+}
+
+func (c LineChildren) NonDeletedLineCount() int {
+	return lo.CountBy(c.OrEmpty(), func(l *Line) bool {
+		return l.DeletedAt == nil
 	})
 }
 
@@ -1040,6 +1071,23 @@ func (i GetLinesForSubscriptionInput) Validate() error {
 
 	if i.SubscriptionID == "" {
 		return errors.New("subscription id is required")
+	}
+
+	return nil
+}
+
+type SnapshotLineQuantityInput struct {
+	Invoice *Invoice
+	Line    *Line
+}
+
+func (i SnapshotLineQuantityInput) Validate() error {
+	if i.Invoice == nil {
+		return errors.New("invoice is required")
+	}
+
+	if i.Line == nil {
+		return errors.New("line is required")
 	}
 
 	return nil

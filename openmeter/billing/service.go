@@ -40,6 +40,9 @@ type InvoiceLineService interface {
 	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*Line, error)
 
 	DeleteInvoiceLine(ctx context.Context, input DeleteInvoiceLineInput) error
+	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
+	// the invoice is used as contextual information to the call.
+	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*Line, error)
 }
 
 type InvoiceService interface {
@@ -57,14 +60,10 @@ type InvoiceService interface {
 	// UpdateInvoice updates an invoice as a whole
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 
-	// UpdateInvoiceLinesInternal updates the specified invoice lines and ensures that invoice states are properly syncronized
-	// This method is intended to be used by OpenMeter internal services only, as it allows for updating invoice line values,
-	// that are not allowed to be updated by external services.
-	//
-	// The call also ensures that the invoice's state is properly updated and invoice immutability is also considered.
-	UpdateInvoiceLinesInternal(ctx context.Context, input UpdateInvoiceLinesInternalInput) error
-
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
 	SimulateInvoice(ctx context.Context, input SimulateInvoiceInput) (Invoice, error)
+	// UpsertValidationIssues upserts validation errors to the invoice bypassing the state machine, can only be
+	// used on invoices in immutable state.
+	UpsertValidationIssues(ctx context.Context, input UpsertValidationIssuesInput) error
 }

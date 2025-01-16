@@ -2,7 +2,6 @@ package billingservice
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -620,200 +619,6 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 	return err
 }
 
-// TODO[OM-1090]: this needs to be refactored as discounts would require whole invoice updates
-func (s *Service) UpdateInvoiceLinesInternal(ctx context.Context, input billing.UpdateInvoiceLinesInternalInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	if len(input.Lines) == 0 {
-		return nil
-	}
-
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		// Split line child updates should be done invoice by invoice, so let's flatten split lines
-		lines := s.flattenSplitLines(input.Lines)
-
-		linesByInvoice := lo.GroupBy(lines, func(line *billing.Line) string {
-			return line.InvoiceID
-		})
-
-		// We want to upsert the new lines at the end, so that any updates on the gathering invoice will not interfere
-		newPendingLines := linesByInvoice[""]
-		delete(linesByInvoice, "")
-
-		for invoiceID, lines := range linesByInvoice {
-			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					ID:        invoiceID,
-					Namespace: input.Namespace,
-				},
-				Expand: billing.InvoiceExpand{
-					Lines:        true,
-					DeletedLines: true,
-					SplitLines:   true,
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("fetching invoice: %w", err)
-			}
-
-			if input.CustomerID != invoice.Customer.CustomerID {
-				return billing.ValidationError{
-					Err: fmt.Errorf("customer mismatch: [input.customer=%s] vs [invoice.customer=%s]", input.CustomerID, invoice.Customer.CustomerID),
-				}
-			}
-
-			if invoice.Status == billing.InvoiceStatusGathering {
-				for _, line := range lines {
-					if !invoice.Lines.ReplaceByID(line.ID, line) {
-						return fmt.Errorf("line[%s] not found in invoice[%s]", line.ID, invoice.ID)
-					}
-				}
-
-				if _, err := s.adapter.UpdateInvoice(ctx, invoice); err != nil {
-					return fmt.Errorf("updating gathering invoice: %w", err)
-				}
-			} else {
-				if err := s.handleNonGatheringInvoiceLineUpdate(ctx, invoice, lines); err != nil {
-					return fmt.Errorf("handling invoice line update: %w", err)
-				}
-			}
-		}
-
-		_, err := s.CreatePendingInvoiceLines(ctx, billing.CreateInvoiceLinesInput{
-			Namespace: input.Namespace,
-			Lines: lo.Map(newPendingLines, func(line *billing.Line, _ int) billing.LineWithCustomer {
-				return billing.LineWithCustomer{
-					Line:       *line,
-					CustomerID: input.CustomerID,
-				}
-			}),
-		})
-		if err != nil {
-			return fmt.Errorf("creating new pending lines: %w", err)
-		}
-
-		// Note: The gathering invoice will be maintained by the CreatePendingInvoiceLines call, so we don't need to care for any empty gathering
-		// invoices here.
-		return nil
-	})
-}
-
-func (s *Service) handleNonGatheringInvoiceLineUpdate(ctx context.Context, invoice billing.Invoice, lines []*billing.Line) error {
-	if invoice.Lines.IsAbsent() {
-		return errors.New("cannot update invoice without expanded lines")
-	}
-
-	existingInvoiceLinesByID := lo.GroupBy(invoice.Lines.OrEmpty(), func(line *billing.Line) string {
-		return line.ID
-	})
-
-	// Let's look for the lines that have been updated
-	changedLines := make([]*billing.Line, 0, len(lines))
-
-	for _, line := range lines {
-		existingLines, existingLineFound := existingInvoiceLinesByID[line.ID]
-
-		if existingLineFound {
-			if len(existingLines) != 1 {
-				return fmt.Errorf("line[%s] has more than one entry in the invoice", line.ID)
-			}
-
-			existingLine := existingLines[0]
-			if !existingLine.LineBase.Equal(line.LineBase) {
-				changedLines = append(changedLines, line)
-			}
-		} else {
-			changedLines = append(changedLines, line)
-		}
-	}
-
-	if len(changedLines) == 0 {
-		return nil
-	}
-
-	// Let's try to avoid touching an immutable invoice
-	if invoice.StatusDetails.Immutable {
-		// We only care about lines that are affecting the balance at this stage, as
-		// there's a chance that an invoice being created and a subscription update is
-		// happening in the same time.
-
-		return fmt.Errorf("invoice is immutable, but voiding is not implemented yet: invoice[%s] lineIDs:[%s]",
-			invoice.ID,
-			strings.Join(lo.Map(changedLines, func(line *billing.Line, _ int) string {
-				return line.ID
-			}), ","),
-		)
-	}
-
-	// Note: in the current setup this could only happen if there's a parallel progressive invoice creation and
-	// subscription edit.
-	for _, line := range changedLines {
-		// Should not happen as split lines can only live on gathering invoices
-		if line.Status == billing.InvoiceLineStatusSplit {
-			return fmt.Errorf("split line[%s] cannot be updated", line.ID)
-		}
-
-		// Let's update the snapshot of the line, as we might have changed the period
-		srv, err := s.lineService.FromEntity(line)
-		if err != nil {
-			return fmt.Errorf("creating line service: %w", err)
-		}
-
-		if err := srv.Validate(ctx, &invoice); err != nil {
-			return fmt.Errorf("validating line: %w", err)
-		}
-
-		if err := srv.SnapshotQuantity(ctx, &invoice); err != nil {
-			return fmt.Errorf("snapshotting quantity: %w", err)
-		}
-
-		if err := srv.CalculateDetailedLines(); err != nil {
-			return fmt.Errorf("calculating detailed lines: %w", err)
-		}
-
-		if err := srv.UpdateTotals(); err != nil {
-			return fmt.Errorf("updating totals: %w", err)
-		}
-	}
-
-	invoice, err := s.executeTriggerOnInvoice(
-		ctx,
-		invoice.InvoiceID(),
-		triggerUpdated,
-		ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
-		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
-			for _, line := range changedLines {
-				// Warning: this will never work as it should be sm.Invoice.Lines.ReplaceByID(line.ID, line)
-				// but we will get rid of this code as part of the OM-1090
-				if !invoice.Lines.ReplaceByID(line.ID, line) {
-					return fmt.Errorf("line[%s] not found in invoice[%s]", line.ID, invoice.ID)
-				}
-			}
-			return nil
-		}),
-	)
-
-	return err
-}
-
-func (s *Service) flattenSplitLines(lines []*billing.Line) []*billing.Line {
-	out := make([]*billing.Line, 0, len(lines))
-	for _, line := range lines {
-		out = append(out, line)
-
-		if line.Status == billing.InvoiceLineStatusSplit {
-			out = append(out, line.Children.OrEmpty()...)
-			line.DisassociateChildren()
-		}
-	}
-
-	return out
-}
-
 func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return billing.Invoice{}, billing.ValidationError{
@@ -842,7 +647,8 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
-				Expand:  billing.InvoiceExpandAll,
+				// We need split lines too, as for gathering invoices we need to edit those too
+				Expand: billing.InvoiceExpandAll.SetSplitLines(true),
 			})
 			if err != nil {
 				return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
@@ -1001,4 +807,35 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	return invoice, nil
+}
+
+func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.UpsertValidationIssuesInput) error {
+	if err := input.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: input.Invoice,
+		Expand:  billing.InvoiceExpandAll,
+	})
+	if err != nil {
+		return fmt.Errorf("fetching invoice: %w", err)
+	}
+
+	if !invoice.StatusDetails.Immutable {
+		return fmt.Errorf("invoice validation issues can only be manipulated without the state-machine, if the invoice is in immutable state [invoice_id=%s,status=%s]", invoice.ID, invoice.Status)
+	}
+
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		invoice.ValidationIssues = input.Issues
+
+		_, err := s.adapter.UpdateInvoice(ctx, invoice)
+		if err != nil {
+			return fmt.Errorf("updating invoice: %w", err)
+		}
+
+		return nil
+	})
 }

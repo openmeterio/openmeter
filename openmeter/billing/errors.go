@@ -53,6 +53,10 @@ var (
 	ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices = NewValidationError("invoice_discount_no_wildcard_discount_on_gathering_invoices", "wildcard discount on gathering invoices is not allowed")
 )
 
+const (
+	ImmutableInvoiceHandlingNotSupportedErrorCode = "immutable_invoice_handling_not_supported"
+)
+
 var _ error = (*NotFoundError)(nil)
 
 const (
