@@ -62,6 +62,12 @@ func (v SubscriptionView) WithoutItemHistory() SubscriptionView {
 	for i, phase := range v.Phases {
 		phase2 := phase
 		phase2.ItemsByKey = make(map[string][]SubscriptionItemView)
+		for key, items := range phase.ItemsByKey {
+			if len(items) > 0 {
+				// only keep the last item
+				phase2.ItemsByKey[key] = items[len(items)-1:]
+			}
+		}
 		v2.Phases[i] = phase2
 	}
 	return v2
