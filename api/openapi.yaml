@@ -13592,15 +13592,12 @@ components:
     PriceTier:
       type: object
       required:
-        - upToAmount
         - flatPrice
         - unitPrice
       properties:
         upToAmount:
-          type: object
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          nullable: true
           description: |-
             Up to and including to this quantity will be contained in the tier.
             If null, the tier is open-ended.
