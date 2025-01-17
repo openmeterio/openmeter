@@ -47,7 +47,15 @@ func (r subscriptionItemWithPeriod) IsTruncated() bool {
 // PeriodPercentage returns the percentage of the period that is actually billed, compared to the non-truncated period
 // can be used to calculate prorated prices
 func (r subscriptionItemWithPeriod) PeriodPercentage() alpacadecimal.Decimal {
-	return alpacadecimal.NewFromInt(int64(r.Period.Duration())).Div(alpacadecimal.NewFromInt(int64(r.NonTruncatedPeriod.Duration())))
+	nonTruncatedPeriodLength := int64(r.NonTruncatedPeriod.Duration())
+
+	// If the period is empty, we can't calculate the percentage, so we return 1 (100%) to prevent
+	// any proration
+	if nonTruncatedPeriodLength == 0 {
+		return alpacadecimal.NewFromInt(1)
+	}
+
+	return alpacadecimal.NewFromInt(int64(r.Period.Duration())).Div(alpacadecimal.NewFromInt(nonTruncatedPeriodLength))
 }
 
 func NewPhaseIterator(subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {

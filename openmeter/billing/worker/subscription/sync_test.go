@@ -173,6 +173,7 @@ func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
 	clock.ResetTime()
 	s.MeterRepo.ReplaceMeters(s.Context, []models.Meter{})
 	s.MockStreamingConnector.Reset()
+	s.Handler.featureFlags = FeatureFlags{}
 }
 
 func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector {
@@ -569,6 +570,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
 	clock.SetTime(start)
 	defer clock.ResetTime()
+	s.enableProrating()
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
@@ -720,9 +722,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 	})
 }
 
-func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmount() {
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmountProrated() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	s.enableProrating()
 
 	// Given
 	//  we have a subscription with a single phase with a single static fee
@@ -797,9 +800,202 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 	})
 }
 
-func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmount() {
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmount() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with a single static fee
+	// When
+	//  we edit the subscription quite fast to change the fee
+	// Then
+	//  the gathering invoice will only contain both versions of the fee as we are not
+	//  doing any pro-rating logic
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: datex.MustParse(s.T(), "P1D"),
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:40Z"))
+
+	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+		},
+		subscriptionAddItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+		}.AsPatch(),
+	})
+	s.NoError(err)
+	s.NotNil(updatedSubsView)
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: expectedLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+		{
+			Matcher: expectedLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   1,
+				PeriodMin: 0,
+				PeriodMax: 4,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](10),
+			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 5),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 5),
+		},
+	})
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmount() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with a single static fee in arrears
+	// When
+	//  we edit the subscription quite fast to change the fee
+	// Then
+	//  the gathering invoice will only contain both versions of the fee as we are not
+	//  doing any pro-rating logic
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-arrears",
+						Name: "in-arrears",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						}),
+					},
+					BillingCadence: datex.MustParse(s.T(), "P1D"),
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:40Z"))
+
+	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-arrears",
+		},
+		subscriptionAddItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-arrears",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+		}.AsPatch(),
+	})
+	s.NoError(err)
+	s.NotNil(updatedSubsView)
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: expectedLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-arrears",
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-01T00:00:40Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:40Z")},
+		},
+		{
+			Matcher: expectedLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-arrears",
+				Version:   1,
+				PeriodMin: 0,
+				PeriodMax: 4,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](10),
+			Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-01-02T00:00:40Z", "P1D", 5),
+			InvoiceAt: s.generateDailyTimestamps("2024-01-02T00:00:40Z", 5),
+		},
+	})
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountProrated() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	s.enableProrating()
 
 	// Given
 	//  we have a subscription with a single phase with a single static fee
@@ -893,9 +1089,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmount(
 	})
 }
 
-func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoice() {
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProrated() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	s.enableProrating()
 
 	// Given
 	//  we have a subscription with a single phase with a single static fee
@@ -1031,9 +1228,10 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoice() 
 	})
 }
 
-func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoice() {
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoiceProrated() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	s.enableProrating()
 
 	// Given
 	//  we have a subscription with a single phase with a single static fee
@@ -2177,4 +2375,9 @@ func (s *SubscriptionHandlerTestSuite) debugDumpInvoice(h string, i billing.Invo
 				line.UsageBased.Price, deleted)
 		}
 	}
+}
+
+func (s *SubscriptionHandlerTestSuite) enableProrating() {
+	s.Handler.featureFlags.EnableFlatFeeInAdvanceProrating = true
+	s.Handler.featureFlags.EnableFlatFeeInArrearsProrating = true
 }
