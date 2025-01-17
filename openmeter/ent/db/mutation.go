@@ -11367,6 +11367,7 @@ type BillingInvoiceFlatFeeLineConfigMutation struct {
 	namespace       *string
 	per_unit_amount *alpacadecimal.Decimal
 	category        *billing.FlatFeeCategory
+	payment_term    *productcatalog.PaymentTermType
 	clearedFields   map[string]struct{}
 	done            bool
 	oldValue        func(context.Context) (*BillingInvoiceFlatFeeLineConfig, error)
@@ -11585,6 +11586,42 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetCategory() {
 	m.category = nil
 }
 
+// SetPaymentTerm sets the "payment_term" field.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
+	m.payment_term = &ptt
+}
+
+// PaymentTerm returns the value of the "payment_term" field in the mutation.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) PaymentTerm() (r productcatalog.PaymentTermType, exists bool) {
+	v := m.payment_term
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentTerm returns the old "payment_term" field's value of the BillingInvoiceFlatFeeLineConfig entity.
+// If the BillingInvoiceFlatFeeLineConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) OldPaymentTerm(ctx context.Context) (v productcatalog.PaymentTermType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentTerm is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentTerm requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentTerm: %w", err)
+	}
+	return oldValue.PaymentTerm, nil
+}
+
+// ResetPaymentTerm resets all changes to the "payment_term" field.
+func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetPaymentTerm() {
+	m.payment_term = nil
+}
+
 // Where appends a list predicates to the BillingInvoiceFlatFeeLineConfigMutation builder.
 func (m *BillingInvoiceFlatFeeLineConfigMutation) Where(ps ...predicate.BillingInvoiceFlatFeeLineConfig) {
 	m.predicates = append(m.predicates, ps...)
@@ -11619,7 +11656,7 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceFlatFeeLineConfigMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceflatfeelineconfig.FieldNamespace)
 	}
@@ -11628,6 +11665,9 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Fields() []string {
 	}
 	if m.category != nil {
 		fields = append(fields, billinginvoiceflatfeelineconfig.FieldCategory)
+	}
+	if m.payment_term != nil {
+		fields = append(fields, billinginvoiceflatfeelineconfig.FieldPaymentTerm)
 	}
 	return fields
 }
@@ -11643,6 +11683,8 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) Field(name string) (ent.Value,
 		return m.PerUnitAmount()
 	case billinginvoiceflatfeelineconfig.FieldCategory:
 		return m.Category()
+	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
+		return m.PaymentTerm()
 	}
 	return nil, false
 }
@@ -11658,6 +11700,8 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) OldField(ctx context.Context, 
 		return m.OldPerUnitAmount(ctx)
 	case billinginvoiceflatfeelineconfig.FieldCategory:
 		return m.OldCategory(ctx)
+	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
+		return m.OldPaymentTerm(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig field %s", name)
 }
@@ -11687,6 +11731,13 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) SetField(name string, value en
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCategory(v)
+		return nil
+	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
+		v, ok := value.(productcatalog.PaymentTermType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentTerm(v)
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig field %s", name)
@@ -11745,6 +11796,9 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetField(name string) error 
 		return nil
 	case billinginvoiceflatfeelineconfig.FieldCategory:
 		m.ResetCategory()
+		return nil
+	case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
+		m.ResetPaymentTerm()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceFlatFeeLineConfig field %s", name)

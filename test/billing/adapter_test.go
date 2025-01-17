@@ -329,6 +329,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
 				PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+				Category:      billing.FlatFeeCategoryRegular,
 			}
 
 			out.Children.Append(line)
@@ -460,6 +461,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+			Category:      billing.FlatFeeCategoryRegular,
 		}
 
 		lineChildren := lines[0].Children.MustGet()
@@ -536,6 +538,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+			Category:      billing.FlatFeeCategoryRegular,
 		}
 		detailedLines[0] = newLine
 

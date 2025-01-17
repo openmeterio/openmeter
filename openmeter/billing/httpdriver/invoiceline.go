@@ -13,9 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/set"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var _ InvoiceLineHandler = (*handler)(nil)
@@ -278,6 +281,7 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 				PerUnitAmount: perUnitAmount,
 				PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
 				Quantity:      qty,
+				Category:      lo.FromPtrOr((*billing.FlatFeeCategory)(line.Category), billing.FlatFeeCategoryRegular),
 			},
 		},
 		CustomerID: line.CustomerId,
@@ -495,7 +499,9 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		PerUnitAmount: line.FlatFee.PerUnitAmount.String(),
 		Quantity:      line.FlatFee.Quantity.String(),
+		Category:      lo.ToPtr(api.InvoiceFlatFeeCategory(line.FlatFee.Category)),
 		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
+		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.FlatFee.PaymentTerm)),
 
 		Discounts: mapDiscountsToAPI(line.Discounts),
 		Totals:    mapTotalsToAPI(line.Totals),
@@ -792,6 +798,7 @@ func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*b
 			PerUnitAmount: perUnitAmount,
 			PaymentTerm:   lo.FromPtrOr((*productcatalog.PaymentTermType)(line.PaymentTerm), productcatalog.InAdvancePaymentTerm),
 			Quantity:      qty,
+			Category:      lo.FromPtrOr((*billing.FlatFeeCategory)(line.Category), billing.FlatFeeCategoryRegular),
 		},
 	}, nil
 }
@@ -839,4 +846,259 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 			PreLinePeriodQuantity: &prePeriodQty,
 		},
 	}, nil
+}
+
+func getIDFromLineReplace(line api.InvoiceLineReplaceUpdate) (string, error) {
+	value, err := line.ValueByDiscriminator()
+	if err != nil {
+		return "", err
+	}
+
+	switch v := value.(type) {
+	case api.InvoiceFlatFeeLineReplaceUpdate:
+		return v.Id, nil
+	case api.InvoiceUsageBasedLineReplaceUpdate:
+		return v.Id, nil
+	default:
+		return "", fmt.Errorf("unknown line type: %T", value)
+	}
+}
+
+func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.Invoice) (*billing.Line, error) {
+	value, err := line.ValueByDiscriminator()
+	if err != nil {
+		return nil, err
+	}
+
+	switch v := value.(type) {
+	case api.InvoiceFlatFeeLineReplaceUpdate:
+		perUnitAmount, err := alpacadecimal.NewFromString(v.PerUnitAmount)
+		if err != nil {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse per unit amount: %w", err),
+			}
+		}
+
+		quantity, err := alpacadecimal.NewFromString(v.Quantity)
+		if err != nil {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse quantity: %w", err),
+			}
+		}
+
+		return &billing.Line{
+			LineBase: billing.LineBase{
+				Namespace: invoice.Namespace,
+
+				Metadata:    lo.FromPtrOr(v.Metadata, map[string]string{}),
+				Name:        v.Name,
+				Description: v.Description,
+
+				Type: billing.InvoiceLineTypeFee,
+
+				InvoiceID: invoice.ID,
+				Currency:  invoice.Currency,
+
+				Period: billing.Period{
+					Start: v.Period.From,
+					End:   v.Period.To,
+				},
+
+				TaxConfig: mapTaxConfigToEntity(v.TaxConfig),
+			},
+			FlatFee: &billing.FlatFeeLine{
+				PerUnitAmount: perUnitAmount,
+				Quantity:      quantity,
+
+				PaymentTerm: lo.FromPtrOr((*productcatalog.PaymentTermType)(v.PaymentTerm), productcatalog.InAdvancePaymentTerm),
+				Category:    lo.FromPtrOr((*billing.FlatFeeCategory)(v.Category), billing.FlatFeeCategoryRegular),
+			},
+		}, nil
+	case api.InvoiceUsageBasedLineReplaceUpdate:
+		price, err := planhttpdriver.AsPrice(v.Price)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map price: %w", err)
+		}
+
+		return &billing.Line{
+			LineBase: billing.LineBase{
+				Namespace: invoice.Namespace,
+
+				Metadata:    lo.FromPtrOr(v.Metadata, map[string]string{}),
+				Name:        v.Name,
+				Description: v.Description,
+
+				Type: billing.InvoiceLineTypeFee,
+
+				InvoiceID: invoice.ID,
+				Currency:  invoice.Currency,
+
+				Period: billing.Period{
+					Start: v.Period.From,
+					End:   v.Period.To,
+				},
+
+				TaxConfig: mapTaxConfigToEntity(v.TaxConfig),
+			},
+			UsageBased: &billing.UsageBasedLine{
+				Price:      price,
+				FeatureKey: v.FeatureKey,
+
+				// TODO: snapshotting
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("unknown line type: %T", value)
+	}
+}
+
+func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.InvoiceLineReplaceUpdate) (*billing.Line, bool, error) {
+	value, err := line.ValueByDiscriminator()
+	if err != nil {
+		return nil, false, err
+	}
+
+	switch v := value.(type) {
+	case api.InvoiceFlatFeeLineReplaceUpdate:
+		if existing.Type != billing.InvoiceLineTypeFee {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("line type change is not supported for line %s", existing.ID),
+			}
+		}
+
+		oldBase := existing.LineBase.Clone()
+		oldFee := existing.FlatFee.Clone()
+
+		perUnitAmount, err := alpacadecimal.NewFromString(v.PerUnitAmount)
+		if err != nil {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse per unit amount: %w", err),
+			}
+		}
+
+		quantity, err := alpacadecimal.NewFromString(v.Quantity)
+		if err != nil {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse quantity: %w", err),
+			}
+		}
+
+		existing.LineBase.Metadata = lo.FromPtrOr(v.Metadata, existing.Metadata)
+		existing.LineBase.Name = v.Name
+		existing.LineBase.Description = v.Description
+
+		existing.Period.Start = v.Period.From
+		existing.Period.End = v.Period.To
+
+		existing.TaxConfig = mapTaxConfigToEntity(v.TaxConfig)
+
+		existing.FlatFee.PerUnitAmount = perUnitAmount
+		existing.FlatFee.Quantity = quantity
+		existing.FlatFee.PaymentTerm = lo.FromPtrOr((*productcatalog.PaymentTermType)(v.PaymentTerm), existing.FlatFee.PaymentTerm)
+		existing.FlatFee.Category = lo.FromPtrOr((*billing.FlatFeeCategory)(v.Category), existing.FlatFee.Category)
+
+		return existing, oldBase.Equal(existing.LineBase) && oldFee.Equal(existing.FlatFee), nil
+	case api.InvoiceUsageBasedLineReplaceUpdate:
+		if existing.Type != billing.InvoiceLineTypeUsageBased {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("line type change is not supported for line %s", existing.ID),
+			}
+		}
+
+		oldBase := existing.LineBase.Clone()
+		oldUBP := existing.UsageBased.Clone()
+
+		price, err := planhttpdriver.AsPrice(v.Price)
+		if err != nil {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("failed to map price: %w", err),
+			}
+		}
+
+		existing.LineBase.Metadata = lo.FromPtrOr(v.Metadata, existing.Metadata)
+		existing.LineBase.Name = v.Name
+		existing.LineBase.Description = v.Description
+
+		existing.Period.Start = v.Period.From
+		existing.Period.End = v.Period.To
+
+		existing.TaxConfig = mapTaxConfigToEntity(v.TaxConfig)
+
+		existing.UsageBased.Price = price
+		existing.UsageBased.FeatureKey = v.FeatureKey
+
+		return existing, oldBase.Equal(existing.LineBase) && oldUBP.Equal(existing.UsageBased), nil
+	}
+
+	return nil, false, fmt.Errorf("unknown line type: %T", value)
+}
+
+func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing.Invoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.LineChildren, error) {
+	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.Line) string {
+		return line.ID
+	})
+
+	foundLines := set.New[string]()
+
+	out := make([]*billing.Line, 0, len(updatedLines))
+
+	for _, line := range updatedLines {
+		id, err := getIDFromLineReplace(line)
+		if err != nil {
+			return billing.LineChildren{}, fmt.Errorf("failed to get line ID: %w", err)
+		}
+
+		existingLine, existingLineFound := linesByID[id]
+
+		if id == "" || !existingLineFound {
+			// We allow injecting fake IDs for new lines, so that discounts can reference those,
+			// but we are not persisting them to the database
+			newLine, err := lineFromInvoiceLineReplaceUpdate(line, invoice)
+			if err != nil {
+				return billing.LineChildren{}, fmt.Errorf("failed to create new line: %w", err)
+			}
+
+			if invoice.Status != billing.InvoiceStatusGathering {
+				newLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
+					Invoice: invoice,
+					Line:    newLine,
+				})
+				if err != nil {
+					return billing.LineChildren{}, fmt.Errorf("failed to snapshot quantity: %w", err)
+				}
+			}
+
+			out = append(out, newLine)
+			continue
+		}
+
+		foundLines.Add(id)
+		mergedLine, changed, err := mergeLineFromInvoiceLineReplaceUpdate(existingLine, line)
+		if err != nil {
+			return billing.LineChildren{}, fmt.Errorf("failed to merge line: %w", err)
+		}
+
+		if changed && invoice.Status != billing.InvoiceStatusGathering {
+			mergedLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
+				Invoice: invoice,
+				Line:    mergedLine,
+			})
+			if err != nil {
+				return billing.LineChildren{}, fmt.Errorf("failed to snapshot quantity: %w", err)
+			}
+		}
+
+		out = append(out, mergedLine)
+	}
+
+	lineIDs := set.New(lo.Keys(linesByID)...)
+
+	deletedLines := set.Subtract(lineIDs, foundLines).AsSlice()
+	for _, id := range deletedLines {
+		existingLine := linesByID[id]
+		existingLine.DeletedAt = lo.ToPtr(clock.Now())
+		out = append(out, existingLine)
+	}
+
+	return billing.NewLineChildren(out), nil
 }

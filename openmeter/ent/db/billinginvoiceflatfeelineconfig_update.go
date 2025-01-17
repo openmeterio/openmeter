@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceFlatFeeLineConfigUpdate is the builder for updating BillingInvoiceFlatFeeLineConfig entities.
@@ -57,6 +58,20 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillableCategory(bfc *b
 	return bifflcu
 }
 
+// SetPaymentTerm sets the "payment_term" field.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetPaymentTerm(ptt productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpdate {
+	bifflcu.mutation.SetPaymentTerm(ptt)
+	return bifflcu
+}
+
+// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
+func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) SetNillablePaymentTerm(ptt *productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpdate {
+	if ptt != nil {
+		bifflcu.SetPaymentTerm(*ptt)
+	}
+	return bifflcu
+}
+
 // Mutation returns the BillingInvoiceFlatFeeLineConfigMutation object of the builder.
 func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) Mutation() *BillingInvoiceFlatFeeLineConfigMutation {
 	return bifflcu.mutation
@@ -96,6 +111,11 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) check() error {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.category": %w`, err)}
 		}
 	}
+	if v, ok := bifflcu.mutation.PaymentTerm(); ok {
+		if err := billinginvoiceflatfeelineconfig.PaymentTermValidator(v); err != nil {
+			return &ValidationError{Name: "payment_term", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.payment_term": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -116,6 +136,9 @@ func (bifflcu *BillingInvoiceFlatFeeLineConfigUpdate) sqlSave(ctx context.Contex
 	}
 	if value, ok := bifflcu.mutation.Category(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldCategory, field.TypeEnum, value)
+	}
+	if value, ok := bifflcu.mutation.PaymentTerm(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bifflcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -161,6 +184,20 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetCategory(bfc billin
 func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillableCategory(bfc *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigUpdateOne {
 	if bfc != nil {
 		bifflcuo.SetCategory(*bfc)
+	}
+	return bifflcuo
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetPaymentTerm(ptt productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	bifflcuo.mutation.SetPaymentTerm(ptt)
+	return bifflcuo
+}
+
+// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
+func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) SetNillablePaymentTerm(ptt *productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpdateOne {
+	if ptt != nil {
+		bifflcuo.SetPaymentTerm(*ptt)
 	}
 	return bifflcuo
 }
@@ -217,6 +254,11 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) check() error {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.category": %w`, err)}
 		}
 	}
+	if v, ok := bifflcuo.mutation.PaymentTerm(); ok {
+		if err := billinginvoiceflatfeelineconfig.PaymentTermValidator(v); err != nil {
+			return &ValidationError{Name: "payment_term", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.payment_term": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -254,6 +296,9 @@ func (bifflcuo *BillingInvoiceFlatFeeLineConfigUpdateOne) sqlSave(ctx context.Co
 	}
 	if value, ok := bifflcuo.mutation.Category(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldCategory, field.TypeEnum, value)
+	}
+	if value, ok := bifflcuo.mutation.PaymentTerm(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
 	}
 	_node = &BillingInvoiceFlatFeeLineConfig{config: bifflcuo.config}
 	_spec.Assign = _node.assignValues

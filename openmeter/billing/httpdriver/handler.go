@@ -40,6 +40,7 @@ type InvoiceHandler interface {
 	InvoicePendingLinesAction() InvoicePendingLinesActionHandler
 	DeleteInvoice() DeleteInvoiceHandler
 	GetInvoice() GetInvoiceHandler
+	UpdateInvoice() UpdateInvoiceHandler
 	ProgressInvoice(ProgressAction) ProgressInvoiceHandler
 	SimulateInvoice() SimulateInvoiceHandler
 }

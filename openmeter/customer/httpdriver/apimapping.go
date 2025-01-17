@@ -15,7 +15,7 @@ func MapCustomerCreate(body api.CustomerCreate) customerentity.CustomerMutate {
 		Description:      body.Description,
 		UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
 		PrimaryEmail:     body.PrimaryEmail,
-		BillingAddress:   mapAddress(body.BillingAddress),
+		BillingAddress:   MapAddress(body.BillingAddress),
 		Currency:         mapCurrency(body.Currency),
 	}
 }
@@ -28,7 +28,7 @@ func mapCurrency(apiCurrency *string) *currencyx.Code {
 	return lo.ToPtr(currencyx.Code(*apiCurrency))
 }
 
-func mapAddress(apiAddress *api.Address) *models.Address {
+func MapAddress(apiAddress *api.Address) *models.Address {
 	if apiAddress == nil {
 		return nil
 	}

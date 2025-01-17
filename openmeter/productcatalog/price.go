@@ -22,10 +22,10 @@ const (
 
 type PaymentTermType string
 
-func (p PaymentTermType) Values() []PaymentTermType {
-	return []PaymentTermType{
-		InAdvancePaymentTerm,
-		InArrearsPaymentTerm,
+func (p PaymentTermType) Values() []string {
+	return []string{
+		string(InAdvancePaymentTerm),
+		string(InArrearsPaymentTerm),
 	}
 }
 
@@ -304,7 +304,7 @@ func (f *FlatPrice) Validate() error {
 		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
-	if !lo.Contains(PaymentTermType("").Values(), f.PaymentTerm) {
+	if !lo.Contains(PaymentTermType("").Values(), string(f.PaymentTerm)) {
 		errs = append(errs, fmt.Errorf("invalid PaymentTerm: %s", f.PaymentTerm))
 	}
 

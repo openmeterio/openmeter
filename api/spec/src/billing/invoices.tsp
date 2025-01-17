@@ -110,6 +110,22 @@ interface InvoiceEndpoints {
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
+   * Update an invoice
+   *
+   * Only invoices in draft or earlier status can be updated.
+   */
+  @put
+  @summary("Update an invoice")
+  @operationId("updateInvoice")
+  updateInvoice(
+    @path
+    invoiceId: ULID,
+
+    @body
+    request: InvoiceReplaceUpdate,
+  ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
    * Recalculate an invoice's tax amounts (using the app set in the customer's billing profile)
    *
    * Note: charges might apply, depending on the tax provider.
@@ -550,4 +566,69 @@ model InvoiceSimulationFlatFeeLine {
    */
   @visibility(Lifecycle.Create)
   id?: ULID;
+}
+
+/**
+ * InvoiceReplaceUpdate represents the update model for an invoice.
+ */
+@friendlyName("InvoiceReplaceUpdate")
+model InvoiceReplaceUpdate {
+  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+    Invoices.Invoice,
+    "lines" | "supplier" | "customer" | "discounts" | "workflow" // TODO: discounts is not yet implemented, then we need to enable it
+  >>;
+
+  @visibility(Lifecycle.Update)
+  supplier: Rest.Resource.ResourceReplaceModel<Invoices.BillingParty>;
+
+  @visibility(Lifecycle.Update)
+  customer: Rest.Resource.ResourceReplaceModel<Invoices.BillingParty>;
+
+  @visibility(Lifecycle.Update)
+  lines: Invoices.InvoiceLineReplaceUpdate[];
+
+  @visibility(Lifecycle.Update)
+  workflow: InvoiceWorkflowReplaceUpdate;
+}
+
+/**
+ * InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
+ *
+ * Fields that are immutable a re removed from the model. This is based on InvoiceWorkflowSettings.
+ */
+@friendlyName("InvoiceWorkflowReplaceUpdate")
+model InvoiceWorkflowReplaceUpdate {
+  workflow: InvoiceWorkflowSettingsReplaceUpdate;
+}
+
+/**
+ * Mutable workflow settings for an invoice.
+ *
+ * Other fields on the invoice's workflow are not mutable, they serve as a history of the invoice's workflow
+ * at creation time.
+ */
+@friendlyName("InvoiceWorkflowSettingsReplaceUpdate")
+model InvoiceWorkflowSettingsReplaceUpdate {
+  /**
+   * The invoicing settings for this workflow
+   */
+  @visibility(Lifecycle.Update)
+  invoicing: InvoiceWorkflowInvoicingSettingsReplaceUpdate;
+
+  /**
+   * The payment settings for this workflow
+   */
+  @visibility(Lifecycle.Update)
+  payment: BillingWorkflowPaymentSettings;
+}
+
+/**
+ * InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.
+ */
+@friendlyName("InvoiceWorkflowInvoicingSettingsReplaceUpdate")
+model InvoiceWorkflowInvoicingSettingsReplaceUpdate {
+  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+    BillingWorkflowInvoicingSettings,
+    "progressiveBilling"
+  >>;
 }

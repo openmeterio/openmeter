@@ -478,6 +478,7 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "per_unit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "category", Type: field.TypeEnum, Enums: []string{"regular", "commitment"}, Default: "regular"},
+		{Name: "payment_term", Type: field.TypeEnum, Enums: []string{"in_advance", "in_arrears"}, Default: "in_advance"},
 	}
 	// BillingInvoiceFlatFeeLineConfigsTable holds the schema information for the "billing_invoice_flat_fee_line_configs" table.
 	BillingInvoiceFlatFeeLineConfigsTable = &schema.Table{

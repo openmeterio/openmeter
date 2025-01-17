@@ -119,7 +119,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 					Description:      body.Description,
 					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
 					PrimaryEmail:     body.PrimaryEmail,
-					BillingAddress:   mapAddress(body.BillingAddress),
+					BillingAddress:   MapAddress(body.BillingAddress),
 					Currency:         mapCurrency(body.Currency),
 				},
 			}
@@ -177,7 +177,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 					Description:      body.Description,
 					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
 					PrimaryEmail:     body.PrimaryEmail,
-					BillingAddress:   mapAddress(body.BillingAddress),
+					BillingAddress:   MapAddress(body.BillingAddress),
 					Currency:         mapCurrency(body.Currency),
 				},
 			}

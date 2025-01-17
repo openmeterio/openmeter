@@ -137,6 +137,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							FlatFee: &billing.FlatFeeLine{
 								PerUnitAmount: alpacadecimal.NewFromFloat(100),
 								Quantity:      alpacadecimal.NewFromFloat(1),
+								Category:      billing.FlatFeeCategoryRegular,
+								PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 							},
 						},
 						CustomerID: customerEntity.ID,
@@ -156,6 +158,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 							FlatFee: &billing.FlatFeeLine{
 								PerUnitAmount: alpacadecimal.NewFromFloat(200),
 								Quantity:      alpacadecimal.NewFromFloat(3),
+								Category:      billing.FlatFeeCategoryRegular,
+								PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 							},
 						},
 						CustomerID: customerEntity.ID,
@@ -247,6 +251,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				ConfigID:      usdInvoiceLine.FlatFee.ConfigID,
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				Quantity:      alpacadecimal.NewFromFloat(1),
+				Category:      billing.FlatFeeCategoryRegular,
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			},
 		}
 		// Let's make sure that the workflow config is cloned
@@ -268,7 +274,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				CreatedAt: usdInvoice.CreatedAt,
 				UpdatedAt: usdInvoice.UpdatedAt,
 
-				Workflow: &billing.InvoiceWorkflow{
+				Workflow: billing.InvoiceWorkflow{
 					Config: billing.WorkflowConfig{
 						ID:        usdInvoice.Workflow.Config.ID,
 						CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
@@ -490,6 +496,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(100),
 							Quantity:      alpacadecimal.NewFromFloat(1),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 						},
 					},
 					CustomerID: customerEntity.ID,
@@ -510,6 +518,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(200),
 							Quantity:      alpacadecimal.NewFromFloat(3),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 						},
 					},
 					CustomerID: customerEntity.ID,
@@ -692,6 +702,8 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(100),
 							Quantity:      alpacadecimal.NewFromFloat(1),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 						},
 					},
 					CustomerID: in.Customer.ID,
@@ -712,6 +724,8 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 						FlatFee: &billing.FlatFeeLine{
 							PerUnitAmount: alpacadecimal.NewFromFloat(200),
 							Quantity:      alpacadecimal.NewFromFloat(3),
+							Category:      billing.FlatFeeCategoryRegular,
+							PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 						},
 					},
 					CustomerID: in.Customer.ID,
