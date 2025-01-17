@@ -1,6 +1,7 @@
 import "@typespec/http";
 import "../types.tsp";
 import "./ratecards.tsp";
+import "./commitments.tsp";
 
 namespace OpenMeter.ProductCatalog;
 
@@ -156,18 +157,25 @@ model PlanPhase {
   duration: duration | null;
 
   /**
-   * The rate cards of the plan.
+   * The rate cards of the phase.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rate cards")
   rateCards: RateCard[];
 
   /**
-   * The discounts on the plan.
+   * The discounts on the phase.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Discounts")
   discounts?: Discount[];
+
+  /**
+   * The commitments on the phase.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Commitments")
+  commitments?: Commitment[];
 
   // /**
   //  * Predefined overrides of the plan that can apply changes to the rate cards, discounts, and other properties based on the selected variant.

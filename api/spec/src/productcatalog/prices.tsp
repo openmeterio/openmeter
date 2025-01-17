@@ -160,41 +160,23 @@ model PriceTier {
   unitPrice: UnitPrice | null;
 }
 
-/**
- * Spending commitments.
- * The customer is committed to spend at least the minimum amount and at most the maximum amount.
- */
-@friendlyName("SpendCommitments")
-model SpendCommitments {
-  /**
-   * The customer is committed to spend at least the amount.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Minimum amount")
-  minimumAmount?: Money;
+// /**
+//  * Spending commitments.
+//  * The customer is committed to spend at least the minimum amount and at most the maximum amount.
+//  */
+// @friendlyName("SpendCommitments")
+// model SpendCommitments {
+//   /**
+//    * The customer is committed to spend at least the amount.
+//    */
+//   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+//   @summary("Minimum amount")
+//   minimumAmount?: Money;
 
-  /**
-   * The customer is limited to spend at most the amount.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Maximum amount")
-  maximumAmount?: Money;
-}
-
-/**
- * Unit price with spend commitments.
- */
-@friendlyName("UnitPriceWithCommitments")
-model UnitPriceWithCommitments {
-  ...UnitPrice;
-  ...SpendCommitments;
-}
-
-/**
- * Tiered price with spend commitments.
- */
-@friendlyName("TieredPriceWithCommitments")
-model TieredPriceWithCommitments {
-  ...TieredPrice;
-  ...SpendCommitments;
-}
+//   /**
+//    * The customer is limited to spend at most the amount.
+//    */
+//   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+//   @summary("Maximum amount")
+//   maximumAmount?: Money;
+// }
