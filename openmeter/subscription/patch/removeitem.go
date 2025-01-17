@@ -35,9 +35,9 @@ func (r PatchRemoveItem) Validate() error {
 var _ subscription.Patch = PatchRemoveItem{}
 
 func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
-	phase, ok := spec.Phases[r.PhaseKey]
-	if !ok {
-		return &subscription.PatchValidationError{Msg: fmt.Sprintf("phase %s not found", r.PhaseKey)}
+	phase, rel, err := phaseContentHelper{spec: *spec, actx: actx}.GetPhaseForEdit(r.PhaseKey)
+	if err != nil {
+		return err
 	}
 
 	phaseStartTime, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
@@ -46,26 +46,8 @@ func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subsc
 		return &subscription.PatchValidationError{Msg: fmt.Sprintf("items for key %s doesn't exists in phase %s", r.ItemKey, r.PhaseKey)}
 	}
 
-	// Checks we need:
-	// 1. You cannot remove items from previous phases
-	currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
-	if !exists {
-		// either all phases are in the past or in the future
-		// if all phases are in the past then no removal is possible
-		//
-		// If all phases are in the past then the selected one is also in the past
-		if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
-			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
-		}
-	} else {
-		currentPhaseStartTime, _ := currentPhase.StartAfter.AddTo(spec.ActiveFrom)
-		if phaseStartTime.Before(currentPhaseStartTime) {
-			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot remove item from phase %s which starts before current phase", r.PhaseKey)}
-		}
-	}
-
 	// Finally, lets try to remove the item
-	if exists && currentPhase.PhaseKey == r.PhaseKey {
+	if rel == isCurrentPhase {
 		// If it's removed from the current phase, we should set its end time to the current time, instead of deleting it (as we cannot falsify history)
 
 		diff := datex.Between(phaseStartTime, actx.CurrentTime)

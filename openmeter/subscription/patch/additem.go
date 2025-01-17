@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
 type PatchAddItem struct {
@@ -44,59 +43,28 @@ func (a PatchAddItem) Validate() error {
 var _ subscription.ValuePatch[subscription.SubscriptionItemSpec] = PatchAddItem{}
 
 func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
-	phase, ok := spec.Phases[a.PhaseKey]
-	if !ok {
-		return &subscription.PatchValidationError{Msg: fmt.Sprintf("phase %s not found", a.PhaseKey)}
+	phase, rel, err := phaseContentHelper{spec: *spec, actx: actx}.GetPhaseForEdit(a.PhaseKey)
+	if err != nil {
+		return err
 	}
 
 	phaseStartTime, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
 
-	// Checks we need:
+	cadenceHelper := relativeCadenceHelper{
+		contentType:    "item",
+		phaseStartTime: phaseStartTime,
+		phaseKey:       a.PhaseKey,
+		rel:            rel,
+		actx:           actx,
+	}
+	if err := cadenceHelper.ValidateRelativeCadence(&a.CreateInput.CadenceOverrideRelativeToPhaseStart); err != nil {
+		return err
+	}
 
-	// 1. You cannot add items to previous phases
-	currentPhase, exists := spec.GetCurrentPhaseAt(actx.CurrentTime)
-	if !exists {
-		// If the current phase doesn't exist then either all phases are in the past or in the future
-		// If all phases are in the past then no addition is possible
-		// If all phases are in the past then the selected one is also in the past
-		if st, _ := phase.StartAfter.AddTo(spec.ActiveFrom); st.Before(actx.CurrentTime) {
-			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", a.PhaseKey)}
-		} else {
-			// If it's added to a future phase, the matching key for the phase has to be empty
-			if len(phase.ItemsByKey) > 0 {
-				return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to future phase %s which already has items", a.PhaseKey)}
-			}
-		}
-	} else {
-		currentPhaseStartTime, _ := currentPhase.StartAfter.AddTo(spec.ActiveFrom)
-
-		// If the selected phase is before the current phase, it's forbidden
-		if phaseStartTime.Before(currentPhaseStartTime) {
-			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", a.PhaseKey)}
-		} else if phase.PhaseKey == currentPhase.PhaseKey {
-			// Sanity check
-			if actx.CurrentTime.Before(phaseStartTime) {
-				return fmt.Errorf("Current time is before the current phase start which is impossible")
-			}
-
-			// 2. If it's added to the current phase, the specified start time cannot point to the past
-			if a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
-				iST, _ := a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phaseStartTime)
-				if iST.Before(actx.CurrentTime) {
-					return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which would become active in the past at %s", a.PhaseKey, iST)}
-				}
-			} else {
-				// 3. If it's added to the current phase, and start time is not specified, it will be set for the current time, as you cannot change the past
-				diff := datex.Between(phaseStartTime, actx.CurrentTime)
-				a.CreateInput.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride = &diff
-			}
-		} else if phaseStartTime.After(currentPhaseStartTime) {
-			// 4. If you're adding it to a future phase, the matching key for the phase has to be empty
-			if len(phase.ItemsByKey[a.ItemKey]) > 0 {
-				return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to future phase %s which already has items", a.PhaseKey)}
-			}
-		} else {
-			return fmt.Errorf("didn't enter any logical branch")
+	// If you're adding it to a future phase, the matching key for the phase has to be empty
+	if rel == isFuturePhase {
+		if len(phase.ItemsByKey[a.ItemKey]) > 0 {
+			return &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to future phase %s which already has items", a.PhaseKey)}
 		}
 	}
 
@@ -109,7 +77,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 	// If it's added to the current phase, we need to close the activity of any current item if present
 	hasCurrentItemAndShouldCloseCurrentItemForKey := false
 
-	if exists && currentPhase.PhaseKey == phase.PhaseKey {
+	if rel == isCurrentPhase {
 		if len(phase.ItemsByKey[a.ItemKey]) > 0 {
 			hasCurrentItemAndShouldCloseCurrentItemForKey = true
 		}

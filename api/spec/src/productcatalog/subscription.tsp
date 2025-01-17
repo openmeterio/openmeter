@@ -333,6 +333,9 @@ model PlanSubscriptionChange {
   description?: string;
 }
 
+/**
+ * Edit operations for a subscription.
+ */
 @friendlyName("SubscriptionEditOperation")
 @oneOf
 @discriminator("op")
@@ -344,6 +347,9 @@ union SubscriptionEditOperation {
   EditSubscriptionStretchPhase,
 }
 
+/**
+ * Edit operation enum.
+ */
 @friendlyName("EditOp")
 enum EditOp {
   AddItem: "add_item",

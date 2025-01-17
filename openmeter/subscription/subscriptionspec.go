@@ -416,39 +416,7 @@ type SubscriptionItemSpec struct {
 }
 
 func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (models.CadencedModel, error) {
-	start := phaseCadence.ActiveFrom
-	if s.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride != nil {
-		start, _ = s.CadenceOverrideRelativeToPhaseStart.ActiveFromOverride.AddTo(phaseCadence.ActiveFrom)
-	}
-
-	if phaseCadence.ActiveTo != nil {
-		if phaseCadence.ActiveTo.Before(start) {
-			// If the intended start time is after the intended end time of the phase, the item will have 0 lifetime at the end of the phase
-			// This scenario is possible when Subscriptions are canceled (before the phase ends)
-			return models.CadencedModel{
-				ActiveFrom: *phaseCadence.ActiveTo,
-				ActiveTo:   phaseCadence.ActiveTo,
-			}, nil
-		}
-	}
-
-	end := phaseCadence.ActiveTo
-
-	if s.CadenceOverrideRelativeToPhaseStart.ActiveToOverride != nil {
-		endTime, _ := s.CadenceOverrideRelativeToPhaseStart.ActiveToOverride.AddTo(phaseCadence.ActiveFrom)
-
-		if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(endTime) {
-			// Phase Cadence overrides item cadence in all cases
-			endTime = *phaseCadence.ActiveTo
-		}
-
-		end = &endTime
-	}
-
-	return models.CadencedModel{
-		ActiveFrom: start,
-		ActiveTo:   end,
-	}, nil
+	return s.CreateSubscriptionItemCustomerInput.CadenceOverrideRelativeToPhaseStart.GetCadence(phaseCadence), nil
 }
 
 func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
