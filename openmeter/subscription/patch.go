@@ -124,7 +124,7 @@ func (p PatchPath) Validate() error {
 		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, first segment should be %s", strVal, phasePathPrefix)}
 	}
 
-	if len(segments) == 4 && slices.Contains([]string{itemPathPrefix, discountPathPrefix}, segments[2]) {
+	if len(segments) == 4 && !slices.Contains([]string{itemPathPrefix, discountPathPrefix}, segments[2]) {
 		return &PatchValidationError{Msg: fmt.Sprintf("invalid path: %s, third segment should be one of %v", strVal, []string{itemPathPrefix, discountPathPrefix})}
 	}
 
