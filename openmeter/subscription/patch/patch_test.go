@@ -2,7 +2,6 @@ package patch_test
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
@@ -179,9 +178,7 @@ func (ts *testsuite[T]) Run(t *testing.T) {
 			if err == nil {
 				require.NotNil(t, tc.GetExpectedSpec)
 				expectedSpec := tc.GetExpectedSpec(t)
-				if !reflect.DeepEqual(spec, &expectedSpec) {
-					t.Errorf("expected: %+v, got: %+v", expectedSpec, spec)
-				}
+				subscriptiontestutils.SpecsEqual(t, *spec, expectedSpec)
 			}
 		})
 	}

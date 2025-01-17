@@ -73,10 +73,15 @@ func (p PatchStretchPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 		}
 	}
 
+	if len(sortedPhases) < 2 {
+		return &subscription.PatchConflictError{Msg: "cannot stretch a single phase"}
+	}
+
 	reachedTargetPhase := false
 	for i, thisP := range sortedPhases {
 		if thisP.PhaseKey == p.PhaseKey {
 			reachedTargetPhase = true
+			continue
 		}
 
 		if reachedTargetPhase {
@@ -85,6 +90,17 @@ func (p PatchStretchPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 			if err != nil {
 				return &subscription.PatchValidationError{Msg: fmt.Sprintf("failed to extend phase %s: %s", thisP.PhaseKey, err)}
 			}
+
+			// before changing lets make sure the previous phase doesn't disappear
+			if i > 0 {
+				prev := sortedPhases[i-1]
+				prevStart, _ := prev.StartAfter.AddTo(spec.ActiveFrom)
+				newStart, _ := sa.AddTo(spec.ActiveFrom)
+				if !newStart.After(prevStart) {
+					return &subscription.PatchConflictError{Msg: fmt.Sprintf("phase %s would disappear due to stretching", prev.PhaseKey)}
+				}
+			}
+
 			sortedPhases[i].StartAfter = sa
 		}
 	}
