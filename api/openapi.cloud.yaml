@@ -2128,6 +2128,7 @@ paths:
         - $ref: '#/components/parameters/queryCustomerList.name'
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
+        - $ref: '#/components/parameters/queryCustomerList.planKey'
       responses:
         '200':
           description: The request has succeeded.
@@ -7940,6 +7941,14 @@ components:
       description: |-
         Filter customers by name.
         Case-insensitive partial match.
+      schema:
+        type: string
+      explode: false
+    queryCustomerList.planKey:
+      name: planKey
+      in: query
+      required: false
+      description: Filter customers by the plan key of their susbcription.
       schema:
         type: string
       explode: false

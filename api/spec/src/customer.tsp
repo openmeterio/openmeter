@@ -147,6 +147,13 @@ model ListCustomersParams {
   @query
   @example("my_subject_key")
   subject?: string;
+
+  /**
+   * Filter customers by the plan key of their susbcription.
+   */
+  @query
+  @example("pro_plan")
+  planKey?: string;
 }
 
 /**
