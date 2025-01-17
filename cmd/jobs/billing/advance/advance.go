@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/spf13/cobra"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
 	"github.com/openmeterio/openmeter/app/common"
 	appconfig "github.com/openmeterio/openmeter/app/config"
@@ -14,6 +15,7 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
+	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
@@ -33,7 +35,19 @@ func init() {
 	Cmd.PersistentFlags().StringVar(&namespace, "namespace", "", "namespace the operation should be performed")
 }
 
-func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *slog.Logger) (*billingworkerautoadvance.AutoAdvancer, error) {
+type autoAdvancer struct {
+	*billingworkerautoadvance.AutoAdvancer
+
+	Shutdown func()
+}
+
+func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *slog.Logger) (*autoAdvancer, error) {
+	commonMetadata := common.NewMetadata(conf, "0.0.0", "billing-advancer")
+
+	// We use a noop meter provider as we don't want to monitor cronjobs (for now)
+	meterProvider := sdkmetric.NewMeterProvider()
+	meter := meterProvider.Meter("billing-advancer")
+
 	// Initialize Postgres driver
 	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, conf.Postgres.URL)
 	if err != nil {
@@ -87,6 +101,34 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 		return nil, fmt.Errorf("failed to initialize streaming connection: %w", err)
 	}
 
+	brokerOptions := common.NewBrokerConfiguration(conf.Ingest.Kafka.KafkaConfiguration, conf.Telemetry.Log, commonMetadata, logger, meter)
+
+	adminClient, err := common.NewKafkaAdminClient(conf.Ingest.Kafka.KafkaConfiguration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kafka admin client: %w", err)
+	}
+
+	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, conf.Ingest.Kafka.TopicProvisionerConfig)
+
+	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kafka topic provisioner: %w", err)
+	}
+
+	publisher, serverPublisherShutdown, err := common.NewServerPublisher(ctx, kafka.PublisherOptions{
+		Broker:           brokerOptions,
+		ProvisionTopics:  common.ServerProvisionTopics(conf.Events),
+		TopicProvisioner: topicProvisioner,
+	}, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize server publisher: %w", err)
+	}
+
+	ebPublisher, err := common.NewEventBusPublisher(publisher, conf.Events, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize event bus publisher: %w", err)
+	}
+
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: entPostgresDriver.Client(),
 		Logger: logger,
@@ -103,6 +145,7 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 		FeatureService:     featureService,
 		MeterRepo:          meterRepository,
 		StreamingConnector: streamingConnector,
+		Publisher:          ebPublisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize billing service: %w", err)
@@ -116,7 +159,10 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 		return nil, fmt.Errorf("failed to initialize billing auto-advancer: %w", err)
 	}
 
-	return a, nil
+	return &autoAdvancer{
+		AutoAdvancer: a,
+		Shutdown:     serverPublisherShutdown,
+	}, nil
 }
 
 var ListCmd = func() *cobra.Command {
@@ -135,6 +181,8 @@ var ListCmd = func() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			defer a.Shutdown()
 
 			var ns []string
 			if namespace != "" {
@@ -175,6 +223,8 @@ var InvoiceCmd = func() *cobra.Command {
 				return err
 			}
 
+			defer a.Shutdown()
+
 			if namespace == "" {
 				return fmt.Errorf("invoice namespace is required")
 			}
@@ -214,6 +264,8 @@ var AllCmd = func() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			defer a.Shutdown()
 
 			var ns []string
 			if namespace != "" {

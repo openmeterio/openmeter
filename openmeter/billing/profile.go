@@ -39,7 +39,7 @@ type WorkflowConfig struct {
 
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
-	DeletedAt *time.Time `json:"deletedAt"`
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	Collection CollectionConfig `json:"collection"`
 	Invoicing  InvoicingConfig  `json:"invoicing"`
@@ -134,7 +134,7 @@ func (r GranularityResolution) Values() []string {
 }
 
 type PaymentConfig struct {
-	CollectionMethod CollectionMethod
+	CollectionMethod CollectionMethod `json:"collectionMethod"`
 }
 
 func (c *PaymentConfig) Validate() error {

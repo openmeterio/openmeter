@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
@@ -145,6 +146,7 @@ func (s *BaseSuite) SetupSuite() {
 		FeatureService:     s.FeatureService,
 		MeterRepo:          s.MeterRepo,
 		StreamingConnector: s.MockStreamingConnector,
+		Publisher:          eventbus.NewMock(s.T()),
 	})
 	require.NoError(t, err)
 

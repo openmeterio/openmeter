@@ -213,24 +213,15 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	billingConfiguration := conf.Billing
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, appstripeService, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector)
-	if err != nil {
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	eventsConfiguration := conf.Events
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
+	eventsConfiguration := conf.Events
 	v4 := common.ServerProvisionTopics(eventsConfiguration)
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
 		ProvisionTopics:  v4,
 		TopicProvisioner: topicProvisioner,
 	}
-	publisher, cleanup6, err := common.NewServerPublisher(ctx, eventsConfiguration, publisherOptions, logger)
+	publisher, cleanup6, err := common.NewServerPublisher(ctx, publisherOptions, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -240,6 +231,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	billingService, err := common.BillingService(logger, client, service, appstripeService, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()

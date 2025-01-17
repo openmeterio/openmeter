@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timex"
 )
@@ -30,15 +31,20 @@ type FeatureFlags struct {
 }
 
 type Config struct {
-	BillingService billing.Service
-	TxCreator      transaction.Creator
-	Logger         *slog.Logger
-	FeatureFlags   FeatureFlags
+	BillingService      billing.Service
+	SubscriptionService subscription.Service
+	TxCreator           transaction.Creator
+	Logger              *slog.Logger
+	FeatureFlags        FeatureFlags
 }
 
 func (c Config) Validate() error {
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
+	}
+
+	if c.SubscriptionService == nil {
+		return fmt.Errorf("subscription service is required")
 	}
 
 	if c.TxCreator == nil {
@@ -53,10 +59,11 @@ func (c Config) Validate() error {
 }
 
 type Handler struct {
-	billingService billing.Service
-	txCreator      transaction.Creator
-	logger         *slog.Logger
-	featureFlags   FeatureFlags
+	billingService      billing.Service
+	subscriptionService subscription.Service
+	txCreator           transaction.Creator
+	logger              *slog.Logger
+	featureFlags        FeatureFlags
 }
 
 func New(config Config) (*Handler, error) {
@@ -64,10 +71,11 @@ func New(config Config) (*Handler, error) {
 		return nil, err
 	}
 	return &Handler{
-		billingService: config.BillingService,
-		txCreator:      config.TxCreator,
-		logger:         config.Logger,
-		featureFlags:   config.FeatureFlags,
+		billingService:      config.BillingService,
+		txCreator:           config.TxCreator,
+		logger:              config.Logger,
+		featureFlags:        config.FeatureFlags,
+		subscriptionService: config.SubscriptionService,
 	}, nil
 }
 
@@ -765,4 +773,41 @@ func (h *Handler) cloneLineForUpsert(line *billing.Line) *billing.Line {
 	// We need to maintain the parent line relationship, so that we can update the qty snapshots on updated usage-based lines
 	clone.ParentLine = line.ParentLine
 	return clone
+}
+
+// HandleInvoiceCreation is a handler for the invoice creation event, it will make sure that
+// we are backfilling the items consumed by invoice creation into the gathering invoice.
+func (h *Handler) HandleInvoiceCreation(ctx context.Context, invoice billing.Invoice) error {
+	if invoice.Status == billing.InvoiceStatusGathering {
+		return nil
+	}
+
+	affectedSubscriptions := lo.Uniq(
+		lo.Map(
+			lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+				return line.Status == billing.InvoiceLineStatusValid &&
+					line.Subscription != nil
+			}),
+			func(line *billing.Line, _ int) string {
+				return line.Subscription.SubscriptionID
+			}),
+	)
+
+	for _, subscriptionID := range affectedSubscriptions {
+		subsView, err := h.subscriptionService.GetView(ctx, models.NamespacedID{
+			Namespace: invoice.Namespace,
+			ID:        subscriptionID,
+		})
+		if err != nil {
+			return fmt.Errorf("getting subscription view[%s]: %w", subscriptionID, err)
+		}
+
+		// We use the current time as reference point instead of the invoice, as if we are delayed
+		// we might want to provision more lines
+		if err := h.SyncronizeSubscription(ctx, subsView, clock.Now()); err != nil {
+			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
+		}
+	}
+
+	return nil
 }

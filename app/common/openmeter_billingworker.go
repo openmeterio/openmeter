@@ -27,7 +27,9 @@ var BillingWorker = wire.NewSet(
 	BillingWorkerProvisionTopics,
 	BillingWorkerSubscriber,
 
-	NewFeatureConnector,
+	Subscription,
+	ProductCatalog,
+	Entitlement,
 	BillingAdapter,
 	BillingService,
 
@@ -69,16 +71,18 @@ func NewBillingWorkerOptions(
 	eventBus eventbus.Publisher,
 	billingService billing.Service,
 	billingAdapter billing.Adapter,
+	subscriptionServices SubscriptionServiceWithWorkflow,
 	logger *slog.Logger,
 ) billingworker.WorkerOptions {
 	return billingworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
 
-		Router:         routerOptions,
-		EventBus:       eventBus,
-		BillingService: billingService,
-		BillingAdapter: billingAdapter,
-		Logger:         logger,
+		Router:              routerOptions,
+		EventBus:            eventBus,
+		BillingService:      billingService,
+		BillingAdapter:      billingAdapter,
+		SubscriptionService: subscriptionServices.Service,
+		Logger:              logger,
 	}
 }
 

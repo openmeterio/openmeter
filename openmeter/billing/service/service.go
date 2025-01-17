@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -31,6 +32,7 @@ type Service struct {
 	streamingConnector streaming.Connector
 
 	lineService *lineservice.Service
+	publisher   eventbus.Publisher
 }
 
 type Config struct {
@@ -41,6 +43,7 @@ type Config struct {
 	FeatureService     feature.FeatureConnector
 	MeterRepo          meter.Repository
 	StreamingConnector streaming.Connector
+	Publisher          eventbus.Publisher
 }
 
 func (c Config) Validate() error {
@@ -72,6 +75,10 @@ func (c Config) Validate() error {
 		return errors.New("streaming connector cannot be null")
 	}
 
+	if c.Publisher == nil {
+		return errors.New("publisher cannot be null")
+	}
+
 	return nil
 }
 
@@ -88,6 +95,7 @@ func New(config Config) (*Service, error) {
 		featureService:     config.FeatureService,
 		meterRepo:          config.MeterRepo,
 		streamingConnector: config.StreamingConnector,
+		publisher:          config.Publisher,
 	}
 
 	lineSvc, err := lineservice.New(lineservice.Config{

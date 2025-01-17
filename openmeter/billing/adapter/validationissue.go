@@ -89,8 +89,8 @@ func (a *adapter) persistValidationIssues(ctx context.Context, invoice billing.I
 type ValidationIssueWithDBMeta struct {
 	billing.ValidationIssue
 
-	ID        string
-	DeletedAt *time.Time
+	ID        string     `json:"id"`
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 }
 
 // IntropectValidationIssues returns the validation issues for the given invoice, this is not

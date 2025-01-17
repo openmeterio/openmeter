@@ -47,6 +47,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]*billing.Line, error) {
 		out := make([]*billing.Line, 0, len(input.Lines))
+		newInvoiceIDs := []string{}
 
 		for customerID, lineByCustomer := range createByCustomerID {
 			if err := s.validateCustomerForUpdate(ctx, customerentity.CustomerID{
@@ -80,6 +81,10 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 						updateResult, err := s.upsertLineInvoice(ctx, line.Line, input, customerProfile)
 						if err != nil {
 							return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
+						}
+
+						if updateResult.IsInvoiceNew {
+							newInvoiceIDs = append(newInvoiceIDs, updateResult.Invoice.ID)
 						}
 
 						lineService, err := s.lineService.FromEntity(&updateResult.Line)
@@ -117,13 +122,31 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			out = append(out, createdLines...)
 		}
 
+		for _, invoiceID := range newInvoiceIDs {
+			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: billing.InvoiceID{
+					Namespace: input.Namespace,
+					ID:        invoiceID,
+				},
+				Expand: billing.InvoiceExpandAll,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("fetching invoice[%s]: %w", invoiceID, err)
+			}
+
+			if err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice)); err != nil {
+				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", invoiceID, err)
+			}
+		}
+
 		return out, nil
 	})
 }
 
 type upsertLineInvoiceResponse struct {
-	Line    billing.Line
-	Invoice *billing.Invoice
+	Line         billing.Line
+	Invoice      *billing.Invoice
+	IsInvoiceNew bool
 }
 
 func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, input billing.CreateInvoiceLinesInput, customerProfile *billing.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
@@ -161,8 +184,9 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 		line.InvoiceID = invoice.ID
 
 		return &upsertLineInvoiceResponse{
-			Line:    line,
-			Invoice: &invoice,
+			Line:         line,
+			Invoice:      &invoice,
+			IsInvoiceNew: true,
 		}, nil
 	}
 

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var Billing = wire.NewSet(
@@ -45,6 +46,7 @@ func BillingService(
 	featureConnector feature.FeatureConnector,
 	meterRepo meter.Repository,
 	streamingConnector streaming.Connector,
+	eventPublisher eventbus.Publisher,
 ) (billing.Service, error) {
 	if !billingConfig.Enabled {
 		return nil, nil
@@ -58,6 +60,7 @@ func BillingService(
 		Logger:             logger,
 		MeterRepo:          meterRepo,
 		StreamingConnector: streamingConnector,
+		Publisher:          eventPublisher,
 	})
 }
 

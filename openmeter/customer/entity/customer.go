@@ -89,7 +89,7 @@ func (i CustomerID) Validate() error {
 
 // CustomerUsageAttribution represents the usage attribution for a customer
 type CustomerUsageAttribution struct {
-	SubjectKeys []string
+	SubjectKeys []string `json:"subjectKeys"`
 }
 
 // ListCustomersInput represents the input for the ListCustomers method
