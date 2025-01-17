@@ -190,7 +190,13 @@ func (it *PhaseIterator) Generate(iterationEnd time.Time) ([]subscriptionItemWit
 				if err != nil {
 					return nil, err
 				}
-				out = append(out, generatedItem)
+
+				if generatedItem == nil {
+					// One time item is not billable yet, let's skip it
+					break
+				}
+
+				out = append(out, *generatedItem)
 				continue
 			}
 
@@ -281,21 +287,43 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriod) 
 	return out
 }
 
-func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemView, versionID int) (subscriptionItemWithPeriod, error) {
-	end := lo.CoalesceOrEmpty(item.SubscriptionItem.ActiveTo, it.phaseCadence.ActiveTo)
-	if end == nil {
-		// TODO[later]: implement open ended gathering line items, as that's a valid use case to for example:
-		// Have a plan, that has an open ended billing item for flat fee, then the end user uses progressive billing
-		// to bill the end user if the usage gets above $1000. Non-gathering lines must have a period end.
-		return subscriptionItemWithPeriod{}, fmt.Errorf("cannot determine phase end for item %s", item.Spec.ItemKey)
-	}
-
+func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemView, versionID int) (*subscriptionItemWithPeriod, error) {
 	period := billing.Period{
 		Start: item.SubscriptionItem.ActiveFrom,
-		End:   *end,
 	}
 
-	return subscriptionItemWithPeriod{
+	end := lo.CoalesceOrEmpty(item.SubscriptionItem.ActiveTo, it.phaseCadence.ActiveTo)
+	if end == nil {
+		// One time items are not usage based, so the price object will be a flat price
+		price := item.SubscriptionItem.RateCard.Price
+
+		if price == nil {
+			// If an item has no price it is not in scope for line generation
+			return nil, nil
+		}
+
+		if price.Type() != productcatalog.FlatPriceType {
+			return nil, fmt.Errorf("cannot determine period end for one-time item %s", item.Spec.ItemKey)
+		}
+
+		flatFee, err := item.SubscriptionItem.RateCard.Price.AsFlat()
+		if err != nil {
+			return nil, err
+		}
+
+		if flatFee.PaymentTerm == productcatalog.InArrearsPaymentTerm {
+			// If the item is InArrears but we cannot determine when that time is, let's just skip this item until we
+			// can determine the end of period
+			return nil, nil
+		}
+
+		// For in-advance fees we just specify an empty period, which is fine for non UBP items
+		period.End = item.SubscriptionItem.ActiveFrom
+	} else {
+		period.End = *end
+	}
+
+	return &subscriptionItemWithPeriod{
 		SubscriptionItemView: item,
 		Period:               period,
 		NonTruncatedPeriod:   period,
