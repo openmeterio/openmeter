@@ -784,7 +784,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   1,
@@ -861,7 +861,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   0,
@@ -880,7 +880,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
 		},
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   1,
@@ -957,7 +957,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-arrears",
 				Version:   0,
@@ -976,7 +976,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:40Z")},
 		},
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-arrears",
 				Version:   1,
@@ -1054,7 +1054,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   0,
@@ -1073,7 +1073,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
 		},
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   1,
@@ -1138,7 +1138,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 	draftInvoice := draftInvoices[0]
 	s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   0,
@@ -1183,7 +1183,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   1,
@@ -1207,7 +1207,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 
 	s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   0,
@@ -1281,7 +1281,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 
 	s.expectLines(approvedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   0,
@@ -1326,7 +1326,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   1,
@@ -1350,7 +1350,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 
 	s.expectLines(approvedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   "in-advance",
 				Version:   0,
@@ -1372,6 +1372,132 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	s.Len(approvedInvoice.ValidationIssues, 1)
 
 	s.expectValidationIssueForLine(approvedInvoice.Lines.OrEmpty()[0], approvedInvoice.ValidationIssues[0])
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with a single one-time fee in advance
+	// When
+	//  we we provision the lines
+	// Then
+	//  the gathering invoice will contain the generated item
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: oneTimeLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+				Version:  0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+	})
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with a single one-time fee in arrears
+	// When
+	//  we we provision the lines
+	// Then
+	//  there will be no gathering invoice, as we don't know what is in arrears
+
+	// When
+	//  we cancel the subscription
+	// Then
+	//  the gathering invoice will contain the generated item schedule to the cancellation's timestamp
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-arrears",
+						Name: "in-arrears",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						}),
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+
+	// let's cancel the subscription
+	cancelAt := s.mustParseTime("2024-01-04T12:00:00Z")
+
+	subs, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, cancelAt)
+	s.NoError(err)
+
+	subsView, err = s.SubscriptionService.GetView(ctx, subs.NamespacedID)
+	s.NoError(err)
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: oneTimeLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-arrears",
+				Version:  0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-04T12:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-04T12:00:00Z")},
+		},
+	})
 }
 
 func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
@@ -1410,7 +1536,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -1457,7 +1583,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -1481,7 +1607,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z"), s.mustParseTime("2024-01-02T12:00:00Z")},
 		},
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "second-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -1551,7 +1677,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 	s.debugDumpInvoice("draft invoice", draftInvoice)
 	s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -1574,7 +1700,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -1625,7 +1751,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "second-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -1650,7 +1776,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 
 	s.expectLines(updatedDraftInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -1732,7 +1858,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	s.debugDumpInvoice("issued invoice", issuedInvoice)
 	s.expectLines(issuedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -1795,7 +1921,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 
 	s.expectLines(updatedIssuedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -1886,7 +2012,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.expectLines(invoice1, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -1919,7 +2045,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.expectLines(draftInvoice2, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -1944,7 +2070,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -2005,7 +2131,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey:  "second-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
@@ -2033,7 +2159,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.expectLines(updatedIssuedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
-			Matcher: expectedLineMatcher{
+			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
@@ -2074,7 +2200,7 @@ func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billin
 }
 
 type expectedLine struct {
-	Matcher   expectedLineMatcher
+	Matcher   lineMatcher
 	Qty       mo.Option[float64]
 	UnitPrice mo.Option[float64]
 	Price     mo.Option[*productcatalog.Price]
@@ -2132,7 +2258,11 @@ func (s *SubscriptionHandlerTestSuite) expectLines(invoice billing.Invoice, subs
 	}
 }
 
-type expectedLineMatcher struct {
+type lineMatcher interface {
+	ChildIDs(subsID string) []string
+}
+
+type recurringLineMatcher struct {
 	PhaseKey  string
 	ItemKey   string
 	Version   int
@@ -2140,13 +2270,23 @@ type expectedLineMatcher struct {
 	PeriodMax int
 }
 
-func (m *expectedLineMatcher) ChildIDs(subsID string) []string {
+func (m recurringLineMatcher) ChildIDs(subsID string) []string {
 	out := []string{}
 	for periodID := m.PeriodMin; periodID <= m.PeriodMax; periodID++ {
 		out = append(out, fmt.Sprintf("%s/%s/%s/v[%d]/period[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version, periodID))
 	}
 
 	return out
+}
+
+type oneTimeLineMatcher struct {
+	PhaseKey string
+	ItemKey  string
+	Version  int
+}
+
+func (m oneTimeLineMatcher) ChildIDs(subsID string) []string {
+	return []string{fmt.Sprintf("%s/%s/%s/v[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version)}
 }
 
 // helpers
@@ -2333,6 +2473,26 @@ func (s *SubscriptionHandlerTestSuite) gatheringInvoice(ctx context.Context, nam
 	s.NoError(err)
 	s.Len(invoices.Items, 1)
 	return invoices.Items[0]
+}
+
+func (s *SubscriptionHandlerTestSuite) expectNoGatheringInvoice(ctx context.Context, namespace string, customerID string) {
+	s.T().Helper()
+
+	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespaces: []string{namespace},
+		Customers:  []string{customerID},
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+		Expand: billing.InvoiceExpandAll,
+		Statuses: []string{
+			string(billing.InvoiceStatusGathering),
+		},
+	})
+
+	s.NoError(err)
+	s.Len(invoices.Items, 0)
 }
 
 func (s *SubscriptionHandlerTestSuite) debugDumpInvoice(h string, i billing.Invoice) {

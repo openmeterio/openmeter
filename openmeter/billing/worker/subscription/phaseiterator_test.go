@@ -378,7 +378,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Type: productcatalog.FlatPriceType,
 				},
 			},
-			expectError: true,
+			expectError: false,
 		},
 	}
 
