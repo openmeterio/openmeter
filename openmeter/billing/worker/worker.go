@@ -27,6 +27,8 @@ type WorkerOptions struct {
 	BillingAdapter billing.Adapter
 	BillingService billing.Service
 	// External connectors
+
+	SubscriptionService subscription.Service
 }
 
 func (w WorkerOptions) Validate() error {
@@ -54,6 +56,10 @@ func (w WorkerOptions) Validate() error {
 		return fmt.Errorf("billing adapter is required")
 	}
 
+	if w.SubscriptionService == nil {
+		return fmt.Errorf("subscription service is required")
+	}
+
 	return nil
 }
 
@@ -70,9 +76,10 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	handler, err := billingworkersubscription.New(billingworkersubscription.Config{
-		BillingService: opts.BillingService,
-		Logger:         opts.Logger,
-		TxCreator:      opts.BillingAdapter,
+		BillingService:      opts.BillingService,
+		Logger:              opts.Logger,
+		TxCreator:           opts.BillingAdapter,
+		SubscriptionService: opts.SubscriptionService,
 	})
 	if err != nil {
 		return nil, err
@@ -121,6 +128,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
 			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
+			return w.subscriptionHandler.HandleInvoiceCreation(ctx, event.Invoice)
 		}),
 	)
 	if err != nil {

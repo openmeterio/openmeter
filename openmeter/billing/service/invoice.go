@@ -302,6 +302,14 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 				out = append(out, invoice)
 			}
+
+			for _, invoice := range out {
+				err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice))
+				if err != nil {
+					return nil, fmt.Errorf("publishing event: %w", err)
+				}
+			}
+
 			return out, nil
 		})
 }

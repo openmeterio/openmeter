@@ -9,6 +9,7 @@ import (
 const (
 	EntityEntitlement  = "entitlement"
 	EntitySubscription = "subscription"
+	EntityInvoice      = "invoice"
 	EntityCustomer     = "customer"
 	EntitySubjectKey   = "subjectKey"
 	EntityGrant        = "grant"

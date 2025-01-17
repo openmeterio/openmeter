@@ -79,7 +79,6 @@ func NewIngestCollector(
 
 func NewServerPublisher(
 	ctx context.Context,
-	conf config.EventsConfiguration,
 	options watermillkafka.PublisherOptions,
 	logger *slog.Logger,
 ) (message.Publisher, func(), error) {

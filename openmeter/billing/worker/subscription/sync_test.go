@@ -114,9 +114,10 @@ func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 	})
 
 	handler, err := New(Config{
-		BillingService: s.BillingService,
-		Logger:         slog.Default(),
-		TxCreator:      s.BillingAdapter,
+		BillingService:      s.BillingService,
+		Logger:              slog.Default(),
+		TxCreator:           s.BillingAdapter,
+		SubscriptionService: s.SubscriptionService,
 	})
 	s.NoError(err)
 
