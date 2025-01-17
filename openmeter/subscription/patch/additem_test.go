@@ -39,7 +39,7 @@ func TestAddItem(t *testing.T) {
 				Ctx: subscription.ApplyContext{
 					CurrentTime: now,
 				},
-				ExpectedError: &subscription.PatchValidationError{Msg: "phase invalid_phase not found"},
+				ExpectedError: &subscription.PatchConflictError{Msg: "phase invalid_phase not found"},
 			},
 			{
 				Name: "Cannot add item to previous phase",
@@ -66,7 +66,7 @@ func TestAddItem(t *testing.T) {
 					// We're doing this edit during the 2nd phase
 					CurrentTime: now.AddDate(0, 1, 2),
 				},
-				ExpectedError: &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", p.Phases[0].Key)},
+				ExpectedError: &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot change contents of phase %s which starts before current phase", p.Phases[0].Key)},
 			},
 			{
 				Name: "Cannot add item to old subscription (where everything is in the past)",
@@ -85,7 +85,7 @@ func TestAddItem(t *testing.T) {
 				Ctx: subscription.ApplyContext{
 					CurrentTime: now.AddDate(1, 0, 0),
 				},
-				ExpectedError: &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot add item to phase %s which starts before current phase", p.Phases[0].Key)},
+				ExpectedError: &subscription.PatchForbiddenError{Msg: fmt.Sprintf("cannot change contents of phase %s which starts before current phase", p.Phases[0].Key)},
 			},
 			{
 				Name: "Cannot add item to current phase which would become active in the past",
@@ -95,7 +95,9 @@ func TestAddItem(t *testing.T) {
 					CreateInput: subscription.SubscriptionItemSpec{
 						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
 							CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
-								ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(testutils.GetISODuration(t, "P1D")),
+								CadenceOverrideRelativeToPhaseStart: subscription.CadenceOverrideRelativeToPhaseStart{
+									ActiveFromOverride: lo.ToPtr(testutils.GetISODuration(t, "P1D")),
+								},
 							},
 						},
 					},
@@ -241,7 +243,7 @@ func TestAddItem(t *testing.T) {
 					updatedRc := s.Phases["test_phase_2"].ItemsByKey["rate-card-2"][0]
 
 					// We have to use seconds here as diff resolution will be in seconds
-					updatedRc.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "PT86400S"))
+					updatedRc.CadenceOverrideRelativeToPhaseStart.ActiveToOverride = lo.ToPtr(testutils.GetISODuration(t, "PT86400S"))
 
 					s.Phases["test_phase_2"].ItemsByKey["rate-card-2"] = []*subscription.SubscriptionItemSpec{
 						updatedRc,
@@ -259,7 +261,9 @@ func TestAddItem(t *testing.T) {
 									},
 								},
 								CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
-									ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(testutils.GetISODuration(t, "PT86400S")),
+									CadenceOverrideRelativeToPhaseStart: subscription.CadenceOverrideRelativeToPhaseStart{
+										ActiveFromOverride: lo.ToPtr(testutils.GetISODuration(t, "PT86400S")),
+									},
 								},
 							},
 						},

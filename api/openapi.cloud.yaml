@@ -8781,6 +8781,25 @@ components:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: The payment settings for this workflow
       description: BillingWorkflowSettings represents the settings for a billing workflow.
+    CadencedDiscount:
+      type: object
+      required:
+        - activeFrom
+        - discount
+      properties:
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
+        discount:
+          $ref: '#/components/schemas/Discount'
+      description: Discount with information about when it applies.
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
@@ -15100,6 +15119,7 @@ components:
         - createdAt
         - updatedAt
         - key
+        - discounts
         - activeFrom
         - items
       properties:
@@ -15158,9 +15178,8 @@ components:
         discounts:
           type: array
           items:
-            $ref: '#/components/schemas/Discount'
-          description: The discounts on the plan.
-          title: Discounts
+            $ref: '#/components/schemas/CadencedDiscount'
+          description: The discounts on the phase.
         activeFrom:
           type: string
           format: date-time

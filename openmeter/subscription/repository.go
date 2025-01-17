@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -120,4 +121,24 @@ type SubscriptionItemRepository interface {
 	Create(ctx context.Context, input CreateSubscriptionItemEntityInput) (SubscriptionItem, error)
 	Delete(ctx context.Context, id models.NamespacedID) error
 	GetByID(ctx context.Context, id models.NamespacedID) (SubscriptionItem, error)
+}
+
+type CreateDiscountEntityInput struct {
+	models.NamespacedModel
+	models.CadencedModel
+
+	productcatalog.Discount
+
+	PhaseID        string `json:"phaseId"`
+	SubscriptionID string `json:"subscriptionId"`
+}
+
+type DiscountRepository interface {
+	entutils.TxCreator
+
+	GetForSubscriptionAt(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) ([]Discount, error)
+
+	Create(ctx context.Context, input CreateDiscountEntityInput) (Discount, error)
+	Delete(ctx context.Context, id models.NamespacedID) error
+	GetByID(ctx context.Context, id models.NamespacedID) (Discount, error)
 }

@@ -33,7 +33,7 @@ func TestRemoveItem(t *testing.T) {
 				},
 				GetSpec: getSpec,
 				Ctx:     subscription.ApplyContext{CurrentTime: now},
-				ExpectedError: &subscription.PatchValidationError{
+				ExpectedError: &subscription.PatchConflictError{
 					Msg: "phase notfound not found",
 				},
 			},
@@ -102,7 +102,7 @@ func TestRemoveItem(t *testing.T) {
 					CurrentTime: now.AddDate(0, 1, 1), // same as ts above
 				},
 				ExpectedError: &subscription.PatchForbiddenError{
-					Msg: "cannot remove item from phase test_phase_1 which starts before current phase",
+					Msg: "cannot change contents of phase test_phase_1 which starts before current phase",
 				},
 			},
 			{
@@ -122,7 +122,7 @@ func TestRemoveItem(t *testing.T) {
 					CurrentTime: now.AddDate(1, 0, 0), // We're far in the future
 				},
 				ExpectedError: &subscription.PatchForbiddenError{
-					Msg: "cannot remove item from phase test_phase_1 which starts before current phase",
+					Msg: "cannot change contents of phase test_phase_1 which starts before current phase",
 				},
 			},
 			{
@@ -222,7 +222,7 @@ func TestRemoveItem(t *testing.T) {
 
 					// When removing an item from the current phase it should close that item with the current timestamp
 					// We have to use seconds due to how duration is managed
-					s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(testutils.GetISODuration(t, "PT86400S"))
+					s.Phases["test_phase_2"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].CadenceOverrideRelativeToPhaseStart.ActiveToOverride = lo.ToPtr(testutils.GetISODuration(t, "PT86400S"))
 
 					return *s
 				},
