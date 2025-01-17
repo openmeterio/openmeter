@@ -24,10 +24,16 @@ const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 )
 
+type FeatureFlags struct {
+	EnableFlatFeeInAdvanceProrating bool
+	EnableFlatFeeInArrearsProrating bool
+}
+
 type Config struct {
 	BillingService billing.Service
 	TxCreator      transaction.Creator
 	Logger         *slog.Logger
+	FeatureFlags   FeatureFlags
 }
 
 func (c Config) Validate() error {
@@ -50,6 +56,7 @@ type Handler struct {
 	billingService billing.Service
 	txCreator      transaction.Creator
 	logger         *slog.Logger
+	featureFlags   FeatureFlags
 }
 
 func New(config Config) (*Handler, error) {
@@ -60,6 +67,7 @@ func New(config Config) (*Handler, error) {
 		billingService: config.BillingService,
 		txCreator:      config.TxCreator,
 		logger:         config.Logger,
+		featureFlags:   config.FeatureFlags,
 	}, nil
 }
 
@@ -369,7 +377,11 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 
 		// TODO[OM-1040]: We should support rounding errors in prorating calculations (such as 1/3 of a dollar is $0.33, 3*$0.33 is $0.99, if we bill
 		// $1.00 in three equal pieces we should charge the customer $0.01 as the last split)
-		perUnitAmount := currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
+		perUnitAmount := currency.RoundToPrecision(price.Amount)
+		if !item.Period.IsEmpty() && h.shouldProrateFlatFee(price) {
+			perUnitAmount = currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
+		}
+
 		switch price.PaymentTerm {
 		case productcatalog.InArrearsPaymentTerm:
 			line.InvoiceAt = item.Period.End
@@ -420,6 +432,17 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 	}
 
 	return line, nil
+}
+
+func (h *Handler) shouldProrateFlatFee(price productcatalog.FlatPrice) bool {
+	switch price.PaymentTerm {
+	case productcatalog.InAdvancePaymentTerm:
+		return h.featureFlags.EnableFlatFeeInAdvanceProrating
+	case productcatalog.InArrearsPaymentTerm:
+		return h.featureFlags.EnableFlatFeeInArrearsProrating
+	default:
+		return false
+	}
 }
 
 func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, line []subscriptionItemWithPeriod) error {
