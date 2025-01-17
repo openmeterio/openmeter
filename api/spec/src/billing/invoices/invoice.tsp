@@ -146,7 +146,7 @@ model Invoice {
   /**
    * The period the invoice covers. If the invoice has no line items, it's not set.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   period?: Period;
 
   /**
@@ -164,24 +164,24 @@ model Invoice {
    * field is optional as it should be explicitly requested with expand options.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  workflow?: InvoiceWorkflowSettings;
+  workflow: InvoiceWorkflowSettings;
 
   /**
    * List of invoice lines representing each of the items sold to the customer.
    */
-  @visibility(Lifecycle.Read) // Seperate API endpoint is available for updating
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   lines?: InvoiceLine[];
 
   /**
    * Discounts or allowances applied to the complete invoice.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create) // Updates and later deletions are handled by the restful API
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   discounts?: Discount[];
 
   /**
    * Information on when, how, and to whom the invoice should be paid.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @visibility(Lifecycle.Read)
   payment?: InvoicePaymentTerms;
 
   /**
@@ -324,7 +324,7 @@ model InvoiceWorkflowSettings {
   /**
    * The workflow details used by this invoice.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   workflow: OpenMeter.Billing.BillingWorkflowSettings;
 }
 
@@ -647,7 +647,7 @@ model InvoiceUsageBasedLine {
   /**
    * The feature that the usage is based on.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   featureKey: Key;
 
   /**
@@ -690,6 +690,29 @@ model InvoiceFlatFeeLine {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   quantity: Numeric;
+
+  /**
+   * Category of the flat fee.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  category?: InvoiceFlatFeeCategory = InvoiceFlatFeeCategory.regular;
+}
+
+/**
+ * InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a
+ * commitment.
+ */
+@friendlyName("InvoiceFlatFeeCategory")
+union InvoiceFlatFeeCategory {
+  /**
+   * The fee is a regular fee due to usage.
+   */
+  regular: "regular",
+
+  /**
+   * The fee is a fee due to a commitment (e.g. minimum spend).
+   */
+  commitment: "commitment",
 }
 
 /**

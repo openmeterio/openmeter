@@ -250,6 +250,8 @@ func (a *adapter) upsertFeeLineConfig(ctx context.Context, in diff[*billing.Line
 			create := tx.BillingInvoiceFlatFeeLineConfig.Create().
 				SetNamespace(line.Namespace).
 				SetPerUnitAmount(line.FlatFee.PerUnitAmount).
+				SetCategory(line.FlatFee.Category).
+				SetPaymentTerm(line.FlatFee.PaymentTerm).
 				SetID(line.FlatFee.ConfigID)
 
 			return create, nil

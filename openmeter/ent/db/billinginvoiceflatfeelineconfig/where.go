@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // ID filters vertices based on their ID field.
@@ -207,6 +208,36 @@ func CategoryNotIn(vs ...billing.FlatFeeCategory) predicate.BillingInvoiceFlatFe
 		v[i] = vs[i]
 	}
 	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNotIn(FieldCategory, v...))
+}
+
+// PaymentTermEQ applies the EQ predicate on the "payment_term" field.
+func PaymentTermEQ(v productcatalog.PaymentTermType) predicate.BillingInvoiceFlatFeeLineConfig {
+	vc := v
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldEQ(FieldPaymentTerm, vc))
+}
+
+// PaymentTermNEQ applies the NEQ predicate on the "payment_term" field.
+func PaymentTermNEQ(v productcatalog.PaymentTermType) predicate.BillingInvoiceFlatFeeLineConfig {
+	vc := v
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNEQ(FieldPaymentTerm, vc))
+}
+
+// PaymentTermIn applies the In predicate on the "payment_term" field.
+func PaymentTermIn(vs ...productcatalog.PaymentTermType) predicate.BillingInvoiceFlatFeeLineConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldIn(FieldPaymentTerm, v...))
+}
+
+// PaymentTermNotIn applies the NotIn predicate on the "payment_term" field.
+func PaymentTermNotIn(vs ...productcatalog.PaymentTermType) predicate.BillingInvoiceFlatFeeLineConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceFlatFeeLineConfig(sql.FieldNotIn(FieldPaymentTerm, v...))
 }
 
 // And groups predicates with the AND operator between them.

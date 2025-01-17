@@ -12,9 +12,12 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -378,23 +381,94 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 	)
 }
 
+type (
+	UpdateInvoiceRequest struct {
+		InvoiceID billing.InvoiceID
+		Input     api.InvoiceReplaceUpdate
+	}
+	UpdateInvoiceResponse = api.Invoice
+	UpdateInvoiceParams   struct {
+		InvoiceID string
+	}
+	UpdateInvoiceHandler httptransport.HandlerWithArgs[UpdateInvoiceRequest, UpdateInvoiceResponse, UpdateInvoiceParams]
+)
+
+func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params UpdateInvoiceParams) (UpdateInvoiceRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return UpdateInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			body := api.InvoiceReplaceUpdate{}
+
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return UpdateInvoiceRequest{}, err
+			}
+
+			return UpdateInvoiceRequest{
+				InvoiceID: billing.InvoiceID{
+					ID:        params.InvoiceID,
+					Namespace: ns,
+				},
+				Input: body,
+			}, nil
+		},
+		func(ctx context.Context, request UpdateInvoiceRequest) (UpdateInvoiceResponse, error) {
+			invoice, err := h.service.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+				Invoice: request.InvoiceID,
+				EditFn: func(invoice *billing.Invoice) error {
+					var err error
+
+					invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
+					invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)
+					invoice.Workflow, err = mergeInvoiceWorkflowFromAPI(invoice.Workflow, request.Input.Workflow)
+					if err != nil {
+						return err
+					}
+
+					invoice.Lines, err = h.mergeInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
+					if err != nil {
+						return err
+					}
+
+					// basic fields
+					invoice.Description = request.Input.Description
+					invoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
+					invoice.DraftUntil = request.Input.DraftUntil
+
+					return nil
+				},
+			})
+			if err != nil {
+				return UpdateInvoiceResponse{}, err
+			}
+
+			return h.mapInvoiceToAPI(invoice)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[UpdateInvoiceResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("UpdateInvoice"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
 func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
+	var err error
 
-	// If the workflow is not expanded we won't have this
-	if invoice.Workflow != nil {
-		var err error
-
-		if invoice.Workflow.Apps != nil {
-			apps, err = h.mapProfileAppsToAPI(invoice.Workflow.Apps)
-			if err != nil {
-				return api.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
-			}
-		} else {
-			apps, err = mapProfileAppReferencesToAPI(&invoice.Workflow.AppReferences)
-			if err != nil {
-				return api.Invoice{}, fmt.Errorf("failed to map profile app references to API: %w", err)
-			}
+	if invoice.Workflow.Apps != nil {
+		apps, err = h.mapProfileAppsToAPI(invoice.Workflow.Apps)
+		if err != nil {
+			return api.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
+		}
+	} else {
+		apps, err = mapProfileAppReferencesToAPI(&invoice.Workflow.AppReferences)
+		if err != nil {
+			return api.Invoice{}, fmt.Errorf("failed to map profile app references to API: %w", err)
 		}
 	}
 
@@ -451,12 +525,10 @@ func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) 
 		}),
 	}
 
-	if invoice.Workflow != nil {
-		out.Workflow = &api.InvoiceWorkflowSettings{
-			Apps:                   apps,
-			SourceBillingProfileID: invoice.Workflow.SourceBillingProfileID,
-			Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config),
-		}
+	out.Workflow = api.InvoiceWorkflowSettings{
+		Apps:                   apps,
+		SourceBillingProfileID: invoice.Workflow.SourceBillingProfileID,
+		Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config),
 	}
 
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.Line) (api.InvoiceLine, error) {
@@ -557,4 +629,76 @@ func mapInvoiceAvailableActionDetailsToAPI(actions *billing.InvoiceAvailableActi
 	return &api.InvoiceAvailableActionDetails{
 		ResultingState: string(actions.ResultingState),
 	}
+}
+
+func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updatedSupplier api.BillingPartyReplaceUpdate) billing.SupplierContact {
+	existing.Name = lo.FromPtrOr(updatedSupplier.Name, "")
+
+	if updatedSupplier.Addresses == nil || len(*updatedSupplier.Addresses) == 0 {
+		existing.Address = models.Address{}
+	} else {
+		mappedAddress := customerhttpdriver.MapAddress(&(*updatedSupplier.Addresses)[0])
+		existing.Address = *mappedAddress
+	}
+
+	if updatedSupplier.TaxId != nil {
+		existing.TaxCode = updatedSupplier.TaxId.Code
+	} else {
+		existing.TaxCode = nil
+	}
+
+	return existing
+}
+
+func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updatedCustomer api.BillingPartyReplaceUpdate) billing.InvoiceCustomer {
+	existing.Name = lo.FromPtrOr(updatedCustomer.Name, "")
+
+	if updatedCustomer.Addresses == nil || len(*updatedCustomer.Addresses) == 0 {
+		existing.BillingAddress = nil
+	} else {
+		mappedAddress := customerhttpdriver.MapAddress(&(*updatedCustomer.Addresses)[0])
+		existing.BillingAddress = mappedAddress
+	}
+
+	return existing
+}
+
+func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updatedWorkflow api.InvoiceWorkflowReplaceUpdate) (billing.InvoiceWorkflow, error) {
+	existing.Config.Invoicing.AutoAdvance = lo.FromPtrOr(
+		updatedWorkflow.Workflow.Invoicing.AutoAdvance,
+		billing.DefaultWorkflowConfig.Invoicing.AutoAdvance)
+
+	if updatedWorkflow.Workflow.Invoicing.DraftPeriod == nil {
+		existing.Config.Invoicing.DraftPeriod = billing.DefaultWorkflowConfig.Invoicing.DraftPeriod
+	} else {
+		period, err := datex.ISOString(*updatedWorkflow.Workflow.Invoicing.DraftPeriod).Parse()
+		if err != nil {
+			return existing, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse draft period: %w", err),
+			}
+		}
+
+		existing.Config.Invoicing.DraftPeriod = period
+	}
+
+	if updatedWorkflow.Workflow.Invoicing.DueAfter == nil {
+		existing.Config.Invoicing.DueAfter = billing.DefaultWorkflowConfig.Invoicing.DueAfter
+	} else {
+		period, err := datex.ISOString(*updatedWorkflow.Workflow.Invoicing.DueAfter).Parse()
+		if err != nil {
+			return existing, billing.ValidationError{
+				Err: fmt.Errorf("failed to parse due after: %w", err),
+			}
+		}
+
+		existing.Config.Invoicing.DueAfter = period
+	}
+
+	if updatedWorkflow.Workflow.Payment.CollectionMethod != nil {
+		existing.Config.Payment.CollectionMethod = billing.CollectionMethod(*updatedWorkflow.Workflow.Payment.CollectionMethod)
+	} else {
+		existing.Config.Payment.CollectionMethod = billing.DefaultWorkflowConfig.Payment.CollectionMethod
+	}
+
+	return existing, nil
 }

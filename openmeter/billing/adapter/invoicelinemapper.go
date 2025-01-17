@@ -180,6 +180,8 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			ConfigID:      dbLine.Edges.FlatFeeLine.ID,
 			PerUnitAmount: dbLine.Edges.FlatFeeLine.PerUnitAmount,
 			Quantity:      lo.FromPtrOr(dbLine.Quantity, alpacadecimal.Zero),
+			Category:      dbLine.Edges.FlatFeeLine.Category,
+			PaymentTerm:   dbLine.Edges.FlatFeeLine.PaymentTerm,
 		}
 	case billing.InvoiceLineTypeUsageBased:
 		ubpLine := dbLine.Edges.UsageBasedLine

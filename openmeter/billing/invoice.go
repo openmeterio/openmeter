@@ -207,9 +207,9 @@ type InvoiceBase struct {
 	// Customer is either a snapshot of the contact information of the customer at the time of invoice being sent
 	// or the data from the customer entity (draft state)
 	// This is required so that we are not modifying the invoice after it has been sent to the customer.
-	Customer InvoiceCustomer  `json:"customer"`
-	Supplier SupplierContact  `json:"supplier"`
-	Workflow *InvoiceWorkflow `json:"workflow,omitempty"`
+	Customer InvoiceCustomer `json:"customer"`
+	Supplier SupplierContact `json:"supplier"`
+	Workflow InvoiceWorkflow `json:"workflow,omitempty"`
 
 	ExternalIDs InvoiceExternalIDs `json:"externalIds,omitempty"`
 }

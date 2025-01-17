@@ -234,6 +234,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 								PerUnitAmount: alpacadecimal.NewFromFloat(100),
 								PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 								Quantity:      alpacadecimal.NewFromFloat(1),
+								Category:      billing.FlatFeeCategoryRegular,
 							},
 						},
 						CustomerID: customerEntity.ID,

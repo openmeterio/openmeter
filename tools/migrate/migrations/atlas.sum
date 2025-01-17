@@ -1,4 +1,4 @@
-h1:qQbJzEV8jXeLSc8v1qq2AQxdi4HtFK7LQ2M+S31YWAI=
+h1:Qio8mIkc7zlm0mNdyXcrwlO8fl9sWvWrB1bGD0te29U=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -83,3 +83,5 @@ h1:qQbJzEV8jXeLSc8v1qq2AQxdi4HtFK7LQ2M+S31YWAI=
 20250113222737_app_default_with_deleted.up.sql h1:ZB4tvuTSUyW2V1Bmz6rOBvIojZD9hDE16I4LEx9Yv8E=
 20250114104811_billing-invoice-discounts.down.sql h1:aWUtEorfx825Bi/RwVNAUd5y/vvQBjmJ52Cjd67hBGk=
 20250114104811_billing-invoice-discounts.up.sql h1:nDlJWqsp8Zta42JIQFQ2bXv9EqO1bDjcwDu1YHYPuwM=
+20250117120943_billing-fee-payment-term.down.sql h1:LWXe54GX7Af590E9s+HnCWDcCf9DsI438ZKF+HUjHE4=
+20250117120943_billing-fee-payment-term.up.sql h1:KFAAtBoI1yzioS2C5bxI9hguo+8F5YA8Ee5yN3wPk24=

@@ -174,7 +174,7 @@ func (i LineBase) Validate() error {
 	return nil
 }
 
-func (i LineBase) Clone(line *Line) LineBase {
+func (i LineBase) Clone() LineBase {
 	out := i
 
 	// Clone pointer fields (where they are mutable)
@@ -372,7 +372,7 @@ func (i Line) clone(opts cloneOptions) *Line {
 		res.UsageBased = i.UsageBased.Clone()
 	}
 
-	res.LineBase = i.LineBase.Clone(res)
+	res.LineBase = i.LineBase.Clone()
 
 	if !opts.skipChildren {
 		res.Children = i.Children.Map(func(line *Line) *Line {
@@ -454,6 +454,14 @@ func (i Line) ValidateFee() error {
 
 	if !i.FlatFee.Quantity.IsPositive() {
 		return errors.New("quantity should be positive required")
+	}
+
+	if !slices.Contains(FlatFeeCategory("").Values(), string(i.FlatFee.Category)) {
+		return fmt.Errorf("invalid category %s", i.FlatFee.Category)
+	}
+
+	if !slices.Contains(productcatalog.PaymentTermType("").Values(), string(i.FlatFee.PaymentTerm)) {
+		return fmt.Errorf("invalid payment term %s", i.FlatFee.PaymentTerm)
 	}
 
 	// TODO[OM-947]: Validate currency specifics
@@ -1028,7 +1036,7 @@ func (u UpdateInvoiceLineFlatFeeInput) Validate() error {
 		outErr = errors.Join(outErr, ValidationWithFieldPrefix("quantity", ErrFieldMustBePositiveOrZero))
 	}
 
-	if u.PaymentTerm.IsPresent() && !slices.Contains(productcatalog.PaymentTermType("").Values(), u.PaymentTerm.OrEmpty()) {
+	if u.PaymentTerm.IsPresent() && !slices.Contains(productcatalog.PaymentTermType("").Values(), string(u.PaymentTerm.OrEmpty())) {
 		outErr = errors.Join(outErr, ValidationWithFieldPrefix("payment_term", fmt.Errorf("invalid payment term %s", u.PaymentTerm.OrEmpty())))
 	}
 

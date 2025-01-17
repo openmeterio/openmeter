@@ -14,6 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceFlatFeeLineConfigCreate is the builder for creating a BillingInvoiceFlatFeeLineConfig entity.
@@ -46,6 +47,20 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetCategory(bfc billing.Fl
 func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNillableCategory(bfc *billing.FlatFeeCategory) *BillingInvoiceFlatFeeLineConfigCreate {
 	if bfc != nil {
 		bifflcc.SetCategory(*bfc)
+	}
+	return bifflcc
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetPaymentTerm(ptt productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigCreate {
+	bifflcc.mutation.SetPaymentTerm(ptt)
+	return bifflcc
+}
+
+// SetNillablePaymentTerm sets the "payment_term" field if the given value is not nil.
+func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) SetNillablePaymentTerm(ptt *productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigCreate {
+	if ptt != nil {
+		bifflcc.SetPaymentTerm(*ptt)
 	}
 	return bifflcc
 }
@@ -103,6 +118,10 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) defaults() {
 		v := billinginvoiceflatfeelineconfig.DefaultCategory
 		bifflcc.mutation.SetCategory(v)
 	}
+	if _, ok := bifflcc.mutation.PaymentTerm(); !ok {
+		v := billinginvoiceflatfeelineconfig.DefaultPaymentTerm
+		bifflcc.mutation.SetPaymentTerm(v)
+	}
 	if _, ok := bifflcc.mutation.ID(); !ok {
 		v := billinginvoiceflatfeelineconfig.DefaultID()
 		bifflcc.mutation.SetID(v)
@@ -128,6 +147,14 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) check() error {
 	if v, ok := bifflcc.mutation.Category(); ok {
 		if err := billinginvoiceflatfeelineconfig.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.category": %w`, err)}
+		}
+	}
+	if _, ok := bifflcc.mutation.PaymentTerm(); !ok {
+		return &ValidationError{Name: "payment_term", err: errors.New(`db: missing required field "BillingInvoiceFlatFeeLineConfig.payment_term"`)}
+	}
+	if v, ok := bifflcc.mutation.PaymentTerm(); ok {
+		if err := billinginvoiceflatfeelineconfig.PaymentTermValidator(v); err != nil {
+			return &ValidationError{Name: "payment_term", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceFlatFeeLineConfig.payment_term": %w`, err)}
 		}
 	}
 	return nil
@@ -177,6 +204,10 @@ func (bifflcc *BillingInvoiceFlatFeeLineConfigCreate) createSpec() (*BillingInvo
 	if value, ok := bifflcc.mutation.Category(); ok {
 		_spec.SetField(billinginvoiceflatfeelineconfig.FieldCategory, field.TypeEnum, value)
 		_node.Category = value
+	}
+	if value, ok := bifflcc.mutation.PaymentTerm(); ok {
+		_spec.SetField(billinginvoiceflatfeelineconfig.FieldPaymentTerm, field.TypeEnum, value)
+		_node.PaymentTerm = value
 	}
 	return _node, _spec
 }
@@ -251,6 +282,18 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetCategory(v billing.FlatFeeCat
 // UpdateCategory sets the "category" field to the value that was provided on create.
 func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdateCategory() *BillingInvoiceFlatFeeLineConfigUpsert {
 	u.SetExcluded(billinginvoiceflatfeelineconfig.FieldCategory)
+	return u
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.Set(billinginvoiceflatfeelineconfig.FieldPaymentTerm, v)
+	return u
+}
+
+// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsert) UpdatePaymentTerm() *BillingInvoiceFlatFeeLineConfigUpsert {
+	u.SetExcluded(billinginvoiceflatfeelineconfig.FieldPaymentTerm)
 	return u
 }
 
@@ -330,6 +373,20 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetCategory(v billing.FlatFee
 func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdateCategory() *BillingInvoiceFlatFeeLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
 		s.UpdateCategory()
+	})
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.SetPaymentTerm(v)
+	})
+}
+
+// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertOne) UpdatePaymentTerm() *BillingInvoiceFlatFeeLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.UpdatePaymentTerm()
 	})
 }
 
@@ -576,6 +633,20 @@ func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetCategory(v billing.FlatFe
 func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdateCategory() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
 		s.UpdateCategory()
+	})
+}
+
+// SetPaymentTerm sets the "payment_term" field.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) SetPaymentTerm(v productcatalog.PaymentTermType) *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.SetPaymentTerm(v)
+	})
+}
+
+// UpdatePaymentTerm sets the "payment_term" field to the value that was provided on create.
+func (u *BillingInvoiceFlatFeeLineConfigUpsertBulk) UpdatePaymentTerm() *BillingInvoiceFlatFeeLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceFlatFeeLineConfigUpsert) {
+		s.UpdatePaymentTerm()
 	})
 }
 

@@ -689,7 +689,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 		return billing.Invoice{}, err
 	}
 
-	res.Workflow = &billing.InvoiceWorkflow{
+	res.Workflow = billing.InvoiceWorkflow{
 		Config:                 workflowConfig,
 		SourceBillingProfileID: invoice.SourceBillingProfileID,
 

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -67,6 +68,8 @@ func (s *InvoiceDiscountTestSuite) TestInvoiceDiscountSync() {
 					FlatFee: &billing.FlatFeeLine{
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
 						Quantity:      alpacadecimal.NewFromFloat(1),
+						Category:      billing.FlatFeeCategoryRegular,
+						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					},
 				},
 				CustomerID: customerEntity.ID,

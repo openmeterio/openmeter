@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // BillingInvoiceFlatFeeLineConfig is the model entity for the BillingInvoiceFlatFeeLineConfig schema.
@@ -23,7 +24,9 @@ type BillingInvoiceFlatFeeLineConfig struct {
 	// PerUnitAmount holds the value of the "per_unit_amount" field.
 	PerUnitAmount alpacadecimal.Decimal `json:"per_unit_amount,omitempty"`
 	// Category holds the value of the "category" field.
-	Category     billing.FlatFeeCategory `json:"category,omitempty"`
+	Category billing.FlatFeeCategory `json:"category,omitempty"`
+	// PaymentTerm holds the value of the "payment_term" field.
+	PaymentTerm  productcatalog.PaymentTermType `json:"payment_term,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -34,7 +37,7 @@ func (*BillingInvoiceFlatFeeLineConfig) scanValues(columns []string) ([]any, err
 		switch columns[i] {
 		case billinginvoiceflatfeelineconfig.FieldPerUnitAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceflatfeelineconfig.FieldID, billinginvoiceflatfeelineconfig.FieldNamespace, billinginvoiceflatfeelineconfig.FieldCategory:
+		case billinginvoiceflatfeelineconfig.FieldID, billinginvoiceflatfeelineconfig.FieldNamespace, billinginvoiceflatfeelineconfig.FieldCategory, billinginvoiceflatfeelineconfig.FieldPaymentTerm:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -74,6 +77,12 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) assignValues(columns []string, va
 				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
 				bifflc.Category = billing.FlatFeeCategory(value.String)
+			}
+		case billinginvoiceflatfeelineconfig.FieldPaymentTerm:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_term", values[i])
+			} else if value.Valid {
+				bifflc.PaymentTerm = productcatalog.PaymentTermType(value.String)
 			}
 		default:
 			bifflc.selectValues.Set(columns[i], values[i])
@@ -119,6 +128,9 @@ func (bifflc *BillingInvoiceFlatFeeLineConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("category=")
 	builder.WriteString(fmt.Sprintf("%v", bifflc.Category))
+	builder.WriteString(", ")
+	builder.WriteString("payment_term=")
+	builder.WriteString(fmt.Sprintf("%v", bifflc.PaymentTerm))
 	builder.WriteByte(')')
 	return builder.String()
 }

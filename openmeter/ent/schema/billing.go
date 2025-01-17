@@ -430,6 +430,9 @@ func (BillingInvoiceFlatFeeLineConfig) Fields() []ent.Field {
 		field.Enum("category").
 			GoType(billing.FlatFeeCategory("")).
 			Default(string(billing.FlatFeeCategoryRegular)),
+		field.Enum("payment_term").
+			GoType(productcatalog.PaymentTermType("")).
+			Default(string(productcatalog.InAdvancePaymentTerm)),
 	}
 }
 

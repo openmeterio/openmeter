@@ -733,7 +733,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 				TaxCode: billingProfile.Profile.Supplier.TaxCode,
 			},
 
-			Workflow: &billing.InvoiceWorkflow{
+			Workflow: billing.InvoiceWorkflow{
 				AppReferences:          lo.FromPtrOr(billingProfile.Profile.AppReferences, billing.ProfileAppReferences{}),
 				Apps:                   billingProfile.Profile.Apps,
 				SourceBillingProfileID: billingProfile.Profile.ID,

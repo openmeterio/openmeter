@@ -124,6 +124,19 @@ func (a *Router) SimulateInvoice(w http.ResponseWriter, r *http.Request, custome
 	}).ServeHTTP(w, r)
 }
 
+// Update an invoice
+// (PUT /api/v1/billing/invoices/{invoiceId})
+func (a *Router) UpdateInvoice(w http.ResponseWriter, r *http.Request, invoiceId string) {
+	if !a.config.BillingEnabled {
+		unimplemented.UpdateInvoice(w, r, invoiceId)
+		return
+	}
+
+	a.billingHandler.UpdateInvoice().With(httpdriver.UpdateInvoiceParams{
+		InvoiceID: invoiceId,
+	}).ServeHTTP(w, r)
+}
+
 // Delete an invoice line
 // (DELETE /api/v1/billing/invoices/{invoiceId}/lines/{lineId})
 func (a *Router) DeleteInvoiceLine(w http.ResponseWriter, r *http.Request, invoiceId string, lineId string) {

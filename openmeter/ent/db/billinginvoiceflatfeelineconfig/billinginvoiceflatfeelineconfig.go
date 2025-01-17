@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -20,6 +21,8 @@ const (
 	FieldPerUnitAmount = "per_unit_amount"
 	// FieldCategory holds the string denoting the category field in the database.
 	FieldCategory = "category"
+	// FieldPaymentTerm holds the string denoting the payment_term field in the database.
+	FieldPaymentTerm = "payment_term"
 	// Table holds the table name of the billinginvoiceflatfeelineconfig in the database.
 	Table = "billing_invoice_flat_fee_line_configs"
 )
@@ -30,6 +33,7 @@ var Columns = []string{
 	FieldNamespace,
 	FieldPerUnitAmount,
 	FieldCategory,
+	FieldPaymentTerm,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -61,6 +65,18 @@ func CategoryValidator(c billing.FlatFeeCategory) error {
 	}
 }
 
+const DefaultPaymentTerm productcatalog.PaymentTermType = "in_advance"
+
+// PaymentTermValidator is a validator for the "payment_term" field enum values. It is called by the builders before save.
+func PaymentTermValidator(pt productcatalog.PaymentTermType) error {
+	switch pt {
+	case "in_advance", "in_arrears":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceflatfeelineconfig: invalid enum value for payment_term field: %q", pt)
+	}
+}
+
 // OrderOption defines the ordering options for the BillingInvoiceFlatFeeLineConfig queries.
 type OrderOption func(*sql.Selector)
 
@@ -82,4 +98,9 @@ func ByPerUnitAmount(opts ...sql.OrderTermOption) OrderOption {
 // ByCategory orders the results by the category field.
 func ByCategory(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCategory, opts...).ToFunc()
+}
+
+// ByPaymentTerm orders the results by the payment_term field.
+func ByPaymentTerm(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentTerm, opts...).ToFunc()
 }
