@@ -1556,6 +1556,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
 
+		s.DebugDumpInvoice("mid period ubp progressive invoice", out[0])
+
 		require.Len(s.T(), out[0].ValidationIssues, 0)
 
 		invoiceLines := out[0].Lines.MustGet()
@@ -2139,6 +2141,234 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			ChargesTotal: 1000,
 			Total:        4350,
 		}, out[0].Totals)
+	})
+}
+
+func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
+	namespace := "ns-ubp-invoicing-graduated-flat-fee-tier-1"
+	ctx := context.Background()
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
+		{
+			Namespace:   namespace,
+			Slug:        "tiered-graduated",
+			WindowSize:  models.WindowSizeMinute,
+			Aggregation: models.MeterAggregationSum,
+		},
+	})
+	defer s.MeterRepo.ReplaceMeters(ctx, []models.Meter{})
+
+	// Let's initialize the mock streaming connector with data that is out of the period so that we
+	// can start with empty values
+	for _, slug := range []string{"flat-per-unit", "flat-per-usage", "tiered-graduated", "tiered-volume"} {
+		s.MockStreamingConnector.AddSimpleEvent(slug, 0, periodStart.Add(-time.Minute))
+	}
+
+	defer s.MockStreamingConnector.Reset()
+
+	// Let's create the features
+	features := ubpFeatures{
+		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "tiered-graduated",
+			Key:       "tiered-graduated",
+			MeterSlug: lo.ToPtr("tiered-graduated"),
+		})),
+	}
+
+	// Given we have a test customer
+
+	customerEntity := s.CreateTestCustomer(namespace, "test")
+	require.NotNil(s.T(), customerEntity)
+	require.NotEmpty(s.T(), customerEntity.ID)
+
+	// Given we have a default profile for the namespace
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	var pendingLine *billing.Line
+	s.Run("create pending invoice items", func() {
+		// When we create pending invoice items
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+			billing.CreateInvoiceLinesInput{
+				Namespace: namespace,
+				Lines: []billing.LineWithCustomer{
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+								InvoiceAt: periodEnd,
+								Currency:  currencyx.Code(currency.USD),
+								Type:      billing.InvoiceLineTypeUsageBased,
+								Name:      "UBP - Tiered graduated",
+							},
+							UsageBased: &billing.UsageBasedLine{
+								FeatureKey: features.tieredGraduated.Key,
+								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+									Mode: productcatalog.GraduatedTieredPrice,
+									Tiers: []productcatalog.PriceTier{
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(10)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(10),
+											},
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: alpacadecimal.NewFromFloat(100),
+											},
+										},
+										{
+											UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(20)),
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(5),
+											},
+											FlatPrice: &productcatalog.PriceTierFlatPrice{
+												Amount: alpacadecimal.NewFromFloat(200),
+											},
+										},
+										{
+											UnitPrice: &productcatalog.PriceTierUnitPrice{
+												Amount: alpacadecimal.NewFromFloat(80),
+											},
+										},
+									},
+								}),
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+				},
+			},
+		)
+		require.NoError(s.T(), err)
+		require.Len(s.T(), pendingLines, 1)
+
+		pendingLine = pendingLines[0]
+	})
+
+	s.Run("create mid period invoice, no usage", func() {
+		// Period
+		asOf := periodStart.Add(time.Hour)
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     &asOf,
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), out, 1)
+
+		s.DebugDumpInvoice("mid period ubp progressive invoice, no usage", out[0])
+
+		require.Len(s.T(), out[0].ValidationIssues, 0)
+
+		invoiceLines := out[0].Lines.MustGet()
+		require.Len(s.T(), invoiceLines, 1)
+
+		// Let's resolve the lines by parent
+		tieredGraduated := s.lineWithParent(invoiceLines, pendingLine.ID)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 100,
+			Total:  100,
+		}, tieredGraduated.Totals)
+
+		// Let's validate the output of the split itself
+		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, tieredGraduated.ID)
+		s.Len(tieredGraduatedChildren.ChildLines, 1)
+		childLine := tieredGraduatedChildren.ChildLines[0]
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 100,
+			Total:  100,
+		}, childLine.Totals)
+		s.Equal(*childLine.ChildUniqueReferenceID, "graduated-tiered-1-flat-price")
+	})
+
+	s.Run("create mid period invoice 2, no usage", func() {
+		// Period
+		asOf := periodStart.Add(2 * time.Hour)
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     &asOf,
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), out, 1)
+
+		s.DebugDumpInvoice("mid period ubp progressive 2nd invoice, no usage", out[0])
+
+		require.Len(s.T(), out[0].ValidationIssues, 0)
+
+		invoiceLines := out[0].Lines.MustGet()
+		require.Len(s.T(), invoiceLines, 1)
+
+		tieredGraduated := s.lineWithParent(invoiceLines, pendingLine.ID)
+
+		requireTotals(s.T(), expectedTotals{
+			Amount: 0,
+			Total:  0,
+		}, tieredGraduated.Totals)
+
+		// Let's validate the output of the split itself
+		tieredGraduatedChildren := s.getLineChildLines(ctx, namespace, tieredGraduated.ID)
+		s.Len(tieredGraduatedChildren.ChildLines, 0)
+	})
+
+	s.Run("create new invoice, with usage", func() {
+		// Period
+
+		s.MockStreamingConnector.AddSimpleEvent("tiered-graduated", 15, periodStart.Add(time.Minute*130)) // 2h10m
+
+		asOf := periodStart.Add(3 * time.Hour)
+		out, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     &asOf,
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), out, 1)
+
+		s.DebugDumpInvoice("mid period ubp progressive invoice, has usage", out[0])
+
+		invoice := out[0]
+
+		require.Len(s.T(), invoice.ValidationIssues, 0)
+
+		invoiceLines := out[0].Lines.MustGet()
+		require.Len(s.T(), invoiceLines, 1)
+
+		expectedTotal := float64(10*10 /* usage for the first tier */ + 5*5 /* usage for the second tier */ + 200 /* flat price for the 2nd tier */)
+		requireTotals(s.T(), expectedTotals{
+			Amount: expectedTotal,
+			Total:  expectedTotal,
+		}, invoiceLines[0].Totals)
+
+		requireDetailedLines(s.T(), invoiceLines[0], lineExpectations{
+			Details: map[string]feeLineExpect{
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
+					Quantity:      10,
+					PerUnitAmount: 10,
+				},
+				fmt.Sprintf(lineservice.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+					Quantity:      5,
+					PerUnitAmount: 5,
+				},
+				fmt.Sprintf(lineservice.GraduatedTieredFlatPriceChildUniqueReferenceID, 2): {
+					Quantity:      1,
+					PerUnitAmount: 200,
+				},
+			},
+		})
 	})
 }
 

@@ -2,10 +2,13 @@ package billing
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
@@ -203,4 +206,52 @@ func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customeren
 func (s *BaseSuite) TearDownSuite() {
 	s.TestDB.EntDriver.Close()
 	s.TestDB.PGDriver.Close()
+}
+
+func (s *BaseSuite) DebugDumpInvoice(h string, i billing.Invoice) {
+	s.T().Log(h)
+
+	l := i.Lines.OrEmpty()
+
+	slices.SortFunc(l, func(l1, l2 *billing.Line) int {
+		if l1.Period.Start.Before(l2.Period.Start) {
+			return -1
+		} else if l1.Period.Start.After(l2.Period.Start) {
+			return 1
+		}
+		return 0
+	})
+
+	for _, line := range i.Lines.OrEmpty() {
+		deleted := ""
+		if line.DeletedAt != nil {
+			deleted = " (deleted)"
+		}
+
+		switch line.Type {
+		case billing.InvoiceLineTypeFee:
+			s.T().Logf("fee  [%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, unit price: %s (total=%s) %s\n",
+				line.Period.Start.Format(time.RFC3339),
+				line.Period.End.Format(time.RFC3339),
+				lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
+				line.InvoiceAt.Format(time.RFC3339),
+				line.FlatFee.Quantity.String(),
+				line.FlatFee.PerUnitAmount.String(),
+				line.Totals.Total.String(),
+				deleted)
+		case billing.InvoiceLineTypeUsageBased:
+			priceJson, err := json.Marshal(line.UsageBased.Price)
+			s.NoError(err)
+
+			s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, price: %s (total=%s) %s\n",
+				line.Period.Start.Format(time.RFC3339),
+				line.Period.End.Format(time.RFC3339),
+				lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
+				line.InvoiceAt.Format(time.RFC3339),
+				line.UsageBased.Quantity,
+				string(priceJson),
+				line.Totals.Total.String(),
+				deleted)
+		}
+	}
 }

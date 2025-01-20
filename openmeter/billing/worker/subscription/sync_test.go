@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"testing"
 	"time"
 
@@ -382,7 +381,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.NoError(err)
 		gatheringInvoiceID = gatheringInvoice.InvoiceID()
 
-		s.debugDumpInvoice("gathering invoice - 2nd update", gatheringInvoice)
+		s.DebugDumpInvoice("gathering invoice - 2nd update", gatheringInvoice)
 
 		gatheringLine := gatheringInvoice.Lines.OrEmpty()[0]
 
@@ -756,7 +755,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 	})
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:40Z"))
 
@@ -781,7 +780,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -833,7 +832,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 	})
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:40Z"))
 
@@ -858,7 +857,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -929,7 +928,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 	})
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:40Z"))
 
@@ -954,7 +953,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1026,7 +1025,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 	})
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T12:00:00Z"))
 
@@ -1051,7 +1050,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1123,7 +1122,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 	})
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T12:00:00Z"))
 
@@ -1134,7 +1133,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 	s.NoError(err)
 	s.Require().Len(draftInvoices, 1)
 
-	s.debugDumpInvoice("draft invoice", draftInvoices[0])
+	s.DebugDumpInvoice("draft invoice", draftInvoices[0])
 
 	draftInvoice := draftInvoices[0]
 	s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
@@ -1180,7 +1179,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 
 	// gathering invoice
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1262,7 +1261,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	})
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T12:00:00Z"))
 
@@ -1323,7 +1322,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 
 	// gathering invoice
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1406,7 +1405,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1478,7 +1477,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1533,7 +1532,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1580,7 +1579,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 
 	// gathering invoice
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1675,7 +1674,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 	s.Len(draftInvoices, 1)
 
 	draftInvoice := draftInvoices[0]
-	s.debugDumpInvoice("draft invoice", draftInvoice)
+	s.DebugDumpInvoice("draft invoice", draftInvoice)
 	s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
@@ -1697,7 +1696,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 	})
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1748,7 +1747,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 
 	// gathering invoice
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1773,7 +1772,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 		Expand:  billing.InvoiceExpandAll,
 	})
 	s.NoError(err)
-	s.debugDumpInvoice("draft invoice - 2nd sync", updatedDraftInvoice)
+	s.DebugDumpInvoice("draft invoice - 2nd sync", updatedDraftInvoice)
 
 	s.expectLines(updatedDraftInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1856,7 +1855,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	s.NoError(err)
 	s.Equal(billing.InvoiceStatusIssued, issuedInvoice.Status)
 	s.Len(issuedInvoice.ValidationIssues, 0)
-	s.debugDumpInvoice("issued invoice", issuedInvoice)
+	s.DebugDumpInvoice("issued invoice", issuedInvoice)
 	s.expectLines(issuedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
@@ -1878,7 +1877,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 		},
 	})
 
-	s.debugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T11:00:00Z"))
 
@@ -1911,14 +1910,14 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	s.NoError(s.Handler.SyncronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	// gathering invoice
-	s.debugDumpInvoice("gathering invoice - 2nd sync", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	updatedIssuedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 		Invoice: issuedInvoice.InvoiceID(),
 		Expand:  billing.InvoiceExpandAll,
 	})
 	s.NoError(err)
-	s.debugDumpInvoice("issued invoice - 2nd sync", updatedIssuedInvoice)
+	s.DebugDumpInvoice("issued invoice - 2nd sync", updatedIssuedInvoice)
 
 	s.expectLines(updatedIssuedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -2009,7 +2008,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.Equal(billing.InvoiceStatusIssued, invoice1.Status)
 
 	s.populateChildIDsFromParents(&invoice1)
-	s.debugDumpInvoice("issued invoice1", invoice1)
+	s.DebugDumpInvoice("issued invoice1", invoice1)
 
 	s.expectLines(invoice1, subsView.Subscription.ID, []expectedLine{
 		{
@@ -2041,7 +2040,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	draftInvoice2 := draftInvoices2[0]
 	s.populateChildIDsFromParents(&draftInvoice2)
-	s.debugDumpInvoice("draft invoice2", draftInvoice2)
+	s.DebugDumpInvoice("draft invoice2", draftInvoice2)
 	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, draftInvoice2.Status)
 
 	s.expectLines(draftInvoice2, subsView.Subscription.ID, []expectedLine{
@@ -2067,7 +2066,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	// gathering invoice checks
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.populateChildIDsFromParents(&gatheringInvoice)
-	s.debugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -2128,7 +2127,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	// gathering invoice
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.populateChildIDsFromParents(&gatheringInvoice)
-	s.debugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
+	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -2156,7 +2155,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.NoError(err)
 
 	s.populateChildIDsFromParents(&updatedIssuedInvoice)
-	s.debugDumpInvoice("invoice1 (issued) - 2nd sync", updatedIssuedInvoice)
+	s.DebugDumpInvoice("invoice1 (issued) - 2nd sync", updatedIssuedInvoice)
 
 	s.expectLines(updatedIssuedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -2188,7 +2187,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.NoError(err)
 
 	s.populateChildIDsFromParents(&updatedDraftInvoice)
-	s.debugDumpInvoice("draft invoice2 - 2nd sync", updatedDraftInvoice)
+	s.DebugDumpInvoice("draft invoice2 - 2nd sync", updatedDraftInvoice)
 	s.Len(updatedDraftInvoice.Lines.OrEmpty(), 0)
 	s.Equal(billing.InvoiceStatusDeleted, updatedDraftInvoice.Status)
 }
@@ -2494,48 +2493,6 @@ func (s *SubscriptionHandlerTestSuite) expectNoGatheringInvoice(ctx context.Cont
 
 	s.NoError(err)
 	s.Len(invoices.Items, 0)
-}
-
-func (s *SubscriptionHandlerTestSuite) debugDumpInvoice(h string, i billing.Invoice) {
-	s.T().Log(h)
-
-	l := i.Lines.OrEmpty()
-
-	slices.SortFunc(l, func(l1, l2 *billing.Line) int {
-		if l1.Period.Start.Before(l2.Period.Start) {
-			return -1
-		} else if l1.Period.Start.After(l2.Period.Start) {
-			return 1
-		}
-		return 0
-	})
-
-	for _, line := range i.Lines.OrEmpty() {
-		deleted := ""
-		if line.DeletedAt != nil {
-			deleted = " (deleted)"
-		}
-
-		switch line.Type {
-		case billing.InvoiceLineTypeFee:
-			s.T().Logf("fee  [%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, unit price: %s %s\n",
-				line.Period.Start.Format(time.RFC3339),
-				line.Period.End.Format(time.RFC3339),
-				lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
-				line.InvoiceAt.Format(time.RFC3339),
-				line.FlatFee.Quantity.String(),
-				line.FlatFee.PerUnitAmount.String(),
-				deleted)
-		case billing.InvoiceLineTypeUsageBased:
-			s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, unit price: %v %s\n",
-				line.Period.Start.Format(time.RFC3339),
-				line.Period.End.Format(time.RFC3339),
-				lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
-				line.InvoiceAt.Format(time.RFC3339),
-				line.UsageBased.Quantity,
-				line.UsageBased.Price, deleted)
-		}
-	}
 }
 
 func (s *SubscriptionHandlerTestSuite) enableProrating() {

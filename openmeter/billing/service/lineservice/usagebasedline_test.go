@@ -932,8 +932,10 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 			},
 			expect: newDetailedLinesInput{
 				{
-					Name:                   "feature: minimum spend",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(1000),
+					Name: "feature: minimum spend",
+					// We have a flat fee of 100 for tier 1, and given that it was invoiced as part of the previous split we need to remove
+					// that from the charge.
+					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
@@ -1293,8 +1295,9 @@ func TestTieredPriceCalculator(t *testing.T) {
 	}
 
 	t.Run("totals, no usage", func(t *testing.T) {
+		// If there's no usage in the first tier we need to bill the flat fee regardless.
 		totalAmount := getTotalAmountForGraduatedTieredPrice(t, alpacadecimal.NewFromFloat(0), testIn)
-		require.Equal(t, alpacadecimal.NewFromFloat(0), totalAmount)
+		require.Equal(t, alpacadecimal.NewFromFloat(100), totalAmount)
 	})
 
 	t.Run("totals, usage in tier 1", func(t *testing.T) {
@@ -1306,7 +1309,10 @@ func TestTieredPriceCalculator(t *testing.T) {
 	})
 
 	t.Run("totals, usage in tier 2", func(t *testing.T) {
-		totalAmount := getTotalAmountForGraduatedTieredPrice(t, alpacadecimal.NewFromFloat(7), testIn)
+		totalAmount := getTotalAmountForGraduatedTieredPrice(t, alpacadecimal.NewFromFloat(5.001), testIn)
+		require.Equal(t, alpacadecimal.NewFromFloat(100+50), totalAmount)
+
+		totalAmount = getTotalAmountForGraduatedTieredPrice(t, alpacadecimal.NewFromFloat(7), testIn)
 		require.Equal(t, alpacadecimal.NewFromFloat(100+50), totalAmount)
 	})
 
