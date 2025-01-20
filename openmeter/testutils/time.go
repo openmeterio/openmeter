@@ -24,3 +24,11 @@ func GetISODuration(t *testing.T, durationString string) datex.Period {
 	}
 	return d
 }
+
+func TimeEqualsApproximately(t *testing.T, expected time.Time, actual time.Time, tolerance time.Duration) {
+	t.Helper()
+	if expected.Before(actual.Add(tolerance)) && expected.After(actual.Add(-tolerance)) {
+		return
+	}
+	t.Fatalf("Expected %v but got %v, outside tolerance of %v", expected, actual, tolerance)
+}

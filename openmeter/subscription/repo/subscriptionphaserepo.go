@@ -28,6 +28,7 @@ func (r *subscriptionPhaseRepo) GetForSubscriptionAt(ctx context.Context, subscr
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionPhaseRepo) ([]subscription.SubscriptionPhase, error) {
 		phases, err := repo.db.SubscriptionPhase.Query().
 			Where(dbsubscriptionphase.SubscriptionID(subscriptionID.ID)).
+			Where(dbsubscriptionphase.Namespace(subscriptionID.Namespace)).
 			Where(dbsubscriptionphase.Or(
 				dbsubscriptionphase.DeletedAtIsNil(),
 				dbsubscriptionphase.DeletedAtGT(at),
