@@ -325,7 +325,7 @@ model InvoiceWorkflowSettings {
    * The workflow details used by this invoice.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  workflow: OpenMeter.Billing.BillingWorkflowSettings;
+  workflow: OpenMeter.Billing.BillingWorkflow;
 }
 
 /**

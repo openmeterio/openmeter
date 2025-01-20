@@ -251,7 +251,7 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 			}
 		}
 
-		return s.resolveProfileApps(ctx, defaultProfile)
+		return s.resolveProfileApps(ctx, defaultProfile.BaseProfileOrEmpty())
 	}
 
 	// We have an active override, let's see what's the baseline profile
@@ -265,7 +265,7 @@ func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adap
 			return nil, err
 		}
 
-		baselineProfile, err = s.resolveProfileApps(ctx, defaultBaseProfile)
+		baselineProfile, err = s.resolveProfileApps(ctx, defaultBaseProfile.BaseProfileOrEmpty())
 		if err != nil {
 			return nil, err
 		}

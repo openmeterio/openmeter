@@ -138,8 +138,8 @@ func (m *Openmeter) publishWebSdk(ctx context.Context, version string, npmToken 
 
 func (m *Openmeter) publishToNpm(ctx context.Context, pkg string, version string, npmToken *dagger.Secret) error {
 	_, err := dag.Container().
-		From("node:20.15.1-alpine3.20").
-		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		From("node:22.8.0-alpine3.20").
+		WithExec([]string{"corepack", "enable"}).
 		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
 		WithSecretVariable("NPM_TOKEN", npmToken).
 		WithDirectory("/work", m.Source.Directory("api")).

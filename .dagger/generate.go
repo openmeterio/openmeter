@@ -56,7 +56,7 @@ func (m *Generate) Openapicloud() *dagger.File {
 func typespecBase(source *dagger.Directory) *dagger.Container {
 	return dag.Container().
 		From("node:22.8.0-alpine3.20").
-		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", source).
 		WithWorkdir("/work").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"})
@@ -72,7 +72,7 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 
 	// Autorest is incompatible with latest node version
 	return dag.Container().
-		From("node:22.5.1-slim").
+		From("node:22.8.0-alpine3.20").
 		WithExec([]string{"apt", "update"}).
 		WithExec([]string{"apt", "install", "-y", "python3", "python3-pip", "python3-venv"}).
 		WithExec([]string{"npm", "install", "-g", "autorest"}).
@@ -86,7 +86,7 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 func (m *Generate) NodeSdk() *dagger.Directory {
 	return dag.Container().
 		From("node:20.15.1-alpine3.20").
-		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/node").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
@@ -101,7 +101,7 @@ func (m *Generate) NodeSdk() *dagger.Directory {
 func (m *Generate) WebSdk() *dagger.Directory {
 	return dag.Container().
 		From("node:20.15.1-alpine3.20").
-		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/web").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
