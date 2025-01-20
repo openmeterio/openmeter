@@ -115,6 +115,7 @@ export const mockEntitlement: Entitlement = {
     to: '2024-01-01T00:00:00Z',
   },
   measureUsageFrom: '2024-01-01T00:00:00Z',
+  activeFrom: '2024-01-01T00:00:00Z',
   lastReset: '2024-01-01T00:00:00Z',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
