@@ -16,13 +16,13 @@
     "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
   },
   "devDependencies": {
-    "@typespec/compiler": "0.63.0",
-    "@typespec/http": "0.63.0",
-    "@typespec/openapi": "0.63.0",
-    "@typespec/openapi3": "0.63.0",
-    "@typespec/prettier-plugin-typespec": "0.63.0",
-    "@typespec/rest": "0.63.0",
-    "@typespec/versioning": "0.63.0",
+    "@typespec/compiler": "0.64.0",
+    "@typespec/http": "0.64.0",
+    "@typespec/openapi": "0.64.0",
+    "@typespec/openapi3": "0.64.0",
+    "@typespec/prettier-plugin-typespec": "0.64.0",
+    "@typespec/rest": "0.64.0",
+    "@typespec/versioning": "0.64.0",
     "prettier": "3.4.2"
   },
   "private": true,
