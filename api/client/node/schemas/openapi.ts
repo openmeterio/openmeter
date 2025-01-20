@@ -7346,6 +7346,8 @@ export interface components {
     'InvoiceListParams.expand': components['schemas']['InvoiceExpand'][]
     /** @description Filter by invoice extended statuses */
     'InvoiceListParams.extendedStatuses': string[]
+    /** @description Include deleted invoices */
+    'InvoiceListParams.includeDeleted': boolean
     /** @description Filter by invoice creation time */
     'InvoiceListParams.issuedAfter': string
     /** @description Filter by invoice creation time */
@@ -8421,6 +8423,8 @@ export interface operations {
         expand?: components['parameters']['InvoiceListParams.expand']
         /** @description Filter by customer ID */
         customers?: components['parameters']['InvoiceListParams.customers']
+        /** @description Include deleted invoices */
+        includeDeleted?: components['parameters']['InvoiceListParams.includeDeleted']
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */

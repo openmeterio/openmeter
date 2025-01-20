@@ -436,6 +436,12 @@ model InvoiceListParams {
    */
   @query
   customers?: ULID[];
+
+  /**
+   * Include deleted invoices
+   */
+  @query
+  includeDeleted?: boolean;
 }
 
 /**
