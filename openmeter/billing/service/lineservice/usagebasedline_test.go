@@ -839,15 +839,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 			usage: featureUsageResponse{
 				LinePeriodQty: alpacadecimal.NewFromFloat(0),
 			},
-			expect: newDetailedLinesInput{
-				{
-					Name:                   "feature: flat price for tier 1",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: "graduated-tiered-1-flat-price",
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				},
-			},
+			expect: newDetailedLinesInput{},
 		})
 	})
 
@@ -940,14 +932,9 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 			},
 			expect: newDetailedLinesInput{
 				{
-					Name:                   "feature: flat price for tier 1",
-					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
-					Quantity:               alpacadecimal.NewFromFloat(1),
-					ChildUniqueReferenceID: "graduated-tiered-1-flat-price",
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				},
-				{
-					Name:                   "feature: minimum spend",
+					Name: "feature: minimum spend",
+					// We have a flat fee of 100 for tier 1, and given that it was invoiced as part of the previous split we need to remove
+					// that from the charge.
 					PerUnitAmount:          alpacadecimal.NewFromFloat(900),
 					Quantity:               alpacadecimal.NewFromFloat(1),
 					ChildUniqueReferenceID: GraduatedMinSpendChildUniqueReferenceID,

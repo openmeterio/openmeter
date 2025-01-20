@@ -452,7 +452,7 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 
 			tierIndex := in.TierIndex + 1
 
-			if in.Tier.UnitPrice != nil {
+			if in.Tier.UnitPrice != nil && in.Quantity.IsPositive() {
 				newLine := newDetailedLineInput{
 					Name:                   fmt.Sprintf("%s: usage price for tier %d", l.line.Name, tierIndex),
 					Quantity:               in.Quantity,
@@ -474,8 +474,11 @@ func (l usageBasedLine) calculateGraduatedTieredPriceDetailedLines(usage *featur
 				out = append(out, newLine)
 			}
 
+			// If have already billed this flat price for the previous split line, so we can skip it
+			shouldFirstFlatLineBeBilled := in.TierIndex > 0 || l.IsFirstInPeriod()
+
 			// Flat price is always billed for the whole tier when we are crossing the tier boundary
-			if in.Tier.FlatPrice != nil && in.AtTierBoundary {
+			if in.Tier.FlatPrice != nil && in.AtTierBoundary && shouldFirstFlatLineBeBilled {
 				newLine := newDetailedLineInput{
 					Name:                   fmt.Sprintf("%s: flat price for tier %d", l.line.Name, tierIndex),
 					Quantity:               alpacadecimal.NewFromFloat(1),
@@ -650,7 +653,7 @@ func tieredPriceCalculator(in tieredPriceCalculatorInput) error {
 
 	previousTierQty := alpacadecimal.Zero
 	for idx, tier := range in.TieredPrice.WithSortedTiers().Tiers {
-		if previousTierQty.GreaterThan(in.ToQty) {
+		if previousTierQty.GreaterThanOrEqual(in.ToQty) {
 			// We already have enough data to bill for this tiered price
 			break
 		}
@@ -673,6 +676,17 @@ func tieredPriceCalculator(in tieredPriceCalculatorInput) error {
 		qtyRanges = append(qtyRanges, splitTierRangeAtBoundary(in.FromQty, in.ToQty, input)...)
 
 		previousTierQty = tierUpperBound
+	}
+
+	if in.ToQty.Equal(alpacadecimal.Zero) {
+		// We need to add the first range, in case there's a flat price component
+		qtyRanges = append(qtyRanges, tierRange{
+			Tier:           in.TieredPrice.Tiers[0],
+			TierIndex:      0,
+			AtTierBoundary: true,
+			FromQty:        alpacadecimal.Zero,
+			ToQty:          alpacadecimal.Zero,
+		})
 	}
 
 	if in.IntrospectRangesFn != nil {
