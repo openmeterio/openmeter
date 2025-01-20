@@ -22,6 +22,23 @@ export const docDecoratorRule = createRule({
           },
         })
       }
+
+      for (const [name, property] of target.properties) {
+        if (
+          target.name &&
+          name &&
+          !property.decorators.find(
+            (d) => d.decorator?.name === 'docFromCommentDecorator',
+          )
+        ) {
+          context.reportDiagnostic({
+            target: property,
+            format: {
+              name: `${target.name}.${name}`,
+            },
+          })
+        }
+      }
     },
     enum: (target) => {
       if (

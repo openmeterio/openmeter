@@ -180,19 +180,19 @@ model BillingProfileReplaceUpdate
  */
 @friendlyName("BillingProfileApps")
 model BillingProfileApps {
-  /*
+  /**
    * The tax app used for this workflow
    */
   @visibility(Lifecycle.Read)
   tax: OpenMeter.App.App;
 
-  /*
+  /**
    * The invoicing app used for this workflow
    */
   @visibility(Lifecycle.Read)
   invoicing: OpenMeter.App.App;
 
-  /*
+  /**
    * The payment app used for this workflow
    */
   @visibility(Lifecycle.Read)

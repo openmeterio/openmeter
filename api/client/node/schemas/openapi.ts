@@ -1943,9 +1943,12 @@ export interface components {
     }
     /** @description BillingProfileApps represents the applications used by a billing profile */
     BillingProfileApps: {
-      readonly tax: Omit<components['schemas']['App'], 'type'>
-      readonly invoicing: Omit<components['schemas']['App'], 'type'>
-      readonly payment: Omit<components['schemas']['App'], 'type'>
+      /** @description The tax app used for this workflow */
+      readonly tax: components['schemas']['App']
+      /** @description The invoicing app used for this workflow */
+      readonly invoicing: components['schemas']['App']
+      /** @description The payment app used for this workflow */
+      readonly payment: components['schemas']['App']
     }
     /** @description BillingProfileAppsCreate represents the input for creating a billing profile's apps */
     BillingProfileAppsCreate: {
@@ -2089,9 +2092,12 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       readonly id: string
-      readonly taxApp: Omit<components['schemas']['App'], 'type'>
-      readonly invoicingApp: Omit<components['schemas']['App'], 'type'>
-      readonly paymentApp: Omit<components['schemas']['App'], 'type'>
+      /** @description The tax app used for this workflow */
+      readonly taxApp: components['schemas']['App']
+      /** @description The invoicing app used for this workflow */
+      readonly invoicingApp: components['schemas']['App']
+      /** @description The payment app used for this workflow */
+      readonly paymentApp: components['schemas']['App']
     }
     /** @description Resource create operation model. */
     BillingProfileCustomerWorkflowOverrideCreate: {
@@ -3798,6 +3804,7 @@ export interface components {
      *     }
      */
     IngestedEvent: {
+      /** @description The original event ingested. */
       event: components['schemas']['Event']
       /** @description The validation error if the event failed validation. */
       validationError?: string
@@ -5363,12 +5370,14 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly createdAt: string
+      /** @description The nnotification rule which generated this event. */
       readonly rule: components['schemas']['NotificationRule']
       /**
        * Delivery Status
        * @description The delivery status of the notification event.
        */
       readonly deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
+      /** @description Timestamp when the notification event was created in RFC 3339 format. */
       readonly payload: components['schemas']['NotificationEventPayload']
       /**
        * Annotations
@@ -6099,6 +6108,8 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
+      /** @description The entitlement of the rate card.
+       *     Only available when featureKey is set. */
       entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
@@ -6212,6 +6223,8 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
+      /** @description The entitlement of the rate card.
+       *     Only available when featureKey is set. */
       entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
@@ -6225,10 +6238,9 @@ export interface components {
        * @description The billing cadence of the rate card.
        */
       billingCadence: string
-      price: Omit<
-        components['schemas']['RateCardUsageBasedPrice'],
-        'type'
-      > | null
+      /** @description The price of the rate card.
+       *     When null, the feature or service is free. */
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
     }
     /** @description The price of the usage based rate card. */
     RateCardUsageBasedPrice:
@@ -6989,6 +7001,7 @@ export interface components {
     SubscriptionItemIncluded: {
       /** @description The feature the customer is entitled to use. */
       feature: components['schemas']['Feature']
+      /** @description The entitlement of the Subscription Item. */
       entitlement?: components['schemas']['Entitlement']
     }
     /** @description Subscription phase create input. */

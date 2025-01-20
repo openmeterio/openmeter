@@ -219,7 +219,7 @@ model SubscriptionItemIncluded {
    */
   feature: Entitlements.Feature;
 
-  /*
+  /**
    * The entitlement of the Subscription Item.
    */
   entitlement?: Entitlements.Entitlement;
