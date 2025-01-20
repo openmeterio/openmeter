@@ -187,6 +187,10 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
 		}
 
+		if !input.IncludeDeleted {
+			query = query.Where(billinginvoice.DeletedAtIsNil())
+		}
+
 		if len(input.Statuses) > 0 {
 			query = query.Where(func(s *sql.Selector) {
 				s.Where(sql.Or(
