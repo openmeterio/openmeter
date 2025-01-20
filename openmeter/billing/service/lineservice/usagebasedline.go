@@ -650,7 +650,7 @@ func tieredPriceCalculator(in tieredPriceCalculatorInput) error {
 
 	previousTierQty := alpacadecimal.Zero
 	for idx, tier := range in.TieredPrice.WithSortedTiers().Tiers {
-		if previousTierQty.GreaterThanOrEqual(in.ToQty) {
+		if previousTierQty.GreaterThan(in.ToQty) {
 			// We already have enough data to bill for this tiered price
 			break
 		}
