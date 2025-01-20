@@ -1,0 +1,80 @@
+include:
+  - ./docker-compose.yaml
+
+services:
+  collector:
+    image: ghcr.io/openmeterio/benthos-collector:latest
+    ports:
+      - "127.0.0.1:4195:4195"
+    environment:
+      OPENMETER_URL: http://openmeter:8888
+    command: [
+      "--log.level",
+      "info",
+      "--config",
+      "/etc/collector/config.yaml",
+      "streams",
+      "--no-api",
+      "/etc/collector/http-server/input.yaml",
+      "/etc/collector/http-server/output.yaml",
+    ]
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "http://collector:4195/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - type: volume
+        source: collector_data
+        target: /var/lib/collector
+      - type: bind
+        source: ./collector
+        target: /etc/collector
+    depends_on:
+      openmeter:
+        condition: service_healthy
+
+  seeder:
+    image: ghcr.io/openmeterio/benthos-collector:latest
+    environment:
+      OPENMETER_URL: http://collector:8889
+      SEEDER_LOG: true
+      SEEDER_COUNT: 100
+    command: [
+      "--config",
+      "/etc/seeder/config.yaml",
+    ]
+    ports:
+      - "127.0.0.1:4196:4196"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "http://seeder:4196/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - type: bind
+        source: ./seeder
+        target: /etc/seeder
+    depends_on:
+      collector:
+        condition: service_healthy
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
+    depends_on:
+      - kafka
+    ports:
+      - "127.0.0.1:8084:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      DYNAMIC_CONFIG_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://kafka-ui:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  collector_data:
