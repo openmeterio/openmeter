@@ -1,0 +1,65 @@
+include:
+  - ../../quickstart/docker-compose.yaml
+
+services:
+  collector:
+    image: ghcr.io/openmeterio/benthos-collector:latest
+    ports:
+      - "127.0.0.1:4195:4195"
+    environment:
+      OPENMETER_URL: http://openmeter:8888
+      BATCH_SIZE: 1
+    command: [
+      "--config",
+      "/etc/collector/config.yaml",
+      "--log.level",
+      "debug",
+      "--resources",
+      "/etc/collector/resources/*.yaml",
+      "streams",
+      "--no-api",
+      "/etc/collector/streams/*.yaml",
+    ]
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "http://collector:4195/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - type: volume
+        source: collector_data
+        target: /var/lib/collector
+      - type: bind
+        source: ./collector
+        target: /etc/collector
+    depends_on:
+      openmeter:
+        condition: service_healthy
+
+  seeder:
+    image: ghcr.io/openmeterio/benthos-collector:latest
+    environment:
+      OPENMETER_URL: http://collector:8889
+      SEEDER_LOG: true
+      SEEDER_COUNT: 100
+    command: [
+      "--config",
+      "/etc/seeder/config.yaml",
+    ]
+    ports:
+      - "127.0.0.1:4196:4196"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "http://seeder:4196/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - type: bind
+        source: ./seeder
+        target: /etc/seeder
+    depends_on:
+      collector:
+        condition: service_healthy
+
+volumes:
+  collector_data:

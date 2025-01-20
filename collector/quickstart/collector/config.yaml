@@ -1,0 +1,16 @@
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+metrics:
+  prometheus: {}
+
+#tracer:
+#  open_telemetry_collector:
+#    grpc:
+#      - address: <host>:4317
+#    tags:
+#      application: openmeter-collector
+#    sampling:
+#      enabled: false
