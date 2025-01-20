@@ -12,6 +12,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
+	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -59,6 +60,10 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 
 			if input.Subject != nil {
 				query = query.Where(customerdb.HasSubjectsWith(customersubjectsdb.SubjectKeyContainsFold(*input.Subject)))
+			}
+
+			if input.PlanKey != nil {
+				query = query.Where(customerdb.HasSubscriptionWith(subscriptiondb.HasPlanWith(plandb.Key(*input.PlanKey))))
 			}
 
 			// Order

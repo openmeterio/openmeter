@@ -474,4 +474,56 @@ func TestPlan(t *testing.T) {
 
 		require.Equal(t, 2, len(planCreate.Phases))
 	})
+
+	t.Run("Should list customers of a given plan", func(t *testing.T) {
+		// Let's make sure our customer is there
+		require.NotNil(t, customer1)
+		require.NotEmpty(t, migratedSubscriptionId)
+
+		// Let's create a 3rd customer that doesnt have a subscription
+		// Let's set up two customers
+		customerAPIRes, err := client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
+			Name:         "Test Customer 3",
+			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+			Description:  lo.ToPtr("Test Customer Description"),
+			PrimaryEmail: lo.ToPtr("customer3@mail.com"),
+			BillingAddress: &api.Address{
+				City:        lo.ToPtr("City"),
+				Country:     lo.ToPtr("US"),
+				Line1:       lo.ToPtr("Line 1"),
+				Line2:       lo.ToPtr("Line 2"),
+				State:       lo.ToPtr("State"),
+				PhoneNumber: lo.ToPtr("1234567890"),
+				PostalCode:  lo.ToPtr("12345"),
+			},
+			UsageAttribution: api.CustomerUsageAttribution{
+				SubjectKeys: []string{"test_customer_subject_3"},
+			},
+		})
+		require.Nil(t, err)
+		require.Equal(t, 201, customerAPIRes.StatusCode(), "received the following body: %s", customerAPIRes.Body)
+
+		// Let's make sure both customers do exist!
+		apiRes, err := client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{})
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+		require.NotNil(t, apiRes.JSON200)
+		require.NotNil(t, apiRes.JSON200.Items)
+		require.Equal(t, 3, len(apiRes.JSON200.Items))
+
+		// Now let's check the filtering works
+		apiRes, err = client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{
+			PlanKey: lo.ToPtr(PlanKey),
+		})
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+		require.NotNil(t, apiRes.JSON200)
+		require.NotNil(t, apiRes.JSON200.Items)
+
+		// Only customer 1 is returned
+		require.Equal(t, 1, len(apiRes.JSON200.Items))
+		require.Equal(t, *customer1.Id, *apiRes.JSON200.Items[0].Id)
+	})
 }
