@@ -1,6 +1,9 @@
 ingest:
   kafka:
     broker: kafka:9092
+    brokerAddressFamily: v4
+    socketKeepAliveEnable: true
+    topicMetadataRefreshInterval: 10s
 
 aggregation:
   clickhouse:
@@ -13,6 +16,8 @@ sink:
   kafka:
     brokers: kafka:9092
     brokerAddressFamily: v4
+    socketKeepAliveEnable: true
+    topicMetadataRefreshInterval: 10s
   dedupe:
     enabled: true
     driver: redis
