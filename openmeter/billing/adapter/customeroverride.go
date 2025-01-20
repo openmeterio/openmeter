@@ -241,7 +241,7 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 	var profile *billing.Profile
 	if baseProfile != nil {
 		profile = &billing.Profile{
-			BaseProfile: *baseProfile,
+			BaseProfile: baseProfile.BaseProfile,
 		}
 	}
 

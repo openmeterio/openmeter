@@ -2060,38 +2060,12 @@ export interface components {
     }
     /** @description Customer specific workflow overrides. */
     BillingProfileCustomerWorkflowOverride: {
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: string
       /** @description The collection settings for this workflow */
       collection?: components['schemas']['BillingWorkflowCollectionSettings']
       /** @description The invoicing settings for this workflow */
       invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
       /** @description The payment settings for this workflow */
       payment?: components['schemas']['BillingWorkflowPaymentSettings']
-      /**
-       * @description A unique identifier for the resource.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
       /** @description The tax app used for this workflow */
       readonly taxApp: components['schemas']['App']
       /** @description The invoicing app used for this workflow */
@@ -2167,40 +2141,14 @@ export interface components {
     }
     /** @description TaxIdentificationCode is a normalized tax code shown on the original identity document. */
     BillingTaxIdentificationCode: string
-    /** @description BillingWorkflow represents a billing workflow */
+    /** @description BillingWorkflow represents the settings for a billing workflow. */
     BillingWorkflow: {
-      /**
-       * Creation Time
-       * Format: date-time
-       * @description Timestamp of when the resource was created.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly createdAt: string
-      /**
-       * Last Update Time
-       * Format: date-time
-       * @description Timestamp of when the resource was last updated.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly updatedAt: string
-      /**
-       * Deletion Time
-       * Format: date-time
-       * @description Timestamp of when the resource was permanently deleted.
-       * @example 2024-01-01T01:01:01.001Z
-       */
-      readonly deletedAt?: string
       /** @description The collection settings for this workflow */
       collection?: components['schemas']['BillingWorkflowCollectionSettings']
       /** @description The invoicing settings for this workflow */
       invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
       /** @description The payment settings for this workflow */
       payment?: components['schemas']['BillingWorkflowPaymentSettings']
-      /**
-       * @description A unique identifier for the resource.
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      readonly id: string
     }
     /** @description The alignment for collecting the pending line items into an invoice.
      *
@@ -2279,15 +2227,6 @@ export interface components {
        * @default charge_automatically
        */
       collectionMethod: components['schemas']['CollectionMethod']
-    }
-    /** @description BillingWorkflowSettings represents the settings for a billing workflow. */
-    BillingWorkflowSettings: {
-      /** @description The collection settings for this workflow */
-      collection?: components['schemas']['BillingWorkflowCollectionSettings']
-      /** @description The invoicing settings for this workflow */
-      invoicing?: components['schemas']['BillingWorkflowInvoicingSettings']
-      /** @description The payment settings for this workflow */
-      payment?: components['schemas']['BillingWorkflowPaymentSettings']
     }
     /** @description Stripe CheckoutSession.custom_text */
     CheckoutSessionCustomTextAfterSubmitParams: {
@@ -4885,7 +4824,7 @@ export interface components {
        */
       readonly sourceBillingProfileID: string
       /** @description The workflow details used by this invoice. */
-      workflow: components['schemas']['BillingWorkflowSettings']
+      workflow: components['schemas']['BillingWorkflow']
     }
     /** @description Mutable workflow settings for an invoice.
      *
