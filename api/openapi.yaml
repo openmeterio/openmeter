@@ -760,6 +760,7 @@ paths:
         - $ref: '#/components/parameters/InvoiceListParams.issuedBefore'
         - $ref: '#/components/parameters/InvoiceListParams.expand'
         - $ref: '#/components/parameters/InvoiceListParams.customers'
+        - $ref: '#/components/parameters/InvoiceListParams.includeDeleted'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -7194,6 +7195,14 @@ components:
         type: array
         items:
           type: string
+      explode: false
+    InvoiceListParams.includeDeleted:
+      name: includeDeleted
+      in: query
+      required: false
+      description: Include deleted invoices
+      schema:
+        type: boolean
       explode: false
     InvoiceListParams.issuedAfter:
       name: issuedAfter

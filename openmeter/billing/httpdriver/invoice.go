@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ InvoiceHandler = (*handler)(nil)
@@ -59,6 +60,11 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				IssuedAfter:  input.IssuedAfter,
 				IssuedBefore: input.IssuedBefore,
 				Expand:       mapInvoiceExpandToEntity(lo.FromPtrOr(input.Expand, nil)).SetGatheringTotals(true),
+
+				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
+				OrderBy: lo.FromPtrOr(input.OrderBy, ""),
+
+				IncludeDeleted: lo.FromPtrOr(input.IncludeDeleted, false),
 
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(input.PageSize, DefaultPageSize),

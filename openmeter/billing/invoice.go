@@ -542,6 +542,8 @@ type ListInvoicesInput struct {
 	IssuedAfter  *time.Time
 	IssuedBefore *time.Time
 
+	IncludeDeleted bool
+
 	// DraftUtil allows to filter invoices which have their draft state expired based on the provided time.
 	// Invoice is expired if the time defined by Invoice.DraftUntil is in the past compared to ListInvoicesInput.DraftUntil.
 	DraftUntil *time.Time
