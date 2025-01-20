@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -21,13 +22,15 @@ import (
 )
 
 type ExposedServiceDeps struct {
-	CustomerAdapter    *testCustomerRepo
-	CustomerService    customer.Service
-	FeatureConnector   *testFeatureConnector
-	EntitlementAdapter subscription.EntitlementAdapter
-	PlanHelper         *planHelper
-	PlanService        plan.Service
-	DBDeps             *DBDeps
+	ItemRepo            subscription.SubscriptionItemRepository
+	CustomerAdapter     *testCustomerRepo
+	CustomerService     customer.Service
+	FeatureConnector    *testFeatureConnector
+	EntitlementAdapter  subscription.EntitlementAdapter
+	PlanHelper          *planHelper
+	PlanService         plan.Service
+	DBDeps              *DBDeps
+	EntitlementRegistry *registry.Entitlement
 }
 
 type services struct {
@@ -100,12 +103,14 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 			Service:         svc,
 			WorkflowService: workflowSvc,
 		}, ExposedServiceDeps{
-			CustomerAdapter:    customerAdapter,
-			CustomerService:    customer,
-			FeatureConnector:   NewTestFeatureConnector(entitlementRegistry.Feature),
-			EntitlementAdapter: entitlementAdapter,
-			DBDeps:             dbDeps,
-			PlanHelper:         planHelper,
-			PlanService:        planService,
+			CustomerAdapter:     customerAdapter,
+			CustomerService:     customer,
+			FeatureConnector:    NewTestFeatureConnector(entitlementRegistry.Feature),
+			EntitlementAdapter:  entitlementAdapter,
+			DBDeps:              dbDeps,
+			PlanHelper:          planHelper,
+			PlanService:         planService,
+			ItemRepo:            subItemRepo,
+			EntitlementRegistry: entitlementRegistry,
 		}
 }

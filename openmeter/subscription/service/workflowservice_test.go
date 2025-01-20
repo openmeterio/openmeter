@@ -17,7 +17,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -511,7 +513,196 @@ func TestEditRunning(t *testing.T) {
 }
 
 func TestEditingCurrentPhase(t *testing.T) {
-	t.Skip("TODO: implement me")
+	type testCaseDeps struct {
+		CurrentTime     time.Time
+		SubView         subscription.SubscriptionView
+		Customer        customerentity.Customer
+		WorkflowService subscription.WorkflowService
+		Service         subscription.Service
+		ItemRepo        subscription.SubscriptionItemRepository
+		DBDeps          *subscriptiontestutils.DBDeps
+		Plan            subscription.Plan
+		EntReg          *registry.Entitlement
+	}
+
+	testCases := []struct {
+		Name    string
+		Handler func(t *testing.T, deps testCaseDeps)
+	}{
+		{
+			Name: "Should remove item WITHOUT entitlement from the current phase starting now",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				second_phase_key := "test_phase_2"
+				item_key := "rate-card-2"
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Let's assert we have two items in the second phase
+				require.GreaterOrEqual(t, len(deps.SubView.Phases), 2, "expected at least two phases")
+				require.GreaterOrEqual(t, len(deps.SubView.Phases[1].ItemsByKey), 2, "expected at least two items in the second phase")
+				require.Equal(t, second_phase_key, deps.SubView.Phases[1].SubscriptionPhase.Key, "expected the second phase to be of known key")
+				itOrigi, ok := deps.SubView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				require.Len(t, itOrigi, 1, "expected one item to be present")
+
+				// Let's assert the second phase starts when we expect it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 1, 0), deps.SubView.Phases[1].SubscriptionPhase.ActiveFrom, "expected the second phase to start in a month")
+
+				// Let's advance the clock into the 2nd phase where we have two items
+				currentTime := deps.CurrentTime.AddDate(0, 1, 1)
+				clock.SetTime(currentTime)
+				// Let's freeze the time so we can assert properly
+
+				// Let's remove the item without feature & entitlement
+				s, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchRemoveItem{
+						PhaseKey: second_phase_key,
+						ItemKey:  item_key,
+					},
+				})
+				require.Nil(t, err)
+				require.NotNil(t, s)
+
+				// Let's fetch the edited subscription and check that the item was removed effective now
+				subView, err := deps.Service.GetView(ctx, deps.SubView.Subscription.NamespacedID)
+				require.Nil(t, err)
+
+				// Let's assert that the item is present and has been marked as inactive at the given time
+				items, ok := subView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				assert.Len(t, items, 1, "expected one item to be present")
+
+				tolerance := 5 * time.Second
+				testutils.TimeEqualsApproximately(t, currentTime, *items[0].SubscriptionItem.ActiveTo, tolerance)
+
+				// Let's check that the item did get deleted in the background
+				// For this, we'll need to do a bit of time travel
+				timeBeforeTravel := clock.Now()
+				clock.SetTime(currentTime.AddDate(0, 0, -1))
+
+				it, err := deps.ItemRepo.GetByID(ctx, itOrigi[0].SubscriptionItem.NamespacedID)
+				require.NoError(t, err)
+
+				testutils.TimeEqualsApproximately(t, currentTime, *it.DeletedAt, tolerance)
+
+				clock.SetTime(timeBeforeTravel)
+			},
+		},
+		{
+			Name: "Should remove item WITH entitlement from the current phase starting now",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				second_phase_key := "test_phase_2"
+				item_key := subscriptiontestutils.ExampleFeatureKey
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Let's assert we have two items in the second phase
+				require.GreaterOrEqual(t, len(deps.SubView.Phases), 2, "expected at least two phases")
+				require.GreaterOrEqual(t, len(deps.SubView.Phases[1].ItemsByKey), 2, "expected at least two items in the second phase")
+				require.Equal(t, second_phase_key, deps.SubView.Phases[1].SubscriptionPhase.Key, "expected the second phase to be of known key")
+				itOrigi, ok := deps.SubView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				require.Len(t, itOrigi, 1, "expected one item to be present")
+
+				// Let's assert the second phase starts when we expect it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 1, 0), deps.SubView.Phases[1].SubscriptionPhase.ActiveFrom, "expected the second phase to start in a month")
+
+				// Let's advance the clock into the 2nd phase where we have two items
+				currentTime := deps.CurrentTime.AddDate(0, 1, 1)
+				clock.SetTime(currentTime)
+				// Let's freeze the time so we can assert properly
+
+				// Let's remove the item without
+				s, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchRemoveItem{
+						PhaseKey: second_phase_key,
+						ItemKey:  item_key,
+					},
+				})
+				require.Nil(t, err)
+				require.NotNil(t, s)
+
+				// Let's fetch the edited subscription and check that the item was removed effective now
+				subView, err := deps.Service.GetView(ctx, deps.SubView.Subscription.NamespacedID)
+				require.Nil(t, err)
+
+				// Let's assert that the item is present and has been marked as inactive at the given time
+				items, ok := subView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				assert.Len(t, items, 1, "expected one item to be present")
+
+				tolerance := 5 * time.Second
+				testutils.TimeEqualsApproximately(t, currentTime, *items[0].SubscriptionItem.ActiveTo, tolerance)
+
+				// Let's check that the item & entitlement did get deleted in the background
+				// For this, we'll need to do a bit of time travel
+				timeBeforeTravel := clock.Now()
+				clock.SetTime(currentTime.AddDate(0, 0, -1))
+
+				it, err := deps.ItemRepo.GetByID(ctx, itOrigi[0].SubscriptionItem.NamespacedID)
+				require.NoError(t, err)
+
+				testutils.TimeEqualsApproximately(t, currentTime, *it.DeletedAt, tolerance)
+
+				require.NotNil(t, it.EntitlementID)
+
+				ent, err := deps.EntReg.EntitlementRepo.GetEntitlement(ctx, models.NamespacedID{
+					Namespace: it.Namespace,
+					ID:        *it.EntitlementID,
+				})
+				require.Nil(t, err)
+
+				testutils.TimeEqualsApproximately(t, currentTime, *ent.DeletedAt, tolerance)
+
+				clock.SetTime(timeBeforeTravel)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup(t)
+
+			services, deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeature(t)
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+
+			// Let's create an example subscription
+			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					ActiveFrom: tcDeps.CurrentTime,
+					Name:       "Example Subscription",
+				},
+				CustomerID: cust.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, plan)
+			require.Nil(t, err)
+
+			tcDeps.SubView = sub
+			tcDeps.Customer = *cust
+			tcDeps.DBDeps = dbDeps
+			tcDeps.Service = services.Service
+			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Plan = plan
+			tcDeps.ItemRepo = deps.ItemRepo
+			tcDeps.EntReg = deps.EntitlementRegistry
+
+			tc.Handler(t, tcDeps)
+		})
+	}
 }
 
 func TestChangeToPlan(t *testing.T) {
@@ -700,6 +891,128 @@ func TestChangeToPlan(t *testing.T) {
 			require.Nil(t, err)
 
 			subscriptiontestutils.ValidateSpecAndView(t, targetSpec, new)
+		})
+	})
+}
+
+func TestEditCombinations(t *testing.T) {
+	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
+	// Let's define what deps a test case needs
+	type testCaseDeps struct {
+		CurrentTime     time.Time
+		Customer        customerentity.Customer
+		WorkflowService subscription.WorkflowService
+		Service         subscription.Service
+		DBDeps          *subscriptiontestutils.DBDeps
+		Plan1           subscription.Plan
+	}
+
+	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
+		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup(t)
+
+			services, deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeature(t)
+
+			// Let's create the plan
+			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
+
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+
+			tcDeps.Customer = *cust
+			tcDeps.DBDeps = dbDeps
+			tcDeps.Service = services.Service
+			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Plan1 = plan1
+
+			fn(t, tcDeps)
+		}
+	}
+
+	t.Run("Should be able to cancel an edited subscription", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Let's create an example subscription
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					ActiveFrom: deps.CurrentTime,
+					Name:       "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Let's make sure the sub looks as we expect it to
+			require.Equal(t, "test_phase_1", sub.Phases[0].SubscriptionPhase.Key)
+
+			// Let's make sure it has the rate card we're editing
+			values, ok := sub.Phases[1].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+			require.True(t, ok)
+			require.Equal(t, 1, len(values))
+			val := values[0]
+
+			// Let's edit the subscription
+			edits := []subscription.Patch{
+				// Let's edit an Item that has an Entitlement Associated
+				patch.PatchRemoveItem{
+					PhaseKey: "test_phase_1",
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+				},
+				patch.PatchAddItem{
+					PhaseKey: "test_phase_1",
+					ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+					CreateInput: subscription.SubscriptionItemSpec{
+						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+								PhaseKey: "test_phase_1",
+								ItemKey:  subscriptiontestutils.ExampleFeatureKey,
+								RateCard: subscription.RateCard{
+									Name:                val.Spec.RateCard.Name,
+									Description:         val.Spec.RateCard.Description,
+									FeatureKey:          val.Spec.RateCard.FeatureKey,
+									EntitlementTemplate: val.Spec.RateCard.EntitlementTemplate,
+									TaxConfig:           val.Spec.RateCard.TaxConfig,
+									Price:               productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(19)}),
+									BillingCadence:      val.Spec.RateCard.BillingCadence,
+								},
+							},
+							CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
+						},
+					},
+				},
+			}
+
+			// Let 5 minutes pass
+			clock.SetTime(deps.CurrentTime.Add(5 * time.Minute))
+
+			_, err = deps.WorkflowService.EditRunning(ctx, sub.Subscription.NamespacedID, edits)
+			require.Nil(t, err)
+
+			// Now let's fetch the view
+			view, err := deps.Service.GetView(ctx, sub.Subscription.NamespacedID)
+			require.Nil(t, err)
+
+			require.Equal(t, sub.Subscription.NamespacedID, view.Subscription.NamespacedID)
+
+			// Now let's cancel the subscription
+			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, clock.Now().Add(-time.Minute))
+			require.Nil(t, err)
+
+			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))
 		})
 	})
 }
