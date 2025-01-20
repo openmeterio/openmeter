@@ -63,7 +63,12 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 		// Hack: we need to add the edges back
 		dbProfile.Edges.WorkflowConfig = dbWorkflowConfig
 
-		return mapProfileFromDB(dbProfile)
+		createdProfile, err := mapProfileFromDB(dbProfile)
+		if err != nil {
+			return nil, err
+		}
+
+		return &createdProfile.BaseProfile, nil
 	})
 }
 
@@ -80,7 +85,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		Save(ctx)
 }
 
-func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.BaseProfile, error) {
+func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.AdapterGetProfileResponse, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -148,7 +153,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 			return response, fmt.Errorf("cannot map profile: %w", err)
 		}
 
-		result = append(result, *profile)
+		result = append(result, profile.BaseProfile)
 	}
 
 	response.TotalCount = paged.TotalCount
@@ -157,7 +162,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 	return response, nil
 }
 
-func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.BaseProfile, error) {
+func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.AdapterGetProfileResponse, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -192,7 +197,7 @@ func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			return err
 		}
 
-		_, err = tx.db.BillingWorkflowConfig.UpdateOneID(profile.WorkflowConfig.ID).
+		_, err = tx.db.BillingWorkflowConfig.UpdateOneID(profile.WorkflowConfigID).
 			Where(billingworkflowconfig.Namespace(profile.Namespace)).
 			SetDeletedAt(clock.Now()).
 			Save(ctx)
@@ -249,7 +254,13 @@ func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
-		return mapProfileFromDB(updatedProfile)
+
+		updatedProfileEntity, err := mapProfileFromDB(updatedProfile)
+		if err != nil {
+			return nil, err
+		}
+
+		return &updatedProfileEntity.BaseProfile, nil
 	})
 }
 
@@ -304,7 +315,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		Save(ctx)
 }
 
-func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.BaseProfile, error) {
+func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileResponse, error) {
 	if dbProfile == nil {
 		return nil, nil
 	}
@@ -314,49 +325,48 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.BaseProfile, error
 		return nil, fmt.Errorf("cannot map workflow config: %w", err)
 	}
 
-	return &billing.BaseProfile{
-		Namespace:   dbProfile.Namespace,
-		ID:          dbProfile.ID,
-		Default:     dbProfile.Default,
-		Name:        dbProfile.Name,
-		Description: dbProfile.Description,
-		Metadata:    dbProfile.Metadata,
+	return &billing.AdapterGetProfileResponse{
+		BaseProfile: billing.BaseProfile{
+			Namespace:   dbProfile.Namespace,
+			ID:          dbProfile.ID,
+			Default:     dbProfile.Default,
+			Name:        dbProfile.Name,
+			Description: dbProfile.Description,
+			Metadata:    dbProfile.Metadata,
 
-		CreatedAt: dbProfile.CreatedAt.In(time.UTC),
-		UpdatedAt: dbProfile.UpdatedAt.In(time.UTC),
-		DeletedAt: convert.TimePtrIn(dbProfile.DeletedAt, time.UTC),
+			CreatedAt: dbProfile.CreatedAt.In(time.UTC),
+			UpdatedAt: dbProfile.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(dbProfile.DeletedAt, time.UTC),
 
-		Supplier: billing.SupplierContact{
-			Name: dbProfile.SupplierName,
-			Address: models.Address{
-				Country:     dbProfile.SupplierAddressCountry,
-				PostalCode:  dbProfile.SupplierAddressPostalCode,
-				City:        dbProfile.SupplierAddressCity,
-				State:       dbProfile.SupplierAddressState,
-				Line1:       dbProfile.SupplierAddressLine1,
-				Line2:       dbProfile.SupplierAddressLine2,
-				PhoneNumber: dbProfile.SupplierAddressPhoneNumber,
+			Supplier: billing.SupplierContact{
+				Name: dbProfile.SupplierName,
+				Address: models.Address{
+					Country:     dbProfile.SupplierAddressCountry,
+					PostalCode:  dbProfile.SupplierAddressPostalCode,
+					City:        dbProfile.SupplierAddressCity,
+					State:       dbProfile.SupplierAddressState,
+					Line1:       dbProfile.SupplierAddressLine1,
+					Line2:       dbProfile.SupplierAddressLine2,
+					PhoneNumber: dbProfile.SupplierAddressPhoneNumber,
+				},
+				TaxCode: dbProfile.SupplierTaxCode,
 			},
-			TaxCode: dbProfile.SupplierTaxCode,
-		},
 
-		WorkflowConfig: wfConfig,
+			WorkflowConfig: wfConfig,
 
-		AppReferences: &billing.ProfileAppReferences{
-			Tax:       billing.AppReference{ID: dbProfile.TaxAppID},
-			Invoicing: billing.AppReference{ID: dbProfile.InvoicingAppID},
-			Payment:   billing.AppReference{ID: dbProfile.PaymentAppID},
+			AppReferences: &billing.ProfileAppReferences{
+				Tax:       billing.AppReference{ID: dbProfile.TaxAppID},
+				Invoicing: billing.AppReference{ID: dbProfile.InvoicingAppID},
+				Payment:   billing.AppReference{ID: dbProfile.PaymentAppID},
+			},
 		},
+		WorkflowConfigID: dbProfile.Edges.WorkflowConfig.ID,
 	}, nil
 }
 
-func mapWorkflowConfigToDB(wc billing.WorkflowConfig) *db.BillingWorkflowConfig {
+func mapWorkflowConfigToDB(wc billing.WorkflowConfig, id string) *db.BillingWorkflowConfig {
 	return &db.BillingWorkflowConfig{
-		ID: wc.ID,
-
-		CreatedAt: wc.CreatedAt.In(time.UTC),
-		UpdatedAt: wc.UpdatedAt.In(time.UTC),
-		DeletedAt: convert.TimePtrIn(wc.DeletedAt, time.UTC),
+		ID: id,
 
 		CollectionAlignment:     wc.Collection.Alignment,
 		LineCollectionPeriod:    wc.Collection.Interval.ISOString(),
@@ -384,12 +394,6 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 	}
 
 	return billing.WorkflowConfig{
-		ID: dbWC.ID,
-
-		CreatedAt: dbWC.CreatedAt.In(time.UTC),
-		UpdatedAt: dbWC.UpdatedAt.In(time.UTC),
-		DeletedAt: convert.TimePtrIn(dbWC.DeletedAt, time.UTC),
-
 		Collection: billing.CollectionConfig{
 			Alignment: dbWC.CollectionAlignment,
 			Interval:  collectionInterval,

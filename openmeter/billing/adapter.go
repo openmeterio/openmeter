@@ -21,8 +21,8 @@ type Adapter interface {
 type ProfileAdapter interface {
 	CreateProfile(ctx context.Context, input CreateProfileInput) (*BaseProfile, error)
 	ListProfiles(ctx context.Context, input ListProfilesInput) (pagination.PagedResponse[BaseProfile], error)
-	GetProfile(ctx context.Context, input GetProfileInput) (*BaseProfile, error)
-	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*BaseProfile, error)
+	GetProfile(ctx context.Context, input GetProfileInput) (*AdapterGetProfileResponse, error)
+	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*AdapterGetProfileResponse, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*BaseProfile, error)
 	UnsetDefaultProfile(ctx context.Context, input UnsetDefaultProfileInput) error

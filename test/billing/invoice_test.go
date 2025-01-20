@@ -256,7 +256,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			},
 		}
 		// Let's make sure that the workflow config is cloned
-		require.NotEqual(s.T(), usdInvoice.Workflow.Config.ID, billingProfile.WorkflowConfig.ID)
 		expectedInvoice := billing.Invoice{
 			InvoiceBase: billing.InvoiceBase{
 				Namespace: namespace,
@@ -276,10 +275,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				Workflow: billing.InvoiceWorkflow{
 					Config: billing.WorkflowConfig{
-						ID:        usdInvoice.Workflow.Config.ID,
-						CreatedAt: usdInvoice.Workflow.Config.CreatedAt,
-						UpdatedAt: usdInvoice.Workflow.Config.UpdatedAt,
-
 						Collection: billingProfile.WorkflowConfig.Collection,
 						Invoicing:  billingProfile.WorkflowConfig.Invoicing,
 						Payment:    billingProfile.WorkflowConfig.Payment,

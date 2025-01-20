@@ -47,8 +47,6 @@ func (s *ProfileTestSuite) createProfileFixture(isDefault bool) *billing.Profile
 
 	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
 	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
-	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
-	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
 
 	return profile
 }
@@ -305,8 +303,6 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
 	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
-	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
-	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
@@ -340,11 +336,6 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		},
 		Apps: fetchedProfile.Apps,
 	}
-
-	expectedProfile.WorkflowConfig.ID = fetchedProfile.WorkflowConfig.ID
-	expectedProfile.WorkflowConfig.CreatedAt = fetchedProfile.WorkflowConfig.CreatedAt
-	expectedProfile.WorkflowConfig.UpdatedAt = fetchedProfile.WorkflowConfig.UpdatedAt
-	expectedProfile.WorkflowConfig.DeletedAt = fetchedProfile.WorkflowConfig.DeletedAt
 
 	// Let's check if the fields are set correctly
 	require.Equal(s.T(), expectedProfile, *fetchedProfile)
@@ -403,8 +394,6 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 
 	profile.CreatedAt = profile.CreatedAt.Truncate(time.Microsecond)
 	profile.UpdatedAt = profile.UpdatedAt.Truncate(time.Microsecond)
-	profile.WorkflowConfig.CreatedAt = profile.WorkflowConfig.CreatedAt.Truncate(time.Microsecond)
-	profile.WorkflowConfig.UpdatedAt = profile.WorkflowConfig.UpdatedAt.Truncate(time.Microsecond)
 
 	// Let's fetch the profile again
 	fetchedProfile, err := s.BillingService.GetProfile(ctx, billing.GetProfileInput{
@@ -426,7 +415,6 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			Description: lo.ToPtr("Updated description"),
 
 			WorkflowConfig: billing.WorkflowConfig{
-				CreatedAt: profile.WorkflowConfig.CreatedAt,
 				Collection: billing.CollectionConfig{
 					Alignment: billing.AlignmentKindSubscription,
 					Interval:  datex.MustParse(s.T(), "PT30M"),
@@ -480,9 +468,7 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 				AppReferences:  fetchedProfile.AppReferences,
 			},
 		}
-		expectedOutput.WorkflowConfig.ID = fetchedProfile.WorkflowConfig.ID
-		expectedOutput.UpdatedAt = updatedProfile.UpdatedAt                               // This is checked by the previous assertion
-		expectedOutput.WorkflowConfig.UpdatedAt = updatedProfile.WorkflowConfig.UpdatedAt // This is checked by the previous assertion
+		expectedOutput.UpdatedAt = updatedProfile.UpdatedAt // This is checked by the previous assertion
 		expectedOutput.Apps = fetchedProfile.Apps
 
 		require.Equal(t, expectedOutput, *updatedProfile)

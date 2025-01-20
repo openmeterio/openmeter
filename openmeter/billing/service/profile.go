@@ -38,8 +38,8 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 				oldDefaultProfile.Default = false
 
 				_, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
-					TargetState:      *oldDefaultProfile,
-					WorkflowConfigID: oldDefaultProfile.WorkflowConfig.ID,
+					TargetState:      oldDefaultProfile.BaseProfile,
+					WorkflowConfigID: oldDefaultProfile.WorkflowConfigID,
 				})
 				if err != nil {
 					return nil, err
@@ -189,7 +189,7 @@ func (s *Service) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 		return nil, err
 	}
 
-	return s.resolveProfileApps(ctx, profile)
+	return s.resolveProfileApps(ctx, profile.BaseProfileOrEmpty())
 }
 
 func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
@@ -205,11 +205,11 @@ func (s *Service) GetProfile(ctx context.Context, input billing.GetProfileInput)
 	}
 
 	if input.Expand.Apps {
-		return s.resolveProfileApps(ctx, profile)
+		return s.resolveProfileApps(ctx, profile.BaseProfileOrEmpty())
 	}
 
 	return &billing.Profile{
-		BaseProfile: *profile,
+		BaseProfile: profile.BaseProfile,
 	}, nil
 }
 
@@ -356,9 +356,9 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		profile, err = s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
+		updatedProfile, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
 			TargetState:      billing.BaseProfile(input),
-			WorkflowConfigID: profile.WorkflowConfig.ID,
+			WorkflowConfigID: profile.WorkflowConfigID,
 		})
 		if err != nil {
 			return nil, err
@@ -370,7 +370,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		return s.resolveProfileApps(ctx, profile)
+		return s.resolveProfileApps(ctx, updatedProfile)
 	})
 }
 

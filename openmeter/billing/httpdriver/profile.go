@@ -384,11 +384,6 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 	}
 
 	return billing.WorkflowConfig{
-		ID:        i.Id,
-		CreatedAt: i.CreatedAt,
-		UpdatedAt: i.UpdatedAt,
-		DeletedAt: i.DeletedAt,
-
 		Collection: billing.CollectionConfig{
 			Alignment: def.Collection.Alignment,
 			Interval:  collInterval,
@@ -573,11 +568,6 @@ func mapSupplierContactToAPI(c billing.SupplierContact) api.BillingParty {
 
 func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
 	return api.BillingWorkflow{
-		Id:        c.ID,
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
-		DeletedAt: c.DeletedAt,
-
 		Collection: &api.BillingWorkflowCollectionSettings{
 			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{
 				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Collection.Alignment),
@@ -598,8 +588,8 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
 	}
 }
 
-func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflowSettings {
-	return api.BillingWorkflowSettings{
+func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
+	return api.BillingWorkflow{
 		Collection: &api.BillingWorkflowCollectionSettings{
 			Alignment: &api.BillingWorkflowCollectionAlignmentSubscription{
 				Type: api.BillingWorkflowCollectionAlignmentSubscriptionType(c.Collection.Alignment),
