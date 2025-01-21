@@ -134,6 +134,65 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppId:       request.AppID.ID,
 					CustomerId:  &out.CustomerID.ID,
 				}, nil
+
+			case stripeclient.WebhookEventTypeSetupIntentFailed:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeSetupIntentRequiresAction:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+
+			// Invoice events
+			// TODO: update invoice payment status
+			case stripeclient.WebhookEventTypeInvoiceFinalizationFailed:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoiceMarkedUncollectible:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoiceOverdue:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoicePaid:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoicePaymentActionRequired:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoicePaymentFailed:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoicePaymentSucceeded:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoiceSent:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+			case stripeclient.WebhookEventTypeInvoiceVoided:
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
 			}
 
 			return AppStripeWebhookResponse{}, appstripe.ValidationError{
