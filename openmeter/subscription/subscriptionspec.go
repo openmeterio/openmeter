@@ -152,7 +152,10 @@ func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
 	for _, phase := range s.Phases {
-		if err := phase.Validate(); err != nil {
+		if err := phase.Validate(models.CadencedModel{
+			ActiveFrom: s.ActiveFrom,
+			ActiveTo:   s.ActiveTo,
+		}); err != nil {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
@@ -241,7 +244,7 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 	}
 }
 
-func (s *SubscriptionPhaseSpec) Validate() error {
+func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error {
 	var errs []error
 
 	// Let's validate that the phase is not empty
@@ -331,13 +334,12 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 			// }
 		}
 
-		// Let's validate the item ordering
-		// We don't know nor need to know the correct phase cadence as long as we use a consistent one
-		// Were the items valid for an indefinitely long phase they would be valid for any phase,
-		// as that behavior is handled by item.GetCadence.
-		// FIXME: though this is correct it is not elegant
+		// We don't know the exact phase Cadence (as we don't know the Phase end time)
+		// but to validate the ordering of items the phase endtime is irrelevant
+		phaseStartTime, _ := s.StartAfter.AddTo(subCadence.ActiveFrom)
+
 		somePhaseCadence := models.CadencedModel{
-			ActiveFrom: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			ActiveFrom: phaseStartTime,
 		}
 
 		// Let's validate that the items form a valid non-overlapping timeline
