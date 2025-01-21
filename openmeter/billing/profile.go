@@ -35,12 +35,6 @@ func (k AlignmentKind) Values() []string {
 }
 
 type WorkflowConfig struct {
-	ID string `json:"id"`
-
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
-
 	Collection CollectionConfig `json:"collection"`
 	Invoicing  InvoicingConfig  `json:"invoicing"`
 	Payment    PaymentConfig    `json:"payment"`
@@ -242,6 +236,20 @@ type Profile struct {
 
 	// Optionaly expanded fields
 	Apps *ProfileApps `json:"-"`
+}
+
+type AdapterGetProfileResponse struct {
+	BaseProfile
+
+	WorkflowConfigID string `json:"workflowConfigId"`
+}
+
+func (r *AdapterGetProfileResponse) BaseProfileOrEmpty() *BaseProfile {
+	if r == nil {
+		return nil
+	}
+
+	return &r.BaseProfile
 }
 
 type ProfileApps struct {

@@ -90,8 +90,6 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 
 		defaultProfile.CreatedAt = customerProfile.Profile.CreatedAt
 		defaultProfile.UpdatedAt = customerProfile.Profile.UpdatedAt
-		defaultProfile.WorkflowConfig.CreatedAt = customerProfile.Profile.WorkflowConfig.CreatedAt
-		defaultProfile.WorkflowConfig.UpdatedAt = customerProfile.Profile.WorkflowConfig.UpdatedAt
 
 		require.Equal(t, *defaultProfile, customerProfile.Profile)
 	})

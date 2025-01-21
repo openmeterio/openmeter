@@ -270,26 +270,10 @@ model BillingProfileAppsCreate {
 }
 
 /**
- * BillingWorkflow represents a billing workflow
+ * BillingWorkflow represents the settings for a billing workflow.
  */
 @friendlyName("BillingWorkflow")
 model BillingWorkflow {
-  ...ResourceTimestamps;
-  ...BillingWorkflowSettings;
-
-  /**
-   * A unique identifier for the resource.
-   */
-  @visibility(Lifecycle.Read)
-  @example("01G65Z755AFWAKHE12NY0CQ9FH")
-  id: ULID;
-}
-
-/**
- * BillingWorkflowSettings represents the settings for a billing workflow.
- */
-@friendlyName("BillingWorkflowSettings")
-model BillingWorkflowSettings {
   /**
    * The collection settings for this workflow
    */

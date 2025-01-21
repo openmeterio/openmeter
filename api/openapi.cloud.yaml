@@ -8564,34 +8564,10 @@ components:
     BillingProfileCustomerWorkflowOverride:
       type: object
       required:
-        - createdAt
-        - updatedAt
-        - id
         - taxApp
         - invoicingApp
         - paymentApp
       properties:
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
         collection:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
@@ -8604,12 +8580,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: The payment settings for this workflow
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: A unique identifier for the resource.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          readOnly: true
         taxApp:
           allOf:
             - $ref: '#/components/schemas/App'
@@ -8735,32 +8705,7 @@ components:
       description: TaxIdentificationCode is a normalized tax code shown on the original identity document.
     BillingWorkflow:
       type: object
-      required:
-        - createdAt
-        - updatedAt
-        - id
       properties:
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Creation Time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Last Update Time
-          readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
         collection:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
@@ -8773,13 +8718,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: The payment settings for this workflow
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: A unique identifier for the resource.
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          readOnly: true
-      description: BillingWorkflow represents a billing workflow
+      description: BillingWorkflow represents the settings for a billing workflow.
     BillingWorkflowCollectionAlignment:
       type: object
       allOf:
@@ -8871,22 +8810,6 @@ components:
           default: charge_automatically
       description: BillingWorkflowPaymentSettings represents the payment settings for a billing workflow
       title: Workflow payment settings
-    BillingWorkflowSettings:
-      type: object
-      properties:
-        collection:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
-          description: The collection settings for this workflow
-        invoicing:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowInvoicingSettings'
-          description: The invoicing settings for this workflow
-        payment:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
-          description: The payment settings for this workflow
-      description: BillingWorkflowSettings represents the settings for a billing workflow.
     CheckoutSessionCustomTextAfterSubmitParams:
       type: object
       properties:
@@ -12606,7 +12529,7 @@ components:
           readOnly: true
         workflow:
           allOf:
-            - $ref: '#/components/schemas/BillingWorkflowSettings'
+            - $ref: '#/components/schemas/BillingWorkflow'
           description: The workflow details used by this invoice.
       description: |-
         InvoiceWorkflowSettings represents the workflow settings used by the invoice.

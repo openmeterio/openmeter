@@ -274,13 +274,10 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			return billing.CreateInvoiceAdapterRespone{}, fmt.Errorf("clone workflow config: %w", err)
 		}
 
-		workflowConfig := mapWorkflowConfigToDB(input.Profile.WorkflowConfig)
+		workflowConfig := mapWorkflowConfigToDB(input.Profile.WorkflowConfig, clonedWorkflowConfig.ID)
 
 		// Force cloning of the workflow
 		workflowConfig.ID = ""
-		workflowConfig.CreatedAt = time.Time{}
-		workflowConfig.UpdatedAt = time.Time{}
-		workflowConfig.DeletedAt = nil
 
 		createMut := tx.db.BillingInvoice.Create().
 			SetNamespace(input.Namespace).
@@ -422,6 +419,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		existingInvoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.ID)).
 			Where(billinginvoice.Namespace(in.Namespace)).
+			WithBillingWorkflowConfig().
 			Only(ctx)
 		if err != nil {
 			return in, err
@@ -518,7 +516,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 		}
 
 		// Update the workflow config
-		_, err = tx.updateWorkflowConfig(ctx, in.Namespace, in.Workflow.Config.ID, in.Workflow.Config)
+		_, err = tx.updateWorkflowConfig(ctx, in.Namespace, existingInvoice.Edges.BillingWorkflowConfig.ID, in.Workflow.Config)
 		if err != nil {
 			return in, err
 		}
