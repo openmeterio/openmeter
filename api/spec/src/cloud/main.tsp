@@ -32,6 +32,10 @@ using TypeSpec.OpenAPI;
 @useAuth(CloudTokenAuth | CloudCookieAuth)
 // Tags will appear in reverse order in the API documentation
 @tagMetadata(
+  "Lookup Information",
+  #{ description: "Lookup information for static data like currencies" }
+)
+@tagMetadata(
   "Apps (Private Preview)",
   #{
     description: "Manage integrations for extending OpenMeter's functionality. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
@@ -253,10 +257,10 @@ namespace OpenMeterCloud.ProductCatalog {
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
 }
 
-namespace OpenMeterCloud.Static {
-  @route("/api/v1/static")
-  @tag("Static Data")
-  interface Currencies extends OpenMeter.Static.Currencies {}
+namespace OpenMeterCloud.Info {
+  @route("/api/v1/info/currencies")
+  @tag("Lookup Information")
+  interface Currencies extends OpenMeter.Info.Currencies {}
 }
 
 /**

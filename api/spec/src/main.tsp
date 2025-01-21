@@ -20,7 +20,7 @@ import "./notification";
 import "./entitlements";
 import "./billing";
 import "./productcatalog";
-import "./static";
+import "./info";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -43,6 +43,10 @@ using TypeSpec.Versioning;
 })
 @server("https://127.0.0.1", "Local")
 // Tags will appear in reverse order in the API documentation
+@tagMetadata(
+  "Lookup Information",
+  #{ description: "Lookup information for static data like currencies" }
+)
 @tagMetadata(
   "Apps (Private Preview)",
   #{
