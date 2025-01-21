@@ -6,7 +6,6 @@ using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
-// TODO: does this have to be in a separate namespace?
 namespace OpenMeter.Entitlements;
 
 @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")

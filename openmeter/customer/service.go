@@ -4,6 +4,7 @@ import (
 	"context"
 
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -17,4 +18,5 @@ type CustomerService interface {
 	DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer customerentity.GetCustomerInput) (*customerentity.Customer, error)
 	UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error)
+	GetEntitlementValue(ctx context.Context, input customerentity.GetEntitlementValueInput) (entitlement.EntitlementValue, error)
 }

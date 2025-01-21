@@ -15,6 +15,7 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
@@ -57,39 +58,7 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 	// Initialize Ent driver
 	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
 
-	customerService, err := common.NewCustomerService(logger, entPostgresDriver.Client())
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize customer service: %w", err)
-	}
-
-	secretService, err := common.NewUnsafeSecretService(logger, entPostgresDriver.Client())
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize secret service: %w", err)
-	}
-
-	appService, err := common.NewAppService(logger, entPostgresDriver.Client(), conf.Apps)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize app service: %w", err)
-	}
-
-	_, err = common.NewAppStripeService(logger, entPostgresDriver.Client(), conf.Apps, appService, customerService, secretService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize stripe app service: %w", err)
-	}
-
-	namespaceManager, err := common.NewNamespaceManager(nil, conf.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize namespace manager: %w", err)
-	}
-
-	_, err = common.NewAppSandboxProvisioner(ctx, logger, conf.Apps, appService, namespaceManager)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize sandbox app provisioner: %w", err)
-	}
-
 	meterRepository := common.NewInMemoryRepository(conf.Meters)
-
-	featureService := common.NewFeatureConnector(logger, entPostgresDriver.Client(), meterRepository)
 
 	clickhouseConn, err := common.NewClickHouse(conf.Aggregation.ClickHouse)
 	if err != nil {
@@ -129,6 +98,44 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 		return nil, fmt.Errorf("failed to initialize event bus publisher: %w", err)
 	}
 
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     entPostgresDriver.Client(),
+		StreamingConnector: streamingConnector,
+		Logger:             logger,
+		MeterRepository:    meterRepository,
+		Publisher:          ebPublisher,
+	})
+
+	customerService, err := common.NewCustomerService(logger, entPostgresDriver.Client(), entitlementRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize customer service: %w", err)
+	}
+
+	secretService, err := common.NewUnsafeSecretService(logger, entPostgresDriver.Client())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize secret service: %w", err)
+	}
+
+	appService, err := common.NewAppService(logger, entPostgresDriver.Client(), conf.Apps)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize app service: %w", err)
+	}
+
+	_, err = common.NewAppStripeService(logger, entPostgresDriver.Client(), conf.Apps, appService, customerService, secretService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize stripe app service: %w", err)
+	}
+
+	namespaceManager, err := common.NewNamespaceManager(nil, conf.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize namespace manager: %w", err)
+	}
+
+	_, err = common.NewAppSandboxProvisioner(ctx, logger, conf.Apps, appService, namespaceManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize sandbox app provisioner: %w", err)
+	}
+
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: entPostgresDriver.Client(),
 		Logger: logger,
@@ -142,7 +149,7 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 		CustomerService:    customerService,
 		AppService:         appService,
 		Logger:             logger,
-		FeatureService:     featureService,
+		FeatureService:     entitlementRegistry.Feature,
 		MeterRepo:          meterRepository,
 		StreamingConnector: streamingConnector,
 		Publisher:          ebPublisher,

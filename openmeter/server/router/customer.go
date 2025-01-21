@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app/httpdriver"
+	chttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 )
 
 // List customers
@@ -60,5 +61,14 @@ func (a *Router) DeleteCustomerAppData(w http.ResponseWriter, r *http.Request, c
 	a.appHandler.DeleteCustomerData().With(httpdriver.DeleteCustomerDataParams{
 		CustomerId: customerID,
 		AppId:      appID,
+	}).ServeHTTP(w, r)
+}
+
+// Get entitlement value
+// (GET /api/v1/customers/{customerId}/entitlements/{featureKey}/value)
+func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerId string, featureKey string, params api.GetCustomerEntitlementValueParams) {
+	a.customerHandler.GetCustomerEntitlementValue().With(chttpdriver.GetCustomerEntitlementValueParams{
+		CustomerID: customerId,
+		FeatureKey: featureKey,
 	}).ServeHTTP(w, r)
 }

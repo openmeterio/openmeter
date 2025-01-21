@@ -32,8 +32,8 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -93,9 +93,18 @@ func (s *BaseSuite) SetupSuite() {
 	s.MeterRepo = meter.NewInMemoryRepository(nil)
 	s.MockStreamingConnector = streamingtestutils.NewMockStreamingConnector(t)
 
+	// Entitlement
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbClient,
+		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		Logger:             slog.Default(),
+		MeterRepository:    s.MeterRepo,
+		Publisher:          eventbus.NewMock(t),
+	})
+
 	// Feature
-	s.FeatureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, slog.Default())
-	s.FeatureService = feature.NewFeatureConnector(s.FeatureRepo, s.MeterRepo)
+	s.FeatureRepo = entitlementRegistry.FeatureRepo
+	s.FeatureService = entitlementRegistry.Feature
 
 	// Customer
 
@@ -104,10 +113,10 @@ func (s *BaseSuite) SetupSuite() {
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	s.CustomerService = customer.Service(customerAdapter)
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter: customerAdapter,
+		Adapter:              customerAdapter,
+		EntitlementConnector: entitlementRegistry.Entitlement,
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService

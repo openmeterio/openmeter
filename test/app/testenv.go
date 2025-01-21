@@ -14,9 +14,14 @@ import (
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -76,8 +81,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer repo: %w", err)
 	}
 
+	meterRepo := meter.NewInMemoryRepository([]models.Meter{})
+
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     entClient,
+		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		Logger:             logger,
+		MeterRepository:    meterRepo,
+		Publisher:          eventbus.NewMock(t),
+	})
+
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter: customerAdapter,
+		Adapter:              customerAdapter,
+		EntitlementConnector: entitlementRegistry.Entitlement,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

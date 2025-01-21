@@ -9,8 +9,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -64,8 +69,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
 	}
 
+	meterRepo := meter.NewInMemoryRepository([]models.Meter{})
+
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbDeps.DBClient,
+		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		Logger:             logger,
+		MeterRepository:    meterRepo,
+		Publisher:          eventbus.NewMock(t),
+	})
+
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter: customerAdapter,
+		Adapter:              customerAdapter,
+		EntitlementConnector: entitlementRegistry.Entitlement,
 	})
 	if err != nil {
 		return nil, err
