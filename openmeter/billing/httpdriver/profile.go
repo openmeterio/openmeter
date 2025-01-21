@@ -403,11 +403,7 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 }
 
 func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billing.WorkflowConfig, error) {
-	return fromAPIBillingWorkflow(api.BillingWorkflow{
-		Collection: i.Collection,
-		Invoicing:  i.Invoicing,
-		Payment:    i.Payment,
-	})
+	return fromAPIBillingWorkflow(api.BillingWorkflow(i))
 }
 
 func parseDurationPtr(d *string, defaultDuration datex.Period) (datex.Period, error) {
