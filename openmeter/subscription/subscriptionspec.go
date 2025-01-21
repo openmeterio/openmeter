@@ -167,7 +167,6 @@ type CreateSubscriptionPhasePlanInput struct {
 	StartAfter  datex.Period `json:"startAfter"`
 	Name        string       `json:"name"`
 	Description *string      `json:"description,omitempty"`
-	// TODO: add back Plan level discounts
 }
 
 func (i CreateSubscriptionPhasePlanInput) Validate() error {
@@ -670,7 +669,6 @@ func (e *AllowedDuringApplyingPatchesError) Unwrap() error {
 }
 
 type SpecValidationError struct {
-	// TODO: This spec is broken and painful, lets improve it
 	AffectedKeys [][]string
 	Msg          string
 }
