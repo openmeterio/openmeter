@@ -1,19 +1,18 @@
 import "../rest.tsp";
 
-namespace OpenMeter.Static;
+namespace OpenMeter.Info;
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-@route("/api/v1/static")
-@tag("Static Data")
+@route("/api/v1/info/currencies")
+@tag("Lookup Information")
 interface Currencies {
   /**
    * List all supported currencies.
    */
   @get
   @operationId("listCurrencies")
-  @route("/currencies")
   @summary("List supported currencies")
   listCurrencies(): Currency[] | OpenMeter.CommonErrors;
 }

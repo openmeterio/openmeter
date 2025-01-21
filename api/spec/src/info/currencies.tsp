@@ -1,4 +1,4 @@
-namespace OpenMeter.Static;
+namespace OpenMeter.Info;
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;

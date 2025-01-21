@@ -8,4 +8,4 @@ import "..";
 import "./currencies.tsp";
 import "./routes.tsp";
 
-namespace OpenMeter.Static;
+namespace OpenMeter.Info;

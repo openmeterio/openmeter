@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -40,7 +41,6 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
-	statichttpdriver "github.com/openmeterio/openmeter/openmeter/static/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -183,7 +183,7 @@ type Router struct {
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 	notificationHandler       notificationhttpdriver.Handler
-	staticHandler             statichttpdriver.Handler
+	infoHandler               infohttpdriver.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -238,7 +238,7 @@ func NewRouter(config Config) (*Router, error) {
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
-	router.staticHandler = statichttpdriver.New(
+	router.infoHandler = infohttpdriver.New(
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
