@@ -253,6 +253,12 @@ namespace OpenMeterCloud.ProductCatalog {
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
 }
 
+namespace OpenMeterCloud.Static {
+  @route("/api/v1/static")
+  @tag("Static Data")
+  interface Currencies extends OpenMeter.Static.Currencies {}
+}
+
 /**
  * A meter is a configuration that defines how to match and aggregate events.
  */
