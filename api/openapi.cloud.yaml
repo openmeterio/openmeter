@@ -8380,14 +8380,17 @@ components:
         tax:
           allOf:
             - $ref: '#/components/schemas/App'
+          description: The tax app used for this workflow
           readOnly: true
         invoicing:
           allOf:
             - $ref: '#/components/schemas/App'
+          description: The invoicing app used for this workflow
           readOnly: true
         payment:
           allOf:
             - $ref: '#/components/schemas/App'
+          description: The payment app used for this workflow
           readOnly: true
       description: BillingProfileApps represents the applications used by a billing profile
     BillingProfileAppsCreate:
@@ -8610,14 +8613,17 @@ components:
         taxApp:
           allOf:
             - $ref: '#/components/schemas/App'
+          description: The tax app used for this workflow
           readOnly: true
         invoicingApp:
           allOf:
             - $ref: '#/components/schemas/App'
+          description: The invoicing app used for this workflow
           readOnly: true
         paymentApp:
           allOf:
             - $ref: '#/components/schemas/App'
+          description: The payment app used for this workflow
           readOnly: true
       description: Customer specific workflow overrides.
     BillingProfileCustomerWorkflowOverrideCreate:
@@ -10863,7 +10869,9 @@ components:
         - storedAt
       properties:
         event:
-          $ref: '#/components/schemas/Event'
+          allOf:
+            - $ref: '#/components/schemas/Event'
+          description: The original event ingested.
         validationError:
           type: string
           description: The validation error if the event failed validation.
@@ -13221,6 +13229,7 @@ components:
         rule:
           allOf:
             - $ref: '#/components/schemas/NotificationRule'
+          description: The nnotification rule which generated this event.
           readOnly: true
         deliveryStatus:
           type: array
@@ -13232,6 +13241,7 @@ components:
         payload:
           allOf:
             - $ref: '#/components/schemas/NotificationEventPayload'
+          description: Timestamp when the notification event was created in RFC 3339 format.
           readOnly: true
         annotations:
           allOf:
@@ -14283,7 +14293,11 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          $ref: '#/components/schemas/RateCardEntitlement'
+          allOf:
+            - $ref: '#/components/schemas/RateCardEntitlement'
+          description: |-
+            The entitlement of the rate card.
+            Only available when featureKey is set.
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -14430,7 +14444,11 @@ components:
           description: The feature the customer is entitled to use.
           title: Feature key
         entitlementTemplate:
-          $ref: '#/components/schemas/RateCardEntitlement'
+          allOf:
+            - $ref: '#/components/schemas/RateCardEntitlement'
+          description: |-
+            The entitlement of the rate card.
+            Only available when featureKey is set.
         taxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -14447,6 +14465,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/RateCardUsageBasedPrice'
           nullable: true
+          description: |-
+            The price of the rate card.
+            When null, the feature or service is free.
       description: A usage-based rate card defines a price based on usage.
     RateCardUsageBasedPrice:
       oneOf:
@@ -15427,7 +15448,9 @@ components:
             - $ref: '#/components/schemas/Feature'
           description: The feature the customer is entitled to use.
         entitlement:
-          $ref: '#/components/schemas/Entitlement'
+          allOf:
+            - $ref: '#/components/schemas/Entitlement'
+          description: The entitlement of the Subscription Item.
       description: Included contents like Entitlement, or the Feature.
     SubscriptionPhaseCreate:
       type: object

@@ -59,7 +59,7 @@ model RateCardBase<T extends RateCardType> {
   @summary("Feature key")
   featureKey?: Key;
 
-  /*
+  /**
    * The entitlement of the rate card.
    * Only available when featureKey is set.
    */
@@ -147,7 +147,7 @@ model RateCardUsageBased {
   @encode(DurationKnownEncoding.ISO8601)
   billingCadence: duration;
 
-  /*
+  /**
    * The price of the rate card.
    * When null, the feature or service is free.
    */

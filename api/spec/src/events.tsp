@@ -247,7 +247,7 @@ model Event {
   storedAt: DateTime.fromISO("2023-01-01T01:01:02.001Z"),
 })
 model IngestedEvent {
-  /*
+  /**
    * The original event ingested.
    */
   event: Event;

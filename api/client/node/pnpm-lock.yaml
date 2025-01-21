@@ -7,6 +7,11 @@ settings:
 overrides:
   cross-spawn@>=7.0.0 <7.0.5: '>=7.0.5'
 
+patchedDependencies:
+  openapi-typescript:
+    hash: qvgny7op75vt4w6q4sxdfp3nby
+    path: patches/openapi-typescript.patch
+
 importers:
 
   .:
@@ -68,7 +73,7 @@ importers:
         version: 0.5.4(@typescript-eslint/eslint-plugin@8.20.0(@typescript-eslint/parser@8.20.0(eslint@9.18.0)(typescript@5.7.3))(eslint@9.18.0)(typescript@5.7.3))(eslint@9.18.0)(typescript@5.7.3)(vitest@3.0.2(@types/node@22.10.7))
       openapi-typescript:
         specifier: 7.5.2
-        version: 7.5.2(typescript@5.7.3)
+        version: 7.5.2(patch_hash=qvgny7op75vt4w6q4sxdfp3nby)(typescript@5.7.3)
       prettier:
         specifier: 3.4.2
         version: 3.4.2
@@ -3500,7 +3505,7 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.0.0
 
-  openapi-typescript@7.5.2(typescript@5.7.3):
+  openapi-typescript@7.5.2(patch_hash=qvgny7op75vt4w6q4sxdfp3nby)(typescript@5.7.3):
     dependencies:
       '@redocly/openapi-core': 1.27.2(supports-color@9.4.0)
       ansi-colors: 4.1.3
