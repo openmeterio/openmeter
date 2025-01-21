@@ -343,14 +343,19 @@ func (h *Handler) collectUpcomingLines(subs subscription.SubscriptionView, asOf 
 func (h *Handler) getDeletePatchesForLine(line *billing.Line) []linePatch {
 	patches := make([]linePatch, 0, 1+len(line.Children.OrEmpty()))
 
-	patches = append(patches, patchFromLine(patchOpDelete, line))
+	if line.DeletedAt == nil {
+		patches = append(patches, patchFromLine(patchOpDelete, line))
+	}
 
 	if line.Status == billing.InvoiceLineStatusSplit {
 		// let's delete all the children
-		patches = append(patches,
-			lo.Map(line.Children.OrEmpty(), func(child *billing.Line, _ int) linePatch {
-				return patchFromLine(patchOpDelete, child)
-			})...)
+		for _, child := range line.Children.OrEmpty() {
+			if child.DeletedAt != nil {
+				continue
+			}
+
+			patches = append(patches, patchFromLine(patchOpDelete, child))
+		}
 	}
 
 	return patches
@@ -362,6 +367,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			Namespace:              subs.Subscription.Namespace,
 			Name:                   item.Spec.RateCard.Name,
 			Description:            item.Spec.RateCard.Description,
+			ManagedBy:              billing.SubscriptionManagedLine,
 			Currency:               subs.Spec.Currency,
 			Status:                 billing.InvoiceLineStatusValid,
 			ChildUniqueReferenceID: &item.UniqueID,
@@ -494,6 +500,10 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 	// This is a non-split line, so it's either assigned to a gathering invoice or an already paid invoice, we can just update the line
 	// and let billing service handle the rest
 	if existingLine.Status == billing.InvoiceLineStatusValid {
+		if existingLine.ManagedBy != billing.SubscriptionManagedLine {
+			return nil, nil
+		}
+
 		return []linePatch{
 			patchFromLine(patchOpUpdate, h.mergeChangesFromLine(h.cloneLineForUpsert(existingLine), expectedLine)),
 		}, nil
@@ -525,14 +535,28 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 				})
 
 				lastChild := h.cloneLineForUpsert(children[len(children)-1])
+
+				if lastChild.ManagedBy == billing.SubscriptionManagedLine {
+					// We are not supporting period changes for children, and we need to maintain the consistency so
+					// even for overridden lines we need to update the period
+
+					// We however allow deletions, so we are only un-deleting the line here if it was deleted by the sync engine
+					lastChild.DeletedAt = nil
+				}
+
 				lastChild.Period.End = expectedLine.Period.End
 				lastChild.InvoiceAt = expectedLine.Period.End
 				patches = append(patches, patchFromLine(patchOpUpdate, lastChild))
 			}
 
+			// We have already updated the last child, so we need to update at least the periods regardless of managed_by to keep the consistency
 			updatedExistingLine := h.cloneLineForUpsert(existingLine)
 			updatedExistingLine.Period.End = expectedLine.Period.End
 			updatedExistingLine.InvoiceAt = expectedLine.Period.End
+
+			if updatedExistingLine.ManagedBy == billing.SubscriptionManagedLine {
+				updatedExistingLine.DeletedAt = nil
+			}
 
 			patches = append(patches, patchFromLine(patchOpUpdate, updatedExistingLine))
 		case existingLine.Period.End.After(expectedLine.Period.End):
@@ -558,6 +582,10 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 					if updatedChild.InvoiceAt.After(expectedLine.Period.End) {
 						// The child is invoiced after the period end, so we need to adjust the invoice date
 						updatedChild.InvoiceAt = expectedLine.Period.End
+					}
+
+					if child.ManagedBy == billing.SubscriptionManagedLine {
+						updatedChild.DeletedAt = nil
 					}
 
 					patches = append(patches, patchFromLine(patchOpUpdate, updatedChild))
@@ -588,6 +616,7 @@ func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine 
 	existingLine.Period = expectedLine.Period
 
 	existingLine.InvoiceAt = expectedLine.InvoiceAt
+	existingLine.DeletedAt = nil
 
 	// Let's handle the flat fee prorating
 	if existingLine.Type == billing.InvoiceLineTypeFee {
@@ -599,15 +628,16 @@ func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine 
 
 func (h *Handler) updateMutableInvoice(ctx context.Context, invoice billing.Invoice, patches []linePatch) error {
 	updatedInvoice, err := h.billingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: invoice.InvoiceID(),
+		Invoice:             invoice.InvoiceID(),
+		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.Invoice) error {
 			for _, patch := range patches {
-				if patch.Op == patchOpDelete {
-					line := invoice.Lines.GetByID(patch.LineID)
-					if line == nil {
-						return fmt.Errorf("line[%s] not found in the invoice, cannot delete", patch.LineID)
-					}
+				line := invoice.Lines.GetByID(patch.LineID)
+				if line == nil {
+					return fmt.Errorf("line[%s] not found in the invoice, cannot delete", patch.LineID)
+				}
 
+				if patch.Op == patchOpDelete {
 					line.DeletedAt = lo.ToPtr(clock.Now())
 					continue
 				}
@@ -638,6 +668,9 @@ func (h *Handler) updateMutableInvoice(ctx context.Context, invoice billing.Invo
 			return nil
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("updating invoice: %w", err)
+	}
 
 	if updatedInvoice.Lines.NonDeletedLineCount() == 0 {
 		// The invoice has no lines, so let's just delete it

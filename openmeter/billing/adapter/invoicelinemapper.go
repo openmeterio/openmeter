@@ -15,11 +15,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.BillingInvoiceLine) ([]*billing.Line, error) {
-	pendingParentIDs := make([]string, 0, len(invoiceLines))
-	resolvedChildrenOfIDs := make(map[string]struct{}, len(invoiceLines))
+type mapInvoiceLineFromDBInput struct {
+	lines          []*db.BillingInvoiceLine
+	includeDeleted bool
+}
 
-	for _, line := range invoiceLines {
+func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, in mapInvoiceLineFromDBInput) ([]*billing.Line, error) {
+	pendingParentIDs := make([]string, 0, len(in.lines))
+	resolvedChildrenOfIDs := make(map[string]struct{}, len(in.lines))
+
+	for _, line := range in.lines {
 		if line.ParentLineID != nil {
 			pendingParentIDs = append(pendingParentIDs, *line.ParentLineID)
 		}
@@ -34,12 +39,12 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 	//
 	// We cannot get around this limitation, as a parent line might have more children than the ones we have
 	// saved.
-	references, err := a.fetchInvoiceLineNewReferences(ctx, pendingParentIDs, lo.Keys(resolvedChildrenOfIDs))
+	references, err := a.fetchInvoiceLineNewReferences(ctx, pendingParentIDs, lo.Keys(resolvedChildrenOfIDs), in.includeDeleted)
 	if err != nil {
 		return nil, err
 	}
 
-	references = append(references, invoiceLines...)
+	references = append(references, in.lines...)
 
 	mappedEntities := make(map[string]*billing.Line, len(references))
 
@@ -73,7 +78,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 	}
 
 	result := make([]*billing.Line, 0, len(mappedEntities))
-	for _, dbEntity := range invoiceLines {
+	for _, dbEntity := range in.lines {
 		entity, ok := mappedEntities[dbEntity.ID]
 		if !ok {
 			return nil, fmt.Errorf("missing entity[%s]", dbEntity.ID)
@@ -94,7 +99,7 @@ func (a *adapter) mapInvoiceLineFromDB(ctx context.Context, invoiceLines []*db.B
 	return result, nil
 }
 
-func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs []string, childrenOf []string) ([]*db.BillingInvoiceLine, error) {
+func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs []string, childrenOf []string, includeDeletedLines bool) ([]*db.BillingInvoiceLine, error) {
 	if len(parentIDs) == 0 && len(childrenOf) == 0 {
 		return nil, nil
 	}
@@ -112,10 +117,11 @@ func (a *adapter) fetchInvoiceLineNewReferences(ctx context.Context, parentIDs [
 		predicates = append(predicates, billinginvoiceline.ParentLineIDIn(lo.Uniq(childrenOf)...))
 	}
 
-	query = query.Where(
-		billinginvoiceline.Or(predicates...),
-		billinginvoiceline.DeletedAtIsNil(),
-	)
+	query = query.Where(billinginvoiceline.Or(predicates...))
+
+	if !includeDeletedLines {
+		query = query.Where(billinginvoiceline.DeletedAtIsNil())
+	}
 
 	return query.All(ctx)
 }
@@ -133,6 +139,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 			Metadata:  dbLine.Metadata,
 			InvoiceID: dbLine.InvoiceID,
 			Status:    dbLine.Status,
+			ManagedBy: dbLine.ManagedBy,
 
 			Period: billing.Period{
 				Start: dbLine.PeriodStart.In(time.UTC),

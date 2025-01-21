@@ -506,6 +506,36 @@ enum InvoiceLineStatus {
 }
 
 /**
+ * InvoiceLineManagedBy specifies who manages the line.
+ */
+@friendlyName("InvoiceLineManagedBy")
+enum InvoiceLineManagedBy {
+  /**
+   * The line is managed by the susbcription engine of OpenMeter.
+   *
+   * If there are any changes to the subscription the line will be updated accordingly.
+   */
+  subscription: "subscription",
+
+  /**
+   * The line is managed by the billing system of the OpenMeter.
+   *
+   * The line is immutable.
+   */
+  system: "system",
+
+  /**
+   * The line is managed via our API.
+   *
+   * If the line is coming from a subscription we will not update the line if the subscription changes.
+   *
+   * The only exception is that the period and invoiceAt fields will be updated in case of progressively billed
+   * usage-based lines to maintain the coherence of the line structure. Any other fields edited will be kept as is.
+   */
+  manual: "manual",
+}
+
+/**
  * InvoiceLine represents a single item or service sold to the customer.
  *
  * This is a base class for all line types, and should not be used directly.
@@ -526,6 +556,12 @@ model InvoiceLineBase {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   type: InvoiceLineTypes;
+
+  /**
+   * managedBy specifies if the line is manually added via the api or managed by OpenMeter.
+   */
+  @visibility(Lifecycle.Read)
+  managedBy: InvoiceLineManagedBy;
 
   /**
    * Status of the line.

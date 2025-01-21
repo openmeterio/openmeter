@@ -266,6 +266,7 @@ func mapCreatePendingFlatFeeLineToEntity(line api.InvoiceFlatFeePendingLineCreat
 				Name:        line.Name,
 				Type:        billing.InvoiceLineTypeFee,
 				Description: line.Description,
+				ManagedBy:   billing.ManuallyManagedLine,
 
 				Status:   billing.InvoiceLineStatusValid, // This is not settable from outside
 				Currency: currencyx.Code(line.Currency),
@@ -303,6 +304,7 @@ func mapCreatePendingUsageBasedLineToEntity(line api.InvoiceUsageBasedPendingLin
 				Name:        line.Name,
 				Type:        billing.InvoiceLineTypeUsageBased,
 				Description: line.Description,
+				ManagedBy:   billing.ManuallyManagedLine,
 
 				Status:   billing.InvoiceLineStatusValid, // This is not settable from outside
 				Currency: currencyx.Code(line.Currency),
@@ -374,6 +376,7 @@ func mapUpdateFlatFeeLineToEntity(ns string, params UpdateLineParams, line api.I
 			InvoiceAt: mo.Some(line.InvoiceAt),
 			Metadata:  mo.Some(lo.FromPtrOr(line.Metadata, map[string]string{})),
 			Name:      mo.Some(line.Name),
+			ManagedBy: mo.Some(billing.ManuallyManagedLine),
 			Period: mo.Some(billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
@@ -406,6 +409,7 @@ func mapUpdateUsageBasedLineToEntity(ns string, params UpdateLineParams, line ap
 			InvoiceAt: mo.Some(line.InvoiceAt),
 			Metadata:  mo.Some(lo.FromPtrOr(line.Metadata, map[string]string{})),
 			Name:      mo.Some(line.Name),
+			ManagedBy: mo.Some(billing.ManuallyManagedLine),
 			Period: mo.Some(billing.Period{
 				Start: line.Period.From,
 				End:   line.Period.To,
@@ -486,6 +490,7 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		Description: line.Description,
 		Name:        line.Name,
+		ManagedBy:   api.InvoiceLineManagedBy(line.ManagedBy),
 
 		Invoice: &api.InvoiceReference{
 			Id: line.InvoiceID,
@@ -547,6 +552,7 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 
 		Description: line.Description,
 		Name:        line.Name,
+		ManagedBy:   api.InvoiceLineManagedBy(line.ManagedBy),
 
 		Invoice: &api.InvoiceReference{
 			Id: line.InvoiceID,
@@ -784,6 +790,7 @@ func mapSimulationFlatFeeLineToEntity(line api.InvoiceSimulationFlatFeeLine) (*b
 			Name:        line.Name,
 			Type:        billing.InvoiceLineTypeFee,
 			Description: line.Description,
+			ManagedBy:   billing.ManuallyManagedLine,
 
 			Status: billing.InvoiceLineStatusValid,
 			Period: billing.Period{
@@ -829,6 +836,7 @@ func mapUsageBasedSimulationLineToEntity(line api.InvoiceSimulationUsageBasedLin
 			Name:        line.Name,
 			Type:        billing.InvoiceLineTypeUsageBased,
 			Description: line.Description,
+			ManagedBy:   billing.ManuallyManagedLine,
 
 			Status: billing.InvoiceLineStatusValid,
 			Period: billing.Period{
@@ -893,6 +901,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				Metadata:    lo.FromPtrOr(v.Metadata, map[string]string{}),
 				Name:        v.Name,
 				Description: v.Description,
+				ManagedBy:   billing.ManuallyManagedLine,
 
 				Type: billing.InvoiceLineTypeFee,
 
@@ -927,6 +936,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				Metadata:    lo.FromPtrOr(v.Metadata, map[string]string{}),
 				Name:        v.Name,
 				Description: v.Description,
+				ManagedBy:   billing.ManuallyManagedLine,
 
 				Type: billing.InvoiceLineTypeFee,
 
@@ -997,7 +1007,12 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.FlatFee.PaymentTerm = lo.FromPtrOr((*productcatalog.PaymentTermType)(v.PaymentTerm), existing.FlatFee.PaymentTerm)
 		existing.FlatFee.Category = lo.FromPtrOr((*billing.FlatFeeCategory)(v.Category), existing.FlatFee.Category)
 
-		return existing, oldBase.Equal(existing.LineBase) && oldFee.Equal(existing.FlatFee), nil
+		wasChange := !oldBase.Equal(existing.LineBase) || !oldFee.Equal(existing.FlatFee)
+		if wasChange {
+			existing.ManagedBy = billing.ManuallyManagedLine
+		}
+
+		return existing, wasChange, nil
 	case api.InvoiceUsageBasedLineReplaceUpdate:
 		if existing.Type != billing.InvoiceLineTypeUsageBased {
 			return nil, false, billing.ValidationError{
@@ -1027,7 +1042,22 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		existing.UsageBased.Price = price
 		existing.UsageBased.FeatureKey = v.FeatureKey
 
-		return existing, oldBase.Equal(existing.LineBase) && oldUBP.Equal(existing.UsageBased), nil
+		wasChange := !oldBase.Equal(existing.LineBase) || !oldUBP.Equal(existing.UsageBased)
+		if wasChange {
+			existing.ManagedBy = billing.ManuallyManagedLine
+		}
+
+		// We are not allowing period change for split lines (or their children), as that would mess up the
+		// calculation logic and/or we would need to update multiple invoices to correct all the references.
+		//
+		// Deletion is allowed.
+		if (oldBase.Status == billing.InvoiceLineStatusSplit || oldBase.ParentLineID != nil) && !oldBase.Period.Equal(existing.Period) {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
+			}
+		}
+
+		return existing, wasChange, nil
 	}
 
 	return nil, false, fmt.Errorf("unknown line type: %T", value)

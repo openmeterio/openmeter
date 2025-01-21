@@ -59,6 +59,8 @@ type BillingInvoiceLine struct {
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
 	InvoiceID string `json:"invoice_id,omitempty"`
+	// ManagedBy holds the value of the "managed_by" field.
+	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// ParentLineID holds the value of the "parent_line_id" field.
 	ParentLineID *string `json:"parent_line_id,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
@@ -240,7 +242,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -364,6 +366,12 @@ func (bil *BillingInvoiceLine) assignValues(columns []string, values []any) erro
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
 				bil.InvoiceID = value.String
+			}
+		case billinginvoiceline.FieldManagedBy:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
+			} else if value.Valid {
+				bil.ManagedBy = billing.InvoiceLineManagedBy(value.String)
 			}
 		case billinginvoiceline.FieldParentLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -613,6 +621,9 @@ func (bil *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_id=")
 	builder.WriteString(bil.InvoiceID)
+	builder.WriteString(", ")
+	builder.WriteString("managed_by=")
+	builder.WriteString(fmt.Sprintf("%v", bil.ManagedBy))
 	builder.WriteString(", ")
 	if v := bil.ParentLineID; v != nil {
 		builder.WriteString("parent_line_id=")

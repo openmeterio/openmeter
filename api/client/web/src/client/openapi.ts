@@ -4038,6 +4038,8 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
+      /** @description Who manages the line? */
+      readonly managedBy: components['schemas']['InvoiceLineManagedBy']
       /** @description Status of the line.
        *
        *     External calls always create valid lines, other line types are managed by the
@@ -4311,6 +4313,11 @@ export interface components {
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
     }
+    /**
+     * @description InvoiceLineManagedBy specifies who manages the line.
+     * @enum {string}
+     */
+    InvoiceLineManagedBy: 'subscription' | 'system' | 'manual'
     /** @description InvoiceLineReplaceUpdate represents the update model for an invoice line. */
     InvoiceLineReplaceUpdate:
       | components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
@@ -4664,6 +4671,8 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
+      /** @description Who manages the line? */
+      readonly managedBy: components['schemas']['InvoiceLineManagedBy']
       /** @description Status of the line.
        *
        *     External calls always create valid lines, other line types are managed by the

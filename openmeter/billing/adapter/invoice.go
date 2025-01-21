@@ -709,7 +709,10 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 	}
 
 	if expand.Lines {
-		mappedLines, err := a.mapInvoiceLineFromDB(ctx, invoice.Edges.BillingInvoiceLines)
+		mappedLines, err := a.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+			lines:          invoice.Edges.BillingInvoiceLines,
+			includeDeleted: expand.DeletedLines,
+		})
 		if err != nil {
 			return billing.Invoice{}, err
 		}

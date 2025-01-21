@@ -11284,6 +11284,7 @@ components:
         - createdAt
         - updatedAt
         - id
+        - managedBy
         - status
         - currency
         - totals
@@ -11337,6 +11338,11 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        managedBy:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineManagedBy'
+          description: Who manages the line?
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineStatus'
@@ -11759,6 +11765,13 @@ components:
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
       description: InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
+    InvoiceLineManagedBy:
+      type: string
+      enum:
+        - subscription
+        - system
+        - manual
+      description: InvoiceLineManagedBy specifies who manages the line.
     InvoiceLineReplaceUpdate:
       anyOf:
         - $ref: '#/components/schemas/InvoiceUsageBasedLineReplaceUpdate'
@@ -12286,6 +12299,7 @@ components:
         - createdAt
         - updatedAt
         - id
+        - managedBy
         - status
         - currency
         - totals
@@ -12339,6 +12353,11 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        managedBy:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceLineManagedBy'
+          description: Who manages the line?
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineStatus'

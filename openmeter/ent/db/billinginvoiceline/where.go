@@ -884,6 +884,36 @@ func InvoiceIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldInvoiceID, v))
 }
 
+// ManagedByEQ applies the EQ predicate on the "managed_by" field.
+func ManagedByEQ(v billing.InvoiceLineManagedBy) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldManagedBy, vc))
+}
+
+// ManagedByNEQ applies the NEQ predicate on the "managed_by" field.
+func ManagedByNEQ(v billing.InvoiceLineManagedBy) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldManagedBy, vc))
+}
+
+// ManagedByIn applies the In predicate on the "managed_by" field.
+func ManagedByIn(vs ...billing.InvoiceLineManagedBy) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldManagedBy, v...))
+}
+
+// ManagedByNotIn applies the NotIn predicate on the "managed_by" field.
+func ManagedByNotIn(vs ...billing.InvoiceLineManagedBy) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldManagedBy, v...))
+}
+
 // ParentLineIDEQ applies the EQ predicate on the "parent_line_id" field.
 func ParentLineIDEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldParentLineID, v))

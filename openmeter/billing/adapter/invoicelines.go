@@ -83,8 +83,10 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetPeriodStart(line.Period.Start.In(time.UTC)).
 					SetPeriodEnd(line.Period.End.In(time.UTC)).
 					SetNillableParentLineID(line.ParentLineID).
+					SetNillableDeletedAt(line.DeletedAt).
 					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 					SetStatus(line.Status).
+					SetManagedBy(line.ManagedBy).
 					SetType(line.Type).
 					SetName(line.Name).
 					SetNillableDescription(line.Description).
@@ -137,17 +139,12 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 						})).
-					ClearDeletedAt().
 					UpdateQuantity().
 					Exec(ctx)
 			},
-			Delete: func(ctx context.Context, tx *db.Client, items []*billing.Line) error {
-				return tx.BillingInvoiceLine.Update().
-					SetDeletedAt(clock.Now().In(time.UTC)).
-					Where(billinginvoiceline.IDIn(lo.Map(items, func(line *billing.Line, _ int) string {
-						return line.ID
-					})...)).
-					Exec(ctx)
+			MarkDeleted: func(ctx context.Context, line *billing.Line) (*billing.Line, error) {
+				line.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+				return line, nil
 			},
 		}
 
@@ -188,6 +185,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetID(d.Discount.ID).
 					SetNamespace(d.Line.Namespace).
 					SetLineID(d.Line.ID).
+					SetNillableDeletedAt(d.Discount.DeletedAt).
 					SetAmount(d.Discount.Amount).
 					SetNillableChildUniqueReferenceID(d.Discount.ChildUniqueReferenceID).
 					SetNillableDescription(d.Discount.Description).
@@ -207,13 +205,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						}),
 					).Exec(ctx)
 			},
-			Delete: func(ctx context.Context, tx *db.Client, items []discountWithLine) error {
-				return tx.BillingInvoiceLineDiscount.Update().
-					SetDeletedAt(clock.Now().In(time.UTC)).
-					Where(billinginvoicelinediscount.IDIn(lo.Map(items, func(d discountWithLine, _ int) string {
-						return d.Discount.ID
-					})...)).
-					Exec(ctx)
+			MarkDeleted: func(ctx context.Context, d discountWithLine) (discountWithLine, error) {
+				d.Discount.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+				return d, nil
 			},
 		})
 		if err != nil {
@@ -361,7 +355,10 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 			return dbInvoice.Edges.BillingInvoiceLines
 		})
 
-		return tx.mapInvoiceLineFromDB(ctx, lines)
+		return tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+			lines:          lines,
+			includeDeleted: input.IncludeDeleted,
+		})
 	})
 }
 
@@ -433,7 +430,9 @@ func (a *adapter) fetchLines(ctx context.Context, ns string, lineIDs []string) (
 		return nil, err
 	}
 
-	return a.mapInvoiceLineFromDB(ctx, dbLinesInSameOrder)
+	return a.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+		lines: dbLinesInSameOrder,
+	})
 }
 
 func (a *adapter) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLineAdapterInput) (*billing.Line, error) {
@@ -453,7 +452,10 @@ func (a *adapter) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLi
 			return nil, fmt.Errorf("fetching line: %w", err)
 		}
 
-		mappedLines, err := tx.mapInvoiceLineFromDB(ctx, []*db.BillingInvoiceLine{dbLine})
+		mappedLines, err := tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+			lines:          []*db.BillingInvoiceLine{dbLine},
+			includeDeleted: true,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("mapping line: %w", err)
 		}
@@ -512,7 +514,6 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 		query := tx.db.BillingInvoiceLine.Query().
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
-			// TODO[OM-1038]: document issues with deleted lines
 			Where(billinginvoiceline.ParentLineIDIsNil()) // This one is required so that we are not fetching split line's children directly, the mapper will handle that
 
 		query = tx.expandLineItems(query)
@@ -522,6 +523,9 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return nil, fmt.Errorf("fetching lines: %w", err)
 		}
 
-		return tx.mapInvoiceLineFromDB(ctx, dbLines)
+		return tx.mapInvoiceLineFromDB(ctx, mapInvoiceLineFromDBInput{
+			lines:          dbLines,
+			includeDeleted: true,
+		})
 	})
 }

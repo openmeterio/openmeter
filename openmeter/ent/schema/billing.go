@@ -289,6 +289,9 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				"postgres": "char(26)",
 			}),
 
+		field.Enum("managed_by").
+			GoType(billing.InvoiceLineManagedBy("")),
+
 		field.String("parent_line_id").
 			SchemaType(map[string]string{
 				"postgres": "char(26)",

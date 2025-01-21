@@ -70,27 +70,22 @@ func (a *adapter) upsertInvoiceDiscounts(ctx context.Context, input upsertInvoic
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billinginvoicediscount.FieldCreatedAt)
 					})).
-				ClearDeletedAt().
 				UpdateDescription().
 				Exec(ctx)
 		},
-		Delete: func(ctx context.Context, tx *db.Client, items []billing.InvoiceDiscount) error {
-			ids, err := slicesx.MapWithErr(items, func(disc billing.InvoiceDiscount) (string, error) {
-				base, err := disc.DiscountBase()
+		MarkDeleted: func(ctx context.Context, disc billing.InvoiceDiscount) (billing.InvoiceDiscount, error) {
+			switch disc.Type() {
+			case billing.PercentageDiscountType:
+				percentage, err := disc.AsPercentage()
 				if err != nil {
-					return "", err
+					return billing.InvoiceDiscount{}, err
 				}
 
-				return base.ID, nil
-			})
-			if err != nil {
-				return err
+				percentage.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
+				return billing.NewInvoiceDiscountFrom(percentage), nil
+			default:
+				return billing.InvoiceDiscount{}, fmt.Errorf("invalid invoice discount type: %s", disc.Type())
 			}
-
-			return tx.BillingInvoiceDiscount.Update().
-				SetDeletedAt(clock.Now().In(time.UTC)).
-				Where(billinginvoicediscount.IDIn(ids...)).
-				Exec(ctx)
 		},
 	}
 
