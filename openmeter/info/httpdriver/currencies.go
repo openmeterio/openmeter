@@ -26,7 +26,13 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
 			defs := currency.Definitions()
 
-			return lo.Map(defs, func(def *currency.Def, _ int) api.Currency {
+			return lo.Map(lo.Filter(
+				defs,
+				func(def *currency.Def, _ int) bool {
+					// NOTE: this filters out non-iso currencies such as crypto
+					return def.ISONumeric != ""
+				},
+			), func(def *currency.Def, _ int) api.Currency {
 				return api.Currency{
 					Code:     api.CurrencyCode(def.ISOCode),
 					Name:     def.Name,
