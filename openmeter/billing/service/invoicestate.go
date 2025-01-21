@@ -246,8 +246,12 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.Invoic
 		// cross invoice operations
 		return billing.InvoiceStatusDetails{
 			Immutable: false,
+			// The invoicable state is calculated in the services recalculateGatheringInvoice for now, as the
+			// line data is available there. On the long run we need to cache this information.
+			//
+			// For now, as a safety measure we lie here, as the recalculation will be performed either ways
+			// and the CreateInvoice method will validate this once more.
 			AvailableActions: billing.InvoiceAvailableActions{
-				// TODO[OM-1032]: This is only true if progressive billing is enabled
 				Invoice: &billing.InvoiceAvailableActionInvoiceDetails{},
 			},
 		}, nil

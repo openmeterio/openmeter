@@ -40,7 +40,10 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		}
 
 		if input.Expand.GatheringTotals {
-			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, invoices.Items[i], input.Expand)
+			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, recalculateGatheringInvoiceInput{
+				Invoice: invoices.Items[i],
+				Expand:  input.Expand,
+			})
 			if err != nil {
 				return billing.ListInvoicesResponse{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoices.Items[i].ID, err)
 			}
@@ -85,7 +88,14 @@ func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invo
 	return invoice, nil
 }
 
-func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billing.Invoice, expand billing.InvoiceExpand) (billing.Invoice, error) {
+type recalculateGatheringInvoiceInput struct {
+	Invoice billing.Invoice
+	Expand  billing.InvoiceExpand
+}
+
+func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculateGatheringInvoiceInput) (billing.Invoice, error) {
+	invoice := in.Invoice
+
 	if invoice.Status != billing.InvoiceStatusGathering {
 		return invoice, nil
 	}
@@ -106,6 +116,17 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billi
 		invoice.Lines = billing.NewLineChildren(lines)
 	}
 
+	hasInvoicableLines := mo.Option[bool]{}
+	now := clock.Now()
+
+	billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+		Namespace:  invoice.Namespace,
+		CustomerID: invoice.Customer.CustomerID,
+	})
+	if err != nil {
+		return invoice, fmt.Errorf("fetching profile: %w", err)
+	}
+
 	for _, line := range invoice.Lines.OrEmpty() {
 		if line.Status != billing.InvoiceLineStatusValid || line.DeletedAt != nil {
 			continue
@@ -119,6 +140,19 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billi
 		if err := srv.SnapshotQuantity(ctx, &invoice); err != nil {
 			return invoice, fmt.Errorf("snapshotting quantity: %w", err)
 		}
+
+		period, err := srv.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
+			AsOf:               now,
+			ProgressiveBilling: billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
+		})
+		if err != nil {
+			return invoice, fmt.Errorf("checking if can be invoiced: %w", err)
+		}
+
+		if period != nil {
+			hasInvoicableLines = mo.Some(true)
+		}
+
 	}
 
 	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
@@ -132,17 +166,27 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billi
 		// For calulcations we fetch the split lines, but we don't want to expose them for the response
 		invoice.Lines = billing.NewLineChildren(
 			lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
-				if !expand.DeletedLines && line.DeletedAt != nil {
+				if !in.Expand.DeletedLines && line.DeletedAt != nil {
 					return false
 				}
 
-				if !expand.SplitLines && line.Status == billing.InvoiceLineStatusSplit {
+				if !in.Expand.SplitLines && line.Status == billing.InvoiceLineStatusSplit {
 					return false
 				}
 
 				return true
 			}),
 		)
+	}
+
+	// Let's update the status details based on the lines available
+	// TODO[later]: If this sugar is removed due to properly implemented progressive billing stack, we need to cache the when the invoice is first invoicable in the db
+	// so that we don't have to fetch all the lines to have proper status details.
+
+	if hasInvoicableLines.IsAbsent() {
+		invoice.StatusDetails.AvailableActions.Invoice = nil
+	} else {
+		invoice.StatusDetails.AvailableActions.Invoice = &billing.InvoiceAvailableActionInvoiceDetails{}
 	}
 
 	return invoice, nil
@@ -165,7 +209,10 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	}
 
 	if input.Expand.GatheringTotals {
-		invoice, err = s.recalculateGatheringInvoice(ctx, invoice, input.Expand)
+		invoice, err = s.recalculateGatheringInvoice(ctx, recalculateGatheringInvoiceInput{
+			Invoice: invoice,
+			Expand:  input.Expand,
+		})
 		if err != nil {
 			return billing.Invoice{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoice.ID, err)
 		}
