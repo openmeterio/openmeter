@@ -152,7 +152,6 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		if period != nil {
 			hasInvoicableLines = mo.Some(true)
 		}
-
 	}
 
 	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
