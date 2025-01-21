@@ -40,7 +40,7 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		}
 
 		if input.Expand.GatheringTotals {
-			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, invoices.Items[i])
+			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, invoices.Items[i], input.Expand)
 			if err != nil {
 				return billing.ListInvoicesResponse{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoices.Items[i].ID, err)
 			}
@@ -85,12 +85,14 @@ func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invo
 	return invoice, nil
 }
 
-func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
+func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billing.Invoice, expand billing.InvoiceExpand) (billing.Invoice, error) {
 	if invoice.Status != billing.InvoiceStatusGathering {
 		return invoice, nil
 	}
 
-	if invoice.Lines.IsAbsent() {
+	wasLinesAbsent := invoice.Lines.IsAbsent()
+
+	if wasLinesAbsent {
 		// Let's load the lines, if not expanded. This can happen when we are responding to a list request, however
 		// this at least allows us to not to expand all the invoices.
 		lines, err := s.adapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
@@ -123,6 +125,26 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, invoice billi
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
 	}
 
+	if wasLinesAbsent {
+		// If the original user intent was to not to receive the lines, let's not send them
+		invoice.Lines = billing.LineChildren{}
+	} else {
+		// For calulcations we fetch the split lines, but we don't want to expose them for the response
+		invoice.Lines = billing.NewLineChildren(
+			lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+				if !expand.DeletedLines && line.DeletedAt != nil {
+					return false
+				}
+
+				if !expand.SplitLines && line.Status == billing.InvoiceLineStatusSplit {
+					return false
+				}
+
+				return true
+			}),
+		)
+	}
+
 	return invoice, nil
 }
 
@@ -143,7 +165,7 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	}
 
 	if input.Expand.GatheringTotals {
-		invoice, err = s.recalculateGatheringInvoice(ctx, invoice)
+		invoice, err = s.recalculateGatheringInvoice(ctx, invoice, input.Expand)
 		if err != nil {
 			return billing.Invoice{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoice.ID, err)
 		}
