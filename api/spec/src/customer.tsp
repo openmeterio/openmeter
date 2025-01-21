@@ -6,6 +6,7 @@ import "./rest.tsp";
 import "./errors.tsp";
 import "./pagination.tsp";
 import "./types.tsp";
+import "./entitlements/entitlements.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -103,6 +104,18 @@ interface Customers {
   deleteAppData(@path customerId: ULID, @path appId: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
+
+  /**
+   * Get customer entitlement value for a feature.
+   */
+  @get
+  @route("/{customerId}/entitlements/{featureKey}/value")
+  @operationId("getCustomerEntitlementValue")
+  @summary("Get customer entitlement value for a feature")
+  getEntitlementValue(
+    @path customerId: ULID,
+    @path featureKey: string,
+  ): Entitlements.EntitlementValue | NotFoundError | CommonErrors;
 }
 
 /**
