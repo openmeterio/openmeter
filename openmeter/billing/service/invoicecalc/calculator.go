@@ -10,6 +10,7 @@ import (
 var InvoiceCalculations = []Calculation{
 	DraftUntilIfMissing,
 	RecalculateDetailedLinesAndTotals,
+	CalculateInvoicePeriod,
 }
 
 type Calculation func(*billing.Invoice, CalculatorDependencies) error
