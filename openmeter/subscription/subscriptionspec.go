@@ -246,6 +246,11 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error {
 	var errs []error
 
+	// Phase StartAfter really should not be negative
+	if s.StartAfter.IsNegative() {
+		errs = append(errs, fmt.Errorf("phase start after cannot be negative"))
+	}
+
 	// Let's validate that the phase is not empty
 	flat := lo.Flatten(lo.Values(s.ItemsByKey))
 	if len(flat) == 0 {
@@ -535,6 +540,15 @@ func (s *SubscriptionItemSpec) Validate() error {
 			},
 			Msg: fmt.Sprintf("RateCard validation failed: %s", err),
 		})
+	}
+
+	// The relative cadence should make sense
+	if s.ActiveFromOverrideRelativeToPhaseStart != nil && s.ActiveFromOverrideRelativeToPhaseStart.IsNegative() {
+		errs = append(errs, fmt.Errorf("active from override relative to phase start cannot be negative"))
+	}
+
+	if s.ActiveToOverrideRelativeToPhaseStart != nil && s.ActiveToOverrideRelativeToPhaseStart.IsNegative() {
+		errs = append(errs, fmt.Errorf("active to override relative to phase start cannot be negative"))
 	}
 
 	return errors.Join(errs...)
