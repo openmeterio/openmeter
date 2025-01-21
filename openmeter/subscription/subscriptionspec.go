@@ -304,34 +304,6 @@ func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error 
 			if err := item.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("item %s validation failed: %w", item.ItemKey, err))
 			}
-
-			// TODO: Let's validate that BillingCadence aligns with phase length
-			// TODO: Let's validate that Entitlement UsagePeriod aligns with phase length
-
-			// Example code:
-
-			// 	if upISO := s.CreateEntitlementInput.UsagePeriodISODuration; upISO != nil && s.expectedPhaseDurationISO != nil {
-			// 		align, err := datex.PeriodsAlign(*s.expectedPhaseDurationISO, *upISO)
-			// 		if err != nil {
-			// 			return fmt.Errorf("failed to check if periods align: %w", err)
-			// 		}
-			// 		if !align {
-			// 			return &SpecValidationError{
-			// 				AffectedKeys: [][]string{
-			// 					{
-			// 						"phaseKey",
-			// 						s.PhaseKey,
-			// 						"itemKey",
-			// 						s.ItemKey,
-			// 						"CreateEntitlementInput",
-			// 						"UsagePeriodISODuration",
-			// 					},
-			// 				},
-			// 				Msg: "Entitlement Usage Period must align with Phase duration",
-			// 			}
-			// 		}
-			// 	}
-			// }
 		}
 
 		// We don't know the exact phase Cadence (as we don't know the Phase end time)
