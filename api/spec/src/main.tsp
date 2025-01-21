@@ -20,6 +20,7 @@ import "./notification";
 import "./entitlements";
 import "./billing";
 import "./productcatalog";
+import "./static";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
