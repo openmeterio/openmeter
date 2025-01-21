@@ -85,7 +85,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 					db_entitlement.Namespace(namespace),
 					db_entitlement.FeatureKey(featureKey),
 				).
-				First(ctx)
+				First(ctx) // FIXME: to better enforce consistency we should not use .First() but assert that there is only one result!
 			if err != nil {
 				if db.IsNotFound(err) {
 					return nil, &entitlement.NotFoundError{

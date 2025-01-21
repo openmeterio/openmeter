@@ -161,17 +161,6 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						return def, fmt.Errorf("failed to convert item to entity input: %w", err)
 					}
 
-					// Let's try to figure out what the cadence of new items would be
-					cadenceOfThisPhaseBasedOnNewSpec, err := newSpec.GetPhaseCadence(matchingPhaseFromNewSpec.PhaseKey)
-					if err != nil {
-						return def, fmt.Errorf("failed to get cadence for phase %s: %w", matchingPhaseFromNewSpec.PhaseKey, err)
-					}
-
-					cadenceForItem, err := matchingItemFromNewSpec.GetCadence(cadenceOfThisPhaseBasedOnNewSpec)
-					if err != nil {
-						return def, fmt.Errorf("failed to get cadence for item %s: %w", matchingItemFromNewSpec.ItemKey, err)
-					}
-
 					// Here we don't preamptively know all the properties but fortunately all we need to know is whether they'd change or not
 					// We're prepopulating changing fields with invalid values, which is a lie and a bad method, but it's necessary for now due to the hard linking
 
@@ -207,63 +196,6 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 
 						// There's nothing more to be done here, so lets skip to the next one
 						continue
-					}
-
-					// Second, let's check if the entitlement needs to be changed
-					// Let's not pollute the scope
-					{
-						// Let's figure out what the cadence for the new entitlement should be
-						cadenceForEntitlement := cadenceForItem
-
-						hasCurrEnt := currentItemView.Entitlement != nil
-						newEntInp, hasNewEnt, err := matchingItemFromNewSpec.ToScheduleSubscriptionEntitlementInput(
-							view.Customer,
-							cadenceForEntitlement,
-						)
-						if err != nil {
-							return def, fmt.Errorf("failed to determine entitlement input for item %s: %w", currentItemView.SubscriptionItem.Key, err)
-						}
-
-						// If there was an entitlement and now there isnt we should delete it
-						if hasCurrEnt && !hasNewEnt {
-							if err := s.EntitlementAdapter.DeleteByItemID(ctx, currentItemView.SubscriptionItem.NamespacedID); err != nil {
-								return def, fmt.Errorf("failed to delete entitlement: %w", err)
-							}
-
-							dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx, currentItemView.Entitlement.Entitlement.FeatureKey))
-
-							// nothing more to do here
-							continue
-						}
-
-						// If there was an entitlement and now its different we should delete it
-						if hasCurrEnt && hasNewEnt {
-							// Let's compare if it needs changing
-
-							// We can compare the two to see if it needs changing
-							currToCompare := currentItemView.Entitlement.ToScheduleSubscriptionEntitlementInput()
-							if err := newEntInp.CreateEntitlementInputs.Validate(); err != nil {
-								return def, fmt.Errorf("failed to validate new entitlement input: %w", err)
-							}
-
-							// We have to be careful of feature comparison, the current will have feature ID information while the new will not
-							if newEntInp.CreateEntitlementInputs.FeatureID == nil {
-								currToCompare.CreateEntitlementInputs.FeatureID = nil
-							} else if newEntInp.CreateEntitlementInputs.FeatureKey == nil {
-								currToCompare.CreateEntitlementInputs.FeatureKey = nil
-							}
-
-							if !currToCompare.Equal(newEntInp) {
-								if err := s.EntitlementAdapter.DeleteByItemID(ctx, currentItemView.SubscriptionItem.NamespacedID); err != nil {
-									return def, fmt.Errorf("failed to delete entitlement: %w", err)
-								}
-
-								dirty.mark(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx, currentItemView.Entitlement.Entitlement.FeatureKey))
-
-								// nothing more to do here
-								continue
-							}
-						}
 					}
 				}
 			}
@@ -336,28 +268,6 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 
 						// There's nothing more to be done for this item, so lets skip to the next one
 						continue
-					}
-
-					// Finally, let's check the entitlement of it
-
-					// First lets get the item cadence
-					itemCadence, err := matchingItemFromNewSpec.GetCadence(newPhaseCadence)
-					if err != nil {
-						return def, fmt.Errorf("failed to get cadence for item %s: %w", matchingItemFromNewSpec.ItemKey, err)
-					}
-
-					newEntInp, hasNewEnt, err := matchingItemFromNewSpec.ToScheduleSubscriptionEntitlementInput(
-						view.Customer,
-						itemCadence, // entitlement cadence will be same as item cadence
-					)
-					if err != nil {
-						return def, fmt.Errorf("failed to determine entitlement input for item %s: %w", currentItemView.SubscriptionItem.Key, err)
-					}
-
-					if hasNewEnt && dirty.isTouched(NewEntitlementPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx, currentItemView.Entitlement.Entitlement.FeatureKey)) {
-						if _, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, newEntInp); err != nil {
-							return def, fmt.Errorf("failed to schedule entitlement for item %s: %w", currentItemView.SubscriptionItem.Key, err)
-						}
 					}
 				}
 			}
