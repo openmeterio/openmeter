@@ -1,0 +1,4 @@
+cache_resources:
+  - label: dedupe_cache
+    memory:
+      default_ttl: 1h

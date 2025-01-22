@@ -1,0 +1,16 @@
+input:
+  inproc: openmeter
+
+buffer:
+  sqlite:
+    path: /var/lib/collector/buffer.sqlite
+    post_processors:
+      - split: {}
+
+output:
+  openmeter:
+    url: "${OPENMETER_URL:https://openmeter.cloud}"
+    token: "${OPENMETER_TOKEN:}"
+    batching:
+      count: ${BATCH_SIZE:1}
+      period: ${BATCH_PERIOD:30s}
