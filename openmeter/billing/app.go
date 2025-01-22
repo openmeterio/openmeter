@@ -74,6 +74,7 @@ func NewUpsertInvoiceResult() *UpsertInvoiceResult {
 }
 
 type FinalizeInvoiceResult struct {
+	invoiceNumber     string
 	paymentExternalID string
 }
 
@@ -87,6 +88,14 @@ func (f *FinalizeInvoiceResult) GetPaymentExternalID() (string, bool) {
 
 func (f *FinalizeInvoiceResult) SetPaymentExternalID(paymentExternalID string) {
 	f.paymentExternalID = paymentExternalID
+}
+
+func (u *FinalizeInvoiceResult) GetInvoiceNumber() (string, bool) {
+	return u.invoiceNumber, u.invoiceNumber != ""
+}
+
+func (f *FinalizeInvoiceResult) SetInvoiceNumber(invoiceNumber string) {
+	f.invoiceNumber = invoiceNumber
 }
 
 type InvoicingApp interface {

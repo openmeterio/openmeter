@@ -87,7 +87,21 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 
 	params := &stripe.WebhookEndpointParams{
 		EnabledEvents: []*string{
+			// Setup intents
 			lo.ToPtr(WebhookEventTypeSetupIntentSucceeded),
+			lo.ToPtr(WebhookEventTypeSetupIntentFailed),
+			lo.ToPtr(WebhookEventTypeSetupIntentRequiresAction),
+
+			// Invoices
+			lo.ToPtr(WebhookEventTypeInvoiceFinalizationFailed),
+			lo.ToPtr(WebhookEventTypeInvoiceMarkedUncollectible),
+			lo.ToPtr(WebhookEventTypeInvoiceOverdue),
+			lo.ToPtr(WebhookEventTypeInvoicePaid),
+			lo.ToPtr(WebhookEventTypeInvoicePaymentActionRequired),
+			lo.ToPtr(WebhookEventTypeInvoicePaymentFailed),
+			lo.ToPtr(WebhookEventTypeInvoicePaymentSucceeded),
+			lo.ToPtr(WebhookEventTypeInvoiceSent),
+			lo.ToPtr(WebhookEventTypeInvoiceVoided),
 		},
 		URL:         lo.ToPtr(webhookURL),
 		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),

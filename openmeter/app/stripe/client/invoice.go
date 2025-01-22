@@ -19,7 +19,6 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 	}
 
 	params := &stripe.InvoiceParams{
-		Number:   input.Number,
 		Currency: lo.ToPtr(string(input.Currency)),
 		Customer: lo.ToPtr(input.StripeCustomerID),
 		// FinalizeInvoice will advance the invoice
@@ -29,7 +28,7 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 		CollectionMethod: lo.ToPtr(string(stripe.InvoiceCollectionMethodChargeAutomatically)),
 		// If not set, defaults to the default payment method in the customer’s invoice settings.
 		DefaultPaymentMethod: input.StripeDefaultPaymentMethodID,
-		StatementDescriptor:  lo.ToPtr(input.StatementDescriptor),
+		StatementDescriptor:  input.StatementDescriptor,
 	}
 
 	if input.AutomaticTaxEnabled {
@@ -52,8 +51,7 @@ func (c *stripeAppClient) UpdateInvoice(ctx context.Context, input UpdateInvoice
 	}
 
 	params := &stripe.InvoiceParams{
-		StatementDescriptor: lo.ToPtr(input.StatementDescriptor),
-		Number:              input.Number,
+		StatementDescriptor: input.StatementDescriptor,
 	}
 
 	if input.DueDate != nil {
@@ -91,8 +89,7 @@ type CreateInvoiceInput struct {
 	AutomaticTaxEnabled          bool
 	Currency                     currencyx.Code
 	DueDate                      *time.Time
-	Number                       *string
-	StatementDescriptor          string
+	StatementDescriptor          *string
 }
 
 func (i CreateInvoiceInput) Validate() error {
@@ -108,12 +105,8 @@ func (i CreateInvoiceInput) Validate() error {
 		return errors.New("due date cannot be zero")
 	}
 
-	if i.Number != nil && *i.Number == "" {
-		return errors.New("invoice number cannot be empty")
-	}
-
-	if i.StatementDescriptor == "" {
-		return errors.New("statement descriptor is required")
+	if i.StatementDescriptor != nil && *i.StatementDescriptor == "" {
+		return errors.New("statement descriptor cannot be empty")
 	}
 
 	return nil
@@ -123,8 +116,7 @@ func (i CreateInvoiceInput) Validate() error {
 type UpdateInvoiceInput struct {
 	StripeInvoiceID     string
 	DueDate             *time.Time
-	Number              *string
-	StatementDescriptor string
+	StatementDescriptor *string
 }
 
 func (i UpdateInvoiceInput) Validate() error {
@@ -136,12 +128,8 @@ func (i UpdateInvoiceInput) Validate() error {
 		return errors.New("due date cannot be zero")
 	}
 
-	if i.Number != nil && *i.Number == "" {
-		return errors.New("invoice number cannot be empty")
-	}
-
-	if i.StatementDescriptor == "" {
-		return errors.New("statement descriptor is required")
+	if i.StatementDescriptor != nil && *i.StatementDescriptor == "" {
+		return errors.New("statement descriptor cannot be empty")
 	}
 
 	return nil

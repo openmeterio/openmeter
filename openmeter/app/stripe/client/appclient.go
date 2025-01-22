@@ -22,7 +22,33 @@ const (
 	SetupIntentDataMetadataAppID      = "om_app_id"
 	SetupIntentDataMetadataCustomerID = "om_customer_id"
 
+	// Stripe Webhook event types
+
+	// Occurs when an SetupIntent has successfully setup a payment method.
 	WebhookEventTypeSetupIntentSucceeded = "setup_intent.succeeded"
+	// Occurs when an SetupIntent has failed to set up a payment method.
+	WebhookEventTypeSetupIntentFailed = "setup_intent.setup_failed"
+	// Occurs when a SetupIntent is in requires_action state.
+	WebhookEventTypeSetupIntentRequiresAction = "setup_intent.requires_action"
+
+	// Occurs whenever a draft invoice cannot be finalized
+	WebhookEventTypeInvoiceFinalizationFailed = "invoice.finalization_failed"
+	// Occurs whenever an invoice is marked uncollectible
+	WebhookEventTypeInvoiceMarkedUncollectible = "invoice.marked_uncollectible"
+	// Occurs X number of days after an invoice becomes due—where X is determined by Automations
+	WebhookEventTypeInvoiceOverdue = "invoice.overdue"
+	// Occurs whenever an invoice payment attempt succeeds or an invoice is marked as paid out-of-band.
+	WebhookEventTypeInvoicePaid = "invoice.paid"
+	// Occurs whenever an invoice payment attempt requires further user action to complete.
+	WebhookEventTypeInvoicePaymentActionRequired = "invoice.payment_action_required"
+	// Occurs whenever an invoice payment attempt fails, due either to a declined payment or to the lack of a stored payment method.
+	WebhookEventTypeInvoicePaymentFailed = "invoice.payment_failed"
+	// Occurs whenever an invoice payment attempt succeeds.
+	WebhookEventTypeInvoicePaymentSucceeded = "invoice.payment_succeeded"
+	// Occurs whenever an invoice email is sent out.
+	WebhookEventTypeInvoiceSent = "invoice.sent"
+	// Occurs whenever an invoice is voided.
+	WebhookEventTypeInvoiceVoided = "invoice.voided"
 )
 
 // StripeAppClient is a client for the stripe API for an installed app.

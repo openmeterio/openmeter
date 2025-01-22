@@ -417,7 +417,6 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				AutomaticTaxEnabled: true,
 				StripeCustomerID:    customerData.StripeCustomerID,
 				Currency:            "USD",
-				StatementDescriptor: invoice.Supplier.Name,
 			}).
 			Return(&stripe.Invoice{
 				ID: "stripe-invoice-id",
@@ -710,8 +709,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		s.StripeAppClient.
 			On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
-				StripeInvoiceID:     updateInvoice.ExternalIDs.Invoicing,
-				StatementDescriptor: updateInvoice.Supplier.Name,
+				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
 			}).
 			// We return the updated invoice.
 			Return(stripeInvoiceUpdated, nil)

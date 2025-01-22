@@ -106,6 +106,10 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 	// Result
 	result := billing.NewFinalizeInvoiceResult()
 
+	// Stripe is the source of truth for invoice number
+	// We set it on result to save it
+	result.SetInvoiceNumber(stripeInvoice.Number)
+
 	// The PaymentIntent is generated when the invoice is finalized,
 	// and can then be used to pay the invoice.
 	// https://docs.stripe.com/api/invoices/object#invoice_object-payment_intent
@@ -150,10 +154,8 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		AutomaticTaxEnabled:          true,
 		Currency:                     invoice.Currency,
 		DueDate:                      invoice.DueAt,
-		Number:                       invoice.Number,
 		StripeCustomerID:             stripeCustomerData.StripeCustomerID,
 		StripeDefaultPaymentMethodID: stripeCustomerData.StripeDefaultPaymentMethodID,
-		StatementDescriptor:          getInvoiceStatementDescriptor(invoice),
 	}
 
 	stripeInvoice, err := stripeClient.CreateInvoice(ctx, createInvoiceParams)
@@ -164,6 +166,9 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Return the result
 	result := billing.NewUpsertInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
+
+	// Stripe is the source of truth for invoice number
+	// We set it on result to save it
 	result.SetInvoiceNumber(stripeInvoice.Number)
 
 	// Add lines to the Stripe invoice
@@ -220,10 +225,8 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
-		StripeInvoiceID:     invoice.ExternalIDs.Invoicing,
-		DueDate:             invoice.DueAt,
-		Number:              invoice.Number,
-		StatementDescriptor: getInvoiceStatementDescriptor(invoice),
+		StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+		DueDate:         invoice.DueAt,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update invoice in stripe: %w", err)
@@ -232,6 +235,9 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// The result
 	result := billing.NewUpsertInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
+
+	// Stripe is the source of truth for invoice number
+	// We set it on result to save it
 	result.SetInvoiceNumber(stripeInvoice.Number)
 
 	// Collect the existing line items
@@ -517,12 +523,6 @@ func getLineName(line *billing.Line) string {
 	}
 
 	return name
-}
-
-// TODO (OM-1064): should we include invoice description in the statement descriptor?
-// getInvoiceStatementDescriptor returns the invoice statement descriptor
-func getInvoiceStatementDescriptor(invoice billing.Invoice) string {
-	return invoice.Supplier.Name
 }
 
 // addResultExternalIDs adds the Stripe line item IDs to the result external IDs

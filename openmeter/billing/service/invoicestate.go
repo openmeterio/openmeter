@@ -474,6 +474,10 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			if paymentExternalID, ok := results.GetPaymentExternalID(); ok {
 				m.Invoice.ExternalIDs.Payment = paymentExternalID
 			}
+
+			if invoiceNumber, ok := results.GetInvoiceNumber(); ok {
+				m.Invoice.Number = lo.ToPtr(invoiceNumber)
+			}
 		}
 
 		return nil
