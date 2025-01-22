@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/benthosdev/benthos/v4/public/service"
+	"github.com/redpanda-data/benthos/v4/public/service"
 	"github.com/samber/lo"
 	collogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"

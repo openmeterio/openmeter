@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/benthosdev/benthos/v4/public/bloblang"
-	"github.com/benthosdev/benthos/v4/public/service"
+	"github.com/redpanda-data/benthos/v4/public/bloblang"
+	"github.com/redpanda-data/benthos/v4/public/service"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -160,18 +160,31 @@ func (o *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageB
 		span.End()
 	}()
 
+	o.logger.Debugf("received message batch [size=%d]", len(batch))
+
+	if len(batch) == 0 {
+		return nil
+	}
+
 	var events []any
 
 	walkFn := func(_ int, msg *service.Message) error {
 		if msg == nil {
-			return errors.New("message is nil")
+			o.logger.Error("received nil message in batch")
+
+			err = errors.New("received nil message in batch")
+
+			return err
 		}
 
 		var e any
 		e, err = msg.AsStructured()
 		if err != nil {
-			return fmt.Errorf("failed to convert message to structed data: %w", err)
+			err = fmt.Errorf("failed to convert message to structed data: %w", err)
+
+			return err
 		}
+
 		events = append(events, e)
 
 		o.UpdateMessageSpan(ctx, msg)
@@ -183,7 +196,11 @@ func (o *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageB
 	}
 
 	if len(events) == 0 {
-		return errors.New("no valid messages found in batch")
+		o.logger.Error("no valid messages found in batch")
+
+		err = errors.New("no valid messages found in batch")
+
+		return err
 	}
 
 	var data any
