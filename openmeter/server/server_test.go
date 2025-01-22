@@ -836,3 +836,7 @@ func (n NoopCustomerService) GetCustomer(ctx context.Context, customer customere
 func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
 	return &customerentity.Customer{}, nil
 }
+
+func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input customerentity.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
+	return nil, nil
+}

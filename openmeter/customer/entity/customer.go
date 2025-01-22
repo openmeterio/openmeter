@@ -167,3 +167,24 @@ type GetCustomerInput CustomerID
 func (i GetCustomerInput) Validate() error {
 	return CustomerID(i).Validate()
 }
+
+type GetEntitlementValueInput struct {
+	ID         models.NamespacedID
+	FeatureKey string
+}
+
+func (i GetEntitlementValueInput) Validate() error {
+	if err := i.ID.Validate(); err != nil {
+		return ValidationError{
+			Err: err,
+		}
+	}
+
+	if i.FeatureKey == "" {
+		return ValidationError{
+			Err: errors.New("feature key is required"),
+		}
+	}
+
+	return nil
+}

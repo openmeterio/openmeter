@@ -10,9 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -276,6 +278,50 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 			return customerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getCustomer"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type (
+	GetCustomerEntitlementValueRequest  = customerentity.GetEntitlementValueInput
+	GetCustomerEntitlementValueResponse = api.EntitlementValue
+	GetCustomerEntitlementValueParams   = struct {
+		CustomerID string
+		FeatureKey string
+	}
+	GetCustomerEntitlementValueHandler httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
+)
+
+// GetCustomerEntitlementValue returns a handler for getting a customer.
+func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementValueParams) (GetCustomerEntitlementValueRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetCustomerEntitlementValueRequest{}, err
+			}
+
+			return GetCustomerEntitlementValueRequest{
+				FeatureKey: params.FeatureKey,
+				ID: models.NamespacedID{
+					ID:        params.CustomerID,
+					Namespace: ns,
+				},
+			}, nil
+		},
+		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
+			val, err := h.service.GetEntitlementValue(ctx, request)
+			if err != nil {
+				return GetCustomerEntitlementValueResponse{}, err
+			}
+
+			return entitlementdriver.MapEntitlementValueToAPI(val)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementValueResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomer"),

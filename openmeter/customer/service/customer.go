@@ -2,9 +2,15 @@ package customerservice
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -28,4 +34,33 @@ func (s *Service) GetCustomer(ctx context.Context, input customerentity.GetCusto
 
 func (s *Service) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
 	return s.adapter.UpdateCustomer(ctx, input)
+}
+
+func (s *Service) GetEntitlementValue(ctx context.Context, input customerentity.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
+	cust, err := s.GetCustomer(ctx, customerentity.GetCustomerInput{
+		Namespace: input.ID.Namespace,
+		ID:        input.ID.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(cust.UsageAttribution.SubjectKeys) != 1 {
+		return nil, &models.GenericConflictError{
+			Inner: fmt.Errorf("customer %s has multiple subject keys", input.ID.ID),
+		}
+	}
+
+	subjectKey := cust.UsageAttribution.SubjectKeys[0]
+
+	val, err := s.entitlementConnector.GetEntitlementValue(ctx, input.ID.Namespace, subjectKey, input.FeatureKey, clock.Now())
+	if err != nil {
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return entitlement.NoAccessValue{}, nil
+		}
+
+		return nil, err
+	}
+
+	return val, nil
 }

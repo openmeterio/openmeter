@@ -103,6 +103,19 @@ interface Customers {
   deleteAppData(@path customerId: ULID, @path appId: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
+
+  /**
+   * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
+   */
+  @get
+  @operationId("getCustomerEntitlementValue")
+  @route("/{customerId}/entitlements/{featureKey}/value")
+  @summary("Get entitlement value")
+  getCustomerEntitlementValue(
+    @path customerId: string,
+    @path featureKey: string,
+    @query(#{ explode: true }) time?: DateTime,
+  ): Entitlements.EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 }
 
 /**

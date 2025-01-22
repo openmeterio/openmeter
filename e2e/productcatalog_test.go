@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -114,12 +115,19 @@ func TestPlan(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	et := &api.RateCardEntitlement{}
+	err = et.FromRateCardBooleanEntitlement(api.RateCardBooleanEntitlement{
+		Type: api.RateCardBooleanEntitlementType("boolean"),
+	})
+	require.Nil(t, err)
+
 	p1RC2 := api.RateCard{}
 	err = p1RC2.FromRateCardFlatFee(api.RateCardFlatFee{
-		Name:        "Test Plan Phase 1 Rate Card 2",
-		Description: lo.ToPtr("Has a monthly recurring price to grant access to a feature"),
-		Key:         PlanFeatureKey,
-		FeatureKey:  lo.ToPtr(PlanFeatureKey),
+		Name:                "Test Plan Phase 1 Rate Card 2",
+		Description:         lo.ToPtr("Has a monthly recurring price to grant access to a feature"),
+		Key:                 PlanFeatureKey,
+		FeatureKey:          lo.ToPtr(PlanFeatureKey),
+		EntitlementTemplate: et,
 		TaxConfig: &api.TaxConfig{
 			Stripe: &api.StripeTaxConfig{
 				Code: "txcd_10000000",
@@ -525,5 +533,15 @@ func TestPlan(t *testing.T) {
 		// Only customer 1 is returned
 		require.Equal(t, 1, len(apiRes.JSON200.Items))
 		require.Equal(t, *customer1.Id, *apiRes.JSON200.Items[0].Id)
+	})
+
+	t.Run("Should check entitlement of customer", func(t *testing.T) {
+		res, err := client.GetCustomerEntitlementValueWithResponse(ctx, *customer1.Id, PlanFeatureKey, nil)
+		require.Nil(t, err)
+
+		require.Equal(t, http.StatusOK, res.StatusCode(), "received the following body: %s", res.Body)
+		require.NotNil(t, res.JSON200)
+		require.NotNil(t, res.JSON200.HasAccess)
+		assert.True(t, *res.JSON200.HasAccess)
 	})
 }

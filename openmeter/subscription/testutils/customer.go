@@ -10,7 +10,11 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -36,10 +40,26 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
+	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
+		Slug:        ExampleFeatureMeterSlug,
+		Namespace:   ExampleNamespace,
+		Aggregation: models.MeterAggregationSum,
+		WindowSize:  models.WindowSizeMinute,
+	}})
+
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbDeps.DBClient,
+		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		Logger:             testutils.NewLogger(t),
+		MeterRepository:    meterRepo,
+		Publisher:          eventbus.NewMock(t),
+	})
+
 	customerAdapter := NewCustomerAdapter(t, dbDeps)
 
 	customerService, err := customerservice.New(customerservice.Config{
-		Adapter: customerAdapter,
+		Adapter:              customerAdapter,
+		EntitlementConnector: entitlementRegistry.Entitlement,
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer service: %v", err)

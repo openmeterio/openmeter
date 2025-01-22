@@ -4,16 +4,19 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 )
 
 var _ customer.Service = (*Service)(nil)
 
 type Service struct {
-	adapter customer.Adapter
+	adapter              customer.Adapter
+	entitlementConnector entitlement.Connector
 }
 
 type Config struct {
-	Adapter customer.Adapter
+	Adapter              customer.Adapter
+	EntitlementConnector entitlement.Connector
 }
 
 func (c Config) Validate() error {
@@ -30,6 +33,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter: config.Adapter,
+		adapter:              config.Adapter,
+		entitlementConnector: config.EntitlementConnector,
 	}, nil
 }

@@ -148,7 +148,33 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerService, err := common.NewCustomerService(logger, client)
+	entitlementsConfiguration := conf.Entitlements
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v3 := conf.Meters
+	inMemoryRepository := common.NewInMemoryRepository(v3)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, inMemoryRepository, logger)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, inMemoryRepository, eventbusPublisher)
+	customerService, err := common.NewCustomerService(logger, client, entitlement)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -188,31 +214,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v2 := conf.Meters
-	inMemoryRepository := common.NewInMemoryRepository(v2)
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	billingService, err := common.BillingService(logger, client, service, appstripeService, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher)
 	if err != nil {
 		cleanup6()
@@ -224,8 +226,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	productCatalogConfiguration := conf.ProductCatalog
-	entitlementsConfiguration := conf.Entitlements
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, inMemoryRepository, eventbusPublisher)
 	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
 	if err != nil {
 		cleanup6()
