@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -51,5 +53,14 @@ func (s *Service) GetEntitlementValue(ctx context.Context, input customerentity.
 
 	subjectKey := cust.UsageAttribution.SubjectKeys[0]
 
-	return s.entitlementConnector.GetEntitlementValue(ctx, input.ID.Namespace, subjectKey, input.FeatureKey, clock.Now())
+	val, err := s.entitlementConnector.GetEntitlementValue(ctx, input.ID.Namespace, subjectKey, input.FeatureKey, clock.Now())
+	if err != nil {
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return entitlement.NoAccessValue{}, nil
+		}
+
+		return nil, err
+	}
+
+	return val, nil
 }
