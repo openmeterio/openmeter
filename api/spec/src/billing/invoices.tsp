@@ -87,7 +87,7 @@ interface InvoiceEndpoints {
     @path
     invoiceId: ULID,
 
-    @query
+    @query(#{ explode: true })
     expand?: InvoiceExpand[] = #[InvoiceExpand.lines],
 
     @query
@@ -404,37 +404,37 @@ model InvoiceListParams {
   /**
    * Filter by the invoice status.
    */
-  @query
+  @query(#{ explode: true })
   statuses?: Invoices.InvoiceStatus[];
 
   /**
    * Filter by invoice extended statuses
    */
-  @query
+  @query(#{ explode: true })
   extendedStatuses?: Invoices.InvoiceExtendedStatus[];
 
   /**
    * Filter by invoice creation time
    */
-  @query
+  @query(#{ explode: true })
   issuedAfter?: DateTime;
 
   /**
    * Filter by invoice creation time
    */
-  @query
+  @query(#{ explode: true })
   issuedBefore?: DateTime;
 
   /**
    * What parts of the list output to expand in listings
    */
-  @query
+  @query(#{ explode: true })
   expand?: InvoiceExpand[];
 
   /**
    * Filter by customer ID
    */
-  @query
+  @query(#{ explode: true })
   customers?: ULID[];
 
   /**

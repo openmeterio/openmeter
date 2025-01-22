@@ -172,12 +172,12 @@ interface Subjects {
     /**
      * Windowsize
      */
-    @query(#{ explode: true }) windowSize: OpenMeter.WindowSize,
+    @query windowSize: OpenMeter.WindowSize,
 
     /**
      * The timezone used when calculating the windows.
      */
-    @query(#{ explode: true }) windowTimeZone?: string = "UTC",
+    @query windowTimeZone?: string = "UTC",
   ): WindowedBalanceHistory | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 
   /**

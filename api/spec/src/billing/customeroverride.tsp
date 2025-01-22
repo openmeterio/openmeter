@@ -13,7 +13,7 @@ interface CustomerOverrides {
   @summary("List customer overrides")
   @operationId("listBillingProfileCustomerOverrides")
   list(
-    @query
+    @query(#{ explode: true })
     billingProfile?: ULID[],
 
     ...OpenMeter.QueryPagination,

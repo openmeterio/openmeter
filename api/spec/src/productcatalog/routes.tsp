@@ -156,7 +156,7 @@ interface Subscriptions {
     /**
      * The time at which the subscription should be queried. If not provided the current time is used.
      */
-    @query at?: DateTime,
+    @query(#{ explode: true }) at?: DateTime,
   ): SubscriptionExpanded | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   @post

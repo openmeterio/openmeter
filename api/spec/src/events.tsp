@@ -45,7 +45,7 @@ interface Events {
      *
      * If provided with false, only list events without processing error.
      */
-    @query(#{ explode: true })
+    @query
     @example(false)
     hasError?: boolean,
 
@@ -54,7 +54,7 @@ interface Events {
      *
      * Accepts partial ID.
      */
-    @query(#{ explode: true })
+    @query
     @example("my-event-id")
     id?: string,
 
@@ -63,7 +63,7 @@ interface Events {
      *
      * Accepts partial subject.
      */
-    @query(#{ explode: true })
+    @query
     @example("customer-1")
     subject?: string,
 
@@ -88,7 +88,7 @@ interface Events {
     /**
      * Number of events to return.
      */
-    @query(#{ explode: true })
+    @query
     @minValue(1)
     @maxValue(100)
     @example(100)

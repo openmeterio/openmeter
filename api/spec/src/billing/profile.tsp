@@ -18,7 +18,7 @@ interface Profiles {
     @query
     includeArchived?: boolean = false,
 
-    @query
+    @query(#{ explode: true })
     expand?: BillingProfileExpand[],
 
     ...OpenMeter.QueryPagination,
@@ -65,7 +65,8 @@ interface Profiles {
     @path
     id: ULID,
 
-    @query expand?: BillingProfileExpand[],
+    @query(#{ explode: true })
+    expand?: BillingProfileExpand[],
   ): BillingProfile | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**

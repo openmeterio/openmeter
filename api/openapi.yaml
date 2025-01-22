@@ -429,7 +429,6 @@ paths:
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
               example: 01G65Z755AFWAKHE12NY0CQ9FH
-          explode: false
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -973,7 +972,6 @@ paths:
               $ref: '#/components/schemas/InvoiceExpand'
             default:
               - lines
-          explode: false
         - name: includeDeletedLines
           in: query
           required: false
@@ -1748,7 +1746,6 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingProfileExpand'
-          explode: false
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -1939,7 +1936,6 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingProfileExpand'
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -2908,6 +2904,7 @@ paths:
             If provided with false, only list events without processing error.
           schema:
             type: boolean
+          explode: false
         - name: id
           in: query
           required: false
@@ -2917,6 +2914,7 @@ paths:
             Accepts partial ID.
           schema:
             type: string
+          explode: false
         - name: subject
           in: query
           required: false
@@ -2926,6 +2924,7 @@ paths:
             Accepts partial subject.
           schema:
             type: string
+          explode: false
         - name: from
           in: query
           required: false
@@ -2955,6 +2954,7 @@ paths:
             minimum: 1
             maximum: 100
             default: 100
+          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -6537,6 +6537,7 @@ paths:
           description: Windowsize
           schema:
             $ref: '#/components/schemas/WindowSize'
+          explode: false
         - name: windowTimeZone
           in: query
           required: false
@@ -6544,6 +6545,7 @@ paths:
           schema:
             type: string
             default: UTC
+          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -6749,7 +6751,6 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -7304,7 +7305,6 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
-      explode: false
     InvoiceListParams.expand:
       name: expand
       in: query
@@ -7314,7 +7314,6 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/InvoiceExpand'
-      explode: false
     InvoiceListParams.extendedStatuses:
       name: extendedStatuses
       in: query
@@ -7324,7 +7323,6 @@ components:
         type: array
         items:
           type: string
-      explode: false
     InvoiceListParams.includeDeleted:
       name: includeDeleted
       in: query
@@ -7342,7 +7340,6 @@ components:
         type: string
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
-      explode: false
     InvoiceListParams.issuedBefore:
       name: issuedBefore
       in: query
@@ -7352,7 +7349,6 @@ components:
         type: string
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
-      explode: false
     InvoiceListParams.statuses:
       name: statuses
       in: query
@@ -7362,7 +7358,6 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/InvoiceStatus'
-      explode: false
     InvoiceOrderByOrdering.order:
       name: order
       in: query
@@ -7482,6 +7477,7 @@ components:
       description: If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
       schema:
         $ref: '#/components/schemas/WindowSize'
+      explode: false
     MeterQuery.windowTimeZone:
       name: windowTimeZone
       in: query
@@ -7492,6 +7488,7 @@ components:
       schema:
         type: string
         default: UTC
+      explode: false
     NotificationChannelOrderByOrdering.order:
       name: order
       in: query
