@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/benthosdev/benthos/v4/public/service"
+	"github.com/redpanda-data/benthos/v4/public/service"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // import kubernetes auth plugins
 )
 
