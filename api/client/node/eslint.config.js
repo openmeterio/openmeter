@@ -55,6 +55,7 @@ export default [
       'no-prototype-builtins': 'off',
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/consistent-type-imports': 'error',
 
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -64,7 +65,6 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
-
       'import/order': [
         'error',
         {

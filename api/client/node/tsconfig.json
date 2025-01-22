@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node",
-    "target": "ES2022",
+    "moduleResolution": "nodenext",
+    "target": "ESNext",
     "declaration": true,
     "lib": ["esnext"],
     "allowJs": true,
@@ -9,7 +9,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
-    "module": "esnext",
+    "module": "NodeNext",
     "incremental": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
