@@ -223,14 +223,14 @@ model MeterQuery {
   /**
    * If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
    */
-  @query(#{ explode: true })
+  @query
   windowSize?: WindowSize;
 
   /**
    * The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
    * If not specified, the UTC timezone will be used.
    */
-  @query(#{ explode: true })
+  @query
   @example("America/New_York")
   windowTimeZone?: string = "UTC";
 
