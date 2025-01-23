@@ -169,20 +169,29 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		}
 	}
 
+	verification := api.SubscriptionVerifications{
+		PaymentVerificationNeeded: sub.Verifications.Payment.Needed,
+	}
+
+	if sub.Verifications.Payment.Needed {
+		verification.PaymentVerificationReceived = &sub.Verifications.Payment.Received
+	}
+
 	return api.Subscription{
-		Id:          sub.ID,
-		ActiveFrom:  sub.ActiveFrom,
-		ActiveTo:    sub.ActiveTo,
-		CustomerId:  sub.CustomerId,
-		Currency:    string(sub.Currency),
-		Description: sub.Description,
-		Name:        sub.Name,
-		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
-		Plan:        ref,
-		Metadata:    &sub.Metadata,
-		CreatedAt:   sub.CreatedAt,
-		UpdatedAt:   sub.UpdatedAt,
-		DeletedAt:   sub.DeletedAt,
+		Id:            sub.ID,
+		ActiveFrom:    sub.ActiveFrom,
+		ActiveTo:      sub.ActiveTo,
+		CustomerId:    sub.CustomerId,
+		Currency:      string(sub.Currency),
+		Description:   sub.Description,
+		Name:          sub.Name,
+		Status:        api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
+		Plan:          ref,
+		Metadata:      &sub.Metadata,
+		CreatedAt:     sub.CreatedAt,
+		UpdatedAt:     sub.UpdatedAt,
+		DeletedAt:     sub.DeletedAt,
+		Verifications: verification,
 	}
 }
 

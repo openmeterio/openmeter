@@ -10,6 +10,9 @@ import (
 type SubscriptionStatus string
 
 const (
+	// Pending means the action is pending and the subscription is not active yet
+	// If a subscription is pending, no entitlements will be granted for it
+	SubscriptionStatusPending SubscriptionStatus = "pending"
 	// Active means the subscription is active and the customer is being billed
 	SubscriptionStatusActive SubscriptionStatus = "active"
 	// Canceled means the subscription has already been canceled but is still active
@@ -32,11 +35,13 @@ func (s SubscriptionStatus) Validate() error {
 type SubscriptionAction string
 
 const (
-	SubscriptionActionCreate   SubscriptionAction = "create"
-	SubscriptionActionUpdate   SubscriptionAction = "update"
-	SubscriptionActionCancel   SubscriptionAction = "cancel"
-	SubscriptionActionContinue SubscriptionAction = "continue"
-	SubscriptionActionDelete   SubscriptionAction = "delete"
+	SubscriptionActionCreateActive   SubscriptionAction = "createactive"
+	SubscriptionActionCreateInactive SubscriptionAction = "createinactive"
+	SubscriptionActionActivate       SubscriptionAction = "activate"
+	SubscriptionActionUpdate         SubscriptionAction = "update"
+	SubscriptionActionCancel         SubscriptionAction = "cancel"
+	SubscriptionActionContinue       SubscriptionAction = "continue"
+	SubscriptionActionDelete         SubscriptionAction = "delete"
 )
 
 // SubscriptionStateMachine is a very simple state machine that determines what actions can be taken on a Subscription
@@ -76,7 +81,12 @@ func NewStateMachine(status SubscriptionStatus) SubscriptionStateMachine {
 	sm := stateless.NewStateMachine(status)
 
 	sm.Configure(SubscriptionStatusInactive).
-		Permit(SubscriptionActionCreate, SubscriptionStatusActive)
+		Permit(SubscriptionActionCreateActive, SubscriptionStatusActive).
+		Permit(SubscriptionActionCreateInactive, SubscriptionStatusPending)
+
+	sm.Configure(SubscriptionStatusPending).
+		Permit(SubscriptionActionActivate, SubscriptionStatusActive).
+		Permit(SubscriptionActionCancel, SubscriptionStatusCanceled)
 
 	sm.Configure(SubscriptionStatusActive).
 		PermitReentry(SubscriptionActionUpdate).

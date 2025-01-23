@@ -104,7 +104,9 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetActiveFrom(sub.ActiveFrom).
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).
-			SetMetadata(sub.Metadata)
+			SetMetadata(sub.Metadata).
+			SetPaymentVerificationNeeded(sub.Verifications.Payment.Needed).
+			SetPaymentVerificationReceived(sub.Verifications.Payment.Received)
 
 		if sub.ActiveTo != nil {
 			command = command.SetActiveTo(*sub.ActiveTo)

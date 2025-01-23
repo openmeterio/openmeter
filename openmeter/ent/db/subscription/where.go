@@ -122,6 +122,16 @@ func Currency(v currencyx.Code) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
 }
 
+// PaymentVerificationNeeded applies equality check predicate on the "payment_verification_needed" field. It's identical to PaymentVerificationNeededEQ.
+func PaymentVerificationNeeded(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldPaymentVerificationNeeded, v))
+}
+
+// PaymentVerificationReceived applies equality check predicate on the "payment_verification_received" field. It's identical to PaymentVerificationReceivedEQ.
+func PaymentVerificationReceived(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldPaymentVerificationReceived, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldNamespace, v))
@@ -779,6 +789,26 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// PaymentVerificationNeededEQ applies the EQ predicate on the "payment_verification_needed" field.
+func PaymentVerificationNeededEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldPaymentVerificationNeeded, v))
+}
+
+// PaymentVerificationNeededNEQ applies the NEQ predicate on the "payment_verification_needed" field.
+func PaymentVerificationNeededNEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldPaymentVerificationNeeded, v))
+}
+
+// PaymentVerificationReceivedEQ applies the EQ predicate on the "payment_verification_received" field.
+func PaymentVerificationReceivedEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldPaymentVerificationReceived, v))
+}
+
+// PaymentVerificationReceivedNEQ applies the NEQ predicate on the "payment_verification_received" field.
+func PaymentVerificationReceivedNEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldPaymentVerificationReceived, v))
 }
 
 // HasPlan applies the HasEdge predicate on the "plan" edge.

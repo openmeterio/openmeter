@@ -34,6 +34,8 @@ func (Subscription) Fields() []ent.Field {
 		field.String("plan_id").Optional().Nillable(),
 		field.String("customer_id").NotEmpty().Immutable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
+		field.Bool("payment_verification_needed").Default(false),
+		field.Bool("payment_verification_received").Default(false),
 	}
 }
 

@@ -143,6 +143,34 @@ func (su *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
 	return su
 }
 
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (su *SubscriptionUpdate) SetPaymentVerificationNeeded(b bool) *SubscriptionUpdate {
+	su.mutation.SetPaymentVerificationNeeded(b)
+	return su
+}
+
+// SetNillablePaymentVerificationNeeded sets the "payment_verification_needed" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillablePaymentVerificationNeeded(b *bool) *SubscriptionUpdate {
+	if b != nil {
+		su.SetPaymentVerificationNeeded(*b)
+	}
+	return su
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (su *SubscriptionUpdate) SetPaymentVerificationReceived(b bool) *SubscriptionUpdate {
+	su.mutation.SetPaymentVerificationReceived(b)
+	return su
+}
+
+// SetNillablePaymentVerificationReceived sets the "payment_verification_received" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillablePaymentVerificationReceived(b *bool) *SubscriptionUpdate {
+	if b != nil {
+		su.SetPaymentVerificationReceived(*b)
+	}
+	return su
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (su *SubscriptionUpdate) SetPlan(p *Plan) *SubscriptionUpdate {
 	return su.SetPlanID(p.ID)
@@ -321,6 +349,12 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := su.mutation.PaymentVerificationNeeded(); ok {
+		_spec.SetField(subscription.FieldPaymentVerificationNeeded, field.TypeBool, value)
+	}
+	if value, ok := su.mutation.PaymentVerificationReceived(); ok {
+		_spec.SetField(subscription.FieldPaymentVerificationReceived, field.TypeBool, value)
 	}
 	if su.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -573,6 +607,34 @@ func (suo *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
 	return suo
 }
 
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (suo *SubscriptionUpdateOne) SetPaymentVerificationNeeded(b bool) *SubscriptionUpdateOne {
+	suo.mutation.SetPaymentVerificationNeeded(b)
+	return suo
+}
+
+// SetNillablePaymentVerificationNeeded sets the "payment_verification_needed" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillablePaymentVerificationNeeded(b *bool) *SubscriptionUpdateOne {
+	if b != nil {
+		suo.SetPaymentVerificationNeeded(*b)
+	}
+	return suo
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (suo *SubscriptionUpdateOne) SetPaymentVerificationReceived(b bool) *SubscriptionUpdateOne {
+	suo.mutation.SetPaymentVerificationReceived(b)
+	return suo
+}
+
+// SetNillablePaymentVerificationReceived sets the "payment_verification_received" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillablePaymentVerificationReceived(b *bool) *SubscriptionUpdateOne {
+	if b != nil {
+		suo.SetPaymentVerificationReceived(*b)
+	}
+	return suo
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (suo *SubscriptionUpdateOne) SetPlan(p *Plan) *SubscriptionUpdateOne {
 	return suo.SetPlanID(p.ID)
@@ -781,6 +843,12 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := suo.mutation.PaymentVerificationNeeded(); ok {
+		_spec.SetField(subscription.FieldPaymentVerificationNeeded, field.TypeBool, value)
+	}
+	if value, ok := suo.mutation.PaymentVerificationReceived(); ok {
+		_spec.SetField(subscription.FieldPaymentVerificationReceived, field.TypeBool, value)
 	}
 	if suo.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{

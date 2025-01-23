@@ -225,7 +225,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 
 			// If the phase got deleted, we can create it as a whole
 			if dirty.isTouched(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key)) {
-				if _, err := s.createPhase(ctx, view.Customer, *matchingPhaseFromNewSpec, view.Subscription, newPhaseCadence); err != nil {
+				if _, err := s.createPhase(ctx, newSpec.Verification, view.Customer, *matchingPhaseFromNewSpec, view.Subscription, newPhaseCadence); err != nil {
 					return def, fmt.Errorf("failed to create phase: %w", err)
 				}
 
@@ -258,6 +258,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					if dirty.isTouched(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx)) {
 						if _, err := s.createItem(
 							ctx,
+							newSpec.Verification,
 							view.Customer,
 							*matchingItemFromNewSpec,
 							currentPhaseView.SubscriptionPhase,
@@ -291,7 +292,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					return def, fmt.Errorf("failed to get cadence for phase %s: %w", phase.PhaseKey, err)
 				}
 
-				if _, err := s.createPhase(ctx, view.Customer, *phase, view.Subscription, phaseCadence); err != nil {
+				if _, err := s.createPhase(ctx, newSpec.Verification, view.Customer, *phase, view.Subscription, phaseCadence); err != nil {
 					return def, fmt.Errorf("failed to create phase: %w", err)
 				}
 				continue
@@ -311,6 +312,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 					if !foundMatchingItemsByKeyInCurrentView {
 						if _, err := s.createItem(
 							ctx,
+							newSpec.Verification,
 							view.Customer,
 							*item,
 							matchingPhaseInCurrentView.SubscriptionPhase,
@@ -328,6 +330,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						// The rest we create
 						if _, err := s.createItem(
 							ctx,
+							newSpec.Verification,
 							view.Customer,
 							*item,
 							matchingPhaseInCurrentView.SubscriptionPhase,

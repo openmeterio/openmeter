@@ -38,6 +38,7 @@ type CreateSubscriptionCustomerInput struct {
 	Currency              currencyx.Code `json:"currency"`
 	ActiveFrom            time.Time      `json:"activeFrom,omitempty"`
 	ActiveTo              *time.Time     `json:"activeTo,omitempty"`
+	Verification          Verifications  `json:"verification"`
 }
 
 type SubscriptionSpec struct {
@@ -452,6 +453,7 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 }
 
 func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
+	subsVerifications Verifications,
 	cust customerentity.Customer,
 	cadence models.CadencedModel,
 ) (ScheduleSubscriptionEntitlementInput, bool, error) {
@@ -459,7 +461,13 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 
 	meta := s.RateCard
 
+	// If there is no entitlement defined we shouldnt create an entitlement
 	if meta.EntitlementTemplate == nil {
+		return def, false, nil
+	}
+
+	// If the subscription is not verified we shouldnt create an entitlement
+	if !subsVerifications.IsVerified() {
 		return def, false, nil
 	}
 

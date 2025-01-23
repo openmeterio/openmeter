@@ -21,6 +21,25 @@ type Subscription struct {
 
 	CustomerId string         `json:"customerId,omitempty"`
 	Currency   currencyx.Code `json:"currency,omitempty"`
+
+	Verifications Verifications `json:"verifications"`
+}
+
+type Verifications struct {
+	Payment Verification `json:"payment"`
+}
+
+func (v Verifications) IsVerified() bool {
+	return v.Payment.IsVerified()
+}
+
+type Verification struct {
+	Needed   bool `json:"needed"`
+	Received bool `json:"received"`
+}
+
+func (v Verification) IsVerified() bool {
+	return !v.Needed || v.Received
 }
 
 func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
@@ -48,7 +67,13 @@ func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 	if !s.ActiveFrom.After(at) {
 		// ...and it has not been canceled yet, it is active
 		if s.ActiveTo == nil {
-			return SubscriptionStatusActive
+			// ...if everything is verified, it is active
+			if s.Verifications.IsVerified() {
+				return SubscriptionStatusActive
+			}
+
+			// ...if verification is needed, it is pending
+			return SubscriptionStatusPending
 		}
 		// ...and it has been canceled, it is canceled
 		if s.ActiveTo.After(at) {

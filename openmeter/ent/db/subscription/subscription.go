@@ -38,6 +38,10 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldPaymentVerificationNeeded holds the string denoting the payment_verification_needed field in the database.
+	FieldPaymentVerificationNeeded = "payment_verification_needed"
+	// FieldPaymentVerificationReceived holds the string denoting the payment_verification_received field in the database.
+	FieldPaymentVerificationReceived = "payment_verification_received"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -93,6 +97,8 @@ var Columns = []string{
 	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldPaymentVerificationNeeded,
+	FieldPaymentVerificationReceived,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -122,6 +128,10 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultPaymentVerificationNeeded holds the default value on creation for the "payment_verification_needed" field.
+	DefaultPaymentVerificationNeeded bool
+	// DefaultPaymentVerificationReceived holds the default value on creation for the "payment_verification_received" field.
+	DefaultPaymentVerificationReceived bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -187,6 +197,16 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByPaymentVerificationNeeded orders the results by the payment_verification_needed field.
+func ByPaymentVerificationNeeded(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentVerificationNeeded, opts...).ToFunc()
+}
+
+// ByPaymentVerificationReceived orders the results by the payment_verification_received field.
+func ByPaymentVerificationReceived(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentVerificationReceived, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.

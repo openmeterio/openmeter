@@ -1052,6 +1052,14 @@ func init() {
 			return nil
 		}
 	}()
+	// subscriptionDescPaymentVerificationNeeded is the schema descriptor for payment_verification_needed field.
+	subscriptionDescPaymentVerificationNeeded := subscriptionFields[5].Descriptor()
+	// subscription.DefaultPaymentVerificationNeeded holds the default value on creation for the payment_verification_needed field.
+	subscription.DefaultPaymentVerificationNeeded = subscriptionDescPaymentVerificationNeeded.Default.(bool)
+	// subscriptionDescPaymentVerificationReceived is the schema descriptor for payment_verification_received field.
+	subscriptionDescPaymentVerificationReceived := subscriptionFields[6].Descriptor()
+	// subscription.DefaultPaymentVerificationReceived holds the default value on creation for the payment_verification_received field.
+	subscription.DefaultPaymentVerificationReceived = subscriptionDescPaymentVerificationReceived.Default.(bool)
 	// subscriptionDescID is the schema descriptor for id field.
 	subscriptionDescID := subscriptionMixinFields0[0].Descriptor()
 	// subscription.DefaultID holds the default value on creation for the id field.

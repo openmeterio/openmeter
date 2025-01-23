@@ -32,9 +32,27 @@ model SubscriptionExpanded {
  */
 @friendlyName("SubscriptionStatus")
 enum SubscriptionStatus {
+  Pending: "pending",
   Active: "active",
   Inactive: "inactive",
   Canceled: "canceled",
+}
+
+/**
+ * Subscription verification status.
+ */
+@friendlyName("SubscriptionVerifications")
+model SubscriptionVerifications {
+  /**
+   * Whether the subscription needs payment verification.
+   */
+  PaymentVerificationNeeded: boolean;
+
+  /**
+   * Whether the payment verification was received.
+   * Only has a value if Payment Verification is needed.
+   */
+  PaymentVerificationReceived?: boolean;
 }
 
 /**
@@ -60,6 +78,12 @@ model Subscription {
    * The plan of the subscription.
    */
   plan?: PlanReference;
+
+  /**
+   * Verifications required for the subscription.
+   * While a verification is pending, the entitlements belonging to the subscription are not issued.
+   */
+  verifications: SubscriptionVerifications;
 
   /**
    * The currency code of the subscription.

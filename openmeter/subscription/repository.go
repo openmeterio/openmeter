@@ -23,6 +23,8 @@ type CreateSubscriptionEntityInput struct {
 
 	CustomerId string `json:"customerId,omitempty"`
 	Currency   currencyx.Code
+
+	Verifications Verifications `json:"verifications"`
 }
 
 type SubscriptionRepository interface {

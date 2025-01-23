@@ -11341,7 +11341,7 @@ components:
         managedBy:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineManagedBy'
-          description: Who manages the line?
+          description: managedBy specifies if the line is manually added via the api or managed by OpenMeter.
           readOnly: true
         status:
           allOf:
@@ -12356,7 +12356,7 @@ components:
         managedBy:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineManagedBy'
-          description: Who manages the line?
+          description: managedBy specifies if the line is manually added via the api or managed by OpenMeter.
           readOnly: true
         status:
           allOf:
@@ -15175,6 +15175,7 @@ components:
         - activeFrom
         - status
         - customerId
+        - verifications
         - currency
       properties:
         id:
@@ -15247,6 +15248,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
           description: The plan of the subscription.
+        verifications:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionVerifications'
+          description: |-
+            Verifications required for the subscription.
+            While a verification is pending, the entitlements belonging to the subscription are not issued.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -15320,6 +15327,7 @@ components:
         - activeFrom
         - status
         - customerId
+        - verifications
         - currency
         - phases
       properties:
@@ -15393,6 +15401,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
           description: The plan of the subscription.
+        verifications:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionVerifications'
+          description: |-
+            Verifications required for the subscription.
+            While a verification is pending, the entitlements belonging to the subscription are not issued.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -15682,10 +15696,25 @@ components:
     SubscriptionStatus:
       type: string
       enum:
+        - pending
         - active
         - inactive
         - canceled
       description: Subscription status.
+    SubscriptionVerifications:
+      type: object
+      required:
+        - PaymentVerificationNeeded
+      properties:
+        PaymentVerificationNeeded:
+          type: boolean
+          description: Whether the subscription needs payment verification.
+        PaymentVerificationReceived:
+          type: boolean
+          description: |-
+            Whether the payment verification was received.
+            Only has a value if Payment Verification is needed.
+      description: Subscription verification status.
     SvixOperationalWebhookRequest:
       type: object
       required:

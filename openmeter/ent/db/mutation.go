@@ -34436,33 +34436,35 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 // SubscriptionMutation represents an operation that mutates the Subscription nodes in the graph.
 type SubscriptionMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	metadata             *map[string]string
-	active_from          *time.Time
-	active_to            *time.Time
-	name                 *string
-	description          *string
-	currency             *currencyx.Code
-	clearedFields        map[string]struct{}
-	plan                 *string
-	clearedplan          bool
-	customer             *string
-	clearedcustomer      bool
-	phases               map[string]struct{}
-	removedphases        map[string]struct{}
-	clearedphases        bool
-	billing_lines        map[string]struct{}
-	removedbilling_lines map[string]struct{}
-	clearedbilling_lines bool
-	done                 bool
-	oldValue             func(context.Context) (*Subscription, error)
-	predicates           []predicate.Subscription
+	op                            Op
+	typ                           string
+	id                            *string
+	namespace                     *string
+	created_at                    *time.Time
+	updated_at                    *time.Time
+	deleted_at                    *time.Time
+	metadata                      *map[string]string
+	active_from                   *time.Time
+	active_to                     *time.Time
+	name                          *string
+	description                   *string
+	currency                      *currencyx.Code
+	payment_verification_needed   *bool
+	payment_verification_received *bool
+	clearedFields                 map[string]struct{}
+	plan                          *string
+	clearedplan                   bool
+	customer                      *string
+	clearedcustomer               bool
+	phases                        map[string]struct{}
+	removedphases                 map[string]struct{}
+	clearedphases                 bool
+	billing_lines                 map[string]struct{}
+	removedbilling_lines          map[string]struct{}
+	clearedbilling_lines          bool
+	done                          bool
+	oldValue                      func(context.Context) (*Subscription, error)
+	predicates                    []predicate.Subscription
 }
 
 var _ ent.Mutation = (*SubscriptionMutation)(nil)
@@ -35066,6 +35068,78 @@ func (m *SubscriptionMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (m *SubscriptionMutation) SetPaymentVerificationNeeded(b bool) {
+	m.payment_verification_needed = &b
+}
+
+// PaymentVerificationNeeded returns the value of the "payment_verification_needed" field in the mutation.
+func (m *SubscriptionMutation) PaymentVerificationNeeded() (r bool, exists bool) {
+	v := m.payment_verification_needed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentVerificationNeeded returns the old "payment_verification_needed" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldPaymentVerificationNeeded(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentVerificationNeeded is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentVerificationNeeded requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentVerificationNeeded: %w", err)
+	}
+	return oldValue.PaymentVerificationNeeded, nil
+}
+
+// ResetPaymentVerificationNeeded resets all changes to the "payment_verification_needed" field.
+func (m *SubscriptionMutation) ResetPaymentVerificationNeeded() {
+	m.payment_verification_needed = nil
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (m *SubscriptionMutation) SetPaymentVerificationReceived(b bool) {
+	m.payment_verification_received = &b
+}
+
+// PaymentVerificationReceived returns the value of the "payment_verification_received" field in the mutation.
+func (m *SubscriptionMutation) PaymentVerificationReceived() (r bool, exists bool) {
+	v := m.payment_verification_received
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentVerificationReceived returns the old "payment_verification_received" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldPaymentVerificationReceived(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentVerificationReceived is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentVerificationReceived requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentVerificationReceived: %w", err)
+	}
+	return oldValue.PaymentVerificationReceived, nil
+}
+
+// ResetPaymentVerificationReceived resets all changes to the "payment_verification_received" field.
+func (m *SubscriptionMutation) ResetPaymentVerificationReceived() {
+	m.payment_verification_received = nil
+}
+
 // ClearPlan clears the "plan" edge to the Plan entity.
 func (m *SubscriptionMutation) ClearPlan() {
 	m.clearedplan = true
@@ -35262,7 +35336,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -35299,6 +35373,12 @@ func (m *SubscriptionMutation) Fields() []string {
 	if m.currency != nil {
 		fields = append(fields, subscription.FieldCurrency)
 	}
+	if m.payment_verification_needed != nil {
+		fields = append(fields, subscription.FieldPaymentVerificationNeeded)
+	}
+	if m.payment_verification_received != nil {
+		fields = append(fields, subscription.FieldPaymentVerificationReceived)
+	}
 	return fields
 }
 
@@ -35331,6 +35411,10 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerID()
 	case subscription.FieldCurrency:
 		return m.Currency()
+	case subscription.FieldPaymentVerificationNeeded:
+		return m.PaymentVerificationNeeded()
+	case subscription.FieldPaymentVerificationReceived:
+		return m.PaymentVerificationReceived()
 	}
 	return nil, false
 }
@@ -35364,6 +35448,10 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCustomerID(ctx)
 	case subscription.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case subscription.FieldPaymentVerificationNeeded:
+		return m.OldPaymentVerificationNeeded(ctx)
+	case subscription.FieldPaymentVerificationReceived:
+		return m.OldPaymentVerificationReceived(ctx)
 	}
 	return nil, fmt.Errorf("unknown Subscription field %s", name)
 }
@@ -35456,6 +35544,20 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case subscription.FieldPaymentVerificationNeeded:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentVerificationNeeded(v)
+		return nil
+	case subscription.FieldPaymentVerificationReceived:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentVerificationReceived(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)
@@ -35574,6 +35676,12 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case subscription.FieldPaymentVerificationNeeded:
+		m.ResetPaymentVerificationNeeded()
+		return nil
+	case subscription.FieldPaymentVerificationReceived:
+		m.ResetPaymentVerificationReceived()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)

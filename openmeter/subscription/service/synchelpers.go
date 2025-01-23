@@ -13,6 +13,7 @@ import (
 
 func (s *service) createPhase(
 	ctx context.Context,
+	verifications subscription.Verifications,
 	cust customerentity.Customer,
 	phaseSpec subscription.SubscriptionPhaseSpec,
 	sub subscription.Subscription,
@@ -36,7 +37,7 @@ func (s *service) createPhase(
 		for key, itemSpecs := range phaseSpec.ItemsByKey {
 			itemsByKey := make([]subscription.SubscriptionItemView, 0, len(itemSpecs))
 			for _, itemSpec := range itemSpecs {
-				item, err := s.createItem(ctx, cust, *itemSpec, phase, cadence)
+				item, err := s.createItem(ctx, verifications, cust, *itemSpec, phase, cadence)
 				if err != nil {
 					return res, fmt.Errorf("failed to create item: %w", err)
 				}
@@ -56,6 +57,7 @@ func (s *service) createPhase(
 
 func (s *service) createItem(
 	ctx context.Context,
+	verifications subscription.Verifications,
 	cust customerentity.Customer,
 	itemSpec subscription.SubscriptionItemSpec,
 	phase subscription.SubscriptionPhase,
@@ -73,6 +75,7 @@ func (s *service) createItem(
 
 		// First, let's see if we need to create an entitlement
 		entInput, hasEnt, err := itemSpec.ToScheduleSubscriptionEntitlementInput(
+			verifications,
 			cust,
 			itemCadence,
 		)

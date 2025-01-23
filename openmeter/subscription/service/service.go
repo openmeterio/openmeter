@@ -47,10 +47,15 @@ var _ subscription.Service = &service{}
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	def := subscription.Subscription{}
 
+	action := subscription.SubscriptionActionCreateActive
+	if !spec.Verification.IsVerified() {
+		action = subscription.SubscriptionActionCreateInactive
+	}
+
 	// Let's make sure Create is possible based on the transition rules
 	if err := subscription.NewStateMachine(
 		def.GetStatusAt(clock.Now()),
-	).CanTransitionOrErr(ctx, subscription.SubscriptionActionCreate); err != nil {
+	).CanTransitionOrErr(ctx, action); err != nil {
 		return def, err
 	}
 
@@ -125,7 +130,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 				return def, fmt.Errorf("failed to get phase cadence: %w", err)
 			}
 
-			if _, err := s.createPhase(ctx, *cust, *phase, sub, phaseCadence); err != nil {
+			if _, err := s.createPhase(ctx, spec.Verification, *cust, *phase, sub, phaseCadence); err != nil {
 				return def, err
 			}
 		}

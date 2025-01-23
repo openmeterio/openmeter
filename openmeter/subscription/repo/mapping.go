@@ -42,6 +42,12 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		AnnotatedModel: models.AnnotatedModel{
 			Metadata: sub.Metadata,
 		},
+		Verifications: subscription.Verifications{
+			Payment: subscription.Verification{
+				Needed:   sub.PaymentVerificationNeeded,
+				Received: sub.PaymentVerificationReceived,
+			},
+		},
 		PlanRef:     ref,
 		Name:        sub.Name,
 		Description: sub.Description,

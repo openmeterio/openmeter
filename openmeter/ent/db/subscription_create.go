@@ -156,6 +156,34 @@ func (sc *SubscriptionCreate) SetCurrency(c currencyx.Code) *SubscriptionCreate 
 	return sc
 }
 
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (sc *SubscriptionCreate) SetPaymentVerificationNeeded(b bool) *SubscriptionCreate {
+	sc.mutation.SetPaymentVerificationNeeded(b)
+	return sc
+}
+
+// SetNillablePaymentVerificationNeeded sets the "payment_verification_needed" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillablePaymentVerificationNeeded(b *bool) *SubscriptionCreate {
+	if b != nil {
+		sc.SetPaymentVerificationNeeded(*b)
+	}
+	return sc
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (sc *SubscriptionCreate) SetPaymentVerificationReceived(b bool) *SubscriptionCreate {
+	sc.mutation.SetPaymentVerificationReceived(b)
+	return sc
+}
+
+// SetNillablePaymentVerificationReceived sets the "payment_verification_received" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillablePaymentVerificationReceived(b *bool) *SubscriptionCreate {
+	if b != nil {
+		sc.SetPaymentVerificationReceived(*b)
+	}
+	return sc
+}
+
 // SetID sets the "id" field.
 func (sc *SubscriptionCreate) SetID(s string) *SubscriptionCreate {
 	sc.mutation.SetID(s)
@@ -257,6 +285,14 @@ func (sc *SubscriptionCreate) defaults() {
 		v := subscription.DefaultName
 		sc.mutation.SetName(v)
 	}
+	if _, ok := sc.mutation.PaymentVerificationNeeded(); !ok {
+		v := subscription.DefaultPaymentVerificationNeeded
+		sc.mutation.SetPaymentVerificationNeeded(v)
+	}
+	if _, ok := sc.mutation.PaymentVerificationReceived(); !ok {
+		v := subscription.DefaultPaymentVerificationReceived
+		sc.mutation.SetPaymentVerificationReceived(v)
+	}
 	if _, ok := sc.mutation.ID(); !ok {
 		v := subscription.DefaultID()
 		sc.mutation.SetID(v)
@@ -305,6 +341,12 @@ func (sc *SubscriptionCreate) check() error {
 		if err := subscription.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Subscription.currency": %w`, err)}
 		}
+	}
+	if _, ok := sc.mutation.PaymentVerificationNeeded(); !ok {
+		return &ValidationError{Name: "payment_verification_needed", err: errors.New(`db: missing required field "Subscription.payment_verification_needed"`)}
+	}
+	if _, ok := sc.mutation.PaymentVerificationReceived(); !ok {
+		return &ValidationError{Name: "payment_verification_received", err: errors.New(`db: missing required field "Subscription.payment_verification_received"`)}
 	}
 	if len(sc.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "Subscription.customer"`)}
@@ -384,6 +426,14 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := sc.mutation.Currency(); ok {
 		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := sc.mutation.PaymentVerificationNeeded(); ok {
+		_spec.SetField(subscription.FieldPaymentVerificationNeeded, field.TypeBool, value)
+		_node.PaymentVerificationNeeded = value
+	}
+	if value, ok := sc.mutation.PaymentVerificationReceived(); ok {
+		_spec.SetField(subscription.FieldPaymentVerificationReceived, field.TypeBool, value)
+		_node.PaymentVerificationReceived = value
 	}
 	if nodes := sc.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -617,6 +667,30 @@ func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
 	return u
 }
 
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (u *SubscriptionUpsert) SetPaymentVerificationNeeded(v bool) *SubscriptionUpsert {
+	u.Set(subscription.FieldPaymentVerificationNeeded, v)
+	return u
+}
+
+// UpdatePaymentVerificationNeeded sets the "payment_verification_needed" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdatePaymentVerificationNeeded() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldPaymentVerificationNeeded)
+	return u
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (u *SubscriptionUpsert) SetPaymentVerificationReceived(v bool) *SubscriptionUpsert {
+	u.Set(subscription.FieldPaymentVerificationReceived, v)
+	return u
+}
+
+// UpdatePaymentVerificationReceived sets the "payment_verification_received" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdatePaymentVerificationReceived() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldPaymentVerificationReceived)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -810,6 +884,34 @@ func (u *SubscriptionUpsertOne) UpdatePlanID() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (u *SubscriptionUpsertOne) SetPaymentVerificationNeeded(v bool) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPaymentVerificationNeeded(v)
+	})
+}
+
+// UpdatePaymentVerificationNeeded sets the "payment_verification_needed" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdatePaymentVerificationNeeded() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePaymentVerificationNeeded()
+	})
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (u *SubscriptionUpsertOne) SetPaymentVerificationReceived(v bool) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPaymentVerificationReceived(v)
+	})
+}
+
+// UpdatePaymentVerificationReceived sets the "payment_verification_received" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdatePaymentVerificationReceived() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePaymentVerificationReceived()
 	})
 }
 
@@ -1173,6 +1275,34 @@ func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetPaymentVerificationNeeded sets the "payment_verification_needed" field.
+func (u *SubscriptionUpsertBulk) SetPaymentVerificationNeeded(v bool) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPaymentVerificationNeeded(v)
+	})
+}
+
+// UpdatePaymentVerificationNeeded sets the "payment_verification_needed" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdatePaymentVerificationNeeded() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePaymentVerificationNeeded()
+	})
+}
+
+// SetPaymentVerificationReceived sets the "payment_verification_received" field.
+func (u *SubscriptionUpsertBulk) SetPaymentVerificationReceived(v bool) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPaymentVerificationReceived(v)
+	})
+}
+
+// UpdatePaymentVerificationReceived sets the "payment_verification_received" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdatePaymentVerificationReceived() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePaymentVerificationReceived()
 	})
 }
 
