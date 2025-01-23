@@ -9,8 +9,8 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
@@ -53,7 +53,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				// If err try to parse customer field as customer input
 				customerCreate, err := body.Customer.AsCustomerCreate()
 				if err != nil {
-					return CreateAppStripeCheckoutSessionRequest{}, appstripe.ValidationError{
+					return CreateAppStripeCheckoutSessionRequest{}, app.ValidationError{
 						Err: fmt.Errorf("failed to decode customer: %w", err),
 					}
 				}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -17,7 +16,7 @@ import (
 // GetStripeCustomerData gets stripe customer data
 func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.CustomerData{}, appstripe.ValidationError{
+		return appstripeentity.CustomerData{}, app.ValidationError{
 			Err: fmt.Errorf("error getting stripe customer data: %w", err),
 		}
 	}
@@ -56,7 +55,7 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: fmt.Errorf("error upsert stripe customer data: %w", err),
 		}
 	}
@@ -106,7 +105,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: fmt.Errorf("error delete stripe customer data: %w", err),
 		}
 	}
@@ -123,7 +122,7 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 	}
 
 	if namespace == "" {
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: fmt.Errorf("error delete stripe customer data: namespace is empty"),
 		}
 	}
