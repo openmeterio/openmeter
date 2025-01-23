@@ -30,9 +30,6 @@ type ProfileHandler interface {
 
 type InvoiceLineHandler interface {
 	CreatePendingLine() CreatePendingLineHandler
-	GetLine() GetLineHandler
-	DeleteLine() DeleteLineHandler
-	UpdateLine() UpdateLineHandler
 }
 
 type InvoiceHandler interface {

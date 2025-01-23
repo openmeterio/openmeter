@@ -35,7 +35,7 @@ var (
 	ErrInvoiceCannotAdvance      = NewValidationError("invoice_cannot_advance", "invoice cannot advance")
 	ErrInvoiceCannotBeEdited     = NewValidationError("invoice_cannot_be_edited", "invoice cannot be edited in the current state")
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
-	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "some invoice lines are not billable")
+	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "invoice lines are not billable")
 	ErrInvoiceEmpty              = NewValidationError("invoice_empty", "invoice is empty")
 	ErrInvoiceDeleteFailed       = NewValidationError("invoice_delete_failed", "invoice delete failed")
 

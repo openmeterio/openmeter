@@ -35,11 +35,7 @@ type CustomerOverrideService interface {
 
 type InvoiceLineService interface {
 	CreatePendingInvoiceLines(ctx context.Context, input CreateInvoiceLinesInput) ([]*Line, error)
-	GetInvoiceLine(ctx context.Context, input GetInvoiceLineInput) (*Line, error)
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]*Line, error)
-	UpdateInvoiceLine(ctx context.Context, input UpdateInvoiceLineInput) (*Line, error)
-
-	DeleteInvoiceLine(ctx context.Context, input DeleteInvoiceLineInput) error
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.
 	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*Line, error)

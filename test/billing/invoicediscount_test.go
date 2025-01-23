@@ -35,7 +35,6 @@ func (s *InvoiceDiscountTestSuite) TestInvoiceDiscountSync() {
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 	periodEnd := now.Add(-time.Hour)
 	periodStart := periodEnd.Add(-time.Hour * 24 * 30)
-	issueAt := now.Add(-time.Minute)
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
@@ -58,7 +57,7 @@ func (s *InvoiceDiscountTestSuite) TestInvoiceDiscountSync() {
 					LineBase: billing.LineBase{
 						Namespace: namespace,
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
-						InvoiceAt: issueAt,
+						InvoiceAt: periodStart,
 						ManagedBy: billing.ManuallyManagedLine,
 
 						Type: billing.InvoiceLineTypeFee,

@@ -205,53 +205,6 @@ interface InvoiceEndpoints {
     @path
     invoiceId: ULID,
   ): Invoices.Invoice | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  // Line management
-
-  /**
-   * Get an invoice line
-   */
-  @get
-  @route("/lines/{lineId}")
-  @summary("Get an invoice line")
-  @operationId("getInvoiceLine")
-  getInvoiceLine(
-    @path invoiceId: ULID,
-    @path lineId: ULID,
-  ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Delete an invoice line
-   */
-  @delete
-  @route("/lines/{lineId}")
-  @summary("Delete an invoice line")
-  @operationId("deleteInvoiceLine")
-  deleteInvoiceLine(@path invoiceId: ULID, @path lineId: ULID): {
-    @statusCode _: 204;
-  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * Update an invoice line
-   */
-  @post
-  @route("/lines/{lineId}")
-  @summary("Update an invoice line")
-  @operationId("updateInvoiceLine")
-  updateInvoiceLine(
-    @path invoiceId: ULID,
-    @path lineId: ULID,
-
-    @body
-    request: Invoices.InvoiceLineReplaceUpdate,
-  ): Invoices.InvoiceLine | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
-
-  /**
-   * TODOs:
-   * - min/max spend support
-   * - discounts
-   * - tax support (detailed)
-   */
 }
 
 @route("/api/v1/billing/customers/{customerId}/invoices/simulate")

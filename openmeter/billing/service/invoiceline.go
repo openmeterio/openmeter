@@ -2,7 +2,6 @@ package billingservice
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -11,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -263,165 +261,6 @@ func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.I
 	// Let's active the invoice state machine so that calculations can be done
 	return s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, ism *InvoiceStateMachine) error {
 		return ism.StateMachine.ActivateCtx(ctx)
-	})
-}
-
-func (s *Service) GetInvoiceLine(ctx context.Context, input billing.GetInvoiceLineInput) (*billing.Line, error) {
-	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return s.adapter.GetInvoiceLine(ctx, billing.GetInvoiceLineAdapterInput{
-		Namespace: input.Namespace,
-		ID:        input.ID,
-	})
-}
-
-func (s *Service) UpdateInvoiceLine(ctx context.Context, input billing.UpdateInvoiceLineInput) (*billing.Line, error) {
-	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	// Let's get the customer's active billing profile
-	lineOwnership, err := s.adapter.GetInvoiceLineOwnership(ctx, input.Line)
-	if err != nil {
-		return nil, err
-	}
-
-	billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  lineOwnership.Namespace,
-		CustomerID: lineOwnership.CustomerID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("fetching customer profile: %w", err)
-	}
-
-	triggeredInvoice, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Invoice, error) {
-		existingLine, err := s.adapter.GetInvoiceLine(ctx, input.Line)
-		if err != nil {
-			return nil, err
-		}
-
-		invoice, err := s.executeTriggerOnInvoice(
-			ctx,
-			billing.InvoiceID{
-				ID:        existingLine.InvoiceID,
-				Namespace: existingLine.Namespace,
-			},
-			triggerUpdated,
-			ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
-			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
-				targetState, err := input.Apply(existingLine)
-				if err != nil {
-					return err
-				}
-
-				if err := targetState.Validate(); err != nil {
-					return billing.ValidationError{
-						Err: err,
-					}
-				}
-
-				targetStateLineSrv, err := s.lineService.FromEntity(targetState)
-				if err != nil {
-					return fmt.Errorf("creating line service: %w", err)
-				}
-
-				period, err := targetStateLineSrv.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
-					AsOf:               targetState.Period.End,
-					ProgressiveBilling: billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
-				})
-				if err != nil {
-					return fmt.Errorf("line[%s]: can be invoiced as of: %w", targetState.ID, err)
-				}
-
-				if period == nil {
-					return billing.ValidationError{
-						Err: fmt.Errorf("line[%s]: %w as of %s", targetState.ID, billing.ErrInvoiceLinesNotBillable, targetState.Period.End),
-					}
-				}
-
-				if ok := sm.Invoice.Lines.ReplaceByID(existingLine.ID, targetState); !ok {
-					return fmt.Errorf("line[%s]: not found in invoice", existingLine.ID)
-				}
-
-				return nil
-			}),
-		)
-
-		return &invoice, err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	invoice, err := s.AdvanceInvoice(ctx, triggeredInvoice.InvoiceID())
-	// We don't care if we cannot advance the invoice, as most probably we ended up in a failed state
-	if errors.Is(err, billing.ErrInvoiceCannotAdvance) {
-		invoice = *triggeredInvoice
-	} else if err != nil {
-		return nil, fmt.Errorf("advancing invoice: %w", err)
-	}
-
-	updatedLine := lo.FindOrElse(invoice.Lines.OrEmpty(), nil, func(l *billing.Line) bool {
-		return l.ID == input.Line.ID
-	})
-
-	if updatedLine == nil {
-		return nil, billing.NotFoundError{
-			Err: fmt.Errorf("line[%s]: not found in invoice", input.Line.ID),
-		}
-	}
-
-	return updatedLine, nil
-}
-
-func (s *Service) DeleteInvoiceLine(ctx context.Context, input billing.DeleteInvoiceLineInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	existingLine, err := s.adapter.GetInvoiceLine(ctx, input)
-	if err != nil {
-		return err
-	}
-
-	if existingLine.Status != billing.InvoiceLineStatusValid {
-		return billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", existingLine.ID, billing.ErrInvoiceLineDeleteInvalidStatus),
-		}
-	}
-
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		_, err := s.executeTriggerOnInvoice(
-			ctx,
-			billing.InvoiceID{
-				ID:        existingLine.InvoiceID,
-				Namespace: existingLine.Namespace,
-			},
-			triggerUpdated,
-			ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
-			ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
-				line := sm.Invoice.Lines.GetByID(existingLine.ID)
-				if line == nil || line.DeletedAt != nil {
-					return billing.NotFoundError{
-						Err: fmt.Errorf("line[%s]: not found in invoice", existingLine.ID),
-					}
-				}
-
-				line.DeletedAt = lo.ToPtr(clock.Now())
-
-				return nil
-			}),
-		)
-
-		return err
 	})
 }
 

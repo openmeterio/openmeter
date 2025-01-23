@@ -2,6 +2,7 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -646,6 +647,16 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					if err := options.editCallback(sm); err != nil {
 						return err
 					}
+
+					if err := sm.Invoice.Validate(); err != nil {
+						return billing.ValidationError{
+							Err: err,
+						}
+					}
+
+					if err := s.checkIfLinesAreInvoicable(ctx, &sm.Invoice, sm.Invoice.Workflow.Config.Invoicing.ProgressiveBilling); err != nil {
+						return err
+					}
 				}
 
 				if err := sm.FireAndActivate(ctx, trigger); err != nil {
@@ -734,6 +745,14 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 	}
 
 	if invoice.Status == billing.InvoiceStatusGathering {
+		billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+			Namespace:  input.Invoice.Namespace,
+			CustomerID: invoice.Customer.CustomerID,
+		})
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("fetching profile: %w", err)
+		}
+
 		return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
 			// let's lock the invoice for update, we are using the dedicated call, so that
 			// edges won't end up having SELECT FOR UPDATE locks
@@ -765,6 +784,11 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				}
 			}
 
+			// Check if the new lines are still invoicable
+			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
+				return billing.Invoice{}, err
+			}
+
 			return s.adapter.UpdateInvoice(ctx, invoice)
 		})
 	}
@@ -774,6 +798,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 		input.Invoice,
 		triggerUpdated,
 		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
+		ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
 		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
 			if err := input.EditFn(&sm.Invoice); err != nil {
 				return fmt.Errorf("editing invoice: %w", err)
@@ -787,6 +812,41 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 			return nil
 		}),
+	)
+}
+
+func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.Invoice, progressiveBilling bool) error {
+	return errors.Join(
+		lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) error {
+			if line.Status != billing.InvoiceLineStatusValid || line.DeletedAt != nil {
+				return nil
+			}
+
+			lineSvc, err := s.lineService.FromEntity(line)
+			if err != nil {
+				return fmt.Errorf("creating line[%s] service from entity: %w", line.ID, err)
+			}
+
+			if err := lineSvc.Validate(ctx, invoice); err != nil {
+				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
+			}
+
+			period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
+				AsOf:               line.Period.End,
+				ProgressiveBilling: progressiveBilling,
+			})
+			if err != nil {
+				return fmt.Errorf("checking if line[%s] can be invoiced: %w", line.ID, err)
+			}
+
+			if period == nil {
+				return billing.ValidationError{
+					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.Period.End),
+				}
+			}
+
+			return nil
+		})...,
 	)
 }
 
