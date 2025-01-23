@@ -213,7 +213,8 @@ func NewMockableFactory(_ *testing.T, config Config) (*MockableFactory, error) {
 
 	fact := &MockableFactory{
 		Factory: &Factory{
-			appService: config.AppService,
+			appService:     config.AppService,
+			billingService: config.BillingService,
 		},
 	}
 

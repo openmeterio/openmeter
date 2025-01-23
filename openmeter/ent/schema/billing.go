@@ -619,9 +619,7 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.JSON("customer_usage_attribution", &billing.VersionedCustomerUsageAttribution{}),
 
 		// Invoice number
-		field.String("number").
-			Optional().
-			Nillable(),
+		field.String("number"),
 
 		field.Enum("type").
 			GoType(billing.InvoiceType("")),
@@ -826,5 +824,31 @@ func (BillingInvoiceValidationIssue) Edges() []ent.Edge {
 			Field("invoice_id").
 			Unique().
 			Required(),
+	}
+}
+
+type BillingSequenceNumbers struct {
+	ent.Schema
+}
+
+func (BillingSequenceNumbers) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+	}
+}
+
+func (BillingSequenceNumbers) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("scope"),
+		field.Other("last", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				"postgres": "numeric",
+			}),
+	}
+}
+
+func (BillingSequenceNumbers) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "scope").Unique(),
 	}
 }

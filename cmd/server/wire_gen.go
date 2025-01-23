@@ -228,16 +228,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	adapter, err := common.BillingAdapter(logger, client)
 	if err != nil {
 		cleanup6()
@@ -251,6 +241,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	billingConfiguration := conf.Billing
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
 	billingService, err := common.BillingService(logger, client, service, appstripeService, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, service, manager, billingService)
 	if err != nil {
 		cleanup6()
 		cleanup5()

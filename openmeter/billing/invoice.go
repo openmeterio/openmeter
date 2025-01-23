@@ -182,7 +182,7 @@ type InvoiceBase struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`
 
-	Number      *string `json:"number,omitempty"`
+	Number      string  `json:"number"`
 	Description *string `json:"description,omitempty"`
 
 	Type InvoiceType `json:"type"`
@@ -572,6 +572,7 @@ type CreateInvoiceAdapterInput struct {
 	Namespace string
 	Customer  customerentity.Customer
 	Profile   Profile
+	Number    string
 	Currency  currencyx.Code
 	Status    InvoiceStatus
 	Metadata  map[string]string
@@ -611,6 +612,10 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 
 	if err := c.Totals.Validate(); err != nil {
 		return fmt.Errorf("totals: %w", err)
+	}
+
+	if c.Number == "" {
+		return errors.New("invoice number is required")
 	}
 
 	return nil

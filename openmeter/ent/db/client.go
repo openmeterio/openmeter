@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -83,6 +84,8 @@ type Client struct {
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
+	// BillingSequenceNumbers is the client for interacting with the BillingSequenceNumbers builders.
+	BillingSequenceNumbers *BillingSequenceNumbersClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Customer is the client for interacting with the Customer builders.
@@ -142,6 +145,7 @@ func (c *Client) init() {
 	c.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(c.config)
 	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
+	c.BillingSequenceNumbers = NewBillingSequenceNumbersClient(c.config)
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
 	c.CustomerSubjects = NewCustomerSubjectsClient(c.config)
@@ -265,6 +269,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
+		BillingSequenceNumbers:             NewBillingSequenceNumbersClient(cfg),
 		BillingWorkflowConfig:              NewBillingWorkflowConfigClient(cfg),
 		Customer:                           NewCustomerClient(cfg),
 		CustomerSubjects:                   NewCustomerSubjectsClient(cfg),
@@ -315,6 +320,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
 		BillingProfile:                     NewBillingProfileClient(cfg),
+		BillingSequenceNumbers:             NewBillingSequenceNumbersClient(cfg),
 		BillingWorkflowConfig:              NewBillingWorkflowConfigClient(cfg),
 		Customer:                           NewCustomerClient(cfg),
 		CustomerSubjects:                   NewCustomerSubjectsClient(cfg),
@@ -365,11 +371,12 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceDiscount,
 		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.Subscription,
-		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
+		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
+		c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
+		c.PlanRateCard, c.Subscription, c.SubscriptionItem, c.SubscriptionPhase,
+		c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -383,11 +390,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceDiscount,
 		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.Subscription,
-		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
+		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
+		c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
+		c.PlanRateCard, c.Subscription, c.SubscriptionItem, c.SubscriptionPhase,
+		c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -424,6 +432,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingInvoiceValidationIssue.mutate(ctx, m)
 	case *BillingProfileMutation:
 		return c.BillingProfile.mutate(ctx, m)
+	case *BillingSequenceNumbersMutation:
+		return c.BillingSequenceNumbers.mutate(ctx, m)
 	case *BillingWorkflowConfigMutation:
 		return c.BillingWorkflowConfig.mutate(ctx, m)
 	case *CustomerMutation:
@@ -3042,6 +3052,139 @@ func (c *BillingProfileClient) mutate(ctx context.Context, m *BillingProfileMuta
 		return (&BillingProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingProfile mutation op: %q", m.Op())
+	}
+}
+
+// BillingSequenceNumbersClient is a client for the BillingSequenceNumbers schema.
+type BillingSequenceNumbersClient struct {
+	config
+}
+
+// NewBillingSequenceNumbersClient returns a client for the BillingSequenceNumbers from the given config.
+func NewBillingSequenceNumbersClient(c config) *BillingSequenceNumbersClient {
+	return &BillingSequenceNumbersClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingsequencenumbers.Hooks(f(g(h())))`.
+func (c *BillingSequenceNumbersClient) Use(hooks ...Hook) {
+	c.hooks.BillingSequenceNumbers = append(c.hooks.BillingSequenceNumbers, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingsequencenumbers.Intercept(f(g(h())))`.
+func (c *BillingSequenceNumbersClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingSequenceNumbers = append(c.inters.BillingSequenceNumbers, interceptors...)
+}
+
+// Create returns a builder for creating a BillingSequenceNumbers entity.
+func (c *BillingSequenceNumbersClient) Create() *BillingSequenceNumbersCreate {
+	mutation := newBillingSequenceNumbersMutation(c.config, OpCreate)
+	return &BillingSequenceNumbersCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingSequenceNumbers entities.
+func (c *BillingSequenceNumbersClient) CreateBulk(builders ...*BillingSequenceNumbersCreate) *BillingSequenceNumbersCreateBulk {
+	return &BillingSequenceNumbersCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingSequenceNumbersClient) MapCreateBulk(slice any, setFunc func(*BillingSequenceNumbersCreate, int)) *BillingSequenceNumbersCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingSequenceNumbersCreateBulk{err: fmt.Errorf("calling to BillingSequenceNumbersClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingSequenceNumbersCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingSequenceNumbersCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingSequenceNumbers.
+func (c *BillingSequenceNumbersClient) Update() *BillingSequenceNumbersUpdate {
+	mutation := newBillingSequenceNumbersMutation(c.config, OpUpdate)
+	return &BillingSequenceNumbersUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingSequenceNumbersClient) UpdateOne(bsn *BillingSequenceNumbers) *BillingSequenceNumbersUpdateOne {
+	mutation := newBillingSequenceNumbersMutation(c.config, OpUpdateOne, withBillingSequenceNumbers(bsn))
+	return &BillingSequenceNumbersUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingSequenceNumbersClient) UpdateOneID(id int) *BillingSequenceNumbersUpdateOne {
+	mutation := newBillingSequenceNumbersMutation(c.config, OpUpdateOne, withBillingSequenceNumbersID(id))
+	return &BillingSequenceNumbersUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingSequenceNumbers.
+func (c *BillingSequenceNumbersClient) Delete() *BillingSequenceNumbersDelete {
+	mutation := newBillingSequenceNumbersMutation(c.config, OpDelete)
+	return &BillingSequenceNumbersDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingSequenceNumbersClient) DeleteOne(bsn *BillingSequenceNumbers) *BillingSequenceNumbersDeleteOne {
+	return c.DeleteOneID(bsn.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingSequenceNumbersClient) DeleteOneID(id int) *BillingSequenceNumbersDeleteOne {
+	builder := c.Delete().Where(billingsequencenumbers.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingSequenceNumbersDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingSequenceNumbers.
+func (c *BillingSequenceNumbersClient) Query() *BillingSequenceNumbersQuery {
+	return &BillingSequenceNumbersQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingSequenceNumbers},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingSequenceNumbers entity by its id.
+func (c *BillingSequenceNumbersClient) Get(ctx context.Context, id int) (*BillingSequenceNumbers, error) {
+	return c.Query().Where(billingsequencenumbers.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingSequenceNumbersClient) GetX(ctx context.Context, id int) *BillingSequenceNumbers {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BillingSequenceNumbersClient) Hooks() []Hook {
+	return c.hooks.BillingSequenceNumbers
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingSequenceNumbersClient) Interceptors() []Interceptor {
+	return c.inters.BillingSequenceNumbers
+}
+
+func (c *BillingSequenceNumbersClient) mutate(ctx context.Context, m *BillingSequenceNumbersMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingSequenceNumbersCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingSequenceNumbersUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingSequenceNumbersUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingSequenceNumbersDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingSequenceNumbers mutation op: %q", m.Op())
 	}
 }
 
@@ -5937,22 +6080,22 @@ type (
 		BillingCustomerOverride, BillingInvoice, BillingInvoiceDiscount,
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanPhase, PlanRateCard, Subscription, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Hook
+		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanPhase, PlanRateCard, Subscription,
+		SubscriptionItem, SubscriptionPhase, UsageReset []ent.Hook
 	}
 	inters struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
 		BillingCustomerOverride, BillingInvoice, BillingInvoiceDiscount,
 		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingProfile, BillingWorkflowConfig, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanPhase, PlanRateCard, Subscription, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Interceptor
+		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
+		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanPhase, PlanRateCard, Subscription,
+		SubscriptionItem, SubscriptionPhase, UsageReset []ent.Interceptor
 	}
 )
 

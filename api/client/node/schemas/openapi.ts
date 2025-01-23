@@ -3841,12 +3841,13 @@ export interface components {
       customer: components['schemas']['BillingParty']
       /** @description Number specifies the human readable key used to reference this Invoice.
        *
-       *     The number only gets populated after the invoice had been issued.
+       *     The invoice number can change in the draft phases, as we are allocating temporary draft
+       *     invoice numbers, but it's final as soon as the invoice gets finalized (issued state).
        *
        *     Please note that the number is (depending on the upstream settings) either unique for the
        *     whole organization or unique for the customer, or in multi (stripe) account setups unique for the
        *     account. */
-      readonly number?: components['schemas']['InvoiceNumber']
+      readonly number: components['schemas']['InvoiceNumber']
       /** @description Currency for all invoice line items.
        *
        *     Multi currency invoices are not supported yet. */

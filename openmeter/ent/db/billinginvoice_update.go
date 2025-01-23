@@ -519,12 +519,6 @@ func (biu *BillingInvoiceUpdate) SetNillableNumber(s *string) *BillingInvoiceUpd
 	return biu
 }
 
-// ClearNumber clears the value of the "number" field.
-func (biu *BillingInvoiceUpdate) ClearNumber() *BillingInvoiceUpdate {
-	biu.mutation.ClearNumber()
-	return biu
-}
-
 // SetType sets the "type" field.
 func (biu *BillingInvoiceUpdate) SetType(bt billing.InvoiceType) *BillingInvoiceUpdate {
 	biu.mutation.SetType(bt)
@@ -1115,9 +1109,6 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if value, ok := biu.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
-	}
-	if biu.mutation.NumberCleared() {
-		_spec.ClearField(billinginvoice.FieldNumber, field.TypeString)
 	}
 	if value, ok := biu.mutation.GetType(); ok {
 		_spec.SetField(billinginvoice.FieldType, field.TypeEnum, value)
@@ -1847,12 +1838,6 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableNumber(s *string) *BillingInvoic
 	return biuo
 }
 
-// ClearNumber clears the value of the "number" field.
-func (biuo *BillingInvoiceUpdateOne) ClearNumber() *BillingInvoiceUpdateOne {
-	biuo.mutation.ClearNumber()
-	return biuo
-}
-
 // SetType sets the "type" field.
 func (biuo *BillingInvoiceUpdateOne) SetType(bt billing.InvoiceType) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetType(bt)
@@ -2473,9 +2458,6 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if value, ok := biuo.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
-	}
-	if biuo.mutation.NumberCleared() {
-		_spec.ClearField(billinginvoice.FieldNumber, field.TypeString)
 	}
 	if value, ok := biuo.mutation.GetType(); ok {
 		_spec.SetField(billinginvoice.FieldType, field.TypeEnum, value)

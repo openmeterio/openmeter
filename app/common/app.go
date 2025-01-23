@@ -15,6 +15,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeadapter "github.com/openmeterio/openmeter/openmeter/app/stripe/adapter"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -71,13 +72,14 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 	})
 }
 
-func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager) (AppSandboxProvisioner, error) {
+func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager, billingService billing.Service) (AppSandboxProvisioner, error) {
 	if !appsConfig.Enabled {
 		return nil, nil
 	}
 
 	_, err := appsandbox.NewFactory(appsandbox.Config{
-		AppService: appService,
+		AppService:     appService,
+		BillingService: billingService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize app sandbox factory: %w", err)

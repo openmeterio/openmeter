@@ -11,6 +11,7 @@ type Service interface {
 	CustomerOverrideService
 	InvoiceLineService
 	InvoiceService
+	SequenceService
 }
 
 type ProfileService interface {
@@ -62,4 +63,8 @@ type InvoiceService interface {
 	// UpsertValidationIssues upserts validation errors to the invoice bypassing the state machine, can only be
 	// used on invoices in immutable state.
 	UpsertValidationIssues(ctx context.Context, input UpsertValidationIssuesInput) error
+}
+
+type SequenceService interface {
+	GenerateInvoiceSequenceNumber(ctx context.Context, in SequenceGenerationInput, def SequenceDefinition) (string, error)
 }

@@ -131,11 +131,6 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 		return nil, fmt.Errorf("failed to initialize namespace manager: %w", err)
 	}
 
-	_, err = common.NewAppSandboxProvisioner(ctx, logger, conf.Apps, appService, namespaceManager)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize sandbox app provisioner: %w", err)
-	}
-
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: entPostgresDriver.Client(),
 		Logger: logger,
@@ -156,6 +151,11 @@ func NewAutoAdvancer(ctx context.Context, conf appconfig.Configuration, logger *
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize billing service: %w", err)
+	}
+
+	_, err = common.NewAppSandboxProvisioner(ctx, logger, conf.Apps, appService, namespaceManager, billingService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize sandbox app provisioner: %w", err)
 	}
 
 	a, err := billingworkerautoadvance.NewAdvancer(billingworkerautoadvance.Config{

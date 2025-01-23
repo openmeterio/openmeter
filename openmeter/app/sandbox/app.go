@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -14,18 +12,21 @@ import (
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
-const (
-	InvoiceTSFormat = "20060102-150405"
-)
-
 var (
 	_ customerapp.App        = (*App)(nil)
 	_ billing.InvoicingApp   = (*App)(nil)
 	_ appentity.CustomerData = (*CustomerData)(nil)
+
+	InvoiceSequenceNumber = billing.SequenceDefinition{
+		Template: "OM-SANDBOX-{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
+		Scope:    "invoices/app/sandbox",
+	}
 )
 
 type App struct {
 	appentitybase.AppBase
+
+	billingService billing.Service
 }
 
 func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
@@ -53,21 +54,27 @@ func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error
 }
 
 func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
-	id, err := ulid.Parse(invoice.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse invoice ID: %w", err)
-	}
-
-	idTime := ulid.Time(id.Time())
-
-	out := billing.NewUpsertInvoiceResult()
-	out.SetInvoiceNumber(fmt.Sprintf("SANDBOX-%s", idTime.Format(InvoiceTSFormat)))
-
 	return billing.NewUpsertInvoiceResult(), nil
 }
 
 func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
-	return nil, nil
+	invoiceNumber, err := a.billingService.GenerateInvoiceSequenceNumber(
+		ctx,
+		billing.SequenceGenerationInput{
+			Namespace:    invoice.Namespace,
+			CustomerName: invoice.Customer.Name,
+			Currency:     invoice.Currency,
+		},
+		InvoiceSequenceNumber,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate invoice sequence number: %w", err)
+	}
+
+	finalizeResult := billing.NewFinalizeInvoiceResult()
+	finalizeResult.SetInvoiceNumber(invoiceNumber)
+
+	return finalizeResult, nil
 }
 
 func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
@@ -81,16 +88,22 @@ func (c CustomerData) Validate() error {
 }
 
 type Factory struct {
-	appService app.Service
+	appService     app.Service
+	billingService billing.Service
 }
 
 type Config struct {
-	AppService app.Service
+	AppService     app.Service
+	BillingService billing.Service
 }
 
 func (c Config) Validate() error {
 	if c.AppService == nil {
 		return fmt.Errorf("app service is required")
+	}
+
+	if c.BillingService == nil {
+		return fmt.Errorf("billing service is required")
 	}
 
 	return nil
@@ -102,7 +115,8 @@ func NewFactory(config Config) (*Factory, error) {
 	}
 
 	fact := &Factory{
-		appService: config.AppService,
+		appService:     config.AppService,
+		billingService: config.BillingService,
 	}
 
 	err := config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
@@ -119,7 +133,8 @@ func NewFactory(config Config) (*Factory, error) {
 // Factory
 func (a *Factory) NewApp(_ context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
 	return App{
-		AppBase: appBase,
+		AppBase:        appBase,
+		billingService: a.billingService,
 	}, nil
 }
 

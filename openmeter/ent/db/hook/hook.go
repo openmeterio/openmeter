@@ -177,6 +177,18 @@ func (f BillingProfileFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingProfileMutation", m)
 }
 
+// The BillingSequenceNumbersFunc type is an adapter to allow the use of ordinary
+// function as BillingSequenceNumbers mutator.
+type BillingSequenceNumbersFunc func(context.Context, *db.BillingSequenceNumbersMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingSequenceNumbersFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingSequenceNumbersMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingSequenceNumbersMutation", m)
+}
+
 // The BillingWorkflowConfigFunc type is an adapter to allow the use of ordinary
 // function as BillingWorkflowConfig mutator.
 type BillingWorkflowConfigFunc func(context.Context, *db.BillingWorkflowConfigMutation) (db.Value, error)

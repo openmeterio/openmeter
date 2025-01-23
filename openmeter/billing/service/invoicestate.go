@@ -476,7 +476,7 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			}
 
 			if invoiceNumber, ok := results.GetInvoiceNumber(); ok {
-				m.Invoice.Number = lo.ToPtr(invoiceNumber)
+				m.Invoice.Number = invoiceNumber
 			}
 		}
 
