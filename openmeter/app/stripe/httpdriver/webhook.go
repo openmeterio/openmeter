@@ -11,8 +11,8 @@ import (
 	"github.com/stripe/stripe-go/v80/webhook"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -53,7 +53,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			// Validate the webhook event
 			event, err := webhook.ConstructEventWithTolerance(params.Payload, r.Header.Get("Stripe-Signature"), secret.Value, time.Hour*10000)
 			if err != nil {
-				return AppStripeWebhookRequest{}, appstripe.ValidationError{
+				return AppStripeWebhookRequest{}, app.ValidationError{
 					Err: fmt.Errorf("failed to construct webhook event: %w", err),
 				}
 			}
@@ -79,7 +79,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 				err := json.Unmarshal(request.Event.Data.Raw, &paymentIntent)
 				if err != nil {
-					return AppStripeWebhookResponse{}, appstripe.ValidationError{
+					return AppStripeWebhookResponse{}, app.ValidationError{
 						Err: fmt.Errorf("failed to unmarshal payment intent: %w", err),
 					}
 				}
@@ -88,7 +88,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				if metadataAppId, ok := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataAppID]; !ok {
 					// When the app id is set, it must match the app id in the API path
 					if metadataAppId != "" && metadataAppId != request.AppID.ID {
-						return AppStripeWebhookResponse{}, appstripe.ValidationError{
+						return AppStripeWebhookResponse{}, app.ValidationError{
 							Err: fmt.Errorf("appid mismatch: in request %s, in payment intent metadata %s", request.AppID.ID, metadataAppId),
 						}
 					}
@@ -100,20 +100,20 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 				// This is an extra consistency check that should never fail as we skip manually created payment intents above
 				if metadataNamespace, ok := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataNamespace]; !ok || metadataNamespace != request.AppID.Namespace {
-					return AppStripeWebhookResponse{}, appstripe.ValidationError{
+					return AppStripeWebhookResponse{}, app.ValidationError{
 						Err: fmt.Errorf("namespace mismatch: in request %s, in payment intent metadata %s", request.AppID.Namespace, metadataNamespace),
 					}
 				}
 
 				// Validate the payment intent object
 				if paymentIntent.Customer == nil {
-					return AppStripeWebhookResponse{}, appstripe.ValidationError{
+					return AppStripeWebhookResponse{}, app.ValidationError{
 						Err: fmt.Errorf("payment intent customer is required"),
 					}
 				}
 
 				if paymentIntent.PaymentMethod == nil {
-					return AppStripeWebhookResponse{}, appstripe.ValidationError{
+					return AppStripeWebhookResponse{}, app.ValidationError{
 						Err: fmt.Errorf("payment intent payment method is required"),
 					}
 				}
@@ -195,7 +195,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				}, nil
 			}
 
-			return AppStripeWebhookResponse{}, appstripe.ValidationError{
+			return AppStripeWebhookResponse{}, app.ValidationError{
 				Err: fmt.Errorf("unsupported event type: %s", request.Event.Type),
 			}
 		},

@@ -38,7 +38,7 @@ func (a adapter) GetStripeAppClientFactory() stripeclient.StripeAppClientFactory
 // CreateApp creates a new app
 func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.AppBase{}, appstripe.ValidationError{
+		return appstripeentity.AppBase{}, app.ValidationError{
 			Err: fmt.Errorf("error create stripe app: %w", err),
 		}
 	}
@@ -86,7 +86,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
 	// Validate the input
 	if err := input.Validate(); err != nil {
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: fmt.Errorf("error replace api key: %w", err),
 		}
 	}
@@ -120,7 +120,7 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 			err = errors.New("new stripe api key is in test mode but the app is in live mode")
 		}
 
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: err,
 		}
 	}
@@ -133,7 +133,7 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 
 	// Check if the stripe account id matches with the stored one
 	if stripeAccount.StripeAccountID != appData.StripeAccountID {
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: fmt.Errorf("stripe account id mismatch: %s != %s", stripeAccount.StripeAccountID, appData.StripeAccountID),
 		}
 	}
@@ -166,7 +166,7 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 // GetStripeAppData gets stripe customer data
 func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.AppData{}, appstripe.ValidationError{
+		return appstripeentity.AppData{}, app.ValidationError{
 			Err: fmt.Errorf("error getting stripe customer data: %w", err),
 		}
 	}
@@ -200,7 +200,7 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 // DeleteStripeAppData deletes the stripe app data
 func (a adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error {
 	if err := input.Validate(); err != nil {
-		return appstripe.ValidationError{
+		return app.ValidationError{
 			Err: fmt.Errorf("error delete stripe app: %w", err),
 		}
 	}
@@ -229,7 +229,7 @@ func (a adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.
 // GetWebhookSecret gets the webhook secret
 func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
 	if err := input.Validate(); err != nil {
-		return secretentity.Secret{}, appstripe.ValidationError{
+		return secretentity.Secret{}, app.ValidationError{
 			Err: fmt.Errorf("error get webhook secret: %w", err),
 		}
 	}
@@ -243,8 +243,11 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return secretentity.Secret{}, appstripe.WebhookAppNotFoundError{
-					AppID: input.AppID,
+				// We don't know the namespace from the app id for webhook requests
+				return secretentity.Secret{}, app.AppNotFoundError{
+					AppID: appentitybase.AppID{
+						ID: input.AppID,
+					},
 				}
 			}
 
@@ -269,7 +272,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 // SetCustomerDefaultPaymentMethod sets the default payment method for a customer
 func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, appstripe.ValidationError{
+		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.ValidationError{
 			Err: fmt.Errorf("error set customer default payment method: %w", err),
 		}
 	}
@@ -286,10 +289,10 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, appstripe.StripeCustomerPreConditionError{
-					AppID:            input.AppID,
-					StripeCustomerID: input.StripeCustomerID,
-					Condition:        "stripe customer has no data for stripe app",
+				return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.AppCustomerPreConditionError{
+					AppID:     input.AppID,
+					AppType:   appentitybase.AppTypeStripe,
+					Condition: fmt.Sprintf("stripe customer has no data for stripe app: %s", input.StripeCustomerID),
 				}
 			}
 		}
@@ -330,7 +333,7 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 // CreateCheckoutSession creates a new checkout session
 func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.CreateCheckoutSessionOutput{}, appstripe.ValidationError{
+		return appstripeentity.CreateCheckoutSessionOutput{}, app.ValidationError{
 			Err: fmt.Errorf("error create checkout session: %w", err),
 		}
 	}
@@ -361,7 +364,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return appstripeentity.CreateCheckoutSessionOutput{}, appstripe.AppNotFoundError{
+				return appstripeentity.CreateCheckoutSessionOutput{}, app.AppNotFoundError{
 					AppID: appID,
 				}
 			}
@@ -499,7 +502,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error) {
 	// Validate input
 	if err := input.Validate(); err != nil {
-		return billing.SupplierContact{}, appstripe.ValidationError{
+		return billing.SupplierContact{}, app.ValidationError{
 			Err: fmt.Errorf("error validate input: %w", err),
 		}
 	}
@@ -561,7 +564,7 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {
 	// Validate input
 	if err := secretAPIKeyID.Validate(); err != nil {
-		return "", appstripe.ValidationError{
+		return "", app.ValidationError{
 			Err: fmt.Errorf("error validate input: %w", err),
 		}
 	}
