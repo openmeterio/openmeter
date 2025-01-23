@@ -347,22 +347,25 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			// invoice objects (e.g. totals, period, etc.)
 			out := make([]billing.Invoice, 0, len(createdInvoices))
 			for _, invoiceID := range createdInvoices {
-				invoice, err := s.withLockedInvoiceStateMachine(ctx, invoiceID, func(ctx context.Context, sm *InvoiceStateMachine) error {
-					validationIssues, err := billing.ToValidationIssues(
-						sm.AdvanceUntilStateStable(ctx),
-					)
-					if err != nil {
-						return fmt.Errorf("activating invoice: %w", err)
-					}
+				invoice, err := s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
+					InvoiceID: invoiceID,
+					Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
+						validationIssues, err := billing.ToValidationIssues(
+							sm.AdvanceUntilStateStable(ctx),
+						)
+						if err != nil {
+							return fmt.Errorf("activating invoice: %w", err)
+						}
 
-					sm.Invoice.ValidationIssues = validationIssues
+						sm.Invoice.ValidationIssues = validationIssues
 
-					sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
-					if err != nil {
-						return fmt.Errorf("updating invoice: %w", err)
-					}
+						sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
+						if err != nil {
+							return fmt.Errorf("updating invoice: %w", err)
+						}
 
-					return nil
+						return nil
+					},
 				})
 				if err != nil {
 					return nil, fmt.Errorf("advancing invoice: %w", err)
@@ -471,29 +474,35 @@ func (s *Service) gatherInscopeLines(ctx context.Context, in gatherInScopeLineIn
 	})
 }
 
+type withLockedStateMachineInput struct {
+	InvoiceID           billing.InvoiceID
+	Callback            InvoiceStateMachineCallback
+	IncludeDeletedLines bool
+}
+
 func (s *Service) withLockedInvoiceStateMachine(
 	ctx context.Context,
-	invoiceID billing.InvoiceID,
-	cb InvoiceStateMachineCallback,
+	in withLockedStateMachineInput,
 ) (billing.Invoice, error) {
 	// let's lock the invoice for update, we are using the dedicated call, so that
 	// edges won't end up having SELECT FOR UPDATE locks
 	if err := s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
-		Namespace:  invoiceID.Namespace,
-		InvoiceIDs: []string{invoiceID.ID},
+		Namespace:  in.InvoiceID.Namespace,
+		InvoiceIDs: []string{in.InvoiceID.ID},
 	}); err != nil {
 		return billing.Invoice{}, fmt.Errorf("locking invoice: %w", err)
 	}
 
 	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: invoiceID,
-		Expand:  billing.InvoiceExpandAll,
+		Invoice: in.InvoiceID,
+		Expand: billing.InvoiceExpandAll.
+			SetDeletedLines(in.IncludeDeletedLines),
 	})
 	if err != nil {
 		return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return s.WithInvoiceStateMachine(ctx, invoice, cb)
+	return s.WithInvoiceStateMachine(ctx, invoice, in.Callback)
 }
 
 func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.Invoice, error) {
@@ -504,31 +513,34 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
-		invoice, err := s.withLockedInvoiceStateMachine(ctx, input, func(ctx context.Context, sm *InvoiceStateMachine) error {
-			preActivationStatus := sm.Invoice.Status
+		invoice, err := s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
+			InvoiceID: input,
+			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
+				preActivationStatus := sm.Invoice.Status
 
-			canAdvance, err := sm.CanFire(ctx, triggerNext)
-			if err != nil {
-				return fmt.Errorf("checking if can advance: %w", err)
-			}
-
-			if !canAdvance {
-				return billing.ValidationError{
-					Err: fmt.Errorf("cannot advance invoice in status [%s]: %w", sm.Invoice.Status, billing.ErrInvoiceCannotAdvance),
+				canAdvance, err := sm.CanFire(ctx, triggerNext)
+				if err != nil {
+					return fmt.Errorf("checking if can advance: %w", err)
 				}
-			}
 
-			validationIssues, err := billing.ToValidationIssues(
-				sm.AdvanceUntilStateStable(ctx),
-			)
-			if err != nil {
-				return fmt.Errorf("advancing invoice: %w", err)
-			}
+				if !canAdvance {
+					return billing.ValidationError{
+						Err: fmt.Errorf("cannot advance invoice in status [%s]: %w", sm.Invoice.Status, billing.ErrInvoiceCannotAdvance),
+					}
+				}
 
-			sm.Invoice.ValidationIssues = validationIssues
-			s.logger.InfoContext(ctx, "invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", sm.Invoice.Status)
+				validationIssues, err := billing.ToValidationIssues(
+					sm.AdvanceUntilStateStable(ctx),
+				)
+				if err != nil {
+					return fmt.Errorf("advancing invoice: %w", err)
+				}
 
-			return nil
+				sm.Invoice.ValidationIssues = validationIssues
+				s.logger.InfoContext(ctx, "invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", sm.Invoice.Status)
+
+				return nil
+			},
 		})
 		if err != nil {
 			return billing.Invoice{}, err
@@ -579,8 +591,9 @@ type (
 )
 
 type executeTriggerOnInvoiceOptions struct {
-	editCallback  func(sm *InvoiceStateMachine) error
-	allowInStates []billing.InvoiceStatus
+	editCallback        func(sm *InvoiceStateMachine) error
+	allowInStates       []billing.InvoiceStatus
+	includeDeletedLines bool
 }
 
 func ExecuteTriggerWithEditCallback(cb editCallbackFunc) executeTriggerApplyOptionFunc {
@@ -592,6 +605,12 @@ func ExecuteTriggerWithEditCallback(cb editCallbackFunc) executeTriggerApplyOpti
 func ExecuteTriggerWithAllowInStates(states ...billing.InvoiceStatus) executeTriggerApplyOptionFunc {
 	return func(opts *executeTriggerOnInvoiceOptions) {
 		opts.allowInStates = states
+	}
+}
+
+func ExecuteTriggerWithIncludeDeletedLines(includeDeletedLines bool) executeTriggerApplyOptionFunc {
+	return func(opts *executeTriggerOnInvoiceOptions) {
+		opts.includeDeletedLines = includeDeletedLines
 	}
 }
 
@@ -608,31 +627,51 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
-		invoice, err := s.withLockedInvoiceStateMachine(ctx, invoiceID, func(ctx context.Context, sm *InvoiceStateMachine) error {
-			canFire, err := sm.CanFire(ctx, trigger)
-			if err != nil {
-				return fmt.Errorf("checking if can fire: %w", err)
-			}
-
-			if !canFire && !slices.Contains(options.allowInStates, sm.Invoice.Status) {
-				return billing.ValidationError{
-					Err: fmt.Errorf("cannot %s invoice in status [%s]: %w", trigger, sm.Invoice.Status, billing.ErrInvoiceActionNotAvailable),
-				}
-			}
-
-			if options.editCallback != nil {
-				if err := options.editCallback(sm); err != nil {
-					return err
-				}
-			}
-
-			if err := sm.FireAndActivate(ctx, trigger); err != nil {
-				validationIssues, err := billing.ToValidationIssues(err)
-				sm.Invoice.ValidationIssues = validationIssues
-
+		invoice, err := s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
+			InvoiceID:           invoiceID,
+			IncludeDeletedLines: options.includeDeletedLines,
+			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
+				canFire, err := sm.CanFire(ctx, trigger)
 				if err != nil {
-					return fmt.Errorf("firing %s: %w", trigger, err)
+					return fmt.Errorf("checking if can fire: %w", err)
 				}
+
+				if !canFire && !slices.Contains(options.allowInStates, sm.Invoice.Status) {
+					return billing.ValidationError{
+						Err: fmt.Errorf("cannot %s invoice in status [%s]: %w", trigger, sm.Invoice.Status, billing.ErrInvoiceActionNotAvailable),
+					}
+				}
+
+				if options.editCallback != nil {
+					if err := options.editCallback(sm); err != nil {
+						return err
+					}
+				}
+
+				if err := sm.FireAndActivate(ctx, trigger); err != nil {
+					validationIssues, err := billing.ToValidationIssues(err)
+					sm.Invoice.ValidationIssues = validationIssues
+
+					if err != nil {
+						return fmt.Errorf("firing %s: %w", trigger, err)
+					}
+
+					sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
+					if err != nil {
+						return fmt.Errorf("updating invoice: %w", err)
+					}
+
+					return nil
+				}
+
+				validationIssues, err := billing.ToValidationIssues(
+					sm.AdvanceUntilStateStable(ctx),
+				)
+				if err != nil {
+					return fmt.Errorf("advancing invoice: %w", err)
+				}
+
+				sm.Invoice.ValidationIssues = validationIssues
 
 				sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
 				if err != nil {
@@ -640,23 +679,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 				}
 
 				return nil
-			}
-
-			validationIssues, err := billing.ToValidationIssues(
-				sm.AdvanceUntilStateStable(ctx),
-			)
-			if err != nil {
-				return fmt.Errorf("advancing invoice: %w", err)
-			}
-
-			sm.Invoice.ValidationIssues = validationIssues
-
-			sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
-			if err != nil {
-				return fmt.Errorf("updating invoice: %w", err)
-			}
-
-			return nil
+			},
 		})
 		if err != nil {
 			return invoice, err
@@ -724,7 +747,9 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
 				// We need split lines too, as for gathering invoices we need to edit those too
-				Expand: billing.InvoiceExpandAll.SetSplitLines(true),
+				Expand: billing.InvoiceExpandAll.
+					SetSplitLines(true).
+					SetDeletedLines(input.IncludeDeletedLines),
 			})
 			if err != nil {
 				return billing.Invoice{}, fmt.Errorf("fetching invoice: %w", err)
@@ -748,6 +773,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 		ctx,
 		input.Invoice,
 		triggerUpdated,
+		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
 		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
 			if err := input.EditFn(&sm.Invoice); err != nil {
 				return fmt.Errorf("editing invoice: %w", err)

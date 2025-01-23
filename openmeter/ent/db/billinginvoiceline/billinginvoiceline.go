@@ -46,6 +46,8 @@ const (
 	FieldTotal = "total"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
 	FieldInvoiceID = "invoice_id"
+	// FieldManagedBy holds the string denoting the managed_by field in the database.
+	FieldManagedBy = "managed_by"
 	// FieldParentLineID holds the string denoting the parent_line_id field in the database.
 	FieldParentLineID = "parent_line_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
@@ -180,6 +182,7 @@ var Columns = []string{
 	FieldDiscountsTotal,
 	FieldTotal,
 	FieldInvoiceID,
+	FieldManagedBy,
 	FieldParentLineID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
@@ -233,6 +236,16 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// ManagedByValidator is a validator for the "managed_by" field enum values. It is called by the builders before save.
+func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
+	switch mb {
+	case "subscription", "system", "manual":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceline: invalid enum value for managed_by field: %q", mb)
+	}
+}
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type billing.InvoiceLineType) error {
@@ -330,6 +343,11 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceID orders the results by the invoice_id field.
 func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
+}
+
+// ByManagedBy orders the results by the managed_by field.
+func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
 }
 
 // ByParentLineID orders the results by the parent_line_id field.

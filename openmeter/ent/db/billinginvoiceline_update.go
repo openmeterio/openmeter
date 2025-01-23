@@ -223,6 +223,20 @@ func (bilu *BillingInvoiceLineUpdate) SetNillableInvoiceID(s *string) *BillingIn
 	return bilu
 }
 
+// SetManagedBy sets the "managed_by" field.
+func (bilu *BillingInvoiceLineUpdate) SetManagedBy(blmb billing.InvoiceLineManagedBy) *BillingInvoiceLineUpdate {
+	bilu.mutation.SetManagedBy(blmb)
+	return bilu
+}
+
+// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
+func (bilu *BillingInvoiceLineUpdate) SetNillableManagedBy(blmb *billing.InvoiceLineManagedBy) *BillingInvoiceLineUpdate {
+	if blmb != nil {
+		bilu.SetManagedBy(*blmb)
+	}
+	return bilu
+}
+
 // SetParentLineID sets the "parent_line_id" field.
 func (bilu *BillingInvoiceLineUpdate) SetParentLineID(s string) *BillingInvoiceLineUpdate {
 	bilu.mutation.SetParentLineID(s)
@@ -690,6 +704,11 @@ func (bilu *BillingInvoiceLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bilu *BillingInvoiceLineUpdate) check() error {
+	if v, ok := bilu.mutation.ManagedBy(); ok {
+		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
+		}
+	}
 	if v, ok := bilu.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
@@ -762,6 +781,9 @@ func (bilu *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if value, ok := bilu.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := bilu.mutation.ManagedBy(); ok {
+		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 	}
 	if value, ok := bilu.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
@@ -1325,6 +1347,20 @@ func (biluo *BillingInvoiceLineUpdateOne) SetNillableInvoiceID(s *string) *Billi
 	return biluo
 }
 
+// SetManagedBy sets the "managed_by" field.
+func (biluo *BillingInvoiceLineUpdateOne) SetManagedBy(blmb billing.InvoiceLineManagedBy) *BillingInvoiceLineUpdateOne {
+	biluo.mutation.SetManagedBy(blmb)
+	return biluo
+}
+
+// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
+func (biluo *BillingInvoiceLineUpdateOne) SetNillableManagedBy(blmb *billing.InvoiceLineManagedBy) *BillingInvoiceLineUpdateOne {
+	if blmb != nil {
+		biluo.SetManagedBy(*blmb)
+	}
+	return biluo
+}
+
 // SetParentLineID sets the "parent_line_id" field.
 func (biluo *BillingInvoiceLineUpdateOne) SetParentLineID(s string) *BillingInvoiceLineUpdateOne {
 	biluo.mutation.SetParentLineID(s)
@@ -1805,6 +1841,11 @@ func (biluo *BillingInvoiceLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (biluo *BillingInvoiceLineUpdateOne) check() error {
+	if v, ok := biluo.mutation.ManagedBy(); ok {
+		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
+		}
+	}
 	if v, ok := biluo.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
@@ -1894,6 +1935,9 @@ func (biluo *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if value, ok := biluo.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
+	}
+	if value, ok := biluo.mutation.ManagedBy(); ok {
+		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
 	}
 	if value, ok := biluo.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)

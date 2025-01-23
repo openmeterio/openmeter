@@ -10,7 +10,7 @@ import (
 type upsertInput[T any, CreateBulkType any] struct {
 	Create      func(*entdb.Client, T) (CreateBulkType, error)
 	UpsertItems func(context.Context, *entdb.Client, []CreateBulkType) error
-	Delete      func(context.Context, *entdb.Client, []T) error
+	MarkDeleted func(context.Context, T) (T, error)
 }
 
 type upsertOption[T any, CreateBulkType any] func(upsertInput[T, CreateBulkType]) upsertInput[T, CreateBulkType]
@@ -21,14 +21,29 @@ func upsertWithOptions[T any, CreateBulkType any](ctx context.Context, db *entdb
 		opts = option(opts)
 	}
 
+	upsertItems := make([]CreateBulkType, 0, len(itemDiff.ToCreate)+len(itemDiff.ToUpdate)+len(itemDiff.ToDelete))
+
 	// Delete must be first, as we might have a constraint that prevents us from creating the item if not deleted before.
-	if len(itemDiff.ToDelete) > 0 && opts.Delete != nil {
-		if err := opts.Delete(ctx, db, itemDiff.ToDelete); err != nil {
+	if len(itemDiff.ToDelete) > 0 && opts.MarkDeleted != nil {
+		// We formulate delete as a soft delete update, so that any changes happening alongside the deletion are persisted
+		// to the database.
+
+		toDelete, err := slicesx.MapWithErr(itemDiff.ToDelete, func(item T) (T, error) {
+			return opts.MarkDeleted(ctx, item)
+		})
+		if err != nil {
 			return err
 		}
-	}
 
-	upsertItems := make([]CreateBulkType, 0, len(itemDiff.ToCreate)+len(itemDiff.ToUpdate))
+		deleteCommands, err := slicesx.MapWithErr(toDelete, func(item T) (CreateBulkType, error) {
+			return opts.Create(db, item)
+		})
+		if err != nil {
+			return err
+		}
+
+		upsertItems = append(upsertItems, deleteCommands...)
+	}
 
 	if len(itemDiff.ToCreate) > 0 {
 		toCreate, err := slicesx.MapWithErr(itemDiff.ToCreate, func(item T) (CreateBulkType, error) {

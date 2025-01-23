@@ -101,6 +101,7 @@ func (s *BillingAdapterTestSuite) TestLineSplitting() {
 				Namespace: ns,
 
 				Type:        billing.InvoiceLineTypeUsageBased,
+				ManagedBy:   billing.ManuallyManagedLine,
 				InvoiceID:   invoice.ID,
 				Name:        "Test Line Parent",
 				Description: lo.ToPtr("Test Line Description"),
@@ -297,6 +298,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
 			Namespace: in.Namespace,
 
 			Type:      billing.InvoiceLineTypeUsageBased,
+			ManagedBy: billing.ManuallyManagedLine,
 			InvoiceID: in.Invoice.ID,
 			Name:      in.Name,
 			Currency:  in.Invoice.Currency,
@@ -324,6 +326,7 @@ func newUsageBasedLine(in usageBasedLineInput) *billing.Line {
 			line.ParentLineID = lo.ToPtr(out.ID)
 			line.ParentLine = out
 			line.Status = billing.InvoiceLineStatusDetailed
+			line.ManagedBy = billing.SystemManagedLine
 			line.Type = billing.InvoiceLineTypeFee
 			line.FlatFee = &billing.FlatFeeLine{
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
@@ -457,6 +460,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		})
 		newLine.Status = billing.InvoiceLineStatusDetailed
 		newLine.Type = billing.InvoiceLineTypeFee
+		newLine.ManagedBy = billing.SystemManagedLine
 		newLine.FlatFee = &billing.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),
 			Quantity:      alpacadecimal.NewFromFloat(1),
@@ -533,6 +537,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 			ChildUniqueReferenceID: "ref4",
 		})
 		newLine.Status = billing.InvoiceLineStatusDetailed
+		newLine.ManagedBy = billing.SystemManagedLine
 		newLine.Type = billing.InvoiceLineTypeFee
 		newLine.FlatFee = &billing.FlatFeeLine{
 			PerUnitAmount: alpacadecimal.NewFromFloat(100),

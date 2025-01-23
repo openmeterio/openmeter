@@ -680,6 +680,8 @@ func (i UpdateInvoiceLinesInternalInput) Validate() error {
 type UpdateInvoiceInput struct {
 	Invoice InvoiceID
 	EditFn  func(*Invoice) error
+	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
+	IncludeDeletedLines bool
 }
 
 func (i UpdateInvoiceInput) Validate() error {

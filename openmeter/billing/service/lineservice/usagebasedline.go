@@ -849,6 +849,7 @@ func (l usageBasedLine) newDetailedLines(inputs ...newDetailedLineInput) ([]*bil
 				Status:                 billing.InvoiceLineStatusDetailed,
 				Period:                 period,
 				Name:                   in.Name,
+				ManagedBy:              billing.SystemManagedLine,
 				InvoiceAt:              l.line.InvoiceAt,
 				InvoiceID:              l.line.InvoiceID,
 				Currency:               l.line.Currency,

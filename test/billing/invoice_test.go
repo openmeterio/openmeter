@@ -124,6 +124,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 
 								InvoiceAt: issueAt,
+								ManagedBy: billing.ManuallyManagedLine,
 
 								Type: billing.InvoiceLineTypeFee,
 
@@ -149,6 +150,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								Period: billing.Period{Start: periodStart, End: periodEnd},
 
 								InvoiceAt: issueAt,
+								ManagedBy: billing.ManuallyManagedLine,
 
 								Type: billing.InvoiceLineTypeFee,
 
@@ -170,6 +172,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 								Period: billing.Period{Start: periodStart, End: periodEnd},
 
 								InvoiceAt: issueAt,
+								ManagedBy: billing.ManuallyManagedLine,
 
 								Type: billing.InvoiceLineTypeUsageBased,
 
@@ -232,6 +235,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 				InvoiceID: usdInvoice.ID,
 				InvoiceAt: issueAt.In(time.UTC),
+				ManagedBy: billing.ManuallyManagedLine,
 
 				Type: billing.InvoiceLineTypeFee,
 
@@ -479,7 +483,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 							InvoiceAt: line1IssueAt,
 
-							Type: billing.InvoiceLineTypeFee,
+							Type:      billing.InvoiceLineTypeFee,
+							ManagedBy: billing.ManuallyManagedLine,
 
 							Name:     "Test item1",
 							Currency: currencyx.Code(currency.USD),
@@ -505,7 +510,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 							InvoiceAt: line2IssueAt,
 
-							Type: billing.InvoiceLineTypeFee,
+							Type:      billing.InvoiceLineTypeFee,
+							ManagedBy: billing.ManuallyManagedLine,
 
 							Name:     "Test item2",
 							Currency: currencyx.Code(currency.USD),
@@ -685,7 +691,8 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 
 							InvoiceAt: invoiceAt,
 
-							Type: billing.InvoiceLineTypeFee,
+							Type:      billing.InvoiceLineTypeFee,
+							ManagedBy: billing.ManuallyManagedLine,
 
 							Name:     "Test item1",
 							Currency: currencyx.Code(currency.USD),
@@ -711,7 +718,8 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 
 							InvoiceAt: invoiceAt,
 
-							Type: billing.InvoiceLineTypeFee,
+							Type:      billing.InvoiceLineTypeFee,
+							ManagedBy: billing.ManuallyManagedLine,
 
 							Name:     "Test item2",
 							Currency: currencyx.Code(currency.USD),
@@ -1386,6 +1394,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per unit",
@@ -1405,6 +1414,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per any usage",
@@ -1424,6 +1434,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered graduated",
@@ -1461,6 +1472,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered volume",
@@ -2204,6 +2216,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered graduated",
@@ -2490,6 +2503,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per unit",
@@ -2509,6 +2523,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per any usage",
@@ -2528,6 +2543,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered graduated",
@@ -2566,6 +2582,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
 								Currency:  currencyx.Code(currency.USD),
+								ManagedBy: billing.ManuallyManagedLine,
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered volume",
 							},
@@ -3009,6 +3026,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
 								Currency:  currencyx.Code(currency.USD),
+								ManagedBy: billing.ManuallyManagedLine,
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per unit",
 							},

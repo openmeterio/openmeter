@@ -226,6 +226,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeFee,
 								Name:      "Fee",
@@ -245,6 +246,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per unit",
@@ -265,6 +267,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - AI Usecase",
@@ -284,6 +287,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - FLAT per any usage",
@@ -304,6 +308,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered graduated",
@@ -342,6 +347,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							LineBase: billing.LineBase{
 								Period:    billing.Period{Start: periodStart, End: periodEnd},
 								InvoiceAt: periodEnd,
+								ManagedBy: billing.ManuallyManagedLine,
 								Currency:  currencyx.Code(currency.USD),
 								Type:      billing.InvoiceLineTypeUsageBased,
 								Name:      "UBP - Tiered volume",

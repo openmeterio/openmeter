@@ -157,6 +157,12 @@ func (bilc *BillingInvoiceLineCreate) SetInvoiceID(s string) *BillingInvoiceLine
 	return bilc
 }
 
+// SetManagedBy sets the "managed_by" field.
+func (bilc *BillingInvoiceLineCreate) SetManagedBy(blmb billing.InvoiceLineManagedBy) *BillingInvoiceLineCreate {
+	bilc.mutation.SetManagedBy(blmb)
+	return bilc
+}
+
 // SetParentLineID sets the "parent_line_id" field.
 func (bilc *BillingInvoiceLineCreate) SetParentLineID(s string) *BillingInvoiceLineCreate {
 	bilc.mutation.SetParentLineID(s)
@@ -529,6 +535,14 @@ func (bilc *BillingInvoiceLineCreate) check() error {
 	if _, ok := bilc.mutation.InvoiceID(); !ok {
 		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "BillingInvoiceLine.invoice_id"`)}
 	}
+	if _, ok := bilc.mutation.ManagedBy(); !ok {
+		return &ValidationError{Name: "managed_by", err: errors.New(`db: missing required field "BillingInvoiceLine.managed_by"`)}
+	}
+	if v, ok := bilc.mutation.ManagedBy(); ok {
+		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
+		}
+	}
 	if _, ok := bilc.mutation.PeriodStart(); !ok {
 		return &ValidationError{Name: "period_start", err: errors.New(`db: missing required field "BillingInvoiceLine.period_start"`)}
 	}
@@ -661,6 +675,10 @@ func (bilc *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgra
 	if value, ok := bilc.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
 		_node.Total = value
+	}
+	if value, ok := bilc.mutation.ManagedBy(); ok {
+		_spec.SetField(billinginvoiceline.FieldManagedBy, field.TypeEnum, value)
+		_node.ManagedBy = value
 	}
 	if value, ok := bilc.mutation.PeriodStart(); ok {
 		_spec.SetField(billinginvoiceline.FieldPeriodStart, field.TypeTime, value)
@@ -1093,6 +1111,18 @@ func (u *BillingInvoiceLineUpsert) SetInvoiceID(v string) *BillingInvoiceLineUps
 // UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
 func (u *BillingInvoiceLineUpsert) UpdateInvoiceID() *BillingInvoiceLineUpsert {
 	u.SetExcluded(billinginvoiceline.FieldInvoiceID)
+	return u
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *BillingInvoiceLineUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldManagedBy, v)
+	return u
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateManagedBy() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldManagedBy)
 	return u
 }
 
@@ -1548,6 +1578,20 @@ func (u *BillingInvoiceLineUpsertOne) SetInvoiceID(v string) *BillingInvoiceLine
 func (u *BillingInvoiceLineUpsertOne) UpdateInvoiceID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceID()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *BillingInvoiceLineUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateManagedBy() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateManagedBy()
 	})
 }
 
@@ -2202,6 +2246,20 @@ func (u *BillingInvoiceLineUpsertBulk) SetInvoiceID(v string) *BillingInvoiceLin
 func (u *BillingInvoiceLineUpsertBulk) UpdateInvoiceID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateInvoiceID()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *BillingInvoiceLineUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateManagedBy() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateManagedBy()
 	})
 }
 

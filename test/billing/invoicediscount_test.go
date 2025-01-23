@@ -59,6 +59,7 @@ func (s *InvoiceDiscountTestSuite) TestInvoiceDiscountSync() {
 						Namespace: namespace,
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
 						InvoiceAt: issueAt,
+						ManagedBy: billing.ManuallyManagedLine,
 
 						Type: billing.InvoiceLineTypeFee,
 

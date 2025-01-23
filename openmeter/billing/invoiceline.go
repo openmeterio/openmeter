@@ -57,6 +57,25 @@ func (InvoiceLineStatus) Values() []string {
 	}
 }
 
+type InvoiceLineManagedBy string
+
+const (
+	// SubscriptionManagedLine is a line that is managed by a subscription.
+	SubscriptionManagedLine InvoiceLineManagedBy = "subscription"
+	// SystemManagedLine is a line that is managed by the system (non editable, detailed lines)
+	SystemManagedLine InvoiceLineManagedBy = "system"
+	// ManuallyManagedLine is a line that is managed manually (e.g. overridden by our API users)
+	ManuallyManagedLine InvoiceLineManagedBy = "manual"
+)
+
+func (InvoiceLineManagedBy) Values() []string {
+	return []string{
+		string(SubscriptionManagedLine),
+		string(SystemManagedLine),
+		string(ManuallyManagedLine),
+	}
+}
+
 // Period represents a time period, in billing the time period is always interpreted as
 // [from, to) (i.e. from is inclusive, to is exclusive).
 type Period struct {
@@ -112,10 +131,11 @@ type LineBase struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
-	Metadata    map[string]string `json:"metadata"`
-	Name        string            `json:"name"`
-	Type        InvoiceLineType   `json:"type"`
-	Description *string           `json:"description,omitempty"`
+	Metadata    map[string]string    `json:"metadata"`
+	Name        string               `json:"name"`
+	Type        InvoiceLineType      `json:"type"`
+	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
+	Description *string              `json:"description,omitempty"`
 
 	InvoiceID string         `json:"invoiceID,omitempty"`
 	Currency  currencyx.Code `json:"currency"`
@@ -169,6 +189,14 @@ func (i LineBase) Validate() error {
 
 	if err := i.Currency.Validate(); err != nil {
 		return errors.New("currency is required")
+	}
+
+	if !slices.Contains(InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
+		return fmt.Errorf("invalid managed by %s", i.ManagedBy)
+	}
+
+	if i.Status == InvoiceLineStatusDetailed && i.ManagedBy != SystemManagedLine {
+		return errors.New("detailed lines must be system managed")
 	}
 
 	return nil
@@ -937,6 +965,7 @@ type UpdateInvoiceLineBaseInput struct {
 
 	Metadata  mo.Option[map[string]string]
 	Name      mo.Option[string]
+	ManagedBy mo.Option[InvoiceLineManagedBy]
 	Period    mo.Option[Period]
 	TaxConfig mo.Option[*TaxConfig]
 }
@@ -968,6 +997,12 @@ func (u UpdateInvoiceLineBaseInput) Validate() error {
 		}
 	}
 
+	if u.ManagedBy.IsPresent() {
+		if !slices.Contains(InvoiceLineManagedBy("").Values(), string(u.ManagedBy.OrEmpty())) {
+			outErr = errors.Join(outErr, ValidationWithFieldPrefix("managed_by", fmt.Errorf("invalid managed by %s", u.ManagedBy.OrEmpty())))
+		}
+	}
+
 	return outErr
 }
 
@@ -990,6 +1025,24 @@ func (u UpdateInvoiceLineBaseInput) Apply(l *Line) error {
 
 	if u.TaxConfig.IsPresent() {
 		l.TaxConfig = u.TaxConfig.OrEmpty()
+	}
+
+	if u.ManagedBy.IsPresent() {
+		newManagedBy := u.ManagedBy.OrEmpty()
+		switch newManagedBy {
+		case SystemManagedLine:
+			return ValidationError{
+				Err: fmt.Errorf("managed by cannot be changed to system managed via the API"),
+			}
+		case SubscriptionManagedLine:
+			if l.Subscription == nil || l.Subscription.SubscriptionID == "" {
+				return ValidationError{
+					Err: fmt.Errorf("subscription managed line must have a subscription"),
+				}
+			}
+		}
+
+		l.ManagedBy = newManagedBy
 	}
 
 	return nil
