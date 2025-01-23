@@ -299,7 +299,7 @@ func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input Creat
 	}
 
 	if input.Options.UIMode != nil {
-		params.Mode = lo.ToPtr(string(*input.Options.UIMode))
+		params.UIMode = lo.ToPtr(string(*input.Options.UIMode))
 	}
 
 	if input.Options.PaymentMethodTypes != nil {
