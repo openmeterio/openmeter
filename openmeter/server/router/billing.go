@@ -137,48 +137,6 @@ func (a *Router) UpdateInvoice(w http.ResponseWriter, r *http.Request, invoiceId
 	}).ServeHTTP(w, r)
 }
 
-// Delete an invoice line
-// (DELETE /api/v1/billing/invoices/{invoiceId}/lines/{lineId})
-func (a *Router) DeleteInvoiceLine(w http.ResponseWriter, r *http.Request, invoiceId string, lineId string) {
-	if !a.config.BillingEnabled {
-		unimplemented.DeleteInvoiceLine(w, r, invoiceId, lineId)
-		return
-	}
-
-	a.billingHandler.DeleteLine().With(httpdriver.DeleteLineParams{
-		InvoiceID: invoiceId,
-		LineID:    lineId,
-	}).ServeHTTP(w, r)
-}
-
-// Get an invoice line
-// (GET /api/v1/billing/invoices/{invoiceId}/lines/{lineId})
-func (a *Router) GetInvoiceLine(w http.ResponseWriter, r *http.Request, invoiceId string, lineId string) {
-	if !a.config.BillingEnabled {
-		unimplemented.GetInvoiceLine(w, r, invoiceId, lineId)
-		return
-	}
-
-	a.billingHandler.GetLine().With(httpdriver.GetLineParams{
-		InvoiceID: invoiceId,
-		LineID:    lineId,
-	}).ServeHTTP(w, r)
-}
-
-// Update an invoice line
-// (PUT /api/v1/billing/invoices/{invoiceId}/lines/{lineId})
-func (a *Router) UpdateInvoiceLine(w http.ResponseWriter, r *http.Request, invoiceId string, lineId string) {
-	if !a.config.BillingEnabled {
-		unimplemented.UpdateInvoiceLine(w, r, invoiceId, lineId)
-		return
-	}
-
-	a.billingHandler.UpdateLine().With(httpdriver.UpdateLineParams{
-		InvoiceID: invoiceId,
-		LineID:    lineId,
-	}).ServeHTTP(w, r)
-}
-
 // Retry a failed synchronization step of the invoice
 // (POST /api/v1/billing/invoices/{invoiceId}/retry)
 func (a *Router) RetryInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) {

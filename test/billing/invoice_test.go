@@ -1563,11 +1563,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), out, 1)
 
-		s.DebugDumpInvoice("mid period ubp progressive invoice", out[0])
+		invoice := out[0]
 
-		require.Len(s.T(), out[0].ValidationIssues, 0)
+		s.DebugDumpInvoice("mid period ubp progressive invoice", invoice)
 
-		invoiceLines := out[0].Lines.MustGet()
+		require.Len(s.T(), invoice.ValidationIssues, 0)
+
+		invoiceLines := invoice.Lines.MustGet()
 		require.Len(s.T(), invoiceLines, 3)
 
 		// Let's resolve the lines by parent
@@ -1636,20 +1638,24 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}, out[0].Totals)
 
 		s.Run("update line item", func() {
-			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
-				Line: billing.LineID{
-					Namespace: namespace,
-					ID:        flatPerUnit.ID,
-				},
-				Type: billing.InvoiceLineTypeUsageBased,
-				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+				Invoice: invoice.InvoiceID(),
+				EditFn: func(invoice *billing.Invoice) error {
+					line := invoice.Lines.GetByID(flatPerUnit.ID)
+					if line == nil {
+						return fmt.Errorf("line not found")
+					}
+
+					line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(250),
-					}),
+					})
+					return nil
 				},
 			})
 			require.NoError(s.T(), err)
-			require.NotNil(s.T(), line)
+			require.NotNil(s.T(), updatedInvoice)
+
+			line := updatedInvoice.Lines.GetByID(flatPerUnit.ID)
 
 			// TODO[later]: we need to decide how to handle the situation where the line is updated, but there are split
 			// lines
@@ -1678,14 +1684,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		s.Run("invalid update of a line item", func() {
-			line, err := s.BillingService.UpdateInvoiceLine(ctx, billing.UpdateInvoiceLineInput{
-				Line: billing.LineID{
-					Namespace: namespace,
-					ID:        flatPerUnit.ID,
-				},
-				Type: billing.InvoiceLineTypeUsageBased,
-				UsageBased: billing.UpdateInvoiceLineUsageBasedInput{
-					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+			_, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+				Invoice: invoice.InvoiceID(),
+				EditFn: func(invoice *billing.Invoice) error {
+					line := invoice.Lines.GetByID(flatPerUnit.ID)
+					if line == nil {
+						return fmt.Errorf("line not found")
+					}
+
+					line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 						Mode: productcatalog.VolumeTieredPrice,
 						Tiers: []productcatalog.PriceTier{
 							{
@@ -1694,64 +1701,59 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 								},
 							},
 						},
-					}),
+					})
+
+					return nil
 				},
 			})
 
 			require.Error(s.T(), err)
 			require.ErrorAs(s.T(), err, &billing.ValidationError{})
 			require.ErrorIs(s.T(), err, billing.ErrInvoiceLinesNotBillable)
-			require.Nil(s.T(), line)
-		})
-
-		s.Run("deleting a detailed line item would fail", func() {
-			detailedLine := flatPerUnit.Children.MustGet()[0]
-
-			err := s.BillingService.DeleteInvoiceLine(ctx, detailedLine.LineID())
-			require.Error(s.T(), err)
-			require.ErrorIs(s.T(), err, billing.ErrInvoiceLineDeleteInvalidStatus)
-			require.ErrorAs(s.T(), err, &billing.ValidationError{})
 		})
 
 		s.Run("deleting a valid line item worked", func() {
-			err := s.BillingService.DeleteInvoiceLine(ctx, flatPerUnit.LineID())
-			require.NoError(s.T(), err)
+			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+				Invoice: invoice.InvoiceID(),
+				EditFn: func(invoice *billing.Invoice) error {
+					line := invoice.Lines.GetByID(flatPerUnit.ID)
+					if line == nil {
+						return fmt.Errorf("line not found")
+					}
 
-			invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					Namespace: namespace,
-					ID:        out[0].ID,
+					line.DeletedAt = lo.ToPtr(clock.Now())
+					return nil
 				},
-				Expand: billing.InvoiceExpandAll.SetDeletedLines(true),
+				IncludeDeletedLines: true,
 			})
 			require.NoError(s.T(), err)
 
-			require.Len(s.T(), invoice.Lines.MustGet(), 3)
+			require.Len(s.T(), updatedInvoice.Lines.MustGet(), 3)
 
-			deletedLine := invoice.Lines.GetByID(flatPerUnit.ID)
+			deletedLine := updatedInvoice.Lines.GetByID(flatPerUnit.ID)
 			require.NotNil(s.T(), deletedLine)
 			require.NotNil(s.T(), deletedLine.DeletedAt)
 
 			requireTotals(s.T(), expectedTotals{
 				Amount: 0,
 				Total:  0,
-			}, invoice.Totals)
+			}, updatedInvoice.Totals)
 
 			// Let's validate without deleted line fetching
-			invoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			updatedInvoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: out[0].InvoiceID(),
 				Expand:  billing.InvoiceExpandAll.SetDeletedLines(false),
 			})
 			require.NoError(s.T(), err)
 
-			require.NotContains(s.T(), lo.Map(invoice.Lines.MustGet(), func(l *billing.Line, _ int) string {
+			require.NotContains(s.T(), lo.Map(updatedInvoice.Lines.MustGet(), func(l *billing.Line, _ int) string {
 				return l.ID
 			}), []string{flatPerUnit.ID})
 
 			requireTotals(s.T(), expectedTotals{
 				Amount: 0,
 				Total:  0,
-			}, invoice.Totals)
+			}, updatedInvoice.Totals)
 		})
 
 		s.Run("invoice deletion works", func() {

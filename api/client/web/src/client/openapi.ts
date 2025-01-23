@@ -321,34 +321,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/api/v1/billing/invoices/{invoiceId}/lines/{lineId}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get an invoice line
-     * @description Get an invoice line
-     */
-    get: operations['getInvoiceLine']
-    put?: never
-    /**
-     * Update an invoice line
-     * @description Update an invoice line
-     */
-    post: operations['updateInvoiceLine']
-    /**
-     * Delete an invoice line
-     * @description Delete an invoice line
-     */
-    delete: operations['deleteInvoiceLine']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/api/v1/billing/invoices/{invoiceId}/retry': {
     parameters: {
       query?: never
@@ -4038,7 +4010,7 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
-      /** @description Who manages the line? */
+      /** @description managedBy specifies if the line is manually added via the api or managed by OpenMeter. */
       readonly managedBy: components['schemas']['InvoiceLineManagedBy']
       /** @description Status of the line.
        *
@@ -4120,52 +4092,6 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
-      /** @description Tax config specify the tax configuration for this line. */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: string
-      /** @enum {string} */
-      type: 'flat_fee'
-      /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
-      /**
-       * @description Payment term of the line.
-       * @default in_advance
-       */
-      paymentTerm: components['schemas']['PricePaymentTerm']
-      /** @description Quantity of the item being sold. */
-      quantity: components['schemas']['Numeric']
-      /**
-       * @description Category of the flat fee.
-       * @default regular
-       */
-      category: components['schemas']['InvoiceFlatFeeCategory']
-    }
-    /** @description Resource update operation model. */
-    InvoiceFlatFeeLineReplaceUpdateCreate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
       /** @description Tax config specify the tax configuration for this line. */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
@@ -4322,10 +4248,6 @@ export interface components {
     InvoiceLineReplaceUpdate:
       | components['schemas']['InvoiceUsageBasedLineReplaceUpdate']
       | components['schemas']['InvoiceFlatFeeLineReplaceUpdate']
-    /** @description InvoiceLineReplaceUpdate represents the update model for an invoice line. */
-    InvoiceLineReplaceUpdateCreate:
-      | components['schemas']['InvoiceUsageBasedLineReplaceUpdateCreate']
-      | components['schemas']['InvoiceFlatFeeLineReplaceUpdateCreate']
     /**
      * @description Line status specifies the status of the line.
      * @enum {string}
@@ -4671,7 +4593,7 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
-      /** @description Who manages the line? */
+      /** @description managedBy specifies if the line is manually added via the api or managed by OpenMeter. */
       readonly managedBy: components['schemas']['InvoiceLineManagedBy']
       /** @description Status of the line.
        *
@@ -4748,41 +4670,6 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
-      /** @description Tax config specify the tax configuration for this line. */
-      taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
-       *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
-      period: components['schemas']['Period']
-      /**
-       * Format: date-time
-       * @description The time this line item should be invoiced.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      invoiceAt: string
-      /** @enum {string} */
-      type: 'usage_based'
-      price: components['schemas']['RateCardUsageBasedPrice']
-      /** @description The feature that the usage is based on. */
-      featureKey: string
-    }
-    /** @description Resource update operation model. */
-    InvoiceUsageBasedLineReplaceUpdateCreate: {
-      /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
-       * Description
-       * @description Optional description of the resource. Maximum 1024 characters.
-       */
-      description?: string
-      /**
-       * Metadata
-       * @description Additional metadata for the resource.
-       */
-      metadata?: components['schemas']['Metadata'] | null
       /** @description Tax config specify the tax configuration for this line. */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
@@ -9109,266 +8996,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Invoice']
         }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  getInvoiceLine: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        invoiceId: string
-        lineId: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description The request has succeeded. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['InvoiceLine']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  updateInvoiceLine: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        invoiceId: string
-        lineId: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['InvoiceLineReplaceUpdateCreate']
-      }
-    }
-    responses: {
-      /** @description The request has succeeded. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['InvoiceLine']
-        }
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  deleteInvoiceLine: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        invoiceId: string
-        lineId: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {
