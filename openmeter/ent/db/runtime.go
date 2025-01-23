@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -532,6 +533,15 @@ func init() {
 	billingprofileDescID := billingprofileMixinFields0[0].Descriptor()
 	// billingprofile.DefaultID holds the default value on creation for the id field.
 	billingprofile.DefaultID = billingprofileDescID.Default.(func() string)
+	billingsequencenumbersMixin := schema.BillingSequenceNumbers{}.Mixin()
+	billingsequencenumbersMixinFields0 := billingsequencenumbersMixin[0].Fields()
+	_ = billingsequencenumbersMixinFields0
+	billingsequencenumbersFields := schema.BillingSequenceNumbers{}.Fields()
+	_ = billingsequencenumbersFields
+	// billingsequencenumbersDescNamespace is the schema descriptor for namespace field.
+	billingsequencenumbersDescNamespace := billingsequencenumbersMixinFields0[0].Descriptor()
+	// billingsequencenumbers.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingsequencenumbers.NamespaceValidator = billingsequencenumbersDescNamespace.Validators[0].(func(string) error)
 	billingworkflowconfigMixin := schema.BillingWorkflowConfig{}.Mixin()
 	billingworkflowconfigMixinFields0 := billingworkflowconfigMixin[0].Fields()
 	_ = billingworkflowconfigMixinFields0

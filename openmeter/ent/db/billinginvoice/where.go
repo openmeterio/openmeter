@@ -2130,16 +2130,6 @@ func NumberHasSuffix(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldNumber, v))
 }
 
-// NumberIsNil applies the IsNil predicate on the "number" field.
-func NumberIsNil() predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldIsNull(FieldNumber))
-}
-
-// NumberNotNil applies the NotNil predicate on the "number" field.
-func NumberNotNil() predicate.BillingInvoice {
-	return predicate.BillingInvoice(sql.FieldNotNull(FieldNumber))
-}
-
 // NumberEqualFold applies the EqualFold predicate on the "number" field.
 func NumberEqualFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEqualFold(FieldNumber, v))

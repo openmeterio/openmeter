@@ -335,7 +335,7 @@ var (
 		{Name: "supplier_tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "customer_name", Type: field.TypeString},
 		{Name: "customer_usage_attribution", Type: field.TypeJSON},
-		{Name: "number", Type: field.TypeString, Nullable: true},
+		{Name: "number", Type: field.TypeString},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "credit-note"}},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
@@ -832,6 +832,31 @@ var (
 				Name:    "billingprofile_namespace_default_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[15], BillingProfilesColumns[5]},
+			},
+		},
+	}
+	// BillingSequenceNumbersColumns holds the columns for the "billing_sequence_numbers" table.
+	BillingSequenceNumbersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "scope", Type: field.TypeString},
+		{Name: "last", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+	}
+	// BillingSequenceNumbersTable holds the schema information for the "billing_sequence_numbers" table.
+	BillingSequenceNumbersTable = &schema.Table{
+		Name:       "billing_sequence_numbers",
+		Columns:    BillingSequenceNumbersColumns,
+		PrimaryKey: []*schema.Column{BillingSequenceNumbersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingsequencenumbers_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingSequenceNumbersColumns[1]},
+			},
+			{
+				Name:    "billingsequencenumbers_namespace_scope",
+				Unique:  true,
+				Columns: []*schema.Column{BillingSequenceNumbersColumns[1], BillingSequenceNumbersColumns[2]},
 			},
 		},
 	}
@@ -1808,6 +1833,7 @@ var (
 		BillingInvoiceUsageBasedLineConfigsTable,
 		BillingInvoiceValidationIssuesTable,
 		BillingProfilesTable,
+		BillingSequenceNumbersTable,
 		BillingWorkflowConfigsTable,
 		CustomersTable,
 		CustomerSubjectsTable,

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 )
 
@@ -137,7 +135,7 @@ func GetApp(app appentity.App) (InvoicingApp, error) {
 func MergeUpsertInvoiceResult(invoice *Invoice, result *UpsertInvoiceResult) error {
 	// Let's merge the results into the invoice
 	if invoiceNumber, ok := result.GetInvoiceNumber(); ok {
-		invoice.Number = lo.ToPtr(invoiceNumber)
+		invoice.Number = invoiceNumber
 	}
 
 	if externalID, ok := result.GetExternalID(); ok {

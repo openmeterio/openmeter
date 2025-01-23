@@ -364,14 +364,6 @@ func (bic *BillingInvoiceCreate) SetNumber(s string) *BillingInvoiceCreate {
 	return bic
 }
 
-// SetNillableNumber sets the "number" field if the given value is not nil.
-func (bic *BillingInvoiceCreate) SetNillableNumber(s *string) *BillingInvoiceCreate {
-	if s != nil {
-		bic.SetNumber(*s)
-	}
-	return bic
-}
-
 // SetType sets the "type" field.
 func (bic *BillingInvoiceCreate) SetType(bt billing.InvoiceType) *BillingInvoiceCreate {
 	bic.mutation.SetType(bt)
@@ -768,6 +760,9 @@ func (bic *BillingInvoiceCreate) check() error {
 	if _, ok := bic.mutation.CustomerUsageAttribution(); !ok {
 		return &ValidationError{Name: "customer_usage_attribution", err: errors.New(`db: missing required field "BillingInvoice.customer_usage_attribution"`)}
 	}
+	if _, ok := bic.mutation.Number(); !ok {
+		return &ValidationError{Name: "number", err: errors.New(`db: missing required field "BillingInvoice.number"`)}
+	}
 	if _, ok := bic.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoice.type"`)}
 	}
@@ -996,7 +991,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	}
 	if value, ok := bic.mutation.Number(); ok {
 		_spec.SetField(billinginvoice.FieldNumber, field.TypeString, value)
-		_node.Number = &value
+		_node.Number = value
 	}
 	if value, ok := bic.mutation.GetType(); ok {
 		_spec.SetField(billinginvoice.FieldType, field.TypeEnum, value)
@@ -1695,12 +1690,6 @@ func (u *BillingInvoiceUpsert) SetNumber(v string) *BillingInvoiceUpsert {
 // UpdateNumber sets the "number" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdateNumber() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldNumber)
-	return u
-}
-
-// ClearNumber clears the value of the "number" field.
-func (u *BillingInvoiceUpsert) ClearNumber() *BillingInvoiceUpsert {
-	u.SetNull(billinginvoice.FieldNumber)
 	return u
 }
 
@@ -2496,13 +2485,6 @@ func (u *BillingInvoiceUpsertOne) SetNumber(v string) *BillingInvoiceUpsertOne {
 func (u *BillingInvoiceUpsertOne) UpdateNumber() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateNumber()
-	})
-}
-
-// ClearNumber clears the value of the "number" field.
-func (u *BillingInvoiceUpsertOne) ClearNumber() *BillingInvoiceUpsertOne {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearNumber()
 	})
 }
 
@@ -3498,13 +3480,6 @@ func (u *BillingInvoiceUpsertBulk) SetNumber(v string) *BillingInvoiceUpsertBulk
 func (u *BillingInvoiceUpsertBulk) UpdateNumber() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateNumber()
-	})
-}
-
-// ClearNumber clears the value of the "number" field.
-func (u *BillingInvoiceUpsertBulk) ClearNumber() *BillingInvoiceUpsertBulk {
-	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.ClearNumber()
 	})
 }
 

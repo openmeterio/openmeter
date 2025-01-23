@@ -3,6 +3,8 @@ package billing
 import (
 	"context"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -14,6 +16,7 @@ type Adapter interface {
 	CustomerOverrideAdapter
 	InvoiceLineAdapter
 	InvoiceAdapter
+	SequenceAdapter
 
 	entutils.TxCreator
 }
@@ -60,4 +63,8 @@ type InvoiceAdapter interface {
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (Invoice, error)
 
 	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
+}
+
+type SequenceAdapter interface {
+	NextSequenceNumber(ctx context.Context, input NextSequenceNumberInput) (alpacadecimal.Decimal, error)
 }

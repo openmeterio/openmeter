@@ -134,14 +134,6 @@ func (s *BaseSuite) SetupSuite() {
 	require.NoError(t, err)
 	s.AppService = appService
 
-	// OpenMeter sandbox (registration as side-effect)
-	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService: appService,
-	})
-	require.NoError(t, err)
-
-	s.SandboxApp = sandboxApp
-
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbClient,
@@ -165,6 +157,15 @@ func (s *BaseSuite) SetupSuite() {
 	s.InvoiceCalculator = invoicecalc.NewMockableCalculator(t, billingService.InvoiceCalculator())
 
 	s.BillingService = billingService.WithInvoiceCalculator(s.InvoiceCalculator)
+
+	// OpenMeter sandbox (registration as side-effect)
+	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
+		AppService:     appService,
+		BillingService: s.BillingService,
+	})
+	require.NoError(t, err)
+
+	s.SandboxApp = sandboxApp
 }
 
 func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) appentity.App {

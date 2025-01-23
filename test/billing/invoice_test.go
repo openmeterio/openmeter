@@ -266,6 +266,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				ID:        usdInvoice.ID,
 
 				Type:     billing.InvoiceTypeStandard,
+				Number:   "GATHER-TECU-USD-1",
 				Currency: currencyx.Code(currency.USD),
 				Status:   billing.InvoiceStatusGathering,
 				StatusDetails: billing.InvoiceStatusDetails{
@@ -1956,7 +1957,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		// Invoice app testing
 
-		require.Equal(s.T(), "INV-123", *out[0].Number)
+		require.Equal(s.T(), "INV-123", out[0].Number)
 
 		for _, line := range out[0].FlattenLinesByID() {
 			switch {

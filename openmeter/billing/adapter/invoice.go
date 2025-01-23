@@ -291,6 +291,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetSourceBillingProfileID(input.Profile.ID).
 			SetCustomerID(input.Customer.ID).
 			SetType(input.Type).
+			SetNumber(input.Number).
 			SetNillableDescription(input.Description).
 			SetNillableDueAt(input.DueAt).
 			SetNillableIssuedAt(lo.EmptyableToPtr(input.IssuedAt)).
@@ -439,7 +440,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			// Currency is immutable
 			SetStatus(in.Status).
 			// Type is immutable
-			SetOrClearNumber(in.Number).
+			SetNumber(in.Number).
 			SetOrClearDescription(in.Description).
 			SetOrClearDueAt(in.DueAt).
 			SetOrClearDraftUntil(in.DraftUntil).

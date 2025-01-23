@@ -166,11 +166,23 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 	}
 
 	if len(pendingInvoiceList.Items) == 0 {
+		invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
+			billing.SequenceGenerationInput{
+				Namespace:    input.Namespace,
+				CustomerName: customerProfile.Customer.Name,
+				Currency:     line.Currency,
+			},
+			billing.GatheringInvoiceSequenceNumber)
+		if err != nil {
+			return nil, fmt.Errorf("generating invoice sequence number: %w", err)
+		}
+
 		// Create a new invoice
 		invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 			Namespace: input.Namespace,
 			Customer:  customerProfile.Customer,
 			Profile:   customerProfile.Profile,
+			Number:    invoiceNumber,
 			Currency:  line.Currency,
 			Status:    billing.InvoiceStatusGathering,
 			Type:      billing.InvoiceTypeStandard,

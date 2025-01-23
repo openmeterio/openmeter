@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -118,6 +119,7 @@ func checkColumn(table, column string) error {
 			billinginvoiceusagebasedlineconfig.Table: billinginvoiceusagebasedlineconfig.ValidColumn,
 			billinginvoicevalidationissue.Table:      billinginvoicevalidationissue.ValidColumn,
 			billingprofile.Table:                     billingprofile.ValidColumn,
+			billingsequencenumbers.Table:             billingsequencenumbers.ValidColumn,
 			billingworkflowconfig.Table:              billingworkflowconfig.ValidColumn,
 			customer.Table:                           customer.ValidColumn,
 			customersubjects.Table:                   customersubjects.ValidColumn,

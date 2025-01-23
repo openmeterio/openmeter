@@ -1,4 +1,4 @@
-h1:kLgMC9T556uEcLifsAmRfHax58poqz7Dz2+WzAAcY6M=
+h1:PDw0MYgJ2TVHmktVv2qiKWix7s94dmMIrfLJz9KmRMM=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -87,3 +87,5 @@ h1:kLgMC9T556uEcLifsAmRfHax58poqz7Dz2+WzAAcY6M=
 20250117120943_billing-fee-payment-term.up.sql h1:KFAAtBoI1yzioS2C5bxI9hguo+8F5YA8Ee5yN3wPk24=
 20250121141512_billing-managed-by.down.sql h1:CW8aRSfA//VC1ov1+H9/0O6wDR7/j//8KcqSZ8Tpbzo=
 20250121141512_billing-managed-by.up.sql h1:It8iuD2+tVg4P8dRsiWwTIs0waI3ScU1QPodpUdTmHA=
+20250123130012_billing-sequence-numbers.down.sql h1:G/usmxvRaztfXHRShbIBrnZanuvLAWJpElBkvL8X+3U=
+20250123130012_billing-sequence-numbers.up.sql h1:8dtKq6tQE/7/LVkTmiUsdNRRgmsGyDIne7ZILqGZOW8=

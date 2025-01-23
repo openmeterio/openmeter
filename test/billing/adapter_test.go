@@ -67,6 +67,7 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 		Namespace: ns,
 		Customer:  *customerEntity,
 
+		Number:   "INV-123",
 		Currency: currencyx.Code(currency.USD),
 		Status:   billing.InvoiceStatusGathering,
 

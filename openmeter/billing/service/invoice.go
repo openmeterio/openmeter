@@ -281,6 +281,18 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			createdInvoices := make([]billing.InvoiceID, 0, len(linesByCurrency))
 
 			for currency, lines := range linesByCurrency {
+				invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
+					billing.SequenceGenerationInput{
+						Namespace:    input.Customer.Namespace,
+						CustomerName: customerProfile.Profile.Name,
+						Currency:     currency,
+					},
+					billing.DraftInvoiceSequenceNumber,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("generating invoice number: %w", err)
+				}
+
 				// let's create the invoice
 				invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 					Namespace: input.Customer.Namespace,
@@ -288,6 +300,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					Profile:   customerProfile.Profile,
 
 					Currency: currency,
+					Number:   invoiceNumber,
 					Status:   billing.InvoiceStatusDraftCreated,
 
 					Type: billing.InvoiceTypeStandard,
@@ -870,7 +883,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			Namespace: input.CustomerID.Namespace,
 			ID:        ulid.Make().String(),
 
-			Number: input.Number,
+			Number: lo.FromPtrOr(input.Number, "INV-SIMULATED"),
 
 			Type: billing.InvoiceTypeStandard,
 

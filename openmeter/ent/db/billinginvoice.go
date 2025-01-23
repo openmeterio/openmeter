@@ -87,7 +87,7 @@ type BillingInvoice struct {
 	// CustomerUsageAttribution holds the value of the "customer_usage_attribution" field.
 	CustomerUsageAttribution *billing.VersionedCustomerUsageAttribution `json:"customer_usage_attribution,omitempty"`
 	// Number holds the value of the "number" field.
-	Number *string `json:"number,omitempty"`
+	Number string `json:"number,omitempty"`
 	// Type holds the value of the "type" field.
 	Type billing.InvoiceType `json:"type,omitempty"`
 	// Description holds the value of the "description" field.
@@ -486,8 +486,7 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field number", values[i])
 			} else if value.Valid {
-				bi.Number = new(string)
-				*bi.Number = value.String
+				bi.Number = value.String
 			}
 		case billinginvoice.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -809,10 +808,8 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("customer_usage_attribution=")
 	builder.WriteString(fmt.Sprintf("%v", bi.CustomerUsageAttribution))
 	builder.WriteString(", ")
-	if v := bi.Number; v != nil {
-		builder.WriteString("number=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("number=")
+	builder.WriteString(bi.Number)
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", bi.Type))
