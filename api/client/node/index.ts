@@ -1,36 +1,73 @@
-import { OpenMeterConfig } from './clients/client.js'
-import { EntitlementClient } from './clients/entitlement.js'
-import { EventsClient } from './clients/event.js'
-import { FeatureClient } from './clients/feature.js'
-import { GrantClient } from './clients/grant.js'
-import { MetersClient } from './clients/meter.js'
-import { NotificationClient } from './clients/notifications.js'
-import { PortalClient } from './clients/portal.js'
-import { SubjectClient } from './clients/subject.js'
+import createClient, {
+  createQuerySerializer,
+  type Client,
+  type ClientOptions,
+} from 'openapi-fetch'
+import { Apps } from './src/apps.js'
+import { Billing } from './src/billing.js'
+import { Entitlements } from './src/entitlements.js'
+import { Events } from './src/events.js'
+import { Features } from './src/features.js'
+import { Meters } from './src/meters.js'
+import { Notifications } from './src/notifications.js'
+import { Plans } from './src/plans.js'
+import { Subjects } from './src/subjects.js'
+import { encodeDates } from './src/utils.js'
+import type { paths } from './src/schemas.js'
 
-export { OpenMeterConfig, RequestOptions } from './clients/client.js'
-export { Event, IngestedEvent, CloudEvent } from './clients/event.js'
-export { Meter, MeterAggregation, WindowSize } from './clients/meter.js'
-export * from './clients/notifications.js'
+export type * from './src/schemas.js'
+
+export interface Config
+  extends Pick<
+    ClientOptions,
+    'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'
+  > {
+  apiKey?: string
+}
 
 export class OpenMeter {
-  public events: EventsClient
-  public meters: MetersClient
-  public portal: PortalClient
-  public subjects: SubjectClient
-  public features: FeatureClient
-  public entitlements: EntitlementClient
-  public grants: GrantClient
-  public notification: NotificationClient
+  config: Config
+  public client: Client<paths, `${string}/${string}`>
 
-  constructor(config: OpenMeterConfig) {
-    this.events = new EventsClient(config)
-    this.meters = new MetersClient(config)
-    this.portal = new PortalClient(config)
-    this.subjects = new SubjectClient(config)
-    this.features = new FeatureClient(config)
-    this.entitlements = new EntitlementClient(config)
-    this.grants = new GrantClient(config)
-    this.notification = new NotificationClient(config)
+  public apps: Apps
+  public billing: Billing
+  public entitlements: Entitlements
+  public events: Events
+  public features: Features
+  public meters: Meters
+  public notifications: Notifications
+  public plans: Plans
+  public subjects: Subjects
+
+  constructor(config: Config) {
+    this.config = config
+    this.client = createClient<paths>({
+      ...config,
+      headers: {
+        ...config.headers,
+        Authorization: config.apiKey ? `Bearer ${config.apiKey}` : undefined,
+      },
+      querySerializer: (q) =>
+        createQuerySerializer({
+          array: {
+            style: 'form',
+            explode: true,
+          },
+          object: {
+            style: 'deepObject',
+            explode: true,
+          },
+        })(encodeDates(q)),
+    })
+
+    this.apps = new Apps(this.client)
+    this.billing = new Billing(this.client)
+    this.entitlements = new Entitlements(this.client)
+    this.events = new Events(this.client)
+    this.features = new Features(this.client)
+    this.meters = new Meters(this.client)
+    this.notifications = new Notifications(this.client)
+    this.plans = new Plans(this.client)
+    this.subjects = new Subjects(this.client)
   }
 }
