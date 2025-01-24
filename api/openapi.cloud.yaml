@@ -8720,6 +8720,13 @@ components:
           type: boolean
           description: Should progressive billing be allowed for this workflow?
           default: false
+        taxBehavior:
+          allOf:
+            - $ref: '#/components/schemas/TaxBehavior'
+          description: |-
+            Default tax behavior for the invoice.
+
+            Each line can override the tax behavior. If not set, the provider's defaults are used.
       description: BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow
       title: Workflow invoice settings
     BillingWorkflowPaymentSettings:
@@ -12326,6 +12333,13 @@ components:
           description: The period after which the invoice is due.
           example: P1D
           default: P7D
+        taxBehavior:
+          allOf:
+            - $ref: '#/components/schemas/TaxBehavior'
+          description: |-
+            Default tax behavior for the invoice.
+
+            Each line can override the tax behavior. If not set, the provider's defaults are used.
       description: InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.
     InvoiceWorkflowReplaceUpdate:
       type: object
@@ -15366,9 +15380,27 @@ components:
           description: The payload of the Svix operational webhook request.
           title: Operational Webhook Payload
       description: Operational webhook reqeuest sent by Svix.
+    TaxBehavior:
+      type: string
+      enum:
+        - included
+        - excluded
+      description: |-
+        Tax behavior.
+
+        This enum is used to specify whether tax is included in the price or excluded from the price.
     TaxConfig:
       type: object
       properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/TaxBehavior'
+          description: |-
+            Tax behavior.
+
+            If not specified the billing profile is used to determine the tax behavior.
+            If not specified in the billing profile, the provider's default behavior is used.
+          title: Tax behavior
         stripe:
           allOf:
             - $ref: '#/components/schemas/StripeTaxConfig'

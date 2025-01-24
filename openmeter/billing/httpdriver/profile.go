@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -394,6 +395,7 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 			DraftPeriod:        draftPeriod,
 			DueAfter:           dueAfter,
 			ProgressiveBilling: lo.FromPtrOr(i.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
+			TaxBehavior:        (*productcatalog.TaxBehavior)(i.Invoicing.TaxBehavior),
 		},
 
 		Payment: billing.PaymentConfig{
@@ -576,6 +578,7 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) api.BillingWorkflow {
 			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
+			TaxBehavior:        (*api.TaxBehavior)(c.Invoicing.TaxBehavior),
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
@@ -598,6 +601,7 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) api.BillingWorkflo
 			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
+			TaxBehavior:        (*api.TaxBehavior)(c.Invoicing.TaxBehavior),
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{

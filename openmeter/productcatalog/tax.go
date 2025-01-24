@@ -4,11 +4,36 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+
+	"github.com/samber/lo"
 )
+
+type TaxBehavior string
+
+const (
+	InclusiveTaxBehavior TaxBehavior = "inclusive"
+	ExclusiveTaxBehavior TaxBehavior = "exclusive"
+)
+
+func (t TaxBehavior) Values() []string {
+	return []string{
+		string(InclusiveTaxBehavior),
+		string(ExclusiveTaxBehavior),
+	}
+}
+
+func (t TaxBehavior) Validate() error {
+	if !lo.Contains(t.Values(), string(t)) {
+		return fmt.Errorf("invalid tax behavior: %s", t)
+	}
+
+	return nil
+}
 
 // TaxConfig stores the provider specific tax configs.
 type TaxConfig struct {
-	Stripe *StripeTaxConfig `json:"stripe,omitempty"`
+	Behavior *TaxBehavior     `json:"behavior,omitempty"`
+	Stripe   *StripeTaxConfig `json:"stripe,omitempty"`
 }
 
 func (c *TaxConfig) Equal(v *TaxConfig) bool {
@@ -20,11 +45,25 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 		return false
 	}
 
+	if (c.Behavior != nil && v.Behavior == nil) || (c.Behavior == nil && v.Behavior != nil) {
+		return false
+	}
+
+	if c.Behavior != nil && *c.Behavior != *v.Behavior {
+		return false
+	}
+
 	return c.Stripe.Equal(v.Stripe)
 }
 
 func (c *TaxConfig) Validate() error {
 	var errs []error
+
+	if c.Behavior != nil {
+		if err := c.Behavior.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
 
 	if c.Stripe != nil {
 		if err := c.Stripe.Validate(); err != nil {

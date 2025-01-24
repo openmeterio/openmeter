@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -47,6 +48,8 @@ type BillingCustomerOverride struct {
 	InvoiceCollectionMethod *billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
 	InvoiceProgressiveBilling *bool `json:"invoice_progressive_billing,omitempty"`
+	// InvoiceTaxBehavior holds the value of the "invoice_tax_behavior" field.
+	InvoiceTaxBehavior *productcatalog.TaxBehavior `json:"invoice_tax_behavior,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -93,7 +96,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldInvoiceTaxBehavior:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -205,6 +208,13 @@ func (bco *BillingCustomerOverride) assignValues(columns []string, values []any)
 				bco.InvoiceProgressiveBilling = new(bool)
 				*bco.InvoiceProgressiveBilling = value.Bool
 			}
+		case billingcustomeroverride.FieldInvoiceTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_tax_behavior", values[i])
+			} else if value.Valid {
+				bco.InvoiceTaxBehavior = new(productcatalog.TaxBehavior)
+				*bco.InvoiceTaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		default:
 			bco.selectValues.Set(columns[i], values[i])
 		}
@@ -305,6 +315,11 @@ func (bco *BillingCustomerOverride) String() string {
 	builder.WriteString(", ")
 	if v := bco.InvoiceProgressiveBilling; v != nil {
 		builder.WriteString("invoice_progressive_billing=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := bco.InvoiceTaxBehavior; v != nil {
+		builder.WriteString("invoice_tax_behavior=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

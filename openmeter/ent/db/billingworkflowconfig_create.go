@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -114,6 +115,20 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceCollectionMethod(bm billing.C
 // SetInvoiceProgressiveBilling sets the "invoice_progressive_billing" field.
 func (bwcc *BillingWorkflowConfigCreate) SetInvoiceProgressiveBilling(b bool) *BillingWorkflowConfigCreate {
 	bwcc.mutation.SetInvoiceProgressiveBilling(b)
+	return bwcc
+}
+
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceTaxBehavior(pb)
+	return bwcc
+}
+
+// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingWorkflowConfigCreate {
+	if pb != nil {
+		bwcc.SetInvoiceTaxBehavior(*pb)
+	}
 	return bwcc
 }
 
@@ -265,6 +280,11 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 	if _, ok := bwcc.mutation.InvoiceProgressiveBilling(); !ok {
 		return &ValidationError{Name: "invoice_progressive_billing", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_progressive_billing"`)}
 	}
+	if v, ok := bwcc.mutation.InvoiceTaxBehavior(); ok {
+		if err := billingworkflowconfig.InvoiceTaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_tax_behavior": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -344,6 +364,10 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 	if value, ok := bwcc.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 		_node.InvoiceProgressiveBilling = value
+	}
+	if value, ok := bwcc.mutation.InvoiceTaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+		_node.InvoiceTaxBehavior = &value
 	}
 	if nodes := bwcc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -543,6 +567,24 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceProgressiveBilling() *Billing
 	return u
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceTaxBehavior, v)
+	return u
+}
+
+// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceTaxBehavior() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceTaxBehavior)
+	return u
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceTaxBehavior)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -727,6 +769,27 @@ func (u *BillingWorkflowConfigUpsertOne) SetInvoiceProgressiveBilling(v bool) *B
 func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceProgressiveBilling()
+	})
+}
+
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetInvoiceTaxBehavior(v)
+	})
+}
+
+// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceTaxBehavior() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateInvoiceTaxBehavior()
+	})
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceTaxBehavior()
 	})
 }
 
@@ -1081,6 +1144,27 @@ func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceProgressiveBilling(v bool) *
 func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceProgressiveBilling()
+	})
+}
+
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetInvoiceTaxBehavior(v)
+	})
+}
+
+// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceTaxBehavior() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateInvoiceTaxBehavior()
+	})
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearInvoiceTaxBehavior()
 	})
 }
 

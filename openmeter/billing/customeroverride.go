@@ -5,6 +5,7 @@ import (
 	"time"
 
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -76,10 +77,11 @@ func (c *CollectionOverrideConfig) Validate() error {
 }
 
 type InvoicingOverrideConfig struct {
-	AutoAdvance        *bool         `json:"autoAdvance,omitempty"`
-	DraftPeriod        *datex.Period `json:"draftPeriod,omitempty"`
-	DueAfter           *datex.Period `json:"dueAfter,omitempty"`
-	ProgressiveBilling *bool         `json:"progressiveBilling,omitempty"`
+	AutoAdvance        *bool                       `json:"autoAdvance,omitempty"`
+	DraftPeriod        *datex.Period               `json:"draftPeriod,omitempty"`
+	DueAfter           *datex.Period               `json:"dueAfter,omitempty"`
+	ProgressiveBilling *bool                       `json:"progressiveBilling,omitempty"`
+	TaxBehavior        *productcatalog.TaxBehavior `json:"taxBehavior,omitempty"`
 }
 
 func (c *InvoicingOverrideConfig) Validate() error {
@@ -93,6 +95,12 @@ func (c *InvoicingOverrideConfig) Validate() error {
 
 	if c.DraftPeriod != nil && c.DraftPeriod.IsNegative() {
 		return fmt.Errorf("draft period must be greater or equal to 0")
+	}
+
+	if c.TaxBehavior != nil {
+		if err := c.TaxBehavior.Validate(); err != nil {
+			return fmt.Errorf("invalid tax behavior: %s", *c.TaxBehavior)
+		}
 	}
 
 	return nil

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -193,6 +194,20 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceProgressiveBilling(
 	return bcoc
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetInvoiceTaxBehavior(pb)
+	return bcoc
+}
+
+// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingCustomerOverrideCreate {
+	if pb != nil {
+		bcoc.SetInvoiceTaxBehavior(*pb)
+	}
+	return bcoc
+}
+
 // SetID sets the "id" field.
 func (bcoc *BillingCustomerOverrideCreate) SetID(s string) *BillingCustomerOverrideCreate {
 	bcoc.mutation.SetID(s)
@@ -295,6 +310,11 @@ func (bcoc *BillingCustomerOverrideCreate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
 		}
 	}
+	if v, ok := bcoc.mutation.InvoiceTaxBehavior(); ok {
+		if err := billingcustomeroverride.InvoiceTaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_tax_behavior": %w`, err)}
+		}
+	}
 	if len(bcoc.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "BillingCustomerOverride.customer"`)}
 	}
@@ -377,6 +397,10 @@ func (bcoc *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverrid
 	if value, ok := bcoc.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 		_node.InvoiceProgressiveBilling = &value
+	}
+	if value, ok := bcoc.mutation.InvoiceTaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+		_node.InvoiceTaxBehavior = &value
 	}
 	if nodes := bcoc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -638,6 +662,24 @@ func (u *BillingCustomerOverrideUpsert) ClearInvoiceProgressiveBilling() *Billin
 	return u
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (u *BillingCustomerOverrideUpsert) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldInvoiceTaxBehavior, v)
+	return u
+}
+
+// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateInvoiceTaxBehavior() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldInvoiceTaxBehavior)
+	return u
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (u *BillingCustomerOverrideUpsert) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldInvoiceTaxBehavior)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -895,6 +937,27 @@ func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceProgressiveBilling() *Bi
 func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearInvoiceProgressiveBilling()
+	})
+}
+
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetInvoiceTaxBehavior(v)
+	})
+}
+
+// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceTaxBehavior() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateInvoiceTaxBehavior()
+	})
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearInvoiceTaxBehavior()
 	})
 }
 
@@ -1322,6 +1385,27 @@ func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceProgressiveBilling() *B
 func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceProgressiveBilling() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearInvoiceProgressiveBilling()
+	})
+}
+
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetInvoiceTaxBehavior(v)
+	})
+}
+
+// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceTaxBehavior() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateInvoiceTaxBehavior()
+	})
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearInvoiceTaxBehavior()
 	})
 }
 

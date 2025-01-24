@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -42,6 +43,8 @@ const (
 	FieldInvoiceCollectionMethod = "invoice_collection_method"
 	// FieldInvoiceProgressiveBilling holds the string denoting the invoice_progressive_billing field in the database.
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
+	// FieldInvoiceTaxBehavior holds the string denoting the invoice_tax_behavior field in the database.
+	FieldInvoiceTaxBehavior = "invoice_tax_behavior"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
@@ -80,6 +83,7 @@ var Columns = []string{
 	FieldInvoiceDueAfter,
 	FieldInvoiceCollectionMethod,
 	FieldInvoiceProgressiveBilling,
+	FieldInvoiceTaxBehavior,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -122,6 +126,16 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingcustomeroverride: invalid enum value for invoice_collection_method field: %q", icm)
+	}
+}
+
+// InvoiceTaxBehaviorValidator is a validator for the "invoice_tax_behavior" field enum values. It is called by the builders before save.
+func InvoiceTaxBehaviorValidator(itb productcatalog.TaxBehavior) error {
+	switch itb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingcustomeroverride: invalid enum value for invoice_tax_behavior field: %q", itb)
 	}
 }
 
@@ -196,6 +210,11 @@ func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceProgressiveBilling orders the results by the invoice_progressive_billing field.
 func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
+}
+
+// ByInvoiceTaxBehavior orders the results by the invoice_tax_behavior field.
+func ByInvoiceTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceTaxBehavior, opts...).ToFunc()
 }
 
 // ByCustomerField orders the results by customer field.

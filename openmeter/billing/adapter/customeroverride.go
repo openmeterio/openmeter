@@ -31,6 +31,7 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
 			SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
 			SetNillableInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
+			SetNillableInvoiceTaxBehavior(input.Invoicing.TaxBehavior).
 			Save(ctx)
 		if err != nil {
 			return nil, err
@@ -71,7 +72,8 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 			SetOrClearInvoiceDraftPeriod(input.Invoicing.DraftPeriod.ISOStringPtrOrNil()).
 			SetOrClearInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
 			SetOrClearInvoiceCollectionMethod(input.Payment.CollectionMethod).
-			SetOrClearInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling)
+			SetOrClearInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
+			SetOrClearInvoiceTaxBehavior(input.Invoicing.TaxBehavior)
 
 		if input.ResetDeletedAt {
 			update = update.ClearDeletedAt()
@@ -263,6 +265,7 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 			DraftPeriod:        draftPeriod,
 			DueAfter:           dueAfter,
 			ProgressiveBilling: dbOverride.InvoiceProgressiveBilling,
+			TaxBehavior:        dbOverride.InvoiceTaxBehavior,
 		},
 
 		Payment: billing.PaymentOverrideConfig{

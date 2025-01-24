@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -217,6 +218,26 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceProgressiveBilling() *Bil
 	return bcou
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceTaxBehavior(pb)
+	return bcou
+}
+
+// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	if pb != nil {
+		bcou.SetInvoiceTaxBehavior(*pb)
+	}
+	return bcou
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearInvoiceTaxBehavior()
+	return bcou
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (bcou *BillingCustomerOverrideUpdate) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideUpdate {
 	return bcou.SetBillingProfileID(b.ID)
@@ -279,6 +300,11 @@ func (bcou *BillingCustomerOverrideUpdate) check() error {
 	if v, ok := bcou.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingcustomeroverride.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
+		}
+	}
+	if v, ok := bcou.mutation.InvoiceTaxBehavior(); ok {
+		if err := billingcustomeroverride.InvoiceTaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_tax_behavior": %w`, err)}
 		}
 	}
 	if bcou.mutation.CustomerCleared() && len(bcou.mutation.CustomerIDs()) > 0 {
@@ -349,6 +375,12 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 	}
 	if bcou.mutation.InvoiceProgressiveBillingCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
+	}
+	if value, ok := bcou.mutation.InvoiceTaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	}
+	if bcou.mutation.InvoiceTaxBehaviorCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum)
 	}
 	if bcou.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -585,6 +617,26 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceProgressiveBilling() 
 	return bcouo
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceTaxBehavior(pb)
+	return bcouo
+}
+
+// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	if pb != nil {
+		bcouo.SetInvoiceTaxBehavior(*pb)
+	}
+	return bcouo
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearInvoiceTaxBehavior()
+	return bcouo
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (bcouo *BillingCustomerOverrideUpdateOne) SetBillingProfile(b *BillingProfile) *BillingCustomerOverrideUpdateOne {
 	return bcouo.SetBillingProfileID(b.ID)
@@ -660,6 +712,11 @@ func (bcouo *BillingCustomerOverrideUpdateOne) check() error {
 	if v, ok := bcouo.mutation.InvoiceCollectionMethod(); ok {
 		if err := billingcustomeroverride.InvoiceCollectionMethodValidator(v); err != nil {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
+		}
+	}
+	if v, ok := bcouo.mutation.InvoiceTaxBehavior(); ok {
+		if err := billingcustomeroverride.InvoiceTaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_tax_behavior": %w`, err)}
 		}
 	}
 	if bcouo.mutation.CustomerCleared() && len(bcouo.mutation.CustomerIDs()) > 0 {
@@ -747,6 +804,12 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 	}
 	if bcouo.mutation.InvoiceProgressiveBillingCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
+	}
+	if value, ok := bcouo.mutation.InvoiceTaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	}
+	if bcouo.mutation.InvoiceTaxBehaviorCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum)
 	}
 	if bcouo.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

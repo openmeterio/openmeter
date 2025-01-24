@@ -251,6 +251,20 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceProgressiveBilling(v
 	return u.SetInvoiceProgressiveBilling(*value)
 }
 
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearInvoiceTaxBehavior()
+	}
+	return u.SetInvoiceTaxBehavior(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceTaxBehavior()
+	}
+	return u.SetInvoiceTaxBehavior(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -1103,6 +1117,20 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearDeletedAt(value *time.Time) *
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingWorkflowConfigUpdate) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	if value == nil {
+		return u.ClearInvoiceTaxBehavior()
+	}
+	return u.SetInvoiceTaxBehavior(*value)
+}
+
+func (u *BillingWorkflowConfigUpdateOne) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceTaxBehavior()
+	}
+	return u.SetInvoiceTaxBehavior(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearMetadata(value *map[string]string) *CustomerUpdate {

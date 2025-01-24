@@ -1,4 +1,4 @@
-h1:PDw0MYgJ2TVHmktVv2qiKWix7s94dmMIrfLJz9KmRMM=
+h1:mhRENUTsuYL3MB1Nn8o/GdxAT2gAW7wirU77SnLiBCM=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -89,3 +89,5 @@ h1:PDw0MYgJ2TVHmktVv2qiKWix7s94dmMIrfLJz9KmRMM=
 20250121141512_billing-managed-by.up.sql h1:It8iuD2+tVg4P8dRsiWwTIs0waI3ScU1QPodpUdTmHA=
 20250123130012_billing-sequence-numbers.down.sql h1:G/usmxvRaztfXHRShbIBrnZanuvLAWJpElBkvL8X+3U=
 20250123130012_billing-sequence-numbers.up.sql h1:8dtKq6tQE/7/LVkTmiUsdNRRgmsGyDIne7ZILqGZOW8=
+20250124114836_billing-tax-behavior.down.sql h1:ezGcsdl/m5XDlEvB7J89f9f8jPgE1FfYbYb3VUMg5nY=
+20250124114836_billing-tax-behavior.up.sql h1:PvBxzDkv2fMzN7f2/Lvgtgf9TGc2PlQUdww/Wzdd3/s=

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -156,6 +157,26 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceProgressiveBilling(b 
 	return bwcu
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceTaxBehavior(pb)
+	return bwcu
+}
+
+// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	if pb != nil {
+		bwcu.SetInvoiceTaxBehavior(*pb)
+	}
+	return bwcu
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceTaxBehavior()
+	return bwcu
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
 func (bwcu *BillingWorkflowConfigUpdate) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdate {
 	bwcu.mutation.SetBillingInvoicesID(id)
@@ -259,6 +280,11 @@ func (bwcu *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
+	if v, ok := bwcu.mutation.InvoiceTaxBehavior(); ok {
+		if err := billingworkflowconfig.InvoiceTaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_tax_behavior": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -303,6 +329,12 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	}
 	if value, ok := bwcu.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+	}
+	if value, ok := bwcu.mutation.InvoiceTaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	}
+	if bwcu.mutation.InvoiceTaxBehaviorCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -506,6 +538,26 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceProgressiveBillin
 	return bwcuo
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceTaxBehavior(pb)
+	return bwcuo
+}
+
+// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	if pb != nil {
+		bwcuo.SetInvoiceTaxBehavior(*pb)
+	}
+	return bwcuo
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceTaxBehavior()
+	return bwcuo
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by ID.
 func (bwcuo *BillingWorkflowConfigUpdateOne) SetBillingInvoicesID(id string) *BillingWorkflowConfigUpdateOne {
 	bwcuo.mutation.SetBillingInvoicesID(id)
@@ -622,6 +674,11 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
+	if v, ok := bwcuo.mutation.InvoiceTaxBehavior(); ok {
+		if err := billingworkflowconfig.InvoiceTaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_tax_behavior": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -683,6 +740,12 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if value, ok := bwcuo.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+	}
+	if value, ok := bwcuo.mutation.InvoiceTaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	}
+	if bwcuo.mutation.InvoiceTaxBehaviorCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
