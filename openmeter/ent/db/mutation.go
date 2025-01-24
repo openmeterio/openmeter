@@ -5015,6 +5015,7 @@ type BillingCustomerOverrideMutation struct {
 	invoice_due_after           *datex.ISOString
 	invoice_collection_method   *billing.CollectionMethod
 	invoice_progressive_billing *bool
+	invoice_tax_behavior        *productcatalog.TaxBehavior
 	clearedFields               map[string]struct{}
 	customer                    *string
 	clearedcustomer             bool
@@ -5714,6 +5715,55 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceProgressiveBilling() {
 	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceProgressiveBilling)
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.invoice_tax_behavior = &pb
+}
+
+// InvoiceTaxBehavior returns the value of the "invoice_tax_behavior" field in the mutation.
+func (m *BillingCustomerOverrideMutation) InvoiceTaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.invoice_tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceTaxBehavior returns the old "invoice_tax_behavior" field's value of the BillingCustomerOverride entity.
+// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerOverrideMutation) OldInvoiceTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceTaxBehavior: %w", err)
+	}
+	return oldValue.InvoiceTaxBehavior, nil
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) ClearInvoiceTaxBehavior() {
+	m.invoice_tax_behavior = nil
+	m.clearedFields[billingcustomeroverride.FieldInvoiceTaxBehavior] = struct{}{}
+}
+
+// InvoiceTaxBehaviorCleared returns if the "invoice_tax_behavior" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) InvoiceTaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldInvoiceTaxBehavior]
+	return ok
+}
+
+// ResetInvoiceTaxBehavior resets all changes to the "invoice_tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) ResetInvoiceTaxBehavior() {
+	m.invoice_tax_behavior = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldInvoiceTaxBehavior)
+}
+
 // ClearCustomer clears the "customer" edge to the Customer entity.
 func (m *BillingCustomerOverrideMutation) ClearCustomer() {
 	m.clearedcustomer = true
@@ -5802,7 +5852,7 @@ func (m *BillingCustomerOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingCustomerOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, billingcustomeroverride.FieldNamespace)
 	}
@@ -5842,6 +5892,9 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	if m.invoice_progressive_billing != nil {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceProgressiveBilling)
 	}
+	if m.invoice_tax_behavior != nil {
+		fields = append(fields, billingcustomeroverride.FieldInvoiceTaxBehavior)
+	}
 	return fields
 }
 
@@ -5876,6 +5929,8 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceCollectionMethod()
 	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
 		return m.InvoiceProgressiveBilling()
+	case billingcustomeroverride.FieldInvoiceTaxBehavior:
+		return m.InvoiceTaxBehavior()
 	}
 	return nil, false
 }
@@ -5911,6 +5966,8 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldInvoiceCollectionMethod(ctx)
 	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
 		return m.OldInvoiceProgressiveBilling(ctx)
+	case billingcustomeroverride.FieldInvoiceTaxBehavior:
+		return m.OldInvoiceTaxBehavior(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -6011,6 +6068,13 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		}
 		m.SetInvoiceProgressiveBilling(v)
 		return nil
+	case billingcustomeroverride.FieldInvoiceTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceTaxBehavior(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
 }
@@ -6068,6 +6132,9 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldInvoiceProgressiveBilling) {
 		fields = append(fields, billingcustomeroverride.FieldInvoiceProgressiveBilling)
 	}
+	if m.FieldCleared(billingcustomeroverride.FieldInvoiceTaxBehavior) {
+		fields = append(fields, billingcustomeroverride.FieldInvoiceTaxBehavior)
+	}
 	return fields
 }
 
@@ -6108,6 +6175,9 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
 		m.ClearInvoiceProgressiveBilling()
+		return nil
+	case billingcustomeroverride.FieldInvoiceTaxBehavior:
+		m.ClearInvoiceTaxBehavior()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride nullable field %s", name)
@@ -6155,6 +6225,9 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 		return nil
 	case billingcustomeroverride.FieldInvoiceProgressiveBilling:
 		m.ResetInvoiceProgressiveBilling()
+		return nil
+	case billingcustomeroverride.FieldInvoiceTaxBehavior:
+		m.ResetInvoiceTaxBehavior()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride field %s", name)
@@ -19455,6 +19528,7 @@ type BillingWorkflowConfigMutation struct {
 	invoice_due_after           *datex.ISOString
 	invoice_collection_method   *billing.CollectionMethod
 	invoice_progressive_billing *bool
+	invoice_tax_behavior        *productcatalog.TaxBehavior
 	clearedFields               map[string]struct{}
 	billing_invoices            *string
 	clearedbilling_invoices     bool
@@ -19978,6 +20052,55 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceProgressiveBilling() {
 	m.invoice_progressive_billing = nil
 }
 
+// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
+func (m *BillingWorkflowConfigMutation) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.invoice_tax_behavior = &pb
+}
+
+// InvoiceTaxBehavior returns the value of the "invoice_tax_behavior" field in the mutation.
+func (m *BillingWorkflowConfigMutation) InvoiceTaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.invoice_tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceTaxBehavior returns the old "invoice_tax_behavior" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldInvoiceTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceTaxBehavior: %w", err)
+	}
+	return oldValue.InvoiceTaxBehavior, nil
+}
+
+// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
+func (m *BillingWorkflowConfigMutation) ClearInvoiceTaxBehavior() {
+	m.invoice_tax_behavior = nil
+	m.clearedFields[billingworkflowconfig.FieldInvoiceTaxBehavior] = struct{}{}
+}
+
+// InvoiceTaxBehaviorCleared returns if the "invoice_tax_behavior" field was cleared in this mutation.
+func (m *BillingWorkflowConfigMutation) InvoiceTaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingworkflowconfig.FieldInvoiceTaxBehavior]
+	return ok
+}
+
+// ResetInvoiceTaxBehavior resets all changes to the "invoice_tax_behavior" field.
+func (m *BillingWorkflowConfigMutation) ResetInvoiceTaxBehavior() {
+	m.invoice_tax_behavior = nil
+	delete(m.clearedFields, billingworkflowconfig.FieldInvoiceTaxBehavior)
+}
+
 // SetBillingInvoicesID sets the "billing_invoices" edge to the BillingInvoice entity by id.
 func (m *BillingWorkflowConfigMutation) SetBillingInvoicesID(id string) {
 	m.billing_invoices = &id
@@ -20090,7 +20213,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -20124,6 +20247,9 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	if m.invoice_progressive_billing != nil {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceProgressiveBilling)
 	}
+	if m.invoice_tax_behavior != nil {
+		fields = append(fields, billingworkflowconfig.FieldInvoiceTaxBehavior)
+	}
 	return fields
 }
 
@@ -20154,6 +20280,8 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceCollectionMethod()
 	case billingworkflowconfig.FieldInvoiceProgressiveBilling:
 		return m.InvoiceProgressiveBilling()
+	case billingworkflowconfig.FieldInvoiceTaxBehavior:
+		return m.InvoiceTaxBehavior()
 	}
 	return nil, false
 }
@@ -20185,6 +20313,8 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldInvoiceCollectionMethod(ctx)
 	case billingworkflowconfig.FieldInvoiceProgressiveBilling:
 		return m.OldInvoiceProgressiveBilling(ctx)
+	case billingworkflowconfig.FieldInvoiceTaxBehavior:
+		return m.OldInvoiceTaxBehavior(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingWorkflowConfig field %s", name)
 }
@@ -20271,6 +20401,13 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetInvoiceProgressiveBilling(v)
 		return nil
+	case billingworkflowconfig.FieldInvoiceTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceTaxBehavior(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig field %s", name)
 }
@@ -20304,6 +20441,9 @@ func (m *BillingWorkflowConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(billingworkflowconfig.FieldDeletedAt) {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingworkflowconfig.FieldInvoiceTaxBehavior) {
+		fields = append(fields, billingworkflowconfig.FieldInvoiceTaxBehavior)
+	}
 	return fields
 }
 
@@ -20320,6 +20460,9 @@ func (m *BillingWorkflowConfigMutation) ClearField(name string) error {
 	switch name {
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case billingworkflowconfig.FieldInvoiceTaxBehavior:
+		m.ClearInvoiceTaxBehavior()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig nullable field %s", name)
@@ -20361,6 +20504,9 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 		return nil
 	case billingworkflowconfig.FieldInvoiceProgressiveBilling:
 		m.ResetInvoiceProgressiveBilling()
+		return nil
+	case billingworkflowconfig.FieldInvoiceTaxBehavior:
+		m.ResetInvoiceTaxBehavior()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig field %s", name)

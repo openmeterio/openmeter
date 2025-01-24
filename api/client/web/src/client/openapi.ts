@@ -2228,6 +2228,10 @@ export interface components {
        * @default false
        */
       progressiveBilling: boolean
+      /** @description Default tax behavior for the invoice.
+       *
+       *     Each line can override the tax behavior. If not set, the provider's defaults are used. */
+      taxBehavior?: components['schemas']['TaxBehavior']
     }
     /**
      * Workflow payment settings
@@ -4752,6 +4756,10 @@ export interface components {
        * @example P1D
        */
       dueAfter: string
+      /** @description Default tax behavior for the invoice.
+       *
+       *     Each line can override the tax behavior. If not set, the provider's defaults are used. */
+      taxBehavior?: components['schemas']['TaxBehavior']
     }
     /** @description InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
      *
@@ -7026,8 +7034,23 @@ export interface components {
         [key: string]: string
       }
     }
+    /**
+     * @description Tax behavior.
+     *
+     *     This enum is used to specify whether tax is included in the price or excluded from the price.
+     * @enum {string}
+     */
+    TaxBehavior: 'inclusive' | 'exclusive'
     /** @description Set of provider specific tax configs. */
     TaxConfig: {
+      /**
+       * Tax behavior
+       * @description Tax behavior.
+       *
+       *     If not specified the billing profile is used to determine the tax behavior.
+       *     If not specified in the billing profile, the provider's default behavior is used.
+       */
+      behavior?: components['schemas']['TaxBehavior']
       /**
        * Stripe tax config
        * @description Stripe tax config.

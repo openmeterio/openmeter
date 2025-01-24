@@ -126,6 +126,12 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 			GoType(billing.CollectionMethod("")),
 
 		field.Bool("invoice_progressive_billing"),
+
+		field.Enum("invoice_tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			// Note: these are nillable meaning that the provider default will be used (e.g. Stripe figures it out based on location if not specified explicitly)
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -207,6 +213,11 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Nillable(),
 
 		field.Bool("invoice_progressive_billing").
+			Optional().
+			Nillable(),
+
+		field.Enum("invoice_tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
 			Optional().
 			Nillable(),
 	}

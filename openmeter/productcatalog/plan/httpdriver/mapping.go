@@ -323,7 +323,8 @@ func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 	}
 
 	return api.TaxConfig{
-		Stripe: stripe,
+		Stripe:   stripe,
+		Behavior: (*api.TaxBehavior)(c.Behavior),
 	}
 }
 
@@ -863,7 +864,9 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (*productcatalog.Entitleme
 }
 
 func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
-	tc := productcatalog.TaxConfig{}
+	tc := productcatalog.TaxConfig{
+		Behavior: (*productcatalog.TaxBehavior)(c.Behavior),
+	}
 
 	if c.Stripe != nil {
 		tc.Stripe = &productcatalog.StripeTaxConfig{

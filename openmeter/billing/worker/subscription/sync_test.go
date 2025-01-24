@@ -2538,6 +2538,86 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.Equal(fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID), *parentLine.ChildUniqueReferenceID)
 }
 
+func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have tax information set in the rate card
+	// When
+	//  we syncronize the subscription phases
+	// Then
+	//  the gathering invoice will contain the tax details
+
+	taxConfig := &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		Stripe: &productcatalog.StripeTaxConfig{
+			Code: "txcd_10000000",
+		},
+	}
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-arrears",
+						Name: "in-arrears",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(5),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						}),
+						TaxConfig: taxConfig,
+					},
+					BillingCadence: datex.MustParse(s.T(), "P1D"),
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	lines := gatheringInvoice.Lines.OrEmpty()
+	for _, line := range lines {
+		s.Equal(taxConfig, line.TaxConfig)
+	}
+
+	// Given we edit the subscription the tax config is carried over to the lines
+
+	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-arrears",
+		},
+		subscriptionAddItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			TaxConfig:      taxConfig,
+			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+		}.AsPatch(),
+	})
+	s.NoError(err)
+	s.NotNil(updatedSubsView)
+
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+
+	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice - after edit", gatheringInvoice)
+
+	lines = gatheringInvoice.Lines.OrEmpty()
+	for _, line := range lines {
+		s.Equal(taxConfig, line.TaxConfig)
+	}
+}
+
 func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billing.Line, issue billing.ValidationIssue) {
 	s.Equal(billing.ValidationIssueSeverityWarning, issue.Severity)
 	s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, issue.Code)
@@ -2670,6 +2750,7 @@ type subscriptionAddItem struct {
 	Price          *productcatalog.Price
 	BillingCadence *datex.Period
 	FeatureKey     string
+	TaxConfig      *productcatalog.TaxConfig
 }
 
 func (i subscriptionAddItem) AsPatch() subscription.Patch {
@@ -2686,6 +2767,7 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 						Price:          i.Price,
 						BillingCadence: i.BillingCadence,
 						FeatureKey:     lo.EmptyableToPtr(i.FeatureKey),
+						TaxConfig:      i.TaxConfig,
 					},
 				},
 			},

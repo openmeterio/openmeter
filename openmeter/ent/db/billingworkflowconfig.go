@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -43,6 +44,8 @@ type BillingWorkflowConfig struct {
 	InvoiceCollectionMethod billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
 	InvoiceProgressiveBilling bool `json:"invoice_progressive_billing,omitempty"`
+	// InvoiceTaxBehavior holds the value of the "invoice_tax_behavior" field.
+	InvoiceTaxBehavior *productcatalog.TaxBehavior `json:"invoice_tax_behavior,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingWorkflowConfigQuery when eager-loading is set.
 	Edges        BillingWorkflowConfigEdges `json:"edges"`
@@ -89,7 +92,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldInvoiceTaxBehavior:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -181,6 +184,13 @@ func (bwc *BillingWorkflowConfig) assignValues(columns []string, values []any) e
 			} else if value.Valid {
 				bwc.InvoiceProgressiveBilling = value.Bool
 			}
+		case billingworkflowconfig.FieldInvoiceTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_tax_behavior", values[i])
+			} else if value.Valid {
+				bwc.InvoiceTaxBehavior = new(productcatalog.TaxBehavior)
+				*bwc.InvoiceTaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		default:
 			bwc.selectValues.Set(columns[i], values[i])
 		}
@@ -261,6 +271,11 @@ func (bwc *BillingWorkflowConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_progressive_billing=")
 	builder.WriteString(fmt.Sprintf("%v", bwc.InvoiceProgressiveBilling))
+	builder.WriteString(", ")
+	if v := bwc.InvoiceTaxBehavior; v != nil {
+		builder.WriteString("invoice_tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
