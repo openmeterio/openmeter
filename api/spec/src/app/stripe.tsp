@@ -151,7 +151,7 @@ model CreateStripeCheckoutSessionResult {
   /**
    * URL to show the checkout session.
    */
-  url: string;
+  url?: string;
 
   /**
    * Mode

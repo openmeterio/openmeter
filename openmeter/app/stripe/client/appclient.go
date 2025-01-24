@@ -318,9 +318,12 @@ func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input Creat
 
 	stripeCheckoutSession := StripeCheckoutSession{
 		SessionID:     session.ID,
-		URL:           session.URL,
 		SetupIntentID: session.SetupIntent.ID,
 		Mode:          session.Mode,
+	}
+
+	if session.URL != "" {
+		stripeCheckoutSession.URL = &session.URL
 	}
 
 	if session.CancelURL != "" {
