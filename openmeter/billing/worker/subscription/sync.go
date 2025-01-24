@@ -504,8 +504,13 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 			return nil, nil
 		}
 
+		mergedLine, wasChange := h.mergeChangesFromLine(h.cloneLineForUpsert(existingLine), expectedLine)
+		if !wasChange {
+			return nil, nil
+		}
+
 		return []linePatch{
-			patchFromLine(patchOpUpdate, h.mergeChangesFromLine(h.cloneLineForUpsert(existingLine), expectedLine)),
+			patchFromLine(patchOpUpdate, mergedLine),
 		}, nil
 	}
 
@@ -520,6 +525,11 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 		// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections
 		// TODO[later]: When we implement progressive billing based pro-rating, we need to support adjusting flat fee
 		// segments here.
+
+		if existingLine.Period.End.Equal(expectedLine.Period.End) {
+			// The line is already in the expected state, so we can safely return here
+			return nil, nil
+		}
 
 		patches := []linePatch{}
 
@@ -610,20 +620,36 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 	return nil, fmt.Errorf("could not handle line update [lineID=%s, status=%s]", existingLine.ID, existingLine.Status)
 }
 
-func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine *billing.Line) *billing.Line {
+type typeWithEqual[T any] interface {
+	Equal(T) bool
+}
+
+func setIfDoesNotEqual[T typeWithEqual[T]](existing *T, expected T, wasChange *bool) {
+	if !(*existing).Equal(expected) {
+		*existing = expected
+		*wasChange = true
+	}
+}
+
+func (h *Handler) mergeChangesFromLine(existingLine *billing.Line, expectedLine *billing.Line) (*billing.Line, bool) {
 	// We assume that only the period can change, maybe some pricing data due to prorating (for flat lines)
 
-	existingLine.Period = expectedLine.Period
+	wasChange := false
 
-	existingLine.InvoiceAt = expectedLine.InvoiceAt
-	existingLine.DeletedAt = nil
+	setIfDoesNotEqual(&existingLine.Period, expectedLine.Period, &wasChange)
+	setIfDoesNotEqual(&existingLine.InvoiceAt, expectedLine.InvoiceAt, &wasChange)
+
+	if existingLine.DeletedAt != nil {
+		existingLine.DeletedAt = nil
+		wasChange = true
+	}
 
 	// Let's handle the flat fee prorating
 	if existingLine.Type == billing.InvoiceLineTypeFee {
-		existingLine.FlatFee.PerUnitAmount = expectedLine.FlatFee.PerUnitAmount
+		setIfDoesNotEqual(&existingLine.FlatFee.PerUnitAmount, expectedLine.FlatFee.PerUnitAmount, &wasChange)
 	}
 
-	return existingLine
+	return existingLine, wasChange
 }
 
 func (h *Handler) updateMutableInvoice(ctx context.Context, invoice billing.Invoice, patches []linePatch) error {

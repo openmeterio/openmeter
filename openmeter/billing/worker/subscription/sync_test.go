@@ -362,6 +362,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		// then there should be a gathering invoice
 		invoice := s.gatheringInvoice(ctx, namespace, s.Customer.ID)
+		invoiceUpdatedAt := invoice.UpdatedAt
 
 		s.Len(invoice.Lines.OrEmpty(), 1)
 
@@ -385,7 +386,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		gatheringLine := gatheringInvoice.Lines.OrEmpty()[0]
 
-		// TODO[OM-1039]: the invoice's updated at gets updated even if the invoice is not changed
+		s.Equal(invoiceUpdatedAt, gatheringInvoice.UpdatedAt)
 		s.Equal(billing.InvoiceStatusGathering, gatheringInvoice.Status)
 		s.Equal(line.UpdatedAt, gatheringLine.UpdatedAt)
 	})
