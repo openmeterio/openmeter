@@ -73,23 +73,3 @@ func (r RateCard) Validate() error {
 
 	return nil
 }
-
-// TODO: PaymentTerm makes sense for all prices, but it's not available from the price type, should be moved there
-func GetPricePaymentTerm(price productcatalog.Price) productcatalog.PaymentTermType {
-	switch price.Type() {
-	case productcatalog.FlatPriceType:
-		p, err := price.AsFlat()
-		if err != nil {
-			break
-		}
-		return p.PaymentTerm
-	case productcatalog.TieredPriceType:
-		return productcatalog.InArrearsPaymentTerm
-	case productcatalog.UnitPriceType:
-		return productcatalog.InArrearsPaymentTerm
-	}
-
-	// It makes no sense for this method signature to error, so we'll use the default payment term
-	// if it cannot be determined
-	return productcatalog.DefaultPaymentTerm
-}

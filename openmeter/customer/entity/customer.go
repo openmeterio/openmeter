@@ -2,6 +2,7 @@ package customerentity
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -90,6 +91,15 @@ func (i CustomerID) Validate() error {
 // CustomerUsageAttribution represents the usage attribution for a customer
 type CustomerUsageAttribution struct {
 	SubjectKeys []string `json:"subjectKeys"`
+}
+
+// UsageAttribution
+func (c CustomerUsageAttribution) GetSubjectKey() (string, error) {
+	if len(c.SubjectKeys) != 1 {
+		return "", fmt.Errorf("subject mapping is not deterministic, found %d subject keys", len(c.SubjectKeys))
+	}
+
+	return c.SubjectKeys[0], nil
 }
 
 // ListCustomersInput represents the input for the ListCustomers method

@@ -364,11 +364,10 @@ func MapSubscriptionPhaseToAPI(phaseView subscription.SubscriptionPhaseView, end
 		Description: phaseView.SubscriptionPhase.Description,
 		Discounts:   nil, // TODO: add discounts
 		Id:          phaseView.SubscriptionPhase.ID,
-		// TODO: maybe API should also use ItemsByKey?
-		Items:    items,
-		Key:      phaseView.SubscriptionPhase.Key,
-		Metadata: &phaseView.SubscriptionPhase.Metadata,
-		Name:     phaseView.SubscriptionPhase.Name,
+		Items:       items,
+		Key:         phaseView.SubscriptionPhase.Key,
+		Metadata:    &phaseView.SubscriptionPhase.Metadata,
+		Name:        phaseView.SubscriptionPhase.Name,
 	}, nil
 }
 

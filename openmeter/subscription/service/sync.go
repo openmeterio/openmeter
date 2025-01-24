@@ -365,13 +365,6 @@ func (t touched) isTouched(key subscription.PatchPath) bool {
 	return false
 }
 
-// NewEntitlementPath returns an invalid PatchPath thats still usable for IsParentOf checks
-// FIXME: this is a hack. For instance, is featureKey were to contain `/` it would completely break (though that exact scenario is otherwise prohibited)
-func NewEntitlementPath(phaseKey, itemKey string, idx int, featureKey string) subscription.PatchPath {
-	itemPath := NewItemVersionPath(phaseKey, itemKey, idx)
-	return subscription.PatchPath(fmt.Sprintf("%s/entitlements/%s", itemPath, featureKey))
-}
-
 // NewItemVersionPath returns an invalid PatchPath thats still usable for IsParentOf checks
 // FIXME: this is a hack. For instance, is featureKey were to contain `/` it would completely break (though that exact scenario is otherwise prohibited)
 func NewItemVersionPath(phaseKey, itemKey string, idx int) subscription.PatchPath {

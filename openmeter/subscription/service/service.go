@@ -103,7 +103,6 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	subscriptionTimeline = models.NewSortedTimeLine(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
 
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		// TODO: better error message
 		return def, &models.GenericConflictError{Inner: fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps)}
 	}
 
