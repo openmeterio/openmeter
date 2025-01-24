@@ -14,6 +14,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -174,7 +175,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Add lines to the Stripe invoice
 	var stripeLineAdd []*stripe.InvoiceAddLinesLineParams
 
-	leafLines := invoice.GetLeafLines()
+	leafLines := invoice.GetLeafLinesWithConsolidatedTaxBehavior()
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
@@ -255,7 +256,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		stripeLinesRemove []*stripe.InvoiceRemoveLinesLineParams
 	)
 
-	leafLines := invoice.GetLeafLines()
+	leafLines := invoice.GetLeafLinesWithConsolidatedTaxBehavior()
 
 	// Helper to get a Stripe line item by ID
 	stripeLinesByID := make(map[string]*stripe.InvoiceLineItem)
@@ -418,6 +419,8 @@ func getDiscountStripeUpdateLinesLineParams(
 		Description: params.Description,
 		Amount:      params.Amount,
 		Metadata:    stripeLine.Metadata,
+		// TODO: This will create a new price or not?
+		PriceData: mapAddPriceDataToUpdatePriceData(params.PriceData),
 		Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
 			Start: params.Period.Start,
 			End:   params.Period.End,
@@ -430,7 +433,7 @@ func getDiscountStripeAddLinesLineParams(calculator StripeCalculator, line *bill
 	name := getDiscountLineName(line, discount)
 	period := getPeriod(line)
 
-	return &stripe.InvoiceAddLinesLineParams{
+	addParams := &stripe.InvoiceAddLinesLineParams{
 		Description: lo.ToPtr(name),
 		Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
 		Period:      period,
@@ -439,6 +442,61 @@ func getDiscountStripeAddLinesLineParams(calculator StripeCalculator, line *bill
 			invoiceLineMetadataType: invoiceLineMetadataTypeDiscount,
 		},
 	}
+
+	return applyTaxSettingsToAddLinesParams(addParams, line)
+}
+
+func applyTaxSettingsToAddLinesParams(add *stripe.InvoiceAddLinesLineParams, line *billing.Line) *stripe.InvoiceAddLinesLineParams {
+	if line.TaxConfig != nil && !lo.IsEmpty(line.TaxConfig) {
+		if line.TaxConfig.Behavior != nil {
+			add.PriceData = &stripe.InvoiceAddLinesLinePriceDataParams{
+				TaxBehavior: getStripeTaxBehavior(line.TaxConfig.Behavior),
+			}
+		}
+
+		if line.TaxConfig.Stripe != nil {
+			if add.PriceData == nil {
+				add.PriceData = &stripe.InvoiceAddLinesLinePriceDataParams{}
+			}
+
+			add.PriceData.ProductData = &stripe.InvoiceAddLinesLinePriceDataProductDataParams{
+				TaxCode: lo.ToPtr(line.TaxConfig.Stripe.Code),
+			}
+		}
+
+		if add.PriceData != nil {
+			// We need to migrate to the product catalog if we want to set these values
+			add.PriceData.UnitAmount = add.Amount
+			add.Amount = nil
+
+			add.PriceData.Currency = (*string)(lo.ToPtr(line.Currency))
+			if add.PriceData.ProductData == nil {
+				add.PriceData.ProductData = &stripe.InvoiceAddLinesLinePriceDataProductDataParams{}
+			}
+
+			add.PriceData.ProductData.Name = lo.ToPtr(line.Name)
+		}
+	}
+
+	return add
+}
+
+func mapAddPriceDataToUpdatePriceData(add *stripe.InvoiceAddLinesLinePriceDataParams) *stripe.InvoiceUpdateLinesLinePriceDataParams {
+	if add == nil {
+		return nil
+	}
+
+	out := &stripe.InvoiceUpdateLinesLinePriceDataParams{
+		TaxBehavior: add.TaxBehavior,
+	}
+
+	if add.ProductData != nil {
+		out.ProductData = &stripe.InvoiceUpdateLinesLinePriceDataProductDataParams{
+			TaxCode: add.ProductData.TaxCode,
+		}
+	}
+
+	return out
 }
 
 // getStripeUpdateLinesLineParams returns the Stripe update line params
@@ -454,6 +512,7 @@ func getStripeUpdateLinesLineParams(
 		ID:          lo.ToPtr(stripeLine.ID),
 		Description: params.Description,
 		Amount:      params.Amount,
+		PriceData:   mapAddPriceDataToUpdatePriceData(params.PriceData),
 		Period: &stripe.InvoiceUpdateLinesLinePeriodParams{
 			Start: params.Period.Start,
 			End:   params.Period.End,
@@ -486,7 +545,7 @@ func getStripeAddLinesLineParams(line *billing.Line, calculator StripeCalculator
 	}
 
 	// Otherwise we add the calculated total with with quantity one
-	return &stripe.InvoiceAddLinesLineParams{
+	addParams := &stripe.InvoiceAddLinesLineParams{
 		Description: lo.ToPtr(description),
 		Amount:      lo.ToPtr(calculator.RoundToAmount(amount)),
 		Period:      period,
@@ -495,6 +554,8 @@ func getStripeAddLinesLineParams(line *billing.Line, calculator StripeCalculator
 			invoiceLineMetadataType: invoiceLineMetadataTypeLine,
 		},
 	}
+
+	return applyTaxSettingsToAddLinesParams(addParams, line)
 }
 
 // getPeriod returns the period
@@ -523,6 +584,22 @@ func getLineName(line *billing.Line) string {
 	}
 
 	return name
+}
+
+// getStripeTaxBehavior returns the Stripe tax behavior from a TaxBehavior
+func getStripeTaxBehavior(tb *productcatalog.TaxBehavior) *string {
+	if tb == nil {
+		return nil
+	}
+
+	switch *tb {
+	case productcatalog.InclusiveTaxBehavior:
+		return lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive))
+	case productcatalog.ExclusiveTaxBehavior:
+		return lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive))
+	default:
+		return nil
+	}
 }
 
 // addResultExternalIDs adds the Stripe line item IDs to the result external IDs
