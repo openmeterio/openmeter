@@ -42,24 +42,12 @@ type StripePaymentMethod struct {
 type StripeCheckoutSession struct {
 	SessionID     string
 	SetupIntentID string
-	URL           string
 	Mode          stripe.CheckoutSessionMode
 
+	URL        *string
 	CancelURL  *string
 	SuccessURL *string
 	ReturnURL  *string
-}
-
-type StripeCheckoutSessionOptions struct {
-	CancelURL          *string
-	Currency           *string
-	ClientReferenceID  *string
-	CustomText         *stripe.CheckoutSessionCustomTextParams
-	Metadata           map[string]string
-	ReturnURL          *string
-	SuccessURL         *string
-	UIMode             *stripe.CheckoutSessionUIMode
-	PaymentMethodTypes *[]*string
 }
 
 func (o StripeCheckoutSession) Validate() error {
@@ -69,10 +57,6 @@ func (o StripeCheckoutSession) Validate() error {
 
 	if o.SetupIntentID == "" {
 		return errors.New("setup intent id is required")
-	}
-
-	if o.URL == "" {
-		return errors.New("url is required")
 	}
 
 	if o.Mode != stripe.CheckoutSessionModeSetup {
@@ -86,7 +70,7 @@ type CreateCheckoutSessionInput struct {
 	AppID            appentitybase.AppID
 	CustomerID       customerentity.CustomerID
 	StripeCustomerID string
-	Options          StripeCheckoutSessionOptions
+	Options          StripeCheckoutSessionInputOptions
 }
 
 func (i CreateCheckoutSessionInput) Validate() error {
@@ -123,6 +107,26 @@ func (i CreateCheckoutSessionInput) Validate() error {
 		}
 	}
 
+	if err := i.Options.Validate(); err != nil {
+		return fmt.Errorf("error validating options: %w", err)
+	}
+
+	return nil
+}
+
+type StripeCheckoutSessionInputOptions struct {
+	CancelURL          *string
+	Currency           *string
+	ClientReferenceID  *string
+	CustomText         *stripe.CheckoutSessionCustomTextParams
+	Metadata           map[string]string
+	ReturnURL          *string
+	SuccessURL         *string
+	UIMode             *stripe.CheckoutSessionUIMode
+	PaymentMethodTypes *[]*string
+}
+
+func (i StripeCheckoutSessionInputOptions) Validate() error {
 	return nil
 }
 

@@ -517,13 +517,13 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 			AppID:            appID,
 			CustomerID:       customerID,
 			StripeCustomerID: "cus_123",
-			Options:          stripeclient.StripeCheckoutSessionOptions{},
+			Options:          stripeclient.StripeCheckoutSessionInputOptions{},
 		}).
 		Return(stripeclient.StripeCheckoutSession{
 			SessionID:     "cs_123",
 			SetupIntentID: "seti_123",
 			Mode:          stripe.CheckoutSessionModeSetup,
-			URL:           "https://checkout.stripe.com/cs_123/test",
+			URL:           lo.ToPtr("https://checkout.stripe.com/cs_123/test"),
 		}, nil)
 
 	// TODO: do not share env between tests
@@ -533,7 +533,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace:  s.namespace,
 		AppID:      &appID,
 		CustomerID: &customerID,
-		Options:    stripeclient.StripeCheckoutSessionOptions{},
+		Options:    stripeclient.StripeCheckoutSessionInputOptions{},
 	})
 
 	require.NoError(t, err, "Create checkout session must not return error")
@@ -544,7 +544,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		SessionID:        "cs_123",
 		SetupIntentID:    "seti_123",
 		Mode:             stripe.CheckoutSessionModeSetup,
-		URL:              "https://checkout.stripe.com/cs_123/test",
+		URL:              lo.ToPtr("https://checkout.stripe.com/cs_123/test"),
 	}, checkoutSession, "Create checkout session must match")
 
 	// Test app 404 error
@@ -557,7 +557,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace:  s.namespace,
 		AppID:      &appIdNotFound,
 		CustomerID: &customerID,
-		Options:    stripeclient.StripeCheckoutSessionOptions{},
+		Options:    stripeclient.StripeCheckoutSessionInputOptions{},
 	})
 
 	require.ErrorIs(t, err, app.AppNotFoundError{AppID: appIdNotFound}, "Create checkout session must return app not found error")
@@ -572,7 +572,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace:  s.namespace,
 		AppID:      &appID,
 		CustomerID: &customerIdNotFound,
-		Options:    stripeclient.StripeCheckoutSessionOptions{},
+		Options:    stripeclient.StripeCheckoutSessionInputOptions{},
 	})
 
 	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
@@ -585,7 +585,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 			AppID:            appID,
 			CustomerID:       customerID,
 			StripeCustomerID: "cus_123",
-			Options: stripeclient.StripeCheckoutSessionOptions{
+			Options: stripeclient.StripeCheckoutSessionInputOptions{
 				Currency: lo.ToPtr("usd"),
 			},
 		}).
@@ -593,7 +593,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 			SessionID:     "cs_123",
 			SetupIntentID: "seti_123",
 			Mode:          stripe.CheckoutSessionModeSetup,
-			URL:           "https://checkout.stripe.com/cs_123/test",
+			URL:           lo.ToPtr("https://checkout.stripe.com/cs_123/test"),
 		}, nil)
 
 	// TODO: do not share env between tests

@@ -260,7 +260,7 @@ type CreateCheckoutSessionInput struct {
 	CreateCustomerInput *customerentity.CreateCustomerInput
 	CustomerID          *customerentity.CustomerID
 	StripeCustomerID    *string
-	Options             stripeclient.StripeCheckoutSessionOptions
+	Options             stripeclient.StripeCheckoutSessionInputOptions
 }
 
 func (i CreateCheckoutSessionInput) Validate() error {
@@ -330,7 +330,7 @@ type CreateCheckoutSessionOutput struct {
 
 	SessionID     string
 	SetupIntentID string
-	URL           string
+	URL           *string
 	Mode          stripe.CheckoutSessionMode
 
 	CancelURL  *string
@@ -353,10 +353,6 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 
 	if o.SetupIntentID == "" {
 		return errors.New("setup intent id is required")
-	}
-
-	if o.URL == "" {
-		return errors.New("url is required")
 	}
 
 	return nil

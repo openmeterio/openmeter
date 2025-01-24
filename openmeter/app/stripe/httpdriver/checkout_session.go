@@ -69,7 +69,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				CustomerID:          customerId,
 				CreateCustomerInput: createCustomerInput,
 				StripeCustomerID:    body.StripeCustomerId,
-				Options: stripeclient.StripeCheckoutSessionOptions{
+				Options: stripeclient.StripeCheckoutSessionInputOptions{
 					Currency:          body.Options.Currency,
 					CancelURL:         body.Options.CancelURL,
 					ClientReferenceID: body.Options.ClientReferenceID,
