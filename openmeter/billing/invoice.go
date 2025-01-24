@@ -377,8 +377,8 @@ func (i *Invoice) FlattenLinesByID() map[string]*Line {
 	return out
 }
 
-// GetLeafLines returns the leaf lines
-func (i *Invoice) GetLeafLines() []*Line {
+// getLeafLines returns the leaf lines
+func (i *Invoice) getLeafLines() []*Line {
 	var leafLines []*Line
 
 	for _, line := range i.FlattenLinesByID() {
@@ -391,6 +391,29 @@ func (i *Invoice) GetLeafLines() []*Line {
 	}
 
 	return leafLines
+}
+
+// GetLeafLinesWithConsolidatedTaxBehavior returns the leaf lines with the tax behavior set to the invoice's tax behavior
+// unless the line already has a tax behavior set.
+func (i *Invoice) GetLeafLinesWithConsolidatedTaxBehavior() []*Line {
+	leafLines := i.getLeafLines()
+	if i.Workflow.Config.Invoicing.TaxBehavior == nil {
+		return leafLines
+	}
+
+	return lo.Map(leafLines, func(line *Line, _ int) *Line {
+		if line.TaxConfig == nil {
+			line.TaxConfig = &TaxConfig{
+				Behavior: i.Workflow.Config.Invoicing.TaxBehavior,
+			}
+			return line
+		}
+
+		if line.TaxConfig.Behavior == nil {
+			line.TaxConfig.Behavior = i.Workflow.Config.Invoicing.TaxBehavior
+		}
+		return line
+	})
 }
 
 func (i Invoice) Clone() Invoice {
