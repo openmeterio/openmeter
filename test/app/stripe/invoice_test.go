@@ -442,7 +442,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		expectedPeriodEnd := time.Unix(int64(1725365580), 0)
 
 		getLine := func(description string) *billing.Line {
-			for _, line := range invoice.GetLeafLines() {
+			for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
 				name := line.Name
 				if line.Description != nil {
 					name = fmt.Sprintf("%s (%s)", name, *line.Description)
