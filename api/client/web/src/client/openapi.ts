@@ -7040,7 +7040,7 @@ export interface components {
      *     This enum is used to specify whether tax is included in the price or excluded from the price.
      * @enum {string}
      */
-    TaxBehavior: 'included' | 'excluded'
+    TaxBehavior: 'inclusive' | 'exclusive'
     /** @description Set of provider specific tax configs. */
     TaxConfig: {
       /**

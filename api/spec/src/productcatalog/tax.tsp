@@ -47,10 +47,10 @@ enum TaxBehavior {
   /**
    * Tax is included in the price.
    */
-  included: "included",
+  inclusive: "inclusive",
 
   /**
    * Tax is excluded from the price.
    */
-  excluded: "excluded",
+  exclusive: "exclusive",
 }

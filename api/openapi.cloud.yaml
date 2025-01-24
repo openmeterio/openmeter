@@ -15383,8 +15383,8 @@ components:
     TaxBehavior:
       type: string
       enum:
-        - included
-        - excluded
+        - inclusive
+        - exclusive
       description: |-
         Tax behavior.
 
