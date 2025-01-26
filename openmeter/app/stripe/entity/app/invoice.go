@@ -182,11 +182,11 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	for _, line := range leafLines {
 		// Add discounts for line if any
 		for _, discount := range line.FlattenDiscountsByID() {
-			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
+			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 		}
 
 		// Add line
-		stripeLineAdd = append(stripeLineAdd, getStripeAddLinesLineParams(line, calculator, stripeCustomerData.StripeCustomerID))
+		stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID))
 	}
 
 	// Sort the Stripe line items for deterministic order
@@ -295,10 +295,10 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 				result.AddLineDiscountExternalID(discount.ID, line.ExternalIDs.Invoicing)
 
-				stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateLinesLineParams(calculator, line, discount, stripeLine))
+				stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateInvoiceItemParams(calculator, line, discount, stripeLine))
 			} else {
 				// Add the discount line item if it doesn't have an external ID yet
-				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddLinesLineParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
+				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 			}
 		}
 
@@ -317,10 +317,10 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 			result.AddLineExternalID(line.ID, stripeLine.ID)
 
 			// Get stripe update line params
-			stripeLinesUpdate = append(stripeLinesUpdate, getStripeUpdateLinesLineParams(calculator, line, stripeLine))
+			stripeLinesUpdate = append(stripeLinesUpdate, getStripeUpdateInvoiceItemParams(calculator, line, stripeLine))
 		} else {
 			// Add the line item if it doesn't have an external ID yet
-			stripeLineAdd = append(stripeLineAdd, getStripeAddLinesLineParams(line, calculator, stripeCustomerData.StripeCustomerID))
+			stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID))
 		}
 	}
 
@@ -405,28 +405,21 @@ func sortInvoiceLines[K StripeInvoiceLineOperationParams](stripeLineAdd []*K) {
 	})
 }
 
-// getDiscountStripeUpdateLinesLineParams returns the Stripe line item for a discount
-func getDiscountStripeUpdateLinesLineParams(
+// getDiscountStripeUpdateInvoiceItemParams returns the Stripe line item for a discount
+func getDiscountStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
 	line *billing.Line,
 	discount billing.LineDiscount,
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
-	// Update is similar to add so we reuse the add method
-
-	addParams := getDiscountStripeAddLinesLineParams(calculator, line, discount, "")
-
-	// Customer must not be set for update operations
-	addParams.Customer = nil
-
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: addParams,
+		InvoiceItemParams: getDiscountStripeInvoiceItemParams(calculator, line, discount),
 	}
 }
 
-// getDiscountStripeAddLinesLineParams returns the Stripe line item for a discount
-func getDiscountStripeAddLinesLineParams(calculator StripeCalculator, line *billing.Line, discount billing.LineDiscount, stripeCustomerID string) *stripe.InvoiceItemParams {
+// getDiscountStripeInvoiceItemParams returns the Stripe line item for a discount
+func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.LineDiscount) *stripe.InvoiceItemParams {
 	name := getDiscountLineName(line, discount)
 	period := getPeriod(line)
 
@@ -434,17 +427,23 @@ func getDiscountStripeAddLinesLineParams(calculator StripeCalculator, line *bill
 		Description: lo.ToPtr(name),
 		Amount:      lo.ToPtr(-calculator.RoundToAmount(discount.Amount)),
 		Period:      period,
-		Customer:    stripe.String(stripeCustomerID),
 		Metadata: map[string]string{
 			invoiceLineMetadataID:   discount.ID,
 			invoiceLineMetadataType: invoiceLineMetadataTypeDiscount,
 		},
 	}
 
-	return applyTaxSettingsToAddLinesParams(addParams, line)
+	return applyTaxSettingsToInvoiceItem(addParams, line)
 }
 
-func applyTaxSettingsToAddLinesParams(add *stripe.InvoiceItemParams, line *billing.Line) *stripe.InvoiceItemParams {
+func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line *billing.Line, discount billing.LineDiscount, stripeCustomerID string) *stripe.InvoiceItemParams {
+	params := getDiscountStripeInvoiceItemParams(calculator, line, discount)
+	// Customer is required for adds
+	params.Customer = stripe.String(stripeCustomerID)
+	return params
+}
+
+func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line *billing.Line) *stripe.InvoiceItemParams {
 	if line.TaxConfig != nil && !lo.IsEmpty(line.TaxConfig) {
 		if line.TaxConfig.Behavior != nil {
 			add.TaxBehavior = getStripeTaxBehavior(line.TaxConfig.Behavior)
@@ -458,26 +457,20 @@ func applyTaxSettingsToAddLinesParams(add *stripe.InvoiceItemParams, line *billi
 	return add
 }
 
-// getStripeUpdateLinesLineParams returns the Stripe update line params
-func getStripeUpdateLinesLineParams(
+// getStripeUpdateInvoiceItemParams returns the Stripe update line params
+func getStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
 	line *billing.Line,
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
-	// Update is similar to add so we reuse the add method
-	addParams := getStripeAddLinesLineParams(line, calculator, "")
-
-	// Customer must not be set for update operations
-	addParams.Customer = nil
-
 	return &client.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: addParams,
+		InvoiceItemParams: getStripeInvoiceItemParams(line, calculator),
 	}
 }
 
 // getStripeAddLinesLineParams returns the Stripe line item
-func getStripeAddLinesLineParams(line *billing.Line, calculator StripeCalculator, stripeCustomerID string) *stripe.InvoiceItemParams {
+func getStripeInvoiceItemParams(line *billing.Line, calculator StripeCalculator) *stripe.InvoiceItemParams {
 	description := getLineName(line)
 	period := getPeriod(line)
 	amount := line.Totals.Amount
@@ -504,14 +497,20 @@ func getStripeAddLinesLineParams(line *billing.Line, calculator StripeCalculator
 		Description: lo.ToPtr(description),
 		Amount:      lo.ToPtr(calculator.RoundToAmount(amount)),
 		Period:      period,
-		Customer:    stripe.String(stripeCustomerID),
 		Metadata: map[string]string{
 			invoiceLineMetadataID:   line.ID,
 			invoiceLineMetadataType: invoiceLineMetadataTypeLine,
 		},
 	}
 
-	return applyTaxSettingsToAddLinesParams(addParams, line)
+	return applyTaxSettingsToInvoiceItem(addParams, line)
+}
+
+// getStripeAddInvoiceItemParams returns the Stripe line item
+func getStripeAddInvoiceItemParams(line *billing.Line, calculator StripeCalculator, stripeCustomerID string) *stripe.InvoiceItemParams {
+	params := getStripeInvoiceItemParams(line, calculator)
+	params.Customer = stripe.String(stripeCustomerID)
+	return params
 }
 
 // getPeriod returns the period
