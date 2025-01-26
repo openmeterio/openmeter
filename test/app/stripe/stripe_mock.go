@@ -2,6 +2,8 @@ package appstripe
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v80"
@@ -120,30 +122,45 @@ func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripec
 }
 
 // Invoice Lines
-
-func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) ([]*stripe.InvoiceItem, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
+	c.StableSortInvoiceItemParams(input.Lines)
+
 	args := c.Called(input)
-	return args.Get(0).(*stripe.Invoice), args.Error(1)
+	return args.Get(0).([]*stripe.InvoiceItem), args.Error(1)
 }
 
-func (c *StripeAppClientMock) UpdateInvoiceLines(ctx context.Context, input stripeclient.UpdateInvoiceLinesInput) (*stripe.Invoice, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	args := c.Called(input)
-	return args.Get(0).(*stripe.Invoice), args.Error(1)
+func (c *StripeAppClientMock) StableSortInvoiceItemParams(input []*stripe.InvoiceItemParams) {
+	slices.SortFunc(input, func(a, b *stripe.InvoiceItemParams) int {
+		return strings.Compare(*a.Description, *b.Description)
+	})
 }
 
-func (c *StripeAppClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) (*stripe.Invoice, error) {
+func (c *StripeAppClientMock) UpdateInvoiceLines(ctx context.Context, input stripeclient.UpdateInvoiceLinesInput) ([]*stripe.InvoiceItem, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
+	c.StableSortStripeInvoiceItemWithID(input.Lines)
+
 	args := c.Called(input)
-	return args.Get(0).(*stripe.Invoice), args.Error(1)
+	return args.Get(0).([]*stripe.InvoiceItem), args.Error(1)
+}
+
+func (c *StripeAppClientMock) StableSortStripeInvoiceItemWithID(lines []*stripeclient.StripeInvoiceItemWithID) {
+	slices.SortFunc(lines, func(a, b *stripeclient.StripeInvoiceItemWithID) int {
+		return strings.Compare(a.ID, b.ID)
+	})
+}
+
+func (c *StripeAppClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	args := c.Called(input)
+	return args.Error(0)
 }

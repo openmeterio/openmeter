@@ -675,6 +675,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				Name:        v.Name,
 				Description: v.Description,
 				ManagedBy:   billing.ManuallyManagedLine,
+				Status:      billing.InvoiceLineStatusValid,
 
 				Type: billing.InvoiceLineTypeFee,
 
@@ -685,6 +686,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 					Start: v.Period.From,
 					End:   v.Period.To,
 				},
+				InvoiceAt: v.InvoiceAt,
 
 				TaxConfig: mapTaxConfigToEntity(v.TaxConfig),
 			},
@@ -710,6 +712,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 				Name:        v.Name,
 				Description: v.Description,
 				ManagedBy:   billing.ManuallyManagedLine,
+				Status:      billing.InvoiceLineStatusValid,
 
 				Type: billing.InvoiceLineTypeFee,
 
@@ -720,6 +723,7 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 					Start: v.Period.From,
 					End:   v.Period.To,
 				},
+				InvoiceAt: v.InvoiceAt,
 
 				TaxConfig: mapTaxConfigToEntity(v.TaxConfig),
 			},
@@ -772,6 +776,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 
 		existing.Period.Start = v.Period.From
 		existing.Period.End = v.Period.To
+		existing.InvoiceAt = v.InvoiceAt
 
 		existing.TaxConfig = mapTaxConfigToEntity(v.TaxConfig)
 
@@ -809,6 +814,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 
 		existing.Period.Start = v.Period.From
 		existing.Period.End = v.Period.To
+		existing.InvoiceAt = v.InvoiceAt
 
 		existing.TaxConfig = mapTaxConfigToEntity(v.TaxConfig)
 
