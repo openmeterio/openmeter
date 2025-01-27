@@ -27,7 +27,7 @@ func TestInvoicingTax(t *testing.T) {
 	suite.Run(t, new(InvoicingTaxTestSuite))
 }
 
-func (s *InvoicingTaxTestSuite) TestTaxBehaviorProfileSnapshotting() {
+func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	namespace := "ns-tax-profile"
 	ctx := context.Background()
 
@@ -37,20 +37,28 @@ func (s *InvoicingTaxTestSuite) TestTaxBehaviorProfileSnapshotting() {
 
 	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = namespace
-	minimalCreateProfileInput.WorkflowConfig.Invoicing.TaxBehavior = lo.ToPtr(productcatalog.InclusiveTaxBehavior)
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		Stripe: &productcatalog.StripeTaxConfig{
+			Code: "txcd_10000000",
+		},
+	}
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 
 	s.NoError(err)
 	s.NotNil(profile)
 
-	s.Run("Profile tax behavior is inclusive in billing profile", func() {
+	s.Run("Profile default tax config is inclusive in billing profile", func() {
 		draftInvoice := s.generateDraftInvoice(ctx, namespace, customer)
-		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.TaxBehavior)
+		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
+		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
+		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
+		s.Equal("txcd_10000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
 	})
 
-	s.Run("Profile tax behavior is not set in billing profile, set in override", func() {
-		profile.WorkflowConfig.Invoicing.TaxBehavior = nil
+	s.Run("Profile default tax config is not set in billing profile, set in override", func() {
+		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = nil
 		profile.AppReferences = nil
 		_, err = s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(profile.BaseProfile))
 		s.NoError(err)
@@ -58,13 +66,18 @@ func (s *InvoicingTaxTestSuite) TestTaxBehaviorProfileSnapshotting() {
 		// Let's validate db persisting
 		profile, err = s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: namespace})
 		s.NoError(err)
-		s.Nil(profile.WorkflowConfig.Invoicing.TaxBehavior)
+		s.Nil(profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
 		override := billing.CreateCustomerOverrideInput{
 			Namespace:  namespace,
 			CustomerID: customer.ID,
 			Invoicing: billing.InvoicingOverrideConfig{
-				TaxBehavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				DefaultTaxConfig: &productcatalog.TaxConfig{
+					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					Stripe: &productcatalog.StripeTaxConfig{
+						Code: "txcd_20000000",
+					},
+				},
 			},
 		}
 
@@ -76,15 +89,17 @@ func (s *InvoicingTaxTestSuite) TestTaxBehaviorProfileSnapshotting() {
 			CustomerID: customer.ID,
 		})
 		s.NoError(err)
-		s.NotNil(mappedBillingProfile.Profile.WorkflowConfig.Invoicing.TaxBehavior)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *mappedBillingProfile.Profile.WorkflowConfig.Invoicing.TaxBehavior)
+		s.NotNil(mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+		s.Equal(productcatalog.ExclusiveTaxBehavior, *mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
+		s.Equal("txcd_20000000", mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
 
 		draftInvoice := s.generateDraftInvoice(ctx, namespace, customer)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.TaxBehavior)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.TaxBehavior)
+		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
+		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
+		s.Equal("txcd_20000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
 	})
 
-	s.Run("Profile tax behavior is not set, invoice inherits it, but can be updated", func() {
+	s.Run("Profile default tax config is not set, invoice inherits it, but can be updated", func() {
 		err := s.BillingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
 			Namespace:  namespace,
 			CustomerID: customer.ID,
@@ -96,22 +111,28 @@ func (s *InvoicingTaxTestSuite) TestTaxBehaviorProfileSnapshotting() {
 			CustomerID: customer.ID,
 		})
 		s.NoError(err)
-		s.Nil(mappedBillingProfile.Profile.WorkflowConfig.Invoicing.TaxBehavior)
+		s.Nil(mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
 		draftInvoice := s.generateDraftInvoice(ctx, namespace, customer)
-		s.Nil(draftInvoice.Workflow.Config.Invoicing.TaxBehavior)
+		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 			Invoice: draftInvoice.InvoiceID(),
 			EditFn: func(invoice *billing.Invoice) error {
-				invoice.Workflow.Config.Invoicing.TaxBehavior = lo.ToPtr(productcatalog.InclusiveTaxBehavior)
+				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
+					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					Stripe: &productcatalog.StripeTaxConfig{
+						Code: "txcd_30000000",
+					},
+				}
 				return nil
 			},
 		})
 		s.NoError(err)
-		s.NotNil(updatedInvoice.Workflow.Config.Invoicing.TaxBehavior)
-		s.Equal(productcatalog.InclusiveTaxBehavior, *updatedInvoice.Workflow.Config.Invoicing.TaxBehavior)
+		s.NotNil(updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
+		s.Equal(productcatalog.InclusiveTaxBehavior, *updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
+		s.Equal("txcd_30000000", updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
 	})
 }
 

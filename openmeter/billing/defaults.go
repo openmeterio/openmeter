@@ -22,7 +22,7 @@ var DefaultWorkflowConfig = WorkflowConfig{
 		DraftPeriod:        lo.Must(datex.ISOString("P1D").Parse()),
 		DueAfter:           lo.Must(datex.ISOString("P1W").Parse()),
 		ProgressiveBilling: false,
-		TaxBehavior:        nil,
+		DefaultTaxConfig:   nil,
 	},
 	Payment: PaymentConfig{
 		CollectionMethod: CollectionMethodChargeAutomatically,

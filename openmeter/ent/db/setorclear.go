@@ -251,18 +251,18 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceProgressiveBilling(v
 	return u.SetInvoiceProgressiveBilling(*value)
 }
 
-func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+func (u *BillingCustomerOverrideUpdate) SetOrClearInvoiceDefaultTaxConfig(value *productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
 	if value == nil {
-		return u.ClearInvoiceTaxBehavior()
+		return u.ClearInvoiceDefaultTaxConfig()
 	}
-	return u.SetInvoiceTaxBehavior(*value)
+	return u.SetInvoiceDefaultTaxConfig(*value)
 }
 
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDefaultTaxConfig(value *productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceTaxBehavior()
+		return u.ClearInvoiceDefaultTaxConfig()
 	}
-	return u.SetInvoiceTaxBehavior(*value)
+	return u.SetInvoiceDefaultTaxConfig(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
@@ -1119,18 +1119,18 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearDeletedAt(value *time.Time) *
 	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingWorkflowConfigUpdate) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+func (u *BillingWorkflowConfigUpdate) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {
 	if value == nil {
-		return u.ClearInvoiceTaxBehavior()
+		return u.ClearInvoiceDefaultTaxSettings()
 	}
-	return u.SetInvoiceTaxBehavior(*value)
+	return u.SetInvoiceDefaultTaxSettings(*value)
 }
 
-func (u *BillingWorkflowConfigUpdateOne) SetOrClearInvoiceTaxBehavior(value *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+func (u *BillingWorkflowConfigUpdateOne) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdateOne {
 	if value == nil {
-		return u.ClearInvoiceTaxBehavior()
+		return u.ClearInvoiceDefaultTaxSettings()
 	}
-	return u.SetInvoiceTaxBehavior(*value)
+	return u.SetInvoiceDefaultTaxSettings(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearMetadata(value *map[string]string) *CustomerUpdate {

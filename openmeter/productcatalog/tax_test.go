@@ -162,3 +162,117 @@ func TestTaxConfigEqual(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeTaxConfigs(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Left     *TaxConfig
+		Right    *TaxConfig
+		Expected *TaxConfig
+	}{
+		{
+			Name: "Left nil",
+			Left: nil,
+			Right: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Expected: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+		},
+		{
+			Name: "Right nil",
+			Left: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Right: nil,
+			Expected: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+		},
+		{
+			Name:     "Left and Right nil",
+			Left:     nil,
+			Right:    nil,
+			Expected: nil,
+		},
+		{
+			Name: "Right overrides left fully",
+			Left: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Right: &TaxConfig{
+				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999998",
+				},
+			},
+			Expected: &TaxConfig{
+				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999998",
+				},
+			},
+		},
+		{
+			Name: "Right overrides left partially - behavior",
+			Left: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Right: &TaxConfig{
+				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
+			},
+			Expected: &TaxConfig{
+				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+		},
+		{
+			Name: "Right overrides left partially - stripe",
+			Left: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Right: &TaxConfig{
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999998",
+				},
+			},
+			Expected: &TaxConfig{
+				Behavior: lo.ToPtr(InclusiveTaxBehavior),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999998",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			merged := MergeTaxConfigs(test.Left, test.Right)
+			assert.Equal(t, test.Expected, merged)
+		})
+	}
+}

@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
@@ -643,44 +642,14 @@ func InvoiceProgressiveBillingNEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceProgressiveBilling, v))
 }
 
-// InvoiceTaxBehaviorEQ applies the EQ predicate on the "invoice_tax_behavior" field.
-func InvoiceTaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.BillingWorkflowConfig {
-	vc := v
-	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceTaxBehavior, vc))
+// InvoiceDefaultTaxSettingsIsNil applies the IsNil predicate on the "invoice_default_tax_settings" field.
+func InvoiceDefaultTaxSettingsIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceDefaultTaxSettings))
 }
 
-// InvoiceTaxBehaviorNEQ applies the NEQ predicate on the "invoice_tax_behavior" field.
-func InvoiceTaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.BillingWorkflowConfig {
-	vc := v
-	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceTaxBehavior, vc))
-}
-
-// InvoiceTaxBehaviorIn applies the In predicate on the "invoice_tax_behavior" field.
-func InvoiceTaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.BillingWorkflowConfig {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldInvoiceTaxBehavior, v...))
-}
-
-// InvoiceTaxBehaviorNotIn applies the NotIn predicate on the "invoice_tax_behavior" field.
-func InvoiceTaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.BillingWorkflowConfig {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldInvoiceTaxBehavior, v...))
-}
-
-// InvoiceTaxBehaviorIsNil applies the IsNil predicate on the "invoice_tax_behavior" field.
-func InvoiceTaxBehaviorIsNil() predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceTaxBehavior))
-}
-
-// InvoiceTaxBehaviorNotNil applies the NotNil predicate on the "invoice_tax_behavior" field.
-func InvoiceTaxBehaviorNotNil() predicate.BillingWorkflowConfig {
-	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceTaxBehavior))
+// InvoiceDefaultTaxSettingsNotNil applies the NotNil predicate on the "invoice_default_tax_settings" field.
+func InvoiceDefaultTaxSettingsNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceDefaultTaxSettings))
 }
 
 // HasBillingInvoices applies the HasEdge predicate on the "billing_invoices" edge.

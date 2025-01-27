@@ -8407,11 +8407,11 @@ components:
           type: boolean
           description: Should progressive billing be allowed for this workflow?
           default: false
-        taxBehavior:
+        defaultTaxConfig:
           allOf:
-            - $ref: '#/components/schemas/TaxBehavior'
+            - $ref: '#/components/schemas/TaxConfig'
           description: |-
-            Default tax behavior for the invoice.
+            Default tax configuration to apply to the invoices.
 
             Each line can override the tax behavior. If not set, the provider's defaults are used.
       description: BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow
@@ -12098,11 +12098,11 @@ components:
           description: The period after which the invoice is due.
           example: P1D
           default: P7D
-        taxBehavior:
+        defaultTaxConfig:
           allOf:
-            - $ref: '#/components/schemas/TaxBehavior'
+            - $ref: '#/components/schemas/TaxConfig'
           description: |-
-            Default tax behavior for the invoice.
+            Default tax configuration to apply to the invoices.
 
             Each line can override the tax behavior. If not set, the provider's defaults are used.
       description: InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.

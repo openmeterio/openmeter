@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -397,21 +398,12 @@ func (i *Invoice) getLeafLines() []*Line {
 // unless the line already has a tax behavior set.
 func (i *Invoice) GetLeafLinesWithConsolidatedTaxBehavior() []*Line {
 	leafLines := i.getLeafLines()
-	if i.Workflow.Config.Invoicing.TaxBehavior == nil {
+	if i.Workflow.Config.Invoicing.DefaultTaxConfig == nil {
 		return leafLines
 	}
 
 	return lo.Map(leafLines, func(line *Line, _ int) *Line {
-		if line.TaxConfig == nil {
-			line.TaxConfig = &TaxConfig{
-				Behavior: i.Workflow.Config.Invoicing.TaxBehavior,
-			}
-			return line
-		}
-
-		if line.TaxConfig.Behavior == nil {
-			line.TaxConfig.Behavior = i.Workflow.Config.Invoicing.TaxBehavior
-		}
+		line.TaxConfig = productcatalog.MergeTaxConfigs(i.Workflow.Config.Invoicing.DefaultTaxConfig, line.TaxConfig)
 		return line
 	})
 }

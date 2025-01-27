@@ -157,23 +157,23 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceProgressiveBilling(b 
 	return bwcu
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceTaxBehavior(pb)
+// SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDefaultTaxSettings(pc productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceDefaultTaxSettings(pc)
 	return bwcu
 }
 
-// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
-	if pb != nil {
-		bwcu.SetInvoiceTaxBehavior(*pb)
+// SetNillableInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field if the given value is not nil.
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDefaultTaxSettings(pc *productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {
+	if pc != nil {
+		bwcu.SetInvoiceDefaultTaxSettings(*pc)
 	}
 	return bwcu
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpdate {
-	bwcu.mutation.ClearInvoiceTaxBehavior()
+// ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
+func (bwcu *BillingWorkflowConfigUpdate) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpdate {
+	bwcu.mutation.ClearInvoiceDefaultTaxSettings()
 	return bwcu
 }
 
@@ -280,9 +280,9 @@ func (bwcu *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcu.mutation.InvoiceTaxBehavior(); ok {
-		if err := billingworkflowconfig.InvoiceTaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_tax_behavior": %w`, err)}
+	if v, ok := bwcu.mutation.InvoiceDefaultTaxSettings(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
 		}
 	}
 	return nil
@@ -330,11 +330,11 @@ func (bwcu *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := bwcu.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 	}
-	if value, ok := bwcu.mutation.InvoiceTaxBehavior(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	if value, ok := bwcu.mutation.InvoiceDefaultTaxSettings(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
 	}
-	if bwcu.mutation.InvoiceTaxBehaviorCleared() {
-		_spec.ClearField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum)
+	if bwcu.mutation.InvoiceDefaultTaxSettingsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
 	}
 	if bwcu.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -538,23 +538,23 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceProgressiveBillin
 	return bwcuo
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceTaxBehavior(pb)
+// SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDefaultTaxSettings(pc productcatalog.TaxConfig) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceDefaultTaxSettings(pc)
 	return bwcuo
 }
 
-// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
-	if pb != nil {
-		bwcuo.SetInvoiceTaxBehavior(*pb)
+// SetNillableInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field if the given value is not nil.
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDefaultTaxSettings(pc *productcatalog.TaxConfig) *BillingWorkflowConfigUpdateOne {
+	if pc != nil {
+		bwcuo.SetInvoiceDefaultTaxSettings(*pc)
 	}
 	return bwcuo
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.ClearInvoiceTaxBehavior()
+// ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
+func (bwcuo *BillingWorkflowConfigUpdateOne) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.ClearInvoiceDefaultTaxSettings()
 	return bwcuo
 }
 
@@ -674,9 +674,9 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bwcuo.mutation.InvoiceTaxBehavior(); ok {
-		if err := billingworkflowconfig.InvoiceTaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_tax_behavior": %w`, err)}
+	if v, ok := bwcuo.mutation.InvoiceDefaultTaxSettings(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
 		}
 	}
 	return nil
@@ -741,11 +741,11 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node
 	if value, ok := bwcuo.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 	}
-	if value, ok := bwcuo.mutation.InvoiceTaxBehavior(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	if value, ok := bwcuo.mutation.InvoiceDefaultTaxSettings(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
 	}
-	if bwcuo.mutation.InvoiceTaxBehaviorCleared() {
-		_spec.ClearField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum)
+	if bwcuo.mutation.InvoiceDefaultTaxSettingsCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
 	}
 	if bwcuo.mutation.BillingInvoicesCleared() {
 		edge := &sqlgraph.EdgeSpec{

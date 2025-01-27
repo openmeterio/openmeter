@@ -118,16 +118,16 @@ func (bwcc *BillingWorkflowConfigCreate) SetInvoiceProgressiveBilling(b bool) *B
 	return bwcc
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (bwcc *BillingWorkflowConfigCreate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingWorkflowConfigCreate {
-	bwcc.mutation.SetInvoiceTaxBehavior(pb)
+// SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
+func (bwcc *BillingWorkflowConfigCreate) SetInvoiceDefaultTaxSettings(pc productcatalog.TaxConfig) *BillingWorkflowConfigCreate {
+	bwcc.mutation.SetInvoiceDefaultTaxSettings(pc)
 	return bwcc
 }
 
-// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
-func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingWorkflowConfigCreate {
-	if pb != nil {
-		bwcc.SetInvoiceTaxBehavior(*pb)
+// SetNillableInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field if the given value is not nil.
+func (bwcc *BillingWorkflowConfigCreate) SetNillableInvoiceDefaultTaxSettings(pc *productcatalog.TaxConfig) *BillingWorkflowConfigCreate {
+	if pc != nil {
+		bwcc.SetInvoiceDefaultTaxSettings(*pc)
 	}
 	return bwcc
 }
@@ -280,9 +280,9 @@ func (bwcc *BillingWorkflowConfigCreate) check() error {
 	if _, ok := bwcc.mutation.InvoiceProgressiveBilling(); !ok {
 		return &ValidationError{Name: "invoice_progressive_billing", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_progressive_billing"`)}
 	}
-	if v, ok := bwcc.mutation.InvoiceTaxBehavior(); ok {
-		if err := billingworkflowconfig.InvoiceTaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_tax_behavior": %w`, err)}
+	if v, ok := bwcc.mutation.InvoiceDefaultTaxSettings(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
 		}
 	}
 	return nil
@@ -365,9 +365,9 @@ func (bwcc *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 		_node.InvoiceProgressiveBilling = value
 	}
-	if value, ok := bwcc.mutation.InvoiceTaxBehavior(); ok {
-		_spec.SetField(billingworkflowconfig.FieldInvoiceTaxBehavior, field.TypeEnum, value)
-		_node.InvoiceTaxBehavior = &value
+	if value, ok := bwcc.mutation.InvoiceDefaultTaxSettings(); ok {
+		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
+		_node.InvoiceDefaultTaxSettings = value
 	}
 	if nodes := bwcc.mutation.BillingInvoicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -567,21 +567,21 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceProgressiveBilling() *Billing
 	return u
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (u *BillingWorkflowConfigUpsert) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsert {
-	u.Set(billingworkflowconfig.FieldInvoiceTaxBehavior, v)
+// SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
+func (u *BillingWorkflowConfigUpsert) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, v)
 	return u
 }
 
-// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsert) UpdateInvoiceTaxBehavior() *BillingWorkflowConfigUpsert {
-	u.SetExcluded(billingworkflowconfig.FieldInvoiceTaxBehavior)
+// UpdateInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
 	return u
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (u *BillingWorkflowConfigUpsert) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpsert {
-	u.SetNull(billingworkflowconfig.FieldInvoiceTaxBehavior)
+// ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
+func (u *BillingWorkflowConfigUpsert) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
 	return u
 }
 
@@ -772,24 +772,24 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceProgressiveBilling() *Bill
 	})
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (u *BillingWorkflowConfigUpsertOne) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsertOne {
+// SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
+func (u *BillingWorkflowConfigUpsertOne) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceTaxBehavior(v)
+		s.SetInvoiceDefaultTaxSettings(v)
 	})
 }
 
-// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceTaxBehavior() *BillingWorkflowConfigUpsertOne {
+// UpdateInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceTaxBehavior()
+		s.UpdateInvoiceDefaultTaxSettings()
 	})
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpsertOne {
+// ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.ClearInvoiceTaxBehavior()
+		s.ClearInvoiceDefaultTaxSettings()
 	})
 }
 
@@ -1147,24 +1147,24 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceProgressiveBilling() *Bil
 	})
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsertBulk {
+// SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.SetInvoiceTaxBehavior(v)
+		s.SetInvoiceDefaultTaxSettings(v)
 	})
 }
 
-// UpdateInvoiceTaxBehavior sets the "invoice_tax_behavior" field to the value that was provided on create.
-func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceTaxBehavior() *BillingWorkflowConfigUpsertBulk {
+// UpdateInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.UpdateInvoiceTaxBehavior()
+		s.UpdateInvoiceDefaultTaxSettings()
 	})
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceTaxBehavior() *BillingWorkflowConfigUpsertBulk {
+// ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
-		s.ClearInvoiceTaxBehavior()
+		s.ClearInvoiceDefaultTaxSettings()
 	})
 }
 
