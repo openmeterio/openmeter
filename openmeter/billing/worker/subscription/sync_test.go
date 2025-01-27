@@ -2411,6 +2411,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 			updatedLine = line.Clone()
 			return nil
 		},
+		IncludeDeletedLines: true,
 	})
 
 	updatedLineFromEditedInvoice := s.getLineByChildID(editedInvoice, childUniqueReferenceID)

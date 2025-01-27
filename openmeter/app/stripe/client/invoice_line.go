@@ -12,15 +12,51 @@ import (
 )
 
 // AddInvoiceLines is the input for adding invoice lines to a Stripe invoice.
-func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) ([]*stripe.InvoiceItem, error) {
+func (c *stripeAppClient) AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) ([]StripeInvoiceItemWithLineID, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("stripe add invoice lines: invalid input: %w", err)
 	}
 
-	return slicesx.MapWithErr(input.Lines, func(i *stripe.InvoiceItemParams) (*stripe.InvoiceItem, error) {
+	items, err := slicesx.MapWithErr(input.Lines, func(i *stripe.InvoiceItemParams) (*stripe.InvoiceItem, error) {
 		i.Invoice = stripe.String(input.StripeInvoiceID)
 		return c.client.InvoiceItems.New(i)
 	})
+	if err != nil {
+		return nil, fmt.Errorf("stripe add invoice lines: %w", err)
+	}
+
+	if len(items) == 0 {
+		return nil, nil
+	}
+
+	invoice, err := c.client.Invoices.Get(input.StripeInvoiceID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("stripe add invoice lines: get invoice: %w", err)
+	}
+
+	itemIDToLineID := make(map[string]string, len(items))
+	if invoice.Lines != nil {
+		for _, item := range invoice.Lines.Data {
+			if item != nil && item.InvoiceItem != nil {
+				itemIDToLineID[item.InvoiceItem.ID] = item.ID
+			}
+		}
+	}
+
+	lines := make([]StripeInvoiceItemWithLineID, 0, len(items))
+	for _, item := range items {
+		lineID, found := itemIDToLineID[item.ID]
+		if !found {
+			return nil, fmt.Errorf("stripe add invoice lines: line not found: %s", item.ID)
+		}
+
+		lines = append(lines, StripeInvoiceItemWithLineID{
+			InvoiceItem: item,
+			LineID:      lineID,
+		})
+	}
+
+	return lines, nil
 }
 
 // UpdateInvoiceLines is the input for updating invoice lines on a Stripe invoice.
@@ -50,6 +86,12 @@ func (c *stripeAppClient) RemoveInvoiceLines(ctx context.Context, input RemoveIn
 type AddInvoiceLinesInput struct {
 	StripeInvoiceID string
 	Lines           []*stripe.InvoiceItemParams
+}
+
+type StripeInvoiceItemWithLineID struct {
+	*stripe.InvoiceItem
+
+	LineID string
 }
 
 func (i AddInvoiceLinesInput) Validate() error {

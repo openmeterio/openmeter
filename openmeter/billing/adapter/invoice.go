@@ -561,6 +561,16 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 
 		// Let's return the updated invoice
 
+		if !in.ExpandedFields.DeletedLines && updatedLines.IsPresent() {
+			// If we haven't requested deleted lines, let's filter them out, as if there were lines marked deleted
+			// the adapter update would return them as well.
+			updatedLines = billing.NewLineChildren(
+				lo.Filter(updatedLines.OrEmpty(), func(line *billing.Line, _ int) bool {
+					return line.DeletedAt == nil
+				}),
+			)
+		}
+
 		// If we had just updated the lines, let's reuse that result, as it's quite an expensive operation
 		// to look up the lines again.
 		if in.ExpandedFields.Lines && updatedLines.IsPresent() {
@@ -576,6 +586,8 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			}
 
 			updatedInvoice.Lines = updatedLines
+			// Let's make sure that subsequent calls preserve the same expansion settings
+			updatedInvoice.ExpandedFields = in.ExpandedFields
 			return updatedInvoice, nil
 		}
 

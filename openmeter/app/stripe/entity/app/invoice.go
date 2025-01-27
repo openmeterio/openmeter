@@ -276,6 +276,10 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 
 	for _, stripeLine := range stripeInvoice.Lines.Data {
 		stripeLinesByID[stripeLine.ID] = stripeLine
+		// This allows looking up by stripe invoice item ID too (in case we ran into any inconsistencies going forward)
+		if stripeLine.InvoiceItem != nil {
+			stripeLinesByID[stripeLine.InvoiceItem.ID] = stripeLine
+		}
 	}
 
 	// Iterate over the leaf lines
@@ -559,7 +563,7 @@ func getStripeTaxBehavior(tb *productcatalog.TaxBehavior) *string {
 
 // addResultExternalIDs adds the Stripe line item IDs to the result external IDs
 func addResultExternalIDs(
-	newLines []*stripe.InvoiceItem,
+	newLines []stripeclient.StripeInvoiceItemWithLineID,
 	result *billing.UpsertInvoiceResult,
 ) error {
 	// Check if we have the same number of params and new lines
@@ -581,12 +585,12 @@ func addResultExternalIDs(
 
 		// Add line discount external ID
 		if lineType == invoiceLineMetadataTypeDiscount {
-			result.AddLineDiscountExternalID(id, stripeLine.ID)
+			result.AddLineDiscountExternalID(id, stripeLine.LineID)
 			continue
 		}
 
 		// Add line external ID
-		result.AddLineExternalID(id, stripeLine.ID)
+		result.AddLineExternalID(id, stripeLine.LineID)
 	}
 
 	return nil
