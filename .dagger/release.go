@@ -127,13 +127,13 @@ func (m *Openmeter) PublishJavascriptSdk(ctx context.Context, version string, ta
 	_, err := dag.Container().
 		From("node:22.8.0-alpine3.20").
 		WithExec([]string{"corepack", "enable"}).
-		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
-		WithSecretVariable("NPM_TOKEN", npmToken).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/javascript").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
+		WithSecretVariable("NPM_TOKEN", npmToken).
 		WithExec([]string{"pnpm", "publish", "--no-git-checks", "--tag", tag}).
 		Sync(ctx)
 
