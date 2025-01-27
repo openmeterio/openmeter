@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
 	"strings"
 	"time"
 
@@ -45,10 +44,7 @@ func (m *Openmeter) Release(ctx context.Context, version string, githubActor str
 			return m.publishPythonSdk(ctx, version, pypiToken)
 		},
 		func(ctx context.Context) error {
-			return m.publishNodeSdk(ctx, version, npmToken)
-		},
-		func(ctx context.Context) error {
-			return m.publishWebSdk(ctx, version, npmToken)
+			return m.publishJavascriptSdk(ctx, version, npmToken)
 		},
 	)
 
@@ -126,24 +122,15 @@ func (m *Openmeter) publishPythonSdk(ctx context.Context, version string, pypiTo
 	return err
 }
 
-func (m *Openmeter) publishNodeSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
+func (m *Openmeter) publishJavascriptSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
-	return m.publishToNpm(ctx, "node", version, npmToken)
-}
-
-func (m *Openmeter) publishWebSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
-	// TODO: generate SDK on the fly?
-	return m.publishToNpm(ctx, "web", version, npmToken)
-}
-
-func (m *Openmeter) publishToNpm(ctx context.Context, pkg string, version string, npmToken *dagger.Secret) error {
 	_, err := dag.Container().
 		From("node:22.8.0-alpine3.20").
 		WithExec([]string{"corepack", "enable"}).
 		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
 		WithSecretVariable("NPM_TOKEN", npmToken).
 		WithDirectory("/work", m.Source.Directory("api")).
-		WithWorkdir(path.Join("/work/client", pkg)).
+		WithWorkdir("/work/client/javascript").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).

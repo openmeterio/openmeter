@@ -39,24 +39,7 @@ updates:
 
   - package-ecosystem: npm
     open-pull-requests-limit: 0
-    directory: "/api/client/web"
-    schedule:
-      interval: weekly
-    labels:
-      - area/dependencies
-      - dependency/javascript
-    groups:
-      production-dependencies:
-        dependency-type: "production"
-      development-dependencies:
-        dependency-type: "development"
-    ignore:
-      - dependency-name: "eslint"
-      - dependency-name: "eslint-formatter-pretty"
-
-  - package-ecosystem: npm
-    open-pull-requests-limit: 0
-    directory: "/api/client/node"
+    directory: "/api/client/javascript"
     schedule:
       interval: weekly
     labels:
