@@ -1,4 +1,4 @@
-# dot-files (.env, .git, ...)
+# dot-files (.env, .git, .npmrc, ...)
 .*
 
 # logs
@@ -23,4 +23,5 @@ index.ts
 src/
 scripts/
 vitest.config.ts
+eslint.config.js
 tsconfig*.json
