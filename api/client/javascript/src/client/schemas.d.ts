@@ -4070,7 +4070,9 @@ export interface components {
        */
       category?: components['schemas']['InvoiceFlatFeeCategory']
     }
-    /** @description Resource update operation model. */
+    /** @description InvoiceFlatFeeLineReplaceUpdate represents the update model for a flat fee invoice line.
+     *
+     *     This type makes ID optional to allow for creating new lines as part of the update. */
     InvoiceFlatFeeLineReplaceUpdate: {
       /**
        * Display name
@@ -4087,11 +4089,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id: string
       /** @description Tax config specify the tax configuration for this line. */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
@@ -4120,6 +4117,11 @@ export interface components {
        * @default regular
        */
       category?: components['schemas']['InvoiceFlatFeeCategory']
+      /**
+       * @description The ID of the line.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
     }
     /** @description InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee. */
     InvoiceFlatFeePendingLineCreate: {
@@ -4648,7 +4650,9 @@ export interface components {
        *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed. */
       readonly preLinePeriodQuantity?: components['schemas']['Numeric']
     }
-    /** @description Resource update operation model. */
+    /** @description InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
+     *
+     *     This type makes ID optional to allow for creating new lines as part of the update. */
     InvoiceUsageBasedLineReplaceUpdate: {
       /**
        * Display name
@@ -4665,11 +4669,6 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
-      /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
-       * @example 01G65Z755AFWAKHE12NY0CQ9FH
-       */
-      id: string
       /** @description Tax config specify the tax configuration for this line. */
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Period of the line item applies to for revenue recognition pruposes.
@@ -4687,6 +4686,11 @@ export interface components {
       price: components['schemas']['RateCardUsageBasedPrice']
       /** @description The feature that the usage is based on. */
       featureKey: string
+      /**
+       * @description The ID of the line.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      id?: string
     }
     /** @description InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage. */
     InvoiceUsageBasedPendingLineCreate: {

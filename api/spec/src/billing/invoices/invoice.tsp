@@ -424,8 +424,46 @@ union InvoiceLine {
 @friendlyName("InvoiceLineReplaceUpdate")
 @discriminator("type")
 union InvoiceLineReplaceUpdate {
-  usageBased: Rest.Resource.ResourceReplaceModel<InvoiceUsageBasedLine>,
-  flatFee: Rest.Resource.ResourceReplaceModel<InvoiceFlatFeeLine>,
+  usageBased: InvoiceUsageBasedLineReplaceUpdate,
+  flatFee: InvoiceFlatFeeLineReplaceUpdate,
+}
+
+/**
+ * InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
+ *
+ * This type makes ID optional to allow for creating new lines as part of the update.
+ */
+@friendlyName("InvoiceUsageBasedLineReplaceUpdate")
+model InvoiceUsageBasedLineReplaceUpdate {
+  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+    InvoiceUsageBasedLine,
+    "id"
+  >>;
+
+  /**
+   * The ID of the line.
+   */
+  @visibility(Lifecycle.Update)
+  id?: ULID;
+}
+
+/**
+ * InvoiceFlatFeeLineReplaceUpdate represents the update model for a flat fee invoice line.
+ *
+ * This type makes ID optional to allow for creating new lines as part of the update.
+ */
+@friendlyName("InvoiceFlatFeeLineReplaceUpdate")
+model InvoiceFlatFeeLineReplaceUpdate {
+  ...Rest.Resource.ResourceReplaceModel<OmitProperties<
+    InvoiceFlatFeeLine,
+    "id"
+  >>;
+
+  /**
+   * The ID of the line.
+   */
+  @visibility(Lifecycle.Update)
+  id?: ULID;
 }
 
 /**
