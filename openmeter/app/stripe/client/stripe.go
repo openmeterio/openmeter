@@ -33,10 +33,11 @@ type StripeCustomer struct {
 }
 
 type StripePaymentMethod struct {
-	ID             string
-	Name           string
-	Email          string
-	BillingAddress *models.Address
+	ID               string
+	StripeCustomerID *string
+	Name             string
+	Email            string
+	BillingAddress   *models.Address
 }
 
 type StripeCheckoutSession struct {

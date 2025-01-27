@@ -21,18 +21,21 @@ func NewFixture(
 	app app.Service,
 	customer customer.Service,
 	stripeClient *StripeClientMock,
+	stripeAppClient *StripeAppClientMock,
 ) *Fixture {
 	return &Fixture{
-		app:          app,
-		customer:     customer,
-		stripeClient: stripeClient,
+		app:             app,
+		customer:        customer,
+		stripeClient:    stripeClient,
+		stripeAppClient: stripeAppClient,
 	}
 }
 
 type Fixture struct {
-	app          app.Service
-	customer     customer.Service
-	stripeClient *StripeClientMock
+	app             app.Service
+	customer        customer.Service
+	stripeClient    *StripeClientMock
+	stripeAppClient *StripeAppClientMock
 }
 
 // setupAppWithCustomer creates a stripe app and a customer with customer data
@@ -108,6 +111,15 @@ func (s *Fixture) setupAppCustomerData(ctx context.Context, app appentity.App, c
 	data := appstripeentity.CustomerData{
 		StripeCustomerID: "cus_123",
 	}
+
+	s.stripeAppClient.
+		On("GetCustomer", data.StripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: data.StripeCustomerID,
+		}, nil)
+
+	// TODO: do not share env between tests
+	defer s.stripeAppClient.Restore()
 
 	err := app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),

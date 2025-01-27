@@ -60,8 +60,57 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		}
 	}
 
+	// Get the stripe app client
+	stripeAppData, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	if err != nil {
+		return fmt.Errorf("failed to get stripe app client: %w", err)
+	}
+
+	// Check if the Stripe customer exists in the stripe account
+	_, err = stripeAppClient.GetCustomer(ctx, input.StripeCustomerID)
+	if err != nil {
+		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
+			return app.AppCustomerPreConditionError{
+				AppID:      input.AppID,
+				AppType:    appentitybase.AppTypeStripe,
+				CustomerID: input.CustomerID,
+				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", input.StripeCustomerID, stripeAppData.StripeAccountID),
+			}
+		}
+
+		return fmt.Errorf("failed to get stripe customer: %w", err)
+	}
+
+	// Check if the Stripe payment method exists in the stripe account
+	if input.StripeDefaultPaymentMethodID != nil {
+		paymentMethod, err := stripeAppClient.GetPaymentMethod(ctx, *input.StripeDefaultPaymentMethodID)
+		if err != nil {
+			if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
+				return app.AppProviderPreConditionError{
+					AppID:     input.AppID,
+					Condition: fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+				}
+			}
+
+			return fmt.Errorf("failed to get stripe payment method: %w", err)
+		}
+
+		// Check if the payment method belongs to the customer
+		if paymentMethod.StripeCustomerID == nil || *paymentMethod.StripeCustomerID != input.StripeCustomerID {
+			return app.AppProviderPreConditionError{
+				AppID: input.AppID,
+				Condition: fmt.Sprintf(
+					"stripe payment method %s does not belong to stripe customer %s in stripe account: %s",
+					*input.StripeDefaultPaymentMethodID,
+					input.StripeCustomerID,
+					stripeAppData.StripeAccountID,
+				),
+			}
+		}
+	}
+
 	// Start transaction
-	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+	_, err = entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
 		// Make sure the customer has an app relationship
 		err := a.appService.EnsureCustomer(ctx, app.EnsureCustomerInput{
 			AppID:      input.AppID,

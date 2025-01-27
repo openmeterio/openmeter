@@ -347,6 +347,10 @@ func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaym
 		ID: stripePaymentMethod.ID,
 	}
 
+	if stripePaymentMethod.Customer != nil {
+		paymentMethod.StripeCustomerID = &stripePaymentMethod.Customer.ID
+	}
+
 	if stripePaymentMethod.BillingDetails != nil && stripePaymentMethod.BillingDetails.Address != nil {
 		address := *stripePaymentMethod.BillingDetails.Address
 
