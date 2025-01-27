@@ -2223,10 +2223,10 @@ export interface components {
        * @default false
        */
       progressiveBilling?: boolean
-      /** @description Default tax behavior for the invoice.
+      /** @description Default tax configuration to apply to the invoices.
        *
        *     Each line can override the tax behavior. If not set, the provider's defaults are used. */
-      taxBehavior?: components['schemas']['TaxBehavior']
+      defaultTaxConfig?: components['schemas']['TaxConfig']
     }
     /**
      * Workflow payment settings
@@ -4751,10 +4751,10 @@ export interface components {
        * @example P1D
        */
       dueAfter?: string
-      /** @description Default tax behavior for the invoice.
+      /** @description Default tax configuration to apply to the invoices.
        *
        *     Each line can override the tax behavior. If not set, the provider's defaults are used. */
-      taxBehavior?: components['schemas']['TaxBehavior']
+      defaultTaxConfig?: components['schemas']['TaxConfig']
     }
     /** @description InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
      *

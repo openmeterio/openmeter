@@ -398,12 +398,12 @@ model BillingWorkflowInvoicingSettings {
   progressiveBilling?: boolean = false;
 
   /**
-   * Default tax behavior for the invoice.
+   * Default tax configuration to apply to the invoices.
    *
    * Each line can override the tax behavior. If not set, the provider's defaults are used.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  taxBehavior?: OpenMeter.ProductCatalog.TaxBehavior;
+  defaultTaxConfig?: OpenMeter.ProductCatalog.TaxConfig;
 }
 
 /**

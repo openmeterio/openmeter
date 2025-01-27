@@ -257,7 +257,7 @@ var (
 		{Name: "invoice_due_after", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Nullable: true, Enums: []string{"charge_automatically", "send_invoice"}},
 		{Name: "invoice_progressive_billing", Type: field.TypeBool, Nullable: true},
-		{Name: "invoice_tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
+		{Name: "invoice_default_tax_config", Type: field.TypeJSON, Nullable: true},
 		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -875,7 +875,7 @@ var (
 		{Name: "invoice_due_after", Type: field.TypeString},
 		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
 		{Name: "invoice_progressive_billing", Type: field.TypeBool},
-		{Name: "invoice_tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
+		{Name: "invoice_default_tax_settings", Type: field.TypeJSON, Nullable: true},
 	}
 	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsTable = &schema.Table{

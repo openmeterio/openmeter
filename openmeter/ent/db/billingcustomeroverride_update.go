@@ -218,23 +218,23 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceProgressiveBilling() *Bil
 	return bcou
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceTaxBehavior(pb)
+// SetInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field.
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDefaultTaxConfig(pc productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceDefaultTaxConfig(pc)
 	return bcou
 }
 
-// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
-	if pb != nil {
-		bcou.SetInvoiceTaxBehavior(*pb)
+// SetNillableInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field if the given value is not nil.
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDefaultTaxConfig(pc *productcatalog.TaxConfig) *BillingCustomerOverrideUpdate {
+	if pc != nil {
+		bcou.SetInvoiceDefaultTaxConfig(*pc)
 	}
 	return bcou
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpdate {
-	bcou.mutation.ClearInvoiceTaxBehavior()
+// ClearInvoiceDefaultTaxConfig clears the value of the "invoice_default_tax_config" field.
+func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpdate {
+	bcou.mutation.ClearInvoiceDefaultTaxConfig()
 	return bcou
 }
 
@@ -302,9 +302,9 @@ func (bcou *BillingCustomerOverrideUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bcou.mutation.InvoiceTaxBehavior(); ok {
-		if err := billingcustomeroverride.InvoiceTaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_tax_behavior": %w`, err)}
+	if v, ok := bcou.mutation.InvoiceDefaultTaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
 	if bcou.mutation.CustomerCleared() && len(bcou.mutation.CustomerIDs()) > 0 {
@@ -376,11 +376,11 @@ func (bcou *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (n int, 
 	if bcou.mutation.InvoiceProgressiveBillingCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
 	}
-	if value, ok := bcou.mutation.InvoiceTaxBehavior(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	if value, ok := bcou.mutation.InvoiceDefaultTaxConfig(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON, value)
 	}
-	if bcou.mutation.InvoiceTaxBehaviorCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum)
+	if bcou.mutation.InvoiceDefaultTaxConfigCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
 	}
 	if bcou.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -617,23 +617,23 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceProgressiveBilling() 
 	return bcouo
 }
 
-// SetInvoiceTaxBehavior sets the "invoice_tax_behavior" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceTaxBehavior(pb productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceTaxBehavior(pb)
+// SetInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDefaultTaxConfig(pc productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceDefaultTaxConfig(pc)
 	return bcouo
 }
 
-// SetNillableInvoiceTaxBehavior sets the "invoice_tax_behavior" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceTaxBehavior(pb *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
-	if pb != nil {
-		bcouo.SetInvoiceTaxBehavior(*pb)
+// SetNillableInvoiceDefaultTaxConfig sets the "invoice_default_tax_config" field if the given value is not nil.
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDefaultTaxConfig(pc *productcatalog.TaxConfig) *BillingCustomerOverrideUpdateOne {
+	if pc != nil {
+		bcouo.SetInvoiceDefaultTaxConfig(*pc)
 	}
 	return bcouo
 }
 
-// ClearInvoiceTaxBehavior clears the value of the "invoice_tax_behavior" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceTaxBehavior() *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.ClearInvoiceTaxBehavior()
+// ClearInvoiceDefaultTaxConfig clears the value of the "invoice_default_tax_config" field.
+func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.ClearInvoiceDefaultTaxConfig()
 	return bcouo
 }
 
@@ -714,9 +714,9 @@ func (bcouo *BillingCustomerOverrideUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_collection_method": %w`, err)}
 		}
 	}
-	if v, ok := bcouo.mutation.InvoiceTaxBehavior(); ok {
-		if err := billingcustomeroverride.InvoiceTaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "invoice_tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_tax_behavior": %w`, err)}
+	if v, ok := bcouo.mutation.InvoiceDefaultTaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
 	if bcouo.mutation.CustomerCleared() && len(bcouo.mutation.CustomerIDs()) > 0 {
@@ -805,11 +805,11 @@ func (bcouo *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_no
 	if bcouo.mutation.InvoiceProgressiveBillingCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceProgressiveBilling, field.TypeBool)
 	}
-	if value, ok := bcouo.mutation.InvoiceTaxBehavior(); ok {
-		_spec.SetField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum, value)
+	if value, ok := bcouo.mutation.InvoiceDefaultTaxConfig(); ok {
+		_spec.SetField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON, value)
 	}
-	if bcouo.mutation.InvoiceTaxBehaviorCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldInvoiceTaxBehavior, field.TypeEnum)
+	if bcouo.mutation.InvoiceDefaultTaxConfigCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
 	}
 	if bcouo.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

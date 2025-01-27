@@ -127,11 +127,8 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		field.Bool("invoice_progressive_billing"),
 
-		field.Enum("invoice_tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			// Note: these are nillable meaning that the provider default will be used (e.g. Stripe figures it out based on location if not specified explicitly)
-			Optional().
-			Nillable(),
+		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).
+			Optional(),
 	}
 }
 
@@ -216,10 +213,8 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.Enum("invoice_tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable(),
+		field.JSON("invoice_default_tax_config", productcatalog.TaxConfig{}).
+			Optional(),
 	}
 }
 

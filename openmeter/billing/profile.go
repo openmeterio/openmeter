@@ -94,11 +94,11 @@ func (c *CollectionConfig) Validate() error {
 
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
-	AutoAdvance        bool                        `json:"autoAdvance,omitempty"`
-	DraftPeriod        datex.Period                `json:"draftPeriod,omitempty"`
-	DueAfter           datex.Period                `json:"dueAfter,omitempty"`
-	ProgressiveBilling bool                        `json:"progressiveBilling,omitempty"`
-	TaxBehavior        *productcatalog.TaxBehavior `json:"taxBehavior,omitempty"`
+	AutoAdvance        bool                      `json:"autoAdvance,omitempty"`
+	DraftPeriod        datex.Period              `json:"draftPeriod,omitempty"`
+	DueAfter           datex.Period              `json:"dueAfter,omitempty"`
+	ProgressiveBilling bool                      `json:"progressiveBilling,omitempty"`
+	DefaultTaxConfig   *productcatalog.TaxConfig `json:"defaultTaxConfig,omitempty"`
 }
 
 func (c *InvoicingConfig) Validate() error {
@@ -110,8 +110,8 @@ func (c *InvoicingConfig) Validate() error {
 		return fmt.Errorf("due after must be greater or equal to 0")
 	}
 
-	if c.TaxBehavior != nil {
-		if err := c.TaxBehavior.Validate(); err != nil {
+	if c.DefaultTaxConfig != nil {
+		if err := c.DefaultTaxConfig.Validate(); err != nil {
 			return fmt.Errorf("invalid tax behavior: %w", err)
 		}
 	}
@@ -285,7 +285,7 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 		DraftPeriod:        lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
 		DueAfter:           lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
 		ProgressiveBilling: lo.FromPtrOr(o.Invoicing.ProgressiveBilling, p.WorkflowConfig.Invoicing.ProgressiveBilling),
-		TaxBehavior:        lo.CoalesceOrEmpty(o.Invoicing.TaxBehavior, p.WorkflowConfig.Invoicing.TaxBehavior),
+		DefaultTaxConfig:   productcatalog.MergeTaxConfigs(o.Invoicing.DefaultTaxConfig, p.WorkflowConfig.Invoicing.DefaultTaxConfig),
 	}
 
 	p.WorkflowConfig.Payment = PaymentConfig{
