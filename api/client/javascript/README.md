@@ -8,7 +8,7 @@ npm install --save @openmeter/sdk
 
 ## Configuration for accessing the OpenMeter API
 
-To use the OpenMeter SDK on your backend, you need to configure it the `baseUrl` and `apiKey` for OpenMeter Cloud:
+To use the OpenMeter SDK on your backend, you need to configure `baseUrl` and `apiKey` for OpenMeter Cloud:
 
 ```ts
 import { OpenMeter } from '@openmeter/sdk'
@@ -21,7 +21,7 @@ const openmeter = new OpenMeter({
 
 ## Configuration for accessing the OpenMeter Portal API
 
-To use the OpenMeter Portal SDK on your frontend, you need to configure it the `baseUrl` and `portalToken`:
+To use the OpenMeter Portal SDK on your frontend, you need to configure it use a portal token in your configuration:
 
 ```ts
 import { OpenMeter } from '@openmeter/sdk/portal'
