@@ -91,6 +91,8 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 					Condition: fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
 				}
 			}
+
+			return fmt.Errorf("failed to get stripe payment method: %w", err)
 		}
 
 		// Check if the payment method belongs to the customer
