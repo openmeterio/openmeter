@@ -44,7 +44,7 @@ func (m *Openmeter) Release(ctx context.Context, version string, githubActor str
 			return m.publishPythonSdk(ctx, version, pypiToken)
 		},
 		func(ctx context.Context) error {
-			return m.publishJavascriptSdk(ctx, version, npmToken)
+			return m.PublishJavascriptSdk(ctx, version, "latest", npmToken)
 		},
 	)
 
@@ -122,7 +122,7 @@ func (m *Openmeter) publishPythonSdk(ctx context.Context, version string, pypiTo
 	return err
 }
 
-func (m *Openmeter) publishJavascriptSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
+func (m *Openmeter) PublishJavascriptSdk(ctx context.Context, version string, tag string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	_, err := dag.Container().
 		From("node:22.8.0-alpine3.20").
@@ -134,7 +134,7 @@ func (m *Openmeter) publishJavascriptSdk(ctx context.Context, version string, np
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec([]string{"pnpm", "publish", "--access=public", "--no-git-checks"}).
+		WithExec([]string{"pnpm", "publish", "--no-git-checks", "--tag", tag}).
 		Sync(ctx)
 
 	return err

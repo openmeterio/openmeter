@@ -54,7 +54,7 @@
     "pretest": "pnpm run build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run test && pnpm run lint"
+    "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test"
   },
   "devDependencies": {
     "@eslint/compat": "1.2.5",

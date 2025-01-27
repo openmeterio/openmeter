@@ -1,4 +1,4 @@
-name: Node SDK
+name: JavaScript SDK
 
 permissions:
   contents: write
@@ -10,7 +10,7 @@ on:
     branches:
       - main
     paths:
-      - api/openapi.yaml
+      - api/openapi.cloud.yaml
       - .github/workflows/sdk-node.yaml
 env:
   DAGGER_VERSION: 0.15.2
