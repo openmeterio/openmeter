@@ -637,9 +637,9 @@ func getIDFromLineReplace(line api.InvoiceLineReplaceUpdate) (string, error) {
 
 	switch v := value.(type) {
 	case api.InvoiceFlatFeeLineReplaceUpdate:
-		return v.Id, nil
+		return lo.FromPtrOr(v.Id, ""), nil
 	case api.InvoiceUsageBasedLineReplaceUpdate:
-		return v.Id, nil
+		return lo.FromPtrOr(v.Id, ""), nil
 	default:
 		return "", fmt.Errorf("unknown line type: %T", value)
 	}
