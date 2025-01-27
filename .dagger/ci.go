@@ -26,8 +26,7 @@ func (m *Openmeter) Ci(ctx context.Context) (*dagger.Directory, error) {
 	// generated := dag.Directory().
 	// 	WithFile("", m.Generate().Openapi()).
 	// 	WithDirectory("sdk/python", m.Generate().PythonSdk()).
-	// 	WithDirectory("sdk/node", m.Generate().NodeSdk()).
-	// 	WithDirectory("sdk/web", m.Generate().WebSdk())
+	// 	WithDirectory("sdk/javascript", m.Generate().JavascriptSdk())
 
 	dir := dag.Directory().
 		WithFile("scans/image.sarif", trivy.Container(containerImages[0]).Report("sarif")).

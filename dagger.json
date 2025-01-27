@@ -7,7 +7,7 @@
     ".direnv",
     ".github",
     ".vscode",
-    "api/client/node/node_modules",
+    "api/client/javascript/node_modules",
     "tmp",
     "go.work",
     "go.work.sum"
@@ -93,7 +93,7 @@
         "!.direnv",
         "!.github",
         "!.vscode",
-        "!api/client/node/node_modules",
+        "!api/client/javascript/node_modules",
         "!tmp"
       ]
     }

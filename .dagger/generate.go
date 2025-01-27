@@ -82,31 +82,18 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 		Directory("/work/client/python")
 }
 
-// Generate the Node SDK.
-func (m *Generate) NodeSdk() *dagger.Directory {
+// Generate the JavaScript SDK.
+func (m *Generate) JavascriptSdk() *dagger.Directory {
 	return dag.Container().
-		From("node:20.15.1-alpine3.20").
+		From("node:22.8.0-alpine3.20").
 		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", m.Source.Directory("api")).
-		WithWorkdir("/work/client/node").
+		WithWorkdir("/work/client/javascript").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "run", "generate"}).
 		WithExec([]string{"pnpm", "build"}).
 		WithExec([]string{"pnpm", "test"}).
-		Directory("/work/client/node").
-		WithoutDirectory("node_modules")
-}
-
-// Generate the Web SDK.
-func (m *Generate) WebSdk() *dagger.Directory {
-	return dag.Container().
-		From("node:20.15.1-alpine3.20").
-		WithExec([]string{"corepack", "enable"}).
-		WithDirectory("/work", m.Source.Directory("api")).
-		WithWorkdir("/work/client/web").
-		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
-		WithExec([]string{"pnpm", "run", "generate"}).
-		Directory("/work/client/web").
+		Directory("/work/client/javascript").
 		WithoutDirectory("node_modules")
 }
 

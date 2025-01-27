@@ -8861,7 +8861,6 @@ components:
         - stripeCustomerId
         - sessionId
         - setupIntentId
-        - url
         - mode
       properties:
         customerId:

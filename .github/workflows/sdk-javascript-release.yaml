@@ -1,0 +1,39 @@
+name: JavaScript SDK beta release
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+env:
+  DAGGER_VERSION: 0.15.2
+
+jobs:
+  generate:
+    name: Generate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Get short SHA
+        id: get-short-sha
+        run: |
+          id=$(echo ${{github.sha}} | cut -c 1-12)
+          echo "::set-output name=id::$id"
+
+      - name: Publish NPM package
+        uses: dagger/dagger-for-github@847ae4458ef34fe9b5f566655957bde6d4891112 # v7.0.3
+        with:
+          verb: call
+          args: publish-javascript-sdk --version 1.0.0-beta.${{steps.get-short-sha.outputs.id}} --tag beta --npm-token env:NPM_TOKEN
+          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
+          version: ${{ env.DAGGER_VERSION }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
