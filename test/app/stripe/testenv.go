@@ -198,7 +198,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		app:             appService,
 		appstripe:       appStripeService,
 		customer:        customerService,
-		fixture:         NewFixture(appService, customerService, stripeClientMock),
+		fixture:         NewFixture(appService, customerService, stripeClientMock, stripeAppClientMock),
 		secret:          secretService,
 		closerFunc:      closerFunc,
 		stripeClient:    stripeClientMock,

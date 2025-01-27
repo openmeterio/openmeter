@@ -525,7 +525,7 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	}
 
 	// Get Stripe App client
-	stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
 	if err != nil {
 		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app client: %w", err)
 	}
@@ -582,10 +582,10 @@ func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (st
 }
 
 // getStripeAppClient returns a Stripe App Client based on App ID
-func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.AppID) (stripeclient.StripeAppClient, error) {
+func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.AppID) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
 	// Validate app id
 	if err := appID.Validate(); err != nil {
-		return nil, fmt.Errorf("app id: %w", err)
+		return appstripeentity.AppData{}, nil, fmt.Errorf("app id: %w", err)
 	}
 
 	// Get the stripe app data
@@ -593,13 +593,13 @@ func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.App
 		AppID: appID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
+		return stripeAppData, nil, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
 
 	// Get Stripe API Key
 	apiKeySecret, err := a.secretService.GetAppSecret(ctx, stripeAppData.APIKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stripe api key secret: %w", err)
+		return stripeAppData, nil, fmt.Errorf("failed to get stripe api key secret: %w", err)
 	}
 
 	// Stripe Client
@@ -609,10 +609,10 @@ func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.App
 		APIKey:     apiKeySecret.Value,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stripe client: %w", err)
+		return stripeAppData, nil, fmt.Errorf("failed to create stripe client: %w", err)
 	}
 
-	return stripeClient, nil
+	return stripeAppData, stripeClient, nil
 }
 
 // mapAppStripeData maps stripe app data from the database

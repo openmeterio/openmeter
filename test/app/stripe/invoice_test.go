@@ -86,7 +86,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.AppStripeService = appStripeService
 
 	// Fixture
-	s.Fixture = NewFixture(s.AppService, s.CustomerService, stripeClient)
+	s.Fixture = NewFixture(s.AppService, s.CustomerService, stripeClient, stripeAppClient)
 }
 
 type ubpFeatures struct {

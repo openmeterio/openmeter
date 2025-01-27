@@ -363,14 +363,134 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.Equal(t, testApp.GetID(), listCustomerData.Items[0].App.GetID(), "App ID must match")
 
 	// Update customer data
+	newStripeCustomerID := "cus_456"
+	newStripePaymentMethodID := "pm_456"
+
+	s.Env.StripeAppClient().
+		On("GetCustomer", newStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: newStripeCustomerID,
+		}, nil)
+
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", newStripePaymentMethodID).
+		Return(stripeclient.StripePaymentMethod{
+			ID:               newStripePaymentMethodID,
+			StripeCustomerID: &newStripeCustomerID,
+			Name:             "ACME Inc.",
+			Email:            "acme@example.com",
+		}, nil)
+
+	defer s.Env.StripeAppClient().Restore()
+
 	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
-			StripeCustomerID: "cus_456",
+			StripeCustomerID:             newStripeCustomerID,
+			StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
 		},
 	})
 
 	require.NoError(t, err, "Update customer data must not return error")
+
+	// Update customer data with non existing stripe customer should return error
+	stripeAppData, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
+		AppID: testApp.GetID(),
+	})
+	require.NoError(t, err, "Get stripe app data must not return error")
+
+	nonExistingStripeCustomerID := "cus_789"
+
+	s.Env.StripeAppClient().
+		On("GetCustomer", nonExistingStripeCustomerID).
+		Return(stripeclient.StripeCustomer{}, stripeclient.StripeCustomerNotFoundError{
+			StripeCustomerID: nonExistingStripeCustomerID,
+		})
+
+	defer s.Env.StripeAppClient().Restore()
+
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			StripeCustomerID: nonExistingStripeCustomerID,
+		},
+	})
+
+	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
+		AppID:      testApp.GetID(),
+		AppType:    appentitybase.AppTypeStripe,
+		CustomerID: customer.GetID(),
+		Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", nonExistingStripeCustomerID, stripeAppData.StripeAccountID),
+	})
+
+	// Updated customer data with non existing payment method should return error
+	nonExistingStripePaymentMethodID := "pm_789"
+
+	s.Env.StripeAppClient().Restore()
+
+	s.Env.StripeAppClient().
+		On("GetCustomer", newStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: newStripeCustomerID,
+		}, nil)
+
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", nonExistingStripePaymentMethodID).
+		Return(stripeclient.StripePaymentMethod{}, stripeclient.StripePaymentMethodNotFoundError{
+			StripePaymentMethodID: nonExistingStripePaymentMethodID,
+		})
+
+	defer s.Env.StripeAppClient().Restore()
+
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			StripeCustomerID:             newStripeCustomerID,
+			StripeDefaultPaymentMethodID: &nonExistingStripePaymentMethodID,
+		},
+	})
+
+	require.ErrorIs(t, err, app.AppProviderPreConditionError{
+		AppID:     testApp.GetID(),
+		Condition: fmt.Sprintf("stripe payment method %s not found in stripe account: %s", nonExistingStripePaymentMethodID, stripeAppData.StripeAccountID),
+	})
+
+	// Updated customer data with payment method that does not belong to the customer should return errors
+	s.Env.StripeAppClient().Restore()
+
+	s.Env.StripeAppClient().
+		On("GetCustomer", newStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: newStripeCustomerID,
+		}, nil)
+
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", newStripePaymentMethodID).
+		Return(stripeclient.StripePaymentMethod{
+			ID:               newStripePaymentMethodID,
+			StripeCustomerID: lo.ToPtr("cus_different"),
+			Name:             "ACME Inc.",
+		}, nil)
+
+	defer s.Env.StripeAppClient().Restore()
+
+	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+		CustomerID: customer.GetID(),
+		Data: appstripeentity.CustomerData{
+			StripeCustomerID:             newStripeCustomerID,
+			StripeDefaultPaymentMethodID: &newStripePaymentMethodID,
+		},
+	})
+
+	require.ErrorIs(t, err, app.AppProviderPreConditionError{
+		AppID: testApp.GetID(),
+		Condition: fmt.Sprintf(
+			"stripe payment method %s does not belong to stripe customer %s in stripe account: %s",
+			newStripePaymentMethodID,
+			newStripeCustomerID,
+			stripeAppData.StripeAccountID,
+		),
+	})
 
 	// Updated customer data must match
 	getCustomerData, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
@@ -414,6 +534,14 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	})
 
 	// Restore customer data
+	s.Env.StripeAppClient().
+		On("GetCustomer", customerData.StripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: customerData.StripeCustomerID,
+		}, nil)
+
+	defer s.Env.StripeAppClient().Restore()
+
 	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
