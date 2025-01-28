@@ -85,7 +85,7 @@ require (
 	k8s.io/apimachinery v0.32.1
 	k8s.io/client-go v0.32.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.4
+	sigs.k8s.io/controller-runtime v0.20.1
 )
 
 require (
@@ -128,6 +128,7 @@ require (
 	github.com/timeplus-io/proton-go-driver/v2 v2.0.17 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.13.0 // indirect
 	github.com/twmb/franz-go/pkg/sr v1.2.0 // indirect
+	go.etcd.io/bbolt v1.3.11 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.33.0 // indirect
