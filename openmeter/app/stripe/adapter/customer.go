@@ -243,6 +243,7 @@ func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity
 		AppID:      input.AppID,
 		CustomerID: input.CustomerID,
 		Name:       input.Name,
+		Email:      input.Email,
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)

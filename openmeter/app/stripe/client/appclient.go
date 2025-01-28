@@ -223,7 +223,8 @@ func (c *stripeAppClient) CreateCustomer(ctx context.Context, input CreateStripe
 
 	// Create customer
 	stripeCustomer, err := c.client.Customers.New(&stripe.CustomerParams{
-		Name: input.Name,
+		Name:  input.Name,
+		Email: input.Email,
 		Metadata: map[string]string{
 			SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
 			SetupIntentDataMetadataCustomerID: input.CustomerID.ID,

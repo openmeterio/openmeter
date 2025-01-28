@@ -118,7 +118,8 @@ type CreateStripeCustomerInput struct {
 	AppID      appentitybase.AppID
 	CustomerID customerentity.CustomerID
 
-	Name *string
+	Name  *string
+	Email *string
 }
 
 func (i CreateStripeCustomerInput) Validate() error {
@@ -136,6 +137,10 @@ func (i CreateStripeCustomerInput) Validate() error {
 
 	if i.Name != nil && *i.Name == "" {
 		return errors.New("name cannot be empty if provided")
+	}
+
+	if i.Email != nil && *i.Email == "" {
+		return errors.New("email cannot be empty if provided")
 	}
 
 	return nil

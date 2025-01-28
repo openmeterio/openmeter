@@ -422,6 +422,10 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 							Name:       &customer.Name,
 						}
 
+						if customer.PrimaryEmail != nil {
+							params.Email = customer.PrimaryEmail
+						}
+
 						out, err := a.createStripeCustomer(ctx, params)
 						if err != nil {
 							return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create stripe customer: %w", err)
