@@ -100,6 +100,11 @@ func Key(v string) predicate.Plan {
 	return predicate.Plan(sql.FieldEQ(FieldKey, v))
 }
 
+// BillablesMustAlign applies equality check predicate on the "billables_must_align" field. It's identical to BillablesMustAlignEQ.
+func BillablesMustAlign(v bool) predicate.Plan {
+	return predicate.Plan(sql.FieldEQ(FieldBillablesMustAlign, v))
+}
+
 // Version applies equality check predicate on the "version" field. It's identical to VersionEQ.
 func Version(v int) predicate.Plan {
 	return predicate.Plan(sql.FieldEQ(FieldVersion, v))
@@ -528,6 +533,16 @@ func KeyEqualFold(v string) predicate.Plan {
 // KeyContainsFold applies the ContainsFold predicate on the "key" field.
 func KeyContainsFold(v string) predicate.Plan {
 	return predicate.Plan(sql.FieldContainsFold(FieldKey, v))
+}
+
+// BillablesMustAlignEQ applies the EQ predicate on the "billables_must_align" field.
+func BillablesMustAlignEQ(v bool) predicate.Plan {
+	return predicate.Plan(sql.FieldEQ(FieldBillablesMustAlign, v))
+}
+
+// BillablesMustAlignNEQ applies the NEQ predicate on the "billables_must_align" field.
+func BillablesMustAlignNEQ(v bool) predicate.Plan {
+	return predicate.Plan(sql.FieldNEQ(FieldBillablesMustAlign, v))
 }
 
 // VersionEQ applies the EQ predicate on the "version" field.

@@ -125,6 +125,9 @@ type UpdatePlanInput struct {
 
 	// Phases
 	Phases *[]productcatalog.Phase `json:"phases"`
+
+	// Alignment
+	productcatalog.AlignmentUpdate
 }
 
 func (i UpdatePlanInput) Equal(p Plan) bool {
@@ -149,6 +152,10 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 	}
 
 	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+		return false
+	}
+
+	if i.AlignmentUpdate.BillablesMustAlign != nil && *i.AlignmentUpdate.BillablesMustAlign != p.BillablesMustAlign {
 		return false
 	}
 
