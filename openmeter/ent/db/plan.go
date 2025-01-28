@@ -34,6 +34,8 @@ type Plan struct {
 	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
+	// BillablesMustAlign holds the value of the "billables_must_align" field.
+	BillablesMustAlign bool `json:"billables_must_align,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
 	// Currency holds the value of the "currency" field.
@@ -84,6 +86,8 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case plan.FieldMetadata:
 			values[i] = new([]byte)
+		case plan.FieldBillablesMustAlign:
+			values[i] = new(sql.NullBool)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
 		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency:
@@ -162,6 +166,12 @@ func (pl *Plan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
 				pl.Key = value.String
+			}
+		case plan.FieldBillablesMustAlign:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field billables_must_align", values[i])
+			} else if value.Valid {
+				pl.BillablesMustAlign = value.Bool
 			}
 		case plan.FieldVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -262,6 +272,9 @@ func (pl *Plan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(pl.Key)
+	builder.WriteString(", ")
+	builder.WriteString("billables_must_align=")
+	builder.WriteString(fmt.Sprintf("%v", pl.BillablesMustAlign))
 	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", pl.Version))

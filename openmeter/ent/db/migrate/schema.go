@@ -1377,6 +1377,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
+		{Name: "billables_must_align", Type: field.TypeBool, Default: false},
 		{Name: "version", Type: field.TypeInt},
 		{Name: "currency", Type: field.TypeString, Default: "USD"},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
@@ -1411,7 +1412,7 @@ var (
 			{
 				Name:    "plan_namespace_key_version_deleted_at",
 				Unique:  true,
-				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[9], PlansColumns[5]},
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[10], PlansColumns[5]},
 			},
 		},
 	}

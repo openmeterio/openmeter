@@ -8,6 +8,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -85,6 +86,27 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 		}
 	}
 
+	// Let's check Alignment
+	if p.Alignment.BillablesMustAlign {
+		for i, phase := range p.Phases {
+			periods := make(map[datex.ISOString]bool)
+
+			// For each phase, all RateCards that have a price associated must align
+			for _, rc := range phase.RateCards.Billables() {
+				// 1 time prices are excluded
+				if d := rc.GetBillingCadence(); d != nil {
+					periods[d.ISOString()] = true
+				}
+			}
+
+			if len(periods) > 1 {
+				errs = append(errs, NewValidationError(
+					fmt.Errorf("invalid Plan: all RateCards with prices in the phase %s (index %d) must have the same billing cadence, found: %v", phase.Name, i, lo.Keys(periods)),
+				))
+			}
+		}
+	}
+
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
@@ -118,6 +140,7 @@ var (
 
 type PlanMeta struct {
 	EffectivePeriod
+	Alignment
 
 	// Key is the unique key for Plan.
 	Key string `json:"key"`

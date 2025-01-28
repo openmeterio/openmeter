@@ -910,6 +910,8 @@ func init() {
 	planMixin := schema.Plan{}.Mixin()
 	planMixinFields0 := planMixin[0].Fields()
 	_ = planMixinFields0
+	planMixinFields1 := planMixin[1].Fields()
+	_ = planMixinFields1
 	planFields := schema.Plan{}.Fields()
 	_ = planFields
 	// planDescNamespace is the schema descriptor for namespace field.
@@ -930,6 +932,10 @@ func init() {
 	planDescKey := planMixinFields0[8].Descriptor()
 	// plan.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	plan.KeyValidator = planDescKey.Validators[0].(func(string) error)
+	// planDescBillablesMustAlign is the schema descriptor for billables_must_align field.
+	planDescBillablesMustAlign := planMixinFields1[0].Descriptor()
+	// plan.DefaultBillablesMustAlign holds the default value on creation for the billables_must_align field.
+	plan.DefaultBillablesMustAlign = planDescBillablesMustAlign.Default.(bool)
 	// planDescVersion is the schema descriptor for version field.
 	planDescVersion := planFields[0].Descriptor()
 	// plan.VersionValidator is a validator for the "version" field. It is called by the builders before save.
