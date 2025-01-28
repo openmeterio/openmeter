@@ -420,6 +420,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 							AppID:      appID,
 							CustomerID: customerID,
 							Name:       &customer.Name,
+							Email:      customer.PrimaryEmail,
 						}
 
 						out, err := a.createStripeCustomer(ctx, params)
