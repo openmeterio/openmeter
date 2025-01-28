@@ -439,6 +439,102 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, productcatalog.DraftStatus, nextPlan.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.DraftStatus, nextPlan.Status())
 
+				// Let's update the plan to enforce alignment
+				t.Run("Update to enforce alignment", func(t *testing.T) {
+					updateInput := plan.UpdatePlanInput{
+						AlignmentUpdate: productcatalog.AlignmentUpdate{
+							BillablesMustAlign: lo.ToPtr(true),
+						},
+						NamespacedID: nextPlan.NamespacedID,
+					}
+
+					_, err := env.Plan.UpdatePlan(ctx, updateInput)
+					require.NoError(t, err)
+
+					// Get the updated plan
+					updatedPlan, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: nextPlan.NamespacedID,
+					})
+					require.NoError(t, err)
+
+					assert.Equal(t, true, updatedPlan.Alignment.BillablesMustAlign)
+				})
+
+				t.Run("Should not allow publishing draft plan with alignment issues", func(t *testing.T) {
+					// Let's update the plan to have a misaligned phase
+					oldPhases := lo.Map(nextPlan.Phases, func(p plan.Phase, idx int) productcatalog.Phase {
+						return productcatalog.Phase{
+							PhaseMeta: p.PhaseMeta,
+							RateCards: p.RateCards,
+						}
+					})
+					updateInput := plan.UpdatePlanInput{
+						NamespacedID: nextPlan.NamespacedID,
+						Phases: lo.ToPtr(append(oldPhases, productcatalog.Phase{
+							PhaseMeta: productcatalog.PhaseMeta{
+								Key:  "misaligned",
+								Name: "Misaligned",
+							},
+							RateCards: []productcatalog.RateCard{
+								&productcatalog.FlatFeeRateCard{
+									RateCardMeta: productcatalog.RateCardMeta{
+										Key:  "misaligned1",
+										Name: "Misaligned 1",
+										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+											Amount:      decimal.NewFromInt(100),
+											PaymentTerm: productcatalog.DefaultPaymentTerm,
+										}),
+									},
+									BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1W")),
+								},
+								&productcatalog.FlatFeeRateCard{
+									RateCardMeta: productcatalog.RateCardMeta{
+										Key:  "misaligned2",
+										Name: "Misaligned 2",
+										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+											Amount:      decimal.NewFromInt(10),
+											PaymentTerm: productcatalog.DefaultPaymentTerm,
+										}),
+									},
+									BillingCadence: lo.ToPtr(testutils.GetISODuration(t, "P1M")),
+								},
+							},
+						})),
+					}
+
+					_, err := env.Plan.UpdatePlan(ctx, updateInput)
+					require.NoError(t, err)
+
+					// Get the updated plan
+					_, err = env.Plan.GetPlan(ctx, plan.GetPlanInput{
+						NamespacedID: nextPlan.NamespacedID,
+					})
+					require.NoError(t, err)
+
+					// Let's try to publish the plan
+					publishAt := time.Now().Truncate(time.Microsecond)
+
+					publishInput := plan.PublishPlanInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: nextPlan.Namespace,
+							ID:        nextPlan.ID,
+						},
+						EffectivePeriod: productcatalog.EffectivePeriod{
+							EffectiveFrom: &publishAt,
+							EffectiveTo:   nil,
+						},
+					}
+					_, err = env.Plan.PublishPlan(ctx, publishInput)
+					require.Error(t, err, "publishing draft Plan with alignment issues must fail")
+
+					// Let's update the plan to fix the alignment issue by removing the last phase
+					_, err = env.Plan.UpdatePlan(ctx, plan.UpdatePlanInput{
+						NamespacedID: nextPlan.NamespacedID,
+						Phases:       lo.ToPtr(oldPhases),
+					})
+					require.NoError(t, err)
+				})
+
 				t.Run("Publish", func(t *testing.T) {
 					publishAt := time.Now().Truncate(time.Microsecond)
 
