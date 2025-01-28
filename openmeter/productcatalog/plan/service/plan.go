@@ -328,7 +328,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		// First, let's validate that the Subscription can successfully be created from this Plan
 
 		if err := pp.ValidForCreatingSubscriptions(); err != nil {
-			return nil, fmt.Errorf("invalid Plan for creating subscriptions: %s", err)
+			return nil, productcatalog.NewValidationError(fmt.Errorf("invalid Plan for creating subscriptions: %w", err))
 		}
 
 		// Second, let's validate that the plan status and the version history is correct
