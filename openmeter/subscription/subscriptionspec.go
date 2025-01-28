@@ -152,7 +152,10 @@ func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
 	for _, phase := range s.Phases {
-		if err := phase.Validate(); err != nil {
+		if err := phase.Validate(models.CadencedModel{
+			ActiveFrom: s.ActiveFrom,
+			ActiveTo:   s.ActiveTo,
+		}); err != nil {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
@@ -164,7 +167,6 @@ type CreateSubscriptionPhasePlanInput struct {
 	StartAfter  datex.Period `json:"startAfter"`
 	Name        string       `json:"name"`
 	Description *string      `json:"description,omitempty"`
-	// TODO: add back Plan level discounts
 }
 
 func (i CreateSubscriptionPhasePlanInput) Validate() error {
@@ -241,8 +243,13 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 	}
 }
 
-func (s *SubscriptionPhaseSpec) Validate() error {
+func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error {
 	var errs []error
+
+	// Phase StartAfter really should not be negative
+	if s.StartAfter.IsNegative() {
+		errs = append(errs, fmt.Errorf("phase start after cannot be negative"))
+	}
 
 	// Let's validate that the phase is not empty
 	flat := lo.Flatten(lo.Values(s.ItemsByKey))
@@ -301,43 +308,14 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 			if err := item.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("item %s validation failed: %w", item.ItemKey, err))
 			}
-
-			// TODO: Let's validate that BillingCadence aligns with phase length
-			// TODO: Let's validate that Entitlement UsagePeriod aligns with phase length
-
-			// Example code:
-
-			// 	if upISO := s.CreateEntitlementInput.UsagePeriodISODuration; upISO != nil && s.expectedPhaseDurationISO != nil {
-			// 		align, err := datex.PeriodsAlign(*s.expectedPhaseDurationISO, *upISO)
-			// 		if err != nil {
-			// 			return fmt.Errorf("failed to check if periods align: %w", err)
-			// 		}
-			// 		if !align {
-			// 			return &SpecValidationError{
-			// 				AffectedKeys: [][]string{
-			// 					{
-			// 						"phaseKey",
-			// 						s.PhaseKey,
-			// 						"itemKey",
-			// 						s.ItemKey,
-			// 						"CreateEntitlementInput",
-			// 						"UsagePeriodISODuration",
-			// 					},
-			// 				},
-			// 				Msg: "Entitlement Usage Period must align with Phase duration",
-			// 			}
-			// 		}
-			// 	}
-			// }
 		}
 
-		// Let's validate the item ordering
-		// We don't know nor need to know the correct phase cadence as long as we use a consistent one
-		// Were the items valid for an indefinitely long phase they would be valid for any phase,
-		// as that behavior is handled by item.GetCadence.
-		// FIXME: though this is correct it is not elegant
+		// We don't know the exact phase Cadence (as we don't know the Phase end time)
+		// but to validate the ordering of items the phase endtime is irrelevant
+		phaseStartTime, _ := s.StartAfter.AddTo(subCadence.ActiveFrom)
+
 		somePhaseCadence := models.CadencedModel{
-			ActiveFrom: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			ActiveFrom: phaseStartTime,
 		}
 
 		// Let's validate that the items form a valid non-overlapping timeline
@@ -468,13 +446,18 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 	}
 
 	t := meta.EntitlementTemplate.Type()
+	subjectKey, err := cust.UsageAttribution.GetSubjectKey()
+	if err != nil {
+		return def, true, fmt.Errorf("failed to get subject key for customer %s: %w", cust.ID, err)
+	}
+
 	scheduleInput := entitlement.CreateEntitlementInputs{
 		EntitlementType: t,
 		Namespace:       cust.Namespace,
 		ActiveFrom:      lo.ToPtr(cadence.ActiveFrom),
 		ActiveTo:        cadence.ActiveTo,
 		FeatureKey:      meta.FeatureKey,
-		SubjectKey:      cust.UsageAttribution.SubjectKeys[0], // FIXME: This is error prone
+		SubjectKey:      subjectKey,
 	}
 
 	switch t {
@@ -557,6 +540,15 @@ func (s *SubscriptionItemSpec) Validate() error {
 			},
 			Msg: fmt.Sprintf("RateCard validation failed: %s", err),
 		})
+	}
+
+	// The relative cadence should make sense
+	if s.ActiveFromOverrideRelativeToPhaseStart != nil && s.ActiveFromOverrideRelativeToPhaseStart.IsNegative() {
+		errs = append(errs, fmt.Errorf("active from override relative to phase start cannot be negative"))
+	}
+
+	if s.ActiveToOverrideRelativeToPhaseStart != nil && s.ActiveToOverrideRelativeToPhaseStart.IsNegative() {
+		errs = append(errs, fmt.Errorf("active to override relative to phase start cannot be negative"))
 	}
 
 	return errors.Join(errs...)
@@ -696,7 +688,6 @@ func (e *AllowedDuringApplyingPatchesError) Unwrap() error {
 }
 
 type SpecValidationError struct {
-	// TODO: This spec is broken and painful, lets improve it
 	AffectedKeys [][]string
 	Msg          string
 }

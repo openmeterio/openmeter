@@ -16,12 +16,9 @@ import (
 )
 
 type (
-	// TODO: might need or not need a single interface for using the multiple workflow methods
 	CreateSubscriptionRequest  = plansubscription.CreateSubscriptionRequest
 	CreateSubscriptionResponse = api.Subscription
-	// CreateSubscriptionParams   = api.CreateSubscriptionParams
-	// CreateSubscriptionHandler  httptransport.HandlerWithArgs[ListPlansRequest, ListPlansResponse, ListPlansParams]
-	CreateSubscriptionHandler = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
+	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
 )
 
 func (h *handler) CreateSubscription() CreateSubscriptionHandler {
