@@ -299,6 +299,9 @@ model BillingWorkflow {
  */
 @friendlyName("BillingWorkflowCollectionSettings")
 model BillingWorkflowCollectionSettings {
+  /**
+   * The alignment for collecting the pending line items into an invoice.
+   */
   alignment?: BillingWorkflowCollectionAlignment = #{
     type: BillingCollectionAlignment.subscription,
   };
@@ -346,6 +349,9 @@ union BillingWorkflowCollectionAlignment {
  */
 @friendlyName("BillingWorkflowCollectionAlignmentSubscription")
 model BillingWorkflowCollectionAlignmentSubscription {
+  /**
+   * The type of alignment.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: BillingCollectionAlignment.subscription;
 }

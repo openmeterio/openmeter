@@ -285,7 +285,7 @@ func mapFeeLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		Totals:    mapTotalsToAPI(line.Totals),
 		Children:  children,
 
-		ExternalIDs: &api.InvoiceLineAppExternalIDs{
+		ExternalIds: &api.InvoiceLineAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
 		},
 		Subscriptions: mapSubscriptionReferencesToAPI(line.Subscription),
@@ -348,7 +348,7 @@ func mapUsageBasedLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
 		Children:  children,
 		Totals:    mapTotalsToAPI(line.Totals),
 
-		ExternalIDs: lo.EmptyableToPtr(api.InvoiceLineAppExternalIDs{
+		ExternalIds: lo.EmptyableToPtr(api.InvoiceLineAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(line.ExternalIDs.Invoicing),
 		}),
 		Subscriptions: mapSubscriptionReferencesToAPI(line.Subscription),
@@ -408,7 +408,7 @@ func mapDiscountToAPI(discount billing.LineDiscount) api.InvoiceLineDiscount {
 		Description: discount.Description,
 		Amount:      discount.Amount.String(),
 		Code:        discount.ChildUniqueReferenceID,
-		ExternalIDs: &api.InvoiceLineAppExternalIDs{
+		ExternalIds: &api.InvoiceLineAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(discount.ExternalIDs.Invoicing),
 		},
 	}

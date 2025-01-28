@@ -55,6 +55,9 @@ union PricePaymentTerm {
  */
 @friendlyName("FlatPrice")
 model FlatPrice {
+  /**
+   * The type of the price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.flat;
 
@@ -85,6 +88,9 @@ model FlatPriceWithPaymentTerm {
  */
 @friendlyName("UnitPrice")
 model UnitPrice {
+  /**
+   * The type of the price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.unit;
 
@@ -109,6 +115,11 @@ enum TieredPriceMode {
  */
 @friendlyName("TieredPrice")
 model TieredPrice {
+  /**
+   * The type of the price.
+   *
+   * One of: flat, unit, or tiered.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.tiered;
 

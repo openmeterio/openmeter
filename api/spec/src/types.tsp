@@ -314,12 +314,39 @@ scalar CountryCode extends string;
  */
 @friendlyName("Address")
 model Address {
+  /**
+   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+   */
   country?: CountryCode;
+
+  /**
+   * Postal code.
+   */
   postalCode?: string;
+
+  /**
+   * State or province.
+   */
   state?: string;
+
+  /**
+   * City.
+   */
   city?: string;
+
+  /**
+   * First line of the address.
+   */
   line1?: string;
+
+  /**
+   * Second line of the address.
+   */
   line2?: string;
+
+  /**
+   * Phone number.
+   */
   phoneNumber?: string;
 }
 

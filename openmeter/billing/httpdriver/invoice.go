@@ -525,7 +525,7 @@ func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) 
 					Field:     lo.EmptyableToPtr(v.Path),
 				}
 			})),
-		ExternalIDs: lo.EmptyableToPtr(api.InvoiceAppExternalIDs{
+		ExternalIds: lo.EmptyableToPtr(api.InvoiceAppExternalIds{
 			Invoicing: lo.EmptyableToPtr(invoice.ExternalIDs.Invoicing),
 			Payment:   lo.EmptyableToPtr(invoice.ExternalIDs.Payment),
 		}),
@@ -533,7 +533,7 @@ func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) 
 
 	out.Workflow = api.InvoiceWorkflowSettings{
 		Apps:                   apps,
-		SourceBillingProfileID: invoice.Workflow.SourceBillingProfileID,
+		SourceBillingProfileId: invoice.Workflow.SourceBillingProfileID,
 		Workflow:               mapWorkflowConfigSettingsToAPI(invoice.Workflow.Config),
 	}
 

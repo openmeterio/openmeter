@@ -92,6 +92,10 @@ enum BillingProfileCustomerOverrideOrderBy {
 @friendlyName("BillingProfileCustomerOverride")
 model BillingProfileCustomerOverride {
   ...ResourceTimestamps;
+
+  /**
+   * The details of the overrides active for this specific customer.
+   */
   workflow?: BillingProfileCustomerWorkflowOverride;
 
   /**
@@ -107,6 +111,9 @@ model BillingProfileCustomerOverride {
  */
 @friendlyName("BillingProfileCustomerOverrideCreate")
 model BillingProfileCustomerOverrideCreate {
+  /**
+   * The details of the overrides active for this specific customer.
+   */
   workflow?: Rest.Resource.ResourceCreateModel<BillingProfileCustomerWorkflowOverride>;
 
   /**

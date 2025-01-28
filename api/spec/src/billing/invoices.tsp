@@ -278,6 +278,9 @@ model VoidInvoiceAction {
   @visibility(Lifecycle.Create)
   percentage: Percentage;
 
+  /**
+   * The action to take on the line items.
+   */
   action: VoidInvoiceLineAction;
 }
 
@@ -312,6 +315,9 @@ union VoidInvoiceLineAction {
  */
 @friendlyName("VoidInvoiceLineDiscardAction")
 model VoidInvoiceLineDiscardAction {
+  /**
+   * The action to take on the line item.
+   */
   type: VoidInvoiceLineActionType.discard;
 }
 
@@ -320,6 +326,9 @@ model VoidInvoiceLineDiscardAction {
  */
 @friendlyName("VoidInvoiceLinePendingAction")
 model VoidInvoiceLinePendingAction {
+  /**
+   * The action to take on the line item.
+   */
   type: VoidInvoiceLineActionType.pending;
 
   /**
@@ -537,15 +546,27 @@ model InvoiceReplaceUpdate {
     "lines" | "supplier" | "customer" | "discounts" | "workflow" // TODO: discounts is not yet implemented, then we need to enable it
   >>;
 
+  /**
+   * The supplier of the lines included in the invoice.
+   */
   @visibility(Lifecycle.Update)
   supplier: Rest.Resource.ResourceReplaceModel<Invoices.BillingParty>;
 
+  /**
+   * The customer the invoice is sent to.
+   */
   @visibility(Lifecycle.Update)
   customer: Rest.Resource.ResourceReplaceModel<Invoices.BillingParty>;
 
+  /**
+   * The lines included in the invoice.
+   */
   @visibility(Lifecycle.Update)
   lines: Invoices.InvoiceLineReplaceUpdate[];
 
+  /**
+   * The workflow settings for the invoice.
+   */
   @visibility(Lifecycle.Update)
   workflow: InvoiceWorkflowReplaceUpdate;
 }
@@ -557,6 +578,9 @@ model InvoiceReplaceUpdate {
  */
 @friendlyName("InvoiceWorkflowReplaceUpdate")
 model InvoiceWorkflowReplaceUpdate {
+  /**
+   * The workflow used for this invoice.
+   */
   workflow: InvoiceWorkflowSettingsReplaceUpdate;
 }
 

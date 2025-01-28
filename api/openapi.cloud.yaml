@@ -7907,19 +7907,27 @@ components:
       type: object
       properties:
         country:
-          $ref: '#/components/schemas/CountryCode'
+          allOf:
+            - $ref: '#/components/schemas/CountryCode'
+          description: Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
         postalCode:
           type: string
+          description: Postal code.
         state:
           type: string
+          description: State or province.
         city:
           type: string
+          description: City.
         line1:
           type: string
+          description: First line of the address.
         line2:
           type: string
+          description: Second line of the address.
         phoneNumber:
           type: string
+          description: Phone number.
       description: Address
     Annotations:
       type: object
@@ -8045,7 +8053,7 @@ components:
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          description: The ID of the app.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: |-
         App reference
@@ -8428,7 +8436,9 @@ components:
           title: Deletion Time
           readOnly: true
         workflow:
-          $ref: '#/components/schemas/BillingProfileCustomerWorkflowOverride'
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileCustomerWorkflowOverride'
+          description: The details of the overrides active for this specific customer.
         billingProfile:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -8442,7 +8452,9 @@ components:
       type: object
       properties:
         workflow:
-          $ref: '#/components/schemas/BillingProfileCustomerWorkflowOverrideCreate'
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileCustomerWorkflowOverrideCreate'
+          description: The details of the overrides active for this specific customer.
         billingProfile:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -8659,6 +8671,7 @@ components:
           type: string
           enum:
             - subscription
+          description: The type of alignment.
       description: |-
         BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
         into an invoice.
@@ -8668,6 +8681,7 @@ components:
         alignment:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowCollectionAlignment'
+          description: The alignment for collecting the pending line items into an invoice.
           default:
             type: subscription
         interval:
@@ -8906,6 +8920,7 @@ components:
           type: string
           enum:
             - credit_node_original_invoice
+          description: Type of the invoice.
         issuedAt:
           type: string
           format: date-time
@@ -10558,6 +10573,7 @@ components:
           type: string
           enum:
             - flat
+          description: The type of the price.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -10573,6 +10589,7 @@ components:
           type: string
           enum:
             - flat
+          description: The type of the price.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -10964,28 +10981,28 @@ components:
             $ref: '#/components/schemas/ValidationIssue'
           description: Validation issues reported by the invoice workflow.
           readOnly: true
-        externalIDs:
+        externalIds:
           allOf:
-            - $ref: '#/components/schemas/InvoiceAppExternalIDs'
+            - $ref: '#/components/schemas/InvoiceAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
       description: Invoice represents an invoice in the system.
-    InvoiceAppExternalIDs:
+    InvoiceAppExternalIds:
       type: object
       properties:
-        Invoicing:
+        invoicing:
           type: string
           description: The external ID of the invoice in the invoicing app if available.
           readOnly: true
-        Tax:
+        tax:
           type: string
           description: The external ID of the invoice in the tax app if available.
           readOnly: true
-        Payment:
+        payment:
           type: string
           description: The external ID of the invoice in the payment app if available.
           readOnly: true
-      description: InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
+      description: InvoiceAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
     InvoiceAvailableActionDetails:
       type: object
       required:
@@ -11131,7 +11148,7 @@ components:
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          description: ID of the line.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
         managedBy:
           allOf:
@@ -11208,9 +11225,9 @@ components:
           format: date-time
           description: The time this line item should be invoiced.
           example: '2023-01-01T01:01:01.001Z'
-        externalIDs:
+        externalIds:
           allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
         subscriptions:
@@ -11222,6 +11239,7 @@ components:
           type: string
           enum:
             - flat_fee
+          description: Type of the line.
         perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11289,6 +11307,7 @@ components:
           type: string
           enum:
             - flat_fee
+          description: Type of the line.
         perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11370,6 +11389,7 @@ components:
           type: string
           enum:
             - flat_fee
+          description: Type of the line.
         perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11428,18 +11448,18 @@ components:
           usage_based: '#/components/schemas/InvoiceUsageBasedLine'
           flat_fee: '#/components/schemas/InvoiceFlatFeeLine'
       description: BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
-    InvoiceLineAppExternalIDs:
+    InvoiceLineAppExternalIds:
       type: object
       properties:
-        Invoicing:
+        invoicing:
           type: string
           description: The external ID of the invoice in the invoicing app if available.
           readOnly: true
-        Tax:
+        tax:
           type: string
           description: The external ID of the invoice in the tax app if available.
           readOnly: true
-      description: InvoiceLineAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
+      description: InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
     InvoiceLineDiscount:
       type: object
       required:
@@ -11489,9 +11509,9 @@ components:
         description:
           type: string
           description: Text description as to why the discount was applied.
-        externalIDs:
+        externalIds:
           allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
       description: InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes.
@@ -11727,15 +11747,22 @@ components:
             If manual approval is required, the draftUntil time is set.
           example: '2023-01-01T01:01:01.001Z'
         supplier:
-          $ref: '#/components/schemas/BillingPartyReplaceUpdate'
+          allOf:
+            - $ref: '#/components/schemas/BillingPartyReplaceUpdate'
+          description: The supplier of the lines included in the invoice.
         customer:
-          $ref: '#/components/schemas/BillingPartyReplaceUpdate'
+          allOf:
+            - $ref: '#/components/schemas/BillingPartyReplaceUpdate'
+          description: The customer the invoice is sent to.
         lines:
           type: array
           items:
             $ref: '#/components/schemas/InvoiceLineReplaceUpdate'
+          description: The lines included in the invoice.
         workflow:
-          $ref: '#/components/schemas/InvoiceWorkflowReplaceUpdate'
+          allOf:
+            - $ref: '#/components/schemas/InvoiceWorkflowReplaceUpdate'
+          description: The workflow settings for the invoice.
       description: InvoiceReplaceUpdate represents the update model for an invoice.
     InvoiceSimulationFlatFeeLine:
       type: object
@@ -11785,6 +11812,7 @@ components:
           type: string
           enum:
             - flat_fee
+          description: Type of the line.
         perUnitAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11894,8 +11922,11 @@ components:
           type: string
           enum:
             - usage_based
+          description: Type of the line.
         price:
-          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
         featureKey:
           type: string
           minLength: 1
@@ -12071,7 +12102,7 @@ components:
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          description: ID of the line.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
         managedBy:
           allOf:
@@ -12148,9 +12179,9 @@ components:
           format: date-time
           description: The time this line item should be invoiced.
           example: '2023-01-01T01:01:01.001Z'
-        externalIDs:
+        externalIds:
           allOf:
-            - $ref: '#/components/schemas/InvoiceLineAppExternalIDs'
+            - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
           description: External IDs of the invoice in other apps such as Stripe.
           readOnly: true
         subscriptions:
@@ -12162,8 +12193,11 @@ components:
           type: string
           enum:
             - usage_based
+          description: Type of the line.
         price:
-          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
         featureKey:
           type: string
           minLength: 1
@@ -12232,8 +12266,11 @@ components:
           type: string
           enum:
             - usage_based
+          description: Type of the line.
         price:
-          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
         featureKey:
           type: string
           minLength: 1
@@ -12303,8 +12340,11 @@ components:
           type: string
           enum:
             - usage_based
+          description: Type of the line.
         price:
-          $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          allOf:
+            - $ref: '#/components/schemas/RateCardUsageBasedPrice'
+          description: Price of the usage-based item being sold.
         featureKey:
           type: string
           minLength: 1
@@ -12350,7 +12390,9 @@ components:
         - workflow
       properties:
         workflow:
-          $ref: '#/components/schemas/InvoiceWorkflowSettingsReplaceUpdate'
+          allOf:
+            - $ref: '#/components/schemas/InvoiceWorkflowSettingsReplaceUpdate'
+          description: The workflow used for this invoice.
       description: |-
         InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
 
@@ -12358,7 +12400,7 @@ components:
     InvoiceWorkflowSettings:
       type: object
       required:
-        - sourceBillingProfileID
+        - sourceBillingProfileId
         - workflow
       properties:
         apps:
@@ -12366,7 +12408,7 @@ components:
             - $ref: '#/components/schemas/BillingProfileAppsOrReference'
           description: The apps that will be used to orchestrate the invoice's workflow.
           readOnly: true
-        sourceBillingProfileID:
+        sourceBillingProfileId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
@@ -15427,6 +15469,10 @@ components:
           type: string
           enum:
             - tiered
+          description: |-
+            The type of the price.
+
+            One of: flat, unit, or tiered.
         mode:
           allOf:
             - $ref: '#/components/schemas/TieredPriceMode'
@@ -15514,6 +15560,7 @@ components:
           type: string
           enum:
             - unit
+          description: The type of the price.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -15529,6 +15576,7 @@ components:
           type: string
           enum:
             - unit
+          description: The type of the price.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -15631,7 +15679,9 @@ components:
             - $ref: '#/components/schemas/Percentage'
           description: How much of the total line items to be voided? (e.g. 100% means all charges are voided)
         action:
-          $ref: '#/components/schemas/VoidInvoiceLineActionCreate'
+          allOf:
+            - $ref: '#/components/schemas/VoidInvoiceLineActionCreate'
+          description: The action to take on the line items.
       description: InvoiceVoidAction describes how to handle the voided line items.
     VoidInvoiceActionCreateItem:
       type: object
@@ -15644,7 +15694,9 @@ components:
             - $ref: '#/components/schemas/Percentage'
           description: How much of the total line items to be voided? (e.g. 100% means all charges are voided)
         action:
-          $ref: '#/components/schemas/VoidInvoiceLineActionCreateItem'
+          allOf:
+            - $ref: '#/components/schemas/VoidInvoiceLineActionCreateItem'
+          description: The action to take on the line items.
       description: InvoiceVoidAction describes how to handle the voided line items.
     VoidInvoiceActionInput:
       type: object
@@ -15714,6 +15766,7 @@ components:
           type: string
           enum:
             - discard
+          description: The action to take on the line item.
       description: VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice.
     VoidInvoiceLinePendingActionCreate:
       type: object
@@ -15724,6 +15777,7 @@ components:
           type: string
           enum:
             - pending
+          description: The action to take on the line item.
         nextInvoiceAt:
           type: string
           format: date-time
@@ -15742,6 +15796,7 @@ components:
           type: string
           enum:
             - pending
+          description: The action to take on the line item.
         nextInvoiceAt:
           type: string
           format: date-time
