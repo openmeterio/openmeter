@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -151,15 +152,20 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
 	}
 
-	// 2. and we get the windowed usage data
-	meterQuery := ownerMeter.DefaultParams
-	meterQuery.FilterSubject = []string{ownerMeter.SubjectKey}
-	meterQuery.From = params.From
-	meterQuery.To = params.To
-	meterQuery.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
-	meterQuery.WindowTimeZone = &params.WindowTimeZone
+	getBaseQuery := func() streaming.QueryParams {
+		base := ownerMeter.DefaultParams
 
-	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, meterQuery)
+		base.FilterSubject = []string{ownerMeter.SubjectKey}
+		base.From = params.From
+		base.To = params.To
+		base.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
+		base.WindowTimeZone = &params.WindowTimeZone
+
+		return base
+	}
+
+	// 2. and we get the windowed usage data
+	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, getBaseQuery())
 	if err != nil {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -167,8 +173,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// If we get 0 rows that means the windowsize is larger than the queried period.
 	// In this case we simply query for the entire period.
 	if len(meterRows) == 0 {
-		nonWindowedParams := meterQuery
-		nonWindowedParams.FilterSubject = []string{ownerMeter.SubjectKey}
+		nonWindowedParams := getBaseQuery()
 		nonWindowedParams.WindowSize = nil
 		nonWindowedParams.WindowTimeZone = nil
 		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, nonWindowedParams)
@@ -179,13 +184,14 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	// 3. and then we merge the two
 
-	// convert history segments to list of point in time balances
+	// convert history segments to list of point-in-time balances
 	segments := burndownHistory.Segments()
 
 	if len(segments) == 0 {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("returned history is empty")
 	}
 
+	// We'll use these balances to continuously deduct usage from
 	timestampedBalances := make([]struct {
 		balance   float64
 		overage   float64
@@ -203,22 +209,57 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		})
 	}
 
+	visited := make(map[int]bool)
+
 	// we'll create a window for each row (same windowsize)
 	windows := make([]EntitlementBalanceHistoryWindow, 0, len(meterRows))
 	for _, row := range meterRows {
-		// find the last timestamped balance that was not later than the row
-		// This is not effective on a lot of rows
-		tsBalance, ok := slicesx.First(timestampedBalances, func(tsb struct {
+		// Lets find the last timestamped balance that was no later than the row
+		tsBalance, idx, ok := slicesx.Last(timestampedBalances, func(tsb struct {
 			balance   float64
 			overage   float64
 			timestamp time.Time
 		},
 		) bool {
 			return tsb.timestamp.Before(row.WindowStart) || tsb.timestamp.Equal(row.WindowStart)
-		}, true)
+		})
 		if !ok {
 			return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("no balance found for time %s", row.WindowStart.Format(time.RFC3339))
 		}
+
+		// If this is the first time we're using this `tsBalance`, we need to account for the usage between it's time and the row's time
+		if !visited[idx] {
+			// We need to query the usage between the two timestamps
+			params := getBaseQuery()
+			params.From = &tsBalance.timestamp
+			params.To = &row.WindowStart
+			params.WindowSize = nil
+			params.WindowTimeZone = nil
+
+			rows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+			if err != nil {
+				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
+			}
+
+			// We should have 1 row
+			if len(rows) != 1 {
+				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("expected 1 row, got %d", len(rows))
+			}
+
+			// deduct balance and increase overage if needed
+			usage := rows[0].Value
+
+			balanceAtEnd := math.Max(0, tsBalance.balance-usage)
+			deductedUsage := tsBalance.balance - balanceAtEnd
+			overage := usage - deductedUsage + tsBalance.overage
+
+			// update
+			tsBalance.balance = balanceAtEnd
+			tsBalance.overage = overage
+		}
+
+		// Let's mark this balance as visited
+		visited[idx] = true
 
 		window := EntitlementBalanceHistoryWindow{
 			From:           row.WindowStart.In(&params.WindowTimeZone),

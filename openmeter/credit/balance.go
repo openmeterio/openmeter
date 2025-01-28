@@ -147,33 +147,78 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 	periods := SortedPeriodsFromDedupedTimes(times)
 	historySegments := make([]engine.GrantBurnDownHistorySegment, 0, len(periods))
 
-	// collect al history segments through all periods
+	// For each period we'll have to calculate separately as we cannot calculate across resets.
+	// For each period, we will:
+	// 1. Find the last valid snapshot before the period start (might be at or before the period start)
+	// 2. Calculate the balance at the period start
+	// 3. Calculate the balance through the period
 	for _, period := range periods {
-		// get last valid grantbalances at start of period (eq balance at start of period)
-		balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, period.From)
+		// Get last valid BalanceSnapshot before (or at) the period start
+		snap, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, period.From)
 		if err != nil {
 			return engine.GrantBurnDownHistory{}, err
 		}
 
-		if period.From.Before(balance.At) {
+		if period.From.Before(snap.At) {
 			// This is an inconsistency check. It can only happen if we lost our snapshot for the reset.
 			//
 			// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
 			// FIXME: this is theoretically possible, we need to handle it, add capability to ledger.
-			return engine.GrantBurnDownHistory{}, fmt.Errorf("current period start %s is before last valid balance snapshot at %s, no snapshot was created for reset", period.From, balance.At)
+			return engine.GrantBurnDownHistory{}, fmt.Errorf("current period start %s is before last valid balance snapshot at %s, no snapshot was created for reset", period.From, snap.At)
 		}
 
-		// get all relevant grants
-		grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, period.From, period.To)
-		// These grants might not be present in the starting balance so lets fill them
-		// This is only possible in case the grant becomes active exactly at the start of the current period
-		m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, period.From)
+		// First, let's calculate the balance from the last snapshot until the start of the period
 
+		// get all relevant grants
+		grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, snap.At, period.From)
 		if err != nil {
 			return engine.GrantBurnDownHistory{}, err
 		}
 
-		eng, err := m.buildEngineForOwner(ctx, owner, period)
+		// These grants might not be present in the starting balance so lets fill them
+		// This is only possible in case the grant becomes active exactly at the start of the current period
+		m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, snap.At)
+
+		periodFromSnapshotToPeriodStart := recurrence.Period{
+			From: snap.At,
+			To:   period.From,
+		}
+
+		eng, err := m.buildEngineForOwner(ctx, owner, periodFromSnapshotToPeriodStart)
+		if err != nil {
+			return engine.GrantBurnDownHistory{}, err
+		}
+
+		balances, overage, _, err := eng.Run(
+			ctx,
+			grants,
+			snap.Balances,
+			snap.Overage,
+			periodFromSnapshotToPeriodStart,
+		)
+		if err != nil {
+			return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, period.From, err)
+		}
+
+		fakeSnapshotForPeriodStart := balance.Snapshot{
+			Balances: balances,
+			Overage:  overage,
+			At:       period.From,
+		}
+
+		// Second, lets calculate the balance for the period
+
+		// get all relevant grants
+		grants, err = m.grantRepo.ListActiveGrantsBetween(ctx, owner, period.From, period.To)
+		if err != nil {
+			return engine.GrantBurnDownHistory{}, err
+		}
+
+		// These grants might not be present in the starting balance so lets fill them
+		// This is only possible in case the grant becomes active exactly at the start of the current period
+		m.populateBalanceSnapshotWithMissingGrantsActiveAt(&fakeSnapshotForPeriodStart, grants, period.From)
+
+		eng, err = m.buildEngineForOwner(ctx, owner, period)
 		if err != nil {
 			return engine.GrantBurnDownHistory{}, err
 		}
@@ -181,8 +226,8 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 		_, _, segments, err := eng.Run(
 			ctx,
 			grants,
-			balance.Balances,
-			balance.Overage,
+			fakeSnapshotForPeriodStart.Balances,
+			fakeSnapshotForPeriodStart.Overage,
 			period,
 		)
 		if err != nil {
