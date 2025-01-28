@@ -836,7 +836,7 @@ func (h *Handler) cloneLineForUpsert(line *billing.Line) *billing.Line {
 
 // HandleInvoiceCreation is a handler for the invoice creation event, it will make sure that
 // we are backfilling the items consumed by invoice creation into the gathering invoice.
-func (h *Handler) HandleInvoiceCreation(ctx context.Context, invoice billing.Invoice) error {
+func (h *Handler) HandleInvoiceCreation(ctx context.Context, invoice billing.EventInvoice) error {
 	if invoice.Status == billing.InvoiceStatusGathering {
 		return nil
 	}

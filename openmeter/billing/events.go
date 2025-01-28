@@ -8,12 +8,26 @@ const (
 	EventSubsystem metadata.EventSubsystem = "billing"
 )
 
+type EventInvoice Invoice
+
+func NewEventInvoice(invoice Invoice) EventInvoice {
+	// This causes a stack overflow
+	payload := invoice.RemoveCircularReferences()
+
+	// Remove the Apps from the payload, as they are not json unmarshallable
+	// but either ways, the apps service should be used in workers to acquire
+	// an up-to-date app based on the payload.Workflow.AppReferences
+	payload.Workflow.Apps = nil
+
+	return EventInvoice(payload)
+}
+
 type InvoiceCreatedEvent struct {
-	Invoice `json:",inline"`
+	EventInvoice `json:",inline"`
 }
 
 func NewInvoiceCreatedEvent(invoice Invoice) InvoiceCreatedEvent {
-	return InvoiceCreatedEvent{invoice.RemoveCircularReferences()}
+	return InvoiceCreatedEvent{NewEventInvoice(invoice)}
 }
 
 func (e InvoiceCreatedEvent) EventName() string {
@@ -32,5 +46,5 @@ func (e InvoiceCreatedEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e InvoiceCreatedEvent) Validate() error {
-	return e.Invoice.Validate()
+	return e.EventInvoice.Validate()
 }

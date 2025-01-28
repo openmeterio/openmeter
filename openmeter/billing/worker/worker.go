@@ -130,7 +130,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
-			return w.subscriptionHandler.HandleInvoiceCreation(ctx, event.Invoice)
+			return w.subscriptionHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
 		}),
 	)
 	if err != nil {
