@@ -1697,12 +1697,19 @@ export interface components {
   schemas: {
     /** @description Address */
     Address: {
+      /** @description Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format. */
       country?: components['schemas']['CountryCode']
+      /** @description Postal code. */
       postalCode?: string
+      /** @description State or province. */
       state?: string
+      /** @description City. */
       city?: string
+      /** @description First line of the address. */
       line1?: string
+      /** @description Second line of the address. */
       line2?: string
+      /** @description Phone number. */
       phoneNumber?: string
     }
     /**
@@ -1787,7 +1794,7 @@ export interface components {
      *     Can be used as a short reference to an app if the full app object is not needed. */
     AppReference: {
       /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @description The ID of the app.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
@@ -2020,6 +2027,7 @@ export interface components {
        * @example 2024-01-01T01:01:01.001Z
        */
       readonly deletedAt?: Date
+      /** @description The details of the overrides active for this specific customer. */
       workflow?: components['schemas']['BillingProfileCustomerWorkflowOverride']
       /**
        * @description The billing profile this override is associated with.
@@ -2031,6 +2039,7 @@ export interface components {
     }
     /** @description Payload for creating a new or updating an existing customer override. */
     BillingProfileCustomerOverrideCreate: {
+      /** @description The details of the overrides active for this specific customer. */
       workflow?: components['schemas']['BillingProfileCustomerWorkflowOverrideCreate']
       /**
        * @description The billing profile this override is associated with.
@@ -2165,14 +2174,20 @@ export interface components {
     /** @description BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
      *     into an invoice. */
     BillingWorkflowCollectionAlignmentSubscription: {
-      /** @enum {string} */
+      /**
+       * @description The type of alignment.
+       * @enum {string}
+       */
       type: 'subscription'
     }
     /** @description Workflow collection specifies how to collect the pending line items for an invoice */
     BillingWorkflowCollectionSettings: {
-      /** @default {
+      /**
+       * @description The alignment for collecting the pending line items into an invoice.
+       * @default {
        *       "type": "subscription"
-       *     } */
+       *     }
+       */
       alignment?: components['schemas']['BillingWorkflowCollectionAlignment']
       /**
        * Format: ISO8601
@@ -2338,7 +2353,10 @@ export interface components {
     }
     /** @description CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is based on. */
     CreditNoteOriginalInvoiceRef: {
-      /** @enum {string} */
+      /**
+       * @description Type of the invoice.
+       * @enum {string}
+       */
       type: 'credit_node_original_invoice'
       /**
        * Format: date-time
@@ -3623,7 +3641,10 @@ export interface components {
     }
     /** @description Flat price. */
     FlatPrice: {
-      /** @enum {string} */
+      /**
+       * @description The type of the price.
+       * @enum {string}
+       */
       type: 'flat'
       /** @description The amount of the flat price. */
       amount: components['schemas']['Numeric']
@@ -3631,7 +3652,7 @@ export interface components {
     /** @description Flat price with payment term. */
     FlatPriceWithPaymentTerm: {
       /**
-       * @description discriminator enum property added by openapi-typescript
+       * @description The type of the price. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat'
@@ -3911,16 +3932,16 @@ export interface components {
       /** @description Validation issues reported by the invoice workflow. */
       readonly validationIssues?: components['schemas']['ValidationIssue'][]
       /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIDs?: components['schemas']['InvoiceAppExternalIDs']
+      readonly externalIds?: components['schemas']['InvoiceAppExternalIds']
     }
-    /** @description InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe. */
-    InvoiceAppExternalIDs: {
+    /** @description InvoiceAppExternalIds contains the external IDs of the invoice in other apps such as Stripe. */
+    InvoiceAppExternalIds: {
       /** @description The external ID of the invoice in the invoicing app if available. */
-      readonly Invoicing?: string
+      readonly invoicing?: string
       /** @description The external ID of the invoice in the tax app if available. */
-      readonly Tax?: string
+      readonly tax?: string
       /** @description The external ID of the invoice in the payment app if available. */
-      readonly Payment?: string
+      readonly payment?: string
     }
     /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
      *     non-gathering invoices. */
@@ -4006,7 +4027,7 @@ export interface components {
        */
       readonly deletedAt?: Date
       /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @description ID of the line.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
@@ -4050,10 +4071,13 @@ export interface components {
        */
       invoiceAt: Date
       /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
       /** @description Subscription are the references to the subscritpions that this line is related to. */
       readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
       perUnitAmount: components['schemas']['Numeric']
@@ -4101,7 +4125,10 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
       perUnitAmount: components['schemas']['Numeric']
@@ -4154,7 +4181,10 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
       perUnitAmount: components['schemas']['Numeric']
@@ -4195,12 +4225,12 @@ export interface components {
     InvoiceLine:
       | components['schemas']['InvoiceUsageBasedLine']
       | components['schemas']['InvoiceFlatFeeLine']
-    /** @description InvoiceLineAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe. */
-    InvoiceLineAppExternalIDs: {
+    /** @description InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe. */
+    InvoiceLineAppExternalIds: {
       /** @description The external ID of the invoice in the invoicing app if available. */
-      readonly Invoicing?: string
+      readonly invoicing?: string
       /** @description The external ID of the invoice in the tax app if available. */
-      readonly Tax?: string
+      readonly tax?: string
     }
     /** @description InvoiceLineDiscount represents an amount deducted from the line, and will be applied before taxes. */
     InvoiceLineDiscount: {
@@ -4239,7 +4269,7 @@ export interface components {
       /** @description Text description as to why the discount was applied. */
       description?: string
       /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
     }
     /**
      * @description InvoiceLineManagedBy specifies who manages the line.
@@ -4390,9 +4420,13 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       draftUntil?: Date
+      /** @description The supplier of the lines included in the invoice. */
       supplier: components['schemas']['BillingPartyReplaceUpdate']
+      /** @description The customer the invoice is sent to. */
       customer: components['schemas']['BillingPartyReplaceUpdate']
+      /** @description The lines included in the invoice. */
       lines: components['schemas']['InvoiceLineReplaceUpdate'][]
+      /** @description The workflow settings for the invoice. */
       workflow: components['schemas']['InvoiceWorkflowReplaceUpdate']
     }
     /** @description InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint. */
@@ -4424,7 +4458,10 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
       perUnitAmount: components['schemas']['Numeric']
@@ -4492,8 +4529,12 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'usage_based'
+      /** @description Price of the usage-based item being sold. */
       price: components['schemas']['RateCardUsageBasedPrice']
       /** @description The feature that the usage is based on. */
       featureKey: string
@@ -4591,7 +4632,7 @@ export interface components {
        */
       readonly deletedAt?: Date
       /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @description ID of the line.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
@@ -4635,11 +4676,15 @@ export interface components {
        */
       invoiceAt: Date
       /** @description External IDs of the invoice in other apps such as Stripe. */
-      readonly externalIDs?: components['schemas']['InvoiceLineAppExternalIDs']
+      readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
       /** @description Subscription are the references to the subscritpions that this line is related to. */
       readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'usage_based'
+      /** @description Price of the usage-based item being sold. */
       price: components['schemas']['RateCardUsageBasedPrice']
       /** @description The feature that the usage is based on. */
       featureKey: string
@@ -4681,8 +4726,12 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'usage_based'
+      /** @description Price of the usage-based item being sold. */
       price: components['schemas']['RateCardUsageBasedPrice']
       /** @description The feature that the usage is based on. */
       featureKey: string
@@ -4723,8 +4772,12 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       invoiceAt: Date
-      /** @enum {string} */
+      /**
+       * @description Type of the line.
+       * @enum {string}
+       */
       type: 'usage_based'
+      /** @description Price of the usage-based item being sold. */
       price: components['schemas']['RateCardUsageBasedPrice']
       /** @description The feature that the usage is based on. */
       featureKey: string
@@ -4764,6 +4817,7 @@ export interface components {
      *
      *     Fields that are immutable a re removed from the model. This is based on InvoiceWorkflowSettings. */
     InvoiceWorkflowReplaceUpdate: {
+      /** @description The workflow used for this invoice. */
       workflow: components['schemas']['InvoiceWorkflowSettingsReplaceUpdate']
     }
     /** @description InvoiceWorkflowSettings represents the workflow settings used by the invoice.
@@ -4780,7 +4834,7 @@ export interface components {
        *     of the profile itself.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      readonly sourceBillingProfileID: string
+      readonly sourceBillingProfileId: string
       /** @description The workflow details used by this invoice. */
       workflow: components['schemas']['BillingWorkflow']
     }
@@ -7055,7 +7109,9 @@ export interface components {
     /** @description Tiered price with spend commitments. */
     TieredPriceWithCommitments: {
       /**
-       * @description discriminator enum property added by openapi-typescript
+       * @description The type of the price.
+       *
+       *     One of: flat, unit, or tiered. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'tiered'
@@ -7122,7 +7178,10 @@ export interface components {
     }
     /** @description Unit price. */
     UnitPrice: {
-      /** @enum {string} */
+      /**
+       * @description The type of the price.
+       * @enum {string}
+       */
       type: 'unit'
       /** @description The amount of the unit price. */
       amount: components['schemas']['Numeric']
@@ -7130,7 +7189,7 @@ export interface components {
     /** @description Unit price with spend commitments. */
     UnitPriceWithCommitments: {
       /**
-       * @description discriminator enum property added by openapi-typescript
+       * @description The type of the price. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'unit'
@@ -7201,12 +7260,14 @@ export interface components {
     VoidInvoiceActionCreate: {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
       percentage: components['schemas']['Percentage']
+      /** @description The action to take on the line items. */
       action: components['schemas']['VoidInvoiceLineActionCreate']
     }
     /** @description InvoiceVoidAction describes how to handle the voided line items. */
     VoidInvoiceActionCreateItem: {
       /** @description How much of the total line items to be voided? (e.g. 100% means all charges are voided) */
       percentage: components['schemas']['Percentage']
+      /** @description The action to take on the line items. */
       action: components['schemas']['VoidInvoiceLineActionCreateItem']
     }
     /** @description Request to void an invoice */
@@ -7242,12 +7303,18 @@ export interface components {
       | components['schemas']['VoidInvoiceLinePendingActionCreateItem']
     /** @description VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLineDiscardAction: {
-      /** @enum {string} */
+      /**
+       * @description The action to take on the line item.
+       * @enum {string}
+       */
       type: 'discard'
     }
     /** @description VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLinePendingActionCreate: {
-      /** @enum {string} */
+      /**
+       * @description The action to take on the line item.
+       * @enum {string}
+       */
       type: 'pending'
       /**
        * Format: date-time
@@ -7260,7 +7327,10 @@ export interface components {
     }
     /** @description VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLinePendingActionCreateItem: {
-      /** @enum {string} */
+      /**
+       * @description The action to take on the line item.
+       * @enum {string}
+       */
       type: 'pending'
       /**
        * Format: date-time
@@ -7594,8 +7664,8 @@ export type IngestedEvent = components['schemas']['IngestedEvent']
 export type InternalServerErrorProblemResponse =
   components['schemas']['InternalServerErrorProblemResponse']
 export type Invoice = components['schemas']['Invoice']
-export type InvoiceAppExternalIDs =
-  components['schemas']['InvoiceAppExternalIDs']
+export type InvoiceAppExternalIds =
+  components['schemas']['InvoiceAppExternalIds']
 export type InvoiceAvailableActionDetails =
   components['schemas']['InvoiceAvailableActionDetails']
 export type InvoiceAvailableActionInvoiceDetails =
@@ -7616,8 +7686,8 @@ export type InvoiceFlatFeePendingLineCreate =
 export type InvoiceGenericDocumentRef =
   components['schemas']['InvoiceGenericDocumentRef']
 export type InvoiceLine = components['schemas']['InvoiceLine']
-export type InvoiceLineAppExternalIDs =
-  components['schemas']['InvoiceLineAppExternalIDs']
+export type InvoiceLineAppExternalIds =
+  components['schemas']['InvoiceLineAppExternalIds']
 export type InvoiceLineDiscount = components['schemas']['InvoiceLineDiscount']
 export type InvoiceLineManagedBy = components['schemas']['InvoiceLineManagedBy']
 export type InvoiceLineReplaceUpdate =

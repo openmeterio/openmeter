@@ -49,6 +49,9 @@ model InvoiceGenericDocumentRef {
  */
 @friendlyName("CreditNoteOriginalInvoiceRef")
 model InvoiceCreditNoteOriginalInvoiceRef extends InvoiceGenericDocumentRef {
+  /**
+   * Type of the invoice.
+   */
   type: InvoiceDocumentRefType.creditNoteOriginalInvoice;
 
   /**

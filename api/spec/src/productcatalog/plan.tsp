@@ -182,6 +182,9 @@ model PlanPhase {
  */
 @friendlyName("PlanVariant")
 model PlanVariant {
+  /**
+   * The currency code in ISO 4217 format.
+   */
   currency: CurrencyCode;
 
   // additional properties are not yet supported

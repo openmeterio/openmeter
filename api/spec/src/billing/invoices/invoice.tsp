@@ -195,7 +195,7 @@ model Invoice {
    * External IDs of the invoice in other apps such as Stripe.
    */
   @visibility(Lifecycle.Read)
-  externalIDs?: InvoiceAppExternalIDs;
+  externalIds?: InvoiceAppExternalIds;
 }
 
 /**
@@ -320,7 +320,7 @@ model InvoiceWorkflowSettings {
    * of the profile itself.
    */
   @visibility(Lifecycle.Read)
-  sourceBillingProfileID: ULID;
+  sourceBillingProfileId: ULID;
 
   /**
    * The workflow details used by this invoice.
@@ -585,6 +585,9 @@ model InvoiceLineBase {
   // Note: ID has updated visibility as we support batch line creations and upserts
   ...OmitProperties<global.Resource, "id">;
 
+  /**
+   * ID of the line.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Update)
   id: ULID;
 
@@ -683,7 +686,7 @@ model InvoiceLineBase {
    * External IDs of the invoice in other apps such as Stripe.
    */
   @visibility(Lifecycle.Read)
-  externalIDs?: InvoiceLineAppExternalIDs;
+  externalIds?: InvoiceLineAppExternalIds;
 
   /**
    * Subscription are the references to the subscritpions that this line is related to.
@@ -716,7 +719,15 @@ model InvoiceReference {
 @friendlyName("InvoiceUsageBasedLine")
 model InvoiceUsageBasedLine {
   ...OmitProperties<InvoiceLineBase, "type">;
+
+  /**
+   * Type of the line.
+   */
   type: InvoiceLineTypes.usageBased;
+
+  /**
+   * Price of the usage-based item being sold.
+   */
   price: OpenMeter.ProductCatalog.RateCardUsageBasedPrice;
 
   /**
@@ -746,6 +757,10 @@ model InvoiceUsageBasedLine {
 @friendlyName("InvoiceFlatFeeLine")
 model InvoiceFlatFeeLine {
   ...OmitProperties<InvoiceLineBase, "type">;
+
+  /**
+   * Type of the line.
+   */
   type: InvoiceLineTypes.flatFee;
 
   /**
@@ -839,7 +854,7 @@ model InvoiceLineDiscount {
    * External IDs of the invoice in other apps such as Stripe.
    */
   @visibility(Lifecycle.Read)
-  externalIDs?: InvoiceLineAppExternalIDs;
+  externalIds?: InvoiceLineAppExternalIds;
 }
 
 /**
@@ -989,45 +1004,45 @@ model ValidationIssue {
 }
 
 /**
- * InvoiceAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
+ * InvoiceAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
  */
-@friendlyName("InvoiceAppExternalIDs")
-model InvoiceAppExternalIDs {
+@friendlyName("InvoiceAppExternalIds")
+model InvoiceAppExternalIds {
   /**
    * The external ID of the invoice in the invoicing app if available.
    */
   @visibility(Lifecycle.Read)
-  Invoicing?: string;
+  invoicing?: string;
 
   /**
    * The external ID of the invoice in the tax app if available.
    */
   @visibility(Lifecycle.Read)
-  Tax?: string;
+  tax?: string;
 
   /**
    * The external ID of the invoice in the payment app if available.
    */
   @visibility(Lifecycle.Read)
-  Payment?: string;
+  payment?: string;
 }
 
 /**
- * InvoiceLineAppExternalIDs contains the external IDs of the invoice in other apps such as Stripe.
+ * InvoiceLineAppExternalIds contains the external IDs of the invoice in other apps such as Stripe.
  */
-@friendlyName("InvoiceLineAppExternalIDs")
-model InvoiceLineAppExternalIDs {
+@friendlyName("InvoiceLineAppExternalIds")
+model InvoiceLineAppExternalIds {
   /**
    * The external ID of the invoice in the invoicing app if available.
    */
   @visibility(Lifecycle.Read)
-  Invoicing?: string;
+  invoicing?: string;
 
   /**
    * The external ID of the invoice in the tax app if available.
    */
   @visibility(Lifecycle.Read)
-  Tax?: string;
+  tax?: string;
 }
 
 /**

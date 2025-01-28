@@ -99,6 +99,9 @@ union App {
  */
 @friendlyName("AppReference")
 model AppReference {
+  /**
+   * The ID of the app.
+   */
   id: ULID;
 }
 
