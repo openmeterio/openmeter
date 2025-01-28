@@ -1657,9 +1657,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			require.NotNil(s.T(), updatedInvoice)
 
 			line := updatedInvoice.Lines.GetByID(flatPerUnit.ID)
+			s.NotNil(line)
 
 			// TODO[later]: we need to decide how to handle the situation where the line is updated, but there are split
 			// lines
+
 			require.Equal(s.T(), float64(250), lo.Must(line.UsageBased.Price.AsUnit()).Amount.InexactFloat64())
 			require.True(s.T(), flatPerUnit.UpdatedAt.Before(line.UpdatedAt), "updated at should be changed")
 			require.True(s.T(), flatPerUnit.CreatedAt.Equal(line.CreatedAt), "created at should not be changed")

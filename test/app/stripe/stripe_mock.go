@@ -122,7 +122,7 @@ func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripec
 }
 
 // Invoice Lines
-func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) ([]*stripe.InvoiceItem, error) {
+func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) ([]stripeclient.StripeInvoiceItemWithLineID, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripec
 	c.StableSortInvoiceItemParams(input.Lines)
 
 	args := c.Called(input)
-	return args.Get(0).([]*stripe.InvoiceItem), args.Error(1)
+	return args.Get(0).([]stripeclient.StripeInvoiceItemWithLineID), args.Error(1)
 }
 
 func (c *StripeAppClientMock) StableSortInvoiceItemParams(input []*stripe.InvoiceItemParams) {

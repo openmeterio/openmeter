@@ -72,21 +72,15 @@ func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.Invoi
 }
 
 func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
-	// let's resolve the statatus details
-	_, err := s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, sm *InvoiceStateMachine) error {
-		sd, err := sm.StatusDetails(ctx)
-		if err != nil {
-			return fmt.Errorf("error resolving status details: %w", err)
-		}
-
-		invoice.StatusDetails = sd
+	// let's resolve the statatus details (the invoice state machine has this side-effect after the callback)
+	resolvedInvoice, err := s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, sm *InvoiceStateMachine) error {
 		return nil
 	})
 	if err != nil {
-		return invoice, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+		return invoice, fmt.Errorf("resolving status details: %w", err)
 	}
 
-	return invoice, nil
+	return resolvedInvoice, nil
 }
 
 type recalculateGatheringInvoiceInput struct {
@@ -323,7 +317,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				// TODO[later]: we are saving here, and the state machine advancement will do a load/save later
 				// this is something we could optimize in the future by adding the option to withLockedInvoiceStateMachine
 				// to either pass in the invoice or the ID
-				_, err = s.adapter.UpdateInvoice(ctx, invoice)
+				_, err = s.updateInvoice(ctx, invoice)
 				if err != nil {
 					return nil, fmt.Errorf("updating invoice: %w", err)
 				}
@@ -373,7 +367,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 						sm.Invoice.ValidationIssues = validationIssues
 
-						sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
+						sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 						if err != nil {
 							return fmt.Errorf("updating invoice: %w", err)
 						}
@@ -562,7 +556,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 
 		// Given the amount of state transitions, we are only saving the invoice after the whole chain
 		// this means that some of the intermittent states will not be persisted in the DB.
-		return s.adapter.UpdateInvoice(ctx, invoice)
+		return s.updateInvoice(ctx, invoice)
 	})
 }
 
@@ -591,7 +585,7 @@ func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceIn
 			})
 		}
 
-		if _, err := s.adapter.UpdateInvoice(ctx, invoice); err != nil {
+		if _, err := s.updateInvoice(ctx, invoice); err != nil {
 			return billing.Invoice{}, fmt.Errorf("updating invoice: %w", err)
 		}
 
@@ -670,6 +664,12 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					if err := s.checkIfLinesAreInvoicable(ctx, &sm.Invoice, sm.Invoice.Workflow.Config.Invoicing.ProgressiveBilling); err != nil {
 						return err
 					}
+
+					// This forces line ID generation for new or added lines
+					sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
+					if err != nil {
+						return fmt.Errorf("updating invoice: %w", err)
+					}
 				}
 
 				if err := sm.FireAndActivate(ctx, trigger); err != nil {
@@ -680,7 +680,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 						return fmt.Errorf("firing %s: %w", trigger, err)
 					}
 
-					sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
+					sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 					if err != nil {
 						return fmt.Errorf("updating invoice: %w", err)
 					}
@@ -697,7 +697,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 
 				sm.Invoice.ValidationIssues = validationIssues
 
-				sm.Invoice, err = s.adapter.UpdateInvoice(ctx, sm.Invoice)
+				sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 				if err != nil {
 					return fmt.Errorf("updating invoice: %w", err)
 				}
@@ -802,7 +802,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.Invoice{}, err
 			}
 
-			return s.adapter.UpdateInvoice(ctx, invoice)
+			return s.updateInvoice(ctx, invoice)
 		})
 	}
 
@@ -826,6 +826,27 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			return nil
 		}),
 	)
+}
+
+// updateInvoice calls the adapter to update the invoice and returns the updated invoice including any expands that are
+// the responsibility of the service
+func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billing.Invoice, error) {
+	invoice, err := s.adapter.UpdateInvoice(ctx, in)
+	if err != nil {
+		return billing.Invoice{}, err
+	}
+
+	invoice, err = s.resolveWorkflowApps(ctx, invoice)
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("error adding fields to invoice [%s]: %w", invoice.ID, err)
+	}
+
+	invoice, err = s.resolveStatusDetails(ctx, invoice)
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
+	}
+
+	return invoice, nil
 }
 
 func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.Invoice, progressiveBilling bool) error {
@@ -1006,7 +1027,7 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		invoice.ValidationIssues = input.Issues
 
-		_, err := s.adapter.UpdateInvoice(ctx, invoice)
+		_, err := s.updateInvoice(ctx, invoice)
 		if err != nil {
 			return fmt.Errorf("updating invoice: %w", err)
 		}

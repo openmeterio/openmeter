@@ -66,7 +66,7 @@ type StripeAppClient interface {
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) error
 	FinalizeInvoice(ctx context.Context, input FinalizeInvoiceInput) (*stripe.Invoice, error)
 	// Invoice Line
-	AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) ([]*stripe.InvoiceItem, error)
+	AddInvoiceLines(ctx context.Context, input AddInvoiceLinesInput) ([]StripeInvoiceItemWithLineID, error)
 	UpdateInvoiceLines(ctx context.Context, input UpdateInvoiceLinesInput) ([]*stripe.InvoiceItem, error)
 	RemoveInvoiceLines(ctx context.Context, input RemoveInvoiceLinesInput) error
 }

@@ -655,8 +655,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			}).
 			Return(lo.Map(
 				expectedInvoiceAddLines,
-				func(line *stripe.InvoiceItemParams, idx int) *stripe.InvoiceItem {
-					return mapInvoiceItemParamsToInvoiceItem(fmt.Sprintf("il_%d", idx), line)
+				func(line *stripe.InvoiceItemParams, idx int) stripeclient.StripeInvoiceItemWithLineID {
+					return mapInvoiceItemParamsToInvoiceItem(fmt.Sprintf("%d", idx), line)
 				},
 			), nil)
 
@@ -765,7 +765,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 				Lines:           filteredUpdatedLines,
 			}).
 			Return(lo.Map(filteredUpdatedLines, func(l *stripeclient.StripeInvoiceItemWithID, _ int) *stripe.InvoiceItem {
-				return mapInvoiceItemParamsToInvoiceItem(l.ID, l.InvoiceItemParams)
+				return mapInvoiceItemParamsToInvoiceItem(l.ID, l.InvoiceItemParams).InvoiceItem
 			}), nil)
 
 		s.StripeAppClient.
@@ -790,18 +790,21 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	})
 }
 
-func mapInvoiceItemParamsToInvoiceItem(id string, i *stripe.InvoiceItemParams) *stripe.InvoiceItem {
-	return &stripe.InvoiceItem{
-		ID:          id,
-		Amount:      *i.Amount,
-		Quantity:    lo.FromPtrOr(i.Quantity, 0),
-		Description: *i.Description,
-		Currency:    stripe.Currency(lo.FromPtrOr(i.Currency, "")),
+func mapInvoiceItemParamsToInvoiceItem(id string, i *stripe.InvoiceItemParams) stripeclient.StripeInvoiceItemWithLineID {
+	return stripeclient.StripeInvoiceItemWithLineID{
+		LineID: fmt.Sprintf("il_%s", id),
+		InvoiceItem: &stripe.InvoiceItem{
+			ID:          fmt.Sprintf("ii_%s", id),
+			Amount:      *i.Amount,
+			Quantity:    lo.FromPtrOr(i.Quantity, 0),
+			Description: *i.Description,
+			Currency:    stripe.Currency(lo.FromPtrOr(i.Currency, "")),
 
-		Period: &stripe.Period{
-			Start: *i.Period.Start,
-			End:   *i.Period.End,
+			Period: &stripe.Period{
+				Start: *i.Period.Start,
+				End:   *i.Period.End,
+			},
+			Metadata: i.Metadata,
 		},
-		Metadata: i.Metadata,
 	}
 }
