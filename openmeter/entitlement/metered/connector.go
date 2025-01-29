@@ -147,6 +147,11 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 
 	model.UsagePeriod.Anchor = model.UsagePeriod.Anchor.Truncate(c.granularity)
 
+	// Let's validate the usage period isn't less than 1h
+	if err := model.UsagePeriod.Validate(); err != nil {
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: err.Error()}
+	}
+
 	// Calculating the very first period is different as it has to start from the start of measurement
 	currentPeriod, err := model.UsagePeriod.GetCurrentPeriodAt(*measureUsageFrom)
 	if err != nil {

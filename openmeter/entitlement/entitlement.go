@@ -1,6 +1,7 @@
 package entitlement
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -353,6 +354,15 @@ func (e GenericProperties) ActiveToTime() *time.Time {
 }
 
 type UsagePeriod recurrence.Recurrence
+
+func (u UsagePeriod) Validate() error {
+	hour := datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	if diff, err := u.Interval.Period.Subtract(hour); err == nil && diff.Sign() == -1 {
+		return errors.New("UsagePeriod must be at least 1 hour")
+	}
+
+	return nil
+}
 
 func (u UsagePeriod) Equal(other UsagePeriod) bool {
 	if u.Interval != other.Interval {
