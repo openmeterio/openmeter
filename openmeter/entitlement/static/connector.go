@@ -60,6 +60,10 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	if model.UsagePeriod != nil {
 		usagePeriod = model.UsagePeriod
 
+		if err := usagePeriod.Validate(); err != nil {
+			return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: err.Error()}
+		}
+
 		calculatedPeriod, err := usagePeriod.GetCurrentPeriodAt(clock.Now())
 		if err != nil {
 			return nil, err
