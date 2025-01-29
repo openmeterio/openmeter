@@ -8681,7 +8681,6 @@ components:
         - type: object
           required:
             - name
-            - Alignment
             - currency
             - phases
           properties:
@@ -8703,7 +8702,7 @@ components:
               nullable: true
               description: Additional metadata for the resource.
               title: Metadata
-            Alignment:
+            alignment:
               allOf:
                 - $ref: '#/components/schemas/Alignment'
               description: Alignment configuration for the plan.
@@ -13302,7 +13301,6 @@ components:
         - createdAt
         - updatedAt
         - key
-        - Alignment
         - version
         - currency
         - status
@@ -13361,7 +13359,7 @@ components:
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A semi-unique identifier for the resource.
           title: Key
-        Alignment:
+        alignment:
           allOf:
             - $ref: '#/components/schemas/Alignment'
           description: Alignment configuration for the plan.
@@ -13419,7 +13417,6 @@ components:
       required:
         - name
         - key
-        - Alignment
         - currency
         - phases
       properties:
@@ -13448,7 +13445,7 @@ components:
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A semi-unique identifier for the resource.
           title: Key
-        Alignment:
+        alignment:
           allOf:
             - $ref: '#/components/schemas/Alignment'
           description: Alignment configuration for the plan.
@@ -13597,7 +13594,6 @@ components:
       type: object
       required:
         - name
-        - Alignment
         - phases
       properties:
         name:
@@ -13618,7 +13614,7 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
-        Alignment:
+        alignment:
           allOf:
             - $ref: '#/components/schemas/Alignment'
           description: Alignment configuration for the plan.

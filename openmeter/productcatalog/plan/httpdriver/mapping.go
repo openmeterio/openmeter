@@ -31,7 +31,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 		Name:          p.Name,
 		UpdatedAt:     p.UpdatedAt,
 		Version:       p.Version,
-		Alignment: api.Alignment{
+		Alignment: &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(p.Alignment.BillablesMustAlign),
 		},
 	}
@@ -412,7 +412,14 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 				Description: a.Description,
 				Metadata:    lo.FromPtrOr(a.Metadata, nil),
 				Alignment: productcatalog.Alignment{
-					BillablesMustAlign: lo.FromPtrOr(a.Alignment.BillablesMustAlign, false),
+					BillablesMustAlign: func() bool {
+						if a.Alignment != nil {
+							if a.Alignment.BillablesMustAlign != nil {
+								return *a.Alignment.BillablesMustAlign
+							}
+						}
+						return true
+					}(),
 				},
 			},
 			Phases: nil,
@@ -894,8 +901,10 @@ func AsUpdatePlanRequest(a api.PlanReplaceUpdate, namespace string, planID strin
 		Metadata:    (*models.Metadata)(a.Metadata),
 	}
 
-	if a.Alignment.BillablesMustAlign != nil {
-		req.AlignmentUpdate.BillablesMustAlign = a.Alignment.BillablesMustAlign
+	if a.Alignment != nil {
+		if a.Alignment.BillablesMustAlign != nil {
+			req.AlignmentUpdate.BillablesMustAlign = a.Alignment.BillablesMustAlign
+		}
 	}
 
 	phases := make([]productcatalog.Phase, 0, len(a.Phases))
