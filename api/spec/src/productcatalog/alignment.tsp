@@ -17,5 +17,5 @@ model Alignment {
    * Alignment means the Price's BillingCadence must align for both duration and anchor time.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  BillablesMustAlign?: boolean;
+  billablesMustAlign?: boolean;
 }
