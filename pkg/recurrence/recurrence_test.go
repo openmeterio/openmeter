@@ -1,10 +1,13 @@
-package recurrence
+package recurrence_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 func TestNextAfter(t *testing.T) {
@@ -12,14 +15,14 @@ func TestNextAfter(t *testing.T) {
 
 	tc := []struct {
 		name       string
-		recurrence Recurrence
+		recurrence recurrence.Recurrence
 		time       time.Time
 		want       time.Time
 	}{
 		{
 			name: "Should return time if its same as anchor",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now,
 			},
 			time: now,
@@ -27,8 +30,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should return time if it falls on recurrence period",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
@@ -36,8 +39,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should return next period after anchor",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now.Add(-time.Hour),
@@ -45,8 +48,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should return next period if anchor is in the far past",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, -50),
 			},
 			time: now.Add(-time.Hour),
@@ -54,8 +57,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should return next if anchor is in the future",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, 1),
 			},
 			time: now.Add(-time.Hour),
@@ -63,8 +66,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should return next if anchor is in the far future",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, 50),
 			},
 			time: now.Add(-time.Hour),
@@ -72,8 +75,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should work with weeks",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodWeek,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodWeek,
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
@@ -81,8 +84,8 @@ func TestNextAfter(t *testing.T) {
 		},
 		{
 			name: "Should work with months",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodMonth,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodMonth,
 				Anchor:   now.AddDate(0, 0, 0),
 			},
 			time: now.AddDate(0, 0, 1),
@@ -103,14 +106,14 @@ func TestPrevBefore(t *testing.T) {
 
 	tc := []struct {
 		name       string
-		recurrence Recurrence
+		recurrence recurrence.Recurrence
 		time       time.Time
 		want       time.Time
 	}{
 		{
 			name: "Should return time - period if time is same as anchor",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now,
 			},
 			time: now,
@@ -118,8 +121,8 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should return time - period if time falls on recurrence period",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
@@ -127,8 +130,8 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should return prev period after anchor",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now.Add(+time.Hour),
@@ -136,8 +139,8 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should return prev period if anchor is in the far past",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, -50),
 			},
 			time: now.Add(+time.Hour),
@@ -145,8 +148,8 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should return prev if anchor is in the future",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, 1),
 			},
 			time: now.Add(time.Hour),
@@ -154,8 +157,8 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should return next if anchor is in the far future",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodDaily,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
 				Anchor:   now.AddDate(0, 0, 50),
 			},
 			time: now.Add(time.Hour),
@@ -163,8 +166,8 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should work with weeks",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodWeek,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodWeek,
 				Anchor:   now.AddDate(0, 0, 1),
 			},
 			time: now,
@@ -172,12 +175,21 @@ func TestPrevBefore(t *testing.T) {
 		},
 		{
 			name: "Should work with months",
-			recurrence: Recurrence{
-				Interval: RecurrencePeriodMonth,
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodMonth,
 				Anchor:   now,
 			},
 			time: now.AddDate(0, 0, 1),
 			want: now,
+		},
+		{
+			name: "Should work on 29th of January",
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2025-01-29T12:00:00Z"),
+			},
+			time: testutils.GetRFC3339Time(t, "2025-01-29T12:10:00Z"),
+			want: testutils.GetRFC3339Time(t, "2025-01-29T12:00:00Z"),
 		},
 	}
 

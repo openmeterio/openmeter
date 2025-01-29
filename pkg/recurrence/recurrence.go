@@ -7,6 +7,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
 
+const MAX_SAFE_ITERATIONS = 10000
+
 type Recurrence struct {
 	Interval RecurrenceInterval `json:"period"`
 	// Anchor can be an arbitrary anchor time for the recurrence.
@@ -18,21 +20,43 @@ type Recurrence struct {
 // If at t the recurrence should occur, it will return t.
 func (r Recurrence) NextAfter(t time.Time) (time.Time, error) {
 	i := r.Anchor
+
+	// If the anchor is in the future, we call .Prev() repeatedly. If the new value is Before t, we break
 	if i.After(t) {
+		ic := 0
 		for i.After(t) {
+			if ic >= MAX_SAFE_ITERATIONS {
+				return time.Time{}, fmt.Errorf("recurrence.NextAfter: too many iterations")
+			}
+			ic += 1
+
 			v, err := r.Prev(i)
 			if err != nil {
 				return time.Time{}, err
 			}
+
+			if v.Before(t) {
+				break
+			}
+
 			i = v
 		}
-	}
-	for i.Before(t) {
-		v, err := r.Next(i)
-		if err != nil {
-			return time.Time{}, err
+		// If the anchor is in the past, we call .Next() repeatedly. If the new value is !Before T, we break
+	} else if i.Before(t) {
+		ic := 0
+		for i.Before(t) {
+			if ic >= MAX_SAFE_ITERATIONS {
+				return time.Time{}, fmt.Errorf("recurrence.NextAfter: too many iterations")
+			}
+			ic += 1
+
+			v, err := r.Next(i)
+			if err != nil {
+				return time.Time{}, err
+			}
+
+			i = v
 		}
-		i = v
 	}
 
 	return i, nil
@@ -41,25 +65,48 @@ func (r Recurrence) NextAfter(t time.Time) (time.Time, error) {
 // PrevBefore returns the previous time before t that the recurrence should occur.
 func (r Recurrence) PrevBefore(t time.Time) (time.Time, error) {
 	i := r.Anchor
-	if i.Before(t) {
-		for i.Before(t) {
-			v, err := r.Next(i)
+
+	// If the anchor is in the future, we call .Prev() repeatedly. If the new value is Before t, we break
+	if !i.Before(t) {
+		ic := 0
+		for !i.Before(t) {
+			if ic >= MAX_SAFE_ITERATIONS {
+				return time.Time{}, fmt.Errorf("recurrence.PrevBefore: too many iterations")
+			}
+			ic += 1
+
+			v, err := r.Prev(i)
 			if err != nil {
 				return time.Time{}, err
 			}
 			i = v
 		}
-	}
-	for i.After(t) || i.Equal(t) {
-		v, err := r.Prev(i)
-		if err != nil {
-			return time.Time{}, err
+		// If the anchor is T or in the past relative, we call .Next() repeatedly. If the new value is !Before T, we break
+	} else {
+		ic := 0
+		for i.Before(t) {
+			if ic >= MAX_SAFE_ITERATIONS {
+				return time.Time{}, fmt.Errorf("recurrence.PrevBefore: too many iterations")
+			}
+			ic += 1
+
+			v, err := r.Next(i)
+			if err != nil {
+				return time.Time{}, err
+			}
+
+			if !v.Before(t) {
+				break
+			}
+
+			i = v
 		}
-		i = v
 	}
 
 	return i, nil
 }
+
+// Beware that calling Next then Prev on the result may not return the same time!
 
 func (r Recurrence) Next(t time.Time) (time.Time, error) {
 	n, ok := r.Interval.AddTo(t)
