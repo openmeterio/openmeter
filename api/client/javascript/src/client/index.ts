@@ -5,6 +5,7 @@ import createClient, {
 } from 'openapi-fetch'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
+import { Customers } from './customers.js'
 import { Entitlements } from './entitlements.js'
 import { Events } from './events.js'
 import { Features } from './features.js'
@@ -44,6 +45,7 @@ export class OpenMeter {
 
   public apps: Apps
   public billing: Billing
+  public customers: Customers
   public entitlements: Entitlements
   public events: Events
   public features: Features
@@ -76,6 +78,7 @@ export class OpenMeter {
 
     this.apps = new Apps(this.client)
     this.billing = new Billing(this.client)
+    this.customers = new Customers(this.client)
     this.entitlements = new Entitlements(this.client)
     this.events = new Events(this.client)
     this.features = new Features(this.client)
