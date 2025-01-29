@@ -95,7 +95,7 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 			for _, rc := range phase.RateCards.Billables() {
 				// 1 time prices are excluded
 				if d := rc.GetBillingCadence(); d != nil {
-					periods[d.ISOString()] = true
+					periods[d.Normalise(true).ISOString()] = true
 				}
 			}
 
