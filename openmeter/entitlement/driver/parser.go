@@ -349,13 +349,13 @@ func MapRecurrenceToAPI(r recurrence.RecurrenceInterval) api.RecurringPeriodInte
 
 	apiInt := &api.RecurringPeriodInterval{}
 
-	if d, err := normalised.Subtract(recurrence.RecurrencePeriodDaily.Period.Period); err == nil && d.IsZero() {
+	if d, err := normalised.Subtract(recurrence.RecurrencePeriodDaily.Period); err == nil && d.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumDAY)
-	} else if w, err := normalised.Subtract(recurrence.RecurrencePeriodWeek.Period.Period); err == nil && w.IsZero() {
+	} else if w, err := normalised.Subtract(recurrence.RecurrencePeriodWeek.Period); err == nil && w.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumWEEK)
-	} else if m, err := normalised.Subtract(recurrence.RecurrencePeriodMonth.Period.Period); err == nil && m.IsZero() {
+	} else if m, err := normalised.Subtract(recurrence.RecurrencePeriodMonth.Period); err == nil && m.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
-	} else if y, err := normalised.Subtract(recurrence.RecurrencePeriodYear.Period.Period); err == nil && y.IsZero() {
+	} else if y, err := normalised.Subtract(recurrence.RecurrencePeriodYear.Period); err == nil && y.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR)
 	} else {
 		_ = apiInt.FromRecurringPeriodInterval0(r.ISOString().String())
