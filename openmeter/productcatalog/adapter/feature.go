@@ -11,8 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	dbplanphase "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	dbratecard "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbsub "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	dbsubitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbsubphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -85,19 +88,25 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 
 	// FIXME: (OM-1055) we should marry productcatalog/plan with feature so we can do this check outside the db layer
 	planReferencesIt, err := c.db.Plan.Query().WithPhases(func(qp *db.PlanPhaseQuery) {
-		qp.WithRatecards(func(qrc *db.PlanRateCardQuery) {
-			qrc.Where(dbratecard.FeatureID(f.ID))
-		})
-	}).Where(dbplan.EffectiveFromNotNil(), dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil())).Exist(ctx)
+		qp.WithRatecards()
+	}).Where(
+		dbplan.EffectiveFromNotNil(),
+		dbplan.Or(dbplan.EffectiveToGT(clock.Now()), dbplan.EffectiveToIsNil()),
+		dbplan.HasPhasesWith(dbplanphase.HasRatecardsWith(
+			dbratecard.Or(dbratecard.FeatureID(f.ID), dbratecard.FeatureKey(f.Key)),
+		)),
+	).Exist(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check for plan references: %w", err)
 	}
 
 	subsReferencesIt, err := c.db.Subscription.Query().WithPhases(func(qp *db.SubscriptionPhaseQuery) {
-		qp.WithItems(func(qi *db.SubscriptionItemQuery) {
-			qi.Where(dbsubscriptionitem.FeatureKey(f.Key))
-		})
-	}).Where(subscriptionrepo.SubscriptionActiveAfter(clock.Now())...).Exist(ctx)
+		qp.WithItems()
+	}).Where(
+		subscriptionrepo.SubscriptionActiveAfter(clock.Now())...,
+	).Where(
+		dbsub.HasPhasesWith(dbsubphase.HasItemsWith(dbsubitem.FeatureKey(f.Key))),
+	).Exist(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check for subscription references: %w", err)
 	}

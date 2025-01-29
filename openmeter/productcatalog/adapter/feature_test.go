@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -253,5 +254,79 @@ func TestCreateFeature(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, featureIn.Name, feature.Name)
+	})
+}
+
+func TestArchiveFeature(t *testing.T) {
+	namespace := "default"
+	meter := models.Meter{
+		Namespace: namespace,
+		ID:        "meter-1",
+		Slug:      "meter-1",
+		GroupBy:   map[string]string{"key": "$.path"},
+	}
+
+	testFeature := feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "feature-1",
+		Key:       "feature-1",
+		MeterSlug: &meter.Slug,
+		MeterGroupByFilters: map[string]string{
+			"key": "value",
+		},
+	}
+
+	t.Run("Should allow archiving feature", func(t *testing.T) {
+		testdb := testutils.InitPostgresDB(t)
+		defer testdb.PGDriver.Close()
+		dbClient := testdb.EntDriver.Client()
+		defer dbClient.Close()
+
+		if err := dbClient.Schema.Create(context.Background()); err != nil {
+			t.Fatalf("failed to create schema: %v", err)
+		}
+
+		ctx := context.Background()
+
+		// Let's set up any plan with phases and ratecards
+		p, err := dbClient.Plan.Create().
+			SetName("default").
+			SetKey("default").
+			SetVersion(1).
+			SetEffectiveFrom(time.Now()).
+			SetNamespace(testFeature.Namespace).
+			Save(ctx)
+		assert.NoError(t, err)
+
+		pp, err := dbClient.PlanPhase.Create().
+			SetName("default").
+			SetKey("default").
+			SetNamespace(testFeature.Namespace).
+			SetPlanID(p.ID).
+			SetIndex(0).
+			Save(ctx)
+		assert.NoError(t, err)
+
+		_, err = dbClient.PlanRateCard.Create().
+			SetKey("default").
+			SetName("default").
+			SetType(productcatalog.FlatFeeRateCardType).
+			SetNamespace(testFeature.Namespace).
+			SetPhaseID(pp.ID).
+			Save(ctx)
+		assert.NoError(t, err)
+
+		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+
+		featureIn := testFeature
+
+		createFeatureOut, err := connector.CreateFeature(ctx, featureIn)
+		assert.NoError(t, err)
+
+		err = connector.ArchiveFeature(ctx, models.NamespacedID{
+			Namespace: createFeatureOut.Namespace,
+			ID:        createFeatureOut.ID,
+		})
+		assert.NoError(t, err)
 	})
 }
