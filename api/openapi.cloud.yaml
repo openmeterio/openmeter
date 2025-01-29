@@ -7951,7 +7951,7 @@ components:
     Alignment:
       type: object
       properties:
-        BillablesMustAlign:
+        billablesMustAlign:
           type: boolean
           description: |-
             Whether all Billable items and RateCards must align.
