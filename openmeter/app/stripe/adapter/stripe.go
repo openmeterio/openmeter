@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
+	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
@@ -587,6 +588,26 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	}
 
 	return supplierContact, nil
+}
+
+func (a adapter) GetStripeInvoice(ctx context.Context, input appstripeentity.GetStripeInvoiceInput) (*stripe.Invoice, error) {
+	// Validate input
+	if err := input.Validate(); err != nil {
+		return nil, app.ValidationError{
+			Err: fmt.Errorf("error validate input: %w", err),
+		}
+	}
+
+	// Get Stripe App client
+	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stripe app client: %w", err)
+	}
+
+	// Get the invoice
+	return stripeAppClient.GetInvoice(ctx, stripeclient.GetInvoiceInput{
+		StripeInvoiceID: input.StripeInvoiceID,
+	})
 }
 
 // GetMaskedSecretAPIKey returns a masked secret API key

@@ -186,7 +186,29 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService)
+	adapter, err := common.BillingAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	billingConfiguration := conf.Billing
+	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingService)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -219,28 +241,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	adapter, err := common.BillingAdapter(logger, client)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	billingConfiguration := conf.Billing
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
