@@ -544,6 +544,20 @@ func (bic *BillingInvoiceCreate) SetNillablePeriodEnd(t *time.Time) *BillingInvo
 	return bic
 }
 
+// SetCollectionAt sets the "collection_at" field.
+func (bic *BillingInvoiceCreate) SetCollectionAt(t time.Time) *BillingInvoiceCreate {
+	bic.mutation.SetCollectionAt(t)
+	return bic
+}
+
+// SetNillableCollectionAt sets the "collection_at" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableCollectionAt(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetCollectionAt(*t)
+	}
+	return bic
+}
+
 // SetID sets the "id" field.
 func (bic *BillingInvoiceCreate) SetID(s string) *BillingInvoiceCreate {
 	bic.mutation.SetID(s)
@@ -687,6 +701,10 @@ func (bic *BillingInvoiceCreate) defaults() {
 	if _, ok := bic.mutation.UpdatedAt(); !ok {
 		v := billinginvoice.DefaultUpdatedAt()
 		bic.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := bic.mutation.CollectionAt(); !ok {
+		v := billinginvoice.DefaultCollectionAt()
+		bic.mutation.SetCollectionAt(v)
 	}
 	if _, ok := bic.mutation.ID(); !ok {
 		v := billinginvoice.DefaultID()
@@ -1040,6 +1058,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.PeriodEnd(); ok {
 		_spec.SetField(billinginvoice.FieldPeriodEnd, field.TypeTime, value)
 		_node.PeriodEnd = &value
+	}
+	if value, ok := bic.mutation.CollectionAt(); ok {
+		_spec.SetField(billinginvoice.FieldCollectionAt, field.TypeTime, value)
+		_node.CollectionAt = value
 	}
 	if nodes := bic.mutation.SourceBillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1891,6 +1913,24 @@ func (u *BillingInvoiceUpsert) ClearPeriodEnd() *BillingInvoiceUpsert {
 	return u
 }
 
+// SetCollectionAt sets the "collection_at" field.
+func (u *BillingInvoiceUpsert) SetCollectionAt(v time.Time) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCollectionAt, v)
+	return u
+}
+
+// UpdateCollectionAt sets the "collection_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCollectionAt() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCollectionAt)
+	return u
+}
+
+// ClearCollectionAt clears the value of the "collection_at" field.
+func (u *BillingInvoiceUpsert) ClearCollectionAt() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldCollectionAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -2716,6 +2756,27 @@ func (u *BillingInvoiceUpsertOne) UpdatePeriodEnd() *BillingInvoiceUpsertOne {
 func (u *BillingInvoiceUpsertOne) ClearPeriodEnd() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearPeriodEnd()
+	})
+}
+
+// SetCollectionAt sets the "collection_at" field.
+func (u *BillingInvoiceUpsertOne) SetCollectionAt(v time.Time) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCollectionAt(v)
+	})
+}
+
+// UpdateCollectionAt sets the "collection_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCollectionAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCollectionAt()
+	})
+}
+
+// ClearCollectionAt clears the value of the "collection_at" field.
+func (u *BillingInvoiceUpsertOne) ClearCollectionAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCollectionAt()
 	})
 }
 
@@ -3711,6 +3772,27 @@ func (u *BillingInvoiceUpsertBulk) UpdatePeriodEnd() *BillingInvoiceUpsertBulk {
 func (u *BillingInvoiceUpsertBulk) ClearPeriodEnd() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearPeriodEnd()
+	})
+}
+
+// SetCollectionAt sets the "collection_at" field.
+func (u *BillingInvoiceUpsertBulk) SetCollectionAt(v time.Time) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCollectionAt(v)
+	})
+}
+
+// UpdateCollectionAt sets the "collection_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCollectionAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCollectionAt()
+	})
+}
+
+// ClearCollectionAt clears the value of the "collection_at" field.
+func (u *BillingInvoiceUpsertBulk) ClearCollectionAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearCollectionAt()
 	})
 }
 

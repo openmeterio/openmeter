@@ -349,6 +349,7 @@ var (
 		{Name: "payment_app_external_id", Type: field.TypeString, Nullable: true},
 		{Name: "period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "period_end", Type: field.TypeTime, Nullable: true},
+		{Name: "collection_at", Type: field.TypeTime, Nullable: true},
 		{Name: "tax_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "invoicing_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "payment_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -364,37 +365,37 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoices_apps_billing_invoice_tax_app",
-				Columns:    []*schema.Column{BillingInvoicesColumns[44]},
-				RefColumns: []*schema.Column{AppsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[45]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
+				Symbol:     "billing_invoices_apps_billing_invoice_invoicing_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[46]},
 				RefColumns: []*schema.Column{AppsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
+				Symbol:     "billing_invoices_apps_billing_invoice_payment_app",
 				Columns:    []*schema.Column{BillingInvoicesColumns[47]},
+				RefColumns: []*schema.Column{AppsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
+				Columns:    []*schema.Column{BillingInvoicesColumns[48]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[48]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[49]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_customers_billing_invoice",
-				Columns:    []*schema.Column{BillingInvoicesColumns[49]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[50]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -418,7 +419,7 @@ var (
 			{
 				Name:    "billinginvoice_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[49]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[50]},
 			},
 		},
 	}

@@ -741,6 +741,26 @@ func (biu *BillingInvoiceUpdate) ClearPeriodEnd() *BillingInvoiceUpdate {
 	return biu
 }
 
+// SetCollectionAt sets the "collection_at" field.
+func (biu *BillingInvoiceUpdate) SetCollectionAt(t time.Time) *BillingInvoiceUpdate {
+	biu.mutation.SetCollectionAt(t)
+	return biu
+}
+
+// SetNillableCollectionAt sets the "collection_at" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableCollectionAt(t *time.Time) *BillingInvoiceUpdate {
+	if t != nil {
+		biu.SetCollectionAt(*t)
+	}
+	return biu
+}
+
+// ClearCollectionAt clears the value of the "collection_at" field.
+func (biu *BillingInvoiceUpdate) ClearCollectionAt() *BillingInvoiceUpdate {
+	biu.mutation.ClearCollectionAt()
+	return biu
+}
+
 // SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
 func (biu *BillingInvoiceUpdate) SetBillingWorkflowConfigID(id string) *BillingInvoiceUpdate {
 	biu.mutation.SetBillingWorkflowConfigID(id)
@@ -1169,6 +1189,12 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if biu.mutation.PeriodEndCleared() {
 		_spec.ClearField(billinginvoice.FieldPeriodEnd, field.TypeTime)
+	}
+	if value, ok := biu.mutation.CollectionAt(); ok {
+		_spec.SetField(billinginvoice.FieldCollectionAt, field.TypeTime, value)
+	}
+	if biu.mutation.CollectionAtCleared() {
+		_spec.ClearField(billinginvoice.FieldCollectionAt, field.TypeTime)
 	}
 	if biu.mutation.BillingWorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2060,6 +2086,26 @@ func (biuo *BillingInvoiceUpdateOne) ClearPeriodEnd() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
+// SetCollectionAt sets the "collection_at" field.
+func (biuo *BillingInvoiceUpdateOne) SetCollectionAt(t time.Time) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetCollectionAt(t)
+	return biuo
+}
+
+// SetNillableCollectionAt sets the "collection_at" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableCollectionAt(t *time.Time) *BillingInvoiceUpdateOne {
+	if t != nil {
+		biuo.SetCollectionAt(*t)
+	}
+	return biuo
+}
+
+// ClearCollectionAt clears the value of the "collection_at" field.
+func (biuo *BillingInvoiceUpdateOne) ClearCollectionAt() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearCollectionAt()
+	return biuo
+}
+
 // SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
 func (biuo *BillingInvoiceUpdateOne) SetBillingWorkflowConfigID(id string) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetBillingWorkflowConfigID(id)
@@ -2518,6 +2564,12 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.PeriodEndCleared() {
 		_spec.ClearField(billinginvoice.FieldPeriodEnd, field.TypeTime)
+	}
+	if value, ok := biuo.mutation.CollectionAt(); ok {
+		_spec.SetField(billinginvoice.FieldCollectionAt, field.TypeTime, value)
+	}
+	if biuo.mutation.CollectionAtCleared() {
+		_spec.ClearField(billinginvoice.FieldCollectionAt, field.TypeTime)
 	}
 	if biuo.mutation.BillingWorkflowConfigCleared() {
 		edge := &sqlgraph.EdgeSpec{

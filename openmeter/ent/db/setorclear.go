@@ -629,6 +629,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearPeriodEnd(value *time.Time) *Billing
 	return u.SetPeriodEnd(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearCollectionAt(value *time.Time) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearCollectionAt()
+	}
+	return u.SetCollectionAt(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearCollectionAt(value *time.Time) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearCollectionAt()
+	}
+	return u.SetCollectionAt(*value)
+}
+
 func (u *BillingInvoiceDiscountUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceDiscountUpdate {
 	if value == nil {
 		return u.ClearMetadata()
