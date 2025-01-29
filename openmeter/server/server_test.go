@@ -813,6 +813,15 @@ func (n NoopAppStripeService) UninstallApp(ctx context.Context, input appentity.
 	return nil
 }
 
+// Billing parts
+func (n NoopAppStripeService) HandleInvoiceStateTransition(ctx context.Context, input appstripeentity.HandleInvoiceStateTransitionInput) error {
+	return nil
+}
+
+func (n NoopAppStripeService) HandleInvoiceSentEvent(ctx context.Context, input appstripeentity.HandleInvoiceSentEventInput) error {
+	return nil
+}
+
 var _ customer.Service = (*NoopCustomerService)(nil)
 
 type NoopCustomerService struct{}

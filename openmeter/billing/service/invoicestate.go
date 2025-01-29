@@ -458,7 +458,7 @@ func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error
 					opOverride = &trigger.ValidationErrors.Operation
 				}
 
-				return opOverride, m.handleInvoiceTrigger(ctx, *trigger)
+				return opOverride, m.HandleInvoiceTrigger(ctx, *trigger)
 			}
 
 			return opOverride, nil
@@ -468,7 +468,7 @@ func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error
 	})
 }
 
-func (m *InvoiceStateMachine) handleInvoiceTrigger(ctx context.Context, trigger billing.InvoiceTriggerInput) error {
+func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger billing.InvoiceTriggerInput) error {
 	if err := trigger.Validate(); err != nil {
 		return err
 	}

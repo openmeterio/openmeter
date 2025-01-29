@@ -77,9 +77,10 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.Require().NoError(err, "failed to create app stripe adapter")
 
 	appStripeService, err := appstripeservice.New(appstripeservice.Config{
-		Adapter:       appStripeAdapter,
-		AppService:    s.AppService,
-		SecretService: secretService,
+		Adapter:        appStripeAdapter,
+		AppService:     s.AppService,
+		SecretService:  secretService,
+		BillingService: s.BillingService,
 	})
 	s.Require().NoError(err, "failed to create app stripe service")
 

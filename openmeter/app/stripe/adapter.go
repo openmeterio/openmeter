@@ -3,6 +3,8 @@ package appstripe
 import (
 	"context"
 
+	"github.com/stripe/stripe-go/v80"
+
 	"github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -30,6 +32,7 @@ type AppStripeAdapter interface {
 	DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error
 	// Billing
 	GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error)
+	GetStripeInvoice(ctx context.Context, input appstripeentity.GetStripeInvoiceInput) (*stripe.Invoice, error)
 	// Customer
 	GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error)
 	UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error

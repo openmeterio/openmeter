@@ -12,6 +12,8 @@ type Service interface {
 	InvoiceLineService
 	InvoiceService
 	SequenceService
+
+	InvoiceAppService
 }
 
 type ProfileService interface {
@@ -67,4 +69,13 @@ type InvoiceService interface {
 
 type SequenceService interface {
 	GenerateInvoiceSequenceNumber(ctx context.Context, in SequenceGenerationInput, def SequenceDefinition) (string, error)
+}
+
+type InvoiceAppService interface {
+	// TriggerInvoice triggers the invoice state machine to start processing the invoice
+	TriggerInvoice(ctx context.Context, input InvoiceTriggerServiceInput) error
+
+	// UpdateInvoiceFields updates the fields of an invoice which are not managed by the state machine
+	// These are usually metadata fields settable after the invoice has been finalized
+	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
 }

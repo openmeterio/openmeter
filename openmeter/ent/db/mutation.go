@@ -6373,6 +6373,7 @@ type BillingInvoiceMutation struct {
 	status                                   *billing.InvoiceStatus
 	invoicing_app_external_id                *string
 	payment_app_external_id                  *string
+	tax_app_external_id                      *string
 	period_start                             *time.Time
 	period_end                               *time.Time
 	collection_at                            *time.Time
@@ -8560,6 +8561,55 @@ func (m *BillingInvoiceMutation) ResetPaymentAppExternalID() {
 	delete(m.clearedFields, billinginvoice.FieldPaymentAppExternalID)
 }
 
+// SetTaxAppExternalID sets the "tax_app_external_id" field.
+func (m *BillingInvoiceMutation) SetTaxAppExternalID(s string) {
+	m.tax_app_external_id = &s
+}
+
+// TaxAppExternalID returns the value of the "tax_app_external_id" field in the mutation.
+func (m *BillingInvoiceMutation) TaxAppExternalID() (r string, exists bool) {
+	v := m.tax_app_external_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxAppExternalID returns the old "tax_app_external_id" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldTaxAppExternalID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxAppExternalID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxAppExternalID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxAppExternalID: %w", err)
+	}
+	return oldValue.TaxAppExternalID, nil
+}
+
+// ClearTaxAppExternalID clears the value of the "tax_app_external_id" field.
+func (m *BillingInvoiceMutation) ClearTaxAppExternalID() {
+	m.tax_app_external_id = nil
+	m.clearedFields[billinginvoice.FieldTaxAppExternalID] = struct{}{}
+}
+
+// TaxAppExternalIDCleared returns if the "tax_app_external_id" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) TaxAppExternalIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldTaxAppExternalID]
+	return ok
+}
+
+// ResetTaxAppExternalID resets all changes to the "tax_app_external_id" field.
+func (m *BillingInvoiceMutation) ResetTaxAppExternalID() {
+	m.tax_app_external_id = nil
+	delete(m.clearedFields, billinginvoice.FieldTaxAppExternalID)
+}
+
 // SetPeriodStart sets the "period_start" field.
 func (m *BillingInvoiceMutation) SetPeriodStart(t time.Time) {
 	m.period_start = &t
@@ -9091,7 +9141,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 51)
+	fields := make([]string, 0, 52)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -9236,6 +9286,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	if m.payment_app_external_id != nil {
 		fields = append(fields, billinginvoice.FieldPaymentAppExternalID)
 	}
+	if m.tax_app_external_id != nil {
+		fields = append(fields, billinginvoice.FieldTaxAppExternalID)
+	}
 	if m.period_start != nil {
 		fields = append(fields, billinginvoice.FieldPeriodStart)
 	}
@@ -9349,6 +9402,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoicingAppExternalID()
 	case billinginvoice.FieldPaymentAppExternalID:
 		return m.PaymentAppExternalID()
+	case billinginvoice.FieldTaxAppExternalID:
+		return m.TaxAppExternalID()
 	case billinginvoice.FieldPeriodStart:
 		return m.PeriodStart()
 	case billinginvoice.FieldPeriodEnd:
@@ -9460,6 +9515,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldInvoicingAppExternalID(ctx)
 	case billinginvoice.FieldPaymentAppExternalID:
 		return m.OldPaymentAppExternalID(ctx)
+	case billinginvoice.FieldTaxAppExternalID:
+		return m.OldTaxAppExternalID(ctx)
 	case billinginvoice.FieldPeriodStart:
 		return m.OldPeriodStart(ctx)
 	case billinginvoice.FieldPeriodEnd:
@@ -9811,6 +9868,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPaymentAppExternalID(v)
 		return nil
+	case billinginvoice.FieldTaxAppExternalID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxAppExternalID(v)
+		return nil
 	case billinginvoice.FieldPeriodStart:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -9937,6 +10001,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldPaymentAppExternalID) {
 		fields = append(fields, billinginvoice.FieldPaymentAppExternalID)
 	}
+	if m.FieldCleared(billinginvoice.FieldTaxAppExternalID) {
+		fields = append(fields, billinginvoice.FieldTaxAppExternalID)
+	}
 	if m.FieldCleared(billinginvoice.FieldPeriodStart) {
 		fields = append(fields, billinginvoice.FieldPeriodStart)
 	}
@@ -10034,6 +10101,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldPaymentAppExternalID:
 		m.ClearPaymentAppExternalID()
+		return nil
+	case billinginvoice.FieldTaxAppExternalID:
+		m.ClearTaxAppExternalID()
 		return nil
 	case billinginvoice.FieldPeriodStart:
 		m.ClearPeriodStart()
@@ -10195,6 +10265,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldPaymentAppExternalID:
 		m.ResetPaymentAppExternalID()
+		return nil
+	case billinginvoice.FieldTaxAppExternalID:
+		m.ResetTaxAppExternalID()
 		return nil
 	case billinginvoice.FieldPeriodStart:
 		m.ResetPeriodStart()
