@@ -13,6 +13,18 @@ const ast = await openapiTS(schema, {
   rootTypes: true,
   rootTypesNoSchemaPrefix: true,
   transform(schemaObject, metadata) {
+    if (metadata.path === '#/components/schemas/Event') {
+      if (
+        schemaObject.type === 'string' &&
+        !schemaObject.nullable &&
+        !['customer-id', 'com.example.someevent'].includes(schemaObject.example)
+      ) {
+        return {
+          questionToken: true,
+          schema: STRING,
+        }
+      }
+    }
     if (schemaObject.format === 'date-time') {
       const allowString =
         (metadata.schema &&

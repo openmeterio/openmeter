@@ -3428,19 +3428,19 @@ export interface components {
        * @description Identifies the event.
        * @example 5c10fade-1c9e-4d6c-8275-c52c36731d3c
        */
-      id: string
+      id?: string
       /**
        * Format: uri-reference
        * @description Identifies the context in which an event happened.
        * @example service-name
        */
-      source: string
+      source?: string
       /**
        * @description The version of the CloudEvents specification which the event uses.
        * @default 1.0
        * @example 1.0
        */
-      specversion: string
+      specversion?: string
       /**
        * @description Contains a value describing the type of event related to the originating occurrence.
        * @example com.example.someevent
