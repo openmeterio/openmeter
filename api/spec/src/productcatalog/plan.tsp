@@ -65,7 +65,7 @@ model Plan {
   /**
    * Alignment configuration for the plan.
    */
-  Alignment: Alignment;
+  alignment?: Alignment;
 
   /**
    * Version of the plan. Incremented when the plan is updated.

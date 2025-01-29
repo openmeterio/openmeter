@@ -301,7 +301,7 @@ func TestPlan(t *testing.T) {
 		misalignedCreate := planCreate
 		misalignedCreate.Key = planKey
 
-		misalignedCreate.Alignment = api.Alignment{
+		misalignedCreate.Alignment = &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(true),
 		}
 
@@ -331,7 +331,7 @@ func TestPlan(t *testing.T) {
 		// Now let's update the plan to remove the alignment requirement
 		updateRes, err := client.UpdatePlanWithResponse(ctx, *plan.Id, api.UpdatePlanJSONRequestBody{
 			Name: plan.Name,
-			Alignment: api.Alignment{
+			Alignment: &api.Alignment{
 				BillablesMustAlign: lo.ToPtr(false),
 			},
 			Phases: plan.Phases,
