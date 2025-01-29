@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -243,6 +244,107 @@ func TestPlan(t *testing.T) {
 
 		body := apiRes.JSON200
 		require.NotNil(t, body)
+	})
+
+	t.Run("Should not allow publishing a misaligned plan", func(t *testing.T) {
+		// Uses a separate plan to avoid conflicts
+
+		maP1RC1 := api.RateCard{}
+		err = maP1RC1.FromRateCardFlatFee(api.RateCardFlatFee{
+			Name:        "Test Plan Phase 1 Rate Card 1",
+			Description: lo.ToPtr("Has a one time flat price like an installation fee"),
+			Key:         "test_plan_phase_1_rate_card_1",
+			TaxConfig: &api.TaxConfig{
+				Stripe: &api.StripeTaxConfig{
+					Code: "txcd_10000000",
+				},
+			},
+			Price: &api.FlatPriceWithPaymentTerm{
+				Amount:      "1000",
+				PaymentTerm: lo.ToPtr(api.PricePaymentTerm("in_advance")),
+				Type:        api.FlatPriceWithPaymentTermType("flat"),
+			},
+			BillingCadence: lo.ToPtr("P1W"),
+			Type:           api.RateCardFlatFeeType("flat"),
+		})
+		require.Nil(t, err)
+
+		et := &api.RateCardEntitlement{}
+		err = et.FromRateCardBooleanEntitlement(api.RateCardBooleanEntitlement{
+			Type: api.RateCardBooleanEntitlementType("boolean"),
+		})
+		require.Nil(t, err)
+
+		maP1RC2 := api.RateCard{}
+		err = maP1RC2.FromRateCardFlatFee(api.RateCardFlatFee{
+			Name:                "Test Plan Phase 1 Rate Card 2",
+			Description:         lo.ToPtr("Has a monthly recurring price to grant access to a feature"),
+			Key:                 PlanFeatureKey,
+			FeatureKey:          lo.ToPtr(PlanFeatureKey),
+			EntitlementTemplate: et,
+			TaxConfig: &api.TaxConfig{
+				Stripe: &api.StripeTaxConfig{
+					Code: "txcd_10000000",
+				},
+			},
+			Price: &api.FlatPriceWithPaymentTerm{
+				Amount:      "1000",
+				PaymentTerm: lo.ToPtr(api.PricePaymentTerm("in_advance")),
+				Type:        api.FlatPriceWithPaymentTermType("flat"),
+			},
+			BillingCadence: lo.ToPtr("P1M"),
+			Type:           api.RateCardFlatFeeType("flat"),
+		})
+		require.Nil(t, err)
+
+		planKey := "test_plan_misaligned"
+		misalignedCreate := planCreate
+		misalignedCreate.Key = planKey
+
+		misalignedCreate.Alignment = &api.Alignment{
+			BillablesMustAlign: lo.ToPtr(true),
+		}
+
+		misalignedCreate.Phases = slices.Clone(planCreate.Phases)
+		misalignedCreate.Phases[0].RateCards = slices.Clone(planCreate.Phases[0].RateCards)
+		misalignedCreate.Phases[0].RateCards = []api.RateCard{maP1RC1, maP1RC2}
+
+		planAPIRes, err := client.CreatePlanWithResponse(ctx, misalignedCreate)
+		require.Nil(t, err)
+		require.Equal(t, 201, planAPIRes.StatusCode())
+
+		plan := planAPIRes.JSON201
+		require.NotNil(t, plan, "received the following body: %s", planAPIRes.Body)
+
+		require.NotNil(t, plan.Version)
+		assert.Equal(t, 1, *plan.Version)
+
+		require.NotNil(t, plan.Id)
+
+		// Let's try to publish it and assert it fails
+		require.NotNil(t, plan.Id)
+		apiRes, err := client.PublishPlanWithResponse(ctx, *plan.Id)
+		require.Nil(t, err)
+
+		assert.Equal(t, 400, apiRes.StatusCode(), "should return 400, received the following body: %s", apiRes.Body)
+
+		// Now let's update the plan to remove the alignment requirement
+		updateRes, err := client.UpdatePlanWithResponse(ctx, *plan.Id, api.UpdatePlanJSONRequestBody{
+			Name: plan.Name,
+			Alignment: &api.Alignment{
+				BillablesMustAlign: lo.ToPtr(false),
+			},
+			Phases: plan.Phases,
+		})
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, updateRes.StatusCode(), "received the following body: %s", updateRes.Body)
+
+		// And let's try to publish it once again
+		publishRes, err := client.PublishPlanWithResponse(ctx, *plan.Id)
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, publishRes.StatusCode(), "received the following body: %s", publishRes.Body)
 	})
 
 	startTime := time.Now()

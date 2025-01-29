@@ -63,6 +63,11 @@ model Plan {
   ...UniqueResource;
 
   /**
+   * Alignment configuration for the plan.
+   */
+  alignment?: Alignment;
+
+  /**
    * Version of the plan. Incremented when the plan is updated.
    */
   @summary("Version")
