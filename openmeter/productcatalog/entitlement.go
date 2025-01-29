@@ -311,6 +311,15 @@ func (t *MeteredEntitlementTemplate) Validate() error {
 		return NewValidationError(errors.New("IssueAfterReset is required for IssueAfterResetPriority"))
 	}
 
+	if t.UsagePeriod.Sign() != 1 {
+		return NewValidationError(errors.New("UsagePeriod must be positive"))
+	}
+
+	hour := datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	if diff, err := t.UsagePeriod.Subtract(hour); err == nil && diff.Sign() == -1 {
+		return NewValidationError(errors.New("UsagePeriod must be at least 1 hour"))
+	}
+
 	return nil
 }
 

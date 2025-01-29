@@ -136,44 +136,12 @@ var (
 )
 
 func FromISODuration(p *datex.Period, anchor time.Time) (Recurrence, error) {
-	day, err := datex.ISOString("P1D").Parse()
-	if err != nil {
-		return Recurrence{}, fmt.Errorf("invalid ISO period string used %w", err)
-	}
-	week, err := datex.ISOString("P1W").Parse()
-	if err != nil {
-		return Recurrence{}, fmt.Errorf("invalid ISO period string used %w", err)
-	}
-	month, err := datex.ISOString("P1M").Parse()
-	if err != nil {
-		return Recurrence{}, fmt.Errorf("invalid ISO period string used %w", err)
-	}
-	year, err := datex.ISOString("P1Y").Parse()
-	if err != nil {
-		return Recurrence{}, fmt.Errorf("invalid ISO period string used %w", err)
+	if p == nil {
+		return Recurrence{}, fmt.Errorf("period cannot be nil")
 	}
 
-	if v, err := p.Subtract(day); err == nil && v.IsZero() {
-		return Recurrence{
-			Anchor:   anchor,
-			Interval: RecurrencePeriodDaily,
-		}, nil
-	} else if v, err := p.Subtract(week); err == nil && v.IsZero() {
-		return Recurrence{
-			Anchor:   anchor,
-			Interval: RecurrencePeriodWeek,
-		}, nil
-	} else if v, err := p.Subtract(month); err == nil && v.IsZero() {
-		return Recurrence{
-			Anchor:   anchor,
-			Interval: RecurrencePeriodMonth,
-		}, nil
-	} else if v, err := p.Subtract(year); err == nil && v.IsZero() {
-		return Recurrence{
-			Anchor:   anchor,
-			Interval: RecurrencePeriodYear,
-		}, nil
-	}
-
-	return Recurrence{}, fmt.Errorf("invalid period, allowed values are 1D, 1W, 1M, 1Y")
+	return Recurrence{
+		Interval: RecurrenceInterval{*p},
+		Anchor:   anchor,
+	}, nil
 }
