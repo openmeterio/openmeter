@@ -5,13 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/samber/lo"
-	"github.com/stripe/stripe-go/v80"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
@@ -69,76 +65,11 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				CustomerID:          customerId,
 				CreateCustomerInput: createCustomerInput,
 				StripeCustomerID:    body.StripeCustomerId,
-				Options: stripeclient.StripeCheckoutSessionInputOptions{
-					Currency:          body.Options.Currency,
-					CancelURL:         body.Options.CancelURL,
-					ClientReferenceID: body.Options.ClientReferenceID,
-					ReturnURL:         body.Options.ReturnURL,
-					SuccessURL:        body.Options.SuccessURL,
-				},
+				Options:             body.Options,
 			}
 
 			if body.AppId != nil {
 				req.AppID = &appentitybase.AppID{Namespace: namespace, ID: *body.AppId}
-			}
-
-			if body.Options.UiMode != nil {
-				req.Options.UIMode = lo.ToPtr(stripe.CheckoutSessionUIMode(*body.Options.UiMode))
-			}
-
-			if body.Options.PaymentMethodTypes != nil {
-				req.Options.PaymentMethodTypes = lo.ToPtr(
-					lo.Map(
-						*body.Options.PaymentMethodTypes,
-						func(paymentMethodType string, _ int) *string {
-							return &paymentMethodType
-						},
-					),
-				)
-			}
-
-			if body.Options.Metadata != nil {
-				req.Options.Metadata = *body.Options.Metadata
-			}
-
-			if body.Options.CustomText != nil {
-				req.Options.CustomText = &stripe.CheckoutSessionCustomTextParams{}
-
-				// AfterSubmit
-				if body.Options.CustomText.AfterSubmit != nil {
-					req.Options.CustomText.AfterSubmit = &stripe.CheckoutSessionCustomTextAfterSubmitParams{}
-				}
-
-				if body.Options.CustomText.AfterSubmit.Message != nil {
-					req.Options.CustomText.AfterSubmit.Message = body.Options.CustomText.AfterSubmit.Message
-				}
-
-				// ShippingAddress
-				if body.Options.CustomText.ShippingAddress != nil {
-					req.Options.CustomText.ShippingAddress = &stripe.CheckoutSessionCustomTextShippingAddressParams{}
-				}
-
-				if body.Options.CustomText.ShippingAddress.Message != nil {
-					req.Options.CustomText.ShippingAddress.Message = body.Options.CustomText.ShippingAddress.Message
-				}
-
-				// BeforeSubmit
-				if body.Options.CustomText.Submit != nil {
-					req.Options.CustomText.Submit = &stripe.CheckoutSessionCustomTextSubmitParams{}
-				}
-
-				if body.Options.CustomText.Submit.Message != nil {
-					req.Options.CustomText.Submit.Message = body.Options.CustomText.Submit.Message
-				}
-
-				// TermsOfAcceptance
-				if body.Options.CustomText.TermsOfServiceAcceptance != nil {
-					req.Options.CustomText.TermsOfServiceAcceptance = &stripe.CheckoutSessionCustomTextTermsOfServiceAcceptanceParams{}
-				}
-
-				if body.Options.CustomText.TermsOfServiceAcceptance.Message != nil {
-					req.Options.CustomText.TermsOfServiceAcceptance.Message = body.Options.CustomText.TermsOfServiceAcceptance.Message
-				}
 			}
 
 			return req, nil

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
@@ -645,7 +646,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 			AppID:            appID,
 			CustomerID:       customerID,
 			StripeCustomerID: "cus_123",
-			Options:          stripeclient.StripeCheckoutSessionInputOptions{},
+			Options:          api.CreateStripeCheckoutSessionRequestOptions{},
 		}).
 		Return(stripeclient.StripeCheckoutSession{
 			SessionID:     "cs_123",
@@ -661,7 +662,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace:  s.namespace,
 		AppID:      &appID,
 		CustomerID: &customerID,
-		Options:    stripeclient.StripeCheckoutSessionInputOptions{},
+		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
 
 	require.NoError(t, err, "Create checkout session must not return error")
@@ -685,7 +686,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace:  s.namespace,
 		AppID:      &appIdNotFound,
 		CustomerID: &customerID,
-		Options:    stripeclient.StripeCheckoutSessionInputOptions{},
+		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
 
 	require.ErrorIs(t, err, app.AppNotFoundError{AppID: appIdNotFound}, "Create checkout session must return app not found error")
@@ -700,7 +701,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Namespace:  s.namespace,
 		AppID:      &appID,
 		CustomerID: &customerIdNotFound,
-		Options:    stripeclient.StripeCheckoutSessionInputOptions{},
+		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
 
 	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
@@ -713,7 +714,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 			AppID:            appID,
 			CustomerID:       customerID,
 			StripeCustomerID: "cus_123",
-			Options: stripeclient.StripeCheckoutSessionInputOptions{
+			Options: api.CreateStripeCheckoutSessionRequestOptions{
 				Currency: lo.ToPtr("usd"),
 			},
 		}).
