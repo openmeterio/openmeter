@@ -1,6 +1,11 @@
 import { transformResponse } from './utils.js'
 import type { RequestOptions } from './common.js'
-import type { FeatureCreateInputs, operations, paths } from './schemas.js'
+import type {
+  Feature,
+  FeatureCreateInputs,
+  operations,
+  paths,
+} from './schemas.js'
 import type { Client } from 'openapi-fetch'
 
 /**
@@ -54,7 +59,10 @@ export class Features {
    * @returns The features
    */
   public async list(
-    query?: operations['listFeatures']['parameters']['query'],
+    query?: Omit<
+      operations['listFeatures']['parameters']['query'],
+      'page' | 'pageSize'
+    >,
     options?: RequestOptions
   ) {
     const resp = await this.client.GET('/api/v1/features', {
@@ -64,7 +72,7 @@ export class Features {
       ...options,
     })
 
-    return transformResponse(resp)
+    return transformResponse(resp) as Feature[]
   }
 
   /**
