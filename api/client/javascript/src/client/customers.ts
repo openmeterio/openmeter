@@ -1,4 +1,5 @@
-import { transformResponse, type RequestOptions } from './utils.js'
+import { transformResponse } from './utils.js'
+import type { RequestOptions } from './common.js'
 import type {
   CustomerAppData,
   CustomerCreate,

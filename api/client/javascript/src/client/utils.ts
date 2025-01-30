@@ -1,4 +1,4 @@
-import type { UnexpectedProblemResponse } from './schemas.js'
+import { HTTPError } from './common.js'
 import type { FetchResponse, ParseAsResponse } from 'openapi-fetch'
 import type {
   MediaType,
@@ -6,55 +6,12 @@ import type {
   SuccessResponse,
 } from 'openapi-typescript-helpers'
 
-// Add more options as needed: 'headers' | 'credentials' | 'mode' | 'referrer' | 'referrerPolicy'
-export type RequestOptions = Pick<RequestInit, 'signal'>
-
-export class Problem extends Error {
-  name = 'Problem'
-
-  constructor(
-    public message: string,
-    public type: string,
-    public title: string,
-    public status: number,
-
-    protected __raw?: Record<string, any>
-  ) {
-    super(message)
-  }
-
-  static fromResponse(resp: {
-    response: Response
-    error?: UnexpectedProblemResponse
-  }): Problem {
-    if (
-      resp.response.headers.get('Content-Type') ===
-        'application/problem+json' &&
-      resp.error
-    ) {
-      return new Problem(
-        resp.error.detail,
-        resp.error.type,
-        resp.error.title,
-        resp.error.status ?? resp.response.status,
-        resp.error
-      )
-    }
-
-    return new Problem(
-      `Request failed: ${resp.response.statusText}`,
-      resp.response.statusText,
-      resp.response.statusText,
-      resp.response.status
-    )
-  }
-
-  getField(key: string) {
-    return this.__raw?.[key]
-  }
-}
-
-// Implementation
+/**
+ * Transform a response from the API
+ * @param resp - The response to transform
+ * @throws HTTPError if the response is an error
+ * @returns The transformed response
+ */
 export function transformResponse<
   T extends Record<string | number, any>,
   Options,
@@ -62,24 +19,11 @@ export function transformResponse<
 >(
   resp: FetchResponse<T, Options, Media>
 ):
-  | {
-      data: ParseAsResponse<
-        SuccessResponse<ResponseObjectMap<T>, Media>,
-        Options
-      >
-      error?: never
-      response: Response
-    }
-  | {
-      data?: never
-      error: Problem
-      response: Response
-    } {
+  | ParseAsResponse<SuccessResponse<ResponseObjectMap<T>, Media>, Options>
+  | never {
   // Handle errors
   if (resp.error || resp.response.status >= 400) {
-    const error = Problem.fromResponse(resp)
-
-    return { error, response: resp.response }
+    throw HTTPError.fromResponse(resp)
   }
 
   // Decode dates
@@ -87,7 +31,7 @@ export function transformResponse<
     resp.data = decodeDates(resp.data)
   }
 
-  return { data: resp.data!, response: resp.response }
+  return resp.data!
 }
 
 const ISODateFormat =
