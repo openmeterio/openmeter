@@ -205,6 +205,8 @@ type InvoiceBase struct {
 	IssuedAt   *time.Time `json:"issuedAt,omitempty"`
 	DeletedAt  *time.Time `json:"deletedAt,omitempty"`
 
+	CollectionAt *time.Time `json:"collectionAt,omitempty"`
+
 	// Customer is either a snapshot of the contact information of the customer at the time of invoice being sent
 	// or the data from the customer entity (draft state)
 	// This is required so that we are not modifying the invoice after it has been sent to the customer.
@@ -562,6 +564,10 @@ type ListInvoicesInput struct {
 	// DraftUtil allows to filter invoices which have their draft state expired based on the provided time.
 	// Invoice is expired if the time defined by Invoice.DraftUntil is in the past compared to ListInvoicesInput.DraftUntil.
 	DraftUntil *time.Time
+
+	// CollectionAt allows to filter invoices which have their collection_at attribute is in the past compared
+	// to the time provided in CollectionAt parameter.
+	CollectionAt *time.Time
 
 	Expand InvoiceExpand
 
