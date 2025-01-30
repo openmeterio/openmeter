@@ -334,20 +334,75 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, fmt.Errorf("cleanup: line counts check: %w", err)
 			}
 
-			invoicesWithoutLines := lo.Filter(sourceInvoiceIDs, func(id string, _ int) bool {
-				return invoiceLineCounts.Counts[billing.InvoiceID{
-					Namespace: input.Customer.Namespace,
-					ID:        id,
-				}] == 0
-			})
+			// Collect gathering invoices which can be deleted and which needs to have their collectionAt updated
+			// due to still having live items.
+			liveGatheringInvoiceIDs := make([]string, 0, len(sourceInvoiceIDs))
+			emptyGatheringInvoiceIDs := make([]string, 0, len(sourceInvoiceIDs))
 
-			if len(invoicesWithoutLines) > 0 {
+			for _, invoiceID := range sourceInvoiceIDs {
+				invoiceNamespacedID := billing.InvoiceID{
+					Namespace: input.Customer.Namespace,
+					ID:        invoiceID,
+				}
+
+				if invoiceLineCounts.Counts[invoiceNamespacedID] == 0 {
+					emptyGatheringInvoiceIDs = append(emptyGatheringInvoiceIDs, invoiceID)
+				} else {
+					liveGatheringInvoiceIDs = append(liveGatheringInvoiceIDs, invoiceID)
+				}
+			}
+
+			// Delete empty gathering invoices
+			if len(emptyGatheringInvoiceIDs) > 0 {
 				err = s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
 					Namespace:  input.Customer.Namespace,
-					InvoiceIDs: invoicesWithoutLines,
+					InvoiceIDs: emptyGatheringInvoiceIDs,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("cleanup invoices: %w", err)
+				}
+			}
+
+			// Update collectionAt for live gathering invoices
+			if len(liveGatheringInvoiceIDs) > 0 {
+				resp, err := s.ListInvoices(ctx, billing.ListInvoicesInput{
+					Customers:        []string{input.Customer.ID},
+					IDs:              liveGatheringInvoiceIDs,
+					ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+					Expand: billing.InvoiceExpand{
+						Lines: true,
+					},
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to get gathering invoice(s) for customer [customer=%s]: %w",
+						input.Customer.ID, err,
+					)
+				}
+
+				for _, invoice := range resp.Items {
+					collectionAt := invoice.CollectionAt
+					if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.Profile.WorkflowConfig.Collection); ok {
+						s.logger.DebugContext(ctx, "collection time updated for invoice",
+							"invoiceID", invoice.ID,
+							"collectionAt", map[string]interface{}{
+								"from":               lo.FromPtr(collectionAt),
+								"to":                 lo.FromPtr(invoice.CollectionAt),
+								"collectionInterval": customerProfile.Profile.WorkflowConfig.Collection.Interval.String(),
+							},
+						)
+					}
+
+					if err = invoice.Validate(); err != nil {
+						return nil, billing.ValidationError{
+							Err: err,
+						}
+					}
+
+					if _, err = s.updateInvoice(ctx, invoice); err != nil {
+						return nil, fmt.Errorf("failed to update gathering invoice [namespace=%s invoice=%s, customer=%s]: %w",
+							input.Customer.Namespace, invoice.ID, input.Customer.ID, err,
+						)
+					}
 				}
 			}
 
