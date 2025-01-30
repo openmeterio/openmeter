@@ -216,7 +216,7 @@ model Customer {
   ...Resource;
 
   /**
-   * The optional key of the customer.
+   * An optional unique key of the customer.
    * Useful to reference the customer in external systems.
    * For example, your database ID.
    */
