@@ -2293,17 +2293,125 @@ export interface components {
      * @example US
      */
     CountryCode: string
-    /** @description Create Stripe checkout session request. */
+    /** @description Create Stripe checkout session tax ID collection. */
+    CreateCheckoutSessionTaxIdCollection: {
+      /** @description Enable tax ID collection during checkout. Defaults to false. */
+      enabled: boolean
+      /** @description Describes whether a tax ID is required during checkout. Defaults to never. */
+      required?: components['schemas']['CreateCheckoutSessionTaxIdCollectionRequired']
+    }
+    /**
+     * @description Create Stripe checkout session tax ID collection required.
+     * @enum {string}
+     */
+    CreateCheckoutSessionTaxIdCollectionRequired: 'if_supported' | 'never'
+    /**
+     * @description Specify whether Checkout should collect the customer’s billing address.
+     * @enum {string}
+     */
+    CreateStripeCheckoutSessionBillingAddressCollection: 'auto' | 'required'
+    /** @description Configure fields for the Checkout Session to gather active consent from customers. */
+    CreateStripeCheckoutSessionConsentCollection: {
+      /** @description Determines the position and visibility of the payment method reuse agreement in the UI.
+       *     When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse agreement text will always be hidden in the UI. */
+      paymentMethodReuseAgreement?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement']
+      /** @description If set to auto, enables the collection of customer consent for promotional communications.
+       *     The Checkout Session will determine whether to display an option to opt into promotional
+       *     communication from the merchant depending on the customer’s locale. Only available to US merchants. */
+      promotions?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionPromotions']
+      /** @description If set to required, it requires customers to check a terms of service checkbox before being able to pay.
+       *     There must be a valid terms of service URL set in your Stripe Dashboard settings.
+       *     https://dashboard.stripe.com/settings/public */
+      termsOfService?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionTermsOfService']
+    }
+    /** @description Create Stripe checkout session payment method reuse agreement. */
+    CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement: {
+      position?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition']
+    }
+    /**
+     * @description Create Stripe checkout session consent collection agreement position.
+     * @enum {string}
+     */
+    CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition:
+      | 'auto'
+      | 'hidden'
+    /**
+     * @description Create Stripe checkout session consent collection promotions.
+     * @enum {string}
+     */
+    CreateStripeCheckoutSessionConsentCollectionPromotions: 'auto' | 'none'
+    /**
+     * @description Create Stripe checkout session consent collection terms of service.
+     * @enum {string}
+     */
+    CreateStripeCheckoutSessionConsentCollectionTermsOfService:
+      | 'none'
+      | 'required'
+    /** @description Controls what fields on Customer can be updated by the Checkout Session. */
+    CreateStripeCheckoutSessionCustomerUpdate: {
+      /** @description Describes whether Checkout saves the billing address onto customer.address.
+       *     To always collect a full billing address, use billing_address_collection.
+       *     Defaults to never. */
+      address?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
+      /** @description Describes whether Checkout saves the name onto customer.name.
+       *     Defaults to never. */
+      name?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
+      /** @description Describes whether Checkout saves shipping information onto customer.shipping.
+       *     To collect shipping information, use shipping_address_collection.
+       *     Defaults to never. */
+      shipping?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
+    }
+    /**
+     * @description Create Stripe checkout session customer update behavior.
+     * @enum {string}
+     */
+    CreateStripeCheckoutSessionCustomerUpdateBehavior: 'auto' | 'never'
+    /**
+     * @description Create Stripe checkout session redirect on completion.
+     * @enum {string}
+     */
+    CreateStripeCheckoutSessionRedirectOnCompletion:
+      | 'always'
+      | 'if_required'
+      | 'never'
+    /**
+     * @description Create Stripe checkout session request.
+     * @example {
+     *       "customer": {
+     *         "name": "ACME, Inc.",
+     *         "currency": "USD",
+     *         "usageAttribution": {
+     *           "subjectKeys": [
+     *             "my-identifier"
+     *           ]
+     *         }
+     *       },
+     *       "options": {
+     *         "currency": "USD",
+     *         "successURL": "http://example.com",
+     *         "billingAddressCollection": "required",
+     *         "taxIdCollection": {
+     *           "enabled": true,
+     *           "required": "if_supported"
+     *         },
+     *         "customerUpdate": {
+     *           "name": "auto",
+     *           "address": "auto"
+     *         }
+     *       }
+     *     }
+     */
     CreateStripeCheckoutSessionRequest: {
       /**
        * @description If not provided, the default Stripe app is used if any.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       appId?: string
-      /** @description Provide a customer ID to use an existing OpenMeter customer.
+      /** @description Provide a customer ID or key to use an existing OpenMeter customer.
        *     or provide a customer object to create a new customer. */
       customer:
         | components['schemas']['CustomerId']
+        | components['schemas']['CustomerKey']
         | components['schemas']['CustomerCreate']
       /** @description Stripe customer ID.
        *     If not provided OpenMeter creates a new Stripe customer or
@@ -2312,19 +2420,54 @@ export interface components {
       /** @description Options passed to Stripe when creating the checkout session. */
       options: components['schemas']['CreateStripeCheckoutSessionRequestOptions']
     }
-    /** @description Create Stripe checkout session options */
+    /** @description Create Stripe checkout session options
+     *     See https://docs.stripe.com/api/checkout/sessions/create */
     CreateStripeCheckoutSessionRequestOptions: {
-      currency?: components['schemas']['CurrencyCode']
+      /** @description Specify whether Checkout should collect the customer’s billing address. Defaults to auto. */
+      billingAddressCollection?: components['schemas']['CreateStripeCheckoutSessionBillingAddressCollection']
+      /** @description If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
+       *     This parameter is not allowed if ui_mode is embedded. */
       cancelURL?: string
+      /** @description A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems. */
       clientReferenceID?: string
+      /** @description Controls what fields on Customer can be updated by the Checkout Session. */
+      customerUpdate?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdate']
+      /** @description Configure fields for the Checkout Session to gather active consent from customers. */
+      consentCollection?: components['schemas']['CreateStripeCheckoutSessionConsentCollection']
+      /** @description Three-letter ISO currency code, in lowercase. */
+      currency?: components['schemas']['CurrencyCode']
+      /** @description Display additional text for your customers using custom text. */
       customText?: components['schemas']['CheckoutSessionCustomTextAfterSubmitParams']
+      /**
+       * Format: int64
+       * @description The Epoch time in seconds at which the Checkout Session will expire.
+       *     It can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default, this value is 24 hours from creation.
+       */
+      expiresAt?: number
+      locale?: string
+      /** @description Set of key-value pairs that you can attach to an object.
+       *     This can be useful for storing additional information about the object in a structured format.
+       *     Individual keys can be unset by posting an empty value to them.
+       *     All keys can be unset by posting an empty value to metadata. */
       metadata?: {
         [key: string]: string
       }
       returnURL?: string
+      /** @description The URL to which Stripe should send customers when payment or setup is complete.
+       *     This parameter is not allowed if ui_mode is embedded.
+       *     If you’d like to use information from the successful Checkout Session on your page, read the guide on customizing your success page:
+       *     https://docs.stripe.com/payments/checkout/custom-success-page */
       successURL?: string
+      /** @description The UI mode of the Session. Defaults to hosted. */
       uiMode?: components['schemas']['CheckoutSessionUIMode']
+      /** @description A list of the types of payment methods (e.g., card) this Checkout Session can accept. */
       paymentMethodTypes?: string[]
+      /** @description This parameter applies to ui_mode: embedded. Defaults to always.
+       *     Learn more about the redirect behavior of embedded sessions at
+       *     https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form */
+      redirectOnCompletion?: components['schemas']['CreateStripeCheckoutSessionRedirectOnCompletion']
+      /** @description Controls tax ID collection during checkout. */
+      taxIdCollection?: components['schemas']['CreateCheckoutSessionTaxIdCollection']
     }
     /** @description Create Stripe Checkout Session response. */
     CreateStripeCheckoutSessionResult: {
@@ -2505,6 +2648,13 @@ export interface components {
        */
       readonly deletedAt?: Date
       /**
+       * Key
+       * @description An optional unique key of the customer.
+       *     Useful to reference the customer in external systems.
+       *     For example, your database ID.
+       */
+      key?: string
+      /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
@@ -2577,6 +2727,13 @@ export interface components {
        */
       metadata?: components['schemas']['Metadata'] | null
       /**
+       * Key
+       * @description An optional unique key of the customer.
+       *     Useful to reference the customer in external systems.
+       *     For example, your database ID.
+       */
+      key?: string
+      /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
        */
@@ -2599,13 +2756,17 @@ export interface components {
        */
       billingAddress?: components['schemas']['Address']
     }
-    /** @description Create Stripe checkout session customer ID. */
+    /** @description Create Stripe checkout session with customer ID. */
     CustomerId: {
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       id: string
+    }
+    /** @description Create Stripe checkout session with customer key. */
+    CustomerKey: {
+      key: string
     }
     /**
      * @description Order by options for customers.
@@ -2649,6 +2810,13 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Key
+       * @description An optional unique key of the customer.
+       *     Useful to reference the customer in external systems.
+       *     For example, your database ID.
+       */
+      key?: string
       /**
        * Usage Attribution
        * @description Mapping to attribute metered usage to the customer
@@ -6079,11 +6247,7 @@ export interface components {
        * Price
        * @description The price of the rate card.
        *     When null, the feature or service is free.
-       * @example {
-       *       "type": "flat",
-       *       "amount": "100",
-       *       "paymentTerm": "in_arrears"
-       *     }
+       * @example {}
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
     }
@@ -6609,9 +6773,7 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {
-       *       "hubspotId": "123456"
-       *     } */
+      /** @example {} */
       metadata?: {
         [key: string]: unknown
       } | null
@@ -6654,9 +6816,7 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {
-       *       "hubspotId": "123456"
-       *     } */
+      /** @example {} */
       metadata?: {
         [key: string]: unknown
       } | null
@@ -6929,11 +7089,7 @@ export interface components {
        * Price
        * @description The price of the rate card.
        *     When null, the feature or service is free.
-       * @example {
-       *       "type": "flat",
-       *       "amount": "100",
-       *       "paymentTerm": "in_arrears"
-       *     }
+       * @example {}
        */
       price:
         | (components['schemas']['FlatPriceWithPaymentTerm'] | null)
@@ -7484,6 +7640,9 @@ export interface components {
     'PlanOrderByOrdering.orderBy': components['schemas']['PlanOrderBy']
     /** @description Include deleted customers. */
     'queryCustomerList.includeDeleted': boolean
+    /** @description Filter customers by key.
+     *     Case-sensitive exact match. */
+    'queryCustomerList.key': string
     /** @description Filter customers by name.
      *     Case-insensitive partial match. */
     'queryCustomerList.name': string
@@ -7574,6 +7733,28 @@ export type CollectionMethod = components['schemas']['CollectionMethod']
 export type ConflictProblemResponse =
   components['schemas']['ConflictProblemResponse']
 export type CountryCode = components['schemas']['CountryCode']
+export type CreateCheckoutSessionTaxIdCollection =
+  components['schemas']['CreateCheckoutSessionTaxIdCollection']
+export type CreateCheckoutSessionTaxIdCollectionRequired =
+  components['schemas']['CreateCheckoutSessionTaxIdCollectionRequired']
+export type CreateStripeCheckoutSessionBillingAddressCollection =
+  components['schemas']['CreateStripeCheckoutSessionBillingAddressCollection']
+export type CreateStripeCheckoutSessionConsentCollection =
+  components['schemas']['CreateStripeCheckoutSessionConsentCollection']
+export type CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement =
+  components['schemas']['CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement']
+export type CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition =
+  components['schemas']['CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition']
+export type CreateStripeCheckoutSessionConsentCollectionPromotions =
+  components['schemas']['CreateStripeCheckoutSessionConsentCollectionPromotions']
+export type CreateStripeCheckoutSessionConsentCollectionTermsOfService =
+  components['schemas']['CreateStripeCheckoutSessionConsentCollectionTermsOfService']
+export type CreateStripeCheckoutSessionCustomerUpdate =
+  components['schemas']['CreateStripeCheckoutSessionCustomerUpdate']
+export type CreateStripeCheckoutSessionCustomerUpdateBehavior =
+  components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
+export type CreateStripeCheckoutSessionRedirectOnCompletion =
+  components['schemas']['CreateStripeCheckoutSessionRedirectOnCompletion']
 export type CreateStripeCheckoutSessionRequest =
   components['schemas']['CreateStripeCheckoutSessionRequest']
 export type CreateStripeCheckoutSessionRequestOptions =
@@ -7595,6 +7776,7 @@ export type CustomerAppDataPaginatedResponse =
   components['schemas']['CustomerAppDataPaginatedResponse']
 export type CustomerCreate = components['schemas']['CustomerCreate']
 export type CustomerId = components['schemas']['CustomerId']
+export type CustomerKey = components['schemas']['CustomerKey']
 export type CustomerOrderBy = components['schemas']['CustomerOrderBy']
 export type CustomerPaginatedResponse =
   components['schemas']['CustomerPaginatedResponse']
@@ -8029,6 +8211,8 @@ export type ParameterPlanOrderByOrderingOrderBy =
   components['parameters']['PlanOrderByOrdering.orderBy']
 export type ParameterQueryCustomerListIncludeDeleted =
   components['parameters']['queryCustomerList.includeDeleted']
+export type ParameterQueryCustomerListKey =
+  components['parameters']['queryCustomerList.key']
 export type ParameterQueryCustomerListName =
   components['parameters']['queryCustomerList.name']
 export type ParameterQueryCustomerListPlanKey =
@@ -10389,6 +10573,9 @@ export interface operations {
         orderBy?: components['parameters']['CustomerOrderByOrdering.orderBy']
         /** @description Include deleted customers. */
         includeDeleted?: components['parameters']['queryCustomerList.includeDeleted']
+        /** @description Filter customers by key.
+         *     Case-sensitive exact match. */
+        key?: components['parameters']['queryCustomerList.key']
         /** @description Filter customers by name.
          *     Case-insensitive partial match. */
         name?: components['parameters']['queryCustomerList.name']
