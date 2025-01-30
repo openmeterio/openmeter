@@ -48,4 +48,4 @@ const ast = await openapiTS(schema, {
 
 const contents = astToString(ast)
 
-fs.writeFileSync('./src/client/schemas.d.ts', contents)
+fs.writeFileSync('./src/client/schemas.ts', contents)

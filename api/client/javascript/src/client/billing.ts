@@ -1,4 +1,5 @@
-import { transformResponse, type RequestOptions } from './utils.js'
+import { transformResponse } from './utils.js'
+import type { RequestOptions } from './common.js'
 import type {
   BillingProfileCreate,
   BillingProfileCustomerOverrideCreate,
@@ -11,7 +12,6 @@ import type {
   VoidInvoiceActionInput,
 } from './schemas.js'
 import type { Client } from 'openapi-fetch'
-
 /**
  * Billing
  */

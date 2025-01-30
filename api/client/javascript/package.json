@@ -50,7 +50,7 @@
     "lint": "eslint . --format=pretty",
     "format": "prettier --write .",
     "build": "duel",
-    "generate": "node --experimental-strip-types scripts/generate.ts && prettier --write src/client/schemas.d.ts",
+    "generate": "node --experimental-strip-types scripts/generate.ts && prettier --write src/client/schemas.ts",
     "pretest": "pnpm run build",
     "test": "vitest --run",
     "test:watch": "vitest --watch",

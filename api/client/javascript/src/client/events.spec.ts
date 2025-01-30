@@ -61,7 +61,7 @@ describe('Events', () => {
       }
     )
     const resp = await client.events.ingest(event)
-    expect(resp.data).toBeUndefined()
+    expect(resp).toBeUndefined()
     expect(fetchMock.callHistory.done(task.name)).toBeTruthy()
   })
 
@@ -104,7 +104,7 @@ describe('Events', () => {
       }
     )
     const resp = await client.events.list(query)
-    expect(resp.data).toEqual(respBody)
+    expect(resp).toEqual(respBody)
     expect(fetchMock.callHistory.done(task.name)).toBeTruthy()
   })
 })

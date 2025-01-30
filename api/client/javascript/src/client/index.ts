@@ -18,7 +18,8 @@ import { Subscriptions } from './subscriptions.js'
 import { encodeDates } from './utils.js'
 import type { paths } from './schemas.js'
 
-export type * from './schemas.js'
+export * from './schemas.js'
+export * from './common.js'
 
 /**
  * OpenMeter Config

@@ -1,11 +1,9 @@
 import createClient from 'openapi-fetch'
 import { createQuerySerializer } from 'openapi-fetch/dist/cjs/index.cjs'
 import { encodeDates, transformResponse } from '../client/utils.js'
+import type { RequestOptions } from '../client/common.js'
 import type { paths } from '../client/schemas.js'
-import type { RequestOptions } from '../client/utils.js'
 import type { Client, ClientOptions } from 'openapi-fetch'
-
-export type { RequestOptions } from '../client/utils.js'
 
 /**
  * Portal Config
