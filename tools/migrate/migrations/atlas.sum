@@ -1,4 +1,4 @@
-h1:yCWDEfrXA2ujEqADEJQEHUWjTUZU+9Wd6mg+7CgjPMY=
+h1:ddxsywnkvBdBItZTybew4PGI2LYvFuWDbWasZJmXNII=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -95,3 +95,5 @@ h1:yCWDEfrXA2ujEqADEJQEHUWjTUZU+9Wd6mg+7CgjPMY=
 20250127132300_billing-tax-behavior-to-config.up.sql h1:stgHXRWc639e3f1FK5L2UdAxJOxNCimZM2WvlEtiQzw=
 20250129143720_minimum-entitlement-usageperiod.down.sql h1:R9HCNbZ1zWEG83pY4K45z3XS0bpXzvciXzxV/a8vuWo=
 20250129143720_minimum-entitlement-usageperiod.up.sql h1:89Y6CW9KMPzOg+WmuPzKKAkpvRuj5y3EgkVMRGff4dk=
+20250130065134_product-catalog-unique-constraints.down.sql h1:6CRnzx88BxNN5tIour095SyjVJRT3Gy86hpCc3CjEsc=
+20250130065134_product-catalog-unique-constraints.up.sql h1:Uf7kHOLEDCGBQ9MHGQ4/PiZ1FTuKJWLwLhicRunHz88=
