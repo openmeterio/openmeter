@@ -33,6 +33,21 @@ import (
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
+var TelemetryWithoutServer = wire.NewSet(
+	NewTelemetryResource,
+
+	NewLoggerProvider,
+	wire.Bind(new(log.LoggerProvider), new(*sdklog.LoggerProvider)),
+	NewLogger,
+
+	NewMeterProvider,
+	wire.Bind(new(metric.MeterProvider), new(*sdkmetric.MeterProvider)),
+	NewMeter,
+	NewTracerProvider,
+	wire.Bind(new(trace.TracerProvider), new(*sdktrace.TracerProvider)),
+	NewTracer,
+)
+
 var Telemetry = wire.NewSet(
 	NewTelemetryResource,
 
