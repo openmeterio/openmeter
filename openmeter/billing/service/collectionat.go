@@ -17,10 +17,33 @@ func UpdateInvoiceCollectionAt(invoice *billing.Invoice, collection billing.Coll
 		return false
 	}
 
+	invoiceAt := GetEarliestValidInvoiceAt(invoice.Lines)
+
+	if invoiceAt.IsZero() {
+		return false
+	}
+
+	interval, ok := collection.Interval.Duration()
+	if !ok {
+		return false
+	}
+
+	collectionAt := invoiceAt.Add(interval)
+
+	if lo.FromPtr(invoice.CollectionAt).Equal(collectionAt) {
+		return false
+	}
+
+	invoice.CollectionAt = &collectionAt
+
+	return true
+}
+
+func GetEarliestValidInvoiceAt(lines billing.LineChildren) time.Time {
 	var invoiceAt time.Time
 
 	// Find the invoice lint with the earliest invoiceAt attribute
-	invoice.Lines.ForEach(func(v []*billing.Line) {
+	lines.ForEach(func(v []*billing.Line) {
 		for _, line := range v {
 			if line == nil || line.Status != billing.InvoiceLineStatusValid {
 				continue
@@ -41,22 +64,19 @@ func UpdateInvoiceCollectionAt(invoice *billing.Invoice, collection billing.Coll
 		}
 	})
 
-	if invoiceAt.IsZero() {
-		return false
+	return invoiceAt
+}
+
+func GetInvoiceWithEarliestCollectionAt(invoices []billing.Invoice) billing.Invoice {
+	var idx int
+
+	collectAt := time.Now()
+
+	for i, invoice := range invoices {
+		if invoice.CollectionAt.Before(collectAt) {
+			idx = i
+		}
 	}
 
-	interval, ok := collection.Interval.Duration()
-	if !ok {
-		return false
-	}
-
-	collectionAt := invoiceAt.Add(interval)
-
-	if lo.FromPtr(invoice.CollectionAt).Equal(collectionAt) {
-		return false
-	}
-
-	invoice.CollectionAt = &collectionAt
-
-	return true
+	return invoices[idx]
 }
