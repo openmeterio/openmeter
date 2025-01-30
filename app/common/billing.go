@@ -13,6 +13,7 @@ import (
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/subscription"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
+	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -78,6 +79,13 @@ func BillingSubscriptionValidator(
 
 func NewBillingAutoAdvancer(logger *slog.Logger, service billing.Service) (*billingworkerautoadvance.AutoAdvancer, error) {
 	return billingworkerautoadvance.NewAdvancer(billingworkerautoadvance.Config{
+		BillingService: service,
+		Logger:         logger,
+	})
+}
+
+func NewBillingCollector(logger *slog.Logger, service billing.Service) (*billingworkercollect.InvoiceCollector, error) {
+	return billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{
 		BillingService: service,
 		Logger:         logger,
 	})

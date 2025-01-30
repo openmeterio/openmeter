@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -268,6 +269,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	invoiceCollector, err := common.NewBillingCollector(logger, billingService)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger)
 	if err != nil {
 		cleanup6()
@@ -328,6 +339,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Customer:              customerService,
 		Billing:               billingService,
 		BillingAutoAdvancer:   autoAdvancer,
+		BillingCollector:      invoiceCollector,
 		EntClient:             client,
 		EventPublisher:        eventbusPublisher,
 		EntitlementRegistry:   entitlement,
@@ -366,6 +378,7 @@ type Application struct {
 	Customer              customer.Service
 	Billing               billing.Service
 	BillingAutoAdvancer   *billingworkeradvance.AutoAdvancer
+	BillingCollector      *billingworkercollect.InvoiceCollector
 	EntClient             *db.Client
 	EventPublisher        eventbus.Publisher
 	EntitlementRegistry   *registry.Entitlement
