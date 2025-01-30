@@ -1403,6 +1403,9 @@ var (
 				Name:    "plan_namespace_key_version_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[9], PlansColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -1465,11 +1468,17 @@ var (
 				Name:    "planphase_plan_id_key_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[8], PlanPhasesColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
 				Name:    "planphase_plan_id_index_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[9], PlanPhasesColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -1537,11 +1546,17 @@ var (
 				Name:    "planratecard_phase_id_key_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
 				Name:    "planratecard_phase_id_feature_key_deleted_at",
 				Unique:  true,
 				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[10], PlanRateCardsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
