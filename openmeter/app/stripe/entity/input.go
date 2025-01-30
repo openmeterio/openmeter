@@ -7,9 +7,9 @@ import (
 
 	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/api"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
@@ -265,7 +265,7 @@ type CreateCheckoutSessionInput struct {
 	CreateCustomerInput *customerentity.CreateCustomerInput
 	CustomerID          *customerentity.CustomerID
 	StripeCustomerID    *string
-	Options             stripeclient.StripeCheckoutSessionInputOptions
+	Options             api.CreateStripeCheckoutSessionRequestOptions
 }
 
 func (i CreateCheckoutSessionInput) Validate() error {
@@ -309,9 +309,9 @@ func (i CreateCheckoutSessionInput) Validate() error {
 		return errors.New("stripe customer id must start with cus_")
 	}
 
-	if i.Options.UIMode != nil {
-		switch *i.Options.UIMode {
-		case stripe.CheckoutSessionUIModeEmbedded:
+	if i.Options.UiMode != nil {
+		switch *i.Options.UiMode {
+		case api.CheckoutSessionUIModeEmbedded:
 			if i.Options.ReturnURL == nil {
 				return errors.New("return url is required for embedded ui mode")
 			}
@@ -319,7 +319,7 @@ func (i CreateCheckoutSessionInput) Validate() error {
 			if i.Options.CancelURL != nil {
 				return errors.New("cancel url is not allowed for embedded ui mode")
 			}
-		case stripe.CheckoutSessionUIModeHosted:
+		case api.CheckoutSessionUIModeHosted:
 			if i.Options.SuccessURL == nil {
 				return errors.New("success url is required for hosted ui mode")
 			}

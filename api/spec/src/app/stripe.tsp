@@ -113,63 +113,91 @@ model CreateStripeCheckoutSessionRequest {
  */
 @friendlyName("CreateStripeCheckoutSessionRequestOptions")
 model CreateStripeCheckoutSessionRequestOptions {
-  // Settings for automatic tax lookup for this session and resulting payments, invoices, and subscriptions.
-  automaticTax?: CreateStripeCheckoutSessionAutomaticTax;
+  // Note: automaticTax is not supported in setup mode so we don't expose it.
 
-  // Specify whether Checkout should collect the customer’s billing address. Defaults to auto.
+  /**
+   * Specify whether Checkout should collect the customer’s billing address. Defaults to auto.
+   */
   billingAddressCollection?: CreateStripeCheckoutSessionBillingAddressCollection;
 
-  // If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
-  // This parameter is not allowed if ui_mode is embedded.
+  /** If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
+   * This parameter is not allowed if ui_mode is embedded.
+   */
   cancelURL?: string;
 
-  // A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems.
+  /**
+   * A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems.
+   */
   clientReferenceID?: string;
 
-  // Configure fields for the Checkout Session to gather active consent from customers.
+  /**
+   * Controls what fields on Customer can be updated by the Checkout Session.
+   */
+  customerUpdate?: CreateStripeCheckoutSessionCustomerUpdate;
+
+  /**
+   * Configure fields for the Checkout Session to gather active consent from customers.
+   */
   consentCollection?: CreateStripeCheckoutSessionConsentCollection;
 
-  // Three-letter ISO currency code, in lowercase.
+  /**
+   * Three-letter ISO currency code, in lowercase.
+   */
   currency?: CurrencyCode;
 
-  // Display additional text for your customers using custom text.
+  /**
+   * Display additional text for your customers using custom text.
+   */
   customText?: CheckoutSessionCustomTextParams;
 
-  // The Epoch time in seconds at which the Checkout Session will expire.
-  // It can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default, this value is 24 hours from creation.
-  expiresAt?: integer;
+  /**
+   * The Epoch time in seconds at which the Checkout Session will expire.
+   * It can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default, this value is 24 hours from creation.
+   */
+  expiresAt?: int64;
 
-  // The IETF language tag of the locale Checkout is displayed in. If blank or auto, the browser’s locale is used.
+  /* The IETF language tag of the locale Checkout is displayed in. If blank or auto, the browser’s locale is used. */
   locale?: string;
 
-  // Set of key-value pairs that you can attach to an object.
-  // This can be useful for storing additional information about the object in a structured format.
-  // Individual keys can be unset by posting an empty value to them.
-  // All keys can be unset by posting an empty value to metadata.
+  /** Set of key-value pairs that you can attach to an object.
+   * This can be useful for storing additional information about the object in a structured format.
+   * Individual keys can be unset by posting an empty value to them.
+   * All keys can be unset by posting an empty value to metadata.
+   */
   metadata?: Record<string>;
 
-  // The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
-  // This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session.
+  /* The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
+   This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session. */
   returnURL?: string;
 
-  // The URL to which Stripe should send customers when payment or setup is complete.
-  // This parameter is not allowed if ui_mode is embedded.
-  // If you’d like to use information from the successful Checkout Session on your page, read the guide on customizing your success page:
-  // https://docs.stripe.com/payments/checkout/custom-success-page
+  /**
+   * The URL to which Stripe should send customers when payment or setup is complete.
+   * This parameter is not allowed if ui_mode is embedded.
+   * If you’d like to use information from the successful Checkout Session on your page, read the guide on customizing your success page:
+   * https://docs.stripe.com/payments/checkout/custom-success-page
+   */
   successURL?: string;
 
-  // The UI mode of the Session. Defaults to hosted.
+  /**
+   * The UI mode of the Session. Defaults to hosted.
+   */
   uiMode?: CheckoutSessionUIMode;
 
-  // A list of the types of payment methods (e.g., card) this Checkout Session can accept.
+  /**
+   * A list of the types of payment methods (e.g., card) this Checkout Session can accept.
+   */
   paymentMethodTypes?: string[];
 
-  // This parameter applies to ui_mode: embedded. Defaults to always.
-  // Learn more about the redirect behavior of embedded sessions at
-  // https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
-  redirectOnCompletion: CreateStripeCheckoutSessionRedirectOnCompletion;
+  /**
+   * This parameter applies to ui_mode: embedded. Defaults to always.
+   * Learn more about the redirect behavior of embedded sessions at
+   * https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
+   */
+  redirectOnCompletion?: CreateStripeCheckoutSessionRedirectOnCompletion;
 
-  // Controls tax ID collection during checkout.
+  /**
+   * Controls tax ID collection during checkout.
+   */
   taxIdCollection?: CreateCheckoutSessionTaxIdCollection;
 
   // TODO: Fields we haven't implemented yet.
@@ -184,25 +212,19 @@ model CreateStripeCheckoutSessionRequestOptions {
 }
 
 /**
- * Settings for automatic tax lookup for this session and resulting payments and invoices.
- */
-@friendlyName("CreateStripeCheckoutSessionAutomaticTax")
-model CreateStripeCheckoutSessionAutomaticTax {
-  // Set to true to calculate tax automatically using the customer’s location.
-  // Enabling this parameter causes Checkout to collect any billing address information necessary for tax calculation.
-  enabled: boolean;
-}
-
-/**
  * Specify whether Checkout should collect the customer’s billing address.
  */
 @friendlyName("CreateStripeCheckoutSessionBillingAddressCollection")
 enum CreateStripeCheckoutSessionBillingAddressCollection {
-  // Checkout will only collect the billing address when necessary.
-  // When using automatic_tax, Checkout will collect the minimum number of fields required for tax calculation.
+  /**
+   * Checkout will only collect the billing address when necessary.
+   * When using automatic_tax, Checkout will collect the minimum number of fields required for tax calculation.
+   */
   Auto: "auto",
 
-  // Checkout will always collect the customer’s billing address.
+  /**
+   * Checkout will always collect the customer’s billing address.
+   */
   Required: "required",
 }
 
@@ -211,19 +233,67 @@ enum CreateStripeCheckoutSessionBillingAddressCollection {
  */
 @friendlyName("CreateStripeCheckoutSessionConsentCollection")
 model CreateStripeCheckoutSessionConsentCollection {
-  // Determines the position and visibility of the payment method reuse agreement in the UI.
-  // When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse agreement text will always be hidden in the UI.
+  /**
+   * Determines the position and visibility of the payment method reuse agreement in the UI.
+   * When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse agreement text will always be hidden in the UI.
+   */
   paymentMethodReuseAgreement?: CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement;
 
-  // If set to auto, enables the collection of customer consent for promotional communications.
-  // The Checkout Session will determine whether to display an option to opt into promotional
-  // communication from the merchant depending on the customer’s locale. Only available to US merchants.
+  /**
+   * If set to auto, enables the collection of customer consent for promotional communications.
+   * The Checkout Session will determine whether to display an option to opt into promotional
+   * communication from the merchant depending on the customer’s locale. Only available to US merchants.
+   */
   promotions?: CreateStripeCheckoutSessionConsentCollectionPromotions;
 
-  // If set to required, it requires customers to check a terms of service checkbox before being able to pay.
-  // There must be a valid terms of service URL set in your Stripe Dashboard settings.
-  // https://dashboard.stripe.com/settings/public
+  /**
+   * If set to required, it requires customers to check a terms of service checkbox before being able to pay.
+   * There must be a valid terms of service URL set in your Stripe Dashboard settings.
+   * https://dashboard.stripe.com/settings/public
+   */
   termsOfService?: CreateStripeCheckoutSessionConsentCollectionTermsOfService;
+}
+
+/**
+ * Controls what fields on Customer can be updated by the Checkout Session.
+ */
+@friendlyName("CreateStripeCheckoutSessionCustomerUpdate")
+model CreateStripeCheckoutSessionCustomerUpdate {
+  /**
+   * Describes whether Checkout saves the billing address onto customer.address.
+   * To always collect a full billing address, use billing_address_collection.
+   * Defaults to never.
+   */
+  address?: CreateStripeCheckoutSessionCustomerUpdateBehavior;
+
+  /**
+   * Describes whether Checkout saves the name onto customer.name.
+   * Defaults to never.
+   */
+  name?: CreateStripeCheckoutSessionCustomerUpdateBehavior;
+
+  /**
+   * Describes whether Checkout saves shipping information onto customer.shipping.
+   * To collect shipping information, use shipping_address_collection.
+   * Defaults to never.
+   */
+  shipping?: CreateStripeCheckoutSessionCustomerUpdateBehavior;
+}
+
+/**
+ * Create Stripe checkout session customer update behavior.
+ */
+@friendlyName("CreateStripeCheckoutSessionCustomerUpdateBehavior")
+enum CreateStripeCheckoutSessionCustomerUpdateBehavior {
+  /**
+   * Checkout will automatically determine whether to update the provided Customer object using details from the session.
+   */
+  Auto: "auto",
+
+  /**
+   * Checkout will never update the provided Customer object.
+   */
+  Never: "never",
 }
 
 /**
@@ -239,10 +309,14 @@ model CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement {
  */
 @friendlyName("CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition")
 enum CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition {
-  // Uses Stripe defaults to determine the visibility and position of the payment method reuse agreement.
+  /**
+   * Uses Stripe defaults to determine the visibility and position of the payment method reuse agreement.
+   */
   Auto: "auto",
 
-  // Hides the payment method reuse agreement.
+  /**
+   * Hides the payment method reuse agreement.
+   */
   Hidden: "hidden",
 }
 
@@ -251,12 +325,16 @@ enum CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosi
  */
 @friendlyName("CreateStripeCheckoutSessionConsentCollectionPromotions")
 enum CreateStripeCheckoutSessionConsentCollectionPromotions {
-  // Enable the collection of customer consent for promotional communications.
-  // The Checkout Session will determine whether to display an option to opt into promotional communication from the merchant depending on if a customer is provided,
-  // and if that customer has consented to receiving promotional communications from the merchant in the past.
+  /**
+   * Enable the collection of customer consent for promotional communications.
+   * The Checkout Session will determine whether to display an option to opt into promotional communication from the merchant depending on if a customer is provided,
+   * and if that customer has consented to receiving promotional communications from the merchant in the past.
+   */
   Auto: "auto",
 
-  // Checkout will not collect customer consent for promotional communications.
+  /**
+   * Checkout will not collect customer consent for promotional communications.
+   */
   None: "none",
 }
 
@@ -265,10 +343,14 @@ enum CreateStripeCheckoutSessionConsentCollectionPromotions {
  */
 @friendlyName("CreateStripeCheckoutSessionConsentCollectionTermsOfService")
 enum CreateStripeCheckoutSessionConsentCollectionTermsOfService {
-  // Does not display checkbox for the terms of service agreement.
+  /**
+   * Does not display checkbox for the terms of service agreement.
+   */
   None: "none",
 
-  // Displays a checkbox for the terms of service agreement which requires customer to check before being able to pay.
+  /**
+   * Displays a checkbox for the terms of service agreement which requires customer to check before being able to pay.
+   */
   Required: "required",
 }
 
@@ -277,13 +359,19 @@ enum CreateStripeCheckoutSessionConsentCollectionTermsOfService {
  */
 @friendlyName("CreateStripeCheckoutSessionRedirectOnCompletion")
 enum CreateStripeCheckoutSessionRedirectOnCompletion {
-  // The Session will always redirect to the return_url after successful confirmation.
+  /**
+   * The Session will always redirect to the return_url after successful confirmation.
+   */
   Always: "always",
 
-  // The Session will only redirect to the return_url after a redirect-based payment method is used.
+  /**
+   * The Session will only redirect to the return_url after a redirect-based payment method is used.
+   */
   IfRequired: "if_required",
 
-  // The Session will never redirect to the return_url, and redirect-based payment methods will be disabled.
+  /**
+   * The Session will never redirect to the return_url, and redirect-based payment methods will be disabled.
+   */
   Never: "never",
 }
 
@@ -292,10 +380,14 @@ enum CreateStripeCheckoutSessionRedirectOnCompletion {
  */
 @friendlyName("CreateCheckoutSessionTaxIdCollection")
 model CreateCheckoutSessionTaxIdCollection {
-  // Enable tax ID collection during checkout. Defaults to false.
+  /**
+   * Enable tax ID collection during checkout. Defaults to false.
+   */
   enabled: boolean;
 
-  // Describes whether a tax ID is required during checkout. Defaults to never.
+  /**
+   * Describes whether a tax ID is required during checkout. Defaults to never.
+   */
   required?: CreateCheckoutSessionTaxIdCollectionRequired;
 }
 
@@ -304,11 +396,15 @@ model CreateCheckoutSessionTaxIdCollection {
  */
 @friendlyName("CreateCheckoutSessionTaxIdCollectionRequired")
 enum CreateCheckoutSessionTaxIdCollectionRequired {
-  // A tax ID will be required if collection is supported for the selected billing address country.
-  // See: https://docs.stripe.com/tax/checkout/tax-ids#supported-types
+  /**
+   * A tax ID will be required if collection is supported for the selected billing address country.
+   * See: https://docs.stripe.com/tax/checkout/tax-ids#supported-types
+   */
   IfSupported: "if_supported",
 
-  // Tax ID collection is never required.
+  /**
+   * Tax ID collection is never required.
+   */
   Never: "never",
 }
 

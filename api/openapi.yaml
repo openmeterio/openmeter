@@ -8514,8 +8514,11 @@ components:
       properties:
         enabled:
           type: boolean
+          description: Enable tax ID collection during checkout. Defaults to false.
         required:
-          $ref: '#/components/schemas/CreateCheckoutSessionTaxIdCollectionRequired'
+          allOf:
+            - $ref: '#/components/schemas/CreateCheckoutSessionTaxIdCollectionRequired'
+          description: Describes whether a tax ID is required during checkout. Defaults to never.
       description: Create Stripe checkout session tax ID collection.
     CreateCheckoutSessionTaxIdCollectionRequired:
       type: string
@@ -8523,14 +8526,6 @@ components:
         - if_supported
         - never
       description: Create Stripe checkout session tax ID collection required.
-    CreateStripeCheckoutSessionAutomaticTax:
-      type: object
-      required:
-        - enabled
-      properties:
-        enabled:
-          type: boolean
-      description: Settings for automatic tax lookup for this session and resulting payments and invoices.
     CreateStripeCheckoutSessionBillingAddressCollection:
       type: string
       enum:
@@ -8541,11 +8536,25 @@ components:
       type: object
       properties:
         paymentMethodReuseAgreement:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement'
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement'
+          description: |-
+            Determines the position and visibility of the payment method reuse agreement in the UI.
+            When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse agreement text will always be hidden in the UI.
         promotions:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollectionPromotions'
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollectionPromotions'
+          description: |-
+            If set to auto, enables the collection of customer consent for promotional communications.
+            The Checkout Session will determine whether to display an option to opt into promotional
+            communication from the merchant depending on the customer’s locale. Only available to US merchants.
         termsOfService:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollectionTermsOfService'
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollectionTermsOfService'
+          description: |-
+            If set to required, it requires customers to check a terms of service checkbox before being able to pay.
+            There must be a valid terms of service URL set in your Stripe Dashboard settings.
+            https://dashboard.stripe.com/settings/public
       description: Configure fields for the Checkout Session to gather active consent from customers.
     CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement:
       type: object
@@ -8571,6 +8580,36 @@ components:
         - none
         - required
       description: Create Stripe checkout session consent collection terms of service.
+    CreateStripeCheckoutSessionCustomerUpdate:
+      type: object
+      properties:
+        address:
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionCustomerUpdateBehavior'
+          description: |-
+            Describes whether Checkout saves the billing address onto customer.address.
+            To always collect a full billing address, use billing_address_collection.
+            Defaults to never.
+        name:
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionCustomerUpdateBehavior'
+          description: |-
+            Describes whether Checkout saves the name onto customer.name.
+            Defaults to never.
+        shipping:
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionCustomerUpdateBehavior'
+          description: |-
+            Describes whether Checkout saves shipping information onto customer.shipping.
+            To collect shipping information, use shipping_address_collection.
+            Defaults to never.
+      description: Controls what fields on Customer can be updated by the Checkout Session.
+    CreateStripeCheckoutSessionCustomerUpdateBehavior:
+      type: string
+      enum:
+        - auto
+        - never
+      description: Create Stripe checkout session customer update behavior.
     CreateStripeCheckoutSessionRedirectOnCompletion:
       type: string
       enum:
@@ -8609,45 +8648,81 @@ components:
       description: Create Stripe checkout session request.
     CreateStripeCheckoutSessionRequestOptions:
       type: object
-      required:
-        - redirectOnCompletion
       properties:
-        automaticTax:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionAutomaticTax'
         billingAddressCollection:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionBillingAddressCollection'
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionBillingAddressCollection'
+          description: Specify whether Checkout should collect the customer’s billing address. Defaults to auto.
         cancelURL:
           type: string
+          description: |-
+            If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
+            This parameter is not allowed if ui_mode is embedded.
         clientReferenceID:
           type: string
+          description: A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems.
+        customerUpdate:
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionCustomerUpdate'
+          description: Controls what fields on Customer can be updated by the Checkout Session.
         consentCollection:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollection'
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionConsentCollection'
+          description: Configure fields for the Checkout Session to gather active consent from customers.
         currency:
-          $ref: '#/components/schemas/CurrencyCode'
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Three-letter ISO currency code, in lowercase.
         customText:
-          $ref: '#/components/schemas/CheckoutSessionCustomTextAfterSubmitParams'
+          allOf:
+            - $ref: '#/components/schemas/CheckoutSessionCustomTextAfterSubmitParams'
+          description: Display additional text for your customers using custom text.
         expiresAt:
           type: integer
+          format: int64
+          description: |-
+            The Epoch time in seconds at which the Checkout Session will expire.
+            It can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default, this value is 24 hours from creation.
         locale:
           type: string
         metadata:
           type: object
           additionalProperties:
             type: string
+          description: |-
+            Set of key-value pairs that you can attach to an object.
+            This can be useful for storing additional information about the object in a structured format.
+            Individual keys can be unset by posting an empty value to them.
+            All keys can be unset by posting an empty value to metadata.
         returnURL:
           type: string
         successURL:
           type: string
+          description: |-
+            The URL to which Stripe should send customers when payment or setup is complete.
+            This parameter is not allowed if ui_mode is embedded.
+            If you’d like to use information from the successful Checkout Session on your page, read the guide on customizing your success page:
+            https://docs.stripe.com/payments/checkout/custom-success-page
         uiMode:
-          $ref: '#/components/schemas/CheckoutSessionUIMode'
+          allOf:
+            - $ref: '#/components/schemas/CheckoutSessionUIMode'
+          description: The UI mode of the Session. Defaults to hosted.
         paymentMethodTypes:
           type: array
           items:
             type: string
+          description: A list of the types of payment methods (e.g., card) this Checkout Session can accept.
         redirectOnCompletion:
-          $ref: '#/components/schemas/CreateStripeCheckoutSessionRedirectOnCompletion'
+          allOf:
+            - $ref: '#/components/schemas/CreateStripeCheckoutSessionRedirectOnCompletion'
+          description: |-
+            This parameter applies to ui_mode: embedded. Defaults to always.
+            Learn more about the redirect behavior of embedded sessions at
+            https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
         taxIdCollection:
-          $ref: '#/components/schemas/CreateCheckoutSessionTaxIdCollection'
+          allOf:
+            - $ref: '#/components/schemas/CreateCheckoutSessionTaxIdCollection'
+          description: Controls tax ID collection during checkout.
       description: |-
         Create Stripe checkout session options
         See https://docs.stripe.com/api/checkout/sessions/create
