@@ -14,7 +14,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	lineservice "github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -789,6 +789,18 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 			if err := input.EditFn(&invoice); err != nil {
 				return billing.Invoice{}, fmt.Errorf("editing invoice: %w", err)
+			}
+
+			collectionAt := invoice.CollectionAt
+			if ok := UpdateInvoiceCollectionAt(&invoice, billingProfile.Profile.WorkflowConfig.Collection); ok {
+				s.logger.DebugContext(ctx, "collection time updated for invoice",
+					"invoiceID", invoice.ID,
+					"collectionAt", map[string]interface{}{
+						"from":               lo.FromPtr(collectionAt),
+						"to":                 lo.FromPtr(invoice.CollectionAt),
+						"collectionInterval": billingProfile.Profile.WorkflowConfig.Collection.Interval.String(),
+					},
+				)
 			}
 
 			if err := invoice.Validate(); err != nil {

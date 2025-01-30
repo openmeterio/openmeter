@@ -124,6 +124,8 @@ type BillingInvoice struct {
 	PeriodStart *time.Time `json:"period_start,omitempty"`
 	// PeriodEnd holds the value of the "period_end" field.
 	PeriodEnd *time.Time `json:"period_end,omitempty"`
+	// CollectionAt holds the value of the "collection_at" field.
+	CollectionAt time.Time `json:"collection_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceQuery when eager-loading is set.
 	Edges        BillingInvoiceEdges `json:"edges"`
@@ -259,7 +261,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID:
 			values[i] = new(sql.NullString)
-		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
+		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -605,6 +607,12 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 				bi.PeriodEnd = new(time.Time)
 				*bi.PeriodEnd = value.Time
 			}
+		case billinginvoice.FieldCollectionAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field collection_at", values[i])
+			} else if value.Valid {
+				bi.CollectionAt = value.Time
+			}
 		default:
 			bi.selectValues.Set(columns[i], values[i])
 		}
@@ -882,6 +890,9 @@ func (bi *BillingInvoice) String() string {
 		builder.WriteString("period_end=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("collection_at=")
+	builder.WriteString(bi.CollectionAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

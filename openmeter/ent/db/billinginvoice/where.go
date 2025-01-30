@@ -297,6 +297,11 @@ func PeriodEnd(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldPeriodEnd, v))
 }
 
+// CollectionAt applies equality check predicate on the "collection_at" field. It's identical to CollectionAtEQ.
+func CollectionAt(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldCollectionAt, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldNamespace, v))
@@ -3197,6 +3202,56 @@ func PeriodEndIsNil() predicate.BillingInvoice {
 // PeriodEndNotNil applies the NotNil predicate on the "period_end" field.
 func PeriodEndNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldPeriodEnd))
+}
+
+// CollectionAtEQ applies the EQ predicate on the "collection_at" field.
+func CollectionAtEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldCollectionAt, v))
+}
+
+// CollectionAtNEQ applies the NEQ predicate on the "collection_at" field.
+func CollectionAtNEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldCollectionAt, v))
+}
+
+// CollectionAtIn applies the In predicate on the "collection_at" field.
+func CollectionAtIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldCollectionAt, vs...))
+}
+
+// CollectionAtNotIn applies the NotIn predicate on the "collection_at" field.
+func CollectionAtNotIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldCollectionAt, vs...))
+}
+
+// CollectionAtGT applies the GT predicate on the "collection_at" field.
+func CollectionAtGT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldCollectionAt, v))
+}
+
+// CollectionAtGTE applies the GTE predicate on the "collection_at" field.
+func CollectionAtGTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldCollectionAt, v))
+}
+
+// CollectionAtLT applies the LT predicate on the "collection_at" field.
+func CollectionAtLT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldCollectionAt, v))
+}
+
+// CollectionAtLTE applies the LTE predicate on the "collection_at" field.
+func CollectionAtLTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldCollectionAt, v))
+}
+
+// CollectionAtIsNil applies the IsNil predicate on the "collection_at" field.
+func CollectionAtIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldCollectionAt))
+}
+
+// CollectionAtNotNil applies the NotNil predicate on the "collection_at" field.
+func CollectionAtNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldCollectionAt))
 }
 
 // HasSourceBillingProfile applies the HasEdge predicate on the "source_billing_profile" edge.

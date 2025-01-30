@@ -114,6 +114,8 @@ const (
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
 	FieldPeriodEnd = "period_end"
+	// FieldCollectionAt holds the string denoting the collection_at field in the database.
+	FieldCollectionAt = "collection_at"
 	// EdgeSourceBillingProfile holds the string denoting the source_billing_profile edge name in mutations.
 	EdgeSourceBillingProfile = "source_billing_profile"
 	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
@@ -251,6 +253,7 @@ var Columns = []string{
 	FieldPaymentAppExternalID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
+	FieldCollectionAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -286,6 +289,8 @@ var (
 	SourceBillingProfileIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultCollectionAt holds the default value on creation for the "collection_at" field.
+	DefaultCollectionAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -551,6 +556,11 @@ func ByPeriodStart(opts ...sql.OrderTermOption) OrderOption {
 // ByPeriodEnd orders the results by the period_end field.
 func ByPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodEnd, opts...).ToFunc()
+}
+
+// ByCollectionAt orders the results by the collection_at field.
+func ByCollectionAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCollectionAt, opts...).ToFunc()
 }
 
 // BySourceBillingProfileField orders the results by source_billing_profile field.

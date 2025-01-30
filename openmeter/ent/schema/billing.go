@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -718,6 +719,11 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Time("period_end").
 			Optional().
 			Nillable(),
+		// The timestamp set in the collection_at field defines when new draft invoice is need to be created
+		// from line-items available on the gathering invoice. It is defaulted to time.Now() on creation.
+		field.Time("collection_at").
+			Optional().
+			Default(clock.Now),
 	}
 }
 

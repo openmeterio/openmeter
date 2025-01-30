@@ -18,6 +18,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -306,6 +307,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			ExpandedFields: billing.InvoiceExpandAll,
 		}
+
+		_ = billingservice.UpdateInvoiceCollectionAt(&expectedInvoice, billingProfile.WorkflowConfig.Collection)
 
 		require.Equal(s.T(),
 			expectedInvoice.RemoveMetaForCompare(),

@@ -45,7 +45,14 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]*billing.Line, error) {
 		out := make([]*billing.Line, 0, len(input.Lines))
-		newInvoiceIDs := []string{}
+
+		type UpsertedInvoiceWithProfile struct {
+			InvoiceID       billing.InvoiceID
+			CustomerProfile *billing.ProfileWithCustomerDetails
+			IsInvoiceNew    bool
+		}
+
+		upsertedInvoices := make(map[billing.InvoiceID]UpsertedInvoiceWithProfile)
 
 		for customerID, lineByCustomer := range createByCustomerID {
 			if err := s.validateCustomerForUpdate(ctx, customerentity.CustomerID{
@@ -81,8 +88,25 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 							return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
 						}
 
-						if updateResult.IsInvoiceNew {
-							newInvoiceIDs = append(newInvoiceIDs, updateResult.Invoice.ID)
+						if updateResult.Invoice == nil {
+							return nil, fmt.Errorf("invoice not found for line[%d]", i)
+						}
+
+						invoiceID := billing.InvoiceID{
+							Namespace: input.Namespace,
+							ID:        updateResult.Invoice.ID,
+						}
+
+						// NOTE: invoices collected once at first encounter in order to make sure that the information
+						// (captured by IsInvoiceNew attribute) about newly created gathering invoices is kept.
+						// Subsequent updates would shadow this parameter which would prevent the system to send system events
+						// about newly created invoices.
+						if _, ok := upsertedInvoices[invoiceID]; !ok {
+							upsertedInvoices[invoiceID] = UpsertedInvoiceWithProfile{
+								InvoiceID:       invoiceID,
+								CustomerProfile: customerProfile,
+								IsInvoiceNew:    updateResult.IsInvoiceNew,
+							}
 						}
 
 						lineService, err := s.lineService.FromEntity(&updateResult.Line)
@@ -120,20 +144,37 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			out = append(out, createdLines...)
 		}
 
-		for _, invoiceID := range newInvoiceIDs {
+		for _, upsertedInvoice := range upsertedInvoices {
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					Namespace: input.Namespace,
-					ID:        invoiceID,
-				},
-				Expand: billing.InvoiceExpandAll,
+				Invoice: upsertedInvoice.InvoiceID,
+				Expand:  billing.InvoiceExpandAll,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("fetching invoice[%s]: %w", invoiceID, err)
+				return nil, fmt.Errorf("fetching invoice[%s]: %w", upsertedInvoice.InvoiceID.ID, err)
 			}
 
-			if err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice)); err != nil {
-				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", invoiceID, err)
+			// Update invoice if collectionAt field has changed
+			collectionConfig := upsertedInvoice.CustomerProfile.Profile.WorkflowConfig.Collection
+			collectionAt := invoice.CollectionAt
+			if ok := UpdateInvoiceCollectionAt(&invoice, collectionConfig); ok {
+				s.logger.DebugContext(ctx, "collection time updated for invoice",
+					"invoiceID", invoice.ID,
+					"collectionAt", map[string]interface{}{
+						"from":               lo.FromPtr(collectionAt),
+						"to":                 lo.FromPtr(invoice.CollectionAt),
+						"collectionInterval": collectionConfig.Interval.String(),
+					},
+				)
+				if _, err = s.adapter.UpdateInvoice(ctx, invoice); err != nil {
+					return nil, fmt.Errorf("failed to update invoice[%s]: %w", upsertedInvoice.InvoiceID.ID, err)
+				}
+			}
+
+			// Publish system event for newly created invoices
+			if upsertedInvoice.IsInvoiceNew {
+				if err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice)); err != nil {
+					return nil, fmt.Errorf("publishing invoice[%s] created event: %w", upsertedInvoice.InvoiceID.ID, err)
+				}
 			}
 		}
 

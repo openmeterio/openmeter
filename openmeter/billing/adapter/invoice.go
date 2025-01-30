@@ -209,6 +209,13 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.DraftUntilLTE(*input.DraftUntil))
 		}
 
+		if input.CollectionAt != nil {
+			query = query.Where(billinginvoice.Or(
+				billinginvoice.CollectionAtLTE(*input.CollectionAt),
+				billinginvoice.CollectionAtIsNil(),
+			))
+		}
+
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !input.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(input.Order)
@@ -323,6 +330,11 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableSupplierAddressPhoneNumber(supplier.Address.PhoneNumber).
 			SetSupplierName(supplier.Name).
 			SetNillableSupplierTaxCode(supplier.TaxCode)
+
+		// Set collection_at only for new gathering invoices
+		if input.Status == billing.InvoiceStatusGathering {
+			createMut = createMut.SetCollectionAt(clock.Now())
+		}
 
 		if customer.BillingAddress != nil {
 			createMut = createMut.
@@ -454,6 +466,11 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetTaxesExclusiveTotal(in.Totals.TaxesExclusiveTotal).
 			SetTaxesInclusiveTotal(in.Totals.TaxesInclusiveTotal).
 			SetTotal(in.Totals.Total)
+
+		if in.CollectionAt != nil && !in.CollectionAt.IsZero() {
+			updateQuery = updateQuery.
+				SetCollectionAt(*in.CollectionAt)
+		}
 
 		if in.Period != nil {
 			updateQuery = updateQuery.
@@ -679,6 +696,8 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			CreatedAt: invoice.CreatedAt.In(time.UTC),
 			UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 			DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+
+			CollectionAt: lo.ToPtr(invoice.CollectionAt.In(time.UTC)),
 
 			ExternalIDs: billing.InvoiceExternalIDs{
 				Invoicing: lo.FromPtrOr(invoice.InvoicingAppExternalID, ""),
