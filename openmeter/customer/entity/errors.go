@@ -44,6 +44,16 @@ func (e UpdateAfterDeleteError) Unwrap() error {
 	return e.Err
 }
 
+// KeyConflictError represents an error when a subject key is already associated with a customer
+type KeyConflictError struct {
+	Namespace string `json:"namespace"`
+	Key       string `json:"key"`
+}
+
+func (e KeyConflictError) Error() string {
+	return fmt.Sprintf("key \"%s\" is already used by an another customer in the namespace %s", e.Key, e.Namespace)
+}
+
 // SubjectKeyConflictError represents an error when a subject key is already associated with a customer
 type SubjectKeyConflictError struct {
 	Namespace   string   `json:"namespace"`

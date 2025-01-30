@@ -42,10 +42,14 @@ const (
 	FieldBillingAddressLine2 = "billing_address_line2"
 	// FieldBillingAddressPhoneNumber holds the string denoting the billing_address_phone_number field in the database.
 	FieldBillingAddressPhoneNumber = "billing_address_phone_number"
+	// FieldKey holds the string denoting the key field in the database.
+	FieldKey = "key"
 	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
 	FieldPrimaryEmail = "primary_email"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldIsDeleted holds the string denoting the is_deleted field in the database.
+	FieldIsDeleted = "is_deleted"
 	// EdgeApps holds the string denoting the apps edge name in mutations.
 	EdgeApps = "apps"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
@@ -112,8 +116,10 @@ var Columns = []string{
 	FieldBillingAddressLine1,
 	FieldBillingAddressLine2,
 	FieldBillingAddressPhoneNumber,
+	FieldKey,
 	FieldPrimaryEmail,
 	FieldCurrency,
+	FieldIsDeleted,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -139,6 +145,8 @@ var (
 	BillingAddressCountryValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// DefaultIsDeleted holds the default value on creation for the "is_deleted" field.
+	DefaultIsDeleted bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -216,6 +224,11 @@ func ByBillingAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressPhoneNumber, opts...).ToFunc()
 }
 
+// ByKey orders the results by the key field.
+func ByKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldKey, opts...).ToFunc()
+}
+
 // ByPrimaryEmail orders the results by the primary_email field.
 func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrimaryEmail, opts...).ToFunc()
@@ -224,6 +237,11 @@ func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByIsDeleted orders the results by the is_deleted field.
+func ByIsDeleted(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsDeleted, opts...).ToFunc()
 }
 
 // ByAppsCount orders the results by apps count.

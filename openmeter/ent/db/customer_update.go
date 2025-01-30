@@ -247,6 +247,26 @@ func (cu *CustomerUpdate) ClearBillingAddressPhoneNumber() *CustomerUpdate {
 	return cu
 }
 
+// SetKey sets the "key" field.
+func (cu *CustomerUpdate) SetKey(s string) *CustomerUpdate {
+	cu.mutation.SetKey(s)
+	return cu
+}
+
+// SetNillableKey sets the "key" field if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableKey(s *string) *CustomerUpdate {
+	if s != nil {
+		cu.SetKey(*s)
+	}
+	return cu
+}
+
+// ClearKey clears the value of the "key" field.
+func (cu *CustomerUpdate) ClearKey() *CustomerUpdate {
+	cu.mutation.ClearKey()
+	return cu
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (cu *CustomerUpdate) SetPrimaryEmail(s string) *CustomerUpdate {
 	cu.mutation.SetPrimaryEmail(s)
@@ -284,6 +304,20 @@ func (cu *CustomerUpdate) SetNillableCurrency(c *currencyx.Code) *CustomerUpdate
 // ClearCurrency clears the value of the "currency" field.
 func (cu *CustomerUpdate) ClearCurrency() *CustomerUpdate {
 	cu.mutation.ClearCurrency()
+	return cu
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (cu *CustomerUpdate) SetIsDeleted(b bool) *CustomerUpdate {
+	cu.mutation.SetIsDeleted(b)
+	return cu
+}
+
+// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
+func (cu *CustomerUpdate) SetNillableIsDeleted(b *bool) *CustomerUpdate {
+	if b != nil {
+		cu.SetIsDeleted(*b)
+	}
 	return cu
 }
 
@@ -590,6 +624,12 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if cu.mutation.BillingAddressPhoneNumberCleared() {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
 	}
+	if value, ok := cu.mutation.Key(); ok {
+		_spec.SetField(customer.FieldKey, field.TypeString, value)
+	}
+	if cu.mutation.KeyCleared() {
+		_spec.ClearField(customer.FieldKey, field.TypeString)
+	}
 	if value, ok := cu.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 	}
@@ -601,6 +641,9 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
+	}
+	if value, ok := cu.mutation.IsDeleted(); ok {
+		_spec.SetField(customer.FieldIsDeleted, field.TypeBool, value)
 	}
 	if cu.mutation.AppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1043,6 +1086,26 @@ func (cuo *CustomerUpdateOne) ClearBillingAddressPhoneNumber() *CustomerUpdateOn
 	return cuo
 }
 
+// SetKey sets the "key" field.
+func (cuo *CustomerUpdateOne) SetKey(s string) *CustomerUpdateOne {
+	cuo.mutation.SetKey(s)
+	return cuo
+}
+
+// SetNillableKey sets the "key" field if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableKey(s *string) *CustomerUpdateOne {
+	if s != nil {
+		cuo.SetKey(*s)
+	}
+	return cuo
+}
+
+// ClearKey clears the value of the "key" field.
+func (cuo *CustomerUpdateOne) ClearKey() *CustomerUpdateOne {
+	cuo.mutation.ClearKey()
+	return cuo
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (cuo *CustomerUpdateOne) SetPrimaryEmail(s string) *CustomerUpdateOne {
 	cuo.mutation.SetPrimaryEmail(s)
@@ -1080,6 +1143,20 @@ func (cuo *CustomerUpdateOne) SetNillableCurrency(c *currencyx.Code) *CustomerUp
 // ClearCurrency clears the value of the "currency" field.
 func (cuo *CustomerUpdateOne) ClearCurrency() *CustomerUpdateOne {
 	cuo.mutation.ClearCurrency()
+	return cuo
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (cuo *CustomerUpdateOne) SetIsDeleted(b bool) *CustomerUpdateOne {
+	cuo.mutation.SetIsDeleted(b)
+	return cuo
+}
+
+// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
+func (cuo *CustomerUpdateOne) SetNillableIsDeleted(b *bool) *CustomerUpdateOne {
+	if b != nil {
+		cuo.SetIsDeleted(*b)
+	}
 	return cuo
 }
 
@@ -1416,6 +1493,12 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	if cuo.mutation.BillingAddressPhoneNumberCleared() {
 		_spec.ClearField(customer.FieldBillingAddressPhoneNumber, field.TypeString)
 	}
+	if value, ok := cuo.mutation.Key(); ok {
+		_spec.SetField(customer.FieldKey, field.TypeString, value)
+	}
+	if cuo.mutation.KeyCleared() {
+		_spec.ClearField(customer.FieldKey, field.TypeString)
+	}
 	if value, ok := cuo.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 	}
@@ -1427,6 +1510,9 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
+	}
+	if value, ok := cuo.mutation.IsDeleted(); ok {
+		_spec.SetField(customer.FieldIsDeleted, field.TypeBool, value)
 	}
 	if cuo.mutation.AppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

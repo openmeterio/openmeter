@@ -1910,6 +1910,7 @@ paths:
         - $ref: '#/components/parameters/CustomerOrderByOrdering.order'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.orderBy'
         - $ref: '#/components/parameters/queryCustomerList.includeDeleted'
+        - $ref: '#/components/parameters/queryCustomerList.key'
         - $ref: '#/components/parameters/queryCustomerList.name'
         - $ref: '#/components/parameters/queryCustomerList.primaryEmail'
         - $ref: '#/components/parameters/queryCustomerList.subject'
@@ -7452,6 +7453,16 @@ components:
         type: boolean
         default: false
       explode: false
+    queryCustomerList.key:
+      name: key
+      in: query
+      required: false
+      description: |-
+        Filter customers by key.
+        Case-sensitive exact match.
+      schema:
+        type: string
+      explode: false
     queryCustomerList.name:
       name: name
       in: query
@@ -8631,9 +8642,10 @@ components:
         customer:
           anyOf:
             - $ref: '#/components/schemas/CustomerId'
+            - $ref: '#/components/schemas/CustomerKey'
             - $ref: '#/components/schemas/CustomerCreate'
           description: |-
-            Provide a customer ID to use an existing OpenMeter customer.
+            Provide a customer ID or key to use an existing OpenMeter customer.
             or provide a customer object to create a new customer.
         stripeCustomerId:
           type: string
@@ -8980,6 +8992,13 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
+        key:
+          type: string
+          description: |-
+            The optional key of the customer.
+            Useful to reference the customer in external systems.
+            For example, your database ID.
+          title: Key
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
@@ -9082,6 +9101,13 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
+        key:
+          type: string
+          description: |-
+            The optional key of the customer.
+            Useful to reference the customer in external systems.
+            For example, your database ID.
+          title: Key
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'
@@ -9116,7 +9142,15 @@ components:
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
-      description: Create Stripe checkout session customer ID.
+      description: Create Stripe checkout session with customer ID.
+    CustomerKey:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+      description: Create Stripe checkout session with customer key.
     CustomerOrderBy:
       type: string
       enum:
@@ -9174,6 +9208,13 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
+        key:
+          type: string
+          description: |-
+            The optional key of the customer.
+            Useful to reference the customer in external systems.
+            For example, your database ID.
+          title: Key
         usageAttribution:
           allOf:
             - $ref: '#/components/schemas/CustomerUsageAttribution'

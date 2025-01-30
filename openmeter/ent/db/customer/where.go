@@ -133,6 +133,11 @@ func BillingAddressPhoneNumber(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldBillingAddressPhoneNumber, v))
 }
 
+// Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
+func Key(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldKey, v))
+}
+
 // PrimaryEmail applies equality check predicate on the "primary_email" field. It's identical to PrimaryEmailEQ.
 func PrimaryEmail(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
@@ -142,6 +147,11 @@ func PrimaryEmail(v string) predicate.Customer {
 func Currency(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// IsDeleted applies equality check predicate on the "is_deleted" field. It's identical to IsDeletedEQ.
+func IsDeleted(v bool) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldIsDeleted, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -1033,6 +1043,81 @@ func BillingAddressPhoneNumberContainsFold(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldBillingAddressPhoneNumber, v))
 }
 
+// KeyEQ applies the EQ predicate on the "key" field.
+func KeyEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldKey, v))
+}
+
+// KeyNEQ applies the NEQ predicate on the "key" field.
+func KeyNEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldKey, v))
+}
+
+// KeyIn applies the In predicate on the "key" field.
+func KeyIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldIn(FieldKey, vs...))
+}
+
+// KeyNotIn applies the NotIn predicate on the "key" field.
+func KeyNotIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldNotIn(FieldKey, vs...))
+}
+
+// KeyGT applies the GT predicate on the "key" field.
+func KeyGT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGT(FieldKey, v))
+}
+
+// KeyGTE applies the GTE predicate on the "key" field.
+func KeyGTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGTE(FieldKey, v))
+}
+
+// KeyLT applies the LT predicate on the "key" field.
+func KeyLT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLT(FieldKey, v))
+}
+
+// KeyLTE applies the LTE predicate on the "key" field.
+func KeyLTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLTE(FieldKey, v))
+}
+
+// KeyContains applies the Contains predicate on the "key" field.
+func KeyContains(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContains(FieldKey, v))
+}
+
+// KeyHasPrefix applies the HasPrefix predicate on the "key" field.
+func KeyHasPrefix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasPrefix(FieldKey, v))
+}
+
+// KeyHasSuffix applies the HasSuffix predicate on the "key" field.
+func KeyHasSuffix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasSuffix(FieldKey, v))
+}
+
+// KeyIsNil applies the IsNil predicate on the "key" field.
+func KeyIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldKey))
+}
+
+// KeyNotNil applies the NotNil predicate on the "key" field.
+func KeyNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldKey))
+}
+
+// KeyEqualFold applies the EqualFold predicate on the "key" field.
+func KeyEqualFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEqualFold(FieldKey, v))
+}
+
+// KeyContainsFold applies the ContainsFold predicate on the "key" field.
+func KeyContainsFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContainsFold(FieldKey, v))
+}
+
 // PrimaryEmailEQ applies the EQ predicate on the "primary_email" field.
 func PrimaryEmailEQ(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
@@ -1200,6 +1285,16 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Customer {
 func CurrencyContainsFold(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// IsDeletedEQ applies the EQ predicate on the "is_deleted" field.
+func IsDeletedEQ(v bool) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldIsDeleted, v))
+}
+
+// IsDeletedNEQ applies the NEQ predicate on the "is_deleted" field.
+func IsDeletedNEQ(v bool) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldIsDeleted, v))
 }
 
 // HasApps applies the HasEdge predicate on the "apps" edge.

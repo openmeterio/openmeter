@@ -138,6 +138,13 @@ model ListCustomersParams {
   includeDeleted?: boolean = false;
 
   /**
+   * Filter customers by key.
+   * Case-sensitive exact match.
+   */
+  @query
+  key?: string;
+
+  /**
    * Filter customers by name.
    * Case-insensitive partial match.
    */
@@ -207,6 +214,14 @@ enum CustomerOrderBy {
 })
 model Customer {
   ...Resource;
+
+  /**
+   * The optional key of the customer.
+   * Useful to reference the customer in external systems.
+   * For example, your database ID.
+   */
+  @summary("Key")
+  key?: string;
 
   /**
    * Mapping to attribute metered usage to the customer

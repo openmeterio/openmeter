@@ -63,6 +63,10 @@ func CustomerFromDBEntity(e db.Customer) (*customerentity.Customer, error) {
 		CurrentSubscriptionID: currentSubID,
 	}
 
+	if e.Key != "" {
+		result.Key = &e.Key
+	}
+
 	if e.BillingAddressCity != nil || e.BillingAddressCountry != nil || e.BillingAddressLine1 != nil || e.BillingAddressLine2 != nil || e.BillingAddressPhoneNumber != nil || e.BillingAddressPostalCode != nil || e.BillingAddressState != nil {
 		result.BillingAddress = &models.Address{
 			City:        e.BillingAddressCity,

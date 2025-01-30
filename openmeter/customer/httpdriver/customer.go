@@ -49,6 +49,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 
 				// Filters
+				Key:          params.Key,
 				Name:         params.Name,
 				PrimaryEmail: params.PrimaryEmail,
 				Subject:      params.Subject,
@@ -118,6 +119,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 			req := CreateCustomerRequest{
 				Namespace: ns,
 				CustomerMutate: customerentity.CustomerMutate{
+					Key:              body.Key,
 					Name:             body.Name,
 					Description:      body.Description,
 					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
@@ -176,6 +178,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 					ID:        customerID,
 				},
 				CustomerMutate: customerentity.CustomerMutate{
+					Key:              body.Key,
 					Name:             body.Name,
 					Description:      body.Description,
 					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),

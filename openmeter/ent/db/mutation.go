@@ -20697,8 +20697,10 @@ type CustomerMutation struct {
 	billing_address_line1            *string
 	billing_address_line2            *string
 	billing_address_phone_number     *string
+	key                              *string
 	primary_email                    *string
 	currency                         *currencyx.Code
+	is_deleted                       *bool
 	clearedFields                    map[string]struct{}
 	apps                             map[int]struct{}
 	removedapps                      map[int]struct{}
@@ -21457,6 +21459,55 @@ func (m *CustomerMutation) ResetBillingAddressPhoneNumber() {
 	delete(m.clearedFields, customer.FieldBillingAddressPhoneNumber)
 }
 
+// SetKey sets the "key" field.
+func (m *CustomerMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *CustomerMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ClearKey clears the value of the "key" field.
+func (m *CustomerMutation) ClearKey() {
+	m.key = nil
+	m.clearedFields[customer.FieldKey] = struct{}{}
+}
+
+// KeyCleared returns if the "key" field was cleared in this mutation.
+func (m *CustomerMutation) KeyCleared() bool {
+	_, ok := m.clearedFields[customer.FieldKey]
+	return ok
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *CustomerMutation) ResetKey() {
+	m.key = nil
+	delete(m.clearedFields, customer.FieldKey)
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (m *CustomerMutation) SetPrimaryEmail(s string) {
 	m.primary_email = &s
@@ -21553,6 +21604,42 @@ func (m *CustomerMutation) CurrencyCleared() bool {
 func (m *CustomerMutation) ResetCurrency() {
 	m.currency = nil
 	delete(m.clearedFields, customer.FieldCurrency)
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (m *CustomerMutation) SetIsDeleted(b bool) {
+	m.is_deleted = &b
+}
+
+// IsDeleted returns the value of the "is_deleted" field in the mutation.
+func (m *CustomerMutation) IsDeleted() (r bool, exists bool) {
+	v := m.is_deleted
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsDeleted returns the old "is_deleted" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldIsDeleted(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsDeleted is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsDeleted requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsDeleted: %w", err)
+	}
+	return oldValue.IsDeleted, nil
+}
+
+// ResetIsDeleted resets all changes to the "is_deleted" field.
+func (m *CustomerMutation) ResetIsDeleted() {
+	m.is_deleted = nil
 }
 
 // AddAppIDs adds the "apps" edge to the AppCustomer entity by ids.
@@ -21844,7 +21931,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, customer.FieldNamespace)
 	}
@@ -21887,11 +21974,17 @@ func (m *CustomerMutation) Fields() []string {
 	if m.billing_address_phone_number != nil {
 		fields = append(fields, customer.FieldBillingAddressPhoneNumber)
 	}
+	if m.key != nil {
+		fields = append(fields, customer.FieldKey)
+	}
 	if m.primary_email != nil {
 		fields = append(fields, customer.FieldPrimaryEmail)
 	}
 	if m.currency != nil {
 		fields = append(fields, customer.FieldCurrency)
+	}
+	if m.is_deleted != nil {
+		fields = append(fields, customer.FieldIsDeleted)
 	}
 	return fields
 }
@@ -21929,10 +22022,14 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingAddressLine2()
 	case customer.FieldBillingAddressPhoneNumber:
 		return m.BillingAddressPhoneNumber()
+	case customer.FieldKey:
+		return m.Key()
 	case customer.FieldPrimaryEmail:
 		return m.PrimaryEmail()
 	case customer.FieldCurrency:
 		return m.Currency()
+	case customer.FieldIsDeleted:
+		return m.IsDeleted()
 	}
 	return nil, false
 }
@@ -21970,10 +22067,14 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldBillingAddressLine2(ctx)
 	case customer.FieldBillingAddressPhoneNumber:
 		return m.OldBillingAddressPhoneNumber(ctx)
+	case customer.FieldKey:
+		return m.OldKey(ctx)
 	case customer.FieldPrimaryEmail:
 		return m.OldPrimaryEmail(ctx)
 	case customer.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case customer.FieldIsDeleted:
+		return m.OldIsDeleted(ctx)
 	}
 	return nil, fmt.Errorf("unknown Customer field %s", name)
 }
@@ -22081,6 +22182,13 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetBillingAddressPhoneNumber(v)
 		return nil
+	case customer.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
 	case customer.FieldPrimaryEmail:
 		v, ok := value.(string)
 		if !ok {
@@ -22094,6 +22202,13 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case customer.FieldIsDeleted:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsDeleted(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Customer field %s", name)
@@ -22155,6 +22270,9 @@ func (m *CustomerMutation) ClearedFields() []string {
 	if m.FieldCleared(customer.FieldBillingAddressPhoneNumber) {
 		fields = append(fields, customer.FieldBillingAddressPhoneNumber)
 	}
+	if m.FieldCleared(customer.FieldKey) {
+		fields = append(fields, customer.FieldKey)
+	}
 	if m.FieldCleared(customer.FieldPrimaryEmail) {
 		fields = append(fields, customer.FieldPrimaryEmail)
 	}
@@ -22204,6 +22322,9 @@ func (m *CustomerMutation) ClearField(name string) error {
 		return nil
 	case customer.FieldBillingAddressPhoneNumber:
 		m.ClearBillingAddressPhoneNumber()
+		return nil
+	case customer.FieldKey:
+		m.ClearKey()
 		return nil
 	case customer.FieldPrimaryEmail:
 		m.ClearPrimaryEmail()
@@ -22261,11 +22382,17 @@ func (m *CustomerMutation) ResetField(name string) error {
 	case customer.FieldBillingAddressPhoneNumber:
 		m.ResetBillingAddressPhoneNumber()
 		return nil
+	case customer.FieldKey:
+		m.ResetKey()
+		return nil
 	case customer.FieldPrimaryEmail:
 		m.ResetPrimaryEmail()
 		return nil
 	case customer.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case customer.FieldIsDeleted:
+		m.ResetIsDeleted()
 		return nil
 	}
 	return fmt.Errorf("unknown Customer field %s", name)

@@ -15,6 +15,7 @@ import (
 type Customer struct {
 	models.ManagedResource
 
+	Key              *string                  `json:"key,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
 	PrimaryEmail     *string                  `json:"primaryEmail,omitempty"`
 	Currency         *currencyx.Code          `json:"currency,omitempty"`
@@ -27,6 +28,12 @@ func (c Customer) Validate() error {
 	if err := c.ManagedResource.Validate(); err != nil {
 		return ValidationError{
 			Err: err,
+		}
+	}
+
+	if c.Key != nil && *c.Key == "" {
+		return ValidationError{
+			Err: errors.New("key cannot be empty"),
 		}
 	}
 
@@ -45,6 +52,7 @@ func (c Customer) GetID() CustomerID {
 }
 
 type CustomerMutate struct {
+	Key              *string                  `json:"key,omitempty"`
 	Name             string                   `json:"name"`
 	Description      *string                  `json:"description,omitempty"`
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
@@ -54,6 +62,12 @@ type CustomerMutate struct {
 }
 
 func (c CustomerMutate) Validate() error {
+	if c.Key != nil && *c.Key == "" {
+		return ValidationError{
+			Err: errors.New("key cannot be empty"),
+		}
+	}
+
 	if c.Name == "" {
 		return ValidationError{
 			Err: errors.New("name is required"),
@@ -114,6 +128,7 @@ type ListCustomersInput struct {
 	Order   sortx.Order
 
 	// Filters
+	Key          *string
 	Name         *string
 	PrimaryEmail *string
 	Subject      *string
