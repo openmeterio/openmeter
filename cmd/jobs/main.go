@@ -1,58 +1,58 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/cmd/jobs/billing"
-	"github.com/openmeterio/openmeter/cmd/jobs/config"
 	"github.com/openmeterio/openmeter/cmd/jobs/entitlement"
-	"github.com/openmeterio/openmeter/cmd/jobs/service"
+	"github.com/openmeterio/openmeter/cmd/jobs/internal"
 )
 
-const (
-	otelName = "openmeter.io/jobs"
-)
+var configFileName string
+
+var rootCmd = cobra.Command{
+	Use:           "jobs",
+	SilenceUsage:  true,
+	SilenceErrors: true,
+}
 
 func main() {
-	var telemetry *service.Telemetry
+	// Create os.Signal aware context.Context which will trigger context cancellation
+	// upon receiving any of the listed signals.
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
+	defer cancel()
 
-	defer func() {
-		if telemetry != nil && telemetry.Shutdown != nil {
-			telemetry.Shutdown()
+	err := internal.InitializeApplication(ctx, configFileName)
+	if err != nil {
+		slog.Error("failed to initialize application", "error", err)
+
+		// Call cleanup function is may not set yet
+		if internal.AppShutdown != nil {
+			internal.AppShutdown()
 		}
-	}()
 
-	rootCmd := cobra.Command{
-		Use: "jobs",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			conf, err := config.LoadConfig(cmd.Flag("config").Value.String())
-			if err != nil {
-				return err
-			}
-
-			config.SetConfig(conf)
-
-			telemetry, err = service.NewTelemetry(cmd.Context(), conf.Telemetry, conf.Environment, version, otelName)
-			return err
-		},
-		SilenceErrors: true,
+		os.Exit(1)
 	}
+	defer internal.AppShutdown()
 
-	var configFileName string
+	if err = rootCmd.ExecuteContext(ctx); err != nil {
+		slog.Error("failed to execute command", "error", err)
+		os.Exit(1)
+	}
+}
 
+func init() {
 	rootCmd.PersistentFlags().StringVarP(&configFileName, "config", "", "config.yaml", "config file (default is config.yaml)")
 	_ = viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 
 	rootCmd.AddCommand(versionCommand())
 	rootCmd.AddCommand(entitlement.RootCommand())
 	rootCmd.AddCommand(billing.Cmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		slog.Error("failed to execute command", "error", err)
-		os.Exit(1)
-	}
 }
