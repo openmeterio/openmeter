@@ -8645,6 +8645,23 @@ components:
           allOf:
             - $ref: '#/components/schemas/CreateStripeCheckoutSessionRequestOptions'
           description: Options passed to Stripe when creating the checkout session.
+      example:
+        customer:
+          name: ACME, Inc.
+          currency: USD
+          usageAttribution:
+            subjectKeys:
+              - my-identifier
+        options:
+          currency: USD
+          successURL: http://example.com
+          billingAddressCollection: required
+          taxIdCollection:
+            enabled: true
+            required: if_supported
+          customerUpdate:
+            name: auto
+            address: auto
       description: Create Stripe checkout session request.
     CreateStripeCheckoutSessionRequestOptions:
       type: object

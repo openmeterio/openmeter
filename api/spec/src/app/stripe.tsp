@@ -81,6 +81,67 @@ model CustomerId {
 /**
  * Create Stripe checkout session request.
  */
+@example(
+  #{
+    customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
+    options: #{ currency: "USD", successURL: "http://example.com" },
+  },
+  #{
+    title: "With existing OpenMeter customer",
+    description: "Create a checkout session with existing customer.",
+  }
+)
+@example(
+  #{
+    customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
+    stripeCustomerId: "cus_123456789",
+    options: #{ currency: "USD", successURL: "http://example.com" },
+  },
+  #{
+    title: "With existing OpenMeter and Stripe customer",
+    description: "Create a checkout session with existing openmeter and customer.",
+  }
+)
+@example(
+  #{
+    customer: #{
+      name: "ACME, Inc.",
+      currency: "USD",
+      usageAttribution: #{ subjectKeys: #["my-identifier"] },
+    },
+    options: #{ currency: "USD", successURL: "http://example.com" },
+  },
+  #{
+    title: "With customer creation",
+    description: "Create a checkout session with customer creation.",
+  }
+)
+@example(
+  #{
+    customer: #{
+      name: "ACME, Inc.",
+      currency: "USD",
+      usageAttribution: #{ subjectKeys: #["my-identifier"] },
+    },
+    options: #{
+      currency: "USD",
+      successURL: "http://example.com",
+      billingAddressCollection: CreateStripeCheckoutSessionBillingAddressCollection.Required,
+      taxIdCollection: #{
+        enabled: true,
+        required: CreateCheckoutSessionTaxIdCollectionRequired.IfSupported,
+      },
+      customerUpdate: #{
+        name: CreateStripeCheckoutSessionCustomerUpdateBehavior.Auto,
+        address: CreateStripeCheckoutSessionCustomerUpdateBehavior.Auto,
+      },
+    },
+  },
+  #{
+    title: "With collecting address and tax ID",
+    description: "Create a checkout session with collecting address and tax ID.",
+  }
+)
 @friendlyName("CreateStripeCheckoutSessionRequest")
 model CreateStripeCheckoutSessionRequest {
   /**
