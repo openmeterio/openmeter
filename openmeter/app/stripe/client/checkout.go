@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
+	"github.com/stripe/stripe-go/v80"
+
 	"github.com/openmeterio/openmeter/api"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
-	"github.com/samber/lo"
-	"github.com/stripe/stripe-go/v80"
 )
 
 // CreateCheckoutSession creates a checkout session
