@@ -27,7 +27,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@6221693898146dc97e38ad0e013488a16477a4c4 # v9
+        uses: DeterminateSystems/flakehub-cache-action@6221693898146dc97e38ad0e013488a16477a4c4 # v9
 
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
@@ -156,7 +156,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@6221693898146dc97e38ad0e013488a16477a4c4 # v9
+        uses: DeterminateSystems/flakehub-cache-action@6221693898146dc97e38ad0e013488a16477a4c4 # v9
 
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
@@ -182,7 +182,7 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@6221693898146dc97e38ad0e013488a16477a4c4 # v9
+        uses: DeterminateSystems/flakehub-cache-action@6221693898146dc97e38ad0e013488a16477a4c4 # v9
 
       - name: Check
         run: nix flake check --impure
