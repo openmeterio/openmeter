@@ -11,6 +11,7 @@ import (
 
 func MapCustomerCreate(body api.CustomerCreate) customerentity.CustomerMutate {
 	return customerentity.CustomerMutate{
+		Key:              body.Key,
 		Name:             body.Name,
 		Description:      body.Description,
 		UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
@@ -53,6 +54,7 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 func customerToAPI(c customerentity.Customer) (api.Customer, error) {
 	apiCustomer := api.Customer{
 		Id:                    c.ManagedResource.ID,
+		Key:                   c.Key,
 		Name:                  c.Name,
 		UsageAttribution:      api.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys},
 		PrimaryEmail:          c.PrimaryEmail,

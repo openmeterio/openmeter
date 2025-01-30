@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	TestKey                = "test-customer"
 	TestName               = "Test Customer"
 	TestPrimaryEmail       = "test@openmeter.io"
 	TestCurrency           = currencyx.Code("USD")
@@ -69,6 +70,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	createdCustomer, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
+			Key:            lo.ToPtr(TestKey),
 			Name:           TestName,
 			PrimaryEmail:   &TestPrimaryEmail,
 			Currency:       &TestCurrency,
@@ -84,6 +86,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	require.NotNil(t, createdCustomer, "Customer must not be nil")
 	require.Equal(t, s.namespace, createdCustomer.Namespace, "Customer namespace must match")
 	require.NotNil(t, createdCustomer.ID, "Customer ID must not be nil")
+	require.Equal(t, &TestKey, createdCustomer.Key, "Customer key must match")
 	require.Equal(t, TestName, createdCustomer.Name, "Customer name must match")
 	require.Equal(t, &TestPrimaryEmail, createdCustomer.PrimaryEmail, "Customer primary email must match")
 	require.Equal(t, &TestCurrency, createdCustomer.Currency, "Customer currency must match")
@@ -303,6 +306,7 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	createCustomer1, err := service.CreateCustomer(ctx, customerentity.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customerentity.CustomerMutate{
+			Key:  lo.ToPtr("customer-1"),
 			Name: "Customer 1",
 			UsageAttribution: customerentity.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject-1"},
@@ -362,6 +366,17 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.Equal(t, createCustomer2.ID, list.Items[1].ID, "Customer ID must match")
 	require.Equal(t, "Customer 2", list.Items[1].Name, "Customer name must match")
 	require.Equal(t, []string{"subject-2"}, list.Items[1].UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	// List customers with key filter
+	list, err = service.ListCustomers(ctx, customerentity.ListCustomersInput{
+		Namespace: s.namespace,
+		Page:      page,
+		Key:       lo.ToPtr("customer-1"),
+	})
+
+	require.NoError(t, err, "Listing customers with key filter must not return error")
+	require.Equal(t, 1, list.TotalCount, "Customers total count must be 1")
+	require.Equal(t, createCustomer1.ID, list.Items[0].ID, "Customer ID must match")
 
 	// List customers with name filter
 	list, err = service.ListCustomers(ctx, customerentity.ListCustomersInput{

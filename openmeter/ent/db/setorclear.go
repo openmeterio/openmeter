@@ -1287,6 +1287,20 @@ func (u *CustomerUpdateOne) SetOrClearBillingAddressPhoneNumber(value *string) *
 	return u.SetBillingAddressPhoneNumber(*value)
 }
 
+func (u *CustomerUpdate) SetOrClearKey(value *string) *CustomerUpdate {
+	if value == nil {
+		return u.ClearKey()
+	}
+	return u.SetKey(*value)
+}
+
+func (u *CustomerUpdateOne) SetOrClearKey(value *string) *CustomerUpdateOne {
+	if value == nil {
+		return u.ClearKey()
+	}
+	return u.SetKey(*value)
+}
+
 func (u *CustomerUpdate) SetOrClearPrimaryEmail(value *string) *CustomerUpdate {
 	if value == nil {
 		return u.ClearPrimaryEmail()

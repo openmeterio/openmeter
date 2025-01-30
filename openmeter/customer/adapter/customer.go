@@ -46,10 +46,14 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 
 			// Do not return deleted customers by default
 			if !input.IncludeDeleted {
-				query = query.Where(customerdb.DeletedAtIsNil())
+				query = query.Where(customerdb.IsDeleted(false))
 			}
 
 			// Filters
+			if input.Key != nil {
+				query = query.Where(customerdb.KeyEQ(*input.Key))
+			}
+
 			if input.Name != nil {
 				query = query.Where(customerdb.NameContainsFold(*input.Name))
 			}
@@ -137,6 +141,10 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 				SetNillablePrimaryEmail(input.PrimaryEmail).
 				SetNillableCurrency(input.Currency)
 
+			if input.Key != nil {
+				query = query.SetKey(*input.Key)
+			}
+
 			if input.BillingAddress != nil {
 				query = query.
 					SetNillableBillingAddressCity(input.BillingAddress.City).
@@ -150,6 +158,13 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 
 			customerEntity, err := query.Save(ctx)
 			if err != nil {
+				if entdb.IsConstraintError(err) {
+					return nil, customerentity.KeyConflictError{
+						Namespace: input.Namespace,
+						Key:       *lo.CoalesceOrEmpty(input.Key),
+					}
+				}
+
 				return nil, fmt.Errorf("failed to create customer: %w", err)
 			}
 
@@ -219,7 +234,8 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 			rows, err := repo.db.Customer.Update().
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace)).
-				Where(customerdb.DeletedAtIsNil()).
+				Where(customerdb.IsDeleted(false)).
+				SetIsDeleted(true).
 				SetDeletedAt(deletedAt).
 				Save(ctx)
 			if err != nil {
@@ -321,6 +337,12 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				SetNillablePrimaryEmail(input.PrimaryEmail).
 				SetNillableCurrency(input.Currency)
 
+			if input.Key != nil {
+				query = query.SetKey(*input.Key)
+			} else {
+				query = query.ClearKey()
+			}
+
 			if input.BillingAddress != nil {
 				query = query.
 					SetNillableBillingAddressCity(input.BillingAddress.City).
@@ -351,9 +373,9 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				}
 
 				if entdb.IsConstraintError(err) {
-					return nil, customerentity.SubjectKeyConflictError{
-						Namespace:   input.CustomerID.Namespace,
-						SubjectKeys: input.UsageAttribution.SubjectKeys,
+					return nil, customerentity.KeyConflictError{
+						Namespace: input.CustomerID.Namespace,
+						Key:       *lo.CoalesceOrEmpty(input.Key),
 					}
 				}
 

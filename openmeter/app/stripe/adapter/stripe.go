@@ -21,6 +21,7 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -382,6 +383,33 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			}
 		}
 
+		// Find a customer by key
+		if input.CustomerKey != nil {
+			customers, err := repo.customerService.ListCustomers(ctx, customerentity.ListCustomersInput{
+				Namespace: input.Namespace,
+				Key:       input.CustomerKey,
+				Page:      pagination.NewPage(1, 1),
+			})
+			if err != nil {
+				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to list customers: %w", err)
+			}
+
+			// Customer not found with key
+			if customers.TotalCount == 0 {
+				return appstripeentity.CreateCheckoutSessionOutput{}, app.ValidationError{
+					Err: fmt.Errorf("customer not found with key: %s", *input.CustomerKey),
+				}
+			}
+
+			// Should not happen
+			if customers.TotalCount > 1 {
+				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("multiple customers found with key: %s", *input.CustomerKey)
+			}
+
+			customer = &customers.Items[0]
+		}
+
+		// Create a customer if create input is provided
 		if input.CreateCustomerInput != nil {
 			customer, err = repo.customerService.CreateCustomer(ctx, *input.CreateCustomerInput)
 			if err != nil {

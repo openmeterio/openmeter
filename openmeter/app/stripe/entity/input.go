@@ -264,6 +264,7 @@ type CreateCheckoutSessionInput struct {
 	AppID               *appentitybase.AppID
 	CreateCustomerInput *customerentity.CreateCustomerInput
 	CustomerID          *customerentity.CustomerID
+	CustomerKey         *string
 	StripeCustomerID    *string
 	Options             api.CreateStripeCheckoutSessionRequestOptions
 }
@@ -280,13 +281,21 @@ func (i CreateCheckoutSessionInput) Validate() error {
 	}
 
 	// Least one of customer or customer id is required
-	if i.CreateCustomerInput == nil && i.CustomerID == nil {
-		return errors.New("create customer input or customer id is required")
+	if i.CreateCustomerInput == nil && i.CustomerID == nil && i.CustomerKey == nil {
+		return errors.New("create customer input or customer id or customer key is required")
 	}
 
 	// Mutually exclusive
 	if i.CreateCustomerInput != nil && i.CustomerID != nil {
 		return errors.New("create customer input and customer id cannot be provided at the same time")
+	}
+
+	if i.CreateCustomerInput != nil && i.CustomerKey != nil {
+		return errors.New("create customer input and customer key cannot be provided at the same time")
+	}
+
+	if i.CustomerID != nil && i.CustomerKey != nil {
+		return errors.New("create customer id and customer key cannot be provided at the same time")
 	}
 
 	if i.CreateCustomerInput != nil {
@@ -303,6 +312,10 @@ func (i CreateCheckoutSessionInput) Validate() error {
 
 	if i.CustomerID != nil && i.Namespace != i.CustomerID.Namespace {
 		return errors.New("app and customer must be in the same namespace")
+	}
+
+	if i.CustomerKey != nil && *i.CustomerKey == "" {
+		return errors.New("customer key cannot be empty if provided")
 	}
 
 	if i.StripeCustomerID != nil && !strings.HasPrefix(*i.StripeCustomerID, "cus_") {

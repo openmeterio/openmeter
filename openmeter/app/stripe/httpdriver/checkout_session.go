@@ -37,6 +37,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 
 			var createCustomerInput *customerentity.CreateCustomerInput
 			var customerId *customerentity.CustomerID
+			var customerKey *string
 
 			// Try to parse customer field as customer ID first
 			apiCustomerId, err := body.Customer.AsCustomerId()
@@ -45,7 +46,19 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 					Namespace: namespace,
 					ID:        apiCustomerId.Id,
 				}
-			} else {
+			}
+
+			// If no customerId found try to parse customer field as customer key
+			if customerId == nil {
+				maybeCustomerKey, err := body.Customer.AsCustomerKey()
+
+				if err == nil && maybeCustomerKey.Key != "" {
+					customerKey = &maybeCustomerKey.Key
+				}
+			}
+
+			// If no customerKey found try to parse customer field as customer input
+			if customerKey == nil {
 				// If err try to parse customer field as customer input
 				customerCreate, err := body.Customer.AsCustomerCreate()
 				if err != nil {
@@ -63,6 +76,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			req := CreateAppStripeCheckoutSessionRequest{
 				Namespace:           namespace,
 				CustomerID:          customerId,
+				CustomerKey:         customerKey,
 				CreateCustomerInput: createCustomerInput,
 				StripeCustomerID:    body.StripeCustomerId,
 				Options:             body.Options,

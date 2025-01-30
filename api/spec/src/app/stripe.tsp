@@ -71,11 +71,19 @@ model StripeWebhookResponse {
 }
 
 /**
- * Create Stripe checkout session customer ID.
+ * Create Stripe checkout session with customer ID.
  */
 @friendlyName("CustomerId")
 model CustomerId {
   id: ULID;
+}
+
+/**
+ * Create Stripe checkout session with customer key.
+ */
+@friendlyName("CustomerKey")
+model CustomerKey {
+  key: string;
 }
 
 /**
@@ -87,7 +95,17 @@ model CustomerId {
     options: #{ currency: "USD", successURL: "http://example.com" },
   },
   #{
-    title: "With existing OpenMeter customer",
+    title: "With existing OpenMeter customer by id",
+    description: "Create a checkout session with existing customer.",
+  }
+)
+@example(
+  #{
+    customer: #{ key: "my-internal-id" },
+    options: #{ currency: "USD", successURL: "http://example.com" },
+  },
+  #{
+    title: "With existing OpenMeter customer by key",
     description: "Create a checkout session with existing customer.",
   }
 )
@@ -150,10 +168,10 @@ model CreateStripeCheckoutSessionRequest {
   appId?: ULID;
 
   /**
-   * Provide a customer ID to use an existing OpenMeter customer.
+   * Provide a customer ID or key to use an existing OpenMeter customer.
    * or provide a customer object to create a new customer.
    */
-  customer: CustomerId | Rest.Resource.ResourceCreateModel<Customer>;
+  customer: CustomerId | CustomerKey | Rest.Resource.ResourceCreateModel<Customer>;
 
   /**
    * Stripe customer ID.

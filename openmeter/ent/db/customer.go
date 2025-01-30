@@ -49,10 +49,14 @@ type Customer struct {
 	BillingAddressLine2 *string `json:"billing_address_line2,omitempty"`
 	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
 	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
+	// Key holds the value of the "key" field.
+	Key string `json:"key,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
 	PrimaryEmail *string `json:"primary_email,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency *currencyx.Code `json:"currency,omitempty"`
+	// IsDeleted holds the value of the "is_deleted" field.
+	IsDeleted bool `json:"is_deleted,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges        CustomerEdges `json:"edges"`
@@ -130,7 +134,9 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldPrimaryEmail, customer.FieldCurrency:
+		case customer.FieldIsDeleted:
+			values[i] = new(sql.NullBool)
+		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldKey, customer.FieldPrimaryEmail, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -250,6 +256,12 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.BillingAddressPhoneNumber = new(string)
 				*c.BillingAddressPhoneNumber = value.String
 			}
+		case customer.FieldKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field key", values[i])
+			} else if value.Valid {
+				c.Key = value.String
+			}
 		case customer.FieldPrimaryEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field primary_email", values[i])
@@ -263,6 +275,12 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.Currency = new(currencyx.Code)
 				*c.Currency = currencyx.Code(value.String)
+			}
+		case customer.FieldIsDeleted:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_deleted", values[i])
+			} else if value.Valid {
+				c.IsDeleted = value.Bool
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -385,6 +403,9 @@ func (c *Customer) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
+	builder.WriteString("key=")
+	builder.WriteString(c.Key)
+	builder.WriteString(", ")
 	if v := c.PrimaryEmail; v != nil {
 		builder.WriteString("primary_email=")
 		builder.WriteString(*v)
@@ -394,6 +415,9 @@ func (c *Customer) String() string {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("is_deleted=")
+	builder.WriteString(fmt.Sprintf("%v", c.IsDeleted))
 	builder.WriteByte(')')
 	return builder.String()
 }

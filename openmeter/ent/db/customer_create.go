@@ -202,6 +202,20 @@ func (cc *CustomerCreate) SetNillableBillingAddressPhoneNumber(s *string) *Custo
 	return cc
 }
 
+// SetKey sets the "key" field.
+func (cc *CustomerCreate) SetKey(s string) *CustomerCreate {
+	cc.mutation.SetKey(s)
+	return cc
+}
+
+// SetNillableKey sets the "key" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableKey(s *string) *CustomerCreate {
+	if s != nil {
+		cc.SetKey(*s)
+	}
+	return cc
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (cc *CustomerCreate) SetPrimaryEmail(s string) *CustomerCreate {
 	cc.mutation.SetPrimaryEmail(s)
@@ -226,6 +240,20 @@ func (cc *CustomerCreate) SetCurrency(c currencyx.Code) *CustomerCreate {
 func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate {
 	if c != nil {
 		cc.SetCurrency(*c)
+	}
+	return cc
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (cc *CustomerCreate) SetIsDeleted(b bool) *CustomerCreate {
+	cc.mutation.SetIsDeleted(b)
+	return cc
+}
+
+// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableIsDeleted(b *bool) *CustomerCreate {
+	if b != nil {
+		cc.SetIsDeleted(*b)
 	}
 	return cc
 }
@@ -366,6 +394,10 @@ func (cc *CustomerCreate) defaults() {
 		v := customer.DefaultUpdatedAt()
 		cc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := cc.mutation.IsDeleted(); !ok {
+		v := customer.DefaultIsDeleted
+		cc.mutation.SetIsDeleted(v)
+	}
 	if _, ok := cc.mutation.ID(); !ok {
 		v := customer.DefaultID()
 		cc.mutation.SetID(v)
@@ -400,6 +432,9 @@ func (cc *CustomerCreate) check() error {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
 		}
+	}
+	if _, ok := cc.mutation.IsDeleted(); !ok {
+		return &ValidationError{Name: "is_deleted", err: errors.New(`db: missing required field "Customer.is_deleted"`)}
 	}
 	return nil
 }
@@ -493,6 +528,10 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldBillingAddressPhoneNumber, field.TypeString, value)
 		_node.BillingAddressPhoneNumber = &value
 	}
+	if value, ok := cc.mutation.Key(); ok {
+		_spec.SetField(customer.FieldKey, field.TypeString, value)
+		_node.Key = value
+	}
 	if value, ok := cc.mutation.PrimaryEmail(); ok {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 		_node.PrimaryEmail = &value
@@ -500,6 +539,10 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
 		_node.Currency = &value
+	}
+	if value, ok := cc.mutation.IsDeleted(); ok {
+		_spec.SetField(customer.FieldIsDeleted, field.TypeBool, value)
+		_node.IsDeleted = value
 	}
 	if nodes := cc.mutation.AppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -837,6 +880,24 @@ func (u *CustomerUpsert) ClearBillingAddressPhoneNumber() *CustomerUpsert {
 	return u
 }
 
+// SetKey sets the "key" field.
+func (u *CustomerUpsert) SetKey(v string) *CustomerUpsert {
+	u.Set(customer.FieldKey, v)
+	return u
+}
+
+// UpdateKey sets the "key" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateKey() *CustomerUpsert {
+	u.SetExcluded(customer.FieldKey)
+	return u
+}
+
+// ClearKey clears the value of the "key" field.
+func (u *CustomerUpsert) ClearKey() *CustomerUpsert {
+	u.SetNull(customer.FieldKey)
+	return u
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (u *CustomerUpsert) SetPrimaryEmail(v string) *CustomerUpsert {
 	u.Set(customer.FieldPrimaryEmail, v)
@@ -870,6 +931,18 @@ func (u *CustomerUpsert) UpdateCurrency() *CustomerUpsert {
 // ClearCurrency clears the value of the "currency" field.
 func (u *CustomerUpsert) ClearCurrency() *CustomerUpsert {
 	u.SetNull(customer.FieldCurrency)
+	return u
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (u *CustomerUpsert) SetIsDeleted(v bool) *CustomerUpsert {
+	u.Set(customer.FieldIsDeleted, v)
+	return u
+}
+
+// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateIsDeleted() *CustomerUpsert {
+	u.SetExcluded(customer.FieldIsDeleted)
 	return u
 }
 
@@ -1165,6 +1238,27 @@ func (u *CustomerUpsertOne) ClearBillingAddressPhoneNumber() *CustomerUpsertOne 
 	})
 }
 
+// SetKey sets the "key" field.
+func (u *CustomerUpsertOne) SetKey(v string) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetKey(v)
+	})
+}
+
+// UpdateKey sets the "key" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateKey() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateKey()
+	})
+}
+
+// ClearKey clears the value of the "key" field.
+func (u *CustomerUpsertOne) ClearKey() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearKey()
+	})
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (u *CustomerUpsertOne) SetPrimaryEmail(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
@@ -1204,6 +1298,20 @@ func (u *CustomerUpsertOne) UpdateCurrency() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearCurrency() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
+	})
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (u *CustomerUpsertOne) SetIsDeleted(v bool) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetIsDeleted(v)
+	})
+}
+
+// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateIsDeleted() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateIsDeleted()
 	})
 }
 
@@ -1666,6 +1774,27 @@ func (u *CustomerUpsertBulk) ClearBillingAddressPhoneNumber() *CustomerUpsertBul
 	})
 }
 
+// SetKey sets the "key" field.
+func (u *CustomerUpsertBulk) SetKey(v string) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetKey(v)
+	})
+}
+
+// UpdateKey sets the "key" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateKey() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateKey()
+	})
+}
+
+// ClearKey clears the value of the "key" field.
+func (u *CustomerUpsertBulk) ClearKey() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearKey()
+	})
+}
+
 // SetPrimaryEmail sets the "primary_email" field.
 func (u *CustomerUpsertBulk) SetPrimaryEmail(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
@@ -1705,6 +1834,20 @@ func (u *CustomerUpsertBulk) UpdateCurrency() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearCurrency() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
+	})
+}
+
+// SetIsDeleted sets the "is_deleted" field.
+func (u *CustomerUpsertBulk) SetIsDeleted(v bool) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetIsDeleted(v)
+	})
+}
+
+// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateIsDeleted() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateIsDeleted()
 	})
 }
 

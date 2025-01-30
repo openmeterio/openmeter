@@ -29,17 +29,22 @@ func (Customer) Mixin() []ent.Mixin {
 
 func (Customer) Fields() []ent.Field {
 	return []ent.Field{
+		// We store non-set in db as an emoty string instead of null
+		// because we can only add unique indexes on fields that are not nullable.
+		field.String("key").Optional(),
 		field.String("primary_email").Optional().Nillable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).Optional().Nillable(),
+		field.Bool("is_deleted").Default(false),
 	}
 }
 
 func (Customer) Indexes() []ent.Index {
 	return []ent.Index{
 		// Indexes because of API filters
+		index.Fields("namespace", "key", "is_deleted").Unique(),
 		index.Fields("name"),
 		index.Fields("primary_email"),
-		index.Fields("deleted_at"),
+		index.Fields("is_deleted"),
 		// Indexes because of API OrderBy
 		index.Fields("created_at"),
 	}

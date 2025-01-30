@@ -613,7 +613,7 @@ func init() {
 		}
 	}()
 	// customerDescCurrency is the schema descriptor for currency field.
-	customerDescCurrency := customerFields[1].Descriptor()
+	customerDescCurrency := customerFields[2].Descriptor()
 	// customer.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	customer.CurrencyValidator = func() func(string) error {
 		validators := customerDescCurrency.Validators
@@ -630,6 +630,10 @@ func init() {
 			return nil
 		}
 	}()
+	// customerDescIsDeleted is the schema descriptor for is_deleted field.
+	customerDescIsDeleted := customerFields[3].Descriptor()
+	// customer.DefaultIsDeleted holds the default value on creation for the is_deleted field.
+	customer.DefaultIsDeleted = customerDescIsDeleted.Default.(bool)
 	// customerDescID is the schema descriptor for id field.
 	customerDescID := customerMixinFields0[0].Descriptor()
 	// customer.DefaultID holds the default value on creation for the id field.

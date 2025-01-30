@@ -918,8 +918,10 @@ var (
 		{Name: "billing_address_line1", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_line2", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_phone_number", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString, Nullable: true},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "is_deleted", Type: field.TypeBool, Default: false},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -943,6 +945,11 @@ var (
 				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[0]},
 			},
 			{
+				Name:    "customer_namespace_key_is_deleted",
+				Unique:  true,
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[15], CustomersColumns[18]},
+			},
+			{
 				Name:    "customer_name",
 				Unique:  false,
 				Columns: []*schema.Column{CustomersColumns[6]},
@@ -950,12 +957,12 @@ var (
 			{
 				Name:    "customer_primary_email",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[15]},
+				Columns: []*schema.Column{CustomersColumns[16]},
 			},
 			{
-				Name:    "customer_deleted_at",
+				Name:    "customer_is_deleted",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[5]},
+				Columns: []*schema.Column{CustomersColumns[18]},
 			},
 			{
 				Name:    "customer_created_at",
