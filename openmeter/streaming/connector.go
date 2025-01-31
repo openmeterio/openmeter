@@ -9,33 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type ListEventsParams struct {
-	From           *time.Time
-	To             *time.Time
-	IngestedAtFrom *time.Time
-	IngestedAtTo   *time.Time
-	ID             *string
-	Subject        *string
-	HasError       *bool
-	Limit          int
-}
-
-type CountEventsParams struct {
-	From time.Time
-}
-
-// CountEventRow represents a row in the count events response.
-type CountEventRow struct {
-	Count   uint64
-	Subject string
-	IsError bool
-}
-
-type ListMeterSubjectsParams struct {
-	From *time.Time
-	To   *time.Time
-}
-
 // RawEvent represents a single raw event
 type RawEvent struct {
 	Namespace       string
@@ -48,6 +21,13 @@ type RawEvent struct {
 	Data            string
 	IngestedAt      time.Time
 	StoredAt        time.Time
+}
+
+// CountEventRow represents a row in the count events response.
+type CountEventRow struct {
+	Count   uint64
+	Subject string
+	IsError bool
 }
 
 type Connector interface {
