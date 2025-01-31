@@ -1278,7 +1278,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 
 	approvedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
 	s.NoError(err)
-	s.Equal(billing.InvoiceStatusIssued, approvedInvoice.Status)
+	s.Equal(billing.InvoiceStatusPaid, approvedInvoice.Status)
 
 	s.expectLines(approvedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1854,7 +1854,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 
 	issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
 	s.NoError(err)
-	s.Equal(billing.InvoiceStatusIssued, issuedInvoice.Status)
+	s.Equal(billing.InvoiceStatusPaid, issuedInvoice.Status)
 	s.Len(issuedInvoice.ValidationIssues, 0)
 	s.DebugDumpInvoice("issued invoice", issuedInvoice)
 	s.expectLines(issuedInvoice, subsView.Subscription.ID, []expectedLine{
@@ -2006,7 +2006,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].InvoiceID())
 	s.NoError(err)
-	s.Equal(billing.InvoiceStatusIssued, invoice1.Status)
+	s.Equal(billing.InvoiceStatusPaid, invoice1.Status)
 
 	s.populateChildIDsFromParents(&invoice1)
 	s.DebugDumpInvoice("issued invoice1", invoice1)

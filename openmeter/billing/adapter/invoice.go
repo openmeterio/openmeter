@@ -817,9 +817,17 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (boo
 		Query().
 		Where(billinginvoice.Namespace(appID.Namespace)).
 		Where(
+			// The non-final states are listed here, so that we can make sure that all
+			// invoices can reach a final state before the app is removed.
 			billinginvoice.StatusIn(
 				billing.InvoiceStatusGathering,
+				billing.InvoiceStatusIssuingSyncing,
+				billing.InvoiceStatusIssuingSyncFailed,
 				billing.InvoiceStatusIssued,
+				billing.InvoiceStatusPaymentPending,
+				billing.InvoiceStatusPaymentFailed,
+				billing.InvoiceStatusPaymentActionRequired,
+				billing.InvoiceStatusOverdue,
 			),
 		).
 		Where(

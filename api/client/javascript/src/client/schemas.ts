@@ -4735,7 +4735,15 @@ export interface components {
      * @description InvoiceStatus describes the status of an invoice.
      * @enum {string}
      */
-    InvoiceStatus: 'gathering' | 'draft' | 'issuing' | 'issued'
+    InvoiceStatus:
+      | 'gathering'
+      | 'draft'
+      | 'issuing'
+      | 'issued'
+      | 'payment'
+      | 'overdue'
+      | 'paid'
+      | 'uncollectible'
     /** @description InvoiceStatusDetails represents the details of the invoice status.
      *
      *     API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
