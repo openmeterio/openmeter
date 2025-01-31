@@ -112,6 +112,8 @@ const (
 	FieldInvoicingAppExternalID = "invoicing_app_external_id"
 	// FieldPaymentAppExternalID holds the string denoting the payment_app_external_id field in the database.
 	FieldPaymentAppExternalID = "payment_app_external_id"
+	// FieldTaxAppExternalID holds the string denoting the tax_app_external_id field in the database.
+	FieldTaxAppExternalID = "tax_app_external_id"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
 	FieldPeriodStart = "period_start"
 	// FieldPeriodEnd holds the string denoting the period_end field in the database.
@@ -254,6 +256,7 @@ var Columns = []string{
 	FieldPaymentAppID,
 	FieldInvoicingAppExternalID,
 	FieldPaymentAppExternalID,
+	FieldTaxAppExternalID,
 	FieldPeriodStart,
 	FieldPeriodEnd,
 	FieldCollectionAt,
@@ -554,6 +557,11 @@ func ByInvoicingAppExternalID(opts ...sql.OrderTermOption) OrderOption {
 // ByPaymentAppExternalID orders the results by the payment_app_external_id field.
 func ByPaymentAppExternalID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPaymentAppExternalID, opts...).ToFunc()
+}
+
+// ByTaxAppExternalID orders the results by the tax_app_external_id field.
+func ByTaxAppExternalID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxAppExternalID, opts...).ToFunc()
 }
 
 // ByPeriodStart orders the results by the period_start field.

@@ -82,6 +82,15 @@ func (c *stripeAppClient) FinalizeInvoice(ctx context.Context, input FinalizeInv
 	})
 }
 
+// GetInvoice gets an invoice from Stripe.
+func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput) (*stripe.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("stripe get invoice: invalid input: %w", err)
+	}
+
+	return c.client.Invoices.Get(input.StripeInvoiceID, nil)
+}
+
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.
 type CreateInvoiceInput struct {
 	StripeCustomerID             string
@@ -155,6 +164,19 @@ type FinalizeInvoiceInput struct {
 }
 
 func (i FinalizeInvoiceInput) Validate() error {
+	if i.StripeInvoiceID == "" {
+		return errors.New("stripe invoice id is required")
+	}
+
+	return nil
+}
+
+// GetInvoice gets an invoice from Stripe.
+type GetInvoiceInput struct {
+	StripeInvoiceID string
+}
+
+func (i GetInvoiceInput) Validate() error {
 	if i.StripeInvoiceID == "" {
 		return errors.New("stripe invoice id is required")
 	}

@@ -48,6 +48,7 @@ const (
 	InvoiceOpInitiatePayment InvoiceOperation = "initiate_payment"
 
 	InvoiceOpPostAdvanceHook InvoiceOperation = "post_advance_hook"
+	InvoiceOpTriggerInvoice  InvoiceOperation = "trigger_invoice"
 )
 
 var InvoiceOperations = []InvoiceOperation{
@@ -58,6 +59,7 @@ var InvoiceOperations = []InvoiceOperation{
 	InvoiceOpInitiatePayment,
 
 	InvoiceOpPostAdvanceHook,
+	InvoiceOpTriggerInvoice,
 }
 
 func (o InvoiceOperation) Validate() error {
