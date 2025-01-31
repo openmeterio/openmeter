@@ -359,6 +359,26 @@ enum InvoiceStatus {
    * The invoice has been issued to the customer.
    */
   issued: "issued",
+
+  /**
+   * The payment for the invoice is being processed.
+   */
+  payment: "payment",
+
+  /**
+   * The invoice's payment is overdue.
+   */
+  overdue: "overdue",
+
+  /**
+   * The invoice has been paid.
+   */
+  paid: "paid",
+
+  /**
+   * The invoice has been marked uncollectible.
+   */
+  uncollectible: "uncollectible",
 }
 
 /*
