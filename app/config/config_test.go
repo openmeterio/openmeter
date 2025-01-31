@@ -335,6 +335,10 @@ func TestComplete(t *testing.T) {
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
 		},
+		ProgressManager: ProgressManagerConfiguration{
+			Enabled:    false,
+			Expiration: 5 * time.Minute,
+		},
 	}
 
 	assert.Equal(t, expected, actual)

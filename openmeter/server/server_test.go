@@ -38,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	progressmanageradapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -172,6 +173,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			App:                 &NoopAppService{},
 			AppStripe:           &NoopAppStripeService{},
 			Customer:            &NoopCustomerService{},
+			ProgressManager:     progressmanageradapter.NewNoop(),
 		},
 		RouterHook: func(r chi.Router) {},
 	})
