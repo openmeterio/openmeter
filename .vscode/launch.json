@@ -12,7 +12,8 @@
       "program": "${workspaceFolder}/cmd/server",
       "args": [
         "--config",
-        "${workspaceFolder}/config.yaml"
+        "${workspaceFolder}/config.yaml",
+        "--stripe-disable-webhook-registration",
       ]
     },
     {

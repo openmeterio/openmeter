@@ -17,6 +17,7 @@ type Adapter interface {
 	InvoiceLineAdapter
 	InvoiceAdapter
 	SequenceAdapter
+	InvoiceAppAdapter
 
 	entutils.TxCreator
 }
@@ -67,4 +68,8 @@ type InvoiceAdapter interface {
 
 type SequenceAdapter interface {
 	NextSequenceNumber(ctx context.Context, input NextSequenceNumberInput) (alpacadecimal.Decimal, error)
+}
+
+type InvoiceAppAdapter interface {
+	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
 }

@@ -76,12 +76,21 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 	}
 
 	// Setup webhook
-	stripeWebhookEndpoint, err := stripeClient.SetupWebhook(ctx, stripeclient.SetupWebhookInput{
-		AppID:   appID,
-		BaseURL: input.BaseURL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup webhook: %w", err)
+	var stripeWebhookEndpoint stripeclient.StripeWebhookEndpoint
+	if !s.disableWebhookRegistration {
+		stripeWebhookEndpoint, err = stripeClient.SetupWebhook(ctx, stripeclient.SetupWebhookInput{
+			AppID:   appID,
+			BaseURL: input.BaseURL,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup webhook: %w", err)
+		}
+	} else {
+		// Let's generate a fake secret for development purposes
+		stripeWebhookEndpoint = stripeclient.StripeWebhookEndpoint{
+			EndpointID: "endpoint-registration-disabled",
+			Secret:     "fake-secret",
+		}
 	}
 
 	// Create webhook secret

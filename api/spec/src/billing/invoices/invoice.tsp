@@ -379,6 +379,11 @@ enum InvoiceStatus {
    * The invoice has been marked uncollectible.
    */
   uncollectible: "uncollectible",
+
+  /**
+   * The invoice has been voided.
+   */
+  voided: "voided",
 }
 
 /*

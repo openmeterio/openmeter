@@ -5,11 +5,10 @@ import (
 
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
-var _ appstripe.AppService = (*Service)(nil)
+var _ appstripe.Service = (*Service)(nil)
 
 func (s *Service) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
 	return s.adapter.GetWebhookSecret(ctx, input)
@@ -41,10 +40,6 @@ func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripee
 
 func (s *Service) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 	return s.adapter.SetCustomerDefaultPaymentMethod(ctx, input)
-}
-
-func (s *Service) GetSupplierContact(ctx context.Context, input appstripeentity.GetSupplierContactInput) (billing.SupplierContact, error) {
-	return s.adapter.GetSupplierContact(ctx, input)
 }
 
 func (s *Service) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {

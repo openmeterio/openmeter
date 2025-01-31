@@ -36,6 +36,9 @@ var (
 	TriggerPaymentUncollectible InvoiceTrigger = "trigger_payment_uncollectible"
 	// TriggerPaymentOverdue is used to signify that the invoice is overdue
 	TriggerPaymentOverdue InvoiceTrigger = "trigger_payment_overdue"
+
+	// TriggerVoid is used to signify that the invoice has been voided (e.g. created by mistake)
+	TriggerVoid InvoiceTrigger = "trigger_void"
 )
 
 type InvoiceOperation string
@@ -48,6 +51,7 @@ const (
 	InvoiceOpInitiatePayment InvoiceOperation = "initiate_payment"
 
 	InvoiceOpPostAdvanceHook InvoiceOperation = "post_advance_hook"
+	InvoiceOpTriggerInvoice  InvoiceOperation = "trigger_invoice"
 )
 
 var InvoiceOperations = []InvoiceOperation{
@@ -58,6 +62,7 @@ var InvoiceOperations = []InvoiceOperation{
 	InvoiceOpInitiatePayment,
 
 	InvoiceOpPostAdvanceHook,
+	InvoiceOpTriggerInvoice,
 }
 
 func (o InvoiceOperation) Validate() error {

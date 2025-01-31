@@ -157,5 +157,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureNotification(v)
 	ConfigureBilling(v)
 	ConfigureProductCatalog(v)
-	ConfigureApps(v)
+	ConfigureApps(v, flags)
 }

@@ -615,6 +615,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearPaymentAppExternalID(value *string) 
 	return u.SetPaymentAppExternalID(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearTaxAppExternalID(value *string) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearTaxAppExternalID()
+	}
+	return u.SetTaxAppExternalID(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearTaxAppExternalID(value *string) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearTaxAppExternalID()
+	}
+	return u.SetTaxAppExternalID(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearPeriodStart(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearPeriodStart()

@@ -12220,6 +12220,7 @@ components:
         - overdue
         - paid
         - uncollectible
+        - voided
       description: InvoiceStatus describes the status of an invoice.
     InvoiceStatusDetails:
       type: object
@@ -14950,48 +14951,6 @@ components:
       example:
         type: stripe
         stripeCustomerId: cus_xxxxxxxxxxxxxx
-    StripePaymentIntentStatus:
-      type: string
-      enum:
-        - canceled
-        - processing
-        - requires_action
-        - requires_confirmation
-        - requires_payment_method
-        - succeeded
-      description: Stripe payment intent status.
-    StripeSetupIntent:
-      type: object
-      required:
-        - id
-        - status
-        - customer
-        - metadata
-      properties:
-        id:
-          type: string
-          description: The setup intent id.
-        status:
-          allOf:
-            - $ref: '#/components/schemas/StripePaymentIntentStatus'
-          description: The setup intent status.
-        payment_method:
-          type: string
-          description: The setup intent payment method.
-        payment_method_types:
-          type: array
-          items:
-            type: string
-          description: The setup intent payment method types.
-        customer:
-          type: string
-          description: The setup intent customer.
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-          description: The setup intent metadata.
-      description: Stripe setup intent.
     StripeTaxConfig:
       type: object
       required:
@@ -15032,8 +14991,7 @@ components:
         data:
           type: object
           properties:
-            object:
-              $ref: '#/components/schemas/StripeSetupIntent'
+            object: {}
           required:
             - object
           description: The event data.
@@ -15675,6 +15633,10 @@ components:
         - inactive
         - canceled
       description: Subscription status.
+      x-enum-varnames:
+        - SubscriptionStatusActive
+        - SubscriptionStatusInactive
+        - SubscriptionStatusCanceled
     SvixOperationalWebhookRequest:
       type: object
       required:

@@ -1712,6 +1712,12 @@ export interface components {
       /** @description Phone number. */
       phoneNumber?: string
     }
+    /** @description Alignment configuration for a plan or subscription. */
+    Alignment: {
+      /** @description Whether all Billable items and RateCards must align.
+       *     Alignment means the Price's BillingCadence must align for both duration and anchor time. */
+      billablesMustAlign?: boolean
+    }
     /**
      * @description Set of key-value pairs managed by the system. Cannot be modified by user.
      * @example {
@@ -2552,6 +2558,8 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Currency
        * @description The currency code of the plan.
@@ -4744,6 +4752,7 @@ export interface components {
       | 'overdue'
       | 'paid'
       | 'uncollectible'
+      | 'voided'
     /** @description InvoiceStatusDetails represents the details of the invoice status.
      *
      *     API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
@@ -5911,6 +5920,8 @@ export interface components {
        * @description A semi-unique identifier for the resource.
        */
       key: string
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Version
        * @description Version of the plan. Incremented when the plan is updated.
@@ -5976,6 +5987,8 @@ export interface components {
        * @description A semi-unique identifier for the resource.
        */
       key: string
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Currency
        * @description The currency code of the plan.
@@ -6090,6 +6103,8 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -6693,34 +6708,6 @@ export interface components {
       /** @description The Stripe default payment method ID. */
       stripeDefaultPaymentMethodId?: string
     }
-    /**
-     * @description Stripe payment intent status.
-     * @enum {string}
-     */
-    StripePaymentIntentStatus:
-      | 'canceled'
-      | 'processing'
-      | 'requires_action'
-      | 'requires_confirmation'
-      | 'requires_payment_method'
-      | 'succeeded'
-    /** @description Stripe setup intent. */
-    StripeSetupIntent: {
-      /** @description The setup intent id. */
-      id: string
-      /** @description The setup intent status. */
-      status: components['schemas']['StripePaymentIntentStatus']
-      /** @description The setup intent payment method. */
-      payment_method?: string
-      /** @description The setup intent payment method types. */
-      payment_method_types?: string[]
-      /** @description The setup intent customer. */
-      customer: string
-      /** @description The setup intent metadata. */
-      metadata: {
-        [key: string]: string
-      }
-    }
     /** @description The tax config for Stripe. */
     StripeTaxConfig: {
       /**
@@ -6747,7 +6734,7 @@ export interface components {
       created: number
       /** @description The event data. */
       data: {
-        object: components['schemas']['StripeSetupIntent']
+        object: unknown
       }
     }
     /** @description Stripe webhook response. */
@@ -7695,6 +7682,7 @@ export interface components {
   pathItems: never
 }
 export type Address = components['schemas']['Address']
+export type Alignment = components['schemas']['Alignment']
 export type Annotations = components['schemas']['Annotations']
 export type App = components['schemas']['App']
 export type AppBaseReplaceUpdate = components['schemas']['AppBaseReplaceUpdate']
@@ -8083,9 +8071,6 @@ export type StripeCheckoutSessionMode =
   components['schemas']['StripeCheckoutSessionMode']
 export type StripeCustomerAppData =
   components['schemas']['StripeCustomerAppData']
-export type StripePaymentIntentStatus =
-  components['schemas']['StripePaymentIntentStatus']
-export type StripeSetupIntent = components['schemas']['StripeSetupIntent']
 export type StripeTaxConfig = components['schemas']['StripeTaxConfig']
 export type StripeWebhookEvent = components['schemas']['StripeWebhookEvent']
 export type StripeWebhookResponse =

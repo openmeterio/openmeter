@@ -216,6 +216,17 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			))
 		}
 
+		if input.ExternalIDs != nil {
+			switch input.ExternalIDs.Type {
+			case billing.InvoicingExternalIDType:
+				query = query.Where(billinginvoice.InvoicingAppExternalIDIn(input.ExternalIDs.IDs...))
+			case billing.PaymentExternalIDType:
+				query = query.Where(billinginvoice.PaymentAppExternalIDIn(input.ExternalIDs.IDs...))
+			case billing.TaxExternalIDType:
+				query = query.Where(billinginvoice.TaxAppExternalIDIn(input.ExternalIDs.IDs...))
+			}
+		}
+
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !input.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(input.Order)

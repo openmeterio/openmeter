@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
+	apptest "github.com/openmeterio/openmeter/test/app"
 )
 
 const (
@@ -150,6 +151,15 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create app service: %w", err)
 	}
 
+	billingService, err := apptest.InitBillingService(t, ctx, apptest.InitBillingServiceInput{
+		DBClient:        entClient,
+		CustomerService: customerService,
+		AppService:      appService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing service: %w", err)
+	}
+
 	// Stripe Client
 	stripeClientMock := &StripeClientMock{}
 	stripeAppClientMock := &StripeAppClientMock{}
@@ -172,9 +182,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	appStripeService, err := appstripeservice.New(appstripeservice.Config{
-		Adapter:       appStripeAdapter,
-		AppService:    appService,
-		SecretService: secretService,
+		Adapter:        appStripeAdapter,
+		AppService:     appService,
+		SecretService:  secretService,
+		BillingService: billingService,
+		Logger:         logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

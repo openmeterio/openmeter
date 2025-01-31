@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
@@ -444,6 +445,96 @@ type GetSupplierContactInput struct {
 func (i GetSupplierContactInput) Validate() error {
 	if err := i.AppID.Validate(); err != nil {
 		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	return nil
+}
+
+type ValidationErrorsInput struct {
+	Op     billing.InvoiceOperation
+	Errors []*stripe.Error
+}
+
+type HandleInvoiceStateTransitionInput struct {
+	AppID   appentitybase.AppID
+	Invoice stripe.Invoice
+
+	// Trigger setup
+
+	// Trigger is the state machine trigger that will be used to transition the invoice
+	Trigger billing.InvoiceTrigger
+	// TargetStatus specifies the expected status of the invoice after the transition, needed to filter
+	// for duplicate events as the state machine doesn't allow transition into the same state
+	TargetStatuses []billing.InvoiceStatus
+
+	// Event filtering
+
+	// IgnoreInvoiceInStatus is a list of invoice statuses. If the invoice is in this status we ignore the event
+	// this allows to filter for out of order events.
+	IgnoreInvoiceInStatus []billing.InvoiceStatusMatcher
+	// ShouldTriggerOnEvent gets the *current* stripe invoice and returns true if the state machine should be triggered
+	// useful for filtering late events based on the current state (optional)
+	ShouldTriggerOnEvent func(*stripe.Invoice) (bool, error)
+
+	// Validation errors
+	// GetValidationErrors is invoked with the current stripe invoice and returns the validation errors if any
+	GetValidationErrors func(*stripe.Invoice) (*ValidationErrorsInput, error)
+}
+
+func (i HandleInvoiceStateTransitionInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.Invoice.ID == "" {
+		return errors.New("invoice id is required")
+	}
+
+	if i.Trigger == nil {
+		return errors.New("trigger is required")
+	}
+
+	if len(i.TargetStatuses) == 0 {
+		return errors.New("target statuses are required")
+	}
+
+	return nil
+}
+
+type HandleInvoiceSentEventInput struct {
+	AppID   appentitybase.AppID
+	Invoice stripe.Invoice
+	SentAt  int64
+}
+
+func (i HandleInvoiceSentEventInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.Invoice.ID == "" {
+		return errors.New("invoice id is required")
+	}
+
+	if i.SentAt == 0 {
+		return errors.New("sent at is required")
+	}
+
+	return nil
+}
+
+type GetStripeInvoiceInput struct {
+	AppID           appentitybase.AppID
+	StripeInvoiceID string
+}
+
+func (i GetStripeInvoiceInput) Validate() error {
+	if err := i.AppID.Validate(); err != nil {
+		return fmt.Errorf("error validating app id: %w", err)
+	}
+
+	if i.StripeInvoiceID == "" {
+		return errors.New("stripe invoice id is required")
 	}
 
 	return nil
