@@ -82,7 +82,7 @@ func NewValidationError(code, message string) ValidationIssue {
 
 type ComponentName string
 
-func AppTypeCapabilityToComponent(appType appentitybase.AppType, cap appentitybase.CapabilityType, op string) ComponentName {
+func AppTypeCapabilityToComponent(appType appentitybase.AppType, cap appentitybase.CapabilityType, op InvoiceOperation) ComponentName {
 	return ComponentName(fmt.Sprintf("app.%s.%s.%s", appType, cap, op))
 }
 
