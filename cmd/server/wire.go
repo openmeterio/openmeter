@@ -85,6 +85,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Notification,
 		common.Streaming,
 		common.ProductCatalog,
+		common.ProgressManager,
 		common.Subscription,
 		common.Secret,
 		common.ServerProvisionTopics,

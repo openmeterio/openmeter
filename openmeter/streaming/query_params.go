@@ -9,6 +9,7 @@ import (
 )
 
 type QueryParams struct {
+	ClientID       *string
 	From           *time.Time
 	To             *time.Time
 	FilterSubject  []string
@@ -20,6 +21,10 @@ type QueryParams struct {
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
 func (p *QueryParams) Validate(meter models.Meter) error {
+	if p.ClientID != nil && len(*p.ClientID) == 0 {
+		return errors.New("client id cannot be empty")
+	}
+
 	if p.From != nil && p.To != nil {
 		if !p.To.After(*p.From) {
 			return errors.New("to must be after from")

@@ -14,6 +14,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -33,6 +34,7 @@ type ConnectorConfig struct {
 	AsyncInsert         bool
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
+	ProgressManager     progressmanager.Service
 }
 
 func (c ConnectorConfig) Validate() error {
@@ -50,6 +52,10 @@ func (c ConnectorConfig) Validate() error {
 
 	if c.EventsTableName == "" {
 		return fmt.Errorf("events table is required")
+	}
+
+	if c.ProgressManager == nil {
+		return fmt.Errorf("progress manager is required")
 	}
 
 	return nil

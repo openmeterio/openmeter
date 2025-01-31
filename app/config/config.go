@@ -20,22 +20,23 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Aggregation    AggregationConfiguration
-	Entitlements   EntitlementsConfiguration
-	Dedupe         DedupeConfiguration
-	Events         EventsConfiguration
-	Ingest         IngestConfiguration
-	Meters         []*models.Meter
-	Namespace      NamespaceConfiguration
-	Portal         PortalConfiguration
-	Postgres       PostgresConfig
-	Sink           SinkConfiguration
-	BalanceWorker  BalanceWorkerConfiguration
-	Notification   NotificationConfiguration
-	ProductCatalog ProductCatalogConfiguration
-	Billing        BillingConfiguration
-	Apps           AppsConfiguration
-	Svix           SvixConfig
+	Aggregation     AggregationConfiguration
+	Entitlements    EntitlementsConfiguration
+	Dedupe          DedupeConfiguration
+	Events          EventsConfiguration
+	Ingest          IngestConfiguration
+	Meters          []*models.Meter
+	Namespace       NamespaceConfiguration
+	Portal          PortalConfiguration
+	Postgres        PostgresConfig
+	Sink            SinkConfiguration
+	BalanceWorker   BalanceWorkerConfiguration
+	Notification    NotificationConfiguration
+	ProductCatalog  ProductCatalogConfiguration
+	ProgressManager ProgressManagerConfiguration
+	Billing         BillingConfiguration
+	Apps            AppsConfiguration
+	Svix            SvixConfig
 }
 
 // Validate validates the configuration.
@@ -157,5 +158,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureNotification(v)
 	ConfigureBilling(v)
 	ConfigureProductCatalog(v)
+	ConfigureProgressManager(v)
 	ConfigureApps(v)
 }
