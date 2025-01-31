@@ -4,9 +4,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/redis"
-	"github.com/spf13/viper"
 )
 
 // ProgressManagerConfiguration stores the configuration parameters for the progress manager

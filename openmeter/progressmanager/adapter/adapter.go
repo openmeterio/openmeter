@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 )
 
 type Config struct {

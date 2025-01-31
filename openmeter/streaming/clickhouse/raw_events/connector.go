@@ -390,10 +390,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 		successRows := uint64(0)
 
 		// Build SQL query to count the total number of rows
-		countSQL, countArgs, err := queryMeter.toCountRowSQL()
-		if err != nil {
-			return values, fmt.Errorf("count sql: %w", err)
-		}
+		countSQL, countArgs := queryMeter.toCountRowSQL()
 
 		// Count the total number of rows
 		countRows, err := c.config.ClickHouse.Query(ctx, countSQL, countArgs...)
@@ -434,12 +431,14 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 				UpdatedAt: time.Now(),
 			}
 
-			fmt.Println("progress: ", progress)
-
 			// Update progress
-			c.config.ProgressManager.UpsertProgress(ctx, progressmanagerentity.UpsertProgressInput{
+			err = c.config.ProgressManager.UpsertProgress(ctx, progressmanagerentity.UpsertProgressInput{
 				Progress: progress,
 			})
+			// Log error but don't return it
+			if err != nil {
+				c.config.Logger.Error("failed to upsert progress", "error", err)
+			}
 		}))
 	}
 

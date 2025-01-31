@@ -12,11 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type queryMeterCache struct {
-	tableName string
-	where     []string
-}
-
 type queryMeter struct {
 	Database        string
 	EventsTableName string
@@ -32,7 +27,7 @@ type queryMeter struct {
 }
 
 // toCountRowSQL returns the SQL query to count the estimated number of rows we will scan
-func (d *queryMeter) toCountRowSQL() (string, []interface{}, error) {
+func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
 
@@ -63,7 +58,7 @@ func (d *queryMeter) toCountRowSQL() (string, []interface{}, error) {
 	}
 
 	sql, args := query.Build()
-	return sql, args, nil
+	return sql, args
 }
 
 func (d *queryMeter) toSQL() (string, []interface{}, error) {

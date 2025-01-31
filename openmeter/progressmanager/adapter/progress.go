@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
-	"github.com/redis/go-redis/v9"
 )
 
 // keyPrefix is the prefix for the key in the KV store

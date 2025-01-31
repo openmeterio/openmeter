@@ -62,7 +62,7 @@ func (h *handler) GetProgress() GetProgressHandler {
 // progressToAPI converts a Progress to an API Progress
 func progressToAPI(p progressmanagerentity.Progress) api.Progress {
 	return api.Progress{
-		Success:   uint64(p.Success),
+		Success:   p.Success,
 		Failed:    p.Failed,
 		Total:     p.Total,
 		UpdatedAt: p.UpdatedAt,

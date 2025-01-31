@@ -25,7 +25,7 @@ func (a *ProgressID) Validate() error {
 		errs = append(errs, errors.New("id is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // Progress is the identifier for a progress
