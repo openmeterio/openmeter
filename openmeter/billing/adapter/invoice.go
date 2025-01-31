@@ -454,10 +454,11 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			// Type is immutable
 			SetNumber(in.Number).
 			SetOrClearDescription(in.Description).
-			SetOrClearDueAt(in.DueAt).
-			SetOrClearDraftUntil(in.DraftUntil).
-			SetOrClearIssuedAt(in.IssuedAt).
-			SetOrClearDeletedAt(in.DeletedAt).
+			SetOrClearDueAt(convert.SafeToUTC(in.DueAt)).
+			SetOrClearDraftUntil(convert.SafeToUTC(in.DraftUntil)).
+			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
+			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
+			SetOrClearSentToCustomerAt(convert.SafeToUTC(in.SentToCustomerAt)).
 			// Totals
 			SetAmount(in.Totals.Amount).
 			SetChargesTotal(in.Totals.ChargesTotal).
@@ -469,13 +470,13 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 
 		if in.CollectionAt != nil && !in.CollectionAt.IsZero() {
 			updateQuery = updateQuery.
-				SetCollectionAt(*in.CollectionAt)
+				SetCollectionAt(in.CollectionAt.In(time.UTC))
 		}
 
 		if in.Period != nil {
 			updateQuery = updateQuery.
-				SetPeriodStart(in.Period.Start).
-				SetPeriodEnd(in.Period.End)
+				SetPeriodStart(in.Period.Start.In(time.UTC)).
+				SetPeriodEnd(in.Period.End.In(time.UTC))
 		} else {
 			updateQuery = updateQuery.
 				ClearPeriodStart().
@@ -653,16 +654,17 @@ func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoice
 func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.Invoice, error) {
 	res := billing.Invoice{
 		InvoiceBase: billing.InvoiceBase{
-			ID:          invoice.ID,
-			Namespace:   invoice.Namespace,
-			Metadata:    invoice.Metadata,
-			Currency:    invoice.Currency,
-			Status:      invoice.Status,
-			Type:        invoice.Type,
-			Number:      invoice.Number,
-			Description: invoice.Description,
-			DueAt:       invoice.DueAt,
-			DraftUntil:  invoice.DraftUntil,
+			ID:               invoice.ID,
+			Namespace:        invoice.Namespace,
+			Metadata:         invoice.Metadata,
+			Currency:         invoice.Currency,
+			Status:           invoice.Status,
+			Type:             invoice.Type,
+			Number:           invoice.Number,
+			Description:      invoice.Description,
+			DueAt:            convert.TimePtrIn(invoice.DueAt, time.UTC),
+			DraftUntil:       convert.TimePtrIn(invoice.DraftUntil, time.UTC),
+			SentToCustomerAt: convert.TimePtrIn(invoice.SentToCustomerAt, time.UTC),
 			Supplier: billing.SupplierContact{
 				Name: invoice.SupplierName,
 				Address: models.Address{

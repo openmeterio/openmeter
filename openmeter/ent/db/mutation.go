@@ -6366,6 +6366,7 @@ type BillingInvoiceMutation struct {
 	description                              *string
 	voided_at                                *time.Time
 	issued_at                                *time.Time
+	sent_to_customer_at                      *time.Time
 	draft_until                              *time.Time
 	currency                                 *currencyx.Code
 	due_at                                   *time.Time
@@ -8098,6 +8099,55 @@ func (m *BillingInvoiceMutation) ResetIssuedAt() {
 	delete(m.clearedFields, billinginvoice.FieldIssuedAt)
 }
 
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (m *BillingInvoiceMutation) SetSentToCustomerAt(t time.Time) {
+	m.sent_to_customer_at = &t
+}
+
+// SentToCustomerAt returns the value of the "sent_to_customer_at" field in the mutation.
+func (m *BillingInvoiceMutation) SentToCustomerAt() (r time.Time, exists bool) {
+	v := m.sent_to_customer_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSentToCustomerAt returns the old "sent_to_customer_at" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldSentToCustomerAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSentToCustomerAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSentToCustomerAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSentToCustomerAt: %w", err)
+	}
+	return oldValue.SentToCustomerAt, nil
+}
+
+// ClearSentToCustomerAt clears the value of the "sent_to_customer_at" field.
+func (m *BillingInvoiceMutation) ClearSentToCustomerAt() {
+	m.sent_to_customer_at = nil
+	m.clearedFields[billinginvoice.FieldSentToCustomerAt] = struct{}{}
+}
+
+// SentToCustomerAtCleared returns if the "sent_to_customer_at" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) SentToCustomerAtCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldSentToCustomerAt]
+	return ok
+}
+
+// ResetSentToCustomerAt resets all changes to the "sent_to_customer_at" field.
+func (m *BillingInvoiceMutation) ResetSentToCustomerAt() {
+	m.sent_to_customer_at = nil
+	delete(m.clearedFields, billinginvoice.FieldSentToCustomerAt)
+}
+
 // SetDraftUntil sets the "draft_until" field.
 func (m *BillingInvoiceMutation) SetDraftUntil(t time.Time) {
 	m.draft_until = &t
@@ -9041,7 +9091,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 50)
+	fields := make([]string, 0, 51)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -9152,6 +9202,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.issued_at != nil {
 		fields = append(fields, billinginvoice.FieldIssuedAt)
+	}
+	if m.sent_to_customer_at != nil {
+		fields = append(fields, billinginvoice.FieldSentToCustomerAt)
 	}
 	if m.draft_until != nil {
 		fields = append(fields, billinginvoice.FieldDraftUntil)
@@ -9274,6 +9327,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.VoidedAt()
 	case billinginvoice.FieldIssuedAt:
 		return m.IssuedAt()
+	case billinginvoice.FieldSentToCustomerAt:
+		return m.SentToCustomerAt()
 	case billinginvoice.FieldDraftUntil:
 		return m.DraftUntil()
 	case billinginvoice.FieldCurrency:
@@ -9383,6 +9438,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldVoidedAt(ctx)
 	case billinginvoice.FieldIssuedAt:
 		return m.OldIssuedAt(ctx)
+	case billinginvoice.FieldSentToCustomerAt:
+		return m.OldSentToCustomerAt(ctx)
 	case billinginvoice.FieldDraftUntil:
 		return m.OldDraftUntil(ctx)
 	case billinginvoice.FieldCurrency:
@@ -9677,6 +9734,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIssuedAt(v)
 		return nil
+	case billinginvoice.FieldSentToCustomerAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSentToCustomerAt(v)
+		return nil
 	case billinginvoice.FieldDraftUntil:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -9858,6 +9922,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldIssuedAt) {
 		fields = append(fields, billinginvoice.FieldIssuedAt)
 	}
+	if m.FieldCleared(billinginvoice.FieldSentToCustomerAt) {
+		fields = append(fields, billinginvoice.FieldSentToCustomerAt)
+	}
 	if m.FieldCleared(billinginvoice.FieldDraftUntil) {
 		fields = append(fields, billinginvoice.FieldDraftUntil)
 	}
@@ -9952,6 +10019,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldIssuedAt:
 		m.ClearIssuedAt()
+		return nil
+	case billinginvoice.FieldSentToCustomerAt:
+		m.ClearSentToCustomerAt()
 		return nil
 	case billinginvoice.FieldDraftUntil:
 		m.ClearDraftUntil()
@@ -10092,6 +10162,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldIssuedAt:
 		m.ResetIssuedAt()
+		return nil
+	case billinginvoice.FieldSentToCustomerAt:
+		m.ResetSentToCustomerAt()
 		return nil
 	case billinginvoice.FieldDraftUntil:
 		m.ResetDraftUntil()

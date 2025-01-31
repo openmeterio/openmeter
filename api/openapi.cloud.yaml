@@ -101,8 +101,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -164,8 +164,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -233,8 +233,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -293,8 +293,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -353,8 +353,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -427,9 +427,9 @@ paths:
             type: array
             items:
               type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -492,8 +492,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -569,8 +569,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -632,8 +632,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -697,8 +697,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -962,8 +962,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
         - name: expand
           in: query
           required: false
@@ -1044,8 +1044,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1106,8 +1106,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1181,8 +1181,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1252,8 +1252,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1319,8 +1319,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1386,8 +1386,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1455,8 +1455,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1656,8 +1656,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -1715,8 +1715,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
         - name: expand
           in: query
           required: false
@@ -1785,8 +1785,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -1972,8 +1972,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
         - $ref: '#/components/parameters/PaginatedQuery.page'
         - $ref: '#/components/parameters/PaginatedQuery.pageSize'
         - $ref: '#/components/parameters/queryCustomerList.type'
@@ -2038,8 +2038,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -2112,15 +2112,15 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
         - name: appId
           in: path
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -2190,7 +2190,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
       responses:
         '200':
           description: The request has succeeded.
@@ -2253,8 +2253,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -2316,8 +2316,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -2385,8 +2385,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -2600,8 +2600,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -4122,8 +4122,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -4191,8 +4191,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -4257,8 +4257,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -4321,7 +4321,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
         - name: to
           in: query
           required: false
@@ -4331,7 +4331,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
         - name: feature
           in: query
           required: false
@@ -4365,9 +4365,9 @@ paths:
             type: array
             items:
               type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
         - name: channel
           in: query
           required: false
@@ -4379,9 +4379,9 @@ paths:
             type: array
             items:
               type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/NotificationEventOrderByOrdering.order'
@@ -4667,8 +4667,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -4736,8 +4736,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -4802,8 +4802,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -4862,8 +4862,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -4994,9 +4994,9 @@ paths:
             type: array
             items:
               type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
         - name: key
           in: query
           required: false
@@ -5139,9 +5139,9 @@ paths:
           schema:
             anyOf:
               - type: string
-                example: 01G65Z755AFWAKHE12NY0CQ9FH
                 pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
                 description: ULID (Universally Unique Lexicographically Sortable Identifier).
+                example: 01G65Z755AFWAKHE12NY0CQ9FH
               - type: string
                 minLength: 1
                 maxLength: 64
@@ -5211,8 +5211,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -5281,9 +5281,9 @@ paths:
           schema:
             anyOf:
               - type: string
-                example: 01G65Z755AFWAKHE12NY0CQ9FH
                 pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
                 description: ULID (Universally Unique Lexicographically Sortable Identifier).
+                example: 01G65Z755AFWAKHE12NY0CQ9FH
               - type: string
                 minLength: 1
                 maxLength: 64
@@ -5366,8 +5366,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '
@@ -5426,8 +5426,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -5490,8 +5490,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -6498,7 +6498,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
       responses:
         '200':
           description: The request has succeeded.
@@ -6709,7 +6709,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
         - name: to
           in: query
           required: false
@@ -6719,7 +6719,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
         - name: windowSize
           in: query
           required: true
@@ -6930,8 +6930,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
         - name: at
           in: query
           required: false
@@ -6939,7 +6939,7 @@ paths:
           schema:
             type: string
             format: date-time
-            example: 2023-01-01T01:01:01.001Z
+            example: '2023-01-01T01:01:01.001Z'
       responses:
         '200':
           description: The request has succeeded.
@@ -7003,8 +7003,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -7079,8 +7079,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -7148,8 +7148,8 @@ paths:
                 effectiveDate:
                   type: string
                   format: date-time
-                  example: 2023-01-01T01:01:01.001Z
                   description: If not provided the subscription is canceled immediately.
+                  example: '2023-01-01T01:01:01.001Z'
   /api/v1/subscriptions/{subscriptionId}/change:
     post:
       operationId: changeSubscription
@@ -7163,8 +7163,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -7239,8 +7239,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -7319,8 +7319,8 @@ paths:
           required: true
           schema:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
       responses:
         '200':
           description: The request has succeeded.
@@ -7494,9 +7494,9 @@ components:
         type: array
         items:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
     InvoiceListParams.expand:
       name: expand
       in: query
@@ -7531,7 +7531,7 @@ components:
       schema:
         type: string
         format: date-time
-        example: 2023-01-01T01:01:01.001Z
+        example: '2023-01-01T01:01:01.001Z'
     InvoiceListParams.issuedBefore:
       name: issuedBefore
       in: query
@@ -7540,7 +7540,7 @@ components:
       schema:
         type: string
         format: date-time
-        example: 2023-01-01T01:01:01.001Z
+        example: '2023-01-01T01:01:01.001Z'
     InvoiceListParams.statuses:
       name: statuses
       in: query
@@ -7629,7 +7629,7 @@ components:
       schema:
         type: string
         format: date-time
-        example: 2023-01-01T01:01:01.001Z
+        example: '2023-01-01T01:01:01.001Z'
     MeterQuery.groupBy:
       name: groupBy
       in: query
@@ -7661,7 +7661,7 @@ components:
       schema:
         type: string
         format: date-time
-        example: 2023-01-01T01:01:01.001Z
+        example: '2023-01-01T01:01:01.001Z'
     MeterQuery.windowSize:
       name: windowSize
       in: query
@@ -7943,9 +7943,9 @@ components:
     Annotations:
       type: object
       additionalProperties: {}
+      description: Set of key-value pairs managed by the system. Cannot be modified by user.
       example:
         externalId: 019142cc-a016-796a-8113-1a942fecd26d
-      description: Set of key-value pairs managed by the system. Cannot be modified by user.
     App:
       anyOf:
         - $ref: '#/components/schemas/StripeApp'
@@ -8012,15 +8012,15 @@ components:
         description:
           type: string
           description: The capability description.
+      description: |-
+        App capability.
+
+        Capabilities only exist in config so they don't extend the Resource model.
       example:
         type: collectPayments
         key: stripe_collect_payment
         name: Collect Payments
         description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
-      description: |-
-        App capability.
-
-        Capabilities only exist in config so they don't extend the Resource model.
     AppCapabilityType:
       type: string
       enum:
@@ -8063,9 +8063,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The ID of the app.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: |-
         App reference
 
@@ -8099,14 +8099,14 @@ components:
         usage:
           type: number
           format: double
-          example: 100
           description: The total usage of the feature in the period.
+          example: 100
           readOnly: true
         balanceAtStart:
           type: number
           format: double
-          example: 100
           description: The entitlement balance at the start of the period.
+          example: 100
           readOnly: true
       description: The balance history window.
     BillingLineCharge:
@@ -8120,29 +8120,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         percent:
           allOf:
@@ -8223,9 +8223,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -8249,22 +8249,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         supplier:
@@ -8344,27 +8344,27 @@ components:
         tax:
           anyOf:
             - type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
             - type: string
           description: The tax app used for this workflow
           x-go-type: string
         invoicing:
           anyOf:
             - type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
             - type: string
           description: The invoicing app used for this workflow
           x-go-type: string
         payment:
           anyOf:
             - type: string
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
             - type: string
           description: The payment app used for this workflow
           x-go-type: string
@@ -8428,22 +8428,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         workflow:
@@ -8452,12 +8452,12 @@ components:
           description: The details of the overrides active for this specific customer.
         billingProfile:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The billing profile this override is associated with.
 
             If not provided, the default billing profile is chosen if available.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Customer specific workflow overrides.
     BillingProfileCustomerOverrideCreate:
       type: object
@@ -8468,12 +8468,12 @@ components:
           description: The details of the overrides active for this specific customer.
         billingProfile:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The billing profile this override is associated with.
 
             If not provided, the default billing profile is chosen if available.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Payload for creating a new or updating an existing customer override.
     BillingProfileCustomerOverrideOrderBy:
       type: string
@@ -8490,16 +8490,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -8584,16 +8584,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -8698,12 +8698,12 @@ components:
         interval:
           type: string
           format: ISO8601
-          example: P1D
           description: |-
             This grace period can be used to delay the collection of the pending line items specified in
             alignment.
 
             This is useful, in case of multiple subscriptions having slightly different billing periods.
+          example: P1D
           default: PT1H
       description: Workflow collection specifies how to collect the pending line items for an invoice
     BillingWorkflowCreate:
@@ -8732,14 +8732,14 @@ components:
         draftPeriod:
           type: string
           format: ISO8601
-          example: P1D
           description: The period for the invoice to be kept in draft status for manual reviews.
+          example: P1D
           default: P1D
         dueAfter:
           type: string
           format: ISO8601
-          example: P1D
           description: The period after which the invoice is due.
+          example: P1D
           default: P7D
         progressiveBilling:
           type: boolean
@@ -8817,13 +8817,13 @@ components:
       description: The request could not be completed due to a conflict with the current state of the target resource.
     CountryCode:
       type: string
-      example: US
       minLength: 2
       maxLength: 2
       pattern: ^[A-Z]{2}$
       description: |-
         [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
         Custom two-letter country codes are also supported for convenience.
+      example: US
     CreateCheckoutSessionTaxIdCollection:
       type: object
       required:
@@ -8942,9 +8942,9 @@ components:
       properties:
         appId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: If not provided, the default Stripe app is used if any.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         customer:
           anyOf:
             - $ref: '#/components/schemas/CustomerId'
@@ -8963,6 +8963,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/CreateStripeCheckoutSessionRequestOptions'
           description: Options passed to Stripe when creating the checkout session.
+      description: Create Stripe checkout session request.
       example:
         customer:
           name: ACME, Inc.
@@ -8980,7 +8981,6 @@ components:
           customerUpdate:
             name: auto
             address: auto
-      description: Create Stripe checkout session request.
     CreateStripeCheckoutSessionRequestOptions:
       type: object
       properties:
@@ -9072,9 +9072,9 @@ components:
       properties:
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The OpenMeter customer ID.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         stripeCustomerId:
           type: string
           description: The Stripe customer ID.
@@ -9117,8 +9117,8 @@ components:
         issuedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: IssueAt reflects the time the document was issued.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         number:
           allOf:
@@ -9158,13 +9158,13 @@ components:
       description: Currency describes a currency supported by OpenMeter.
     CurrencyCode:
       type: string
-      example: USD
       minLength: 3
       maxLength: 3
       pattern: ^[A-Z]{3}$
       description: |-
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
+      example: USD
     CustomPlanInput:
       type: object
       allOf:
@@ -9218,8 +9218,8 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         customPlan:
           $ref: '#/components/schemas/CustomPlanInput'
       description: Change a custom subscription.
@@ -9233,15 +9233,15 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         customPlan:
           $ref: '#/components/schemas/CustomPlanInput'
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Create a custom subscription.
     Customer:
       type: object
@@ -9254,9 +9254,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -9280,22 +9280,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         key:
@@ -9330,20 +9330,20 @@ components:
           title: Billing Address
         currentSubscriptionId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The ID of the Subscription if the customer has one.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: Current Subscription ID
           readOnly: true
+      description: A customer object.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         name: ACME Inc.
         usageAttribution:
           subjectKeys:
             - my_subject_key
-        createdAt: 2024-01-01T01:01:01.001Z
-        updatedAt: 2024-01-01T01:01:01.001Z
-      description: A customer object.
+        createdAt: '2024-01-01T01:01:01.001Z'
+        updatedAt: '2024-01-01T01:01:01.001Z'
     CustomerAppData:
       anyOf:
         - $ref: '#/components/schemas/StripeCustomerAppData'
@@ -9367,16 +9367,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -9445,9 +9445,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Create Stripe checkout session with customer ID.
     CustomerKey:
       type: object
@@ -9474,16 +9474,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -9707,22 +9707,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         metadata:
@@ -9732,18 +9732,18 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
         type:
           allOf:
@@ -9766,9 +9766,9 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         currentUsagePeriod:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -9797,22 +9797,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         metadata:
@@ -9822,18 +9822,18 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
         subjectKey:
           type: string
@@ -9851,9 +9851,9 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         currentUsagePeriod:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -9881,11 +9881,11 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The feature the subject is entitled to use.
             Either featureKey or featureId is required.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -9925,34 +9925,33 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         amount:
           type: number
           format: double
-          example: 100
           minimum: 0
           description: The amount to grant. Should be a positive number.
+          example: 100
         priority:
           type: integer
           format: uint8
-          example: 1
           minimum: 1
           maximum: 255
           description: |-
@@ -9962,11 +9961,12 @@ components:
             When there are several grants available for the same subject, the system selects the grant with the highest priority.
             In cases where grants share the same priority level, the grant closest to its expiration will be used first.
             In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+          example: 1
         effectiveAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
+          example: '2023-01-01T01:01:01.001Z'
         expiration:
           allOf:
             - $ref: '#/components/schemas/ExpirationPeriod'
@@ -9974,52 +9974,52 @@ components:
         maxRolloverAmount:
           type: number
           format: double
-          example: 100
           description: |-
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
           default: 0
         minRolloverAmount:
           type: number
           format: double
-          example: 100
           description: |-
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
           default: 0
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          description: The grant metadata.
           example:
             stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
-          description: The grant metadata.
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
         entitlementId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           description: The unique entitlement ULID that the grant is associated with.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
         nextRecurrence:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The next time the grant will recurr.
+          example: '2023-01-01T01:01:01.001Z'
         expiresAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time the grant expires.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         voidedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time the grant was voided.
+          example: '2023-01-01T01:01:01.001Z'
         recurrence:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriod'
@@ -10035,13 +10035,12 @@ components:
         amount:
           type: number
           format: double
-          example: 100
           minimum: 0
           description: The amount to grant. Should be a positive number.
+          example: 100
         priority:
           type: integer
           format: uint8
-          example: 1
           minimum: 1
           maximum: 255
           description: |-
@@ -10051,11 +10050,12 @@ components:
             When there are several grants available for the same subject, the system selects the grant with the highest priority.
             In cases where grants share the same priority level, the grant closest to its expiration will be used first.
             In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+          example: 1
         effectiveAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
+          example: '2023-01-01T01:01:01.001Z'
         expiration:
           allOf:
             - $ref: '#/components/schemas/ExpirationPeriod'
@@ -10063,25 +10063,25 @@ components:
         maxRolloverAmount:
           type: number
           format: double
-          example: 100
           description: |-
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
           default: 0
         minRolloverAmount:
           type: number
           format: double
-          example: 100
           description: |-
             Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
             Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+          example: 100
           default: 0
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          description: The grant metadata.
           example:
             stripePaymentId: pi_4OrAkhLvyihio9p51h9iiFnB
-          description: The grant metadata.
         recurrence:
           allOf:
             - $ref: '#/components/schemas/RecurringPeriodCreateInput'
@@ -10143,22 +10143,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         metadata:
@@ -10168,18 +10168,18 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
         subjectKey:
           type: string
@@ -10197,14 +10197,14 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         lastReset:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time the last reset happened.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         currentUsagePeriod:
           allOf:
@@ -10214,8 +10214,8 @@ components:
         measureUsageFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         usagePeriod:
           allOf:
@@ -10242,11 +10242,11 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The feature the subject is entitled to use.
             Either featureKey or featureId is required.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -10313,16 +10313,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -10349,27 +10349,27 @@ components:
         config:
           type: string
           format: json
-          example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+          example: '{ "integrations": ["github"] }'
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         metadata:
@@ -10379,18 +10379,18 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
         subjectKey:
           type: string
@@ -10408,9 +10408,9 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The feature the subject is entitled to use.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         currentUsagePeriod:
           allOf:
             - $ref: '#/components/schemas/Period'
@@ -10437,11 +10437,11 @@ components:
           example: example-feature-key
         featureId:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The feature the subject is entitled to use.
             Either featureKey or featureId is required.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
@@ -10457,8 +10457,8 @@ components:
         config:
           type: string
           format: json
-          example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+          example: '{ "integrations": ["github"] }'
       description: Create inputs for static entitlement
     EntitlementType:
       type: string
@@ -10475,31 +10475,31 @@ components:
       properties:
         hasAccess:
           type: boolean
-          example: true
           description: Whether the subject has access to the feature. Shared accross all entitlement types.
+          example: true
           readOnly: true
         balance:
           type: number
           format: double
-          example: 100
           description: Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
+          example: 100
           readOnly: true
         usage:
           type: number
           format: double
-          example: 50
           description: Only available for metered entitlements. Returns the total feature usage in the current period.
+          example: 50
           readOnly: true
         overage:
           type: number
           format: double
-          example: 0
           description: Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
+          example: 0
           readOnly: true
         config:
           type: string
-          example: '{ key: "value" }'
           description: Only available for static entitlements. The JSON parsable config of the entitlement.
+          example: '{ key: "value" }'
           readOnly: true
       description: Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
     Event:
@@ -10513,33 +10513,33 @@ components:
       properties:
         id:
           type: string
-          example: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
           minLength: 1
           description: Identifies the event.
+          example: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
         source:
           type: string
-          example: service-name
           minLength: 1
           format: uri-reference
           description: Identifies the context in which an event happened.
+          example: service-name
         specversion:
           type: string
-          example: '1.0'
           minLength: 1
           description: The version of the CloudEvents specification which the event uses.
+          example: '1.0'
           default: '1.0'
         type:
           type: string
-          example: com.example.someevent
           minLength: 1
           description: Contains a value describing the type of event related to the originating occurrence.
+          example: com.example.someevent
         datacontenttype:
           type: string
           enum:
             - application/json
           nullable: true
-          example: application/json
           description: Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+          example: application/json
         dataschema:
           type: string
           format: uri
@@ -10548,14 +10548,14 @@ components:
           description: Identifies the schema that data adheres to.
         subject:
           type: string
-          example: customer-id
           minLength: 1
           description: Describes the subject of the event in the context of the event producer (identified by source).
+          example: customer-id
         time:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
+          example: '2023-01-01T01:01:01.001Z'
           nullable: true
         data:
           type: object
@@ -10564,18 +10564,18 @@ components:
           description: |-
             The event payload.
             Optional, if present it must be a JSON object.
+      description: |-
+        CloudEvents Specification JSON Schema
+
+        Optional properties are nullable according to the CloudEvents specification:
+        OPTIONAL not omitted attributes MAY be represented as a null JSON value.
       example:
         id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
         source: service-name
         specversion: '1.0'
         type: prompt
         subject: customer-id
-        time: 2023-01-01T01:01:01.001Z
-      description: |-
-        CloudEvents Specification JSON Schema
-
-        Optional properties are nullable according to the CloudEvents specification:
-        OPTIONAL not omitted attributes MAY be represented as a null JSON value.
+        time: '2023-01-01T01:01:01.001Z'
       x-go-type-import:
         path: github.com/cloudevents/sdk-go/v2/event
       x-go-type: event.Event
@@ -10600,8 +10600,8 @@ components:
           description: The unit of time for the expiration period.
         count:
           type: integer
-          example: 12
           description: The number of time units in the expiration period.
+          example: 12
       description: The grant expiration definition
     Feature:
       type: object
@@ -10615,29 +10615,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         archivedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Timestamp of when the resource was archived.
+          example: '2023-01-01T01:01:01.001Z'
           title: Archival Time
           readOnly: true
         key:
@@ -10653,35 +10653,35 @@ components:
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          title: Optional metadata
           example:
             key: value
-          title: Optional metadata
         meterSlug:
           type: string
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A key is a unique string that is used to identify a resource.
-          example: tokens_total
           title: Meter slug
+          example: tokens_total
         meterGroupByFilters:
           type: object
           additionalProperties:
             type: string
-          example:
-            model: gpt-4
-            type: input
           description: |-
             Optional meter group by filters.
             Useful if the meter scope is broader than what feature tracks.
             Example scenario would be a meter tracking all token use with groupBy fields for the model,
             then the feature could filter for model=gpt-4.
           title: Meter group by filters
+          example:
+            model: gpt-4
+            type: input
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Readonly unique ULID identifier.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           readOnly: true
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
@@ -10705,30 +10705,30 @@ components:
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
+          title: Optional metadata
           example:
             key: value
-          title: Optional metadata
         meterSlug:
           type: string
           minLength: 1
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A key is a unique string that is used to identify a resource.
-          example: tokens_total
           title: Meter slug
+          example: tokens_total
         meterGroupByFilters:
           type: object
           additionalProperties:
             type: string
-          example:
-            model: gpt-4
-            type: input
           description: |-
             Optional meter group by filters.
             Useful if the meter scope is broader than what feature tracks.
             Example scenario would be a meter tracking all token use with groupBy fields for the model,
             then the feature could filter for model=gpt-4.
           title: Meter group by filters
+          example:
+            model: gpt-4
+            type: input
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.
@@ -10740,17 +10740,17 @@ components:
       properties:
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Unique identifier of a feature.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           title: Feature Unique Identifier
         key:
           type: string
-          example: gpt4_tokens
           description: |-
             The key is an immutable unique identifier of the feature used throughout the API,
             for example when interacting with a subject's entitlements.
           title: Feature Key
+          example: gpt4_tokens
       description: Limited representation of a feature resource which includes only its unique identifiers (id, key).
     FeatureOrderBy:
       type: string
@@ -10769,16 +10769,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -10853,44 +10853,44 @@ components:
         usage:
           type: number
           format: double
-          example: 100
           description: The total usage of the grant in the period.
+          example: 100
           readOnly: true
         overage:
           type: number
           format: double
-          example: 100
           description: Overuse that wasn't covered by grants.
+          example: 100
           readOnly: true
         balanceAtStart:
           type: number
           format: double
-          example: 100
           description: entitlement balance at the start of the period.
+          example: 100
           readOnly: true
         grantBalancesAtStart:
           type: object
           additionalProperties:
             type: number
             format: double
+          description: 'The balance breakdown of each active grant at the start of the period: GrantID: Balance'
           example:
             01G65Z755AFWAKHE12NY0CQ9FH: 100
-          description: 'The balance breakdown of each active grant at the start of the period: GrantID: Balance'
           readOnly: true
         balanceAtEnd:
           type: number
           format: double
-          example: 100
           description: The entitlement balance at the end of the period.
+          example: 100
           readOnly: true
         grantBalancesAtEnd:
           type: object
           additionalProperties:
             type: number
             format: double
+          description: 'The balance breakdown of each active grant at the end of the period: GrantID: Balance'
           example:
             01G65Z755AFWAKHE12NY0CQ9FH: 100
-          description: 'The balance breakdown of each active grant at the end of the period: GrantID: Balance'
           readOnly: true
         grantUsages:
           type: array
@@ -10919,16 +10919,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -10943,14 +10943,14 @@ components:
       properties:
         grantId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The id of the grant
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         usage:
           type: number
           format: double
-          example: 100
           description: The usage in the period
+          example: 100
       description: Usage Record
     IDResource:
       type: object
@@ -10959,9 +10959,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
       description: IDResource is a resouce with an ID.
@@ -10991,13 +10991,14 @@ components:
         ingestedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The date and time the event was ingested.
+          example: '2023-01-01T01:01:01.001Z'
         storedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The date and time the event was stored.
+          example: '2023-01-01T01:01:01.001Z'
+      description: An ingested event with optional validation error.
       example:
         event:
           id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
@@ -11005,10 +11006,9 @@ components:
           specversion: '1.0'
           type: prompt
           subject: customer-id
-          time: 2023-01-01T01:01:01.001Z
-        ingestedAt: 2023-01-01T01:01:01.001Z
-        storedAt: 2023-01-01T01:01:02.001Z
-      description: An ingested event with optional validation error.
+          time: '2023-01-01T01:01:01.001Z'
+        ingestedAt: '2023-01-01T01:01:01.001Z'
+        storedAt: '2023-01-01T01:01:02.001Z'
     InternalServerErrorProblemResponse:
       type: object
       allOf:
@@ -11032,9 +11032,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         description:
@@ -11052,22 +11052,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         type:
@@ -11137,29 +11137,29 @@ components:
         issuedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time the invoice was issued.
 
             Depending on the status of the invoice this can mean multiple things:
             - draft, gathering: The time the invoice will be issued based on the workflow settings.
             - issued: The time the invoice was issued.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         draftUntil:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time until the invoice is in draft status.
 
             On draft invoice creation it is calculated from the workflow settings.
 
             If manual approval is required, the draftUntil time is set.
+          example: '2023-01-01T01:01:01.001Z'
         dueAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Due time of the fulfillment of the invoice (if available).
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         period:
           allOf:
@@ -11168,11 +11168,17 @@ components:
         voidedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time the invoice was voided.
 
             If the invoice was voided, this field will be set to the time the invoice was voided.
+          example: '2023-01-01T01:01:01.001Z'
+          readOnly: true
+        sentToCustomerAt:
+          type: string
+          format: date-time
+          description: The time the invoice was sent to customer.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         workflow:
           allOf:
@@ -11349,29 +11355,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         managedBy:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineManagedBy'
@@ -11445,8 +11451,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         externalIds:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
@@ -11523,8 +11529,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         type:
           type: string
           enum:
@@ -11550,9 +11556,9 @@ components:
           default: regular
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: |-
         InvoiceFlatFeeLineReplaceUpdate represents the update model for a flat fee invoice line.
 
@@ -11605,8 +11611,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         type:
           type: string
           enum:
@@ -11632,9 +11638,9 @@ components:
           default: regular
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer this line item belongs to.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: InvoiceFlatFeePendingLineCreate represents the create model for an invoice line that is sold to the customer as a manually added fee.
     InvoiceGenericDocumentRef:
       type: object
@@ -11693,29 +11699,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         percent:
           allOf:
@@ -11823,7 +11829,6 @@ components:
       description: TaxConfig stores the configuration for a tax line relative to an invoice line.
     InvoiceNumber:
       type: string
-      example: INV-2024-01-01-01
       minLength: 1
       maxLength: 256
       description: |-
@@ -11833,6 +11838,7 @@ components:
         The uniqueness depends on a lot of factors:
         - app setting (unique per app or unique per customer)
         - multiple app scenarios (multiple apps generating invoices with the same prefix)
+      example: INV-2024-01-01-01
     InvoiceOrderBy:
       type: string
       enum:
@@ -11852,16 +11858,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -11895,9 +11901,9 @@ components:
           type: array
           items:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
           description: |-
             The pending line items to include in the invoice, if not provided:
             - all line items that have invoice_at < asOf will be included
@@ -11906,16 +11912,16 @@ components:
         asOf:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time as of which the invoice is created.
 
             If not provided, the current time is used.
+          example: '2023-01-01T01:01:01.001Z'
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer ID for which to create the invoice.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: |-
         BillingInvoiceActionInput is the input for creating an invoice.
 
@@ -11928,9 +11934,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The ID of the invoice.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         number:
           allOf:
@@ -11961,13 +11967,13 @@ components:
         draftUntil:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time until the invoice is in draft status.
 
             On draft invoice creation it is calculated from the workflow settings.
 
             If manual approval is required, the draftUntil time is set.
+          example: '2023-01-01T01:01:01.001Z'
         supplier:
           allOf:
             - $ref: '#/components/schemas/BillingPartyReplaceUpdate'
@@ -12028,8 +12034,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         type:
           type: string
           enum:
@@ -12055,12 +12061,12 @@ components:
           default: regular
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             ID of the line. If not specified it will be auto-generated.
 
             When discounts are specified, this must be provided, so that the discount can reference it.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: InvoiceSimulationFlatFeeLine represents a flat fee line item that can be input to the simulation endpoint.
     InvoiceSimulationInput:
       type: object
@@ -12138,8 +12144,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         type:
           type: string
           enum:
@@ -12165,12 +12171,12 @@ components:
           description: The quantity of the item used before this line's period, if the line is billed progressively.
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             ID of the line. If not specified it will be auto-generated.
 
             When discounts are specified, this must be provided, so that the discount can reference it.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: InvoiceSimulationUsageBasedLine represents a usage-based line item that can be input to the simulation endpoint.
     InvoiceStatus:
       type: string
@@ -12303,29 +12309,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         managedBy:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineManagedBy'
@@ -12399,8 +12405,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         externalIds:
           allOf:
             - $ref: '#/components/schemas/InvoiceLineAppExternalIds'
@@ -12482,8 +12488,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         type:
           type: string
           enum:
@@ -12501,9 +12507,9 @@ components:
           description: The feature that the usage is based on.
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The ID of the line.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: |-
         InvoiceUpdateUsageBasedLineReplaceUpdate represents the update model for an UBP invoice line.
 
@@ -12556,8 +12562,8 @@ components:
         invoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time this line item should be invoiced.
+          example: '2023-01-01T01:01:01.001Z'
         type:
           type: string
           enum:
@@ -12575,9 +12581,9 @@ components:
           description: The feature that the usage is based on.
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer this line item belongs to.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: InvoiceUsageBasedLineCreateWithCustomer represents the create model for an invoice line that is sold to the customer based on usage.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
       type: object
@@ -12589,14 +12595,14 @@ components:
         draftPeriod:
           type: string
           format: ISO8601
-          example: P1D
           description: The period for the invoice to be kept in draft status for manual reviews.
+          example: P1D
           default: P1D
         dueAfter:
           type: string
           format: ISO8601
-          example: P1D
           description: The period after which the invoice is due.
+          example: P1D
           default: P7D
         defaultTaxConfig:
           allOf:
@@ -12632,13 +12638,13 @@ components:
           readOnly: true
         sourceBillingProfileId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             sourceBillingProfileID is the billing profile on which the workflow was based on.
 
             The profile is snapshotted on invoice creation, after which it can be altered independently
             of the profile itself.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         workflow:
           allOf:
@@ -12719,6 +12725,11 @@ components:
           items:
             $ref: '#/components/schemas/AppCapability'
           description: The app's capabilities.
+      description: |-
+        A marketplace listing.
+        Represent an available app in the app marketplace that can be installed to the organization.
+
+        Marketplace apps only exist in config so they don't extend the Resource model.
       example:
         type: stripe
         name: Stripe
@@ -12736,11 +12747,6 @@ components:
             key: stripe_collect_payments
             name: Collect Payments
             description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
-      description: |-
-        A marketplace listing.
-        Represent an available app in the app marketplace that can be installed to the organization.
-
-        Marketplace apps only exist in config so they don't extend the Resource model.
     MarketplaceListingList:
       type: object
       required:
@@ -12784,17 +12790,17 @@ components:
     MeasureUsageFromTime:
       type: string
       format: date-time
-      example: 2023-01-01T01:01:01.001Z
       description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+      example: '2023-01-01T01:01:01.001Z'
     Metadata:
       type: object
       additionalProperties:
         type: string
-      example:
-        externalId: 019142cc-a016-796a-8113-1a942fecd26d
       description: |-
         Set of key-value pairs.
         Metadata can be used to store additional information about a resource.
+      example:
+        externalId: 019142cc-a016-796a-8113-1a942fecd26d
       x-go-type: map[string]string
     Meter:
       type: object
@@ -12807,9 +12813,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the meter.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         slug:
           type: string
@@ -12822,9 +12828,9 @@ components:
           example: tokens_total
         description:
           type: string
-          example: AI Token Usage
           minLength: 1
           description: A description of the meter.
+          example: AI Token Usage
         aggregation:
           allOf:
             - $ref: '#/components/schemas/MeterAggregation'
@@ -12835,12 +12841,11 @@ components:
           example: MINUTE
         eventType:
           type: string
-          example: prompt
           minLength: 1
           description: The event type to aggregate.
+          example: prompt
         valueProperty:
           type: string
-          example: $.tokens
           minLength: 1
           description: |-
             JSONPath expression to extract the value from the ingested event's data property.
@@ -12848,18 +12853,20 @@ components:
             The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
 
             For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+          example: $.tokens
         groupBy:
           type: object
           additionalProperties:
             type: string
-          example:
-            type: $.type
           description: |-
             Named JSONPath expressions to extract the group by values from the event data.
 
             Keys must be unique and consist only alphanumeric and underscore characters.
 
             TODO: add key format enforcement
+          example:
+            type: $.type
+      description: A meter is a configuration that defines how to match and aggregate events.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         slug: tokens_total
@@ -12871,7 +12878,6 @@ components:
         groupBy:
           model: $.model
           type: $.type
-      description: A meter is a configuration that defines how to match and aggregate events.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.Meter
@@ -12907,9 +12913,9 @@ components:
           example: tokens_total
         description:
           type: string
-          example: AI Token Usage
           minLength: 1
           description: A description of the meter.
+          example: AI Token Usage
         aggregation:
           allOf:
             - $ref: '#/components/schemas/MeterAggregation'
@@ -12920,12 +12926,11 @@ components:
           example: MINUTE
         eventType:
           type: string
-          example: prompt
           minLength: 1
           description: The event type to aggregate.
+          example: prompt
         valueProperty:
           type: string
-          example: $.tokens
           minLength: 1
           description: |-
             JSONPath expression to extract the value from the ingested event's data property.
@@ -12933,18 +12938,20 @@ components:
             The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
 
             For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+          example: $.tokens
         groupBy:
           type: object
           additionalProperties:
             type: string
-          example:
-            type: $.type
           description: |-
             Named JSONPath expressions to extract the group by values from the event data.
 
             Keys must be unique and consist only alphanumeric and underscore characters.
 
             TODO: add key format enforcement
+          example:
+            type: $.type
+      description: A meter is a configuration that defines how to match and aggregate events.
       example:
         slug: tokens_total
         description: AI Token Usage
@@ -12955,7 +12962,6 @@ components:
         groupBy:
           model: $.model
           type: $.type
-      description: A meter is a configuration that defines how to match and aggregate events.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.Meter
@@ -12967,32 +12973,32 @@ components:
         from:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         to:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         windowSize:
           $ref: '#/components/schemas/WindowSize'
         data:
           type: array
           items:
             $ref: '#/components/schemas/MeterQueryRow'
+      description: The result of a meter query.
       example:
-        from: 2023-01-01T00:00:00Z
-        to: 2023-01-02T00:00:00Z
+        from: '2023-01-01T00:00:00Z'
+        to: '2023-01-02T00:00:00Z'
         windowSize: DAY
         data:
           - value: 12
-            windowStart: 2023-01-01T00:00:00Z
-            windowEnd: 2023-01-02T00:00:00Z
+            windowStart: '2023-01-01T00:00:00Z'
+            windowEnd: '2023-01-02T00:00:00Z'
             subject: customer-1
             groupBy:
               model: gpt-4-turbo
               type: prompt
-      description: The result of a meter query.
     MeterQueryRow:
       type: object
       required:
@@ -13005,28 +13011,28 @@ components:
         windowStart:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         windowEnd:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         subject:
           type: string
         groupBy:
           type: object
           additionalProperties:
             type: string
+      description: A row in the result of a meter query.
       example:
         value: 12
-        windowStart: 2023-01-01T00:00:00Z
-        windowEnd: 2023-01-02T00:00:00Z
+        windowStart: '2023-01-01T00:00:00Z'
+        windowEnd: '2023-01-02T00:00:00Z'
         subject: customer-1
         groupBy:
           model: gpt-4-turbo
           type: prompt
-      description: A row in the result of a meter query.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.MeterQueryRow
@@ -13058,9 +13064,9 @@ components:
       properties:
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Identifies the notification channel.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           title: Channel Unique Identifier
           readOnly: true
         type:
@@ -13088,16 +13094,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -13124,29 +13130,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Identifies the notification channel.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           title: Channel Unique Identifier
           readOnly: true
         type:
@@ -13157,20 +13163,20 @@ components:
           title: Channel Type
         name:
           type: string
-          example: customer-webhook
           description: User friendly name of the channel.
           title: Channel Name
+          example: customer-webhook
         disabled:
           type: boolean
-          example: true
           description: Whether the channel is disabled or not.
           title: Channel Disabled
+          example: true
           default: false
         url:
           type: string
-          example: https://example.com/webhook
           description: Webhook URL where the notification is sent.
           title: Webhook URL
+          example: https://example.com/webhook
         customHeaders:
           type: object
           additionalProperties:
@@ -13179,13 +13185,13 @@ components:
           title: Custom HTTP Headers
         signingSecret:
           type: string
-          example: whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
           pattern: ^(whsec_)?[a-zA-Z0-9+/=]{32,100}$
           description: |-
             Signing secret used for webhook request validation on the receiving end.
 
             Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
           title: Signing Secret
+          example: whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
       description: Notification channel with webhook type.
     NotificationChannelWebhookCreateRequest:
       type: object
@@ -13202,20 +13208,20 @@ components:
           title: Channel Type
         name:
           type: string
-          example: customer-webhook
           description: User friendly name of the channel.
           title: Channel Name
+          example: customer-webhook
         disabled:
           type: boolean
-          example: true
           description: Whether the channel is disabled or not.
           title: Channel Disabled
+          example: true
           default: false
         url:
           type: string
-          example: https://example.com/webhook
           description: Webhook URL where the notification is sent.
           title: Webhook URL
+          example: https://example.com/webhook
         customHeaders:
           type: object
           additionalProperties:
@@ -13224,13 +13230,13 @@ components:
           title: Custom HTTP Headers
         signingSecret:
           type: string
-          example: whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
           pattern: ^(whsec_)?[a-zA-Z0-9+/=]{32,100}$
           description: |-
             Signing secret used for webhook request validation on the receiving end.
 
             Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
           title: Signing Secret
+          example: whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
       description: Request with input parameters for creating new notification channel with webhook type.
     NotificationEvent:
       type: object
@@ -13244,9 +13250,9 @@ components:
       properties:
         id:
           type: string
-          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier of the notification event.
+          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
           title: Event Identifier
           readOnly: true
         type:
@@ -13258,8 +13264,8 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Timestamp when the notification event was created in RFC 3339 format.
+          example: '2023-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         rule:
@@ -13296,9 +13302,9 @@ components:
       properties:
         id:
           type: string
-          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the notification event the payload belongs to.
+          example: 01J2KNP1YTXQRXHTDJ4KPR7PZ0
           title: Notification Event Identifier
           readOnly: true
         type:
@@ -13311,8 +13317,8 @@ components:
         timestamp:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Timestamp when the notification event was created in RFC 3339 format.
+          example: '2023-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         data:
@@ -13368,20 +13374,20 @@ components:
         state:
           allOf:
             - $ref: '#/components/schemas/NotificationEventDeliveryStatusState'
-          example: SUCCESS
           description: Delivery state of the notification event to the channel.
+          example: SUCCESS
           readOnly: true
         reason:
           type: string
-          example: Failed to dispatch event due to provider error.
           description: The reason of the last deliverry state update.
           title: State Reason
+          example: Failed to dispatch event due to provider error.
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Timestamp of when the status was last updated in RFC 3339 format.
+          example: '2023-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         channel:
@@ -13421,16 +13427,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -13466,29 +13472,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: Identifies the notification rule.
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
           title: Rule Unique Identifier
           readOnly: true
         type:
@@ -13499,14 +13505,14 @@ components:
           title: Rule Type
         name:
           type: string
-          example: Balance threshold reached
           description: The user friendly name of the notification rule.
           title: Rule Name
+          example: Balance threshold reached
         disabled:
           type: boolean
-          example: true
           description: Whether the rule is disabled or not.
           title: Rule Disabled
+          example: true
           default: false
         channels:
           type: array
@@ -13546,14 +13552,14 @@ components:
           title: Rule Type
         name:
           type: string
-          example: Balance threshold reached
           description: The user friendly name of the notification rule.
           title: Rule Name
+          example: Balance threshold reached
         disabled:
           type: boolean
-          example: true
           description: Whether the rule is disabled or not.
           title: Rule Disabled
+          example: true
           default: false
         thresholds:
           type: array
@@ -13567,9 +13573,9 @@ components:
           type: array
           items:
             type: string
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             description: ULID (Universally Unique Lexicographically Sortable Identifier).
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
           minItems: 1
           description: List of notification channels the rule is applied to.
           title: Channels
@@ -13598,14 +13604,14 @@ components:
         value:
           type: number
           format: double
-          example: 100
           description: Value of the threshold.
           title: Threshold Value
+          example: 100
         type:
           allOf:
             - $ref: '#/components/schemas/NotificationRuleBalanceThresholdValueType'
-          example: NUMBER
           description: Type of the threshold.
+          example: NUMBER
       description: Threshold value with multiple supported types.
     NotificationRuleBalanceThresholdValueType:
       type: string
@@ -13640,16 +13646,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -13680,8 +13686,8 @@ components:
         dueAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: When the payment is due.
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         notes:
           type: string
@@ -13767,13 +13773,13 @@ components:
         from:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: Period start time.
+          example: '2023-01-01T01:01:01.001Z'
         to:
           type: string
           format: date-time
-          example: 2023-02-01T01:01:01.001Z
           description: Period end time.
+          example: '2023-02-01T01:01:01.001Z'
       description: A period with a start and end time.
     Plan:
       type: object
@@ -13790,9 +13796,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -13816,22 +13822,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         key:
@@ -13857,15 +13863,15 @@ components:
         effectiveFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The date and time when the plan becomes effective. When not specified, the plan is a draft.
+          example: '2023-01-01T01:01:01.001Z'
           title: Effective start date
           readOnly: true
         effectiveTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The date and time when the plan is no longer effective. When not specified, the plan is effective indefinitely.
+          example: '2023-01-01T01:01:01.001Z'
           title: Effective end date
           readOnly: true
         status:
@@ -13958,16 +13964,16 @@ components:
       properties:
         totalCount:
           type: integer
-          example: 500
           description: The items in the current page.
+          example: 500
         page:
           type: integer
-          example: 1
           description: The items in the current page.
+          example: 1
         pageSize:
           type: integer
-          example: 100
           description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
@@ -14011,9 +14017,9 @@ components:
           type: string
           format: duration
           nullable: true
-          example: P1Y
           description: The duration of the phase.
           title: Duration
+          example: P1Y
         rateCards:
           type: array
           items:
@@ -14036,9 +14042,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The plan ID.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         key:
           type: string
           minLength: 1
@@ -14120,8 +14126,8 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         name:
           type: string
         description:
@@ -14142,17 +14148,17 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
         name:
           type: string
         description:
           type: string
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Create subscription based on plan.
     PortalToken:
       type: object
@@ -14161,9 +14167,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         subject:
           type: string
@@ -14171,8 +14177,8 @@ components:
         expiresAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         expired:
           type: boolean
@@ -14180,21 +14186,21 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
           readOnly: true
         token:
           type: string
-          example: om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo
           description: The token is only returned at creation.
+          example: om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo
           readOnly: true
         allowedMeterSlugs:
           type: array
           items:
             type: string
+          description: Optional, if defined only the specified meters will be allowed.
           example:
             - tokens_total
-          description: Optional, if defined only the specified meters will be allowed.
       description: |-
         A consumer portal token.
 
@@ -14354,11 +14360,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
           nullable: true
-          example: {}
           description: |-
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
+          example:
+            type: flat
+            amount: '100'
+            paymentTerm: in_arrears
       description: A flat fee rate card defines a one-time purchase or a recurring fee.
     RateCardMeteredEntitlement:
       type: object
@@ -14426,8 +14435,8 @@ components:
         config:
           type: string
           format: json
-          example: '{ "integrations": ["github"] }'
           description: The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
+          example: '{ "integrations": ["github"] }'
       description: Entitlement template of a static entitlement.
     RateCardUsageBased:
       type: object
@@ -14533,14 +14542,14 @@ components:
         anchor:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: A date-time anchor to base the recurring period on.
+          example: '2023-01-01T01:01:01.001Z'
           title: Anchor time
+      description: Recurring period with an interval and an anchor.
       example:
         interval: DAY
         intervalISO: P1D
-        anchor: 2023-01-01T01:01:01.001Z
-      description: Recurring period with an interval and an anchor.
+        anchor: '2023-01-01T01:01:01.001Z'
     RecurringPeriodCreateInput:
       type: object
       required:
@@ -14554,13 +14563,13 @@ components:
         anchor:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: A date-time anchor to base the recurring period on.
+          example: '2023-01-01T01:01:01.001Z'
           title: Anchor time
+      description: Recurring period with an interval and an anchor.
       example:
         interval: DAY
-        anchor: 2023-01-01T01:01:01.001Z
-      description: Recurring period with an interval and an anchor.
+        anchor: '2023-01-01T01:01:01.001Z'
     RecurringPeriodInterval:
       anyOf:
         - type: string
@@ -14589,8 +14598,8 @@ components:
         effectiveAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.
+          example: '2023-01-01T01:01:01.001Z'
         retainAnchor:
           type: boolean
           description: |-
@@ -14618,9 +14627,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -14644,22 +14653,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         listing:
@@ -14699,11 +14708,11 @@ components:
           readOnly: true
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The app ID.
             If not provided, it will use the global default for the app type.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: App ID
         type:
           type: string
@@ -14750,9 +14759,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -14776,22 +14785,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         listing:
@@ -14825,6 +14834,7 @@ components:
           description: |-
             The masked API key.
             Only shows the first 8 and last 3 characters.
+      description: A installed Stripe app object.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         type: stripe
@@ -14848,12 +14858,11 @@ components:
               key: stripe_collect_payments
               name: Collect Payments
               description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
-        createdAt: 2024-01-01T01:01:01.001Z
-        updatedAt: 2024-01-01T01:01:01.001Z
+        createdAt: '2024-01-01T01:01:01.001Z'
+        updatedAt: '2024-01-01T01:01:01.001Z'
         stripeAccountId: acct_123456789
         livemode: true
         maskedAPIKey: sk_live_************abc
-      description: A installed Stripe app object.
     StripeCheckoutSessionMode:
       type: string
       enum:
@@ -14867,11 +14876,11 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The app ID.
             If not provided, it will use the global default for the app type.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: App ID
         type:
           type: string
@@ -14890,10 +14899,10 @@ components:
         stripeDefaultPaymentMethodId:
           type: string
           description: The Stripe default payment method ID.
+      description: Stripe Customer App Data.
       example:
         type: stripe
         stripeCustomerId: cus_xxxxxxxxxxxxxx
-      description: Stripe Customer App Data.
     StripePaymentIntentStatus:
       type: string
       enum:
@@ -14943,13 +14952,13 @@ components:
       properties:
         code:
           type: string
-          example: txcd_10000000
           pattern: ^txcd_\d{8}$
           description: |-
             Product tax code.
 
             See: https://docs.stripe.com/tax/tax-codes
           title: Tax code
+          example: txcd_10000000
       description: The tax config for Stripe.
     StripeWebhookEvent:
       type: object
@@ -14990,19 +14999,19 @@ components:
       properties:
         namespaceId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         appId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Stripe webhook response.
     Subject:
       type: object
@@ -15012,48 +15021,49 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the subject.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         key:
           type: string
-          example: customer-id
           description: A unique, human-readable identifier for the subject.
+          example: customer-id
         displayName:
           type: string
           nullable: true
-          example: Customer Name
           description: A human-readable display name for the subject.
+          example: Customer Name
         metadata:
           type: object
           additionalProperties: {}
           nullable: true
-          example: {}
+          example:
+            hubspotId: '123456'
         currentPeriodStart:
           type: string
           format: date-time
-          example: 2023-01-01T00:00:00Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T00:00:00Z'
         currentPeriodEnd:
           type: string
           format: date-time
-          example: 2023-02-01T00:00:00Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-02-01T00:00:00Z'
         stripeCustomerId:
           type: string
           nullable: true
           example: cus_JMOlctsKV8
+      description: A subject is a unique identifier for a user or entity.
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         key: customer-id
         displayName: Customer Name
         metadata:
           hubspotId: '123456'
-        currentPeriodStart: 2023-01-01T00:00:00Z
-        currentPeriodEnd: 2023-02-01T00:00:00Z
+        currentPeriodStart: '2023-01-01T00:00:00Z'
+        currentPeriodEnd: '2023-02-01T00:00:00Z'
         stripeCustomerId: cus_JMOlctsKV8
-      description: A subject is a unique identifier for a user or entity.
     SubjectUpsert:
       type: object
       required:
@@ -15061,41 +15071,42 @@ components:
       properties:
         key:
           type: string
-          example: customer-id
           description: A unique, human-readable identifier for the subject.
+          example: customer-id
         displayName:
           type: string
           nullable: true
-          example: Customer Name
           description: A human-readable display name for the subject.
+          example: Customer Name
         metadata:
           type: object
           additionalProperties: {}
           nullable: true
-          example: {}
+          example:
+            hubspotId: '123456'
         currentPeriodStart:
           type: string
           format: date-time
-          example: 2023-01-01T00:00:00Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T00:00:00Z'
         currentPeriodEnd:
           type: string
           format: date-time
-          example: 2023-02-01T00:00:00Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-02-01T00:00:00Z'
         stripeCustomerId:
           type: string
           nullable: true
           example: cus_JMOlctsKV8
+      description: A subject is a unique identifier for a user or entity.
       example:
         key: customer-id
         displayName: Customer Name
         metadata:
           hubspotId: '123456'
-        currentPeriodStart: 2023-01-01T00:00:00Z
-        currentPeriodEnd: 2023-02-01T00:00:00Z
+        currentPeriodStart: '2023-01-01T00:00:00Z'
+        currentPeriodEnd: '2023-02-01T00:00:00Z'
         stripeCustomerId: cus_JMOlctsKV8
-      description: A subject is a unique identifier for a user or entity.
     Subscription:
       type: object
       required:
@@ -15110,9 +15121,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -15136,34 +15147,34 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'
@@ -15171,9 +15182,9 @@ components:
           readOnly: true
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer ID of the subscription.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         plan:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
@@ -15256,9 +15267,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -15282,34 +15293,34 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'
@@ -15317,9 +15328,9 @@ components:
           readOnly: true
         customerId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The customer ID of the subscription.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         plan:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
@@ -15351,9 +15362,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -15377,34 +15388,34 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence start of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The cadence end of the resource.
+          example: '2023-01-01T01:01:01.001Z'
         key:
           type: string
           minLength: 1
@@ -15449,11 +15460,14 @@ components:
               allOf:
                 - $ref: '#/components/schemas/TieredPriceWithCommitments'
               nullable: true
-          example: {}
           description: |-
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
+          example:
+            type: flat
+            amount: '100'
+            paymentTerm: in_arrears
         included:
           allOf:
             - $ref: '#/components/schemas/SubscriptionItemIncluded'
@@ -15491,19 +15505,19 @@ components:
           type: string
           format: duration
           nullable: true
-          example: P1Y
           description: |-
             Interval after the subscription starts to transition to the phase.
             When null, the phase starts immediately after the subscription starts.
           title: Start after
+          example: P1Y
         duration:
           type: string
           format: duration
-          example: P1M
           description: |-
             The intended duration of the new phase.
             Duration is required when the phase will not be the last phase.
           title: Duration
+          example: P1M
         discounts:
           type: array
           items:
@@ -15536,9 +15550,9 @@ components:
       properties:
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
         name:
@@ -15562,22 +15576,22 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         key:
@@ -15595,13 +15609,13 @@ components:
         activeFrom:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The time from which the phase is active.
+          example: '2023-01-01T01:01:01.001Z'
         activeTo:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: The until which the Phase is active.
+          example: '2023-01-01T01:01:01.001Z'
         items:
           type: array
           items:
@@ -15731,29 +15745,29 @@ components:
         type:
           type: string
           format: uri
-          example: about:blank
           description: Type contains a URI that identifies the problem type.
+          example: about:blank
           default: about:blank
         title:
           type: string
-          example: Bad Request
           description: A a short, human-readable summary of the problem type.
+          example: Bad Request
         status:
           type: integer
           format: int16
-          example: 400
           minimum: 400
           maximum: 599
           description: The HTTP status code generated by the origin server for this occurrence of the problem.
+          example: 400
         detail:
           type: string
-          example: The request body must be a JSON object.
           description: A human-readable explanation specific to this occurrence of the problem.
+          example: The request body must be a JSON object.
         instance:
           type: string
           format: uri
-          example: urn:request:local/JMOlctsKV8-000001
           description: A URI reference that identifies the specific occurrence of the problem.
+          example: urn:request:local/JMOlctsKV8-000001
       additionalProperties:
         anyOf:
           - type: string
@@ -15819,29 +15833,29 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
           title: Creation Time
           readOnly: true
         updatedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
         deletedAt:
           type: string
           format: date-time
-          example: 2024-01-01T01:01:01.001Z
           description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
         id:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ID of the charge or discount.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
         severity:
           allOf:
@@ -15943,9 +15957,9 @@ components:
       properties:
         lineId:
           type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: The line item ID to override.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
         action:
           allOf:
             - $ref: '#/components/schemas/VoidInvoiceActionCreateItem'
@@ -15995,11 +16009,11 @@ components:
         nextInvoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time at which the line item should be invoiced again.
 
             If not provided, the line item will be re-invoiced now.
+          example: '2023-01-01T01:01:01.001Z'
       description: VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice.
     VoidInvoiceLinePendingActionCreateItem:
       type: object
@@ -16014,11 +16028,11 @@ components:
         nextInvoiceAt:
           type: string
           format: date-time
-          example: 2023-01-01T01:01:01.001Z
           description: |-
             The time at which the line item should be invoiced again.
 
             If not provided, the line item will be re-invoiced now.
+          example: '2023-01-01T01:01:01.001Z'
       description: VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice.
     WindowSize:
       type: string

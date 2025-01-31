@@ -424,6 +424,20 @@ func (bic *BillingInvoiceCreate) SetNillableIssuedAt(t *time.Time) *BillingInvoi
 	return bic
 }
 
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (bic *BillingInvoiceCreate) SetSentToCustomerAt(t time.Time) *BillingInvoiceCreate {
+	bic.mutation.SetSentToCustomerAt(t)
+	return bic
+}
+
+// SetNillableSentToCustomerAt sets the "sent_to_customer_at" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableSentToCustomerAt(t *time.Time) *BillingInvoiceCreate {
+	if t != nil {
+		bic.SetSentToCustomerAt(*t)
+	}
+	return bic
+}
+
 // SetDraftUntil sets the "draft_until" field.
 func (bic *BillingInvoiceCreate) SetDraftUntil(t time.Time) *BillingInvoiceCreate {
 	bic.mutation.SetDraftUntil(t)
@@ -1026,6 +1040,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.IssuedAt(); ok {
 		_spec.SetField(billinginvoice.FieldIssuedAt, field.TypeTime, value)
 		_node.IssuedAt = &value
+	}
+	if value, ok := bic.mutation.SentToCustomerAt(); ok {
+		_spec.SetField(billinginvoice.FieldSentToCustomerAt, field.TypeTime, value)
+		_node.SentToCustomerAt = &value
 	}
 	if value, ok := bic.mutation.DraftUntil(); ok {
 		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
@@ -1778,6 +1796,24 @@ func (u *BillingInvoiceUpsert) UpdateIssuedAt() *BillingInvoiceUpsert {
 // ClearIssuedAt clears the value of the "issued_at" field.
 func (u *BillingInvoiceUpsert) ClearIssuedAt() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldIssuedAt)
+	return u
+}
+
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (u *BillingInvoiceUpsert) SetSentToCustomerAt(v time.Time) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSentToCustomerAt, v)
+	return u
+}
+
+// UpdateSentToCustomerAt sets the "sent_to_customer_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSentToCustomerAt() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSentToCustomerAt)
+	return u
+}
+
+// ClearSentToCustomerAt clears the value of the "sent_to_customer_at" field.
+func (u *BillingInvoiceUpsert) ClearSentToCustomerAt() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldSentToCustomerAt)
 	return u
 }
 
@@ -2602,6 +2638,27 @@ func (u *BillingInvoiceUpsertOne) UpdateIssuedAt() *BillingInvoiceUpsertOne {
 func (u *BillingInvoiceUpsertOne) ClearIssuedAt() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearIssuedAt()
+	})
+}
+
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (u *BillingInvoiceUpsertOne) SetSentToCustomerAt(v time.Time) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSentToCustomerAt(v)
+	})
+}
+
+// UpdateSentToCustomerAt sets the "sent_to_customer_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSentToCustomerAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSentToCustomerAt()
+	})
+}
+
+// ClearSentToCustomerAt clears the value of the "sent_to_customer_at" field.
+func (u *BillingInvoiceUpsertOne) ClearSentToCustomerAt() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSentToCustomerAt()
 	})
 }
 
@@ -3618,6 +3675,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateIssuedAt() *BillingInvoiceUpsertBulk {
 func (u *BillingInvoiceUpsertBulk) ClearIssuedAt() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearIssuedAt()
+	})
+}
+
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (u *BillingInvoiceUpsertBulk) SetSentToCustomerAt(v time.Time) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSentToCustomerAt(v)
+	})
+}
+
+// UpdateSentToCustomerAt sets the "sent_to_customer_at" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSentToCustomerAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSentToCustomerAt()
+	})
+}
+
+// ClearSentToCustomerAt clears the value of the "sent_to_customer_at" field.
+func (u *BillingInvoiceUpsertBulk) ClearSentToCustomerAt() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearSentToCustomerAt()
 	})
 }
 

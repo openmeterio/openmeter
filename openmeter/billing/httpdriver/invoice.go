@@ -481,14 +481,15 @@ func (h *handler) mapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) 
 	out := api.Invoice{
 		Id: invoice.ID,
 
-		CreatedAt:  invoice.CreatedAt,
-		UpdatedAt:  invoice.UpdatedAt,
-		DeletedAt:  invoice.DeletedAt,
-		IssuedAt:   invoice.IssuedAt,
-		VoidedAt:   invoice.VoidedAt,
-		DueAt:      invoice.DueAt,
-		DraftUntil: invoice.DraftUntil,
-		Period:     mapPeriodToAPI(invoice.Period),
+		CreatedAt:        invoice.CreatedAt,
+		UpdatedAt:        invoice.UpdatedAt,
+		DeletedAt:        invoice.DeletedAt,
+		IssuedAt:         invoice.IssuedAt,
+		VoidedAt:         invoice.VoidedAt,
+		DueAt:            invoice.DueAt,
+		DraftUntil:       invoice.DraftUntil,
+		SentToCustomerAt: invoice.SentToCustomerAt,
+		Period:           mapPeriodToAPI(invoice.Period),
 
 		Currency: string(invoice.Currency),
 		Customer: mapInvoiceCustomerToAPI(invoice.Customer),

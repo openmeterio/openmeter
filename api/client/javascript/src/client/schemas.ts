@@ -4086,6 +4086,12 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly voidedAt?: Date
+      /**
+       * Format: date-time
+       * @description The time the invoice was sent to customer.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      readonly sentToCustomerAt?: Date
       /** @description The workflow associated with the invoice.
        *
        *     It is always a snapshot of the workflow settings at the time of invoice creation. The
@@ -6247,7 +6253,11 @@ export interface components {
        * Price
        * @description The price of the rate card.
        *     When null, the feature or service is free.
-       * @example {}
+       * @example {
+       *       "type": "flat",
+       *       "amount": "100",
+       *       "paymentTerm": "in_arrears"
+       *     }
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
     }
@@ -6773,7 +6783,9 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {} */
+      /** @example {
+       *       "hubspotId": "123456"
+       *     } */
       metadata?: {
         [key: string]: unknown
       } | null
@@ -6816,7 +6828,9 @@ export interface components {
        * @example Customer Name
        */
       displayName?: string | null
-      /** @example {} */
+      /** @example {
+       *       "hubspotId": "123456"
+       *     } */
       metadata?: {
         [key: string]: unknown
       } | null
@@ -7089,7 +7103,11 @@ export interface components {
        * Price
        * @description The price of the rate card.
        *     When null, the feature or service is free.
-       * @example {}
+       * @example {
+       *       "type": "flat",
+       *       "amount": "100",
+       *       "paymentTerm": "in_arrears"
+       *     }
        */
       price:
         | (components['schemas']['FlatPriceWithPaymentTerm'] | null)

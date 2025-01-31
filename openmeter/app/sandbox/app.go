@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 var (
@@ -71,10 +72,9 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 		return nil, fmt.Errorf("failed to generate invoice sequence number: %w", err)
 	}
 
-	finalizeResult := billing.NewFinalizeInvoiceResult()
-	finalizeResult.SetInvoiceNumber(invoiceNumber)
-
-	return finalizeResult, nil
+	return billing.NewFinalizeInvoiceResult().
+		SetInvoiceNumber(invoiceNumber).
+		SetSentToCustomerAt(clock.Now()), nil
 }
 
 func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {

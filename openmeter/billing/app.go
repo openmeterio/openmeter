@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/samber/mo"
 
 	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 )
@@ -27,20 +30,23 @@ func (u *UpsertResults) GetInvoiceNumber() (string, bool) {
 	return u.invoiceNumber, u.invoiceNumber != ""
 }
 
-func (u *UpsertResults) SetInvoiceNumber(invoiceNumber string) {
+func (u *UpsertResults) SetInvoiceNumber(invoiceNumber string) *UpsertResults {
 	u.invoiceNumber = invoiceNumber
+	return u
 }
 
 func (u *UpsertResults) GetExternalID() (string, bool) {
 	return u.externalID, u.externalID != ""
 }
 
-func (u *UpsertResults) SetExternalID(externalID string) {
+func (u *UpsertResults) SetExternalID(externalID string) *UpsertResults {
 	u.externalID = externalID
+	return u
 }
 
-func (u *UpsertResults) AddLineExternalID(lineID string, externalID string) {
+func (u *UpsertResults) AddLineExternalID(lineID string, externalID string) *UpsertResults {
 	u.lineExternalIDs[lineID] = externalID
+	return u
 }
 
 func (u *UpsertResults) GetLineExternalID(lineID string) (string, bool) {
@@ -52,8 +58,9 @@ func (u *UpsertResults) GetLineExternalIDs() map[string]string {
 	return u.lineExternalIDs
 }
 
-func (u *UpsertResults) AddLineDiscountExternalID(lineDiscountID string, externalID string) {
+func (u *UpsertResults) AddLineDiscountExternalID(lineDiscountID string, externalID string) *UpsertResults {
 	u.LineDiscountExternalIDs[lineDiscountID] = externalID
+	return u
 }
 
 func (u *UpsertResults) GetLineDiscountExternalID(lineDiscountID string) (string, bool) {
@@ -74,6 +81,7 @@ func NewUpsertInvoiceResult() *UpsertInvoiceResult {
 type FinalizeInvoiceResult struct {
 	invoiceNumber     string
 	paymentExternalID string
+	sentToCustomerAt  mo.Option[time.Time]
 }
 
 func NewFinalizeInvoiceResult() *FinalizeInvoiceResult {
@@ -84,16 +92,27 @@ func (f *FinalizeInvoiceResult) GetPaymentExternalID() (string, bool) {
 	return f.paymentExternalID, f.paymentExternalID != ""
 }
 
-func (f *FinalizeInvoiceResult) SetPaymentExternalID(paymentExternalID string) {
+func (f *FinalizeInvoiceResult) SetPaymentExternalID(paymentExternalID string) *FinalizeInvoiceResult {
 	f.paymentExternalID = paymentExternalID
+	return f
 }
 
 func (u *FinalizeInvoiceResult) GetInvoiceNumber() (string, bool) {
 	return u.invoiceNumber, u.invoiceNumber != ""
 }
 
-func (f *FinalizeInvoiceResult) SetInvoiceNumber(invoiceNumber string) {
+func (f *FinalizeInvoiceResult) SetInvoiceNumber(invoiceNumber string) *FinalizeInvoiceResult {
 	f.invoiceNumber = invoiceNumber
+	return f
+}
+
+func (f *FinalizeInvoiceResult) GetSentToCustomerAt() (time.Time, bool) {
+	return f.sentToCustomerAt.OrEmpty(), f.sentToCustomerAt.IsPresent()
+}
+
+func (f *FinalizeInvoiceResult) SetSentToCustomerAt(sentToCustomerAt time.Time) *FinalizeInvoiceResult {
+	f.sentToCustomerAt = mo.Some(sentToCustomerAt)
+	return f
 }
 
 type InvoicingApp interface {

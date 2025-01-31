@@ -478,6 +478,10 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			if invoiceNumber, ok := results.GetInvoiceNumber(); ok {
 				m.Invoice.Number = invoiceNumber
 			}
+
+			if sentToCustomerAt, ok := results.GetSentToCustomerAt(); ok {
+				m.Invoice.SentToCustomerAt = &sentToCustomerAt
+			}
 		}
 
 		return nil

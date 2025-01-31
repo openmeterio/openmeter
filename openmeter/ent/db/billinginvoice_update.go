@@ -593,6 +593,26 @@ func (biu *BillingInvoiceUpdate) ClearIssuedAt() *BillingInvoiceUpdate {
 	return biu
 }
 
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (biu *BillingInvoiceUpdate) SetSentToCustomerAt(t time.Time) *BillingInvoiceUpdate {
+	biu.mutation.SetSentToCustomerAt(t)
+	return biu
+}
+
+// SetNillableSentToCustomerAt sets the "sent_to_customer_at" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableSentToCustomerAt(t *time.Time) *BillingInvoiceUpdate {
+	if t != nil {
+		biu.SetSentToCustomerAt(*t)
+	}
+	return biu
+}
+
+// ClearSentToCustomerAt clears the value of the "sent_to_customer_at" field.
+func (biu *BillingInvoiceUpdate) ClearSentToCustomerAt() *BillingInvoiceUpdate {
+	biu.mutation.ClearSentToCustomerAt()
+	return biu
+}
+
 // SetDraftUntil sets the "draft_until" field.
 func (biu *BillingInvoiceUpdate) SetDraftUntil(t time.Time) *BillingInvoiceUpdate {
 	biu.mutation.SetDraftUntil(t)
@@ -1150,6 +1170,12 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if biu.mutation.IssuedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldIssuedAt, field.TypeTime)
+	}
+	if value, ok := biu.mutation.SentToCustomerAt(); ok {
+		_spec.SetField(billinginvoice.FieldSentToCustomerAt, field.TypeTime, value)
+	}
+	if biu.mutation.SentToCustomerAtCleared() {
+		_spec.ClearField(billinginvoice.FieldSentToCustomerAt, field.TypeTime)
 	}
 	if value, ok := biu.mutation.DraftUntil(); ok {
 		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
@@ -1938,6 +1964,26 @@ func (biuo *BillingInvoiceUpdateOne) ClearIssuedAt() *BillingInvoiceUpdateOne {
 	return biuo
 }
 
+// SetSentToCustomerAt sets the "sent_to_customer_at" field.
+func (biuo *BillingInvoiceUpdateOne) SetSentToCustomerAt(t time.Time) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetSentToCustomerAt(t)
+	return biuo
+}
+
+// SetNillableSentToCustomerAt sets the "sent_to_customer_at" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableSentToCustomerAt(t *time.Time) *BillingInvoiceUpdateOne {
+	if t != nil {
+		biuo.SetSentToCustomerAt(*t)
+	}
+	return biuo
+}
+
+// ClearSentToCustomerAt clears the value of the "sent_to_customer_at" field.
+func (biuo *BillingInvoiceUpdateOne) ClearSentToCustomerAt() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearSentToCustomerAt()
+	return biuo
+}
+
 // SetDraftUntil sets the "draft_until" field.
 func (biuo *BillingInvoiceUpdateOne) SetDraftUntil(t time.Time) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetDraftUntil(t)
@@ -2525,6 +2571,12 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.IssuedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldIssuedAt, field.TypeTime)
+	}
+	if value, ok := biuo.mutation.SentToCustomerAt(); ok {
+		_spec.SetField(billinginvoice.FieldSentToCustomerAt, field.TypeTime, value)
+	}
+	if biuo.mutation.SentToCustomerAtCleared() {
+		_spec.ClearField(billinginvoice.FieldSentToCustomerAt, field.TypeTime)
 	}
 	if value, ok := biuo.mutation.DraftUntil(); ok {
 		_spec.SetField(billinginvoice.FieldDraftUntil, field.TypeTime, value)
