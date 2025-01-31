@@ -12,9 +12,11 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/shopspring/decimal"
+	"golang.org/x/exp/constraints"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
+	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -116,7 +118,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mode
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("get values: %w", err)
+		return nil, err
 	}
 
 	// If the total usage is queried for a single period (no window size),
@@ -252,6 +254,8 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		return nil, fmt.Errorf("query events table query: %w", err)
 	}
 
+	defer rows.Close()
+
 	events := []api.IngestedEvent{}
 
 	for rows.Next() {
@@ -306,6 +310,10 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		events = append(events, ingestedEvent)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("query events table rows error: %w", err)
+	}
+
 	return events, nil
 }
 
@@ -330,6 +338,8 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 
 	results := []streaming.CountEventRow{}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		result := streaming.CountEventRow{}
 
@@ -338,6 +348,10 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 		}
 
 		results = append(results, result)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("query events count rows error: %w", err)
 	}
 
 	return results, nil
@@ -370,6 +384,65 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 		return values, fmt.Errorf("query meter view: %w", err)
 	}
 
+	// If the client ID is set, we want to track the progress of the query
+	if params.ClientID != nil {
+		totalRows := uint64(0)
+		successRows := uint64(0)
+
+		// Build SQL query to count the total number of rows
+		countSQL, countArgs, err := queryMeter.toCountRowSQL()
+		if err != nil {
+			return values, fmt.Errorf("count sql: %w", err)
+		}
+
+		// Count the total number of rows
+		countRows, err := c.config.ClickHouse.Query(ctx, countSQL, countArgs...)
+		if err != nil {
+			if strings.Contains(err.Error(), "code: 60") {
+				return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			}
+
+			return values, fmt.Errorf("count query: %w", err)
+		}
+
+		defer countRows.Close()
+
+		for countRows.Next() {
+			if err := countRows.Scan(&totalRows); err != nil {
+				return values, fmt.Errorf("count row scan: %w", err)
+			}
+		}
+
+		if err := countRows.Err(); err != nil {
+			return values, fmt.Errorf("count rows error: %w", err)
+		}
+
+		// Use context to pass a call back for progress and profile info
+		ctx = clickhouse.Context(ctx, clickhouse.WithProgress(func(p *clickhouse.Progress) {
+			successRows += p.Rows
+
+			progress := progressmanagerentity.Progress{
+				ProgressID: progressmanagerentity.ProgressID{
+					NamespacedModel: models.NamespacedModel{
+						Namespace: namespace,
+					},
+					ID: *params.ClientID,
+				},
+				Total: totalRows,
+				// Rows it scans is maybe more than the total rows returned by the count query
+				Success:   min(successRows, totalRows),
+				UpdatedAt: time.Now(),
+			}
+
+			fmt.Println("progress: ", progress)
+
+			// Update progress
+			c.config.ProgressManager.UpsertProgress(ctx, progressmanagerentity.UpsertProgressInput{
+				Progress: progress,
+			})
+		}))
+	}
+
 	start := time.Now()
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
@@ -381,6 +454,8 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 	}
 	elapsed := time.Since(start)
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
+
+	defer rows.Close()
 
 	for rows.Next() {
 		row := models.MeterQueryRow{
@@ -427,7 +502,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 
 		values = append(values, row)
 	}
-	rows.Close()
+
 	err = rows.Err()
 	if err != nil {
 		return values, fmt.Errorf("query meter rows error: %w", err)
@@ -457,6 +532,8 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("list meter view subjects: %w", err)
 	}
 
+	defer rows.Close()
+
 	subjects := []string{}
 	for rows.Next() {
 		var subject string
@@ -467,5 +544,16 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		subjects = append(subjects, subject)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("list meter view subjects rows error: %w", err)
+	}
+
 	return subjects, nil
+}
+
+func min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
 }

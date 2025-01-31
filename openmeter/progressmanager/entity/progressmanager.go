@@ -32,8 +32,6 @@ func (a *ProgressID) Validate() error {
 type Progress struct {
 	ProgressID `json:"id"`
 
-	// Progress is the progress of the task
-	Progress float64 `json:"progress"`
 	// Success is the number of items that succeeded
 	Success uint64 `json:"success"`
 	// Failed is the number of items that failed
@@ -49,10 +47,6 @@ func (a *Progress) Validate() error {
 
 	if err := a.ProgressID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("progress id: %w", err))
-	}
-
-	if a.Progress < 0 || a.Progress > 1 {
-		errs = append(errs, errors.New("progress must be between 0 and 1"))
 	}
 
 	if a.Success+a.Failed > a.Total {

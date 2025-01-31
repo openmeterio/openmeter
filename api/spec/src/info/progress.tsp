@@ -24,11 +24,6 @@ interface Progresses {
 @friendlyName("Progress")
 model Progress {
   /**
-   * Progress is the progress of the task
-   */
-  progress: float64;
-
-  /**
    * Success is the number of items that succeeded
    */
   success: uint64;

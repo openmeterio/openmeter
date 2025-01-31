@@ -52,6 +52,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
 	// Query Params
 	queryParams := streaming.QueryParams{
+		ClientID:   params.ClientId,
 		From:       params.From,
 		To:         params.To,
 		WindowSize: params.WindowSize,

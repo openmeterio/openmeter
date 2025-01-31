@@ -6207,11 +6207,6 @@ export interface components {
     /** @description Progress describes a progress of a task. */
     Progress: {
       /**
-       * Format: double
-       * @description Progress is the progress of the task
-       */
-      progress: number
-      /**
        * Format: uint64
        * @description Success is the number of items that succeeded
        */

@@ -167,7 +167,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mode
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("get values: %w", err)
+		return nil, err
 	}
 
 	// If the total usage is queried for a single period (no window size),
