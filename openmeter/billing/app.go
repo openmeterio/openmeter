@@ -115,6 +115,33 @@ func (f *FinalizeInvoiceResult) SetSentToCustomerAt(sentToCustomerAt time.Time) 
 	return f
 }
 
+type PostAdvanceHookResult struct {
+	trigger *InvoiceTriggerInput
+}
+
+func NewPostAdvanceHookResult() *PostAdvanceHookResult {
+	return &PostAdvanceHookResult{}
+}
+
+func (p *PostAdvanceHookResult) InvokeTrigger(trigger InvoiceTriggerInput) *PostAdvanceHookResult {
+	p.trigger = &trigger
+	return p
+}
+
+func (p *PostAdvanceHookResult) GetTriggerToInvoke() *InvoiceTriggerInput {
+	return p.trigger
+}
+
+// InvoicingApp is the interface that should be implemented by the app to handle the invoicing
+//
+// apps can also implement InvoicingAppPostAdvanceHook to perform additional actions after the invoice
+// has been advanced
+
+// Warning: The received invoice is
+//   - read-only (e.g. any changes made to it are lost to prevent manipulation of the invoice state)
+//   - reflects the current in memory state of the invoice, thus if you fetched from the db
+//     an earlier version of the invoice will be passed, thus do not call any billingService methods
+//     from these callbacks.
 type InvoicingApp interface {
 	// ValidateInvoice validates if the app can run for the given invoice
 	ValidateInvoice(ctx context.Context, invoice Invoice) error
@@ -134,6 +161,15 @@ type InvoicingApp interface {
 	// DeleteInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the invoice deletion is only invoked for non-finalized invoices.
 	DeleteInvoice(ctx context.Context, invoice Invoice) error
+}
+
+type InvoicingAppPostAdvanceHook interface {
+	// PostAdvanceInvoiceHook is called after the invoice has been advanced to the next stable state
+	// (e.g. no next trigger is available)
+	//
+	// Can be used by the app to perform additional actions in case there are some post-processing steps
+	// required on the invoice.
+	PostAdvanceInvoiceHook(ctx context.Context, invoice Invoice) (*PostAdvanceHookResult, error)
 }
 
 // GetApp returns the app from the app entity

@@ -13,10 +13,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
+const (
+	TargetPaymentStatusMetadataKey = "openmeter.io/sandbox/target-payment-status"
+
+	TargetPaymentStatusPaid           = "paid"
+	TargetPaymentStatusFailed         = "failed"
+	TargetPaymentStatusUncollectible  = "uncollectible"
+	TargetPaymentStatusActionRequired = "action_required"
+)
+
 var (
-	_ customerapp.App        = (*App)(nil)
-	_ billing.InvoicingApp   = (*App)(nil)
-	_ appentity.CustomerData = (*CustomerData)(nil)
+	_ customerapp.App                     = (*App)(nil)
+	_ billing.InvoicingApp                = (*App)(nil)
+	_ billing.InvoicingAppPostAdvanceHook = (*App)(nil)
+	_ appentity.CustomerData              = (*CustomerData)(nil)
 
 	InvoiceSequenceNumber = billing.SequenceDefinition{
 		Template: "OM-SANDBOX-{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
@@ -79,6 +89,51 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 
 func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 	return nil
+}
+
+func (a App) PostAdvanceInvoiceHook(ctx context.Context, invoice billing.Invoice) (*billing.PostAdvanceHookResult, error) {
+	if invoice.Status != billing.InvoiceStatusPaymentPending {
+		return nil, nil
+	}
+
+	targetStatus := TargetPaymentStatusPaid
+
+	// Allow overriding via metadata for testing (unit, customer) purposes
+	override, ok := invoice.Metadata[TargetPaymentStatusMetadataKey]
+	if ok && override != "" {
+		targetStatus = override
+	}
+
+	out := billing.NewPostAdvanceHookResult()
+	// Let's simulate the payment status by invoking the right trigger
+	switch targetStatus {
+	case TargetPaymentStatusFailed:
+		return out.InvokeTrigger(billing.InvoiceTriggerInput{
+			Invoice: invoice.InvoiceID(),
+			Trigger: billing.TriggerFailed,
+			ValidationErrors: &billing.InvoiceTriggerValidationInput{
+				Operation: billing.InvoiceOpInitiatePayment,
+				Errors:    []error{ErrSimulatedPaymentFailure},
+			},
+		}), nil
+	case TargetPaymentStatusUncollectible:
+		return out.InvokeTrigger(billing.InvoiceTriggerInput{
+			Invoice: invoice.InvoiceID(),
+			Trigger: billing.TriggerPaymentUncollectible,
+		}), nil
+	case TargetPaymentStatusActionRequired:
+		return out.InvokeTrigger(billing.InvoiceTriggerInput{
+			Invoice: invoice.InvoiceID(),
+			Trigger: billing.TriggerActionRequired,
+		}), nil
+	case TargetPaymentStatusPaid:
+		fallthrough
+	default:
+		return out.InvokeTrigger(billing.InvoiceTriggerInput{
+			Invoice: invoice.InvoiceID(),
+			Trigger: billing.TriggerPaid,
+		}), nil
+	}
 }
 
 type CustomerData struct{}

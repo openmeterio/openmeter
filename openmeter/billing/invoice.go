@@ -44,6 +44,25 @@ func (t InvoiceType) Validate() error {
 	return fmt.Errorf("invalid invoice type: %s", t)
 }
 
+type InvoiceStatusCategory string
+
+const (
+	InvoiceStatusCategoryGathering     InvoiceStatusCategory = "gathering"
+	InvoiceStatusCategoryDraft         InvoiceStatusCategory = "draft"
+	InvoiceStatusCategoryDelete        InvoiceStatusCategory = "delete"
+	InvoiceStatusCategoryDeleted       InvoiceStatusCategory = "deleted"
+	InvoiceStatusCategoryIssuing       InvoiceStatusCategory = "issuing"
+	InvoiceStatusCategoryIssued        InvoiceStatusCategory = "issued"
+	InvoiceStatusCategoryPayment       InvoiceStatusCategory = "payment"
+	InvoiceStatusCategoryOverdue       InvoiceStatusCategory = "overdue"
+	InvoiceStatusCategoryPaid          InvoiceStatusCategory = "paid"
+	InvoiceStatusCategoryUncollectible InvoiceStatusCategory = "uncollectible"
+)
+
+func (s InvoiceStatusCategory) MatchesInvoiceStatus(status InvoiceStatus) bool {
+	return status.ShortStatus() == string(s)
+}
+
 type InvoiceStatus string
 
 const (
@@ -65,11 +84,22 @@ const (
 	InvoiceStatusDeleteFailed     InvoiceStatus = "delete_failed"
 	InvoiceStatusDeleted          InvoiceStatus = "deleted"
 
-	InvoiceStatusIssuing           InvoiceStatus = "issuing_syncing"
-	InvoiceStatusIssuingSyncFailed InvoiceStatus = "issuing_sync_failed"
+	InvoiceStatusIssuingSyncing    InvoiceStatus = "issuing_syncing"
+	InvoiceStatusIssuingSyncFailed InvoiceStatus = "issuing_failed"
 
-	// InvoiceStatusIssued is the status of an invoice that has been issued.
 	InvoiceStatusIssued InvoiceStatus = "issued"
+
+	InvoiceStatusPaymentPending        InvoiceStatus = "payment_pending"
+	InvoiceStatusPaymentFailed         InvoiceStatus = "payment_failed"
+	InvoiceStatusPaymentActionRequired InvoiceStatus = "payment_action_required"
+
+	// These are separate statuses to allow for more gradual filtering on the API without having to understand sub-statuses
+
+	InvoiceStatusOverdue InvoiceStatus = "overdue"
+
+	InvoiceStatusPaid InvoiceStatus = "paid"
+
+	InvoiceStatusUncollectible InvoiceStatus = "uncollectible"
 )
 
 var validStatuses = []InvoiceStatus{
@@ -89,9 +119,20 @@ var validStatuses = []InvoiceStatus{
 	InvoiceStatusDeleteFailed,
 	InvoiceStatusDeleted,
 
-	InvoiceStatusIssuing,
+	InvoiceStatusIssuingSyncing,
 	InvoiceStatusIssuingSyncFailed,
+
 	InvoiceStatusIssued,
+
+	InvoiceStatusPaymentPending,
+	InvoiceStatusPaymentFailed,
+	InvoiceStatusPaymentActionRequired,
+
+	InvoiceStatusOverdue,
+
+	InvoiceStatusPaid,
+
+	InvoiceStatusUncollectible,
 }
 
 func (s InvoiceStatus) Values() []string {
@@ -108,10 +149,29 @@ func (s InvoiceStatus) ShortStatus() string {
 	return parts[0]
 }
 
+type InvoiceStatusMatcher interface {
+	MatchesInvoiceStatus(InvoiceStatus) bool
+}
+
+func (s InvoiceStatus) Matches(statuses ...InvoiceStatusMatcher) bool {
+	for _, matcher := range statuses {
+		if matcher.MatchesInvoiceStatus(s) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s InvoiceStatus) MatchesInvoiceStatus(status InvoiceStatus) bool {
+	return s == status
+}
+
 var failedStatuses = []InvoiceStatus{
 	InvoiceStatusDraftSyncFailed,
 	InvoiceStatusIssuingSyncFailed,
 	InvoiceStatusDeleteFailed,
+	InvoiceStatusPaymentFailed,
 }
 
 func (s InvoiceStatus) IsFailed() bool {
@@ -759,6 +819,51 @@ func (i UpsertValidationIssuesInput) Validate() error {
 
 	if len(i.Issues) == 0 {
 		return errors.New("issues are required")
+	}
+
+	return nil
+}
+
+type InvoiceTriggerValidationInput struct {
+	// Operation specifies the operation that yielded the validation errors
+	// previous validation errors from this operation will be replaced by this one
+	Operation InvoiceOperation
+	Errors    []error
+}
+
+func (i InvoiceTriggerValidationInput) Validate() error {
+	if err := i.Operation.Validate(); err != nil {
+		return fmt.Errorf("operation: %w", err)
+	}
+
+	if len(i.Errors) == 0 {
+		return errors.New("validation errors are required")
+	}
+
+	return nil
+}
+
+type InvoiceTriggerInput struct {
+	Invoice InvoiceID
+	// Trigger specifies the trigger that caused the invoice to be changed, only triggerPaid and triggerPayment* are allowed
+	Trigger InvoiceTrigger
+
+	ValidationErrors *InvoiceTriggerValidationInput
+}
+
+func (i InvoiceTriggerInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("id: %w", err)
+	}
+
+	if i.Trigger == "" {
+		return errors.New("trigger is required")
+	}
+
+	if i.ValidationErrors != nil {
+		if err := i.ValidationErrors.Validate(); err != nil {
+			return fmt.Errorf("validation errors: %w", err)
+		}
 	}
 
 	return nil
