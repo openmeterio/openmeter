@@ -12,7 +12,8 @@ import (
 )
 
 type ListEventsParams struct {
-	From           *time.Time
+	ClientID       *string
+	From           time.Time
 	To             *time.Time
 	IngestedAtFrom *time.Time
 	IngestedAtTo   *time.Time

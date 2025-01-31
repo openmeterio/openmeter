@@ -353,6 +353,10 @@ func TestComplete(t *testing.T) {
 			GracefulShutdownTimeout: 43 * time.Second,
 			PropagationTimeout:      18 * time.Second,
 		},
+		ProgressManager: ProgressManagerConfiguration{
+			Enabled:    false,
+			Expiration: 5 * time.Minute,
+		},
 	}
 
 	assert.Equal(t, expected, actual)

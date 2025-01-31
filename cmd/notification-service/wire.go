@@ -53,6 +53,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewDefaultTextMapPropagator,
 		common.Notification,
 		common.NotificationServiceProvisionTopics,
+		common.ProgressManager,
 		common.Streaming,
 		common.Telemetry,
 		common.Watermill,

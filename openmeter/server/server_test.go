@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	progressmanageradapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -206,6 +207,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
 			NamespaceManager: namespaceManager,
 			Portal:           portal,
+			ProgressManager:  progressmanageradapter.NewNoop(),
 			ErrorHandler:     errorsx.NopHandler{},
 			Notification:     &NoopNotificationService{},
 			App:              &NoopAppService{},

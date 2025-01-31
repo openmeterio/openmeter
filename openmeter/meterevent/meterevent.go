@@ -22,6 +22,8 @@ type Service interface {
 type ListEventsInput struct {
 	// The namespace.
 	Namespace string
+	// The client ID.
+	ClientID *string
 	// Start date-time. Inclusive.
 	IngestedAtFrom *time.Time
 	// End date-time. Inclusive.
@@ -47,6 +49,14 @@ func (i ListEventsInput) Validate() error {
 	var errs []error
 
 	minimumFrom := time.Now().Add(-MaximumFromDuration)
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ClientID != nil && *i.ClientID == "" {
+		errs = append(errs, errors.New("client id cannot be empty"))
+	}
 
 	if i.From.IsZero() {
 		errs = append(errs, errors.New("from date is required"))

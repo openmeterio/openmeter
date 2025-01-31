@@ -25,22 +25,23 @@ type Configuration struct {
 
 	Termination TerminationConfig
 
-	Aggregation    AggregationConfiguration
-	Entitlements   EntitlementsConfiguration
-	Dedupe         DedupeConfiguration
-	Events         EventsConfiguration
-	Ingest         IngestConfiguration
-	Meters         []*meter.Meter
-	Namespace      NamespaceConfiguration
-	Portal         PortalConfiguration
-	Postgres       PostgresConfig
-	Sink           SinkConfiguration
-	BalanceWorker  BalanceWorkerConfiguration
-	Notification   NotificationConfiguration
-	ProductCatalog ProductCatalogConfiguration
-	Billing        BillingConfiguration
-	Apps           AppsConfiguration
-	Svix           SvixConfig
+	Aggregation     AggregationConfiguration
+	Entitlements    EntitlementsConfiguration
+	Dedupe          DedupeConfiguration
+	Events          EventsConfiguration
+	Ingest          IngestConfiguration
+	Meters          []*meter.Meter
+	Namespace       NamespaceConfiguration
+	Portal          PortalConfiguration
+	Postgres        PostgresConfig
+	Sink            SinkConfiguration
+	BalanceWorker   BalanceWorkerConfiguration
+	Notification    NotificationConfiguration
+	ProductCatalog  ProductCatalogConfiguration
+	ProgressManager ProgressManagerConfiguration
+	Billing         BillingConfiguration
+	Apps            AppsConfiguration
+	Svix            SvixConfig
 }
 
 // Validate validates the configuration.
@@ -136,6 +137,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "apps"))
 	}
 
+	if err := c.ProgressManager.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "progress manager"))
+	}
+
 	if err := c.Termination.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "termination"))
 	}
@@ -179,4 +184,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)
 	ConfigureTermination(v, "termination")
+	ConfigureProgressManager(v)
 }

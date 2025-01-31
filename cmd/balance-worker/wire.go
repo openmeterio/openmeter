@@ -37,6 +37,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.KafkaTopic,
 		common.Meter,
 		common.NewDefaultTextMapPropagator,
+		common.ProgressManager,
 		common.Streaming,
 		common.Telemetry,
 		common.Watermill,

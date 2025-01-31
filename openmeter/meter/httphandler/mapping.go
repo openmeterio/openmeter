@@ -73,8 +73,9 @@ func ToAPIMeterQueryRowList(rows []meterpkg.MeterQueryRow) []api.MeterQueryRow {
 // ToQueryMeterParams converts a api.QueryMeterParams to a streaming.QueryParams.
 func ToQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
-		From: apiParams.From,
-		To:   apiParams.To,
+		ClientID: apiParams.ClientId,
+		From:     apiParams.From,
+		To:       apiParams.To,
 	}
 
 	if apiParams.WindowSize != nil {

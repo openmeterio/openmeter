@@ -145,7 +145,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger)
+	progressManagerConfiguration := conf.ProgressManager
+	service, err := common.NewProgressManager(logger, progressManagerConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -155,7 +156,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	service, err := common.NewMeterService(logger, client)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger, service)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	meterService, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -169,7 +180,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		DatabaseClient:     client,
 		StreamingConnector: connector,
 		Logger:             logger,
-		MeterService:       service,
+		MeterService:       meterService,
 		Publisher:          eventbusPublisher,
 	}
 	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)

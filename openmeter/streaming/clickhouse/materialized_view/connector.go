@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	raw_events "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,6 +37,7 @@ type ConnectorConfig struct {
 	AsyncInsertWait      bool
 	InsertQuerySettings  map[string]string
 	QueryRawEvents       bool
+	ProgressManager      progressmanager.Service
 }
 
 func (c ConnectorConfig) Validate() error {
@@ -55,6 +57,10 @@ func (c ConnectorConfig) Validate() error {
 		return fmt.Errorf("events table name is required")
 	}
 
+	if c.ProgressManager == nil {
+		return fmt.Errorf("progress manager is required")
+	}
+
 	return nil
 }
 
@@ -71,6 +77,7 @@ func NewConnector(ctx context.Context, config ConnectorConfig) (*Connector, erro
 		AsyncInsert:         config.AsyncInsert,
 		AsyncInsertWait:     config.AsyncInsertWait,
 		InsertQuerySettings: config.InsertQuerySettings,
+		ProgressManager:     config.ProgressManager,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create raw event connector: %w", err)
@@ -171,7 +178,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("get values: %w", err)
+		return nil, err
 	}
 
 	// If the total usage is queried for a single period (no window size),

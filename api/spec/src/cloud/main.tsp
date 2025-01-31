@@ -216,4 +216,8 @@ namespace OpenMeterCloud.Info {
   @route("/api/v1/info/currencies")
   @tag("Lookup Information")
   interface Currencies extends OpenMeter.Info.Currencies {}
+
+  @route("/api/v1/info/progress")
+  @tag("Track Progress")
+  interface Progress extends OpenMeter.Info.Progresses {}
 }

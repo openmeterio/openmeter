@@ -46,6 +46,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Meter,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,
+		common.ProgressManager,
 		common.Streaming,
 		common.Telemetry,
 		common.Watermill,

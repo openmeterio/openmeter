@@ -55,6 +55,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewDefaultTextMapPropagator,
 		common.NewFlushHandler,
 		common.NewSinkWorkerPublisher,
+		common.ProgressManager,
 		common.SinkWorkerProvisionTopics,
 		common.Streaming,
 		common.Telemetry,

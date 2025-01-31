@@ -80,6 +80,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewServerPublisher,
 		common.Streaming,
 		common.ProductCatalog,
+		common.ProgressManager,
 		common.Subscription,
 		common.Secret,
 		common.ServerProvisionTopics,
