@@ -10,9 +10,11 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
+	ratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -437,13 +439,16 @@ func planPhaseIncludeDeleted(include bool) func(*entdb.PlanPhaseQuery) {
 		return func(q *entdb.PlanPhaseQuery) {}
 	} else {
 		return func(q *entdb.PlanPhaseQuery) {
-			q.Where(phasedb.DeletedAtIsNil())
+			q.Where(phasedb.Or(phasedb.DeletedAtIsNil(), phasedb.DeletedAtGT(clock.Now().UTC())))
 		}
 	}
 }
 
 var planPhaseEagerLoadRateCardsFn = func(q *entdb.PlanPhaseQuery) {
-	q.WithRatecards(rateCardEagerLoadFeaturesFn)
+	q.WithRatecards(func(prcq *entdb.PlanRateCardQuery) {
+		prcq.Where(ratecarddb.Or(ratecarddb.DeletedAtIsNil(), ratecarddb.DeletedAtGT(clock.Now().UTC())))
+		rateCardEagerLoadFeaturesFn(prcq)
+	})
 }
 
 var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
