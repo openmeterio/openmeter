@@ -90,6 +90,8 @@ const (
 	FieldVoidedAt = "voided_at"
 	// FieldIssuedAt holds the string denoting the issued_at field in the database.
 	FieldIssuedAt = "issued_at"
+	// FieldSentToCustomerAt holds the string denoting the sent_to_customer_at field in the database.
+	FieldSentToCustomerAt = "sent_to_customer_at"
 	// FieldDraftUntil holds the string denoting the draft_until field in the database.
 	FieldDraftUntil = "draft_until"
 	// FieldCurrency holds the string denoting the currency field in the database.
@@ -241,6 +243,7 @@ var Columns = []string{
 	FieldSourceBillingProfileID,
 	FieldVoidedAt,
 	FieldIssuedAt,
+	FieldSentToCustomerAt,
 	FieldDraftUntil,
 	FieldCurrency,
 	FieldDueAt,
@@ -496,6 +499,11 @@ func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByIssuedAt orders the results by the issued_at field.
 func ByIssuedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIssuedAt, opts...).ToFunc()
+}
+
+// BySentToCustomerAt orders the results by the sent_to_customer_at field.
+func BySentToCustomerAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSentToCustomerAt, opts...).ToFunc()
 }
 
 // ByDraftUntil orders the results by the draft_until field.

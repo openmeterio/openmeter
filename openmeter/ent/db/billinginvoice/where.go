@@ -241,6 +241,11 @@ func IssuedAt(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldIssuedAt, v))
 }
 
+// SentToCustomerAt applies equality check predicate on the "sent_to_customer_at" field. It's identical to SentToCustomerAtEQ.
+func SentToCustomerAt(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldSentToCustomerAt, v))
+}
+
 // DraftUntil applies equality check predicate on the "draft_until" field. It's identical to DraftUntilEQ.
 func DraftUntil(v time.Time) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldDraftUntil, v))
@@ -2478,6 +2483,56 @@ func IssuedAtIsNil() predicate.BillingInvoice {
 // IssuedAtNotNil applies the NotNil predicate on the "issued_at" field.
 func IssuedAtNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldIssuedAt))
+}
+
+// SentToCustomerAtEQ applies the EQ predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldEQ(FieldSentToCustomerAt, v))
+}
+
+// SentToCustomerAtNEQ applies the NEQ predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtNEQ(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldSentToCustomerAt, v))
+}
+
+// SentToCustomerAtIn applies the In predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIn(FieldSentToCustomerAt, vs...))
+}
+
+// SentToCustomerAtNotIn applies the NotIn predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtNotIn(vs ...time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldSentToCustomerAt, vs...))
+}
+
+// SentToCustomerAtGT applies the GT predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtGT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGT(FieldSentToCustomerAt, v))
+}
+
+// SentToCustomerAtGTE applies the GTE predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtGTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldGTE(FieldSentToCustomerAt, v))
+}
+
+// SentToCustomerAtLT applies the LT predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtLT(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLT(FieldSentToCustomerAt, v))
+}
+
+// SentToCustomerAtLTE applies the LTE predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtLTE(v time.Time) predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldLTE(FieldSentToCustomerAt, v))
+}
+
+// SentToCustomerAtIsNil applies the IsNil predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldSentToCustomerAt))
+}
+
+// SentToCustomerAtNotNil applies the NotNil predicate on the "sent_to_customer_at" field.
+func SentToCustomerAtNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldSentToCustomerAt))
 }
 
 // DraftUntilEQ applies the EQ predicate on the "draft_until" field.

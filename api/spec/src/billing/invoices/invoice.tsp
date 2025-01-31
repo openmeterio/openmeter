@@ -159,6 +159,12 @@ model Invoice {
   voidedAt?: DateTime;
 
   /**
+   * The time the invoice was sent to customer.
+   */
+  @visibility(Lifecycle.Read)
+  sentToCustomerAt?: DateTime;
+
+  /**
    * The workflow associated with the invoice.
    *
    * It is always a snapshot of the workflow settings at the time of invoice creation. The

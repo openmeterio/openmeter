@@ -657,6 +657,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Time("sent_to_customer_at").
+			Optional().
+			Nillable(),
+
 		field.Time("draft_until").
 			Optional().
 			Nillable(),
