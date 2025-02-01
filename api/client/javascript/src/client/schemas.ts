@@ -14583,6 +14583,8 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
+        /** @description Filter by plan.currency attribute */
+        currency?: components['schemas']['CurrencyCode'][]
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */
