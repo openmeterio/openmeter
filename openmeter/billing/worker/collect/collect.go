@@ -11,7 +11,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -93,23 +92,38 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	}
 
 	if len(resp.Items) == 0 {
+		a.logger.DebugContext(ctx, "no invoices found for customer to be collected", "customer", params.CustomerID)
+
 		return nil, nil
 	}
 
-	invoice := resp.Items[0]
-	if params.AsOf == nil || params.AsOf.IsZero() {
-		invoice = billingservice.GetInvoiceWithEarliestCollectionAt(resp.Items)
-		params.AsOf = lo.ToPtr(billingservice.GetEarliestValidInvoiceAt(invoice.Lines))
+	// Calculate asOf parameter
+	asOf := lo.FromPtr(params.AsOf)
+	if asOf.IsZero() {
+		profile, err := a.billing.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+			Namespace:  resp.Items[0].Namespace,
+			CustomerID: resp.Items[0].Customer.CustomerID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get customer profile [customer=%s]: %w", params.CustomerID, err)
+		}
+
+		collectionInterval, ok := profile.Profile.WorkflowConfig.Collection.Interval.Duration()
+		if !ok {
+			return nil, fmt.Errorf("failed to get collection interval for customer [customer=%s]: %w", params.CustomerID, err)
+		}
+
+		asOf = time.Now().Add(-1 * collectionInterval)
 	}
 
-	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", params.AsOf)
+	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", asOf)
 
 	invoices, err := a.billing.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customerentity.CustomerID{
-			Namespace: invoice.Namespace,
-			ID:        invoice.Customer.CustomerID,
+			Namespace: resp.Items[0].Namespace,
+			ID:        resp.Items[0].Customer.CustomerID,
 		},
-		AsOf: params.AsOf,
+		AsOf: lo.ToPtr(asOf),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoice(s) for customer [customer=%s]: %w", params.CustomerID, err)
