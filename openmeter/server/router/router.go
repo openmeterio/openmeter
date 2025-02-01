@@ -40,6 +40,8 @@ import (
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
+	progresshttpdriver "github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -91,6 +93,7 @@ type Config struct {
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
 	Notification                notification.Service
+	ProgressManager             progressmanager.Service
 
 	// FIXME: implement generic module management, loading, etc...
 	BillingEnabled        bool
@@ -145,6 +148,10 @@ func (c Config) Validate() error {
 		return errors.New("notification service is required")
 	}
 
+	if c.ProgressManager == nil {
+		return errors.New("progress manager service is required")
+	}
+
 	if c.AppsEnabled {
 		if c.App == nil {
 			return errors.New("app service is required")
@@ -183,6 +190,7 @@ type Router struct {
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 	notificationHandler       notificationhttpdriver.Handler
+	progressHandler           progresshttpdriver.Handler
 	infoHandler               infohttpdriver.Handler
 }
 
@@ -239,6 +247,12 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	router.infoHandler = infohttpdriver.New(
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.progressHandler = progresshttpdriver.New(
+		staticNamespaceDecoder,
+		config.ProgressManager,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

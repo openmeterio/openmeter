@@ -26,7 +26,42 @@ type queryMeter struct {
 	WindowTimeZone  *time.Location
 }
 
-func (d queryMeter) toSQL() (string, []interface{}, error) {
+// toCountRowSQL returns the SQL query to count the estimated number of rows we will scan
+func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
+	tableName := getTableName(d.Database, d.EventsTableName)
+	getColumn := columnFactory(d.EventsTableName)
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("count() AS total")
+	query.From(tableName)
+
+	// The event table is ordered by namespace, type
+	query.Where(query.Equal("namespace", d.Namespace))
+	query.Where(query.Equal("type", d.Meter.EventType))
+
+	if len(d.Subject) > 0 {
+		mapFunc := func(subject string) string {
+			return query.Equal(getColumn("subject"), subject)
+		}
+
+		query.Where(query.Or(slicesx.Map(d.Subject, mapFunc)...))
+	}
+
+	// TODO: should we swap subject and time in order?
+	// The event table is partitioned by time
+	if d.From != nil {
+		query.Where(query.GreaterEqualThan(getColumn("time"), d.From.Unix()))
+	}
+
+	if d.To != nil {
+		query.Where(query.LessEqualThan(getColumn("time"), d.To.Unix()))
+	}
+
+	sql, args := query.Build()
+	return sql, args
+}
+
+func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
@@ -170,11 +205,11 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	if d.From != nil {
-		where = append(where, query.GreaterEqualThan(getColumn("time"), d.From.Unix()))
+		where = append(where, query.GreaterEqualThan(timeColumn, d.From.Unix()))
 	}
 
 	if d.To != nil {
-		where = append(where, query.LessEqualThan(getColumn("time"), d.To.Unix()))
+		where = append(where, query.LessEqualThan(timeColumn, d.To.Unix()))
 	}
 
 	if len(where) > 0 {

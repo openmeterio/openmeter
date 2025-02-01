@@ -205,6 +205,14 @@ alias MeterIdentifier = ULIDOrKey;
 @friendlyName("MeterQuery")
 model MeterQuery {
   /**
+   * Client ID
+   * Useful to track progress of a query.
+   */
+  @query
+  @example("f74e58ed-94ce-4041-ae06-cf45420451a3")
+  clientId?: string;
+
+  /**
    * Start date-time in RFC 3339 format.
    *
    * Inclusive.
