@@ -9,13 +9,15 @@ export type RequestOptions = Pick<RequestInit, 'signal'>
  * An error that occurred during an HTTP request
  */
 export class HTTPError extends Error {
-  name = 'HTTPError'
+  public name = 'HTTPError'
+  public client = 'OpenMeter'
 
   constructor(
     public message: string,
     public type: string,
     public title: string,
     public status: number,
+    public url: string,
     protected __raw?: Record<string, any>
   ) {
     super(message)
@@ -31,19 +33,21 @@ export class HTTPError extends Error {
       resp.error
     ) {
       return new HTTPError(
-        resp.error.detail,
+        `Request failed (${resp.response.url}) [${resp.response.status}]: ${resp.error.detail}`,
         resp.error.type,
         resp.error.title,
         resp.error.status ?? resp.response.status,
+        resp.response.url,
         resp.error
       )
     }
 
     return new HTTPError(
-      `Request failed: ${resp.response.statusText}`,
+      `Request failed (${resp.response.url}) [${resp.response.status}]: ${resp.response.statusText}`,
       resp.response.statusText,
       resp.response.statusText,
-      resp.response.status
+      resp.response.status,
+      resp.response.url
     )
   }
 

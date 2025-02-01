@@ -1,6 +1,7 @@
 import { transformResponse } from './utils.js'
 import type { RequestOptions } from './common.js'
 import type {
+  Entitlement,
   EntitlementCreateInputs,
   EntitlementGrantCreateInput,
   operations,
@@ -88,7 +89,10 @@ export class Entitlements {
    * @returns The entitlements
    */
   public async list(
-    query?: operations['listEntitlements']['parameters']['query'],
+    query?: Omit<
+      operations['listEntitlements']['parameters']['query'],
+      'page' | 'pageSize'
+    >,
     options?: RequestOptions
   ) {
     const resp = await this.client.GET('/api/v1/entitlements', {
@@ -98,7 +102,7 @@ export class Entitlements {
       ...options,
     })
 
-    return transformResponse(resp)
+    return transformResponse(resp) as Entitlement[]
   }
 
   /**
