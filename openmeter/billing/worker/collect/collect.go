@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
@@ -116,6 +117,25 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		asOf = time.Now().Add(-1 * collectionInterval)
 	}
 
+	var canInvoiceCustomer bool
+	for _, invoice := range resp.Items {
+		if invoice.Lines.IsAbsent() {
+			a.logger.WarnContext(ctx, "skipping invoice as lines not fetched", "customer", params.CustomerID, "invoice", invoice.ID)
+
+			continue
+		}
+
+		if canInvoiceCustomer = a.collectableAsOf(ctx, invoice, asOf); canInvoiceCustomer {
+			break
+		}
+	}
+
+	if !canInvoiceCustomer {
+		a.logger.DebugContext(ctx, "customer has no lines to be collected", "customer", params.CustomerID, "asOf", asOf.UTC().Format(time.RFC3339))
+
+		return nil, nil
+	}
+
 	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", asOf)
 
 	invoices, err := a.billing.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -130,6 +150,57 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	}
 
 	return invoices, nil
+}
+
+func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer customerentity.CustomerID) (billing.CollectionConfig, error) {
+	profileDetails, err := a.billing.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+		Namespace:  customer.Namespace,
+		CustomerID: customer.ID,
+	})
+	if err != nil {
+		return billing.CollectionConfig{}, fmt.Errorf("failed to get collection configfor customer [namespace=%s customer=%s]: %w",
+			customer.Namespace, customer.ID, err,
+		)
+	}
+
+	return profileDetails.Profile.WorkflowConfig.Collection, nil
+}
+
+func (a *InvoiceCollector) GetAsOfForCustomer(ctx context.Context, customer customerentity.CustomerID) (time.Time, error) {
+	return a.GetAsOfForCustomerAt(ctx, customer, time.Now())
+}
+
+func (a *InvoiceCollector) GetAsOfForCustomerAt(ctx context.Context, customer customerentity.CustomerID, at time.Time) (time.Time, error) {
+	collectionConfig, err := a.GetCollectionConfig(ctx, customer)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	collectionInterval, ok := collectionConfig.Interval.Duration()
+	if !ok {
+		return time.Time{}, fmt.Errorf("failed to cast collection interval for customer [namespace=%s customer=%s]: %w",
+			customer.Namespace, customer.ID, err)
+	}
+
+	return at.Add(-1 * collectionInterval), nil
+}
+
+func (a *InvoiceCollector) collectableAsOf(ctx context.Context, invoice billing.Invoice, asOf time.Time) bool {
+	invoiceAt := billingservice.GetEarliestValidInvoiceAt(invoice.Lines)
+
+	if invoiceAt.IsZero() {
+		a.logger.DebugContext(ctx, "empty invoice found", "customer", invoice.Customer.CustomerID, "invoice", invoice.ID)
+
+		return false
+	}
+
+	if invoiceAt.After(asOf) {
+		a.logger.DebugContext(ctx, "no lines found to be collected", "customer", invoice.Customer.CustomerID, "invoice", invoice.ID, "invoiceAt", invoiceAt, "asOf", asOf)
+
+		return false
+	}
+
+	return true
 }
 
 // All runs invoice collection for all customers
