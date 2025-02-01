@@ -1,4 +1,10 @@
 config:
+  events:
+    enabled: true
+  notification:
+    enabled: true
+  entitlements:
+    enabled: true
   meters:
     # Sample meter to count API requests
     - slug: api_requests_total # Unique identifier for the meter
