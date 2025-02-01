@@ -479,10 +479,6 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 
 		// Fetch all version of a plan to find the one to be used as source and also to calculate the next version number.
 		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
-			Page: pagination.Page{
-				PageSize:   1000,
-				PageNumber: 1,
-			},
 			OrderBy:        plan.OrderByVersion,
 			Order:          plan.OrderAsc,
 			Namespaces:     []string{params.Namespace},
