@@ -44,6 +44,12 @@ interface Plans {
     @query(#{ explode: true, style: "deepObject" })
     keyVersion?: Record<integer[]>,
 
+    /**
+     * Filter by plan.currency attribute
+     */
+    @query(#{ explode: true })
+    currency?: CurrencyCode[],
+
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryOrdering<PlanOrderBy>,
   ): OpenMeter.PaginatedResponse<Plan> | OpenMeter.CommonErrors;

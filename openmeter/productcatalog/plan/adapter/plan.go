@@ -48,6 +48,10 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			}
 		}
 
+		if len(params.Currencies) > 0 {
+			orFilters = append(orFilters, plandb.CurrencyIn(params.Currencies...))
+		}
+
 		query = query.Where(plandb.Or(orFilters...))
 
 		if !params.IncludeDeleted {

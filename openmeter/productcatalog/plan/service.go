@@ -70,11 +70,12 @@ type ListPlansInput struct {
 
 	// IncludeDeleted defines whether to include deleted Plans.
 	IncludeDeleted bool
+
+	// Currencies is the list of currencies to filter by.
+	Currencies []string
 }
 
 func (i ListPlansInput) Validate() error {
-	// TODO: implement the rest of the validator
-
 	return nil
 }
 

@@ -47,6 +47,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 				Keys:           lo.FromPtrOr(params.Key, nil),
 				KeyVersions:    lo.FromPtrOr(params.KeyVersion, nil),
 				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
+				Currencies:     lo.FromPtrOr(params.Currency, nil),
 			}
 
 			return req, nil
