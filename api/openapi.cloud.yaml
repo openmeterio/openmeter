@@ -5020,6 +5020,14 @@ paths:
               items:
                 type: integer
           style: deepObject
+        - name: currency
+          in: query
+          required: false
+          description: Filter by plan.currency attribute
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CurrencyCode'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/PlanOrderByOrdering.order'
