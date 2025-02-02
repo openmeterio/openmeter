@@ -54,6 +54,11 @@ model Subscription {
   ...global.CadencedResource;
 
   /**
+   * Alignment configuration for the plan.
+   */
+  alignment?: Alignment;
+
+  /**
    * The status of the subscription.
    */
   @visibility(Lifecycle.Read)
@@ -320,6 +325,7 @@ model PlanSubscriptionCreate {
  */
 @friendlyName("PlanSubscriptionChange")
 model PlanSubscriptionChange {
+  alignment?: Alignment;
   metadata?: global.Metadata;
   plan: PlanReferenceInput;
   activeFrom: DateTime;

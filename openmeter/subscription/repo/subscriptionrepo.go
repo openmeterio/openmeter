@@ -104,6 +104,7 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetActiveFrom(sub.ActiveFrom).
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).
+			SetBillablesMustAlign(sub.BillablesMustAlign).
 			SetMetadata(sub.Metadata)
 
 		if sub.ActiveTo != nil {

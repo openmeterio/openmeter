@@ -67,7 +67,8 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 	}
 
 	return subscription.CreateSubscriptionPlanInput{
-		Plan: ref,
+		Plan:      ref,
+		Alignment: p.Alignment,
 	}
 }
 

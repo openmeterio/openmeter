@@ -14167,6 +14167,8 @@ components:
         - activeFrom
         - name
       properties:
+        alignment:
+          $ref: '#/components/schemas/Alignment'
         metadata:
           $ref: '#/components/schemas/Metadata'
         plan:
@@ -14189,6 +14191,8 @@ components:
         - name
         - customerId
       properties:
+        alignment:
+          $ref: '#/components/schemas/Alignment'
         metadata:
           $ref: '#/components/schemas/Metadata'
         plan:
@@ -15180,6 +15184,10 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'
@@ -15326,6 +15334,10 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'

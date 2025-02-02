@@ -35,6 +35,8 @@ type Subscription struct {
 	ActiveFrom time.Time `json:"active_from,omitempty"`
 	// ActiveTo holds the value of the "active_to" field.
 	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// BillablesMustAlign holds the value of the "billables_must_align" field.
+	BillablesMustAlign bool `json:"billables_must_align,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
@@ -113,6 +115,8 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscription.FieldMetadata:
 			values[i] = new([]byte)
+		case subscription.FieldBillablesMustAlign:
+			values[i] = new(sql.NullBool)
 		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
@@ -183,6 +187,12 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.ActiveTo = new(time.Time)
 				*s.ActiveTo = value.Time
+			}
+		case subscription.FieldBillablesMustAlign:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field billables_must_align", values[i])
+			} else if value.Valid {
+				s.BillablesMustAlign = value.Bool
 			}
 		case subscription.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -296,6 +306,9 @@ func (s *Subscription) String() string {
 		builder.WriteString("active_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("billables_must_align=")
+	builder.WriteString(fmt.Sprintf("%v", s.BillablesMustAlign))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(s.Name)

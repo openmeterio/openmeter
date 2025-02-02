@@ -183,6 +183,9 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		CreatedAt:   sub.CreatedAt,
 		UpdatedAt:   sub.UpdatedAt,
 		DeletedAt:   sub.DeletedAt,
+		Alignment: &api.Alignment{
+			BillablesMustAlign: &sub.BillablesMustAlign,
+		},
 	}
 }
 
@@ -387,6 +390,7 @@ func MapAPISubscriptionToAPIExpanded(sub api.Subscription) api.SubscriptionExpan
 		Plan:        sub.Plan,
 		UpdatedAt:   sub.UpdatedAt,
 		Status:      sub.Status,
+		Alignment:   sub.Alignment,
 	}
 }
 
@@ -428,6 +432,12 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 			},
 			Phases: nil,
 		},
+	}
+
+	if a.Alignment != nil && a.Alignment.BillablesMustAlign != nil {
+		req.Plan.PlanMeta.Alignment = productcatalog.Alignment{
+			BillablesMustAlign: *a.Alignment.BillablesMustAlign,
+		}
 	}
 
 	req.Currency = currency.Code(a.Currency)

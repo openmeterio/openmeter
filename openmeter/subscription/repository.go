@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -16,6 +17,8 @@ type CreateSubscriptionEntityInput struct {
 	models.CadencedModel
 	models.NamespacedModel
 	models.AnnotatedModel
+
+	productcatalog.Alignment
 
 	Plan        *PlanRef
 	Name        string  `json:"name,omitempty"`

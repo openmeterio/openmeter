@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -28,6 +29,7 @@ import (
 
 type CreateSubscriptionPlanInput struct {
 	Plan *PlanRef `json:"plan"`
+	productcatalog.Alignment
 }
 
 type CreateSubscriptionCustomerInput struct {
@@ -53,6 +55,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
+		Alignment:      s.Alignment,
 		Plan:           s.Plan,
 		CustomerId:     s.CustomerId,
 		Currency:       s.Currency,
@@ -152,10 +155,13 @@ func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
 	for _, phase := range s.Phases {
-		if err := phase.Validate(models.CadencedModel{
-			ActiveFrom: s.ActiveFrom,
-			ActiveTo:   s.ActiveTo,
-		}); err != nil {
+		cadence, err := s.GetPhaseCadence(phase.PhaseKey)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("during validating spec failed to get phase cadence for phase %s: %w", phase.PhaseKey, err))
+			continue
+		}
+
+		if err := phase.Validate(cadence, s.Alignment); err != nil {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
@@ -243,7 +249,10 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 	}
 }
 
-func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error {
+func (s *SubscriptionPhaseSpec) Validate(
+	phaseCadence models.CadencedModel,
+	alignment productcatalog.Alignment,
+) error {
 	var errs []error
 
 	// Phase StartAfter really should not be negative
@@ -310,18 +319,10 @@ func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error 
 			}
 		}
 
-		// We don't know the exact phase Cadence (as we don't know the Phase end time)
-		// but to validate the ordering of items the phase endtime is irrelevant
-		phaseStartTime, _ := s.StartAfter.AddTo(subCadence.ActiveFrom)
-
-		somePhaseCadence := models.CadencedModel{
-			ActiveFrom: phaseStartTime,
-		}
-
 		// Let's validate that the items form a valid non-overlapping timeline
 		cadences := make([]models.CadencedModel, 0, len(items))
 		for i := range items {
-			cadence, err := items[i].GetCadence(somePhaseCadence)
+			cadence, err := items[i].GetCadence(phaseCadence)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("failed to get cadence for item %s: %w", items[i].ItemKey, err))
 			}
@@ -337,6 +338,30 @@ func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error 
 		if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 			errs = append(errs, fmt.Errorf("items for key %s are overlapping: %v", key, overlaps))
 		}
+	}
+
+	if alignment.BillablesMustAlign {
+		// Let's validate that all billables have the same billing cadence
+		billables := make([]SubscriptionItemSpec, 0)
+		for _, items := range s.ItemsByKey {
+			for _, item := range items {
+				if item.RateCard.Price != nil {
+					billables = append(billables, *item)
+				}
+			}
+		}
+
+		if len(lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
+			return i.RateCard.BillingCadence != nil
+		}), func(i SubscriptionItemSpec) datex.Period {
+			return *i.RateCard.BillingCadence
+		})) > 1 {
+			errs = append(errs, &AllowedDuringApplyingPatchesError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
+		}
+	}
+
+	if len(errs) == 0 {
+		return nil
 	}
 
 	return errors.Join(errs...)
@@ -694,4 +719,16 @@ type SpecValidationError struct {
 
 func (e *SpecValidationError) Error() string {
 	return e.Msg
+}
+
+type AlignmentError struct {
+	Inner error
+}
+
+func (e AlignmentError) Error() string {
+	return fmt.Sprintf("alignment error: %s", e.Inner)
+}
+
+func (e AlignmentError) Unwrap() error {
+	return e.Inner
 }

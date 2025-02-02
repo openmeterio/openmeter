@@ -252,7 +252,7 @@ func NewSubscriptionView(
 	ents []SubscriptionEntitlement,
 ) (*SubscriptionView, error) {
 	spec := SubscriptionSpec{
-		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef},
+		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef, Alignment: sub.Alignment},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
 			CustomerId:     sub.CustomerId,
 			Currency:       sub.Currency,

@@ -24,6 +24,7 @@ func (Subscription) Mixin() []ent.Mixin {
 		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},
 		entutils.CadencedMixin{},
+		AlignmentMixin{},
 	}
 }
 

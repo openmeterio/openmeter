@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -41,6 +42,9 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		},
 		AnnotatedModel: models.AnnotatedModel{
 			Metadata: sub.Metadata,
+		},
+		Alignment: productcatalog.Alignment{
+			BillablesMustAlign: sub.BillablesMustAlign,
 		},
 		PlanRef:     ref,
 		Name:        sub.Name,

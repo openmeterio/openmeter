@@ -35409,6 +35409,7 @@ type SubscriptionMutation struct {
 	metadata             *map[string]string
 	active_from          *time.Time
 	active_to            *time.Time
+	billables_must_align *bool
 	name                 *string
 	description          *string
 	currency             *currencyx.Code
@@ -35823,6 +35824,42 @@ func (m *SubscriptionMutation) ResetActiveTo() {
 	delete(m.clearedFields, subscription.FieldActiveTo)
 }
 
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (m *SubscriptionMutation) SetBillablesMustAlign(b bool) {
+	m.billables_must_align = &b
+}
+
+// BillablesMustAlign returns the value of the "billables_must_align" field in the mutation.
+func (m *SubscriptionMutation) BillablesMustAlign() (r bool, exists bool) {
+	v := m.billables_must_align
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillablesMustAlign returns the old "billables_must_align" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldBillablesMustAlign(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillablesMustAlign is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillablesMustAlign requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillablesMustAlign: %w", err)
+	}
+	return oldValue.BillablesMustAlign, nil
+}
+
+// ResetBillablesMustAlign resets all changes to the "billables_must_align" field.
+func (m *SubscriptionMutation) ResetBillablesMustAlign() {
+	m.billables_must_align = nil
+}
+
 // SetName sets the "name" field.
 func (m *SubscriptionMutation) SetName(s string) {
 	m.name = &s
@@ -36225,7 +36262,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -36246,6 +36283,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.active_to != nil {
 		fields = append(fields, subscription.FieldActiveTo)
+	}
+	if m.billables_must_align != nil {
+		fields = append(fields, subscription.FieldBillablesMustAlign)
 	}
 	if m.name != nil {
 		fields = append(fields, subscription.FieldName)
@@ -36284,6 +36324,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.ActiveFrom()
 	case subscription.FieldActiveTo:
 		return m.ActiveTo()
+	case subscription.FieldBillablesMustAlign:
+		return m.BillablesMustAlign()
 	case subscription.FieldName:
 		return m.Name()
 	case subscription.FieldDescription:
@@ -36317,6 +36359,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldActiveFrom(ctx)
 	case subscription.FieldActiveTo:
 		return m.OldActiveTo(ctx)
+	case subscription.FieldBillablesMustAlign:
+		return m.OldBillablesMustAlign(ctx)
 	case subscription.FieldName:
 		return m.OldName(ctx)
 	case subscription.FieldDescription:
@@ -36384,6 +36428,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetActiveTo(v)
+		return nil
+	case subscription.FieldBillablesMustAlign:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillablesMustAlign(v)
 		return nil
 	case subscription.FieldName:
 		v, ok := value.(string)
@@ -36522,6 +36573,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldActiveTo:
 		m.ResetActiveTo()
+		return nil
+	case subscription.FieldBillablesMustAlign:
+		m.ResetBillablesMustAlign()
 		return nil
 	case subscription.FieldName:
 		m.ResetName()
