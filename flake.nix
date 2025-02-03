@@ -177,16 +177,17 @@
                 aarch64-darwin = "darwin-arm64";
                 aarch64-linux = "linux-arm64";
               };
+              # nix hash convert --hash-algo sha256 --to sri SHA256SUM
               hashMappings = {
-                x86_64-linux = "sha256-G+ZmZYJ4ep4Je49/V8qYKd/R7h1/KpYxl0wsjfB1LXw=";
-                x86_64-darwin = "sha256-kHvKZjNiQg5CJY46re0R+1FLzKN7VC4hmJGg8RB8n6A=";
-                aarch64-darwin = "sha256-OOaMsgvu4MCVCk0ayN4XSFewpcTdKF8ilqU1Be5Aii8=";
-                aarch64-linux = "sha256-EVg7QBd3L1NXGIhF1odtADSY6/paEuXCP2mY3ripFmA=";
+                x86_64-linux = "sha256-gHiHN2OJY2+QjZdO5tcjUsEJe3NPbiYAFpdqJrnWlL8=";
+                x86_64-darwin = "sha256-Oj4MEFixx7kLr9dh+UP89j8bTU3T/8J7qtYld+CICZY=";
+                aarch64-darwin = "sha256-yLDu2M2oXSX9NbAivn8J/BGNbOeQ8wRZqtK4Ql1Ed8E=";
+                aarch64-linux = "sha256-1zgNXkcVh4xEEIq+ahORvDhzUxkpnwrzZYvVp4qgOxA=";
               };
             in
             pkgs.stdenv.mkDerivation rec {
               pname = "atlasx";
-              version = "0.26.1";
+              version = "0.30.0";
 
               src = pkgs.fetchurl {
                 # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
