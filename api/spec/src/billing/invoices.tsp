@@ -427,13 +427,10 @@ enum InvoiceExpand {
 @friendlyName("InvoicePendingLinesActionInput")
 model InvoicePendingLinesActionInput {
   /**
-   * The pending line items to include in the invoice, if not provided:
-   * - all line items that have invoice_at < asOf will be included
-   * - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
-   *   of the billing cycle
+   * Filters to apply when creating the invoice.
    */
   @visibility(Lifecycle.Create)
-  includePendingLines?: ULID[];
+  filters?: InvoicePendingLinesActionFiltersInput;
 
   /**
    * The time as of which the invoice is created.
@@ -448,6 +445,23 @@ model InvoicePendingLinesActionInput {
    */
   @visibility(Lifecycle.Create)
   customerId: ULID;
+}
+
+/**
+ * InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice.
+ */
+@friendlyName("InvoicePendingLinesActionFiltersInput")
+model InvoicePendingLinesActionFiltersInput {
+  /**
+   * The pending line items to include in the invoice, if not provided:
+   * - all line items that have invoice_at < asOf will be included
+   * - [progressive billing only] all usage based line items will be included up to asOf, new
+   *   usage-based line items will be staged for the rest of the billing cycle
+   *
+   * All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action will fail.
+   */
+  @visibility(Lifecycle.Create)
+  lineIds?: ULID[];
 }
 
 /**

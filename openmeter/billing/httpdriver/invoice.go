@@ -125,13 +125,18 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 				return InvoicePendingLinesActionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
+			pendingLinesFilter := mo.None[[]string]()
+			if body.Filters != nil {
+				pendingLinesFilter = mo.PointerToOption(body.Filters.LineIds)
+			}
+
 			return InvoicePendingLinesActionRequest{
 				Customer: customerentity.CustomerID{
 					ID:        body.CustomerId,
 					Namespace: ns,
 				},
 
-				IncludePendingLines: mo.PointerToOption(body.IncludePendingLines),
+				IncludePendingLines: pendingLinesFilter,
 				AsOf:                body.AsOf,
 			}, nil
 		},
