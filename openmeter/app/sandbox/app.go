@@ -92,7 +92,7 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 }
 
 func (a App) PostAdvanceInvoiceHook(ctx context.Context, invoice billing.Invoice) (*billing.PostAdvanceHookResult, error) {
-	if invoice.Status != billing.InvoiceStatusPaymentPending {
+	if invoice.Status != billing.InvoiceStatusPaymentProcessingPending {
 		return nil, nil
 	}
 

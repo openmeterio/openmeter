@@ -1,4 +1,4 @@
-h1:PjFwEMwcwswBHQE+alWSvuKvvpLsyoHSSQCZgjJmxhI=
+h1:H7vW4mmObX38hfMTilYrp3BNNXwmohC4YY6cibn8yOU=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -101,3 +101,5 @@ h1:PjFwEMwcwswBHQE+alWSvuKvvpLsyoHSSQCZgjJmxhI=
 20250130104722_billing-collection-at.up.sql h1:UdFm8gNeXxTPNfxTMbHpgOFo+Ow7rHCOw4sXKYp83aU=
 20250131125127_billing-sent-to-customer-at.down.sql h1:qMCLQ4L1aaJyo1OI1Fzc1sA1VqVLngqkLD8B/8420rM=
 20250131125127_billing-sent-to-customer-at.up.sql h1:stYsgGQaZyVQyNuAGiR2gXJ6t8GzO0DnYKW0YDVdTbQ=
+20250203103124_invoice-state-rename.down.sql h1:EvgJC3iaN1ydKbQnxicqtF3G2vJB0+C813r5GJhuClQ=
+20250203103124_invoice-state-rename.up.sql h1:eZEnYAt/BTU5BZt10QlirwUh5hGIUyQEDAzf7K670K0=

@@ -824,9 +824,9 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (boo
 				billing.InvoiceStatusIssuingSyncing,
 				billing.InvoiceStatusIssuingSyncFailed,
 				billing.InvoiceStatusIssued,
-				billing.InvoiceStatusPaymentPending,
-				billing.InvoiceStatusPaymentFailed,
-				billing.InvoiceStatusPaymentActionRequired,
+				billing.InvoiceStatusPaymentProcessingPending,
+				billing.InvoiceStatusPaymentProcessingFailed,
+				billing.InvoiceStatusPaymentProcessingActionRequired,
 				billing.InvoiceStatusOverdue,
 			),
 		).
