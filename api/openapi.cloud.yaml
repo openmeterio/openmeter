@@ -12203,6 +12203,10 @@ components:
         - draft
         - issuing
         - issued
+        - payment
+        - overdue
+        - paid
+        - uncollectible
       description: InvoiceStatus describes the status of an invoice.
     InvoiceStatusDetails:
       type: object

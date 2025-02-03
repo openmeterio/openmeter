@@ -581,7 +581,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 				preActivationStatus := sm.Invoice.Status
 
-				canAdvance, err := sm.CanFire(ctx, triggerNext)
+				canAdvance, err := sm.CanFire(ctx, billing.TriggerNext)
 				if err != nil {
 					return fmt.Errorf("checking if can advance: %w", err)
 				}
@@ -616,7 +616,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 }
 
 func (s *Service) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.Invoice, error) {
-	return s.executeTriggerOnInvoice(ctx, input, triggerApprove)
+	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerApprove)
 }
 
 func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.Invoice, error) {
@@ -644,7 +644,7 @@ func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceIn
 			return billing.Invoice{}, fmt.Errorf("updating invoice: %w", err)
 		}
 
-		return s.executeTriggerOnInvoice(ctx, input, triggerRetry)
+		return s.executeTriggerOnInvoice(ctx, input, billing.TriggerRetry)
 	})
 }
 
@@ -775,7 +775,7 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 		}
 	}
 
-	invoice, err := s.executeTriggerOnInvoice(ctx, input, triggerDelete)
+	invoice, err := s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
 	if err != nil {
 		return err
 	}
@@ -876,7 +876,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 	return s.executeTriggerOnInvoice(
 		ctx,
 		input.Invoice,
-		triggerUpdated,
+		billing.TriggerUpdated,
 		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
 		ExecuteTriggerWithAllowInStates(billing.InvoiceStatusDraftUpdating),
 		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
@@ -933,7 +933,7 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 			}
 
 			period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
-				AsOf:               line.Period.End,
+				AsOf:               line.InvoiceAt,
 				ProgressiveBilling: progressiveBilling,
 			})
 			if err != nil {

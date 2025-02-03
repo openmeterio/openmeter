@@ -794,7 +794,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				require.ErrorIs(t, err, billing.ErrInvoiceCannotAdvance)
 				require.ErrorAs(t, err, &billing.ValidationError{})
 			},
-			expectedState: billing.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusPaid,
 		},
 		{
 			name: "draft period bypass with manual approve",
@@ -821,9 +821,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusPaid, invoice.Status)
 			},
-			expectedState: billing.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusPaid,
 		},
 		{
 			name: "manual approvement flow",
@@ -845,7 +845,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Approve: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusIssued,
+							ResultingState: billing.InvoiceStatusPaymentPending,
 						},
 					},
 				}, invoice.StatusDetails)
@@ -857,9 +857,63 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusPaid, invoice.Status)
 			},
-			expectedState: billing.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusPaid,
+		},
+		// sandbox payment status override metadata
+		{
+			name: "app sandbox failed payment simulation",
+			workflowConfig: billing.WorkflowConfig{
+				Collection: billing.CollectionConfig{
+					Alignment: billing.AlignmentKindSubscription,
+				},
+				Invoicing: billing.InvoicingConfig{
+					AutoAdvance: false,
+					DraftPeriod: lo.Must(datex.ISOString("PT0H").Parse()),
+					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+				},
+				Payment: billing.PaymentConfig{
+					CollectionMethod: billing.CollectionMethodChargeAutomatically,
+				},
+			},
+			advance: func(t *testing.T, ctx context.Context, invoice billing.Invoice) {
+				require.Equal(s.T(), billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+
+				// Let's instruct the sandbox to fail the invoice
+				_, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+					Invoice: invoice.InvoiceID(),
+					EditFn: func(invoice *billing.Invoice) error {
+						invoice.Metadata = map[string]string{
+							appsandbox.TargetPaymentStatusMetadataKey: appsandbox.TargetPaymentStatusFailed,
+						}
+
+						return nil
+					},
+				})
+				s.NoError(err)
+
+				// Approve the invoice, should become InvoiceStatusPaymentFailed
+				invoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
+					ID:        invoice.ID,
+					Namespace: invoice.Namespace,
+				})
+
+				require.NoError(s.T(), err)
+				require.Equal(s.T(), billing.InvoiceStatusPaymentFailed, invoice.Status)
+				require.Len(s.T(), invoice.ValidationIssues, 1)
+
+				validationIssue := invoice.ValidationIssues[0]
+				require.ElementsMatch(s.T(), billing.ValidationIssues{
+					{
+						Severity:  billing.ValidationIssueSeverityCritical,
+						Code:      validationIssue.Code,
+						Message:   validationIssue.Message,
+						Component: "app.sandbox.invoiceCustomers.initiate_payment",
+					},
+				}, invoice.ValidationIssues.RemoveMetaForCompare())
+			},
+			expectedState: billing.InvoiceStatusPaymentFailed,
 		},
 	}
 
@@ -971,7 +1025,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Retry: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusIssued,
+							ResultingState: billing.InvoiceStatusPaymentPending,
 						},
 						Delete: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusDeleted,
@@ -1028,7 +1082,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Retry: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusIssued,
+							ResultingState: billing.InvoiceStatusPaymentPending,
 						},
 						Delete: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusDeleted,
@@ -1121,7 +1175,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Retry: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusIssued,
+							ResultingState: billing.InvoiceStatusPaymentPending,
 						},
 						Delete: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusDeleted,
@@ -1196,7 +1250,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				})
 				require.NotNil(s.T(), invoice)
 
-				require.Equal(s.T(), billing.InvoiceStatusIssued, invoice.Status)
+				// We are using the mock app factory, so we won't have automatic payment handling provided by the sandbox app
+				require.Equal(s.T(), billing.InvoiceStatusPaymentPending, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{},
 					Immutable:        true,
@@ -1212,7 +1267,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				return &invoice
 			},
-			expectedState: billing.InvoiceStatusIssued,
+			expectedState: billing.InvoiceStatusPaymentPending,
 		},
 	}
 
