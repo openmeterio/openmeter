@@ -7948,6 +7948,15 @@ components:
           type: string
           description: Phone number.
       description: Address
+    Alignment:
+      type: object
+      properties:
+        billablesMustAlign:
+          type: boolean
+          description: |-
+            Whether all Billable items and RateCards must align.
+            Alignment means the Price's BillingCadence must align for both duration and anchor time.
+      description: Alignment configuration for a plan or subscription.
     Annotations:
       type: object
       additionalProperties: {}
@@ -9200,6 +9209,10 @@ components:
               nullable: true
               description: Additional metadata for the resource.
               title: Metadata
+            alignment:
+              allOf:
+                - $ref: '#/components/schemas/Alignment'
+              description: Alignment configuration for the plan.
             currency:
               allOf:
                 - $ref: '#/components/schemas/CurrencyCode'
@@ -13869,6 +13882,10 @@ components:
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A semi-unique identifier for the resource.
           title: Key
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         version:
           type: integer
           minimum: 1
@@ -13951,6 +13968,10 @@ components:
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A semi-unique identifier for the resource.
           title: Key
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -14116,6 +14137,10 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         phases:
           type: array
           items:

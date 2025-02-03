@@ -50,6 +50,10 @@ type Period struct {
 
 // FIXME: clean up add and subtract
 
+func (p Period) Normalise(exact bool) Period {
+	return Period{p.Period.Normalise(exact)}
+}
+
 func (p Period) Add(p2 Period) (Period, error) {
 	s2 := period.ISOString(p2.String())
 	per2, err := period.Parse(string(s2))

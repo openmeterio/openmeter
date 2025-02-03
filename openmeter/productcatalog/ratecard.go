@@ -326,6 +326,18 @@ func (c RateCards) At(idx int) RateCard {
 	return c[idx]
 }
 
+func (c RateCards) Billables() RateCards {
+	var billables RateCards
+	for _, rc := range c {
+		// An effective price of 0 is still counted as a billable item
+		if rc.AsMeta().Price != nil {
+			billables = append(billables, rc)
+		}
+	}
+
+	return billables
+}
+
 func (c RateCards) Equal(v RateCards) bool {
 	if len(c) != len(v) {
 		return false

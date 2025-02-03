@@ -1,5 +1,5 @@
 import { createRule, paramMessage } from '@typespec/compiler'
-import { isPascalCaseNoAcronyms } from './utils.js'
+import { isCamelCaseNoAcronyms, isPascalCaseNoAcronyms } from './utils.js'
 
 export const casingRule = createRule({
   name: 'casing',
@@ -15,6 +15,18 @@ export const casingRule = createRule({
         context.reportDiagnostic({
           format: { type: 'Model', casing: 'PascalCase' },
           target: model,
+          messageId: 'name',
+        })
+      }
+    },
+    modelProperty: (property) => {
+      if (
+        !isCamelCaseNoAcronyms(property.name) ||
+        isPascalCaseNoAcronyms(property.name)
+      ) {
+        context.reportDiagnostic({
+          format: { type: 'Model Property', casing: 'camelCase' },
+          target: property,
           messageId: 'name',
         })
       }

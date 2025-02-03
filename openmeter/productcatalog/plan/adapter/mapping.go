@@ -35,6 +35,9 @@ func fromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 				EffectiveFrom: p.EffectiveFrom,
 				EffectiveTo:   p.EffectiveTo,
 			},
+			Alignment: productcatalog.Alignment{
+				BillablesMustAlign: p.BillablesMustAlign,
+			},
 		},
 	}
 

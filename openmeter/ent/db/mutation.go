@@ -31419,6 +31419,7 @@ type PlanMutation struct {
 	name                 *string
 	description          *string
 	key                  *string
+	billables_must_align *bool
 	version              *int
 	addversion           *int
 	currency             *string
@@ -31867,6 +31868,42 @@ func (m *PlanMutation) ResetKey() {
 	m.key = nil
 }
 
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (m *PlanMutation) SetBillablesMustAlign(b bool) {
+	m.billables_must_align = &b
+}
+
+// BillablesMustAlign returns the value of the "billables_must_align" field in the mutation.
+func (m *PlanMutation) BillablesMustAlign() (r bool, exists bool) {
+	v := m.billables_must_align
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillablesMustAlign returns the old "billables_must_align" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldBillablesMustAlign(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillablesMustAlign is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillablesMustAlign requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillablesMustAlign: %w", err)
+	}
+	return oldValue.BillablesMustAlign, nil
+}
+
+// ResetBillablesMustAlign resets all changes to the "billables_must_align" field.
+func (m *PlanMutation) ResetBillablesMustAlign() {
+	m.billables_must_align = nil
+}
+
 // SetVersion sets the "version" field.
 func (m *PlanMutation) SetVersion(i int) {
 	m.version = &i
@@ -32199,7 +32236,7 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, plan.FieldNamespace)
 	}
@@ -32223,6 +32260,9 @@ func (m *PlanMutation) Fields() []string {
 	}
 	if m.key != nil {
 		fields = append(fields, plan.FieldKey)
+	}
+	if m.billables_must_align != nil {
+		fields = append(fields, plan.FieldBillablesMustAlign)
 	}
 	if m.version != nil {
 		fields = append(fields, plan.FieldVersion)
@@ -32260,6 +32300,8 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case plan.FieldKey:
 		return m.Key()
+	case plan.FieldBillablesMustAlign:
+		return m.BillablesMustAlign()
 	case plan.FieldVersion:
 		return m.Version()
 	case plan.FieldCurrency:
@@ -32293,6 +32335,8 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldDescription(ctx)
 	case plan.FieldKey:
 		return m.OldKey(ctx)
+	case plan.FieldBillablesMustAlign:
+		return m.OldBillablesMustAlign(ctx)
 	case plan.FieldVersion:
 		return m.OldVersion(ctx)
 	case plan.FieldCurrency:
@@ -32365,6 +32409,13 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
+		return nil
+	case plan.FieldBillablesMustAlign:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillablesMustAlign(v)
 		return nil
 	case plan.FieldVersion:
 		v, ok := value.(int)
@@ -32514,6 +32565,9 @@ func (m *PlanMutation) ResetField(name string) error {
 		return nil
 	case plan.FieldKey:
 		m.ResetKey()
+		return nil
+	case plan.FieldBillablesMustAlign:
+		m.ResetBillablesMustAlign()
 		return nil
 	case plan.FieldVersion:
 		m.ResetVersion()

@@ -12,5 +12,6 @@ import "./ratecards.tsp";
 import "./routes.tsp";
 import "./tax.tsp";
 import "./subscription.tsp";
+import "./alignment.tsp";
 
 namespace OpenMeter.ProductCatalog;
