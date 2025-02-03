@@ -845,7 +845,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Approve: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusPaymentPending,
+							ResultingState: billing.InvoiceStatusPaymentProcessingPending,
 						},
 					},
 				}, invoice.StatusDetails)
@@ -893,14 +893,14 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				})
 				s.NoError(err)
 
-				// Approve the invoice, should become InvoiceStatusPaymentFailed
+				// Approve the invoice, should become InvoiceStatusPaymentProcessingFailed
 				invoice, err = s.BillingService.ApproveInvoice(ctx, billing.ApproveInvoiceInput{
 					ID:        invoice.ID,
 					Namespace: invoice.Namespace,
 				})
 
 				require.NoError(s.T(), err)
-				require.Equal(s.T(), billing.InvoiceStatusPaymentFailed, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusPaymentProcessingFailed, invoice.Status)
 				require.Len(s.T(), invoice.ValidationIssues, 1)
 
 				validationIssue := invoice.ValidationIssues[0]
@@ -913,7 +913,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 			},
-			expectedState: billing.InvoiceStatusPaymentFailed,
+			expectedState: billing.InvoiceStatusPaymentProcessingFailed,
 		},
 	}
 
@@ -1025,7 +1025,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Retry: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusPaymentPending,
+							ResultingState: billing.InvoiceStatusPaymentProcessingPending,
 						},
 						Delete: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusDeleted,
@@ -1082,7 +1082,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Retry: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusPaymentPending,
+							ResultingState: billing.InvoiceStatusPaymentProcessingPending,
 						},
 						Delete: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusDeleted,
@@ -1175,7 +1175,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{
 						Retry: &billing.InvoiceAvailableActionDetails{
-							ResultingState: billing.InvoiceStatusPaymentPending,
+							ResultingState: billing.InvoiceStatusPaymentProcessingPending,
 						},
 						Delete: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusDeleted,
@@ -1251,7 +1251,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.NotNil(s.T(), invoice)
 
 				// We are using the mock app factory, so we won't have automatic payment handling provided by the sandbox app
-				require.Equal(s.T(), billing.InvoiceStatusPaymentPending, invoice.Status)
+				require.Equal(s.T(), billing.InvoiceStatusPaymentProcessingPending, invoice.Status)
 				require.Equal(s.T(), billing.InvoiceStatusDetails{
 					AvailableActions: billing.InvoiceAvailableActions{},
 					Immutable:        true,
@@ -1267,7 +1267,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 				return &invoice
 			},
-			expectedState: billing.InvoiceStatusPaymentPending,
+			expectedState: billing.InvoiceStatusPaymentProcessingPending,
 		},
 	}
 

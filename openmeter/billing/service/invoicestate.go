@@ -179,27 +179,27 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	// Issued state
 	stateMachine.Configure(billing.InvoiceStatusIssued).
-		Permit(billing.TriggerNext, billing.InvoiceStatusPaymentPending)
+		Permit(billing.TriggerNext, billing.InvoiceStatusPaymentProcessingPending)
 
 	// Payment states
-	stateMachine.Configure(billing.InvoiceStatusPaymentPending).
+	stateMachine.Configure(billing.InvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaid, billing.InvoiceStatusPaid).
-		Permit(billing.TriggerFailed, billing.InvoiceStatusPaymentFailed).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusPaymentProcessingFailed).
 		Permit(billing.TriggerPaymentUncollectible, billing.InvoiceStatusUncollectible).
 		Permit(billing.TriggerPaymentOverdue, billing.InvoiceStatusOverdue).
-		Permit(billing.TriggerActionRequired, billing.InvoiceStatusPaymentActionRequired)
+		Permit(billing.TriggerActionRequired, billing.InvoiceStatusPaymentProcessingActionRequired)
 
-	stateMachine.Configure(billing.InvoiceStatusPaymentFailed).
+	stateMachine.Configure(billing.InvoiceStatusPaymentProcessingFailed).
 		Permit(billing.TriggerPaid, billing.InvoiceStatusPaid).
-		Permit(billing.TriggerRetry, billing.InvoiceStatusPaymentPending).
+		Permit(billing.TriggerRetry, billing.InvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaymentOverdue, billing.InvoiceStatusOverdue).
 		Permit(billing.TriggerPaymentUncollectible, billing.InvoiceStatusUncollectible).
-		Permit(billing.TriggerActionRequired, billing.InvoiceStatusPaymentActionRequired)
+		Permit(billing.TriggerActionRequired, billing.InvoiceStatusPaymentProcessingActionRequired)
 
-	stateMachine.Configure(billing.InvoiceStatusPaymentActionRequired).
+	stateMachine.Configure(billing.InvoiceStatusPaymentProcessingActionRequired).
 		Permit(billing.TriggerPaid, billing.InvoiceStatusPaid).
-		Permit(billing.TriggerFailed, billing.InvoiceStatusPaymentFailed).
-		Permit(billing.TriggerRetry, billing.InvoiceStatusPaymentPending).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusPaymentProcessingFailed).
+		Permit(billing.TriggerRetry, billing.InvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaymentOverdue, billing.InvoiceStatusOverdue).
 		Permit(billing.TriggerPaymentUncollectible, billing.InvoiceStatusUncollectible)
 
@@ -207,10 +207,10 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.InvoiceStatusOverdue).
 		Permit(billing.TriggerPaid, billing.InvoiceStatusPaid).
-		Permit(billing.TriggerFailed, billing.InvoiceStatusPaymentFailed).
-		Permit(billing.TriggerRetry, billing.InvoiceStatusPaymentPending).
+		Permit(billing.TriggerFailed, billing.InvoiceStatusPaymentProcessingFailed).
+		Permit(billing.TriggerRetry, billing.InvoiceStatusPaymentProcessingPending).
 		Permit(billing.TriggerPaymentUncollectible, billing.InvoiceStatusUncollectible).
-		Permit(billing.TriggerActionRequired, billing.InvoiceStatusPaymentActionRequired)
+		Permit(billing.TriggerActionRequired, billing.InvoiceStatusPaymentProcessingActionRequired)
 
 	// Final payment states
 	stateMachine.Configure(billing.InvoiceStatusPaid)
