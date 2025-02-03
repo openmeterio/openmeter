@@ -4733,7 +4733,7 @@ export interface components {
       | 'draft'
       | 'issuing'
       | 'issued'
-      | 'payment'
+      | 'payment_processing'
       | 'overdue'
       | 'paid'
       | 'uncollectible'
