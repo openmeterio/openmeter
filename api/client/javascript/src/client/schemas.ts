@@ -1712,6 +1712,12 @@ export interface components {
       /** @description Phone number. */
       phoneNumber?: string
     }
+    /** @description Alignment configuration for a plan or subscription. */
+    Alignment: {
+      /** @description Whether all Billable items and RateCards must align.
+       *     Alignment means the Price's BillingCadence must align for both duration and anchor time. */
+      billablesMustAlign?: boolean
+    }
     /**
      * @description Set of key-value pairs managed by the system. Cannot be modified by user.
      * @example {
@@ -2552,6 +2558,8 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Currency
        * @description The currency code of the plan.
@@ -5911,6 +5919,8 @@ export interface components {
        * @description A semi-unique identifier for the resource.
        */
       key: string
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Version
        * @description Version of the plan. Incremented when the plan is updated.
@@ -5976,6 +5986,8 @@ export interface components {
        * @description A semi-unique identifier for the resource.
        */
       key: string
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Currency
        * @description The currency code of the plan.
@@ -6090,6 +6102,8 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -7695,6 +7709,7 @@ export interface components {
   pathItems: never
 }
 export type Address = components['schemas']['Address']
+export type Alignment = components['schemas']['Alignment']
 export type Annotations = components['schemas']['Annotations']
 export type App = components['schemas']['App']
 export type AppBaseReplaceUpdate = components['schemas']['AppBaseReplaceUpdate']
