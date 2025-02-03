@@ -311,7 +311,7 @@ func TypeValidator(_type billing.InvoiceType) error {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s billing.InvoiceStatus) error {
 	switch s {
-	case "gathering", "draft_created", "draft_updating", "draft_manual_approval_needed", "draft_validating", "draft_invalid", "draft_syncing", "draft_sync_failed", "draft_waiting_auto_approval", "draft_ready_to_issue", "delete_in_progress", "delete_syncing", "delete_failed", "deleted", "issuing_syncing", "issuing_failed", "issued", "payment_pending", "payment_failed", "payment_action_required", "overdue", "paid", "uncollectible":
+	case "gathering", "draft.created", "draft.updating", "draft.manual_approval_needed", "draft.validating", "draft.invalid", "draft.syncing", "draft.sync_failed", "draft.waiting_auto_approval", "draft.ready_to_issue", "delete.in_progress", "delete.syncing", "delete.failed", "deleted", "issuing.syncing", "issuing.failed", "issued", "payment_processing.pending", "payment_processing.failed", "payment_processing.action_required", "overdue", "paid", "uncollectible":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for status field: %q", s)

@@ -363,7 +363,7 @@ enum InvoiceStatus {
   /**
    * The payment for the invoice is being processed.
    */
-  payment: "payment",
+  paymentProcessing: "payment_processing",
 
   /**
    * The invoice's payment is overdue.

@@ -47,16 +47,16 @@ func (t InvoiceType) Validate() error {
 type InvoiceStatusCategory string
 
 const (
-	InvoiceStatusCategoryGathering     InvoiceStatusCategory = "gathering"
-	InvoiceStatusCategoryDraft         InvoiceStatusCategory = "draft"
-	InvoiceStatusCategoryDelete        InvoiceStatusCategory = "delete"
-	InvoiceStatusCategoryDeleted       InvoiceStatusCategory = "deleted"
-	InvoiceStatusCategoryIssuing       InvoiceStatusCategory = "issuing"
-	InvoiceStatusCategoryIssued        InvoiceStatusCategory = "issued"
-	InvoiceStatusCategoryPayment       InvoiceStatusCategory = "payment"
-	InvoiceStatusCategoryOverdue       InvoiceStatusCategory = "overdue"
-	InvoiceStatusCategoryPaid          InvoiceStatusCategory = "paid"
-	InvoiceStatusCategoryUncollectible InvoiceStatusCategory = "uncollectible"
+	InvoiceStatusCategoryGathering         InvoiceStatusCategory = "gathering"
+	InvoiceStatusCategoryDraft             InvoiceStatusCategory = "draft"
+	InvoiceStatusCategoryDelete            InvoiceStatusCategory = "delete"
+	InvoiceStatusCategoryDeleted           InvoiceStatusCategory = "deleted"
+	InvoiceStatusCategoryIssuing           InvoiceStatusCategory = "issuing"
+	InvoiceStatusCategoryIssued            InvoiceStatusCategory = "issued"
+	InvoiceStatusCategoryPaymentProcessing InvoiceStatusCategory = "payment_processing"
+	InvoiceStatusCategoryOverdue           InvoiceStatusCategory = "overdue"
+	InvoiceStatusCategoryPaid              InvoiceStatusCategory = "paid"
+	InvoiceStatusCategoryUncollectible     InvoiceStatusCategory = "uncollectible"
 )
 
 func (s InvoiceStatusCategory) MatchesInvoiceStatus(status InvoiceStatus) bool {
@@ -69,29 +69,29 @@ const (
 	// InvoiceStatusGathering is the status of an invoice that is gathering the items to be invoiced.
 	InvoiceStatusGathering InvoiceStatus = "gathering"
 
-	InvoiceStatusDraftCreated              InvoiceStatus = "draft_created"
-	InvoiceStatusDraftUpdating             InvoiceStatus = "draft_updating"
-	InvoiceStatusDraftManualApprovalNeeded InvoiceStatus = "draft_manual_approval_needed"
-	InvoiceStatusDraftValidating           InvoiceStatus = "draft_validating"
-	InvoiceStatusDraftInvalid              InvoiceStatus = "draft_invalid"
-	InvoiceStatusDraftSyncing              InvoiceStatus = "draft_syncing"
-	InvoiceStatusDraftSyncFailed           InvoiceStatus = "draft_sync_failed"
-	InvoiceStatusDraftWaitingAutoApproval  InvoiceStatus = "draft_waiting_auto_approval"
-	InvoiceStatusDraftReadyToIssue         InvoiceStatus = "draft_ready_to_issue"
+	InvoiceStatusDraftCreated              InvoiceStatus = "draft.created"
+	InvoiceStatusDraftUpdating             InvoiceStatus = "draft.updating"
+	InvoiceStatusDraftManualApprovalNeeded InvoiceStatus = "draft.manual_approval_needed"
+	InvoiceStatusDraftValidating           InvoiceStatus = "draft.validating"
+	InvoiceStatusDraftInvalid              InvoiceStatus = "draft.invalid"
+	InvoiceStatusDraftSyncing              InvoiceStatus = "draft.syncing"
+	InvoiceStatusDraftSyncFailed           InvoiceStatus = "draft.sync_failed"
+	InvoiceStatusDraftWaitingAutoApproval  InvoiceStatus = "draft.waiting_auto_approval"
+	InvoiceStatusDraftReadyToIssue         InvoiceStatus = "draft.ready_to_issue"
 
-	InvoiceStatusDeleteInProgress InvoiceStatus = "delete_in_progress"
-	InvoiceStatusDeleteSyncing    InvoiceStatus = "delete_syncing"
-	InvoiceStatusDeleteFailed     InvoiceStatus = "delete_failed"
+	InvoiceStatusDeleteInProgress InvoiceStatus = "delete.in_progress"
+	InvoiceStatusDeleteSyncing    InvoiceStatus = "delete.syncing"
+	InvoiceStatusDeleteFailed     InvoiceStatus = "delete.failed"
 	InvoiceStatusDeleted          InvoiceStatus = "deleted"
 
-	InvoiceStatusIssuingSyncing    InvoiceStatus = "issuing_syncing"
-	InvoiceStatusIssuingSyncFailed InvoiceStatus = "issuing_failed"
+	InvoiceStatusIssuingSyncing    InvoiceStatus = "issuing.syncing"
+	InvoiceStatusIssuingSyncFailed InvoiceStatus = "issuing.failed"
 
 	InvoiceStatusIssued InvoiceStatus = "issued"
 
-	InvoiceStatusPaymentPending        InvoiceStatus = "payment_pending"
-	InvoiceStatusPaymentFailed         InvoiceStatus = "payment_failed"
-	InvoiceStatusPaymentActionRequired InvoiceStatus = "payment_action_required"
+	InvoiceStatusPaymentProcessingPending        InvoiceStatus = "payment_processing.pending"
+	InvoiceStatusPaymentProcessingFailed         InvoiceStatus = "payment_processing.failed"
+	InvoiceStatusPaymentProcessingActionRequired InvoiceStatus = "payment_processing.action_required"
 
 	// These are separate statuses to allow for more gradual filtering on the API without having to understand sub-statuses
 
@@ -124,9 +124,9 @@ var validStatuses = []InvoiceStatus{
 
 	InvoiceStatusIssued,
 
-	InvoiceStatusPaymentPending,
-	InvoiceStatusPaymentFailed,
-	InvoiceStatusPaymentActionRequired,
+	InvoiceStatusPaymentProcessingPending,
+	InvoiceStatusPaymentProcessingFailed,
+	InvoiceStatusPaymentProcessingActionRequired,
 
 	InvoiceStatusOverdue,
 
@@ -145,7 +145,7 @@ func (s InvoiceStatus) Values() []string {
 }
 
 func (s InvoiceStatus) ShortStatus() string {
-	parts := strings.SplitN(string(s), "_", 2)
+	parts := strings.SplitN(string(s), ".", 2)
 	return parts[0]
 }
 
@@ -171,7 +171,7 @@ var failedStatuses = []InvoiceStatus{
 	InvoiceStatusDraftSyncFailed,
 	InvoiceStatusIssuingSyncFailed,
 	InvoiceStatusDeleteFailed,
-	InvoiceStatusPaymentFailed,
+	InvoiceStatusPaymentProcessingFailed,
 }
 
 func (s InvoiceStatus) IsFailed() bool {
