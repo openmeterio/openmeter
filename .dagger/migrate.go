@@ -27,7 +27,7 @@ func (m *Migrate) Check(ctx context.Context) error {
 
 	bin := dag.Container(dagger.ContainerOpts{
 		Platform: "linux/amd64",
-	}).From(atlasImage).File("atlas")
+	}).From(AtlasContainerImage).File("atlas")
 
 	atlas := app.
 		WithFile("/bin/atlas", bin).
