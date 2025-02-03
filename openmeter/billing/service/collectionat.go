@@ -42,7 +42,7 @@ func UpdateInvoiceCollectionAt(invoice *billing.Invoice, collection billing.Coll
 func GetEarliestValidInvoiceAt(lines billing.LineChildren) time.Time {
 	var invoiceAt time.Time
 
-	// Find the invoice lint with the earliest invoiceAt attribute
+	// Find the invoice line with the earliest invoiceAt attribute
 	lines.ForEach(func(v []*billing.Line) {
 		for _, line := range v {
 			if line == nil || line.Status != billing.InvoiceLineStatusValid {
@@ -60,6 +60,35 @@ func GetEarliestValidInvoiceAt(lines billing.LineChildren) time.Time {
 
 			if line.InvoiceAt.Before(invoiceAt) {
 				invoiceAt = line.InvoiceAt
+			}
+		}
+	})
+
+	return invoiceAt
+}
+
+func GetLatestValidInvoiceAtAsOf(lines billing.LineChildren, asOf time.Time) time.Time {
+	var invoiceAt time.Time
+
+	// Find the invoice line with the latest invoiceAt attribute before asOf time
+	lines.ForEach(func(v []*billing.Line) {
+		for _, line := range v {
+			if line == nil || line.Status != billing.InvoiceLineStatusValid {
+				continue
+			}
+
+			if line.DeletedAt != nil {
+				continue
+			}
+
+			if line.InvoiceAt.After(invoiceAt) && line.InvoiceAt.Before(asOf) {
+				invoiceAt = line.InvoiceAt
+			}
+
+			if line.InvoiceAt.Equal(asOf) {
+				invoiceAt = line.InvoiceAt
+
+				break
 			}
 		}
 	})
