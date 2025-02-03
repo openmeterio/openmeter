@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -677,7 +676,7 @@ func ExecuteTriggerWithIncludeDeletedLines(includeDeletedLines bool) executeTrig
 	}
 }
 
-func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing.InvoiceID, trigger stateless.Trigger, opts ...executeTriggerApplyOptionFunc) (billing.Invoice, error) {
+func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing.InvoiceID, trigger billing.InvoiceTrigger, opts ...executeTriggerApplyOptionFunc) (billing.Invoice, error) {
 	if err := invoiceID.Validate(); err != nil {
 		return billing.Invoice{}, billing.ValidationError{
 			Err: err,

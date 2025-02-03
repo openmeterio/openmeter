@@ -49,7 +49,7 @@ func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.Apps
 	})
 }
 
-func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service) (appstripe.Service, error) {
+func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service) (appstripe.Service, error) {
 	// TODO: remove this check after enabled by default
 	if !appsConfig.Enabled || db == nil {
 		return nil, nil
@@ -66,9 +66,12 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 	}
 
 	return appstripeservice.New(appstripeservice.Config{
-		Adapter:       appStripeAdapter,
-		AppService:    appService,
-		SecretService: secretService,
+		Adapter:                    appStripeAdapter,
+		AppService:                 appService,
+		SecretService:              secretService,
+		BillingService:             billingService,
+		Logger:                     logger,
+		DisableWebhookRegistration: appsConfig.Stripe.DisableWebhookRegistration,
 	})
 }
 

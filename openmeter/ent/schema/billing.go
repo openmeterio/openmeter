@@ -714,6 +714,12 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		// ID of the tax in the external invoicing app
+		// For example, Stripe tax calculation ID
+		field.String("tax_app_external_id").
+			Optional().
+			Nillable(),
+
 		// These fields are optional as they are calculated from the invoice lines, which might not
 		// be present on an invoice.
 		field.Time("period_start").

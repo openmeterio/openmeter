@@ -693,57 +693,10 @@ model StripeWebhookEvent {
    * The event data.
    */
   data: {
-    object: StripeSetupIntent;
+    // We don't care about the schema of this one as we are serializing this data using
+    // the stripe-go library, which handles API versioning and schema changes.
+    object: unknown;
   };
-}
-
-/**
- * Stripe setup intent.
- */
-@friendlyName("StripeSetupIntent")
-model StripeSetupIntent {
-  /**
-   * The setup intent id.
-   */
-  id: string;
-
-  /**
-   * The setup intent status.
-   */
-  status: StripePaymentIntentStatus;
-
-  /**
-   * The setup intent payment method.
-   */
-  payment_method?: string;
-
-  /**
-   * The setup intent payment method types.
-   */
-  payment_method_types?: string[];
-
-  /**
-   * The setup intent customer.
-   */
-  customer: string;
-
-  /**
-   * The setup intent metadata.
-   */
-  metadata: Record<string>;
-}
-
-/**
- * Stripe payment intent status.
- */
-@friendlyName("StripePaymentIntentStatus")
-enum StripePaymentIntentStatus {
-  Canceled: "canceled",
-  Processing: "processing",
-  RequiresAction: "requires_action",
-  RequiresConfirmation: "requires_confirmation",
-  RequiresPaymentMethod: "requires_payment_method",
-  Succeeded: "succeeded",
 }
 
 /**

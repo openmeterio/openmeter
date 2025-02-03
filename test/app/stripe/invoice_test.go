@@ -3,6 +3,7 @@ package appstripe
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"testing"
 	"time"
@@ -77,9 +78,11 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.Require().NoError(err, "failed to create app stripe adapter")
 
 	appStripeService, err := appstripeservice.New(appstripeservice.Config{
-		Adapter:       appStripeAdapter,
-		AppService:    s.AppService,
-		SecretService: secretService,
+		Adapter:        appStripeAdapter,
+		AppService:     s.AppService,
+		SecretService:  secretService,
+		BillingService: s.BillingService,
+		Logger:         slog.Default(),
 	})
 	s.Require().NoError(err, "failed to create app stripe service")
 

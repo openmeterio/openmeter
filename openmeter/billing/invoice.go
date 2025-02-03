@@ -3,6 +3,7 @@ package billing
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -57,6 +59,7 @@ const (
 	InvoiceStatusCategoryOverdue           InvoiceStatusCategory = "overdue"
 	InvoiceStatusCategoryPaid              InvoiceStatusCategory = "paid"
 	InvoiceStatusCategoryUncollectible     InvoiceStatusCategory = "uncollectible"
+	InvoiceStatusCategoryVoided            InvoiceStatusCategory = "voided"
 )
 
 func (s InvoiceStatusCategory) MatchesInvoiceStatus(status InvoiceStatus) bool {
@@ -100,6 +103,8 @@ const (
 	InvoiceStatusPaid InvoiceStatus = "paid"
 
 	InvoiceStatusUncollectible InvoiceStatus = "uncollectible"
+
+	InvoiceStatusVoided InvoiceStatus = "voided"
 )
 
 var validStatuses = []InvoiceStatus{
@@ -133,6 +138,8 @@ var validStatuses = []InvoiceStatus{
 	InvoiceStatusPaid,
 
 	InvoiceStatusUncollectible,
+
+	InvoiceStatusVoided,
 }
 
 func (s InvoiceStatus) Values() []string {
@@ -605,6 +612,43 @@ type (
 	AssociatedLineCountsAdapterInput = genericMultiInvoiceInput
 )
 
+type ExternalIDType string
+
+const (
+	InvoicingExternalIDType ExternalIDType = "invoicing"
+	PaymentExternalIDType   ExternalIDType = "payment"
+	TaxExternalIDType       ExternalIDType = "tax"
+)
+
+func (t ExternalIDType) Validate() error {
+	if !slices.Contains([]ExternalIDType{
+		InvoicingExternalIDType,
+		PaymentExternalIDType,
+		TaxExternalIDType,
+	}, t) {
+		return fmt.Errorf("invalid external ID type: %s", t)
+	}
+
+	return nil
+}
+
+type ListInvoicesExternalIDFilter struct {
+	Type ExternalIDType
+	IDs  []string
+}
+
+func (f ListInvoicesExternalIDFilter) Validate() error {
+	if err := f.Type.Validate(); err != nil {
+		return err
+	}
+
+	if len(f.IDs) == 0 {
+		return errors.New("IDs are required")
+	}
+
+	return nil
+}
+
 type ListInvoicesInput struct {
 	pagination.Page
 
@@ -632,6 +676,8 @@ type ListInvoicesInput struct {
 
 	Expand InvoiceExpand
 
+	ExternalIDs *ListInvoicesExternalIDFilter
+
 	OrderBy api.InvoiceOrderBy
 	Order   sortx.Order
 }
@@ -643,6 +689,12 @@ func (i ListInvoicesInput) Validate() error {
 
 	if err := i.Expand.Validate(); err != nil {
 		return fmt.Errorf("expand: %w", err)
+	}
+
+	if i.ExternalIDs != nil {
+		if err := i.ExternalIDs.Validate(); err != nil {
+			return fmt.Errorf("external IDs: %w", err)
+		}
 	}
 
 	return nil
@@ -864,6 +916,44 @@ func (i InvoiceTriggerInput) Validate() error {
 		if err := i.ValidationErrors.Validate(); err != nil {
 			return fmt.Errorf("validation errors: %w", err)
 		}
+	}
+
+	return nil
+}
+
+type InvoiceTriggerServiceInput struct {
+	InvoiceTriggerInput
+
+	// AppType is the type of the app that triggered the invoice
+	AppType appentitybase.AppType
+	// Capability is the capability of the app that was processing this trigger
+	Capability appentitybase.CapabilityType
+}
+
+func (i InvoiceTriggerServiceInput) Validate() error {
+	if err := i.InvoiceTriggerInput.Validate(); err != nil {
+		return fmt.Errorf("trigger: %w", err)
+	}
+
+	if i.AppType == "" {
+		return errors.New("app type is required")
+	}
+
+	if i.Capability == "" {
+		return errors.New("capability is required")
+	}
+
+	return nil
+}
+
+type UpdateInvoiceFieldsInput struct {
+	Invoice          InvoiceID
+	SentToCustomerAt mo.Option[*time.Time]
+}
+
+func (i UpdateInvoiceFieldsInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("id: %w", err)
 	}
 
 	return nil

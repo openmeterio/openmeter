@@ -15,6 +15,7 @@ import (
 	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -71,6 +72,10 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request AppStripeWebhookRequest) (AppStripeWebhookResponse, error) {
+			ctx = context.WithValue(ctx, StripeEventIDAttributeName, request.Event.ID)
+			ctx = context.WithValue(ctx, StripeEventTypeAttributeName, request.Event.Type)
+			ctx = context.WithValue(ctx, AppIDAttributeName, request.AppID)
+
 			// Handle the webhook event based on the event type
 			switch request.Event.Type {
 			case stripeclient.WebhookEventTypeSetupIntentSucceeded:
@@ -147,48 +152,239 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				}, nil
 
 			// Invoice events
-			// TODO: update invoice payment status
 			case stripeclient.WebhookEventTypeInvoiceFinalizationFailed:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:   request.AppID,
+					Invoice: invoice,
+					Trigger: billing.TriggerFailed,
+					TargetStatuses: []billing.InvoiceStatus{
+						billing.InvoiceStatusIssuingSyncFailed,
+						billing.InvoiceStatusPaymentProcessingFailed,
+					},
+					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
+						billing.InvoiceStatusCategoryPaymentProcessing,
+						billing.InvoiceStatusCategoryPaid,
+						billing.InvoiceStatusCategoryUncollectible,
+					},
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						return stripeInvoice.LastFinalizationError != nil, nil
+					},
+					GetValidationErrors: func(stripeInvoice *stripe.Invoice) (*appstripeentity.ValidationErrorsInput, error) {
+						return &appstripeentity.ValidationErrorsInput{
+							Op:     billing.InvoiceOpFinalize,
+							Errors: []*stripe.Error{stripeInvoice.LastFinalizationError},
+						}, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
+
+			case stripeclient.WebhookEventTypeInvoiceSent:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceSentEvent(ctx, appstripeentity.HandleInvoiceSentEventInput{
+					AppID:   request.AppID,
+					Invoice: invoice,
+					SentAt:  request.Event.Created,
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+
+			case stripeclient.WebhookEventTypeInvoiceVoided:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:          request.AppID,
+					Invoice:        invoice,
+					Trigger:        billing.TriggerVoid,
+					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusVoided},
+					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
+						billing.InvoiceStatusPaid,
+					},
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						// Let's only invoke the state transition if the upstream invoice is voided
+						return stripeInvoice.Status == stripe.InvoiceStatusVoid, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
+
 			case stripeclient.WebhookEventTypeInvoiceMarkedUncollectible:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:          request.AppID,
+					Invoice:        invoice,
+					Trigger:        billing.TriggerPaymentUncollectible,
+					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusUncollectible},
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						// Let's only invoke the state transition if the upstream invoice is uncollectible
+						return stripeInvoice.Status == stripe.InvoiceStatusUncollectible, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
 			case stripeclient.WebhookEventTypeInvoiceOverdue:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:          request.AppID,
+					Invoice:        invoice,
+					Trigger:        billing.TriggerPaymentOverdue,
+					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusOverdue},
+					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
+						billing.InvoiceStatusCategoryUncollectible,
+					},
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						// Let's only invoke the state transition if the upstream invoice is still open
+						return stripeInvoice.Status == stripe.InvoiceStatusOpen, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
 			case stripeclient.WebhookEventTypeInvoicePaid:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:          request.AppID,
+					Invoice:        invoice,
+					Trigger:        billing.TriggerPaid,
+					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusPaid},
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						// Let's only invoke the state transition if the upstream invoice is paid
+						return stripeInvoice.Status == stripe.InvoiceStatusPaid, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
 			case stripeclient.WebhookEventTypeInvoicePaymentActionRequired:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:          request.AppID,
+					Invoice:        invoice,
+					Trigger:        billing.TriggerActionRequired,
+					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusPaymentProcessingActionRequired},
+					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
+						billing.InvoiceStatusCategoryPaid,
+						billing.InvoiceStatusCategoryUncollectible,
+					},
+
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						// Let's only invoke the state transition if the upstream invoice is still open
+						return stripeInvoice.Status == stripe.InvoiceStatusOpen, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
 			case stripeclient.WebhookEventTypeInvoicePaymentFailed:
+				invoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
+				err = h.service.HandleInvoiceStateTransition(ctx, appstripeentity.HandleInvoiceStateTransitionInput{
+					AppID:   request.AppID,
+					Invoice: invoice,
+					Trigger: billing.TriggerFailed,
+
+					TargetStatuses: []billing.InvoiceStatus{
+						billing.InvoiceStatusPaymentProcessingFailed,
+					},
+					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
+						billing.InvoiceStatusCategoryPaid,
+						billing.InvoiceStatusCategoryUncollectible,
+					},
+
+					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
+						// Let's only invoke the state transition if the upstream invoice is still open
+						return stripeInvoice.Status == stripe.InvoiceStatusOpen, nil
+					},
+				})
+				if err != nil {
+					return AppStripeWebhookResponse{}, err
+				}
+
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
 			case stripeclient.WebhookEventTypeInvoicePaymentSucceeded:
-				return AppStripeWebhookResponse{
-					NamespaceId: request.AppID.Namespace,
-					AppId:       request.AppID.ID,
-				}, nil
-			case stripeclient.WebhookEventTypeInvoiceSent:
-				return AppStripeWebhookResponse{
-					NamespaceId: request.AppID.Namespace,
-					AppId:       request.AppID.ID,
-				}, nil
-			case stripeclient.WebhookEventTypeInvoiceVoided:
+				// We ignore this event for now, as we handle the invoice.paid event instead
+
+				// Details: https://docs.stripe.com/invoicing/integration
+
+				// Successful invoice payments trigger both an invoice.paid and invoice.payment_succeeded event. Both event
+				// types contain the same invoice data, so it’s only necessary to listen to one of them to be notified of successful
+				// invoice payments. The difference is that invoice.payment_succeeded events are sent for successful invoice payments,
+				// but aren’t sent when you mark an invoice as paid_out_of_band. invoice.paid events, on the other hand, are triggered for
+				// both successful payments and out of band payments. Because invoice.paid covers both scenarios, we typically recommend
+				// listening to invoice.paid rather than invoice.payment_succeeded.
 				return AppStripeWebhookResponse{
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
@@ -206,4 +402,14 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func unmarshalInvoiceEvent(data []byte) (stripe.Invoice, error) {
+	var invoice stripe.Invoice
+	if err := json.Unmarshal(data, &invoice); err != nil {
+		return stripe.Invoice{}, app.ValidationError{
+			Err: fmt.Errorf("failed to unmarshal invoice: %w", err),
+		}
+	}
+	return invoice, nil
 }

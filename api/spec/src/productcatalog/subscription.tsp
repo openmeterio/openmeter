@@ -31,6 +31,14 @@ model SubscriptionExpanded {
  * Subscription status.
  */
 @friendlyName("SubscriptionStatus")
+@extension(
+  "x-enum-varnames",
+  [
+    "SubscriptionStatusActive",
+    "SubscriptionStatusInactive",
+    "SubscriptionStatusCanceled"
+  ]
+)
 enum SubscriptionStatus {
   Active: "active",
   Inactive: "inactive",

@@ -1,4 +1,4 @@
-h1:j6XyTAPuVSh/v8yacomnYTiI8EHe6gQKNWhiXr2A59w=
+h1:zkzkbPa7Ny5B6WhAxtQp6zTZFbbQcHoFOi0Hotpic8Q=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -105,3 +105,5 @@ h1:j6XyTAPuVSh/v8yacomnYTiI8EHe6gQKNWhiXr2A59w=
 20250203103124_invoice-state-rename.up.sql h1:eZEnYAt/BTU5BZt10QlirwUh5hGIUyQEDAzf7K670K0=
 20250203131553_plan-alignment.down.sql h1:c/yc5Opo7HZ43MfqtEIkfdv1HS/ppSP0VmEyjtLzWYE=
 20250203131553_plan-alignment.up.sql h1:JiiRhp30a/8pFS0G4xEwxGHMREW0n/Ul0z/sFegKrO0=
+20250203165324_billing-tax-external-id.down.sql h1:FcZH0YpuJGbDA8/THOpTpToe5wuNUfVdZAAulJy8efQ=
+20250203165324_billing-tax-external-id.up.sql h1:fvpP+ld9GneY3GTCrQy4k488mNPSEXotLOkKSvgo2/U=
