@@ -58,7 +58,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			}
 
 			// If no customerKey found try to parse customer field as customer input
-			if customerKey == nil {
+			if customerId == nil && customerKey == nil {
 				// If err try to parse customer field as customer input
 				customerCreate, err := body.Customer.AsCustomerCreate()
 				if err != nil {
