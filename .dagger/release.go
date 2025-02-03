@@ -125,7 +125,8 @@ func (m *Openmeter) publishPythonSdk(ctx context.Context, version string, pypiTo
 func (m *Openmeter) PublishJavascriptSdk(ctx context.Context, version string, tag string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	_, err := dag.Container().
-		From("node:22.8.0-alpine3.20").
+		From(NODEJS_CONTAINER_IMAGE).
+		WithExec([]string{"npm", "install", "-g", fmt.Sprintf("corepack@v%s", COREPACK_VERSION)}).
 		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/javascript").

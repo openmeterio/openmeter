@@ -55,7 +55,8 @@ func (m *Generate) Openapicloud() *dagger.File {
 
 func typespecBase(source *dagger.Directory) *dagger.Container {
 	return dag.Container().
-		From("node:22.8.0-alpine3.20").
+		From(NODEJS_CONTAINER_IMAGE).
+		WithExec([]string{"npm", "install", "-g", fmt.Sprintf("corepack@v%s", COREPACK_VERSION)}).
 		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", source).
 		WithWorkdir("/work").
@@ -72,7 +73,7 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 
 	// Autorest is incompatible with latest node version
 	return dag.Container().
-		From("node:22.8.0-alpine3.20").
+		From(NODEJS_CONTAINER_IMAGE).
 		WithExec([]string{"apt", "update"}).
 		WithExec([]string{"apt", "install", "-y", "python3", "python3-pip", "python3-venv"}).
 		WithExec([]string{"npm", "install", "-g", "autorest"}).
@@ -85,7 +86,8 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 // Generate the JavaScript SDK.
 func (m *Generate) JavascriptSdk() *dagger.Directory {
 	return dag.Container().
-		From("node:22.8.0-alpine3.20").
+		From(NODEJS_CONTAINER_IMAGE).
+		WithExec([]string{"npm", "install", "-g", fmt.Sprintf("corepack@v%s", COREPACK_VERSION)}).
 		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/javascript").
