@@ -29,7 +29,7 @@ isodate = ">=0.6.1,<0.8.0"
 cloudevents = "^1.10.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.3.0"
+black = ">=24.3,<26.0"
 
 [build-system]
 requires = ["poetry-core"]
