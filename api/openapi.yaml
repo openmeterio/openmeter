@@ -11666,12 +11666,10 @@ components:
           usage_based: '#/components/schemas/InvoiceUsageBasedPendingLineCreate'
           flat_fee: '#/components/schemas/InvoiceFlatFeePendingLineCreate'
       description: InvoiceLineCreate represents the create model for an invoice line.
-    InvoicePendingLinesActionInput:
+    InvoicePendingLinesActionFiltersInput:
       type: object
-      required:
-        - customerId
       properties:
-        includePendingLines:
+        lineIds:
           type: array
           items:
             type: string
@@ -11681,8 +11679,20 @@ components:
           description: |-
             The pending line items to include in the invoice, if not provided:
             - all line items that have invoice_at < asOf will be included
-            - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
-            of the billing cycle
+            - [progressive billing only] all usage based line items will be included up to asOf, new
+            usage-based line items will be staged for the rest of the billing cycle
+
+            All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action will fail.
+      description: InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice.
+    InvoicePendingLinesActionInput:
+      type: object
+      required:
+        - customerId
+      properties:
+        filters:
+          allOf:
+            - $ref: '#/components/schemas/InvoicePendingLinesActionFiltersInput'
+          description: Filters to apply when creating the invoice.
         asOf:
           type: string
           format: date-time

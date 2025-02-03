@@ -4538,16 +4538,23 @@ export interface components {
     InvoicePendingLineCreate:
       | components['schemas']['InvoiceUsageBasedPendingLineCreate']
       | components['schemas']['InvoiceFlatFeePendingLineCreate']
+    /** @description InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice. */
+    InvoicePendingLinesActionFiltersInput: {
+      /** @description The pending line items to include in the invoice, if not provided:
+       *     - all line items that have invoice_at < asOf will be included
+       *     - [progressive billing only] all usage based line items will be included up to asOf, new
+       *     usage-based line items will be staged for the rest of the billing cycle
+       *
+       *     All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action will fail. */
+      lineIds?: string[]
+    }
     /** @description BillingInvoiceActionInput is the input for creating an invoice.
      *
      *     Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
      *     operation. Empty invoices are not allowed. */
     InvoicePendingLinesActionInput: {
-      /** @description The pending line items to include in the invoice, if not provided:
-       *     - all line items that have invoice_at < asOf will be included
-       *     - all usage based line items will be included up to asOf, new usage-based line items will be staged for the rest
-       *     of the billing cycle */
-      includePendingLines?: string[]
+      /** @description Filters to apply when creating the invoice. */
+      filters?: components['schemas']['InvoicePendingLinesActionFiltersInput']
       /**
        * Format: date-time
        * @description The time as of which the invoice is created.
@@ -7905,6 +7912,8 @@ export type InvoicePaginatedResponse =
 export type InvoicePaymentTerms = components['schemas']['InvoicePaymentTerms']
 export type InvoicePendingLineCreate =
   components['schemas']['InvoicePendingLineCreate']
+export type InvoicePendingLinesActionFiltersInput =
+  components['schemas']['InvoicePendingLinesActionFiltersInput']
 export type InvoicePendingLinesActionInput =
   components['schemas']['InvoicePendingLinesActionInput']
 export type InvoiceReference = components['schemas']['InvoiceReference']
@@ -14583,6 +14592,8 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
+        /** @description Filter by plan.currency attribute */
+        currency?: components['schemas']['CurrencyCode'][]
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */
