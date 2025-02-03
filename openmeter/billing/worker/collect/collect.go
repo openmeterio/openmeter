@@ -117,7 +117,8 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 		asOf = time.Now().Add(-1 * collectionInterval)
 	}
 
-	var canInvoiceCustomer bool
+	// Calculate alignedAsOf time which is set to the latest invoiceAt time which is still before the time defined by asOf.
+	var alignedAsOf time.Time
 	for _, invoice := range resp.Items {
 		if invoice.Lines.IsAbsent() {
 			a.logger.WarnContext(ctx, "skipping invoice as lines not fetched", "customer", params.CustomerID, "invoice", invoice.ID)
@@ -125,25 +126,39 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 			continue
 		}
 
-		if canInvoiceCustomer = a.collectableAsOf(ctx, invoice, asOf); canInvoiceCustomer {
+		latestInvoiceAt := billingservice.GetLatestValidInvoiceAtAsOf(invoice.Lines, asOf)
+		if latestInvoiceAt.IsZero() {
+			a.logger.DebugContext(ctx, "empty invoice found", "customer", invoice.Customer.CustomerID, "invoice", invoice.ID)
+
+			continue
+		}
+
+		if latestInvoiceAt.Before(asOf) && latestInvoiceAt.After(alignedAsOf) {
+			alignedAsOf = latestInvoiceAt
+		}
+
+		// Stop iteration as the asOf is already aligned in this case
+		if latestInvoiceAt.Equal(asOf) {
+			alignedAsOf = latestInvoiceAt
+
 			break
 		}
 	}
 
-	if !canInvoiceCustomer {
+	if alignedAsOf.IsZero() {
 		a.logger.DebugContext(ctx, "customer has no lines to be collected", "customer", params.CustomerID, "asOf", asOf.UTC().Format(time.RFC3339))
 
 		return nil, nil
 	}
 
-	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", asOf)
+	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", alignedAsOf)
 
 	invoices, err := a.billing.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: customerentity.CustomerID{
 			Namespace: resp.Items[0].Namespace,
 			ID:        resp.Items[0].Customer.CustomerID,
 		},
-		AsOf: lo.ToPtr(asOf),
+		AsOf: lo.ToPtr(alignedAsOf),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoice(s) for customer [customer=%s]: %w", params.CustomerID, err)
@@ -183,24 +198,6 @@ func (a *InvoiceCollector) GetAsOfForCustomerAt(ctx context.Context, customer cu
 	}
 
 	return at.Add(-1 * collectionInterval), nil
-}
-
-func (a *InvoiceCollector) collectableAsOf(ctx context.Context, invoice billing.Invoice, asOf time.Time) bool {
-	invoiceAt := billingservice.GetEarliestValidInvoiceAt(invoice.Lines)
-
-	if invoiceAt.IsZero() {
-		a.logger.DebugContext(ctx, "empty invoice found", "customer", invoice.Customer.CustomerID, "invoice", invoice.ID)
-
-		return false
-	}
-
-	if invoiceAt.After(asOf) {
-		a.logger.DebugContext(ctx, "no lines found to be collected", "customer", invoice.Customer.CustomerID, "invoice", invoice.ID, "invoiceAt", invoiceAt, "asOf", asOf)
-
-		return false
-	}
-
-	return true
 }
 
 // All runs invoice collection for all customers
