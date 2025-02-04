@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -133,7 +134,8 @@ func TestComplete(t *testing.T) {
 			AsyncInsertWait: false,
 		},
 		Billing: BillingConfiguration{
-			Enabled: false,
+			Enabled:             false,
+			AdvancementStrategy: billing.ForegroundAdvancementStrategy,
 			Worker: BillingWorkerConfiguration{
 				ConsumerConfiguration: ConsumerConfiguration{
 					ProcessingTimeout: 30 * time.Second,

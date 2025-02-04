@@ -14,6 +14,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Aggregation"),
 	// Billing
 	wire.FieldsOf(new(config.Configuration), "Billing"),
+	wire.FieldsOf(new(config.BillingConfiguration), "AdvancementStrategy"),
 	// ClickHouse
 	wire.FieldsOf(new(config.AggregationConfiguration), "ClickHouse"),
 	// Database

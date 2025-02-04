@@ -9,6 +9,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/asyncadvance"
 	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -68,6 +69,7 @@ type Worker struct {
 
 	billingService      billing.Service
 	subscriptionHandler *billingworkersubscription.Handler
+	asyncAdvanceHandler *asyncadvance.Handler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -75,7 +77,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, err
 	}
 
-	handler, err := billingworkersubscription.New(billingworkersubscription.Config{
+	// handlers
+	subsHandler, err := billingworkersubscription.New(billingworkersubscription.Config{
 		BillingService:      opts.BillingService,
 		Logger:              opts.Logger,
 		TxCreator:           opts.BillingAdapter,
@@ -85,9 +88,19 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, err
 	}
 
+	// asyncAdvancer
+	asyncAdvancer, err := asyncadvance.New(asyncadvance.Config{
+		Logger:         opts.Logger,
+		BillingService: opts.BillingService,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	worker := &Worker{
 		billingService:      opts.BillingService,
-		subscriptionHandler: handler,
+		subscriptionHandler: subsHandler,
+		asyncAdvanceHandler: asyncAdvancer,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -131,6 +144,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
 			return w.subscriptionHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
+			return w.asyncAdvanceHandler.Handle(ctx, event)
 		}),
 	)
 	if err != nil {

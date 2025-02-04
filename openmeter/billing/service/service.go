@@ -33,17 +33,20 @@ type Service struct {
 
 	lineService *lineservice.Service
 	publisher   eventbus.Publisher
+
+	advancementStrategy billing.AdvancementStrategy
 }
 
 type Config struct {
-	Adapter            billing.Adapter
-	CustomerService    customer.CustomerService
-	AppService         app.Service
-	Logger             *slog.Logger
-	FeatureService     feature.FeatureConnector
-	MeterRepo          meter.Repository
-	StreamingConnector streaming.Connector
-	Publisher          eventbus.Publisher
+	Adapter             billing.Adapter
+	CustomerService     customer.CustomerService
+	AppService          app.Service
+	Logger              *slog.Logger
+	FeatureService      feature.FeatureConnector
+	MeterRepo           meter.Repository
+	StreamingConnector  streaming.Connector
+	Publisher           eventbus.Publisher
+	AdvancementStrategy billing.AdvancementStrategy
 }
 
 func (c Config) Validate() error {
@@ -79,6 +82,10 @@ func (c Config) Validate() error {
 		return errors.New("publisher cannot be null")
 	}
 
+	if err := c.AdvancementStrategy.Validate(); err != nil {
+		return fmt.Errorf("validating advancement strategy: %w", err)
+	}
+
 	return nil
 }
 
@@ -88,14 +95,15 @@ func New(config Config) (*Service, error) {
 	}
 
 	svc := &Service{
-		adapter:            config.Adapter,
-		customerService:    config.CustomerService,
-		appService:         config.AppService,
-		logger:             config.Logger,
-		featureService:     config.FeatureService,
-		meterRepo:          config.MeterRepo,
-		streamingConnector: config.StreamingConnector,
-		publisher:          config.Publisher,
+		adapter:             config.Adapter,
+		customerService:     config.CustomerService,
+		appService:          config.AppService,
+		logger:              config.Logger,
+		featureService:      config.FeatureService,
+		meterRepo:           config.MeterRepo,
+		streamingConnector:  config.StreamingConnector,
+		publisher:           config.Publisher,
+		advancementStrategy: config.AdvancementStrategy,
 	}
 
 	lineSvc, err := lineservice.New(lineservice.Config{
@@ -156,4 +164,8 @@ func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc 
 
 		return fn(ctx)
 	})
+}
+
+func (s Service) GetAdvancementStrategy() billing.AdvancementStrategy {
+	return s.advancementStrategy
 }

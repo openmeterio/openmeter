@@ -1,6 +1,8 @@
 package billing
 
 import (
+	"fmt"
+
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 )
 
@@ -47,4 +49,36 @@ func (e InvoiceCreatedEvent) EventMetadata() metadata.EventMetadata {
 
 func (e InvoiceCreatedEvent) Validate() error {
 	return e.EventInvoice.Validate()
+}
+
+type AdvanceInvoiceEvent struct {
+	Invoice    InvoiceID `json:"invoice"`
+	CustomerID string    `json:"customer_id"`
+}
+
+func (e AdvanceInvoiceEvent) EventName() string {
+	return metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "invoice.advance",
+		Version:   "v1",
+	})
+}
+
+func (e AdvanceInvoiceEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityInvoice, e.Invoice.ID),
+		Subject: metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityCustomer, e.CustomerID),
+	}
+}
+
+func (e AdvanceInvoiceEvent) Validate() error {
+	if err := e.Invoice.Validate(); err != nil {
+		return err
+	}
+
+	if e.CustomerID == "" {
+		return fmt.Errorf("customer_id cannot be empty")
+	}
+
+	return nil
 }

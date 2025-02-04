@@ -412,14 +412,9 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				invoice, err := s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
 					InvoiceID: invoiceID,
 					Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
-						validationIssues, err := billing.ToValidationIssues(
-							sm.AdvanceUntilStateStable(ctx),
-						)
-						if err != nil {
+						if err := s.advanceUntilStateStable(ctx, sm); err != nil {
 							return fmt.Errorf("activating invoice: %w", err)
 						}
-
-						sm.Invoice.ValidationIssues = validationIssues
 
 						sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 						if err != nil {
@@ -454,6 +449,25 @@ type gatherInScopeLineInput struct {
 	LinesToInclude     mo.Option[[]string]
 	AsOf               time.Time
 	ProgressiveBilling bool
+}
+
+func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine) error {
+	if s.advancementStrategy == billing.QueuedAdvancementStrategy {
+		return s.publisher.Publish(ctx, billing.AdvanceInvoiceEvent{
+			Invoice:    sm.Invoice.InvoiceID(),
+			CustomerID: sm.Invoice.Customer.CustomerID,
+		})
+	}
+
+	validationIssues, err := billing.ToValidationIssues(
+		sm.AdvanceUntilStateStable(ctx),
+	)
+	if err != nil {
+		return fmt.Errorf("activating invoice: %w", err)
+	}
+
+	sm.Invoice.ValidationIssues = validationIssues
+	return nil
 }
 
 func (s *Service) gatherInscopeLines(ctx context.Context, in gatherInScopeLineInput) ([]lineservice.LineWithBillablePeriod, error) {
@@ -591,14 +605,10 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 					}
 				}
 
-				validationIssues, err := billing.ToValidationIssues(
-					sm.AdvanceUntilStateStable(ctx),
-				)
-				if err != nil {
+				if err := s.advanceUntilStateStable(ctx, sm); err != nil {
 					return fmt.Errorf("advancing invoice: %w", err)
 				}
 
-				sm.Invoice.ValidationIssues = validationIssues
 				s.logger.InfoContext(ctx, "invoice advanced", "invoice", input.ID, "from", preActivationStatus, "to", sm.Invoice.Status)
 
 				return nil
@@ -742,14 +752,9 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					return nil
 				}
 
-				validationIssues, err := billing.ToValidationIssues(
-					sm.AdvanceUntilStateStable(ctx),
-				)
-				if err != nil {
+				if err := s.advanceUntilStateStable(ctx, sm); err != nil {
 					return fmt.Errorf("advancing invoice: %w", err)
 				}
-
-				sm.Invoice.ValidationIssues = validationIssues
 
 				sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 				if err != nil {

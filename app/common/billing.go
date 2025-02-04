@@ -47,20 +47,22 @@ func BillingService(
 	meterRepo meter.Repository,
 	streamingConnector streaming.Connector,
 	eventPublisher eventbus.Publisher,
+	advancementStrategy billing.AdvancementStrategy,
 ) (billing.Service, error) {
 	if !billingConfig.Enabled {
 		return nil, nil
 	}
 
 	return billingservice.New(billingservice.Config{
-		Adapter:            billingAdapter,
-		AppService:         appService,
-		CustomerService:    customerService,
-		FeatureService:     featureConnector,
-		Logger:             logger,
-		MeterRepo:          meterRepo,
-		StreamingConnector: streamingConnector,
-		Publisher:          eventPublisher,
+		Adapter:             billingAdapter,
+		AppService:          appService,
+		CustomerService:     customerService,
+		FeatureService:      featureConnector,
+		Logger:              logger,
+		MeterRepo:           meterRepo,
+		StreamingConnector:  streamingConnector,
+		Publisher:           eventPublisher,
+		AdvancementStrategy: advancementStrategy,
 	})
 }
 

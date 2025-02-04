@@ -197,7 +197,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	billingConfiguration := conf.Billing
 	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
-	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher)
+	advancementStrategy := billingConfiguration.AdvancementStrategy
+	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher, advancementStrategy)
 	if err != nil {
 		cleanup6()
 		cleanup5()
