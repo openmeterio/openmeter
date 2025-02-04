@@ -134,7 +134,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
-			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionHandler.HandleCancelledEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
 			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
