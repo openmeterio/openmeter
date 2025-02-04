@@ -2,46 +2,38 @@ package adapter
 
 import (
 	"context"
-	"fmt"
 
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// CreateAppSecret creates a new secret for an app.
+// In this plaintext implementation the ID is the same as the value
+// In the real implementation, this method would create a secret in a secret store.
 func (a adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) {
-	// In the real implementation, this method would create a secret in a secret store.
-	// In this example the ID is the same as the value.
-	return secretentity.SecretID{
-		NamespacedID: models.NamespacedID{
-			Namespace: input.AppID.Namespace,
-			ID:        input.Value,
-		},
-		AppID: input.AppID,
-		Key:   input.Key,
-	}, nil
+	return secretentity.NewSecretID(input.AppID, input.Value, input.Key), nil
 }
 
-func (a adapter) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error {
-	// In the real implementation, this method would update a secret in a secret store.
-	return fmt.Errorf("update secret is not implemented")
+// UpdateAppSecret updates the secret for an app.
+// In this plaintext implementation the ID is the same as the value.
+// In the real implementation, this method would create a secret in a secret store.
+func (a adapter) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) (secretentity.SecretID, error) {
+	return secretentity.NewSecretID(input.AppID, input.Value, input.Key), nil
 }
 
+// GetAppSecret retrieves a secret for an app.
+// In this plaintext implementation the ID is the same as the value.
+// In the real implementation, this method would retrieve a secret from a secret store.
 func (a adapter) GetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error) {
-	// In the real implementation, this method would retrieve a secret from a secret store.
-	// In this example the ID is the same as the value.
+	value := input.ID
+
 	return secretentity.Secret{
-		SecretID: secretentity.SecretID{
-			NamespacedID: models.NamespacedID{
-				Namespace: input.Namespace,
-				ID:        input.ID,
-			},
-			AppID: input.AppID,
-			Key:   input.Key,
-		},
-		Value: input.ID,
+		SecretID: secretentity.NewSecretID(input.AppID, value, input.Key),
+		Value:    value,
 	}, nil
 }
 
+// DeleteAppSecret deletes a secret for an app.
+// In the real implementation, this method would delete a secret from a secret store.
 func (a adapter) DeleteAppSecret(ctx context.Context, input secretentity.DeleteAppSecretInput) error {
 	return nil
 }
