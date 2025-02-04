@@ -6,23 +6,21 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 var _ customerapp.App = (*App)(nil)
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
+func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	return a.ValidateCustomerByID(ctx, customer.GetID(), capabilities)
 }
 
 // ValidateCustomerByID validates if the app can run for the given customer ID
-func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity.CustomerID, capabilities []appentitybase.CapabilityType) error {
+func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.CustomerID, capabilities []app.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities...); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
@@ -59,7 +57,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 	}
 
 	// Invoice and payment capabilities need to check if the customer has a country and default payment method via the Stripe API
-	if slices.Contains(capabilities, appentitybase.CapabilityTypeCalculateTax) || slices.Contains(capabilities, appentitybase.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, appentitybase.CapabilityTypeCollectPayments) {
+	if slices.Contains(capabilities, app.CapabilityTypeCalculateTax) || slices.Contains(capabilities, app.CapabilityTypeInvoiceCustomers) || slices.Contains(capabilities, app.CapabilityTypeCollectPayments) {
 		var paymentMethod stripeclient.StripePaymentMethod
 
 		// Check if the customer has a default payment method in OpenMeter
@@ -111,9 +109,11 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customerentity
 }
 
 // GetCustomerData gets the customer data for the app
-func (a App) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return nil, fmt.Errorf("error validating input: %w", err)
+		return nil, app.ValidationError{
+			Err: err,
+		}
 	}
 
 	customerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
@@ -128,9 +128,11 @@ func (a App) GetCustomerData(ctx context.Context, input appentity.GetAppInstance
 }
 
 // UpsertCustomerData upserts the customer data for the app
-func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return fmt.Errorf("error validating input: %w", err)
+		return app.ValidationError{
+			Err: err,
+		}
 	}
 
 	stripeCustomerData, ok := input.Data.(appstripeentity.CustomerData)
@@ -152,9 +154,11 @@ func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppIn
 }
 
 // DeleteCustomerData deletes the customer data for the app
-func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return fmt.Errorf("error validating input: %w", err)
+		return app.ValidationError{
+			Err: err,
+		}
 	}
 
 	appId := a.GetID()

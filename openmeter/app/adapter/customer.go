@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -16,39 +15,39 @@ import (
 var _ app.AppAdapter = (*adapter)(nil)
 
 // ListCustomerData lists app customer data
-func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error) {
+func (a adapter) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[app.CustomerApp], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[appentity.CustomerApp]{}, app.ValidationError{
+		return pagination.PagedResponse[app.CustomerApp]{}, app.ValidationError{
 			Err: fmt.Errorf("error listing customer data: %w", err),
 		}
 	}
 
-	apps, err := a.ListApps(ctx, appentity.ListAppInput{
+	apps, err := a.ListApps(ctx, app.ListAppInput{
 		Page:       input.Page,
 		Namespace:  input.CustomerID.Namespace,
 		CustomerID: &input.CustomerID,
 		Type:       input.Type,
 	})
 	if err != nil {
-		return pagination.PagedResponse[appentity.CustomerApp]{}, fmt.Errorf("failed to list apps: %w", err)
+		return pagination.PagedResponse[app.CustomerApp]{}, fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	response := pagination.PagedResponse[appentity.CustomerApp]{
+	response := pagination.PagedResponse[app.CustomerApp]{
 		Page:       input.Page,
 		TotalCount: apps.TotalCount,
-		Items:      make([]appentity.CustomerApp, 0, len(apps.Items)),
+		Items:      make([]app.CustomerApp, 0, len(apps.Items)),
 	}
 
-	for _, app := range apps.Items {
-		customerData, err := app.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
+	for _, customerApp := range apps.Items {
+		customerData, err := customerApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
 			CustomerID: input.CustomerID,
 		})
 		if err != nil {
-			return pagination.PagedResponse[appentity.CustomerApp]{}, fmt.Errorf("failed to get customer data for app %s: %w", app.GetID().ID, err)
+			return pagination.PagedResponse[app.CustomerApp]{}, fmt.Errorf("failed to get customer data for app %s: %w", customerApp.GetID().ID, err)
 		}
 
-		response.Items = append(response.Items, appentity.CustomerApp{
-			App:          app,
+		response.Items = append(response.Items, app.CustomerApp{
+			App:          customerApp,
 			CustomerData: customerData,
 		})
 	}

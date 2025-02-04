@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 )
@@ -342,7 +342,7 @@ func (asc *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 			Columns: []string{appstripe.AppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -33,7 +33,7 @@ func (h *handler) UpdateStripeAPIKey() UpdateStripeAPIKeyHandler {
 			}
 
 			req := UpdateStripeAPIKeyRequest{
-				AppID:  appentitybase.AppID{Namespace: namespace, ID: appID},
+				AppID:  app.AppID{Namespace: namespace, ID: appID},
 				APIKey: body.SecretAPIKey,
 			}
 

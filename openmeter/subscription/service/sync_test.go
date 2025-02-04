@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -19,7 +19,7 @@ import (
 func TestEdit(t *testing.T) {
 	type TDeps struct {
 		CurrentTime time.Time
-		Customer    customerentity.Customer
+		Customer    customer.Customer
 		ExamplePlan subscription.Plan
 		ServiceDeps subscriptiontestutils.ExposedServiceDeps
 		Service     subscription.Service

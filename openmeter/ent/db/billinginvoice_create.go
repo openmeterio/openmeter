@@ -14,7 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -1190,7 +1190,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			Columns: []string{billinginvoice.TaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1207,7 +1207,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			Columns: []string{billinginvoice.InvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1224,7 +1224,7 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			Columns: []string{billinginvoice.PaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

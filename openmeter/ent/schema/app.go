@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	appentitybase "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 

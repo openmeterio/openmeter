@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -13,7 +13,7 @@ import (
 
 func (s *service) createPhase(
 	ctx context.Context,
-	cust customerentity.Customer,
+	cust customer.Customer,
 	phaseSpec subscription.SubscriptionPhaseSpec,
 	sub subscription.Subscription,
 	cadence models.CadencedModel,
@@ -56,7 +56,7 @@ func (s *service) createPhase(
 
 func (s *service) createItem(
 	ctx context.Context,
-	cust customerentity.Customer,
+	cust customer.Customer,
 	itemSpec subscription.SubscriptionItemSpec,
 	phase subscription.SubscriptionPhase,
 	phaseCadence models.CadencedModel,

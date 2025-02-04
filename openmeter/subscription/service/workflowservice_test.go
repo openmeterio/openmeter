@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -31,7 +31,7 @@ func TestCreateFromPlan(t *testing.T) {
 	type testCaseDeps struct {
 		Plan            subscription.Plan
 		CurrentTime     time.Time
-		Customer        customerentity.Customer
+		Customer        customer.Customer
 		WorkflowService subscription.WorkflowService
 		DBDeps          *subscriptiontestutils.DBDeps
 	}
@@ -54,7 +54,7 @@ func TestCreateFromPlan(t *testing.T) {
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 				}, deps.Plan)
 
-				assert.ErrorAs(t, err, &customerentity.NotFoundError{}, "expected customer not found error, got %T", err)
+				assert.ErrorAs(t, err, &customer.NotFoundError{}, "expected customer not found error, got %T", err)
 			},
 		},
 	}
@@ -92,7 +92,7 @@ func TestEditRunning(t *testing.T) {
 	type testCaseDeps struct {
 		CurrentTime     time.Time
 		SubView         subscription.SubscriptionView
-		Customer        customerentity.Customer
+		Customer        customer.Customer
 		WorkflowService subscription.WorkflowService
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
@@ -297,7 +297,7 @@ func TestEditingCurrentPhase(t *testing.T) {
 	type testCaseDeps struct {
 		CurrentTime     time.Time
 		SubView         subscription.SubscriptionView
-		Customer        customerentity.Customer
+		Customer        customer.Customer
 		WorkflowService subscription.WorkflowService
 		Service         subscription.Service
 		ItemRepo        subscription.SubscriptionItemRepository
@@ -582,7 +582,7 @@ func TestChangeToPlan(t *testing.T) {
 	// Let's define what deps a test case needs
 	type testCaseDeps struct {
 		CurrentTime     time.Time
-		Customer        customerentity.Customer
+		Customer        customer.Customer
 		WorkflowService subscription.WorkflowService
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
@@ -682,7 +682,7 @@ func TestEditCombinations(t *testing.T) {
 	// Let's define what deps a test case needs
 	type testCaseDeps struct {
 		CurrentTime     time.Time
-		Customer        customerentity.Customer
+		Customer        customer.Customer
 		WorkflowService subscription.WorkflowService
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps

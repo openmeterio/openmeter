@@ -8,8 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
 
 type AutoProvisionInput struct {
@@ -33,7 +31,7 @@ func (a AutoProvisionInput) Validate() error {
 //
 // We install the sandbox app by default in the system, so that the user can start trying out the system
 // right away.
-func AutoProvision(ctx context.Context, input AutoProvisionInput) (appentity.App, error) {
+func AutoProvision(ctx context.Context, input AutoProvisionInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
 			Err: err,
@@ -41,26 +39,26 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (appentity.App
 	}
 
 	// Let's try to resolve the default app
-	defaultApp, err := input.AppService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+	defaultApp, err := input.AppService.GetDefaultApp(ctx, app.GetDefaultAppInput{
 		Namespace: input.Namespace,
-		Type:      appentitybase.AppTypeSandbox,
+		Type:      app.AppTypeSandbox,
 	})
 	if err != nil {
 		if _, ok := lo.ErrorsAs[app.AppDefaultNotFoundError](err); ok {
 			// Let's provision the new app
-			_, err := input.AppService.CreateApp(ctx, appentity.CreateAppInput{
+			_, err := input.AppService.CreateApp(ctx, app.CreateAppInput{
 				Namespace:   input.Namespace,
 				Name:        "Sandbox",
 				Description: "OpenMeter Sandbox App to be used for testing purposes.",
-				Type:        appentitybase.AppTypeSandbox,
+				Type:        app.AppTypeSandbox,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("cannot create sandbox app: %w", err)
 			}
 
-			return input.AppService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+			return input.AppService.GetDefaultApp(ctx, app.GetDefaultAppInput{
 				Namespace: input.Namespace,
-				Type:      appentitybase.AppTypeSandbox,
+				Type:      app.AppTypeSandbox,
 			})
 		}
 		return nil, err

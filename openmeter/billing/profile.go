@@ -8,9 +8,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -58,8 +57,8 @@ func (c WorkflowConfig) Validate() error {
 }
 
 type AppReference struct {
-	ID   string                `json:"id"`
-	Type appentitybase.AppType `json:"type"`
+	ID   string      `json:"id"`
+	Type app.AppType `json:"type"`
 }
 
 func (a AppReference) Validate() error {
@@ -261,9 +260,9 @@ func (r *AdapterGetProfileResponse) BaseProfileOrEmpty() *BaseProfile {
 }
 
 type ProfileApps struct {
-	Tax       appentity.App `json:"tax"`
-	Invoicing appentity.App `json:"invoicing"`
-	Payment   appentity.App `json:"payment"`
+	Tax       app.App `json:"tax"`
+	Invoicing app.App `json:"invoicing"`
+	Payment   app.App `json:"payment"`
 }
 
 func (p Profile) Validate() error {
@@ -296,8 +295,8 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 }
 
 type ProfileWithCustomerDetails struct {
-	Profile  Profile                 `json:"profile"`
-	Customer customerentity.Customer `json:"customer"`
+	Profile  Profile           `json:"profile"`
+	Customer customer.Customer `json:"customer"`
 }
 
 func (p ProfileWithCustomerDetails) Validate() error {

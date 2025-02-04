@@ -3,7 +3,7 @@ package billing
 import (
 	"fmt"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
 var (
@@ -155,8 +155,8 @@ func (e UpdateAfterDeleteError) Unwrap() error {
 var _ error = (*AppError)(nil)
 
 type AppError struct {
-	AppID   appentitybase.AppID
-	AppType appentitybase.AppType
+	AppID   app.AppID
+	AppType app.AppType
 	Err     error
 }
 

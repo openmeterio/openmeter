@@ -10,7 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -97,11 +97,11 @@ func TestEditingAndCanceling(t *testing.T) {
 	require.NoError(t, err)
 
 	// Third, let's create the customer
-	c, err := tDeps.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	c, err := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer",
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"subject_1"},
 			},
 		},
@@ -115,13 +115,13 @@ func TestEditingAndCanceling(t *testing.T) {
 	})
 
 	// And let's create extra customers
-	custs := []*customerentity.Customer{}
+	custs := []*customer.Customer{}
 	for i := 0; i < 10; i++ {
-		c, err := tDeps.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+		c, err := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 			Namespace: namespace,
-			CustomerMutate: customerentity.CustomerMutate{
+			CustomerMutate: customer.CustomerMutate{
 				Name: "Test Customer",
-				UsageAttribution: customerentity.CustomerUsageAttribution{
+				UsageAttribution: customer.CustomerUsageAttribution{
 					SubjectKeys: []string{fmt.Sprintf("subject_%d", i+2)},
 				},
 			},

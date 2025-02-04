@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -34,7 +34,7 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	})
 
 	// Then we get a customer not found error
-	require.ErrorAs(s.T(), err, &customerentity.NotFoundError{})
+	require.ErrorAs(s.T(), err, &customer.NotFoundError{})
 	require.Nil(s.T(), customerEntity)
 }
 
@@ -45,9 +45,9 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	_ = s.InstallSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
-	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})
@@ -142,9 +142,9 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	_ = s.InstallSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
-	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})
@@ -214,9 +214,9 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 	s.InstallSandboxApp(s.T(), ns)
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})
@@ -309,10 +309,10 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 
 	_ = s.InstallSandboxApp(s.T(), ns)
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 			BillingAddress: &models.Address{
 				City:    lo.ToPtr("Berlin"),
@@ -352,10 +352,10 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 
 	_ = s.InstallSandboxApp(s.T(), ns)
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})

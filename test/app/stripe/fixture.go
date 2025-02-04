@@ -9,12 +9,9 @@ import (
 	"golang.org/x/exp/rand"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 func NewFixture(
@@ -39,7 +36,7 @@ type Fixture struct {
 }
 
 // setupAppWithCustomer creates a stripe app and a customer with customer data
-func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (appentity.App, *customerentity.Customer, appstripeentity.CustomerData, error) {
+func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (app.App, *customer.Customer, appstripeentity.CustomerData, error) {
 	app, err := s.setupApp(ctx, namespace)
 	if err != nil {
 		return nil, nil, appstripeentity.CustomerData{}, fmt.Errorf("setup app failed: %w", err)
@@ -59,7 +56,7 @@ func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (a
 }
 
 // Create a stripe app first
-func (s *Fixture) setupApp(ctx context.Context, namespace string) (appentity.App, error) {
+func (s *Fixture) setupApp(ctx context.Context, namespace string) (app.App, error) {
 	s.stripeClient.
 		On("GetAccount").
 		Return(stripeclient.StripeAccount{
@@ -76,9 +73,9 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (appentity.App
 	// TODO: do not share env between tests
 	defer s.stripeClient.Restore()
 
-	app, err := s.app.InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	app, err := s.app.InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: namespace,
@@ -92,10 +89,10 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (appentity.App
 }
 
 // Create test customers
-func (s *Fixture) setupCustomer(ctx context.Context, namespace string) (*customerentity.Customer, error) {
-	customer, err := s.customer.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+func (s *Fixture) setupCustomer(ctx context.Context, namespace string) (*customer.Customer, error) {
+	customer, err := s.customer.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer",
 		},
 	})
@@ -107,7 +104,7 @@ func (s *Fixture) setupCustomer(ctx context.Context, namespace string) (*custome
 }
 
 // Add customer data to the app
-func (s *Fixture) setupAppCustomerData(ctx context.Context, app appentity.App, customer *customerentity.Customer) (appstripeentity.CustomerData, error) {
+func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App, customer *customer.Customer) (appstripeentity.CustomerData, error) {
 	data := appstripeentity.CustomerData{
 		StripeCustomerID: "cus_123",
 	}
@@ -121,7 +118,7 @@ func (s *Fixture) setupAppCustomerData(ctx context.Context, app appentity.App, c
 	// TODO: do not share env between tests
 	defer s.stripeAppClient.Restore()
 
-	err := app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+	err := customerApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data:       data,
 	})

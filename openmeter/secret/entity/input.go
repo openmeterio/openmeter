@@ -3,11 +3,11 @@ package secretentity
 import (
 	"errors"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
 type CreateAppSecretInput struct {
-	AppID appentitybase.AppID
+	AppID app.AppID
 	Key   string
 	Value string
 }
@@ -35,7 +35,7 @@ func (i CreateAppSecretInput) Validate() error {
 }
 
 type UpdateAppSecretInput struct {
-	AppID    appentitybase.AppID
+	AppID    app.AppID
 	SecretID SecretID
 	Key      string
 	Value    string

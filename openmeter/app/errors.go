@@ -4,16 +4,14 @@ import (
 	"errors"
 	"fmt"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 // AppNotFoundError
 var _ error = (*AppNotFoundError)(nil)
 
 type AppNotFoundError struct {
-	appentitybase.AppID
+	AppID
 }
 
 func (e AppNotFoundError) Error() string {
@@ -25,7 +23,7 @@ var _ error = (*AppDefaultNotFoundError)(nil)
 
 type AppDefaultNotFoundError struct {
 	Namespace string
-	Type      appentitybase.AppType
+	Type      AppType
 }
 
 func (e AppDefaultNotFoundError) Error() string {
@@ -60,7 +58,7 @@ func (e AppConflictError) Error() string {
 var _ error = (*AppProviderAuthenticationError)(nil)
 
 type AppProviderAuthenticationError struct {
-	AppID         *appentitybase.AppID
+	AppID         *AppID
 	Namespace     string
 	ProviderError error
 }
@@ -77,7 +75,7 @@ func (e AppProviderAuthenticationError) Error() string {
 var _ error = (*AppProviderError)(nil)
 
 type AppProviderError struct {
-	AppID         *appentitybase.AppID
+	AppID         *AppID
 	Namespace     string
 	ProviderError error
 }
@@ -94,7 +92,7 @@ func (e AppProviderError) Error() string {
 var _ error = (*AppProviderPreConditionError)(nil)
 
 type AppProviderPreConditionError struct {
-	AppID     appentitybase.AppID
+	AppID     AppID
 	Condition string
 }
 
@@ -118,9 +116,9 @@ func (e AppProviderPreConditionError) Error() string {
 var _ error = (*AppCustomerPreConditionError)(nil)
 
 type AppCustomerPreConditionError struct {
-	appentitybase.AppID
-	AppType    appentitybase.AppType
-	CustomerID customerentity.CustomerID
+	AppID
+	AppType    AppType
+	CustomerID customer.CustomerID
 	Condition  string
 }
 
@@ -156,7 +154,7 @@ func (e AppCustomerPreConditionError) Error() string {
 var _ error = (*MarketplaceListingNotFoundError)(nil)
 
 type MarketplaceListingNotFoundError struct {
-	appentity.MarketplaceListingID
+	MarketplaceListingID
 }
 
 func (e MarketplaceListingNotFoundError) Error() string {

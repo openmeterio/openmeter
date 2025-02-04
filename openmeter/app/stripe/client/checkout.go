@@ -10,8 +10,8 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/api"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	app "github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 // CreateCheckoutSession creates a checkout session
@@ -232,8 +232,8 @@ func (o StripeCheckoutSession) Validate() error {
 }
 
 type CreateCheckoutSessionInput struct {
-	AppID            appentitybase.AppID
-	CustomerID       customerentity.CustomerID
+	AppID            app.AppID
+	CustomerID       customer.CustomerID
 	StripeCustomerID string
 	Options          api.CreateStripeCheckoutSessionRequestOptions
 }

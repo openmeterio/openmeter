@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -55,7 +55,7 @@ type SubscriptionHandlerTestSuite struct {
 	SubscriptionWorkflowService subscription.WorkflowService
 
 	Namespace               string
-	Customer                *customerentity.Customer
+	Customer                *customer.Customer
 	APIRequestsTotalFeature feature.Feature
 	Context                 context.Context
 
@@ -403,7 +403,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		// we invoice the customer
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				ID:        s.Customer.ID,
 				Namespace: namespace,
 			},

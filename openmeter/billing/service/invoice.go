@@ -14,7 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -443,7 +443,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 }
 
 type gatherInScopeLineInput struct {
-	Customer customerentity.CustomerID
+	Customer customer.CustomerID
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]

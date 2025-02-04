@@ -6,7 +6,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// App is the predicate function for app builders.
+// App is the predicate function for dbapp builders.
 type App func(*sql.Selector)
 
 // AppCustomer is the predicate function for appcustomer builders.

@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func CustomerFromDBEntity(e db.Customer) (*customerentity.Customer, error) {
+func CustomerFromDBEntity(e db.Customer) (*customer.Customer, error) {
 	var subjectKeys []string
 
 	if e.Edges.Subjects != nil {
@@ -45,7 +45,7 @@ func CustomerFromDBEntity(e db.Customer) (*customerentity.Customer, error) {
 		}
 	}
 
-	result := &customerentity.Customer{
+	result := &customer.Customer{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			ID:          e.ID,
 			Namespace:   e.Namespace,
@@ -55,7 +55,7 @@ func CustomerFromDBEntity(e db.Customer) (*customerentity.Customer, error) {
 			Name:        e.Name,
 			Description: e.Description,
 		}),
-		UsageAttribution: customerentity.CustomerUsageAttribution{
+		UsageAttribution: customer.CustomerUsageAttribution{
 			SubjectKeys: subjectKeys,
 		},
 		PrimaryEmail:          e.PrimaryEmail,

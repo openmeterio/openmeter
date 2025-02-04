@@ -20,7 +20,7 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -51,10 +51,10 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
@@ -67,7 +67,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PhoneNumber: lo.ToPtr("1234567890"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},
@@ -449,10 +449,10 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
@@ -549,7 +549,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	s.Run("Creating invoice in the future fails", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
@@ -562,7 +562,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	s.Run("Creating invoice without any pending lines being available fails", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
@@ -587,7 +587,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	s.Run("When creating an invoice with only item1 included", func() {
 		invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
@@ -615,7 +615,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	s.Run("When creating an invoice with only item2 included, but bad asof", func() {
 		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
@@ -630,7 +630,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	s.Run("When creating an invoice with only item2 included", func() {
 		invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
@@ -659,7 +659,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 type draftInvoiceInput struct {
 	Namespace string
-	Customer  *customerentity.Customer
+	Customer  *customer.Customer
 }
 
 func (i draftInvoiceInput) Validate() error {
@@ -748,7 +748,7 @@ func (s *InvoicingTestSuite) createDraftInvoice(t *testing.T, ctx context.Contex
 	require.NotEmpty(s.T(), line2ID)
 
 	invoice, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customerentity.CustomerID{
+		Customer: customer.CustomerID{
 			ID:        in.Customer.ID,
 			Namespace: in.Customer.Namespace,
 		},
@@ -926,10 +926,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			_ = s.InstallSandboxApp(s.T(), namespace)
 
 			// Given we have a test customer
-			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 				Namespace: namespace,
 
-				CustomerMutate: customerentity.CustomerMutate{
+				CustomerMutate: customer.CustomerMutate{
 					Name:         "Test Customer",
 					PrimaryEmail: lo.ToPtr("test@test.com"),
 					BillingAddress: &models.Address{
@@ -984,7 +984,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 	cases := []struct {
 		name           string
 		workflowConfig billing.WorkflowConfig
-		advance        func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billing.Invoice
+		advance        func(t *testing.T, ctx context.Context, ns string, customer *customer.Customer, mockApp *appsandbox.MockApp) *billing.Invoice
 		expectedState  billing.InvoiceStatus
 	}{
 		{
@@ -1002,7 +1002,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billing.Invoice {
+			advance: func(t *testing.T, ctx context.Context, ns string, customer *customer.Customer, mockApp *appsandbox.MockApp) *billing.Invoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
 				defer s.InvoiceCalculator.DisableMock(t)
 
@@ -1233,7 +1233,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
 				},
 			},
-			advance: func(t *testing.T, ctx context.Context, ns string, customer *customerentity.Customer, mockApp *appsandbox.MockApp) *billing.Invoice {
+			advance: func(t *testing.T, ctx context.Context, ns string, customer *customer.Customer, mockApp *appsandbox.MockApp) *billing.Invoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
 				defer s.InvoiceCalculator.DisableMock(t)
 
@@ -1283,10 +1283,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			defer s.SandboxApp.DisableMock()
 
 			// Given we have a test customer
-			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+			customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 				Namespace: namespace,
 
-				CustomerMutate: customerentity.CustomerMutate{
+				CustomerMutate: customer.CustomerMutate{
 					Name:         "Test Customer",
 					PrimaryEmail: lo.ToPtr("test@test.com"),
 					BillingAddress: &models.Address{
@@ -1406,10 +1406,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
@@ -1422,7 +1422,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				PhoneNumber: lo.ToPtr("1234567890"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},
@@ -2520,10 +2520,10 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
@@ -2536,7 +2536,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 				PhoneNumber: lo.ToPtr("1234567890"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},
@@ -3049,17 +3049,17 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},

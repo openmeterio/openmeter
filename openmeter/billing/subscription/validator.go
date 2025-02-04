@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -62,19 +62,17 @@ func (v Validator) validateBillingSetup(ctx context.Context, view subscription.S
 	}
 
 	appBase := customerProfile.Profile.Apps.Invoicing
-	customerApp, ok := appBase.(customerapp.App)
-	if !ok {
+	customerApp, err := customerapp.AsCustomerApp(appBase)
+	if err != nil {
 		// This should not happen, as the app should have been already verified by the billing service, but let's make sure
-		return fmt.Errorf("app [type=%s, id=%s] does not implement the customer interface",
-			appBase.GetType(),
-			appBase.GetID().ID)
+		return err
 	}
 
-	return customerApp.ValidateCustomer(ctx, &customerProfile.Customer, []appentitybase.CapabilityType{
+	return customerApp.ValidateCustomer(ctx, &customerProfile.Customer, []app.CapabilityType{
 		// For now now we only support Stripe with automatic tax calculation and payment collection.
-		appentitybase.CapabilityTypeCalculateTax,
-		appentitybase.CapabilityTypeInvoiceCustomers,
-		appentitybase.CapabilityTypeCollectPayments,
+		app.CapabilityTypeCalculateTax,
+		app.CapabilityTypeInvoiceCustomers,
+		app.CapabilityTypeCollectPayments,
 	})
 }
 

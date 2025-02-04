@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -344,7 +344,7 @@ func fromAPIBillingAppIdOrType(i string) billing.AppReference {
 	_, err := ulid.Parse(i)
 	if err != nil {
 		return billing.AppReference{
-			Type: appentitybase.AppType(i),
+			Type: app.AppType(i),
 		}
 	}
 

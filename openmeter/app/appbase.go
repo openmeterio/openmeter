@@ -1,4 +1,4 @@
-package appentitybase
+package app
 
 import (
 	"errors"

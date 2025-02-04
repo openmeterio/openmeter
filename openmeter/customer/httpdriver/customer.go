@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,7 +19,7 @@ import (
 )
 
 type (
-	ListCustomersRequest  = customerentity.ListCustomersInput
+	ListCustomersRequest  = customer.ListCustomersInput
 	ListCustomersResponse = api.CustomerPaginatedResponse
 	ListCustomersParams   = api.ListCustomersParams
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
@@ -97,7 +96,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 }
 
 type (
-	CreateCustomerRequest  = customerentity.CreateCustomerInput
+	CreateCustomerRequest  = customer.CreateCustomerInput
 	CreateCustomerResponse = api.Customer
 	CreateCustomerHandler  httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse]
 )
@@ -118,11 +117,11 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 
 			req := CreateCustomerRequest{
 				Namespace: ns,
-				CustomerMutate: customerentity.CustomerMutate{
+				CustomerMutate: customer.CustomerMutate{
 					Key:              body.Key,
 					Name:             body.Name,
 					Description:      body.Description,
-					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
+					UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
 					PrimaryEmail:     body.PrimaryEmail,
 					BillingAddress:   MapAddress(body.BillingAddress),
 					Currency:         mapCurrency(body.Currency),
@@ -153,7 +152,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 }
 
 type (
-	UpdateCustomerRequest  = customerentity.UpdateCustomerInput
+	UpdateCustomerRequest  = customer.UpdateCustomerInput
 	UpdateCustomerResponse = api.Customer
 	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, string]
 )
@@ -173,15 +172,15 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 			}
 
 			req := UpdateCustomerRequest{
-				CustomerID: customerentity.CustomerID{
+				CustomerID: customer.CustomerID{
 					Namespace: ns,
 					ID:        customerID,
 				},
-				CustomerMutate: customerentity.CustomerMutate{
+				CustomerMutate: customer.CustomerMutate{
 					Key:              body.Key,
 					Name:             body.Name,
 					Description:      body.Description,
-					UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
+					UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
 					PrimaryEmail:     body.PrimaryEmail,
 					BillingAddress:   MapAddress(body.BillingAddress),
 					Currency:         mapCurrency(body.Currency),
@@ -212,7 +211,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 }
 
 type (
-	DeleteCustomerRequest  = customerentity.DeleteCustomerInput
+	DeleteCustomerRequest  = customer.DeleteCustomerInput
 	DeleteCustomerResponse = interface{}
 	DeleteCustomerHandler  httptransport.HandlerWithArgs[DeleteCustomerRequest, DeleteCustomerResponse, string]
 )
@@ -249,7 +248,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 }
 
 type (
-	GetCustomerRequest  = customerentity.GetCustomerInput
+	GetCustomerRequest  = customer.GetCustomerInput
 	GetCustomerResponse = api.Customer
 	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, string]
 )
@@ -290,7 +289,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 }
 
 type (
-	GetCustomerEntitlementValueRequest  = customerentity.GetEntitlementValueInput
+	GetCustomerEntitlementValueRequest  = customer.GetEntitlementValueInput
 	GetCustomerEntitlementValueResponse = api.EntitlementValue
 	GetCustomerEntitlementValueParams   = struct {
 		CustomerID string

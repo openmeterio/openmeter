@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -55,7 +55,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		upsertedInvoices := make(map[billing.InvoiceID]UpsertedInvoiceWithProfile)
 
 		for customerID, lineByCustomer := range createByCustomerID {
-			if err := s.validateCustomerForUpdate(ctx, customerentity.CustomerID{
+			if err := s.validateCustomerForUpdate(ctx, customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        customerID,
 			}); err != nil {
@@ -65,7 +65,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			createdLines, err := TranscationForGatheringInvoiceManipulation(
 				ctx,
 				s,
-				customerentity.CustomerID{
+				customer.CustomerID{
 					Namespace: input.Namespace,
 					ID:        customerID,
 				},

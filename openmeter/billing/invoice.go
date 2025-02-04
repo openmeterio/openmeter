@@ -12,8 +12,8 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -545,7 +545,7 @@ const (
 )
 
 type (
-	CustomerUsageAttribution          = customerentity.CustomerUsageAttribution
+	CustomerUsageAttribution          = customer.CustomerUsageAttribution
 	VersionedCustomerUsageAttribution struct {
 		CustomerUsageAttribution `json:",inline"`
 		Type                     string `json:"type"`
@@ -704,7 +704,7 @@ type ListInvoicesResponse = pagination.PagedResponse[Invoice]
 
 type CreateInvoiceAdapterInput struct {
 	Namespace string
-	Customer  customerentity.Customer
+	Customer  customer.Customer
 	Profile   Profile
 	Number    string
 	Currency  currencyx.Code
@@ -758,7 +758,7 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 type CreateInvoiceAdapterRespone = Invoice
 
 type InvoicePendingLinesInput struct {
-	Customer customerentity.CustomerID
+	Customer customer.CustomerID
 
 	IncludePendingLines mo.Option[[]string]
 	AsOf                *time.Time
@@ -836,7 +836,7 @@ func (i UpdateInvoiceInput) Validate() error {
 }
 
 type SimulateInvoiceInput struct {
-	CustomerID customerentity.CustomerID
+	CustomerID customer.CustomerID
 
 	Number   *string
 	Currency currencyx.Code
@@ -925,9 +925,9 @@ type InvoiceTriggerServiceInput struct {
 	InvoiceTriggerInput
 
 	// AppType is the type of the app that triggered the invoice
-	AppType appentitybase.AppType
+	AppType app.AppType
 	// Capability is the capability of the app that was processing this trigger
-	Capability appentitybase.CapabilityType
+	Capability app.CapabilityType
 }
 
 func (i InvoiceTriggerServiceInput) Validate() error {

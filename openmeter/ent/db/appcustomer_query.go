@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -77,7 +77,7 @@ func (acq *AppCustomerQuery) QueryApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appcustomer.Table, appcustomer.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.AppTable, appcustomer.AppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(acq.driver.Dialect(), step)
@@ -462,7 +462,7 @@ func (acq *AppCustomerQuery) loadApp(ctx context.Context, query *AppQuery, nodes
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

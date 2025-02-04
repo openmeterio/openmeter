@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -123,7 +123,7 @@ func (e BillingProfileEdges) TaxAppOrErr() (*App, error) {
 	if e.TaxApp != nil {
 		return e.TaxApp, nil
 	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: app.Label}
+		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_app"}
 }
@@ -134,7 +134,7 @@ func (e BillingProfileEdges) InvoicingAppOrErr() (*App, error) {
 	if e.InvoicingApp != nil {
 		return e.InvoicingApp, nil
 	} else if e.loadedTypes[4] {
-		return nil, &NotFoundError{label: app.Label}
+		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoicing_app"}
 }
@@ -145,7 +145,7 @@ func (e BillingProfileEdges) PaymentAppOrErr() (*App, error) {
 	if e.PaymentApp != nil {
 		return e.PaymentApp, nil
 	} else if e.loadedTypes[5] {
-		return nil, &NotFoundError{label: app.Label}
+		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
 }

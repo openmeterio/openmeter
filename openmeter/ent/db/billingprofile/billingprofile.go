@@ -94,21 +94,21 @@ const (
 	// TaxAppTable is the table that holds the tax_app relation/edge.
 	TaxAppTable = "billing_profiles"
 	// TaxAppInverseTable is the table name for the App entity.
-	// It exists in this package in order to avoid circular dependency with the "app" package.
+	// It exists in this package in order to avoid circular dependency with the "dbapp" package.
 	TaxAppInverseTable = "apps"
 	// TaxAppColumn is the table column denoting the tax_app relation/edge.
 	TaxAppColumn = "tax_app_id"
 	// InvoicingAppTable is the table that holds the invoicing_app relation/edge.
 	InvoicingAppTable = "billing_profiles"
 	// InvoicingAppInverseTable is the table name for the App entity.
-	// It exists in this package in order to avoid circular dependency with the "app" package.
+	// It exists in this package in order to avoid circular dependency with the "dbapp" package.
 	InvoicingAppInverseTable = "apps"
 	// InvoicingAppColumn is the table column denoting the invoicing_app relation/edge.
 	InvoicingAppColumn = "invoicing_app_id"
 	// PaymentAppTable is the table that holds the payment_app relation/edge.
 	PaymentAppTable = "billing_profiles"
 	// PaymentAppInverseTable is the table name for the App entity.
-	// It exists in this package in order to avoid circular dependency with the "app" package.
+	// It exists in this package in order to avoid circular dependency with the "dbapp" package.
 	PaymentAppInverseTable = "apps"
 	// PaymentAppColumn is the table column denoting the payment_app relation/edge.
 	PaymentAppColumn = "payment_app_id"

@@ -1,4 +1,4 @@
-package customerentity
+package customer
 
 import (
 	"errors"

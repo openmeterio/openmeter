@@ -18,8 +18,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -28,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -169,34 +166,34 @@ func (s *BaseSuite) SetupSuite() {
 	s.SandboxApp = sandboxApp
 }
 
-func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) appentity.App {
+func (s *BaseSuite) InstallSandboxApp(t *testing.T, ns string) app.App {
 	ctx := context.Background()
 	_, err := s.AppService.CreateApp(ctx,
-		appentity.CreateAppInput{
+		app.CreateAppInput{
 			Name:        "Sandbox",
 			Description: "Sandbox app",
-			Type:        appentitybase.AppTypeSandbox,
+			Type:        app.AppTypeSandbox,
 			Namespace:   ns,
 		})
 
 	require.NoError(t, err)
 
-	defaultApp, err := s.AppService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+	defaultApp, err := s.AppService.GetDefaultApp(ctx, app.GetDefaultAppInput{
 		Namespace: ns,
-		Type:      appentitybase.AppTypeSandbox,
+		Type:      app.AppTypeSandbox,
 	})
 
 	require.NoError(t, err)
 	return defaultApp
 }
 
-func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customerentity.Customer {
+func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customer.Customer {
 	s.T().Helper()
 
-	customer, err := s.CustomerService.CreateCustomer(context.Background(), customerentity.CreateCustomerInput{
+	customer, err := s.CustomerService.CreateCustomer(context.Background(), customer.CreateCustomerInput{
 		Namespace: ns,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
@@ -204,7 +201,7 @@ func (s *BaseSuite) CreateTestCustomer(ns string, subjectKey string) *customeren
 				PostalCode: lo.ToPtr("12345"),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{subjectKey},
 			},
 		},

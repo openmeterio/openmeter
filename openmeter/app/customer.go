@@ -1,4 +1,4 @@
-package appentity
+package app
 
 type CustomerData interface {
 	Validate() error

@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -105,13 +105,13 @@ func (au *AppUpdate) ClearDescription() *AppUpdate {
 }
 
 // SetStatus sets the "status" field.
-func (au *AppUpdate) SetStatus(as appentitybase.AppStatus) *AppUpdate {
+func (au *AppUpdate) SetStatus(as app.AppStatus) *AppUpdate {
 	au.mutation.SetStatus(as)
 	return au
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (au *AppUpdate) SetNillableStatus(as *appentitybase.AppStatus) *AppUpdate {
+func (au *AppUpdate) SetNillableStatus(as *app.AppStatus) *AppUpdate {
 	if as != nil {
 		au.SetStatus(*as)
 	}
@@ -420,13 +420,13 @@ func (au *AppUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (au *AppUpdate) defaults() {
 	if _, ok := au.mutation.UpdatedAt(); !ok {
-		v := app.UpdateDefaultUpdatedAt()
+		v := dbapp.UpdateDefaultUpdatedAt()
 		au.mutation.SetUpdatedAt(v)
 	}
 }
 
 func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
 	if ps := au.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -435,41 +435,41 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := au.mutation.Metadata(); ok {
-		_spec.SetField(app.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
 	}
 	if au.mutation.MetadataCleared() {
-		_spec.ClearField(app.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := au.mutation.UpdatedAt(); ok {
-		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := au.mutation.DeletedAt(); ok {
-		_spec.SetField(app.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
 	}
 	if au.mutation.DeletedAtCleared() {
-		_spec.ClearField(app.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbapp.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := au.mutation.Name(); ok {
-		_spec.SetField(app.FieldName, field.TypeString, value)
+		_spec.SetField(dbapp.FieldName, field.TypeString, value)
 	}
 	if value, ok := au.mutation.Description(); ok {
-		_spec.SetField(app.FieldDescription, field.TypeString, value)
+		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
 	}
 	if au.mutation.DescriptionCleared() {
-		_spec.ClearField(app.FieldDescription, field.TypeString)
+		_spec.ClearField(dbapp.FieldDescription, field.TypeString)
 	}
 	if value, ok := au.mutation.Status(); ok {
-		_spec.SetField(app.FieldStatus, field.TypeString, value)
+		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 	}
 	if value, ok := au.mutation.IsDefault(); ok {
-		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
+		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 	}
 	if au.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -481,8 +481,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -497,8 +497,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -513,8 +513,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -526,8 +526,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -542,8 +542,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -558,8 +558,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -571,8 +571,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -587,8 +587,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -603,8 +603,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -616,8 +616,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -632,8 +632,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -648,8 +648,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -661,8 +661,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -677,8 +677,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -693,8 +693,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -706,8 +706,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -722,8 +722,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -738,8 +738,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -751,8 +751,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -767,8 +767,8 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -781,7 +781,7 @@ func (au *AppUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, au.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{app.Label}
+			err = &NotFoundError{dbapp.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -872,13 +872,13 @@ func (auo *AppUpdateOne) ClearDescription() *AppUpdateOne {
 }
 
 // SetStatus sets the "status" field.
-func (auo *AppUpdateOne) SetStatus(as appentitybase.AppStatus) *AppUpdateOne {
+func (auo *AppUpdateOne) SetStatus(as app.AppStatus) *AppUpdateOne {
 	auo.mutation.SetStatus(as)
 	return auo
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (auo *AppUpdateOne) SetNillableStatus(as *appentitybase.AppStatus) *AppUpdateOne {
+func (auo *AppUpdateOne) SetNillableStatus(as *app.AppStatus) *AppUpdateOne {
 	if as != nil {
 		auo.SetStatus(*as)
 	}
@@ -1200,13 +1200,13 @@ func (auo *AppUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (auo *AppUpdateOne) defaults() {
 	if _, ok := auo.mutation.UpdatedAt(); !ok {
-		v := app.UpdateDefaultUpdatedAt()
+		v := dbapp.UpdateDefaultUpdatedAt()
 		auo.mutation.SetUpdatedAt(v)
 	}
 }
 
 func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
-	_spec := sqlgraph.NewUpdateSpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
 	id, ok := auo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "App.id" for update`)}
@@ -1214,12 +1214,12 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	_spec.Node.ID.Value = id
 	if fields := auo.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, app.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbapp.FieldID)
 		for _, f := range fields {
-			if !app.ValidColumn(f) {
+			if !dbapp.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != app.FieldID {
+			if f != dbapp.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -1232,41 +1232,41 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		}
 	}
 	if value, ok := auo.mutation.Metadata(); ok {
-		_spec.SetField(app.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
 	}
 	if auo.mutation.MetadataCleared() {
-		_spec.ClearField(app.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbapp.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := auo.mutation.UpdatedAt(); ok {
-		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := auo.mutation.DeletedAt(); ok {
-		_spec.SetField(app.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
 	}
 	if auo.mutation.DeletedAtCleared() {
-		_spec.ClearField(app.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbapp.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := auo.mutation.Name(); ok {
-		_spec.SetField(app.FieldName, field.TypeString, value)
+		_spec.SetField(dbapp.FieldName, field.TypeString, value)
 	}
 	if value, ok := auo.mutation.Description(); ok {
-		_spec.SetField(app.FieldDescription, field.TypeString, value)
+		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
 	}
 	if auo.mutation.DescriptionCleared() {
-		_spec.ClearField(app.FieldDescription, field.TypeString)
+		_spec.ClearField(dbapp.FieldDescription, field.TypeString)
 	}
 	if value, ok := auo.mutation.Status(); ok {
-		_spec.SetField(app.FieldStatus, field.TypeString, value)
+		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 	}
 	if value, ok := auo.mutation.IsDefault(); ok {
-		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
+		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 	}
 	if auo.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -1278,8 +1278,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -1294,8 +1294,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -1310,8 +1310,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1323,8 +1323,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1339,8 +1339,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1355,8 +1355,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1368,8 +1368,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1384,8 +1384,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1400,8 +1400,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1413,8 +1413,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1429,8 +1429,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -1445,8 +1445,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1458,8 +1458,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1474,8 +1474,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1490,8 +1490,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1503,8 +1503,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1519,8 +1519,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1535,8 +1535,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1548,8 +1548,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1564,8 +1564,8 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -1581,7 +1581,7 @@ func (auo *AppUpdateOne) sqlSave(ctx context.Context) (_node *App, err error) {
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, auo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{app.Label}
+			err = &NotFoundError{dbapp.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

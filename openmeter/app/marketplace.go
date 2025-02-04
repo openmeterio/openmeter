@@ -1,15 +1,66 @@
-package appentity
+package app
 
 import (
 	"errors"
 	"fmt"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+type MarketplaceListing struct {
+	Type         AppType      `json:"type"`
+	Name         string       `json:"name"`
+	Description  string       `json:"description"`
+	Capabilities []Capability `json:"capabilities"`
+}
+
+func (p MarketplaceListing) Validate() error {
+	if p.Type == "" {
+		return errors.New("type is required")
+	}
+
+	if p.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if p.Description == "" {
+		return errors.New("description is required")
+	}
+
+	for i, capability := range p.Capabilities {
+		if err := capability.Validate(); err != nil {
+			return fmt.Errorf("error validating capability a position %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+type Capability struct {
+	Type        CapabilityType `json:"type"`
+	Key         string         `json:"key"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+}
+
+func (c Capability) Validate() error {
+	if c.Key == "" {
+		return errors.New("key is required")
+	}
+
+	if c.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if c.Description == "" {
+		return errors.New("description is required")
+	}
+
+	return nil
+}
+
 type MarketplaceListingID struct {
-	Type appentitybase.AppType
+	Type AppType
 }
 
 func (i MarketplaceListingID) Validate() error {
@@ -46,7 +97,9 @@ type InstallAppWithAPIKeyInput struct {
 
 func (i InstallAppWithAPIKeyInput) Validate() error {
 	if err := i.MarketplaceListingID.Validate(); err != nil {
-		return fmt.Errorf("error validating marketplace listing id: %w", err)
+		return ValidationError{
+			Err: fmt.Errorf("error validating marketplace listing id: %w", err),
+		}
 	}
 
 	if i.Namespace == "" {
@@ -80,7 +133,9 @@ type AuthorizeOauth2InstallInput struct {
 
 func (i AuthorizeOauth2InstallInput) Validate() error {
 	if err := i.MarketplaceListingID.Validate(); err != nil {
-		return fmt.Errorf("error validating marketplace listing id: %w", err)
+		return ValidationError{
+			Err: fmt.Errorf("error validating marketplace listing id: %w", err),
+		}
 	}
 
 	if i.State == "" {

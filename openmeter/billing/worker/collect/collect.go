@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 type InvoiceCollector struct {
@@ -154,7 +154,7 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	a.logger.DebugContext(ctx, "collecting customer invoices", "customer", params.CustomerID, "asOf", alignedAsOf)
 
 	invoices, err := a.billing.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customerentity.CustomerID{
+		Customer: customer.CustomerID{
 			Namespace: resp.Items[0].Namespace,
 			ID:        resp.Items[0].Customer.CustomerID,
 		},
@@ -167,7 +167,7 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	return invoices, nil
 }
 
-func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer customerentity.CustomerID) (billing.CollectionConfig, error) {
+func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer customer.CustomerID) (billing.CollectionConfig, error) {
 	profileDetails, err := a.billing.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
 		Namespace:  customer.Namespace,
 		CustomerID: customer.ID,
@@ -181,11 +181,11 @@ func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer cus
 	return profileDetails.Profile.WorkflowConfig.Collection, nil
 }
 
-func (a *InvoiceCollector) GetAsOfForCustomer(ctx context.Context, customer customerentity.CustomerID) (time.Time, error) {
+func (a *InvoiceCollector) GetAsOfForCustomer(ctx context.Context, customer customer.CustomerID) (time.Time, error) {
 	return a.GetAsOfForCustomerAt(ctx, customer, time.Now())
 }
 
-func (a *InvoiceCollector) GetAsOfForCustomerAt(ctx context.Context, customer customerentity.CustomerID, at time.Time) (time.Time, error) {
+func (a *InvoiceCollector) GetAsOfForCustomerAt(ctx context.Context, customer customer.CustomerID, at time.Time) (time.Time, error) {
 	collectionConfig, err := a.GetCollectionConfig(ctx, customer)
 	if err != nil {
 		return time.Time{}, err

@@ -10,7 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stripe/stripe-go/v80"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -104,8 +104,8 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 			Trigger:          input.Trigger,
 			ValidationErrors: validationErrors,
 		},
-		AppType:    appentitybase.AppTypeStripe,
-		Capability: appentitybase.CapabilityTypeCollectPayments,
+		AppType:    app.AppTypeStripe,
+		Capability: app.CapabilityTypeCollectPayments,
 	})
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to trigger invoice failed trigger")
@@ -151,7 +151,7 @@ func stripeErrorToValidationError(stripeErr *stripe.Error) error {
 }
 
 // getInvoiceByStripeID retrieves an invoice by its stripe ID, it returns nil if the invoice is not found (thus not managed by the app)
-func (s *Service) getInvoiceByStripeID(ctx context.Context, appID appentitybase.AppID, stripeInvoiceID string) (*billing.Invoice, error) {
+func (s *Service) getInvoiceByStripeID(ctx context.Context, appID app.AppID, stripeInvoiceID string) (*billing.Invoice, error) {
 	invoices, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{appID.Namespace},
 		ExternalIDs: &billing.ListInvoicesExternalIDFilter{

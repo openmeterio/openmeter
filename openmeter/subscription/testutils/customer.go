@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
@@ -72,7 +71,7 @@ type testCustomerRepo struct {
 	customer.Adapter
 }
 
-func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customerentity.Customer {
+func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customer.Customer {
 	t.Helper()
 
 	c, err := a.CreateCustomer(context.Background(), ExampleCreateCustomerInput)
@@ -82,20 +81,20 @@ func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customerentity.C
 	return c
 }
 
-var ExampleCustomerEntity customerentity.Customer = customerentity.Customer{
+var ExampleCustomerEntity customer.Customer = customer.Customer{
 	ManagedResource: models.ManagedResource{
 		Name: "John Doe",
 	},
 	PrimaryEmail: lo.ToPtr("mail@me.uk"),
 	Currency:     lo.ToPtr(currencyx.Code("USD")),
-	UsageAttribution: customerentity.CustomerUsageAttribution{
+	UsageAttribution: customer.CustomerUsageAttribution{
 		SubjectKeys: []string{"john-doe"},
 	},
 }
 
-var ExampleCreateCustomerInput customerentity.CreateCustomerInput = customerentity.CreateCustomerInput{
+var ExampleCreateCustomerInput customer.CreateCustomerInput = customer.CreateCustomerInput{
 	Namespace: ExampleNamespace,
-	CustomerMutate: customerentity.CustomerMutate{
+	CustomerMutate: customer.CustomerMutate{
 		Name:             ExampleCustomerEntity.Name,
 		PrimaryEmail:     ExampleCustomerEntity.PrimaryEmail,
 		Currency:         ExampleCustomerEntity.Currency,

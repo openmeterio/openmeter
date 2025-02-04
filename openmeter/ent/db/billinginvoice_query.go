@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -200,7 +200,7 @@ func (biq *BillingInvoiceQuery) QueryTaxApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.TaxAppTable, billinginvoice.TaxAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
@@ -222,7 +222,7 @@ func (biq *BillingInvoiceQuery) QueryInvoicingApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.InvoicingAppTable, billinginvoice.InvoicingAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
@@ -244,7 +244,7 @@ func (biq *BillingInvoiceQuery) QueryPaymentApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.PaymentAppTable, billinginvoice.PaymentAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
@@ -919,7 +919,7 @@ func (biq *BillingInvoiceQuery) loadTaxApp(ctx context.Context, query *AppQuery,
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -948,7 +948,7 @@ func (biq *BillingInvoiceQuery) loadInvoicingApp(ctx context.Context, query *App
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -977,7 +977,7 @@ func (biq *BillingInvoiceQuery) loadPaymentApp(ctx context.Context, query *AppQu
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

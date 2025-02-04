@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -14,24 +12,24 @@ type Service interface {
 
 type AppService interface {
 	// Marketplace
-	RegisterMarketplaceListing(input appentity.RegisterMarketplaceListingInput) error
-	GetMarketplaceListing(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error)
-	ListMarketplaceListings(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error)
-	InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error)
-	GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error)
-	AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error
+	RegisterMarketplaceListing(input RegisterMarketplaceListingInput) error
+	GetMarketplaceListing(ctx context.Context, input MarketplaceGetInput) (RegistryItem, error)
+	ListMarketplaceListings(ctx context.Context, input MarketplaceListInput) (pagination.PagedResponse[RegistryItem], error)
+	InstallMarketplaceListingWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)
+	GetMarketplaceListingOauth2InstallURL(ctx context.Context, input GetOauth2InstallURLInput) (GetOauth2InstallURLOutput, error)
+	AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input AuthorizeOauth2InstallInput) error
 
 	// Installed app
-	CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error)
-	GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error)
-	UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error
-	GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error)
-	UpdateApp(ctx context.Context, input appentity.UpdateAppInput) (appentity.App, error)
-	ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error)
-	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
+	CreateApp(ctx context.Context, input CreateAppInput) (AppBase, error)
+	GetApp(ctx context.Context, input GetAppInput) (App, error)
+	UpdateAppStatus(ctx context.Context, input UpdateAppStatusInput) error
+	GetDefaultApp(ctx context.Context, input GetDefaultAppInput) (App, error)
+	UpdateApp(ctx context.Context, input UpdateAppInput) (App, error)
+	ListApps(ctx context.Context, input ListAppInput) (pagination.PagedResponse[App], error)
+	UninstallApp(ctx context.Context, input UninstallAppInput) error
 
 	// Customer data
-	ListCustomerData(ctx context.Context, input ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error)
+	ListCustomerData(ctx context.Context, input ListCustomerInput) (pagination.PagedResponse[CustomerApp], error)
 	EnsureCustomer(ctx context.Context, input EnsureCustomerInput) error
 	DeleteCustomer(ctx context.Context, input DeleteCustomerInput) error
 }

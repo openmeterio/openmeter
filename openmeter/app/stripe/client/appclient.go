@@ -12,8 +12,6 @@ import (
 	"github.com/stripe/stripe-go/v80/client"
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -77,7 +75,7 @@ type StripeAppClientFactory = func(config StripeAppClientConfig) (StripeAppClien
 
 type StripeAppClientConfig struct {
 	AppService app.Service
-	AppID      appentitybase.AppID
+	AppID      app.AppID
 	APIKey     string
 }
 
@@ -99,7 +97,7 @@ func (c *StripeAppClientConfig) Validate() error {
 
 type stripeAppClient struct {
 	appService app.Service
-	appID      appentitybase.AppID
+	appID      app.AppID
 	client     *client.API
 }
 
@@ -277,9 +275,9 @@ func (c *stripeAppClient) providerError(err error) error {
 	if stripeErr, ok := err.(*stripe.Error); ok {
 		if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
 			// Update app status to unauthorized
-			status := appentitybase.AppStatusUnauthorized
+			status := app.AppStatusUnauthorized
 
-			err = c.appService.UpdateAppStatus(context.Background(), appentity.UpdateAppStatusInput{
+			err = c.appService.UpdateAppStatus(context.Background(), app.UpdateAppStatusInput{
 				ID:     c.appID,
 				Status: status,
 			})

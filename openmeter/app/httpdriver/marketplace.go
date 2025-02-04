@@ -10,8 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -21,7 +19,7 @@ import (
 
 // ListMarketplaceListingsHandler is a handler for listing marketplace listings
 type (
-	ListMarketplaceListingsRequest  = appentity.MarketplaceListInput
+	ListMarketplaceListingsRequest  = app.MarketplaceListInput
 	ListMarketplaceListingsResponse = api.MarketplaceListingList
 	ListMarketplaceListingsParams   = api.ListMarketplaceListingsParams
 	ListMarketplaceListingsHandler  httptransport.HandlerWithArgs[ListMarketplaceListingsRequest, ListMarketplaceListingsResponse, ListMarketplaceListingsParams]
@@ -48,7 +46,7 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 				Page:       result.Page.PageNumber,
 				PageSize:   result.Page.PageSize,
 				TotalCount: result.TotalCount,
-				Items: lo.Map(result.Items, func(item appentity.RegistryItem, _ int) api.MarketplaceListing {
+				Items: lo.Map(result.Items, func(item app.RegistryItem, _ int) api.MarketplaceListing {
 					return mapMarketplaceListing(item.Listing)
 				}),
 			}, nil
@@ -64,7 +62,7 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 
 // GetMarketplaceListingHandler is a handler to get a marketplace listing
 type (
-	GetMarketplaceListingRequest  = appentity.MarketplaceGetInput
+	GetMarketplaceListingRequest  = app.MarketplaceGetInput
 	GetMarketplaceListingResponse = api.MarketplaceListing
 	GetMarketplaceListingHandler  httptransport.HandlerWithArgs[GetMarketplaceListingRequest, GetMarketplaceListingResponse, api.AppType]
 )
@@ -74,7 +72,7 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, appType api.AppType) (GetMarketplaceListingRequest, error) {
 			return GetMarketplaceListingRequest{
-				Type: appentitybase.AppType(appType),
+				Type: app.AppType(appType),
 			}, nil
 		},
 		func(ctx context.Context, request GetMarketplaceListingRequest) (GetMarketplaceListingResponse, error) {
@@ -95,7 +93,7 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 }
 
 type (
-	MarketplaceAppAPIKeyInstallRequest  = appentity.InstallAppWithAPIKeyInput
+	MarketplaceAppAPIKeyInstallRequest  = app.InstallAppWithAPIKeyInput
 	MarketplaceAppAPIKeyInstallResponse = api.MarketplaceInstallResponse
 	MarketplaceAppAPIKeyInstallHandler  httptransport.HandlerWithArgs[MarketplaceAppAPIKeyInstallRequest, MarketplaceAppAPIKeyInstallResponse, api.AppType]
 )
@@ -116,7 +114,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			req := MarketplaceAppAPIKeyInstallRequest{
-				MarketplaceListingID: appentity.MarketplaceListingID{Type: appentitybase.AppType(appType)},
+				MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
 				Namespace:            namespace,
 				APIKey:               body.ApiKey,
 				Name:                 lo.FromPtrOr(body.Name, ""),
@@ -135,7 +133,7 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			// Make stripe the default billing app
-			if installedApp.GetType() == appentitybase.AppTypeStripe {
+			if installedApp.GetType() == app.AppTypeStripe {
 				defaultForCapabilityTypes, err := h.makeStripeDefaultBillingApp(ctx, installedApp)
 				if err != nil {
 					if errors.As(err, &app.AppProviderPreConditionError{}) {
@@ -170,13 +168,13 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 }
 
 // Make Stripe app the default billing app if current one is Sandbox app
-func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity.App) ([]api.AppCapabilityType, error) {
+func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app.App) ([]api.AppCapabilityType, error) {
 	defaultForCapabilityTypes := []api.AppCapabilityType{}
 
-	appID := app.GetID()
+	appID := stripeApp.GetID()
 
 	// Check if it's a Stripe app
-	if app.GetType() != appentitybase.AppTypeStripe {
+	if stripeApp.GetType() != app.AppTypeStripe {
 		return defaultForCapabilityTypes, fmt.Errorf("app is not a stripe app: %s", appID.ID)
 	}
 
@@ -189,7 +187,7 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 	}
 
 	// Do nothing if the default is not the sandbox
-	if defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() != appentitybase.AppTypeSandbox {
+	if defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() != app.AppTypeSandbox {
 		return defaultForCapabilityTypes, nil
 	}
 
@@ -224,20 +222,20 @@ func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, app appentity
 	}
 
 	defaultForCapabilityTypes = []api.AppCapabilityType{
-		api.AppCapabilityType(appentitybase.CapabilityTypeCalculateTax),
-		api.AppCapabilityType(appentitybase.CapabilityTypeInvoiceCustomers),
-		api.AppCapabilityType(appentitybase.CapabilityTypeCollectPayments),
+		api.AppCapabilityType(app.CapabilityTypeCalculateTax),
+		api.AppCapabilityType(app.CapabilityTypeInvoiceCustomers),
+		api.AppCapabilityType(app.CapabilityTypeCollectPayments),
 	}
 
 	return defaultForCapabilityTypes, nil
 }
 
-func mapMarketplaceListing(listing appentitybase.MarketplaceListing) api.MarketplaceListing {
+func mapMarketplaceListing(listing app.MarketplaceListing) api.MarketplaceListing {
 	return api.MarketplaceListing{
 		Type:        api.AppType(listing.Type),
 		Name:        listing.Name,
 		Description: listing.Description,
-		Capabilities: lo.Map(listing.Capabilities, func(v appentitybase.Capability, _ int) api.AppCapability {
+		Capabilities: lo.Map(listing.Capabilities, func(v app.Capability, _ int) api.AppCapability {
 			return api.AppCapability{
 				Type:        api.AppCapabilityType(v.Type),
 				Key:         v.Key,

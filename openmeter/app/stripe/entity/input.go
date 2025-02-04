@@ -8,10 +8,9 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/api"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
@@ -21,7 +20,7 @@ const (
 )
 
 type CreateAppStripeInput struct {
-	appentity.CreateAppInput
+	app.CreateAppInput
 
 	StripeAccountID string
 	Livemode        bool
@@ -31,7 +30,7 @@ type CreateAppStripeInput struct {
 }
 
 func (i CreateAppStripeInput) Validate() error {
-	if i.CreateAppInput.Type != appentitybase.AppTypeStripe {
+	if i.CreateAppInput.Type != app.AppTypeStripe {
 		return errors.New("app type must be stripe")
 	}
 
@@ -71,7 +70,7 @@ func (i CreateAppStripeInput) Validate() error {
 }
 
 type GetStripeAppDataInput struct {
-	AppID appentitybase.AppID
+	AppID app.AppID
 }
 
 func (i GetStripeAppDataInput) Validate() error {
@@ -83,7 +82,7 @@ func (i GetStripeAppDataInput) Validate() error {
 }
 
 type DeleteStripeAppDataInput struct {
-	AppID appentitybase.AppID
+	AppID app.AppID
 }
 
 func (i DeleteStripeAppDataInput) Validate() error {
@@ -95,8 +94,8 @@ func (i DeleteStripeAppDataInput) Validate() error {
 }
 
 type GetStripeCustomerDataInput struct {
-	AppID      appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	AppID      app.AppID
+	CustomerID customer.CustomerID
 }
 
 func (i GetStripeCustomerDataInput) Validate() error {
@@ -116,8 +115,8 @@ func (i GetStripeCustomerDataInput) Validate() error {
 }
 
 type CreateStripeCustomerInput struct {
-	AppID      appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	AppID      app.AppID
+	CustomerID customer.CustomerID
 
 	Name  *string
 	Email *string
@@ -160,8 +159,8 @@ func (o CreateStripeCustomerOutput) Validate() error {
 }
 
 type UpsertStripeCustomerDataInput struct {
-	AppID                        appentitybase.AppID
-	CustomerID                   customerentity.CustomerID
+	AppID                        app.AppID
+	CustomerID                   customer.CustomerID
 	StripeCustomerID             string
 	StripeDefaultPaymentMethodID *string
 }
@@ -191,8 +190,8 @@ func (i UpsertStripeCustomerDataInput) Validate() error {
 }
 
 type DeleteStripeCustomerDataInput struct {
-	AppID      *appentitybase.AppID
-	CustomerID *customerentity.CustomerID
+	AppID      *app.AppID
+	CustomerID *customer.CustomerID
 }
 
 func (i DeleteStripeCustomerDataInput) Validate() error {
@@ -227,7 +226,7 @@ func (i DeleteStripeCustomerDataInput) Validate() error {
 	return nil
 }
 
-type GetAppInput = appentitybase.AppID
+type GetAppInput = app.AppID
 
 type GetWebhookSecretInput struct {
 	AppID string
@@ -244,7 +243,7 @@ func (i GetWebhookSecretInput) Validate() error {
 type GetWebhookSecretOutput = secretentity.Secret
 
 type UpdateAPIKeyInput struct {
-	AppID  appentitybase.AppID
+	AppID  app.AppID
 	APIKey string
 }
 
@@ -262,9 +261,9 @@ func (i UpdateAPIKeyInput) Validate() error {
 
 type CreateCheckoutSessionInput struct {
 	Namespace           string
-	AppID               *appentitybase.AppID
-	CreateCustomerInput *customerentity.CreateCustomerInput
-	CustomerID          *customerentity.CustomerID
+	AppID               *app.AppID
+	CreateCustomerInput *customer.CreateCustomerInput
+	CustomerID          *customer.CustomerID
 	CustomerKey         *string
 	StripeCustomerID    *string
 	Options             api.CreateStripeCheckoutSessionRequestOptions
@@ -358,7 +357,7 @@ func (i CreateCheckoutSessionInput) Validate() error {
 }
 
 type CreateCheckoutSessionOutput struct {
-	CustomerID       customerentity.CustomerID
+	CustomerID       customer.CustomerID
 	StripeCustomerID string
 
 	SessionID     string
@@ -392,7 +391,7 @@ func (o CreateCheckoutSessionOutput) Validate() error {
 }
 
 type AppBase struct {
-	appentitybase.AppBase
+	app.AppBase
 	AppData
 }
 
@@ -426,13 +425,13 @@ func (d AppData) Validate() error {
 }
 
 type SetCustomerDefaultPaymentMethodInput struct {
-	AppID            appentitybase.AppID
+	AppID            app.AppID
 	StripeCustomerID string
 	PaymentMethodID  string
 }
 
 type SetCustomerDefaultPaymentMethodOutput struct {
-	CustomerID customerentity.CustomerID
+	CustomerID customer.CustomerID
 }
 
 func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
@@ -453,7 +452,7 @@ func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
 
 // GetSupplierContactInput to get the default supplier
 type GetSupplierContactInput struct {
-	AppID appentitybase.AppID
+	AppID app.AppID
 }
 
 func (i GetSupplierContactInput) Validate() error {
@@ -470,7 +469,7 @@ type ValidationErrorsInput struct {
 }
 
 type HandleInvoiceStateTransitionInput struct {
-	AppID   appentitybase.AppID
+	AppID   app.AppID
 	Invoice stripe.Invoice
 
 	// Trigger setup
@@ -516,7 +515,7 @@ func (i HandleInvoiceStateTransitionInput) Validate() error {
 }
 
 type HandleInvoiceSentEventInput struct {
-	AppID   appentitybase.AppID
+	AppID   app.AppID
 	Invoice stripe.Invoice
 	SentAt  int64
 }
@@ -538,7 +537,7 @@ func (i HandleInvoiceSentEventInput) Validate() error {
 }
 
 type GetStripeInvoiceInput struct {
-	AppID           appentitybase.AppID
+	AppID           app.AppID
 	StripeInvoiceID string
 }
 

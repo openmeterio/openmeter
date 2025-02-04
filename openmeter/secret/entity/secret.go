@@ -4,18 +4,18 @@ import (
 	"errors"
 	"fmt"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // SecretID represents a secret identifier.
 type SecretID struct {
 	models.NamespacedID
-	AppID appentitybase.AppID
+	AppID app.AppID
 	Key   string
 }
 
-func NewSecretID(appID appentitybase.AppID, id string, key string) SecretID {
+func NewSecretID(appID app.AppID, id string, key string) SecretID {
 	return SecretID{
 		NamespacedID: models.NamespacedID{
 			Namespace: appID.Namespace,

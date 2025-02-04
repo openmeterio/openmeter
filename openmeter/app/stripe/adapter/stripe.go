@@ -9,13 +9,11 @@ import (
 	"github.com/stripe/stripe-go/v80"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
@@ -166,9 +164,9 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 		}
 
 		// Update the app status to ready
-		status := appentitybase.AppStatusReady
+		status := app.AppStatusReady
 
-		err = a.appService.UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
+		err = a.appService.UpdateAppStatus(ctx, app.UpdateAppStatusInput{
 			ID:     input.AppID,
 			Status: status,
 		})
@@ -207,7 +205,7 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 		// Map the database stripe app to an app entity
 		appData := mapAppStripeData(input.AppID, dbApp)
 		if err := appData.Validate(); err != nil {
-			return appstripeentity.AppData{}, fmt.Errorf("error validating stripe app data: %w", err)
+			return appstripeentity.AppData{}, app.ValidationError{Err: fmt.Errorf("error validating stripe app data: %w", err)}
 		}
 
 		return appData, nil
@@ -262,7 +260,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 			if entdb.IsNotFound(err) {
 				// We don't know the namespace from the app id for webhook requests
 				return secretentity.Secret{}, app.AppNotFoundError{
-					AppID: appentitybase.AppID{
+					AppID: app.AppID{
 						ID: input.AppID,
 					},
 				}
@@ -272,7 +270,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 		}
 
 		// Get the webhook secret
-		appID := appentitybase.AppID{
+		appID := app.AppID{
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.ID,
 		}
@@ -308,13 +306,13 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 			if entdb.IsNotFound(err) {
 				return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.AppCustomerPreConditionError{
 					AppID:     input.AppID,
-					AppType:   appentitybase.AppTypeStripe,
+					AppType:   app.AppTypeStripe,
 					Condition: fmt.Sprintf("stripe customer has no data for stripe app: %s", input.StripeCustomerID),
 				}
 			}
 		}
 
-		customerID := customerentity.CustomerID{
+		customerID := customer.CustomerID{
 			Namespace: input.AppID.Namespace,
 			ID:        appCustomer.CustomerID,
 		}
@@ -356,15 +354,15 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripeentity.CreateCheckoutSessionOutput, error) {
-		var appID appentitybase.AppID
+		var appID app.AppID
 
 		// Use the provided app ID or get the default Stripe app
 		if input.AppID != nil {
 			appID = *input.AppID
 		} else {
-			app, err := repo.appService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+			app, err := repo.appService.GetDefaultApp(ctx, app.GetDefaultAppInput{
 				Namespace: input.Namespace,
-				Type:      appentitybase.AppTypeStripe,
+				Type:      app.AppTypeStripe,
 			})
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get default app: %w", err)
@@ -390,10 +388,10 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		}
 
 		// Get or create customer
-		var customer *customerentity.Customer
+		var targetCustomer *customer.Customer
 
 		if input.CustomerID != nil {
-			customer, err = repo.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(*input.CustomerID))
+			targetCustomer, err = repo.customerService.GetCustomer(ctx, customer.GetCustomerInput(*input.CustomerID))
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get customer: %w", err)
 			}
@@ -401,7 +399,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 
 		// Find a customer by key
 		if input.CustomerKey != nil {
-			customers, err := repo.customerService.ListCustomers(ctx, customerentity.ListCustomersInput{
+			customers, err := repo.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 				Namespace: input.Namespace,
 				Key:       input.CustomerKey,
 				Page:      pagination.NewPage(1, 1),
@@ -422,18 +420,18 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("multiple customers found with key: %s", *input.CustomerKey)
 			}
 
-			customer = &customers.Items[0]
+			targetCustomer = &customers.Items[0]
 		}
 
 		// Create a customer if create input is provided
 		if input.CreateCustomerInput != nil {
-			customer, err = repo.customerService.CreateCustomer(ctx, *input.CreateCustomerInput)
+			targetCustomer, err = repo.customerService.CreateCustomer(ctx, *input.CreateCustomerInput)
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create customer: %w", err)
 			}
 		}
 
-		customerID := customer.GetID()
+		customerID := targetCustomer.GetID()
 
 		// Get the stripe app customer
 		var stripeCustomerId string
@@ -463,8 +461,8 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 						params := appstripeentity.CreateStripeCustomerInput{
 							AppID:      appID,
 							CustomerID: customerID,
-							Name:       &customer.Name,
-							Email:      customer.PrimaryEmail,
+							Name:       &targetCustomer.Name,
+							Email:      targetCustomer.PrimaryEmail,
 						}
 
 						out, err := a.createStripeCustomer(ctx, params)
@@ -509,8 +507,8 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 		}
 
 		// Set the currency if customer has one and it is not provided
-		if input.Options.Currency == nil && customer.Currency != nil {
-			input.Options.Currency = stripeclient.CurrencyPtr(customer.Currency)
+		if input.Options.Currency == nil && targetCustomer.Currency != nil {
+			input.Options.Currency = stripeclient.CurrencyPtr(targetCustomer.Currency)
 		}
 
 		// Create the checkout session
@@ -647,7 +645,7 @@ func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (st
 }
 
 // getStripeAppClient returns a Stripe App Client based on App ID
-func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.AppID) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
+func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
 	// Validate app id
 	if err := appID.Validate(); err != nil {
 		return appstripeentity.AppData{}, nil, fmt.Errorf("app id: %w", err)
@@ -681,7 +679,7 @@ func (a adapter) getStripeAppClient(ctx context.Context, appID appentitybase.App
 }
 
 // mapAppStripeData maps stripe app data from the database
-func mapAppStripeData(appID appentitybase.AppID, dbApp *entdb.AppStripe) appstripeentity.AppData {
+func mapAppStripeData(appID app.AppID, dbApp *entdb.AppStripe) appstripeentity.AppData {
 	return appstripeentity.AppData{
 		StripeAccountID: dbApp.StripeAccountID,
 		Livemode:        dbApp.StripeLivemode,

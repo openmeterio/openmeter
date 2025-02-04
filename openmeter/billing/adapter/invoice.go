@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -806,7 +806,7 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 }
 
 // IsAppUsed checks if the app is used in any invoice.
-func (a *adapter) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
+func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
 	if err := appID.Validate(); err != nil {
 		return false, billing.ValidationError{
 			Err: fmt.Errorf("invalid app ID: %w", err),

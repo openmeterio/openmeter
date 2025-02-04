@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
@@ -14,7 +13,7 @@ import (
 
 // App represents an installed Stripe app
 type App struct {
-	appentitybase.AppBase
+	app.AppBase
 	appstripeentity.AppData
 
 	AppService             app.Service                         `json:"-"`
@@ -32,7 +31,7 @@ func (a App) Validate() error {
 		return fmt.Errorf("error validating stripe app data: %w", err)
 	}
 
-	if a.Type != appentitybase.AppTypeStripe {
+	if a.Type != app.AppTypeStripe {
 		return errors.New("app type must be stripe")
 	}
 

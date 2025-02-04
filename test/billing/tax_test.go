@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -255,7 +255,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(ubpDetailedLine.TaxConfig, taxConfig, "tax config is retained in detailed line")
 }
 
-func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namespace string, customer *customerentity.Customer) billing.Invoice {
+func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, namespace string, customer *customer.Customer) billing.Invoice {
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,

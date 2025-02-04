@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -102,13 +102,13 @@ func (ac *AppCreate) SetNillableDescription(s *string) *AppCreate {
 }
 
 // SetType sets the "type" field.
-func (ac *AppCreate) SetType(at appentitybase.AppType) *AppCreate {
+func (ac *AppCreate) SetType(at app.AppType) *AppCreate {
 	ac.mutation.SetType(at)
 	return ac
 }
 
 // SetStatus sets the "status" field.
-func (ac *AppCreate) SetStatus(as appentitybase.AppStatus) *AppCreate {
+func (ac *AppCreate) SetStatus(as app.AppStatus) *AppCreate {
 	ac.mutation.SetStatus(as)
 	return ac
 }
@@ -282,19 +282,19 @@ func (ac *AppCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (ac *AppCreate) defaults() {
 	if _, ok := ac.mutation.CreatedAt(); !ok {
-		v := app.DefaultCreatedAt()
+		v := dbapp.DefaultCreatedAt()
 		ac.mutation.SetCreatedAt(v)
 	}
 	if _, ok := ac.mutation.UpdatedAt(); !ok {
-		v := app.DefaultUpdatedAt()
+		v := dbapp.DefaultUpdatedAt()
 		ac.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := ac.mutation.IsDefault(); !ok {
-		v := app.DefaultIsDefault
+		v := dbapp.DefaultIsDefault
 		ac.mutation.SetIsDefault(v)
 	}
 	if _, ok := ac.mutation.ID(); !ok {
-		v := app.DefaultID()
+		v := dbapp.DefaultID()
 		ac.mutation.SetID(v)
 	}
 }
@@ -305,7 +305,7 @@ func (ac *AppCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "App.namespace"`)}
 	}
 	if v, ok := ac.mutation.Namespace(); ok {
-		if err := app.NamespaceValidator(v); err != nil {
+		if err := dbapp.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "App.namespace": %w`, err)}
 		}
 	}
@@ -356,7 +356,7 @@ func (ac *AppCreate) sqlSave(ctx context.Context) (*App, error) {
 func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 	var (
 		_node = &App{config: ac.config}
-		_spec = sqlgraph.NewCreateSpec(app.Table, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(dbapp.Table, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = ac.conflict
 	if id, ok := ac.mutation.ID(); ok {
@@ -364,51 +364,51 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = id
 	}
 	if value, ok := ac.mutation.Namespace(); ok {
-		_spec.SetField(app.FieldNamespace, field.TypeString, value)
+		_spec.SetField(dbapp.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := ac.mutation.Metadata(); ok {
-		_spec.SetField(app.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbapp.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
 	if value, ok := ac.mutation.CreatedAt(); ok {
-		_spec.SetField(app.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := ac.mutation.UpdatedAt(); ok {
-		_spec.SetField(app.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := ac.mutation.DeletedAt(); ok {
-		_spec.SetField(app.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbapp.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := ac.mutation.Name(); ok {
-		_spec.SetField(app.FieldName, field.TypeString, value)
+		_spec.SetField(dbapp.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if value, ok := ac.mutation.Description(); ok {
-		_spec.SetField(app.FieldDescription, field.TypeString, value)
+		_spec.SetField(dbapp.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
 	if value, ok := ac.mutation.GetType(); ok {
-		_spec.SetField(app.FieldType, field.TypeString, value)
+		_spec.SetField(dbapp.FieldType, field.TypeString, value)
 		_node.Type = value
 	}
 	if value, ok := ac.mutation.Status(); ok {
-		_spec.SetField(app.FieldStatus, field.TypeString, value)
+		_spec.SetField(dbapp.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
 	if value, ok := ac.mutation.IsDefault(); ok {
-		_spec.SetField(app.FieldIsDefault, field.TypeBool, value)
+		_spec.SetField(dbapp.FieldIsDefault, field.TypeBool, value)
 		_node.IsDefault = value
 	}
 	if nodes := ac.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.CustomerAppsTable,
-			Columns: []string{app.CustomerAppsColumn},
+			Table:   dbapp.CustomerAppsTable,
+			Columns: []string{dbapp.CustomerAppsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(appcustomer.FieldID, field.TypeInt),
@@ -423,8 +423,8 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileTaxAppTable,
-			Columns: []string{app.BillingProfileTaxAppColumn},
+			Table:   dbapp.BillingProfileTaxAppTable,
+			Columns: []string{dbapp.BillingProfileTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -439,8 +439,8 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfileInvoicingAppTable,
-			Columns: []string{app.BillingProfileInvoicingAppColumn},
+			Table:   dbapp.BillingProfileInvoicingAppTable,
+			Columns: []string{dbapp.BillingProfileInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -455,8 +455,8 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingProfilePaymentAppTable,
-			Columns: []string{app.BillingProfilePaymentAppColumn},
+			Table:   dbapp.BillingProfilePaymentAppTable,
+			Columns: []string{dbapp.BillingProfilePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
@@ -471,8 +471,8 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceTaxAppTable,
-			Columns: []string{app.BillingInvoiceTaxAppColumn},
+			Table:   dbapp.BillingInvoiceTaxAppTable,
+			Columns: []string{dbapp.BillingInvoiceTaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -487,8 +487,8 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoiceInvoicingAppTable,
-			Columns: []string{app.BillingInvoiceInvoicingAppColumn},
+			Table:   dbapp.BillingInvoiceInvoicingAppTable,
+			Columns: []string{dbapp.BillingInvoiceInvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -503,8 +503,8 @@ func (ac *AppCreate) createSpec() (*App, *sqlgraph.CreateSpec) {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   app.BillingInvoicePaymentAppTable,
-			Columns: []string{app.BillingInvoicePaymentAppColumn},
+			Table:   dbapp.BillingInvoicePaymentAppTable,
+			Columns: []string{dbapp.BillingInvoicePaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
@@ -569,103 +569,103 @@ type (
 
 // SetMetadata sets the "metadata" field.
 func (u *AppUpsert) SetMetadata(v map[string]string) *AppUpsert {
-	u.Set(app.FieldMetadata, v)
+	u.Set(dbapp.FieldMetadata, v)
 	return u
 }
 
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *AppUpsert) UpdateMetadata() *AppUpsert {
-	u.SetExcluded(app.FieldMetadata)
+	u.SetExcluded(dbapp.FieldMetadata)
 	return u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
 func (u *AppUpsert) ClearMetadata() *AppUpsert {
-	u.SetNull(app.FieldMetadata)
+	u.SetNull(dbapp.FieldMetadata)
 	return u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *AppUpsert) SetUpdatedAt(v time.Time) *AppUpsert {
-	u.Set(app.FieldUpdatedAt, v)
+	u.Set(dbapp.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *AppUpsert) UpdateUpdatedAt() *AppUpsert {
-	u.SetExcluded(app.FieldUpdatedAt)
+	u.SetExcluded(dbapp.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *AppUpsert) SetDeletedAt(v time.Time) *AppUpsert {
-	u.Set(app.FieldDeletedAt, v)
+	u.Set(dbapp.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *AppUpsert) UpdateDeletedAt() *AppUpsert {
-	u.SetExcluded(app.FieldDeletedAt)
+	u.SetExcluded(dbapp.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *AppUpsert) ClearDeletedAt() *AppUpsert {
-	u.SetNull(app.FieldDeletedAt)
+	u.SetNull(dbapp.FieldDeletedAt)
 	return u
 }
 
 // SetName sets the "name" field.
 func (u *AppUpsert) SetName(v string) *AppUpsert {
-	u.Set(app.FieldName, v)
+	u.Set(dbapp.FieldName, v)
 	return u
 }
 
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *AppUpsert) UpdateName() *AppUpsert {
-	u.SetExcluded(app.FieldName)
+	u.SetExcluded(dbapp.FieldName)
 	return u
 }
 
 // SetDescription sets the "description" field.
 func (u *AppUpsert) SetDescription(v string) *AppUpsert {
-	u.Set(app.FieldDescription, v)
+	u.Set(dbapp.FieldDescription, v)
 	return u
 }
 
 // UpdateDescription sets the "description" field to the value that was provided on create.
 func (u *AppUpsert) UpdateDescription() *AppUpsert {
-	u.SetExcluded(app.FieldDescription)
+	u.SetExcluded(dbapp.FieldDescription)
 	return u
 }
 
 // ClearDescription clears the value of the "description" field.
 func (u *AppUpsert) ClearDescription() *AppUpsert {
-	u.SetNull(app.FieldDescription)
+	u.SetNull(dbapp.FieldDescription)
 	return u
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsert) SetStatus(v appentitybase.AppStatus) *AppUpsert {
-	u.Set(app.FieldStatus, v)
+func (u *AppUpsert) SetStatus(v app.AppStatus) *AppUpsert {
+	u.Set(dbapp.FieldStatus, v)
 	return u
 }
 
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *AppUpsert) UpdateStatus() *AppUpsert {
-	u.SetExcluded(app.FieldStatus)
+	u.SetExcluded(dbapp.FieldStatus)
 	return u
 }
 
 // SetIsDefault sets the "is_default" field.
 func (u *AppUpsert) SetIsDefault(v bool) *AppUpsert {
-	u.Set(app.FieldIsDefault, v)
+	u.Set(dbapp.FieldIsDefault, v)
 	return u
 }
 
 // UpdateIsDefault sets the "is_default" field to the value that was provided on create.
 func (u *AppUpsert) UpdateIsDefault() *AppUpsert {
-	u.SetExcluded(app.FieldIsDefault)
+	u.SetExcluded(dbapp.FieldIsDefault)
 	return u
 }
 
@@ -676,7 +676,7 @@ func (u *AppUpsert) UpdateIsDefault() *AppUpsert {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(app.FieldID)
+//				u.SetIgnore(dbapp.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -684,16 +684,16 @@ func (u *AppUpsertOne) UpdateNewValues() *AppUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
-			s.SetIgnore(app.FieldID)
+			s.SetIgnore(dbapp.FieldID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(app.FieldNamespace)
+			s.SetIgnore(dbapp.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(app.FieldCreatedAt)
+			s.SetIgnore(dbapp.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(app.FieldType)
+			s.SetIgnore(dbapp.FieldType)
 		}
 	}))
 	return u
@@ -818,7 +818,7 @@ func (u *AppUpsertOne) ClearDescription() *AppUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsertOne) SetStatus(v appentitybase.AppStatus) *AppUpsertOne {
+func (u *AppUpsertOne) SetStatus(v app.AppStatus) *AppUpsertOne {
 	return u.Update(func(s *AppUpsert) {
 		s.SetStatus(v)
 	})
@@ -1017,7 +1017,7 @@ type AppUpsertBulk struct {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(app.FieldID)
+//				u.SetIgnore(dbapp.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -1026,16 +1026,16 @@ func (u *AppUpsertBulk) UpdateNewValues() *AppUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
-				s.SetIgnore(app.FieldID)
+				s.SetIgnore(dbapp.FieldID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(app.FieldNamespace)
+				s.SetIgnore(dbapp.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(app.FieldCreatedAt)
+				s.SetIgnore(dbapp.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(app.FieldType)
+				s.SetIgnore(dbapp.FieldType)
 			}
 		}
 	}))
@@ -1161,7 +1161,7 @@ func (u *AppUpsertBulk) ClearDescription() *AppUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *AppUpsertBulk) SetStatus(v appentitybase.AppStatus) *AppUpsertBulk {
+func (u *AppUpsertBulk) SetStatus(v app.AppStatus) *AppUpsertBulk {
 	return u.Update(func(s *AppUpsert) {
 		s.SetStatus(v)
 	})

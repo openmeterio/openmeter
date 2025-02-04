@@ -8,8 +8,6 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
@@ -17,10 +15,10 @@ import (
 )
 
 // This file implements the app.AppFactory interface
-var _ appentity.AppFactory = (*Service)(nil)
+var _ app.AppFactory = (*Service)(nil)
 
 // NewApp implement the app.AppFactory interface and returns a Stripe App by extending the AppBase
-func (s *Service) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+func (s *Service) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
 	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: appBase.GetID()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
@@ -35,7 +33,7 @@ func (s *Service) NewApp(ctx context.Context, appBase appentitybase.AppBase) (ap
 }
 
 // NewApp implement the app.AppFactory interface and installs a Stripe App type
-func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactoryInstallAppWithAPIKeyInput) (app.App, error) {
 	// Validate input
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
@@ -60,7 +58,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 	}
 
 	// We generate the app ID here because we need it to setup the webhook and create the secrets
-	appID := appentitybase.AppID{Namespace: input.Namespace, ID: ulid.Make().String()}
+	appID := app.AppID{Namespace: input.Namespace, ID: ulid.Make().String()}
 
 	// TODO: secret creation, webhook setup and app creation should be done in a transaction
 	// This is challenging because we need to coordinate between three remote services (secret, stripe, db)
@@ -105,12 +103,12 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 
 	// Create stripe app
 	createStripeAppInput := appstripeentity.CreateAppStripeInput{
-		CreateAppInput: appentity.CreateAppInput{
+		CreateAppInput: app.CreateAppInput{
 			ID:          &appID,
 			Namespace:   input.Namespace,
 			Name:        input.Name,
 			Description: fmt.Sprintf("Stripe account %s", stripeAccount.StripeAccountID),
-			Type:        appentitybase.AppTypeStripe,
+			Type:        app.AppTypeStripe,
 		},
 
 		StripeAccountID: stripeAccount.StripeAccountID,
@@ -138,7 +136,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 }
 
 // UninstallApp uninstalls an app by id
-func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	// Get Stripe App
 	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
 		AppID: input,
@@ -210,7 +208,7 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 }
 
 // newApp combines the app base and stripe app data to create a new app
-func (s *Service) newApp(appBase appentitybase.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
+func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData) (appstripeentityapp.App, error) {
 	app := appstripeentityapp.App{
 		AppBase:                appBase,
 		AppData:                stripeApp,

@@ -4,17 +4,17 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func MapCustomerCreate(body api.CustomerCreate) customerentity.CustomerMutate {
-	return customerentity.CustomerMutate{
+func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
+	return customer.CustomerMutate{
 		Key:              body.Key,
 		Name:             body.Name,
 		Description:      body.Description,
-		UsageAttribution: customerentity.CustomerUsageAttribution(body.UsageAttribution),
+		UsageAttribution: customer.CustomerUsageAttribution(body.UsageAttribution),
 		PrimaryEmail:     body.PrimaryEmail,
 		BillingAddress:   MapAddress(body.BillingAddress),
 		Currency:         mapCurrency(body.Currency),
@@ -51,7 +51,7 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 }
 
 // customerToAPI converts a Customer to an API Customer
-func customerToAPI(c customerentity.Customer) (api.Customer, error) {
+func customerToAPI(c customer.Customer) (api.Customer, error) {
 	apiCustomer := api.Customer{
 		Id:                    c.ManagedResource.ID,
 		Key:                   c.Key,

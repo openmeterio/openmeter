@@ -13,12 +13,10 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -64,9 +62,9 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	defer s.Env.StripeClient().Restore()
 
 	// Create a stripe app
-	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: s.namespace,
@@ -77,9 +75,9 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	require.NotNil(t, createApp, "Create stripe app must return app")
 
 	// Create with same Stripe account ID should return conflict
-	_, err = s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	_, err = s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: s.namespace,
@@ -110,7 +108,7 @@ func (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	require.Equal(t, createApp.GetID(), getApp.GetID(), "apps must be equal")
 
 	// Get should return 404
-	appIdNotFound := appentitybase.AppID{
+	appIdNotFound := app.AppID{
 		Namespace: s.namespace,
 		ID:        "not_found",
 	}
@@ -140,9 +138,9 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 	defer s.Env.StripeClient().Restore()
 
 	// Create a stripe app first
-	createApp1, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	createApp1, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: s.namespace,
@@ -168,9 +166,9 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 			Secret:     "whsec_123",
 		}, nil)
 
-	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: s.namespace,
@@ -181,9 +179,9 @@ func (s *AppHandlerTestSuite) TestGetDefault(ctx context.Context, t *testing.T) 
 	require.NotNil(t, createApp2, "Create stripe app must return app")
 
 	// Get the app
-	getApp, err := s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+	getApp, err := s.Env.App().GetDefaultApp(ctx, app.GetDefaultAppInput{
 		Namespace: s.namespace,
-		Type:      appentitybase.AppTypeStripe,
+		Type:      app.AppTypeStripe,
 	})
 
 	require.NoError(t, err, "Get default stripe app must not return error")
@@ -211,9 +209,9 @@ func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *
 	defer s.Env.StripeClient().Restore()
 
 	// Create a stripe app first
-	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: s.namespace,
@@ -234,17 +232,17 @@ func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *
 	require.NoError(t, err, "Uninstall stripe app must not return error")
 
 	// Getting the deleted default app should return error
-	_, err = s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+	_, err = s.Env.App().GetDefaultApp(ctx, app.GetDefaultAppInput{
 		Namespace: s.namespace,
-		Type:      appentitybase.AppTypeStripe,
+		Type:      app.AppTypeStripe,
 	})
 
 	require.ErrorAs(t, err, &app.AppDefaultNotFoundError{}, "Get default stripe app must return app not found error")
 
 	// Create a new stripe app that should become the new default
-	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, appentity.InstallAppWithAPIKeyInput{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppTypeStripe,
+	createApp2, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
 
 		Namespace: s.namespace,
@@ -256,9 +254,9 @@ func (s *AppHandlerTestSuite) TestGetDefaultAfterDelete(ctx context.Context, t *
 	require.NotEqual(t, createApp.GetID(), createApp2.GetID(), "apps must not be equal")
 
 	// Get the default app
-	getApp, err := s.Env.App().GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+	getApp, err := s.Env.App().GetDefaultApp(ctx, app.GetDefaultAppInput{
 		Namespace: s.namespace,
-		Type:      appentitybase.AppTypeStripe,
+		Type:      app.AppTypeStripe,
 	})
 
 	require.NoError(t, err, "Get default stripe app must not return error")
@@ -270,12 +268,12 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
 	// Create an app first
-	app, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Update the app
-	updateApp, err := s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
-		AppID:       app.GetID(),
+	updateApp, err := s.Env.App().UpdateApp(ctx, app.UpdateAppInput{
+		AppID:       testApp.GetID(),
 		Name:        "Updated Stripe App 1",
 		Description: lo.ToPtr("Updated description 1"),
 		Default:     true,
@@ -286,8 +284,8 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	require.NotNil(t, updateApp, "Update app must return app")
 
 	// Partial update (only required fields)
-	updateApp, err = s.Env.App().UpdateApp(ctx, appentity.UpdateAppInput{
-		AppID:   app.GetID(),
+	updateApp, err = s.Env.App().UpdateApp(ctx, app.UpdateAppInput{
+		AppID:   testApp.GetID(),
 		Name:    "Updated Stripe App 2",
 		Default: false,
 	})
@@ -341,7 +339,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Get customer data
-	getCustomerData, err := testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
+	getCustomerData, err := testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
@@ -384,7 +382,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	defer s.Env.StripeAppClient().Restore()
 
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
@@ -410,7 +408,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	defer s.Env.StripeAppClient().Restore()
 
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID: nonExistingStripeCustomerID,
@@ -419,7 +417,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
 		AppID:      testApp.GetID(),
-		AppType:    appentitybase.AppTypeStripe,
+		AppType:    app.AppTypeStripe,
 		CustomerID: customer.GetID(),
 		Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", nonExistingStripeCustomerID, stripeAppData.StripeAccountID),
 	})
@@ -443,7 +441,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	defer s.Env.StripeAppClient().Restore()
 
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
@@ -475,7 +473,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	defer s.Env.StripeAppClient().Restore()
 
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID:             newStripeCustomerID,
@@ -494,7 +492,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	})
 
 	// Updated customer data must match
-	getCustomerData, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
+	getCustomerData, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
@@ -504,7 +502,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	}, getCustomerData, "Customer data must match")
 
 	// Delete customer data
-	err = testApp.DeleteCustomerData(ctx, appentity.DeleteAppInstanceCustomerDataInput{
+	err = testApp.DeleteCustomerData(ctx, app.DeleteAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
@@ -523,13 +521,13 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.Equal(t, 0, len(listCustomerData.Items), "List customer data must return no item")
 
 	// Get customer data should return 404
-	_, err = testApp.GetCustomerData(ctx, appentity.GetAppInstanceCustomerDataInput{
+	_, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 	})
 
 	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
 		AppID:      testApp.GetID(),
-		AppType:    appentitybase.AppTypeStripe,
+		AppType:    app.AppTypeStripe,
 		CustomerID: customer.GetID(),
 		Condition:  "customer has no data for stripe app",
 	})
@@ -543,7 +541,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 	defer s.Env.StripeAppClient().Restore()
 
-	err = testApp.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 		CustomerID: customer.GetID(),
 		Data: appstripeentity.CustomerData{
 			StripeCustomerID: customerData.StripeCustomerID,
@@ -568,13 +566,13 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 
 // TestCustomerValidate tests stripe app behavior when validating a customer
 func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testing.T) {
-	app, customer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	testApp, testCustomer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Create customer without stripe data
-	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerWithoutStripeData, err := s.Env.Customer().CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name: "Test Customer Without Stripe",
 		},
 	})
@@ -583,12 +581,12 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	require.NotNil(t, customerWithoutStripeData, "Create customer must return customer")
 
 	// Get App
-	getApp, err := s.Env.App().GetApp(ctx, app.GetID())
+	getApp, err := s.Env.App().GetApp(ctx, testApp.GetID())
 
 	require.NoError(t, err, "Get app must not return error")
 
 	// App should implement Customer App
-	customerApp, err := customerapp.GetApp(getApp)
+	customerApp, err := customerapp.AsCustomerApp(getApp)
 
 	require.NoError(t, err, "Get app must not return error")
 
@@ -615,30 +613,30 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	defer s.Env.StripeAppClient().Restore()
 
 	// App should validate the customer
-	err = customerApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{
-		appentitybase.CapabilityTypeCalculateTax,
-		appentitybase.CapabilityTypeInvoiceCustomers,
-		appentitybase.CapabilityTypeCollectPayments,
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{
+		app.CapabilityTypeCalculateTax,
+		app.CapabilityTypeInvoiceCustomers,
+		app.CapabilityTypeCollectPayments,
 	})
 	require.NoError(t, err, "Validate customer must not return error")
 
 	// Validate the customer with an invalid capability
-	err = customerApp.ValidateCustomer(ctx, customer, []appentitybase.CapabilityType{appentitybase.CapabilityTypeReportEvents})
+	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeReportEvents})
 	require.ErrorContains(t, err, "capability reportEvents is not supported", "Validate customer must return error")
 
 	// Validate the customer without stripe data
-	err = customerApp.ValidateCustomer(ctx, customerWithoutStripeData, []appentitybase.CapabilityType{appentitybase.CapabilityTypeCalculateTax})
+	err = customerApp.ValidateCustomer(ctx, customerWithoutStripeData, []app.CapabilityType{app.CapabilityTypeCalculateTax})
 	require.ErrorContains(t, err, "customer has no data", "Validate customer must return error")
 }
 
 // TestCreateCheckoutSession tests stripe app behavior when creating a new checkout session
 func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *testing.T) {
-	testApp, customer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	testApp, testCustomer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Create checkout session
 	appID := testApp.GetID()
-	customerID := customer.GetID()
+	customerID := testCustomer.GetID()
 
 	// Mocks
 	s.Env.StripeAppClient().
@@ -668,7 +666,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	require.NoError(t, err, "Create checkout session must not return error")
 
 	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
-		CustomerID:       customer.GetID(),
+		CustomerID:       testCustomer.GetID(),
 		StripeCustomerID: "cus_123",
 		SessionID:        "cs_123",
 		SetupIntentID:    "seti_123",
@@ -677,7 +675,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	}, checkoutSession, "Create checkout session must match")
 
 	// Test app 404 error
-	appIdNotFound := appentitybase.AppID{
+	appIdNotFound := app.AppID{
 		Namespace: s.namespace,
 		ID:        "not_found",
 	}
@@ -692,7 +690,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	require.ErrorIs(t, err, app.AppNotFoundError{AppID: appIdNotFound}, "Create checkout session must return app not found error")
 
 	// Test customer 404 error
-	customerIdNotFound := customerentity.CustomerID{
+	customerIdNotFound := customer.CustomerID{
 		Namespace: s.namespace,
 		ID:        "not_found",
 	}
@@ -704,7 +702,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
 
-	require.ErrorIs(t, err, customerentity.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
+	require.ErrorIs(t, err, customer.NotFoundError{CustomerID: customerIdNotFound}, "Create checkout session must return customer not found error")
 
 	// Test if we pass down customer currency if set
 	s.Env.StripeAppClient().Restore()
@@ -728,11 +726,11 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	// TODO: do not share env between tests
 	defer s.Env.StripeAppClient().Restore()
 
-	_, err = s.Env.Customer().UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
-		CustomerID: customer.GetID(),
-		CustomerMutate: customerentity.CustomerMutate{
-			Name:             customer.Name,
-			UsageAttribution: customer.UsageAttribution,
+	_, err = s.Env.Customer().UpdateCustomer(ctx, customer.UpdateCustomerInput{
+		CustomerID: testCustomer.GetID(),
+		CustomerMutate: customer.CustomerMutate{
+			Name:             testCustomer.Name,
+			UsageAttribution: testCustomer.UsageAttribution,
 			Currency:         lo.ToPtr(currencyx.Code("USD")),
 		},
 	})
@@ -748,18 +746,18 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 // TestUpdateAPIKey tests stripe app behavior when updating the API key
 func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T) {
-	app, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
 	require.NoError(t, err, "setup fixture must not return error")
 
 	// Get stripe app
-	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: app.GetID()})
+	stripeApp, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{AppID: testApp.GetID()})
 	require.NoError(t, err, "Get stripe app data must not return error")
 
 	newAPIKey := "sk_test_abcde"
 
 	// Should not allow to update test mode app with livemode key
 	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
-		AppID:  app.GetID(),
+		AppID:  testApp.GetID(),
 		APIKey: newAPIKey,
 	})
 
@@ -780,14 +778,14 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	s.Env.Secret().
 		On("GetAppSecret", secretentity.GetAppSecretInput{
-			AppID: app.GetID(),
+			AppID: testApp.GetID(),
 			Key:   appstripeentity.APIKeySecretKey,
 		}).
 		Return(stripeApp.APIKey, nil)
 
 	s.Env.Secret().
 		On("UpdateAppSecret", secretentity.UpdateAppSecretInput{
-			AppID:    app.GetID(),
+			AppID:    testApp.GetID(),
 			SecretID: stripeApp.APIKey,
 			Key:      appstripeentity.APIKeySecretKey,
 			Value:    newAPIKey,
@@ -796,22 +794,22 @@ func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T
 
 	// Update app status to unauthorized so we can check
 	// if it is updated to ready after updating the API key.
-	err = s.Env.App().UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
-		ID:     app.GetID(),
-		Status: appentitybase.AppStatusUnauthorized,
+	err = s.Env.App().UpdateAppStatus(ctx, app.UpdateAppStatusInput{
+		ID:     testApp.GetID(),
+		Status: app.AppStatusUnauthorized,
 	})
 	require.NoError(t, err, "Update app status must not return error")
 
 	// Should allow to update test mode app with test mode key
 	err = s.Env.AppStripe().UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyInput{
-		AppID:  app.GetID(),
+		AppID:  testApp.GetID(),
 		APIKey: newAPIKey,
 	})
 	require.NoError(t, err, "Update API key must not return error")
 
 	// Get stripe app
-	app, err = s.Env.App().GetApp(ctx, app.GetID())
+	testApp, err = s.Env.App().GetApp(ctx, testApp.GetID())
 
 	require.NoError(t, err, "Get app must not return error")
-	require.Equal(t, app.GetStatus(), appentitybase.AppStatusReady, "App status must be ready")
+	require.Equal(t, testApp.GetStatus(), app.AppStatusReady, "App status must be ready")
 }

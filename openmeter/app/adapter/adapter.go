@@ -7,8 +7,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -39,7 +37,7 @@ func New(config Config) (app.Adapter, error) {
 
 	adapter := &adapter{
 		db:       config.Client,
-		registry: map[appentitybase.AppType]appentity.RegistryItem{},
+		registry: map[app.AppType]app.RegistryItem{},
 		baseURL:  config.BaseURL,
 	}
 
@@ -50,7 +48,7 @@ var _ app.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	db       *entdb.Client
-	registry map[appentitybase.AppType]appentity.RegistryItem
+	registry map[app.AppType]app.RegistryItem
 	baseURL  string
 }
 

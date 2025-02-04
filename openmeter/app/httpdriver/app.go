@@ -10,8 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -19,7 +17,7 @@ import (
 
 // ListAppsHandler is a handler for listing apps
 type (
-	ListAppsRequest  = appentity.ListAppInput
+	ListAppsRequest  = app.ListAppInput
 	ListAppsResponse = api.AppList
 	ListAppsParams   = api.ListAppsParams
 	ListAppsHandler  httptransport.HandlerWithArgs[ListAppsRequest, ListAppsResponse, ListAppsParams]
@@ -77,7 +75,7 @@ func (h *handler) ListApps() ListAppsHandler {
 
 // GetAppHandler is a handler to get an app by id
 type (
-	GetAppRequest  = appentity.GetAppInput
+	GetAppRequest  = app.GetAppInput
 	GetAppResponse = api.App
 	GetAppHandler  httptransport.HandlerWithArgs[GetAppRequest, GetAppResponse, string]
 )
@@ -116,7 +114,7 @@ func (h *handler) GetApp() GetAppHandler {
 
 // UpdateAppHandler is a handler to update an app
 type (
-	UpdateAppRequest  = appentity.UpdateAppInput
+	UpdateAppRequest  = app.UpdateAppInput
 	UpdateAppResponse = api.App
 	UpdateAppHandler  httptransport.HandlerWithArgs[UpdateAppRequest, UpdateAppResponse, string]
 )
@@ -137,7 +135,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 			}
 
 			return UpdateAppRequest{
-				AppID: appentitybase.AppID{
+				AppID: app.AppID{
 					ID:        appId,
 					Namespace: namespace,
 				},
@@ -166,7 +164,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 
 // UninstallAppHandler is a handler to uninstalls an app by id
 type (
-	UninstallAppRequest  = appentity.UninstallAppInput
+	UninstallAppRequest  = app.UninstallAppInput
 	UninstallAppResponse = interface{}
 	UninstallAppHandler  httptransport.HandlerWithArgs[UninstallAppRequest, UninstallAppResponse, string]
 )

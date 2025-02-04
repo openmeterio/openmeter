@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -50,10 +50,10 @@ func errorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*productcatalog.ValidationError](ctx, http.StatusBadRequest, err, w) ||
 			// dependency: customer
-			commonhttp.HandleErrorIfTypeMatches[customerentity.NotFoundError](ctx, http.StatusNotFound, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[customerentity.ValidationError](ctx, http.StatusBadRequest, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[customerentity.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[customerentity.SubjectKeyConflictError](ctx, http.StatusConflict, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[customer.NotFoundError](ctx, http.StatusNotFound, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[customer.ValidationError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[customer.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[customer.SubjectKeyConflictError](ctx, http.StatusConflict, err, w) ||
 			// dependency: app (due to validators)
 			commonhttp.HandleErrorIfTypeMatches[app.AppNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[app.AppDefaultNotFoundError](ctx, http.StatusNotFound, err, w) ||
