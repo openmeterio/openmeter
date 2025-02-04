@@ -141,28 +141,43 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 	}
 
 	// Update the API key
-	err = a.secretService.UpdateAppSecret(ctx, secretentity.UpdateAppSecretInput{
+	newApiKeySecretID, err := a.secretService.UpdateAppSecret(ctx, secretentity.UpdateAppSecretInput{
 		AppID:    input.AppID,
 		SecretID: appData.APIKey,
 		Key:      appstripeentity.APIKeySecretKey,
 		Value:    input.APIKey,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update api key: %w", err)
+		return fmt.Errorf("failed to update api key app secret: %w", err)
 	}
 
-	// Update the app status to ready
-	status := appentitybase.AppStatusReady
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		// Update the API key in the database if it has changed
+		// Some secrets stores don't update the id when updating the value
+		if appData.APIKey.ID != newApiKeySecretID.ID {
+			err = repo.db.AppStripe.Update().
+				Where(appstripedb.Namespace(input.AppID.Namespace)).
+				Where(appstripedb.ID(input.AppID.ID)).
+				SetAPIKey(newApiKeySecretID.ID).
+				Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to update api key: %w", err)
+			}
+		}
 
-	err = a.appService.UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
-		ID:     input.AppID,
-		Status: status,
+		// Update the app status to ready
+		status := appentitybase.AppStatusReady
+
+		err = a.appService.UpdateAppStatus(ctx, appentity.UpdateAppStatusInput{
+			ID:     input.AppID,
+			Status: status,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update app status to %s for %s: %w", input.AppID.ID, status, err)
+		}
+
+		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("failed to update app status to %s for %s: %w", input.AppID.ID, status, err)
-	}
-
-	return nil
 }
 
 // GetStripeAppData gets stripe customer data

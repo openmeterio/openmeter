@@ -60,16 +60,16 @@ func (s *MockSecretService) CreateAppSecret(ctx context.Context, input secretent
 	return s.original.CreateAppSecret(ctx, input)
 }
 
-func (s *MockSecretService) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error {
+func (s *MockSecretService) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) (secretentity.SecretID, error) {
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return &secretentity.ValidationError{
+			return input.SecretID, &secretentity.ValidationError{
 				Err: fmt.Errorf("error update app secret: %w", err),
 			}
 		}
 
-		return args.Error(0)
+		return input.SecretID, args.Error(0)
 	}
 
 	return s.original.UpdateAppSecret(ctx, input)

@@ -21,9 +21,9 @@ func (a adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateA
 	}, nil
 }
 
-func (a adapter) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error {
+func (a adapter) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) (secretentity.SecretID, error) {
 	// In the real implementation, this method would update a secret in a secret store.
-	return fmt.Errorf("update secret is not implemented")
+	return input.SecretID, fmt.Errorf("update secret is not implemented")
 }
 
 func (a adapter) GetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error) {

@@ -20,9 +20,9 @@ func (s *Service) CreateAppSecret(ctx context.Context, input secretentity.Create
 	return s.adapter.CreateAppSecret(ctx, input)
 }
 
-func (s *Service) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) error {
+func (s *Service) UpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) (secretentity.SecretID, error) {
 	if err := input.Validate(); err != nil {
-		return &secretentity.ValidationError{
+		return input.SecretID, &secretentity.ValidationError{
 			Err: fmt.Errorf("error update app secret: %w", err),
 		}
 	}
