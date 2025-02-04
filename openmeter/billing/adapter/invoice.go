@@ -55,9 +55,7 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 		if err != nil {
 			if db.IsNotFound(err) {
 				return billing.Invoice{}, billing.NotFoundError{
-					Entity: billing.EntityInvoice,
-					ID:     in.Invoice.ID,
-					Err:    err,
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, in.Invoice.ID),
 				}
 			}
 
@@ -111,7 +109,7 @@ func (a *adapter) LockInvoicesForUpdate(ctx context.Context, input billing.LockI
 			return billing.NotFoundError{
 				Entity: billing.EntityInvoice,
 				ID:     strings.Join(missingIds, ","),
-				Err:    fmt.Errorf("cannot select invoices for update"),
+				Err:    billing.ErrInvoiceNotFound,
 			}
 		}
 

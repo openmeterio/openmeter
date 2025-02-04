@@ -142,21 +142,34 @@ func (s Service) InvoiceCalculator() invoicecalc.Calculator {
 // TranscationForGatheringInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
 // an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
 // invoice, that doesn't exist yet.
-func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customer customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
-	if err := customer.Validate(); err != nil {
-		var empty T
+func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
+	var empty T
+
+	if err := customerID.Validate(); err != nil {
 		return empty, fmt.Errorf("validating customer: %w", err)
 	}
 
+	// Let's try to resolve the customer to validate if it exists
+	dbCustomer, err := svc.customerService.GetCustomer(ctx, customer.GetCustomerInput(customerID))
+	if err != nil {
+		return empty, err
+	}
+
+	if dbCustomer.IsDeleted() {
+		return empty, billing.ValidationError{
+			Err: fmt.Errorf("customer is deleted"),
+		}
+	}
+
 	// NOTE: This should not be in transaction, or we can get a conflict for parallel writes
-	err := svc.adapter.UpsertCustomerOverride(ctx, customer)
+	err = svc.adapter.UpsertCustomerOverride(ctx, customerID)
 	if err != nil {
 		var empty T
 		return empty, fmt.Errorf("upserting customer override: %w", err)
 	}
 
 	return transaction.Run(ctx, svc.adapter, func(ctx context.Context) (T, error) {
-		if err := svc.adapter.LockCustomerForUpdate(ctx, customer); err != nil {
+		if err := svc.adapter.LockCustomerForUpdate(ctx, customerID); err != nil {
 			var empty T
 			return empty, fmt.Errorf("locking customer for update: %w", err)
 		}

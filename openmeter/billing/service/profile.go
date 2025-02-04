@@ -227,12 +227,6 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 			return err
 		}
 
-		if profile == nil {
-			return billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
-			}
-		}
-
 		// Already deleted profiles cannot be deleted again
 		if profile.DeletedAt != nil {
 			return billing.ValidationError{
@@ -320,12 +314,6 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		})
 		if err != nil {
 			return nil, err
-		}
-
-		if profile == nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.ID),
-			}
 		}
 
 		if profile.DeletedAt != nil {

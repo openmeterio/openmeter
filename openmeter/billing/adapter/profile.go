@@ -99,7 +99,9 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 		WithWorkflowConfig().First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, nil
+			return nil, billing.NotFoundError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, input.Profile.ID),
+			}
 		}
 
 		return nil, err
