@@ -68,7 +68,7 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 	}
 
 	if len(p.Phases) == 0 {
-		return NewValidationError(fmt.Errorf("invalid Plan: at least one PlanPhase is required"))
+		return NewValidationError(errors.New("invalid Plan: at least one PlanPhase is required"))
 	}
 
 	// Check if only the last phase has no duration
@@ -82,6 +82,12 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 		if phase.Duration != nil && i == len(p.Phases)-1 {
 			errs = append(errs, NewValidationError(
 				fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i),
+			))
+		}
+
+		if len(phase.RateCards) < 1 {
+			errs = append(errs, NewValidationError(
+				fmt.Errorf("invalid Plan: at least one RateCards in PlanPhase is required [phase_key=%s]", phase.Key),
 			))
 		}
 	}
@@ -107,11 +113,7 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 		}
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-
-	return nil
+	return errors.Join(errs...)
 }
 
 // Equal returns true if the two Plans are equal.
