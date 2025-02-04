@@ -134,7 +134,7 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	return minTime
 }
 
-// TODO: rewrite so that periods are aligned!
+// TODO[OM-1167]: We can generate Lines with Periods also aligned (instead now the invoicing happens at "some" time not-before period start)
 func (it *PhaseIterator) Generate(iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
 	out := []subscriptionItemWithPeriod{}
 	for _, itemsByKey := range it.phase.ItemsByKey {
