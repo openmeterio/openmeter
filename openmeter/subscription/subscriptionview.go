@@ -31,10 +31,11 @@ func (s SubscriptionView) AsSpec() SubscriptionSpec {
 
 func (s *SubscriptionView) Validate(includePhases bool) error {
 	spec := s.Spec
-	if spec.ActiveFrom != s.Subscription.ActiveFrom {
+	if spec.ActiveFrom.Compare(s.Subscription.ActiveFrom) != 0 {
 		return fmt.Errorf("subscription active from %v does not match spec active from %v", s.Subscription.ActiveFrom, spec.ActiveFrom)
 	}
-	if spec.ActiveTo != s.Subscription.ActiveTo {
+	if (spec.ActiveTo == nil && s.Subscription.ActiveTo != nil) ||
+		(spec.ActiveTo != nil && s.Subscription.ActiveTo == nil) || (spec.ActiveTo != nil && s.Subscription.ActiveTo != nil && spec.ActiveTo.Compare(*s.Subscription.ActiveTo) != 0) {
 		return fmt.Errorf("subscription active to %v does not match spec active to %v", s.Subscription.ActiveTo, spec.ActiveTo)
 	}
 	if spec.CustomerId != s.Subscription.CustomerId {
