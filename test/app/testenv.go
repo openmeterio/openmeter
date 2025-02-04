@@ -234,13 +234,14 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	require.NoError(t, err)
 
 	return billingservice.New(billingservice.Config{
-		Adapter:            billingAdapter,
-		CustomerService:    in.CustomerService,
-		AppService:         in.AppService,
-		Logger:             slog.Default(),
-		FeatureService:     featureService,
-		MeterRepo:          meterRepo,
-		StreamingConnector: mockStreamingConnector,
-		Publisher:          eventbus.NewMock(t),
+		Adapter:             billingAdapter,
+		CustomerService:     in.CustomerService,
+		AppService:          in.AppService,
+		Logger:              slog.Default(),
+		FeatureService:      featureService,
+		MeterRepo:           meterRepo,
+		StreamingConnector:  mockStreamingConnector,
+		Publisher:           eventbus.NewMock(t),
+		AdvancementStrategy: billing.ForegroundAdvancementStrategy,
 	})
 }

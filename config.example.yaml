@@ -41,6 +41,8 @@ productcatalog:
 
 billing:
   enabled: true
+  # for production deployments it's recommended to use queued for server only
+  # advancementStrategy: foreground
 
 apps:
   enabled: true

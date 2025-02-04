@@ -79,7 +79,9 @@
         "--config",
         "${workspaceFolder}/config.yaml",
         "--telemetry-address",
-        ":10004"
+        ":10004",
+        // force foreground billing advancement strategy, or billing-worker will not start (this way the config can be set to queued to validate that in local dev mode)
+        "--billing-advancement-strategy=foreground",
       ]
     },
   ]
