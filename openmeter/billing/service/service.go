@@ -143,13 +143,26 @@ func (s Service) InvoiceCalculator() invoicecalc.Calculator {
 // an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
 // invoice, that doesn't exist yet.
 func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customer customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
+	var empty T
+
 	if err := customer.Validate(); err != nil {
-		var empty T
 		return empty, fmt.Errorf("validating customer: %w", err)
 	}
 
+	// Let's try to resolve the customer to validate if it exists
+	dbCustomer, err := svc.customerService.GetCustomer(ctx, customer.GetCustomerInput(customer))
+	if err != nil {
+		return empty, err
+	}
+
+	if dbCustomer.IsDeleted() {
+		return empty, billing.ValidationError{
+			Err: fmt.Errorf("customer is deleted"),
+		}
+	}
+
 	// NOTE: This should not be in transaction, or we can get a conflict for parallel writes
-	err := svc.adapter.UpsertCustomerOverride(ctx, customer)
+	err = svc.adapter.UpsertCustomerOverride(ctx, customer)
 	if err != nil {
 		var empty T
 		return empty, fmt.Errorf("upserting customer override: %w", err)

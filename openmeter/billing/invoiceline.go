@@ -163,43 +163,43 @@ func (i LineBase) Equal(other LineBase) bool {
 }
 
 func (i LineBase) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if err := i.Period.Validate(); err != nil {
-		return fmt.Errorf("period: %w", err)
+		errs = append(errs, fmt.Errorf("period: %w", err))
 	}
 
 	if i.InvoiceAt.IsZero() {
-		return errors.New("invoice at is required")
-	}
-
-	if i.InvoiceAt.Before(i.Period.Start) {
-		return errors.New("invoice at must be after period start")
+		errs = append(errs, errors.New("invoice at is required"))
+	} else if i.InvoiceAt.Before(i.Period.Start) {
+		errs = append(errs, errors.New("invoice at must be after period start"))
 	}
 
 	if i.Name == "" {
-		return errors.New("name is required")
+		errs = append(errs, errors.New("name is required"))
 	}
 
 	if i.Type == "" {
-		return errors.New("type is required")
+		errs = append(errs, errors.New("type is required"))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
-		return errors.New("currency is required")
+		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
 	if !slices.Contains(InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
-		return fmt.Errorf("invalid managed by %s", i.ManagedBy)
+		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
 	}
 
 	if i.Status == InvoiceLineStatusDetailed && i.ManagedBy != SystemManagedLine {
-		return errors.New("detailed lines must be system managed")
+		errs = append(errs, errors.New("detailed lines must be system managed"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (i LineBase) Clone() LineBase {
@@ -430,36 +430,40 @@ func (i *Line) SaveDBSnapshot() {
 }
 
 func (i Line) Validate() error {
+	var errs []error
 	if err := i.LineBase.Validate(); err != nil {
-		return fmt.Errorf("base: %w", err)
+		errs = append(errs, err)
 	}
 
 	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).Start) {
-		return errors.New("invoice at must be after period start")
+		errs = append(errs, errors.New("invoice at must be after period start"))
 	}
 
 	if i.Children.IsPresent() {
 		if i.Status == InvoiceLineStatusDetailed {
-			return errors.New("detailed lines are not allowed for detailed lines (e.g. no nesting is allowed)")
-		}
-
-		for j, detailedLine := range i.Children.OrEmpty() {
-			if err := detailedLine.Validate(); err != nil {
-				return fmt.Errorf("detailedLines[%d]: %w", j, err)
-			}
-
-			switch i.Status {
-			case InvoiceLineStatusValid:
-				if detailedLine.Status != InvoiceLineStatusDetailed {
-					return fmt.Errorf("detailedLines[%d]: valid line's detailed lines must have detailed status", j)
+			errs = append(errs, errors.New("detailed lines are not allowed for detailed lines (e.g. no nesting is allowed)"))
+		} else {
+			for j, detailedLine := range i.Children.OrEmpty() {
+				if err := detailedLine.Validate(); err != nil {
+					errs = append(errs, fmt.Errorf("detailedLines[%d]: %w", j, err))
 				}
 
-				if detailedLine.Type != InvoiceLineTypeFee {
-					return fmt.Errorf("detailedLines[%d]: valid line's detailed lines must be fee typed", j)
-				}
-			case InvoiceLineStatusSplit:
-				if detailedLine.Status != InvoiceLineStatusValid {
-					return fmt.Errorf("detailedLines[%d]: split line's detailed lines must have valid status", j)
+				switch i.Status {
+				case InvoiceLineStatusValid:
+					if detailedLine.Status != InvoiceLineStatusDetailed {
+						errs = append(errs, fmt.Errorf("detailedLines[%d]: valid line's detailed lines must have detailed status", j))
+						continue
+					}
+
+					if detailedLine.Type != InvoiceLineTypeFee {
+						errs = append(errs, fmt.Errorf("detailedLines[%d]: valid line's detailed lines must be fee typed", j))
+						continue
+					}
+				case InvoiceLineStatusSplit:
+					if detailedLine.Status != InvoiceLineStatusValid {
+						errs = append(errs, fmt.Errorf("detailedLines[%d]: split line's detailed lines must have valid status", j))
+						continue
+					}
 				}
 			}
 		}
@@ -467,49 +471,55 @@ func (i Line) Validate() error {
 
 	switch i.Type {
 	case InvoiceLineTypeFee:
-		return i.ValidateFee()
+		if err := i.ValidateFee(); err != nil {
+			errs = append(errs, err)
+		}
 	case InvoiceLineTypeUsageBased:
-		return i.ValidateUsageBased()
+		if err := i.ValidateUsageBased(); err != nil {
+			errs = append(errs, err)
+		}
+
 	default:
-		return fmt.Errorf("unsupported type: %s", i.Type)
+		errs = append(errs, fmt.Errorf("unsupported type: %s", i.Type))
 	}
+
+	return errors.Join(errs...)
 }
 
 func (i Line) ValidateFee() error {
+	var errs []error
+
 	if !i.FlatFee.PerUnitAmount.IsPositive() {
-		return errors.New("price should be greater than zero")
+		errs = append(errs, errors.New("price should be greater than zero"))
 	}
 
 	if !i.FlatFee.Quantity.IsPositive() {
-		return errors.New("quantity should be positive required")
+		errs = append(errs, errors.New("quantity should be positive required"))
 	}
 
 	if !slices.Contains(FlatFeeCategory("").Values(), string(i.FlatFee.Category)) {
-		return fmt.Errorf("invalid category %s", i.FlatFee.Category)
+		errs = append(errs, fmt.Errorf("invalid category %s", i.FlatFee.Category))
 	}
 
 	if !slices.Contains(productcatalog.PaymentTermType("").Values(), string(i.FlatFee.PaymentTerm)) {
-		return fmt.Errorf("invalid payment term %s", i.FlatFee.PaymentTerm)
+		errs = append(errs, fmt.Errorf("invalid payment term %s", i.FlatFee.PaymentTerm))
 	}
 
-	// TODO[OM-947]: Validate currency specifics
-	return nil
+	return errors.Join(errs...)
 }
 
 func (i Line) ValidateUsageBased() error {
+	var errs []error
+
 	if err := i.UsageBased.Validate(); err != nil {
-		return fmt.Errorf("usage based price: %w", err)
+		errs = append(errs, err)
 	}
 
 	if i.InvoiceAt.Before(i.Period.Truncate(DefaultMeterResolution).End) {
-		return errors.New("invoice at must be after period end for usage based line")
+		errs = append(errs, errors.New("invoice at must be after period end for usage based line"))
 	}
 
-	if err := i.UsageBased.Price.Validate(); err != nil {
-		return fmt.Errorf("price: %w", err)
-	}
-
-	return nil
+	return errors.Join(errs...)
 }
 
 // DissacociateChildren removes the Children both from the DBState and the current line, so that the
@@ -690,15 +700,17 @@ func (i UsageBasedLine) Clone() *UsageBasedLine {
 }
 
 func (i UsageBasedLine) Validate() error {
+	var errs []error
+
 	if err := i.Price.Validate(); err != nil {
-		return fmt.Errorf("price: %w", err)
+		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
 	if i.FeatureKey == "" {
-		return errors.New("featureKey is required")
+		errs = append(errs, errors.New("featureKey is required"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 const (
@@ -791,17 +803,19 @@ type CreateInvoiceLinesInput struct {
 }
 
 func (c CreateInvoiceLinesInput) Validate() error {
+	// This error is internal, let's not even start validating if the namespace is missing
 	if c.Namespace == "" {
 		return errors.New("namespace is required")
 	}
 
-	for _, line := range c.Lines {
+	var errs []error
+	for id, line := range c.Lines {
 		if err := line.Validate(); err != nil {
-			return fmt.Errorf("Line: %w", err)
+			errs = append(errs, fmt.Errorf("line.%d: %w", id, err))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type LineWithCustomer struct {
@@ -811,11 +825,17 @@ type LineWithCustomer struct {
 }
 
 func (l LineWithCustomer) Validate() error {
+	var errs []error
+
 	if l.CustomerID == "" {
-		return errors.New("customer id is required")
+		errs = append(errs, errors.New("customer id is required"))
 	}
 
-	return l.Line.Validate()
+	if err := l.Line.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }
 
 type UpsertInvoiceLinesAdapterInput struct {

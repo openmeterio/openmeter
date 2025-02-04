@@ -13,7 +13,7 @@ type NotFoundError struct {
 }
 
 func (e NotFoundError) Error() string {
-	return fmt.Sprintf("resource with id %s not found in %s namespace", e.ID, e.Namespace)
+	return fmt.Sprintf("customer with id %s not found in %s namespace", e.ID, e.Namespace)
 }
 
 // ValidationError represents an error when a validation fails

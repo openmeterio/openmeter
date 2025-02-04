@@ -37,6 +37,7 @@ var (
 	ErrInvoiceActionNotAvailable = NewValidationError("invoice_action_not_available", "invoice action not available")
 	ErrInvoiceLinesNotBillable   = NewValidationError("invoice_lines_not_billable", "invoice lines are not billable")
 	ErrInvoiceEmpty              = NewValidationError("invoice_empty", "invoice is empty")
+	ErrInvoiceNotFound           = NewValidationError("invoice_not_found", "invoice not found")
 	ErrInvoiceDeleteFailed       = NewValidationError("invoice_delete_failed", "invoice delete failed")
 
 	ErrInvoiceLineFeatureHasNoMeters             = NewValidationError("invoice_line_feature_has_no_meters", "usage based invoice line: feature has no meters")
