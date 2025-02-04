@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/mo"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
 type UpsertResults struct {
@@ -173,7 +173,7 @@ type InvoicingAppPostAdvanceHook interface {
 }
 
 // GetApp returns the app from the app entity
-func GetApp(app appentity.App) (InvoicingApp, error) {
+func GetApp(app app.App) (InvoicingApp, error) {
 	customerApp, ok := app.(InvoicingApp)
 	if !ok {
 		return nil, AppError{

@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -430,7 +430,7 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 }
 
 func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
-	cust customerentity.Customer,
+	cust customer.Customer,
 	cadence models.CadencedModel,
 ) (ScheduleSubscriptionEntitlementInput, bool, error) {
 	var def ScheduleSubscriptionEntitlementInput

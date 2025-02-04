@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -31,7 +30,7 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 		if entdb.IsNotFound(err) {
 			return appstripeentity.CustomerData{}, app.AppCustomerPreConditionError{
 				AppID:      input.AppID,
-				AppType:    appentitybase.AppTypeStripe,
+				AppType:    app.AppTypeStripe,
 				CustomerID: input.CustomerID,
 				Condition:  "customer has no data for stripe app",
 			}
@@ -72,7 +71,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
 			return app.AppCustomerPreConditionError{
 				AppID:      input.AppID,
-				AppType:    appentitybase.AppTypeStripe,
+				AppType:    app.AppTypeStripe,
 				CustomerID: input.CustomerID,
 				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", input.StripeCustomerID, stripeAppData.StripeAccountID),
 			}
@@ -136,7 +135,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 			if entdb.IsConstraintError(err) {
 				return nil, app.AppCustomerPreConditionError{
 					AppID:      input.AppID,
-					AppType:    appentitybase.AppTypeStripe,
+					AppType:    app.AppTypeStripe,
 					CustomerID: input.CustomerID,
 					Condition:  "unique stripe customer id",
 				}

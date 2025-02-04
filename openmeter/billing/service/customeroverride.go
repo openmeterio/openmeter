@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -19,7 +19,7 @@ func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.Crea
 
 	adapterOverride, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.CustomerOverride, error) {
 		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        input.CustomerID,
 			},
@@ -84,7 +84,7 @@ func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 	}
 
 	existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customerentity.CustomerID{
+		Customer: customer.CustomerID{
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
 		},
@@ -119,7 +119,7 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	adapterOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customerentity.CustomerID{
+		Customer: customer.CustomerID{
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
 		},
@@ -150,7 +150,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        input.CustomerID,
 			},
@@ -195,7 +195,7 @@ func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter bi
 	}
 
 	// TODO[later]: We need cross service transactions to include this in the same transaction as the calculation itself
-	customer, err := s.customerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+	customer, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: input.Namespace,
 		ID:        input.CustomerID,
 	})
@@ -221,7 +221,7 @@ func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter bi
 // This function does not perform validations or customer entity overrides.
 func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adapter billing.Adapter, input billing.GetProfileWithCustomerOverrideInput) (*billing.Profile, error) {
 	adapterOverride, err := adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customerentity.CustomerID{
+		Customer: customer.CustomerID{
 			Namespace: input.Namespace,
 			ID:        input.CustomerID,
 		},

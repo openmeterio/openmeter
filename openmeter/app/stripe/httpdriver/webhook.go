@@ -12,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -26,7 +25,7 @@ type AppStripeWebhookParams struct {
 }
 
 type AppStripeWebhookRequest struct {
-	AppID appentitybase.AppID
+	AppID app.AppID
 	Event stripe.Event
 }
 
@@ -59,7 +58,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				}
 			}
 
-			appID := appentitybase.AppID{
+			appID := app.AppID{
 				Namespace: secret.SecretID.Namespace,
 				ID:        params.AppID,
 			}

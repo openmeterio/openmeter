@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -600,7 +600,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			Columns: []string{billingprofile.TaxAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -617,7 +617,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			Columns: []string{billingprofile.InvoicingAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -634,7 +634,7 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 			Columns: []string{billingprofile.PaymentAppColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(app.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

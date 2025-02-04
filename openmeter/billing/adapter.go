@@ -5,8 +5,8 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -30,7 +30,7 @@ type ProfileAdapter interface {
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*BaseProfile, error)
 	UnsetDefaultProfile(ctx context.Context, input UnsetDefaultProfileInput) error
-	IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error)
+	IsAppUsed(ctx context.Context, appID app.AppID) (bool, error)
 }
 
 type CustomerOverrideAdapter interface {
@@ -44,7 +44,7 @@ type CustomerOverrideAdapter interface {
 	UpsertCustomerOverride(ctx context.Context, input UpsertCustomerOverrideAdapterInput) error
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 
-	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error)
+	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
 }
 
 type InvoiceLineAdapter interface {

@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -143,7 +142,7 @@ func (s Service) InvoiceCalculator() invoicecalc.Calculator {
 // TranscationForGatheringInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
 // an update lock is held on the customer record. This is useful when you need to manipulate the gathering invoices, as we cannot lock an
 // invoice, that doesn't exist yet.
-func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customer customerentity.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
+func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc *Service, customer customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
 	if err := customer.Validate(); err != nil {
 		var empty T
 		return empty, fmt.Errorf("validating customer: %w", err)

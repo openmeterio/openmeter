@@ -4,16 +4,14 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ app.AppService = (*Service)(nil)
 
-func (s *Service) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
+func (s *Service) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
 	if err := input.Validate(); err != nil {
-		return appentitybase.AppBase{}, app.ValidationError{
+		return app.AppBase{}, app.ValidationError{
 			Err: err,
 		}
 	}
@@ -21,7 +19,7 @@ func (s *Service) CreateApp(ctx context.Context, input appentity.CreateAppInput)
 	return s.adapter.CreateApp(ctx, input)
 }
 
-func (s *Service) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
+func (s *Service) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
 			Err: err,
@@ -31,7 +29,7 @@ func (s *Service) GetApp(ctx context.Context, input appentity.GetAppInput) (appe
 	return s.adapter.GetApp(ctx, input)
 }
 
-func (s *Service) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
+func (s *Service) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
 			Err: err,
@@ -41,7 +39,7 @@ func (s *Service) GetDefaultApp(ctx context.Context, input appentity.GetDefaultA
 	return s.adapter.GetDefaultApp(ctx, input)
 }
 
-func (s *Service) UpdateApp(ctx context.Context, input appentity.UpdateAppInput) (appentity.App, error) {
+func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, app.ValidationError{
 			Err: err,
@@ -51,9 +49,9 @@ func (s *Service) UpdateApp(ctx context.Context, input appentity.UpdateAppInput)
 	return s.adapter.UpdateApp(ctx, input)
 }
 
-func (s *Service) ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
+func (s *Service) ListApps(ctx context.Context, input app.ListAppInput) (pagination.PagedResponse[app.App], error) {
 	if err := input.Validate(); err != nil {
-		return pagination.PagedResponse[appentity.App]{}, app.ValidationError{
+		return pagination.PagedResponse[app.App]{}, app.ValidationError{
 			Err: err,
 		}
 	}
@@ -61,7 +59,7 @@ func (s *Service) ListApps(ctx context.Context, input appentity.ListAppInput) (p
 	return s.adapter.ListApps(ctx, input)
 }
 
-func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	if err := input.Validate(); err != nil {
 		return app.ValidationError{
 			Err: err,
@@ -71,7 +69,7 @@ func (s *Service) UninstallApp(ctx context.Context, input appentity.UninstallApp
 	return s.adapter.UninstallApp(ctx, input)
 }
 
-func (s *Service) UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error {
+func (s *Service) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
 	if err := input.Validate(); err != nil {
 		return app.ValidationError{
 			Err: err,

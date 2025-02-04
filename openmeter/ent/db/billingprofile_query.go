@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -150,7 +150,7 @@ func (bpq *BillingProfileQuery) QueryTaxApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.TaxAppTable, billingprofile.TaxAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
@@ -172,7 +172,7 @@ func (bpq *BillingProfileQuery) QueryInvoicingApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.InvoicingAppTable, billingprofile.InvoicingAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
@@ -194,7 +194,7 @@ func (bpq *BillingProfileQuery) QueryPaymentApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.PaymentAppTable, billingprofile.PaymentAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bpq.driver.Dialect(), step)
@@ -731,7 +731,7 @@ func (bpq *BillingProfileQuery) loadTaxApp(ctx context.Context, query *AppQuery,
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -760,7 +760,7 @@ func (bpq *BillingProfileQuery) loadInvoicingApp(ctx context.Context, query *App
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -789,7 +789,7 @@ func (bpq *BillingProfileQuery) loadPaymentApp(ctx context.Context, query *AppQu
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

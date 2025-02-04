@@ -15,7 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
@@ -484,13 +484,13 @@ func NewAppClient(c config) *AppClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `app.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `dbapp.Hooks(f(g(h())))`.
 func (c *AppClient) Use(hooks ...Hook) {
 	c.hooks.App = append(c.hooks.App, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `app.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `dbapp.Intercept(f(g(h())))`.
 func (c *AppClient) Intercept(interceptors ...Interceptor) {
 	c.inters.App = append(c.inters.App, interceptors...)
 }
@@ -552,7 +552,7 @@ func (c *AppClient) DeleteOne(a *App) *AppDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *AppClient) DeleteOneID(id string) *AppDeleteOne {
-	builder := c.Delete().Where(app.ID(id))
+	builder := c.Delete().Where(dbapp.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &AppDeleteOne{builder}
@@ -569,7 +569,7 @@ func (c *AppClient) Query() *AppQuery {
 
 // Get returns a App entity by its id.
 func (c *AppClient) Get(ctx context.Context, id string) (*App, error) {
-	return c.Query().Where(app.ID(id)).Only(ctx)
+	return c.Query().Where(dbapp.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -587,9 +587,9 @@ func (c *AppClient) QueryCustomerApps(a *App) *AppCustomerQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.CustomerAppsTable, app.CustomerAppsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.CustomerAppsTable, dbapp.CustomerAppsColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -603,9 +603,9 @@ func (c *AppClient) QueryBillingProfileTaxApp(a *App) *BillingProfileQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfileTaxAppTable, app.BillingProfileTaxAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfileTaxAppTable, dbapp.BillingProfileTaxAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -619,9 +619,9 @@ func (c *AppClient) QueryBillingProfileInvoicingApp(a *App) *BillingProfileQuery
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfileInvoicingAppTable, app.BillingProfileInvoicingAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfileInvoicingAppTable, dbapp.BillingProfileInvoicingAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -635,9 +635,9 @@ func (c *AppClient) QueryBillingProfilePaymentApp(a *App) *BillingProfileQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfilePaymentAppTable, app.BillingProfilePaymentAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfilePaymentAppTable, dbapp.BillingProfilePaymentAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -651,9 +651,9 @@ func (c *AppClient) QueryBillingInvoiceTaxApp(a *App) *BillingInvoiceQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoiceTaxAppTable, app.BillingInvoiceTaxAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoiceTaxAppTable, dbapp.BillingInvoiceTaxAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -667,9 +667,9 @@ func (c *AppClient) QueryBillingInvoiceInvoicingApp(a *App) *BillingInvoiceQuery
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoiceInvoicingAppTable, app.BillingInvoiceInvoicingAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoiceInvoicingAppTable, dbapp.BillingInvoiceInvoicingAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -683,9 +683,9 @@ func (c *AppClient) QueryBillingInvoicePaymentApp(a *App) *BillingInvoiceQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, id),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, id),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoicePaymentAppTable, app.BillingInvoicePaymentAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoicePaymentAppTable, dbapp.BillingInvoicePaymentAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -833,7 +833,7 @@ func (c *AppCustomerClient) QueryApp(ac *AppCustomer) *AppQuery {
 		id := ac.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appcustomer.Table, appcustomer.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, appcustomer.AppTable, appcustomer.AppColumn),
 		)
 		fromV = sqlgraph.Neighbors(ac.driver.Dialect(), step)
@@ -1014,7 +1014,7 @@ func (c *AppStripeClient) QueryApp(as *AppStripe) *AppQuery {
 		id := as.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appstripe.Table, appstripe.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, appstripe.AppTable, appstripe.AppColumn),
 		)
 		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
@@ -1722,7 +1722,7 @@ func (c *BillingInvoiceClient) QueryTaxApp(bi *BillingInvoice) *AppQuery {
 		id := bi.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.TaxAppTable, billinginvoice.TaxAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
@@ -1738,7 +1738,7 @@ func (c *BillingInvoiceClient) QueryInvoicingApp(bi *BillingInvoice) *AppQuery {
 		id := bi.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.InvoicingAppTable, billinginvoice.InvoicingAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
@@ -1754,7 +1754,7 @@ func (c *BillingInvoiceClient) QueryPaymentApp(bi *BillingInvoice) *AppQuery {
 		id := bi.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.PaymentAppTable, billinginvoice.PaymentAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bi.driver.Dialect(), step)
@@ -2989,7 +2989,7 @@ func (c *BillingProfileClient) QueryTaxApp(bp *BillingProfile) *AppQuery {
 		id := bp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.TaxAppTable, billingprofile.TaxAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
@@ -3005,7 +3005,7 @@ func (c *BillingProfileClient) QueryInvoicingApp(bp *BillingProfile) *AppQuery {
 		id := bp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.InvoicingAppTable, billingprofile.InvoicingAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)
@@ -3021,7 +3021,7 @@ func (c *BillingProfileClient) QueryPaymentApp(bp *BillingProfile) *AppQuery {
 		id := bp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billingprofile.Table, billingprofile.FieldID, id),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingprofile.PaymentAppTable, billingprofile.PaymentAppColumn),
 		)
 		fromV = sqlgraph.Neighbors(bp.driver.Dialect(), step)

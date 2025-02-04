@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -132,7 +132,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 			profile := s.createProfileFixture(true)
 			require.NotNil(t, profile)
 
-			anotherAppID := appentitybase.AppID{
+			anotherAppID := app.AppID{
 				Namespace: profile.Namespace,
 				ID:        ulid.Make().String(),
 			}
@@ -245,7 +245,7 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	t := s.T()
 	ns := "test_profile_field_setting"
 
-	app := s.InstallSandboxApp(s.T(), ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
 	input := billing.CreateProfileInput{
 		Namespace: ns,
@@ -286,13 +286,13 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 		Apps: billing.CreateProfileAppsInput{
 			Invoicing: billing.AppReference{
-				Type: appentitybase.AppTypeSandbox,
+				Type: app.AppTypeSandbox,
 			},
 			Payment: billing.AppReference{
-				Type: appentitybase.AppTypeSandbox,
+				Type: app.AppTypeSandbox,
 			},
 			Tax: billing.AppReference{
-				Type: appentitybase.AppTypeSandbox,
+				Type: app.AppTypeSandbox,
 			},
 		},
 	}
@@ -339,9 +339,9 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 
 	// Let's check if the fields are set correctly
 	require.Equal(s.T(), expectedProfile, *fetchedProfile)
-	require.Equal(s.T(), app.GetID(), fetchedProfile.Apps.Tax.GetID())
-	require.Equal(s.T(), app.GetID(), fetchedProfile.Apps.Invoicing.GetID())
-	require.Equal(s.T(), app.GetID(), fetchedProfile.Apps.Payment.GetID())
+	require.Equal(s.T(), sandboxApp.GetID(), fetchedProfile.Apps.Tax.GetID())
+	require.Equal(s.T(), sandboxApp.GetID(), fetchedProfile.Apps.Invoicing.GetID())
+	require.Equal(s.T(), sandboxApp.GetID(), fetchedProfile.Apps.Payment.GetID())
 }
 
 func (s *ProfileTestSuite) TestProfileUpdates() {

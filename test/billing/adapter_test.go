@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,17 +32,17 @@ func TestBillingAdapter(t *testing.T) {
 func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billing.Invoice {
 	s.T().Helper()
 	// Given we have a customer
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
 			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},

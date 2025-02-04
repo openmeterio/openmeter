@@ -10,7 +10,7 @@ import (
 	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -435,7 +435,7 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.InvoiceOperation, cb f
 		}
 	}
 
-	component := billing.AppTypeCapabilityToComponent(invocingBase.GetType(), appentitybase.CapabilityTypeInvoiceCustomers, op)
+	component := billing.AppTypeCapabilityToComponent(invocingBase.GetType(), app.CapabilityTypeInvoiceCustomers, op)
 
 	// Anything returned by the validation is considered a validation issue, thus in case of an error
 	// we wouldn't roll back the state transitions.

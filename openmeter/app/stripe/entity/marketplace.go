@@ -1,37 +1,37 @@
 package appstripeentity
 
 import (
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
 var (
-	StripeMarketplaceListing = appentitybase.MarketplaceListing{
-		Type:        appentitybase.AppTypeStripe,
+	StripeMarketplaceListing = app.MarketplaceListing{
+		Type:        app.AppTypeStripe,
 		Name:        "Stripe",
 		Description: "Send invoices, calculate tax and collect payments.",
-		Capabilities: []appentitybase.Capability{
+		Capabilities: []app.Capability{
 			StripeCollectPaymentCapability,
 			StripeCalculateTaxCapability,
 			StripeInvoiceCustomerCapability,
 		},
 	}
 
-	StripeCollectPaymentCapability = appentitybase.Capability{
-		Type:        appentitybase.CapabilityTypeCollectPayments,
+	StripeCollectPaymentCapability = app.Capability{
+		Type:        app.CapabilityTypeCollectPayments,
 		Key:         "stripe_collect_payment",
 		Name:        "Payment",
 		Description: "Process payments",
 	}
 
-	StripeCalculateTaxCapability = appentitybase.Capability{
-		Type:        appentitybase.CapabilityTypeCalculateTax,
+	StripeCalculateTaxCapability = app.Capability{
+		Type:        app.CapabilityTypeCalculateTax,
 		Key:         "stripe_calculate_tax",
 		Name:        "Calculate Tax",
 		Description: "Calculate tax for a payment",
 	}
 
-	StripeInvoiceCustomerCapability = appentitybase.Capability{
-		Type:        appentitybase.CapabilityTypeInvoiceCustomers,
+	StripeInvoiceCustomerCapability = app.Capability{
+		Type:        app.CapabilityTypeInvoiceCustomers,
 		Key:         "stripe_invoice_customer",
 		Name:        "Invoice Customer",
 		Description: "Invoice a customer",

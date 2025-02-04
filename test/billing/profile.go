@@ -3,7 +3,7 @@ package billing
 import (
 	"github.com/samber/lo"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -37,13 +37,13 @@ var MinimalCreateProfileInputTemplate = billing.CreateProfileInput{
 
 	Apps: billing.CreateProfileAppsInput{
 		Invoicing: billing.AppReference{
-			Type: appentitybase.AppTypeSandbox,
+			Type: app.AppTypeSandbox,
 		},
 		Payment: billing.AppReference{
-			Type: appentitybase.AppTypeSandbox,
+			Type: app.AppTypeSandbox,
 		},
 		Tax: billing.AppReference{
-			Type: appentitybase.AppTypeSandbox,
+			Type: app.AppTypeSandbox,
 		},
 	},
 }

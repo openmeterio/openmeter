@@ -3,8 +3,7 @@ package appstripe
 import (
 	"context"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
@@ -20,9 +19,9 @@ type Service interface {
 // AppFactoryService contains methods to interface with app subsystem
 type AppFactoryService interface {
 	// App Factory methods
-	NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error)
-	InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error)
-	UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error
+	NewApp(ctx context.Context, appBase app.AppBase) (app.App, error)
+	InstallAppWithAPIKey(ctx context.Context, input app.AppFactoryInstallAppWithAPIKeyInput) (app.App, error)
+	UninstallApp(ctx context.Context, input app.UninstallAppInput) error
 }
 
 // StripeAppService contains methods for managing stripe app

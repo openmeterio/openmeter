@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
 type ValidationIssueSeverity string
@@ -82,7 +82,7 @@ func NewValidationError(code, message string) ValidationIssue {
 
 type ComponentName string
 
-func AppTypeCapabilityToComponent(appType appentitybase.AppType, cap appentitybase.CapabilityType, op InvoiceOperation) ComponentName {
+func AppTypeCapabilityToComponent(appType app.AppType, cap app.CapabilityType, op InvoiceOperation) ComponentName {
 	return ComponentName(fmt.Sprintf("app.%s.%s.%s", appType, cap, op))
 }
 

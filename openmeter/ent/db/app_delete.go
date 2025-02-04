@@ -8,8 +8,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 )
 
 // AppDelete is the builder for deleting a App entity.
@@ -40,7 +41,7 @@ func (ad *AppDelete) ExecX(ctx context.Context) int {
 }
 
 func (ad *AppDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(app.Table, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
+	_spec := sqlgraph.NewDeleteSpec(dbapp.Table, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
 	if ps := ad.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -74,7 +75,7 @@ func (ado *AppDeleteOne) Exec(ctx context.Context) error {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{app.Label}
+		return &NotFoundError{dbapp.Label}
 	default:
 		return nil
 	}

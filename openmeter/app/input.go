@@ -4,15 +4,14 @@ import (
 	"errors"
 	"fmt"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type ListCustomerInput struct {
 	pagination.Page
-	CustomerID customerentity.CustomerID
-	Type       *appentitybase.AppType
+	CustomerID customer.CustomerID
+	Type       *AppType
 }
 
 func (a ListCustomerInput) Validate() error {
@@ -26,9 +25,7 @@ func (a ListCustomerInput) Validate() error {
 
 	if a.Type != nil {
 		if *a.Type == "" {
-			return ValidationError{
-				Err: fmt.Errorf("app type cannot be empty"),
-			}
+			return fmt.Errorf("app type cannot be empty")
 		}
 	}
 
@@ -36,8 +33,8 @@ func (a ListCustomerInput) Validate() error {
 }
 
 type EnsureCustomerInput struct {
-	AppID      appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	AppID      AppID
+	CustomerID customer.CustomerID
 }
 
 func (a EnsureCustomerInput) Validate() error {
@@ -50,24 +47,20 @@ func (a EnsureCustomerInput) Validate() error {
 	}
 
 	if a.AppID.Namespace != a.CustomerID.Namespace {
-		return ValidationError{
-			Err: fmt.Errorf("app ID namespace %s does not match customer ID namespace %s", a.AppID.Namespace, a.CustomerID.Namespace),
-		}
+		return fmt.Errorf("app ID namespace %s does not match customer ID namespace %s", a.AppID.Namespace, a.CustomerID.Namespace)
 	}
 
 	return nil
 }
 
 type DeleteCustomerInput struct {
-	AppID      *appentitybase.AppID
-	CustomerID *customerentity.CustomerID
+	AppID      *AppID
+	CustomerID *customer.CustomerID
 }
 
 func (a DeleteCustomerInput) Validate() error {
 	if a.AppID == nil && a.CustomerID == nil {
-		return ValidationError{
-			Err: fmt.Errorf("app ID and customer ID cannot be nil"),
-		}
+		return fmt.Errorf("app ID and customer ID cannot be nil")
 	}
 
 	if a.AppID != nil {

@@ -1,20 +1,18 @@
-package appentity
+package app
 
 import (
 	"context"
 	"errors"
 	"fmt"
-
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 )
 
 type AppFactory interface {
-	NewApp(context.Context, appentitybase.AppBase) (App, error)
+	NewApp(context.Context, AppBase) (App, error)
 	InstallAppWithAPIKey(ctx context.Context, input AppFactoryInstallAppWithAPIKeyInput) (App, error)
 	UninstallApp(ctx context.Context, input UninstallAppInput) error
 }
 
-type UninstallAppInput = appentitybase.AppID
+type UninstallAppInput = AppID
 
 type AppFactoryInstallAppWithAPIKeyInput struct {
 	Namespace string
@@ -44,7 +42,7 @@ func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 }
 
 type RegistryItem struct {
-	Listing appentitybase.MarketplaceListing
+	Listing MarketplaceListing
 	Factory AppFactory
 }
 

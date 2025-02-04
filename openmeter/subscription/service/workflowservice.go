@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -38,7 +37,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	var def subscription.SubscriptionView
 
 	// Let's validate the customer exists
-	cust, err := s.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: inp.Namespace,
 		ID:        inp.CustomerID,
 	})

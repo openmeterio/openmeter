@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -21,13 +21,13 @@ import (
 )
 
 // ListCustomers lists customers
-func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
+func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *adapter) (pagination.PagedResponse[customerentity.Customer], error) {
+		func(ctx context.Context, repo *adapter) (pagination.PagedResponse[customer.Customer], error) {
 			if err := input.Validate(); err != nil {
-				return pagination.PagedResponse[customerentity.Customer]{}, customerentity.ValidationError{
+				return pagination.PagedResponse[customer.Customer]{}, customer.ValidationError{
 					Err: err,
 				}
 			}
@@ -88,7 +88,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 			}
 
 			// Response
-			response := pagination.PagedResponse[customerentity.Customer]{
+			response := pagination.PagedResponse[customer.Customer]{
 				Page: input.Page,
 			}
 
@@ -97,7 +97,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 				return response, err
 			}
 
-			result := make([]customerentity.Customer, 0, len(paged.Items))
+			result := make([]customer.Customer, 0, len(paged.Items))
 			for _, item := range paged.Items {
 				if item == nil {
 					a.logger.Warn("invalid query result: nil customer received")
@@ -122,13 +122,13 @@ func (a *adapter) ListCustomers(ctx context.Context, input customerentity.ListCu
 }
 
 // CreateCustomer creates a new customer
-func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCustomerInput) (*customer.Customer, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *adapter) (*customerentity.Customer, error) {
+		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customerentity.ValidationError{
+				return nil, customer.ValidationError{
 					Err: fmt.Errorf("error creating customer: %w", err),
 				}
 			}
@@ -159,7 +159,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 			customerEntity, err := query.Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customerentity.KeyConflictError{
+					return nil, customer.KeyConflictError{
 						Namespace: input.Namespace,
 						Key:       *lo.CoalesceOrEmpty(input.Key),
 					}
@@ -186,7 +186,7 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 				Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customerentity.SubjectKeyConflictError{
+					return nil, customer.SubjectKeyConflictError{
 						Namespace:   input.Namespace,
 						SubjectKeys: input.UsageAttribution.SubjectKeys,
 					}
@@ -217,13 +217,13 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customerentity.Creat
 }
 
 // DeleteCustomer deletes a customer
-func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
+func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	_, err := entutils.TransactingRepo(
 		ctx,
 		a,
 		func(ctx context.Context, repo *adapter) (any, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customerentity.ValidationError{
+				return nil, customer.ValidationError{
 					Err: fmt.Errorf("error deleting customer: %w", err),
 				}
 			}
@@ -243,8 +243,8 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 			}
 
 			if rows == 0 {
-				return nil, customerentity.NotFoundError{
-					CustomerID: customerentity.CustomerID(input),
+				return nil, customer.NotFoundError{
+					CustomerID: customer.CustomerID(input),
 				}
 			}
 
@@ -269,13 +269,13 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customerentity.Delet
 }
 
 // GetCustomer gets a customer
-func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
+func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInput) (*customer.Customer, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *adapter) (*customerentity.Customer, error) {
+		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customerentity.ValidationError{
+				return nil, customer.ValidationError{
 					Err: fmt.Errorf("error getting customer: %w", err),
 				}
 			}
@@ -294,8 +294,8 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 			entity, err := query.First(ctx)
 			if err != nil {
 				if entdb.IsNotFound(err) {
-					return nil, customerentity.NotFoundError{
-						CustomerID: customerentity.CustomerID(input),
+					return nil, customer.NotFoundError{
+						CustomerID: customer.CustomerID(input),
 					}
 				}
 
@@ -312,19 +312,19 @@ func (a *adapter) GetCustomer(ctx context.Context, input customerentity.GetCusto
 }
 
 // UpdateCustomer updates a customer
-func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *adapter) (*customerentity.Customer, error) {
+		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customerentity.ValidationError{
+				return nil, customer.ValidationError{
 					Err: fmt.Errorf("error updating customer: %w", err),
 				}
 			}
 
 			// Get the customer to diff the subjects
-			dbCustomer, err := repo.GetCustomer(ctx, customerentity.GetCustomerInput(input.CustomerID))
+			dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput(input.CustomerID))
 			if err != nil {
 				return nil, err
 			}
@@ -367,13 +367,13 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 			entity, err := query.Save(ctx)
 			if err != nil {
 				if entdb.IsNotFound(err) {
-					return nil, customerentity.NotFoundError{
+					return nil, customer.NotFoundError{
 						CustomerID: input.CustomerID,
 					}
 				}
 
 				if entdb.IsConstraintError(err) {
-					return nil, customerentity.KeyConflictError{
+					return nil, customer.KeyConflictError{
 						Namespace: input.CustomerID.Namespace,
 						Key:       *lo.CoalesceOrEmpty(input.Key),
 					}
@@ -415,7 +415,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customerentity.SubjectKeyConflictError{
+					return nil, customer.SubjectKeyConflictError{
 						Namespace:   input.CustomerID.Namespace,
 						SubjectKeys: subjectsKeysToAdd,
 					}
@@ -453,7 +453,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customerentity.SubjectKeyConflictError{
+					return nil, customer.SubjectKeyConflictError{
 						Namespace:   input.CustomerID.Namespace,
 						SubjectKeys: subjectKeysToRemove,
 					}
@@ -481,7 +481,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customerentity.Updat
 
 			// Let's error if the UsageAttributions were to change with a Subscription present
 			if subsEnt != nil && (len(subjectsKeysToAdd) > 0 || len(subjectKeysToRemove) > 0) {
-				return nil, customerentity.ForbiddenError{
+				return nil, customer.ForbiddenError{
 					Err: fmt.Errorf("cannot update customer UsageAttribution with active subscription"),
 				}
 			}

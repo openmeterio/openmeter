@@ -7,15 +7,14 @@ import (
 
 	"github.com/samber/mo"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 )
 
 type AppFactory interface {
-	NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error)
+	NewApp(ctx context.Context, appBase app.AppBase) (app.App, error)
 }
 
 type InvoiceUpsertCallback func(billing.Invoice) *billing.UpsertInvoiceResult
@@ -41,19 +40,19 @@ func NewMockApp(_ *testing.T) *MockApp {
 	return &MockApp{}
 }
 
-func (m *MockApp) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+func (m *MockApp) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return nil, nil
 }
 
-func (m *MockApp) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+func (m *MockApp) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (m *MockApp) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+func (m *MockApp) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (m *MockApp) ValidateCustomer(appID string, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
+func (m *MockApp) ValidateCustomer(appID string, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	m.validateCustomerCalled = true
 	return m.validateCustomerResponse.MustGet()
 }
@@ -150,7 +149,7 @@ func (m *MockApp) AssertExpectations(t *testing.T) {
 	}
 }
 
-func (m *MockApp) NewApp(_ context.Context, app appentitybase.AppBase) (appentity.App, error) {
+func (m *MockApp) NewApp(_ context.Context, app app.AppBase) (app.App, error) {
 	return &mockAppInstance{
 		AppBase: app,
 		parent:  m,
@@ -158,7 +157,7 @@ func (m *MockApp) NewApp(_ context.Context, app appentitybase.AppBase) (appentit
 }
 
 type mockAppInstance struct {
-	appentitybase.AppBase
+	app.AppBase
 
 	parent *MockApp
 }
@@ -168,19 +167,19 @@ var (
 	_ customerapp.App      = (*mockAppInstance)(nil)
 )
 
-func (m *mockAppInstance) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+func (m *mockAppInstance) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return m.parent.GetCustomerData(ctx, input)
 }
 
-func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+func (m *mockAppInstance) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	return m.parent.UpsertCustomerData(ctx, input)
 }
 
-func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+func (m *mockAppInstance) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	return m.parent.DeleteCustomerData(ctx, input)
 }
 
-func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
+func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	return m.parent.ValidateCustomer(m.GetID().ID, customer, capabilities)
 }
 
@@ -218,7 +217,7 @@ func NewMockableFactory(_ *testing.T, config Config) (*MockableFactory, error) {
 		},
 	}
 
-	err := config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
+	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
 		Listing: MarketplaceListing,
 		Factory: fact,
 	})
@@ -229,7 +228,7 @@ func NewMockableFactory(_ *testing.T, config Config) (*MockableFactory, error) {
 	return fact, nil
 }
 
-func (m *MockableFactory) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+func (m *MockableFactory) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
 	if m.overrideFactory != nil {
 		return m.overrideFactory.NewApp(ctx, appBase)
 	}

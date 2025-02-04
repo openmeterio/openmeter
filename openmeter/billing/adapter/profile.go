@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -281,7 +281,7 @@ func (a *adapter) UnsetDefaultProfile(ctx context.Context, input billing.UnsetDe
 }
 
 // isBillingProfileUsed checks if the app is used in any billing profile
-func (a *adapter) isBillingProfileUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
+func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) (bool, error) {
 	if err := appID.Validate(); err != nil {
 		return false, fmt.Errorf("invalid app id: %w", err)
 	}

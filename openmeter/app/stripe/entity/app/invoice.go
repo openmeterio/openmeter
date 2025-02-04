@@ -9,12 +9,12 @@ import (
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -29,7 +29,7 @@ var _ billing.InvoicingApp = (*App)(nil)
 
 // ValidateInvoice validates the invoice for the app
 func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
-	customerID := customerentity.CustomerID{
+	customerID := customer.CustomerID{
 		Namespace: invoice.Namespace,
 		ID:        invoice.Customer.CustomerID,
 	}
@@ -37,11 +37,11 @@ func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error
 	// Check if the customer can be invoiced with Stripe.
 	// We check this at app customer create but we need to ensure that OpenMeter is
 	// still in sync with Stripe, for example that the customer wasn't deleted in Stripe.
-	err := a.ValidateCustomerByID(ctx, customerID, []appentitybase.CapabilityType{
+	err := a.ValidateCustomerByID(ctx, customerID, []app.CapabilityType{
 		// For now now we only support Stripe with automatic tax calculation and payment collection.
-		appentitybase.CapabilityTypeCalculateTax,
-		appentitybase.CapabilityTypeInvoiceCustomers,
-		appentitybase.CapabilityTypeCollectPayments,
+		app.CapabilityTypeCalculateTax,
+		app.CapabilityTypeInvoiceCustomers,
+		app.CapabilityTypeCollectPayments,
 	})
 	if err != nil {
 		return fmt.Errorf("validate customer: %w", err)
@@ -130,7 +130,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 		return nil, fmt.Errorf("failed to get currency calculator: %w", err)
 	}
 
-	customerID := customerentity.CustomerID{
+	customerID := customer.CustomerID{
 		Namespace: invoice.Namespace,
 		ID:        invoice.Customer.CustomerID,
 	}
@@ -228,7 +228,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// Get stripe customer data
 	stripeCustomerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
 		AppID: a.GetID(),
-		CustomerID: customerentity.CustomerID{
+		CustomerID: customer.CustomerID{
 			Namespace: invoice.Namespace,
 			ID:        invoice.Customer.CustomerID,
 		},

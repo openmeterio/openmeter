@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -100,7 +100,7 @@ func (asq *AppStripeQuery) QueryApp() *AppQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(appstripe.Table, appstripe.FieldID, selector),
-			sqlgraph.To(app.Table, app.FieldID),
+			sqlgraph.To(dbapp.Table, dbapp.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, appstripe.AppTable, appstripe.AppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
@@ -494,7 +494,7 @@ func (asq *AppStripeQuery) loadApp(ctx context.Context, query *AppQuery, nodes [
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(app.IDIn(ids...))
+	query.Where(dbapp.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -20,7 +20,7 @@ import (
 
 type SubscriptionView struct {
 	Subscription Subscription            `json:"subscription"`
-	Customer     customerentity.Customer `json:"customer"`
+	Customer     customer.Customer       `json:"customer"`
 	Spec         SubscriptionSpec        `json:"spec"`
 	Phases       []SubscriptionPhaseView `json:"phases"`
 }
@@ -245,7 +245,7 @@ func (s *SubscriptionItemView) Validate() error {
 
 func NewSubscriptionView(
 	sub Subscription,
-	cust customerentity.Customer,
+	cust customer.Customer,
 	phases []SubscriptionPhase,
 	items []SubscriptionItem,
 	ents []SubscriptionEntitlement,

@@ -11,7 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -131,7 +131,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 			}
 
 			return InvoicePendingLinesActionRequest{
-				Customer: customerentity.CustomerID{
+				Customer: customer.CustomerID{
 					ID:        body.CustomerId,
 					Namespace: ns,
 				},
@@ -366,7 +366,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 			}
 
 			return SimulateInvoiceRequest{
-				CustomerID: customerentity.CustomerID{
+				CustomerID: customer.CustomerID{
 					Namespace: ns,
 					ID:        params.CustomerID,
 				},

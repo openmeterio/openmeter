@@ -7,8 +7,8 @@ import (
 
 	"github.com/stripe/stripe-go/v80"
 
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -41,7 +41,7 @@ type StripePaymentMethod struct {
 }
 
 type SetupWebhookInput struct {
-	AppID   appentitybase.AppID
+	AppID   app.AppID
 	BaseURL string
 }
 
@@ -58,7 +58,7 @@ func (i SetupWebhookInput) Validate() error {
 }
 
 type DeleteWebhookInput struct {
-	AppID           appentitybase.AppID
+	AppID           app.AppID
 	StripeWebhookID string
 }
 
@@ -75,8 +75,8 @@ func (i DeleteWebhookInput) Validate() error {
 }
 
 type CreateStripeCustomerInput struct {
-	AppID      appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	AppID      app.AppID
+	CustomerID customer.CustomerID
 
 	Name  *string
 	Email *string

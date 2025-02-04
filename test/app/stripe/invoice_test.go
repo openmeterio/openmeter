@@ -19,7 +19,7 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/secret"
@@ -189,17 +189,17 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	// Given we have a test customer
 
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customerentity.CreateCustomerInput{
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: namespace,
 
-		CustomerMutate: customerentity.CustomerMutate{
+		CustomerMutate: customer.CustomerMutate{
 			Name:         "Test Customer",
 			PrimaryEmail: lo.ToPtr("test@test.com"),
 			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
 			BillingAddress: &models.Address{
 				Country: lo.ToPtr(models.CountryCode("US")),
 			},
-			UsageAttribution: customerentity.CustomerUsageAttribution{
+			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: []string{"test"},
 			},
 		},

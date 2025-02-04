@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -16,28 +15,28 @@ import (
 
 var _ customer.Service = (*Service)(nil)
 
-func (s *Service) ListCustomers(ctx context.Context, input customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
+func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
 	return s.adapter.ListCustomers(ctx, input)
 }
 
-func (s *Service) CreateCustomer(ctx context.Context, input customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
+func (s *Service) CreateCustomer(ctx context.Context, input customer.CreateCustomerInput) (*customer.Customer, error) {
 	return s.adapter.CreateCustomer(ctx, input)
 }
 
-func (s *Service) DeleteCustomer(ctx context.Context, input customerentity.DeleteCustomerInput) error {
+func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	return s.adapter.DeleteCustomer(ctx, input)
 }
 
-func (s *Service) GetCustomer(ctx context.Context, input customerentity.GetCustomerInput) (*customerentity.Customer, error) {
+func (s *Service) GetCustomer(ctx context.Context, input customer.GetCustomerInput) (*customer.Customer, error) {
 	return s.adapter.GetCustomer(ctx, input)
 }
 
-func (s *Service) UpdateCustomer(ctx context.Context, input customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
+func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	return s.adapter.UpdateCustomer(ctx, input)
 }
 
-func (s *Service) GetEntitlementValue(ctx context.Context, input customerentity.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
-	cust, err := s.GetCustomer(ctx, customerentity.GetCustomerInput{
+func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
+	cust, err := s.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: input.ID.Namespace,
 		ID:        input.ID.ID,
 	})

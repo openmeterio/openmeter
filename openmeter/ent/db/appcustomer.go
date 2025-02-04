@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 )
@@ -54,7 +54,7 @@ func (e AppCustomerEdges) AppOrErr() (*App, error) {
 	if e.App != nil {
 		return e.App, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: app.Label}
+		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "app"}
 }

@@ -6,10 +6,9 @@ import (
 
 	"github.com/samber/lo"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -87,21 +86,21 @@ type resolvedApps struct {
 }
 
 func (s *Service) resolveApps(ctx context.Context, ns string, apps billing.ProfileAppReferences) (*resolvedApps, error) {
-	taxApp, err := s.validateAppReference(ctx, ns, apps.Tax, appentitybase.CapabilityTypeCalculateTax)
+	taxApp, err := s.validateAppReference(ctx, ns, apps.Tax, app.CapabilityTypeCalculateTax)
 	if err != nil {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("error resolving tax app: %w", err),
 		}
 	}
 
-	invocingApp, err := s.validateAppReference(ctx, ns, apps.Invoicing, appentitybase.CapabilityTypeInvoiceCustomers)
+	invocingApp, err := s.validateAppReference(ctx, ns, apps.Invoicing, app.CapabilityTypeInvoiceCustomers)
 	if err != nil {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("error resolving invocing app: %w", err),
 		}
 	}
 
-	paymentsApp, err := s.validateAppReference(ctx, ns, apps.Payment, appentitybase.CapabilityTypeCollectPayments)
+	paymentsApp, err := s.validateAppReference(ctx, ns, apps.Payment, app.CapabilityTypeCollectPayments)
 	if err != nil {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("error resolving payments app: %w", err),
@@ -115,7 +114,7 @@ func (s *Service) resolveApps(ctx context.Context, ns string, apps billing.Profi
 	}, nil
 }
 
-func (s *Service) validateAppReference(ctx context.Context, ns string, ref billing.AppReference, capabilities ...appentitybase.CapabilityType) (*resolvedAppReference, error) {
+func (s *Service) validateAppReference(ctx context.Context, ns string, ref billing.AppReference, capabilities ...app.CapabilityType) (*resolvedAppReference, error) {
 	if err := ref.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid app reference: %w", err)
 	}
@@ -134,12 +133,12 @@ func (s *Service) validateAppReference(ctx context.Context, ns string, ref billi
 
 type resolvedAppReference struct {
 	Reference billing.AppReference
-	App       appentity.App
+	App       app.App
 }
 
 func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billing.AppReference) (*resolvedAppReference, error) {
 	if ref.ID != "" {
-		app, err := s.appService.GetApp(ctx, appentity.GetAppInput{
+		app, err := s.appService.GetApp(ctx, app.GetAppInput{
 			Namespace: ns,
 			ID:        ref.ID,
 		})
@@ -156,7 +155,7 @@ func (s *Service) resolveAppReference(ctx context.Context, ns string, ref billin
 	}
 
 	if ref.Type != "" {
-		app, err := s.appService.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+		app, err := s.appService.GetDefaultApp(ctx, app.GetDefaultAppInput{
 			Namespace: ns,
 			Type:      ref.Type,
 		})
@@ -258,7 +257,7 @@ func (s *Service) DeleteProfile(ctx context.Context, input billing.DeleteProfile
 				Err: fmt.Errorf("%w [profile_id=%s, customer_ids=%v]",
 					billing.ErrProfileReferencedByOverrides,
 					input.ID,
-					lo.Map(referringCustomerIDs, func(item customerentity.CustomerID, _ int) string {
+					lo.Map(referringCustomerIDs, func(item customer.CustomerID, _ int) string {
 						return item.ID
 					}),
 				),
@@ -399,9 +398,9 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 		WorkflowConfig: billing.DefaultWorkflowConfig,
 		Default:        true,
 		Apps: billing.ProfileAppReferences{
-			Tax:       billing.AppReference{Type: appentitybase.AppTypeSandbox},
-			Invoicing: billing.AppReference{Type: appentitybase.AppTypeSandbox},
-			Payment:   billing.AppReference{Type: appentitybase.AppTypeSandbox},
+			Tax:       billing.AppReference{Type: app.AppTypeSandbox},
+			Invoicing: billing.AppReference{Type: app.AppTypeSandbox},
+			Payment:   billing.AppReference{Type: app.AppTypeSandbox},
 		},
 	})
 	if err != nil {
@@ -410,7 +409,7 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 	return nil
 }
 
-func (s *Service) IsAppUsed(ctx context.Context, appID appentitybase.AppID) (bool, error) {
+func (s *Service) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
 	return s.adapter.IsAppUsed(ctx, appID)
 }
 
@@ -425,7 +424,7 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 
 	out.Apps = &billing.ProfileApps{}
 
-	taxApp, err := s.appService.GetApp(ctx, appentity.GetAppInput{
+	taxApp, err := s.appService.GetApp(ctx, app.GetAppInput{
 		Namespace: out.Namespace,
 		ID:        input.AppReferences.Tax.ID,
 	})
@@ -434,7 +433,7 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	}
 	out.Apps.Tax = taxApp
 
-	invoiceApp, err := s.appService.GetApp(ctx, appentity.GetAppInput{
+	invoiceApp, err := s.appService.GetApp(ctx, app.GetAppInput{
 		Namespace: out.Namespace,
 		ID:        input.AppReferences.Invoicing.ID,
 	})
@@ -443,7 +442,7 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	}
 	out.Apps.Invoicing = invoiceApp
 
-	paymentApp, err := s.appService.GetApp(ctx, appentity.GetAppInput{
+	paymentApp, err := s.appService.GetApp(ctx, app.GetAppInput{
 		Namespace: out.Namespace,
 		ID:        input.AppReferences.Payment.ID,
 	})

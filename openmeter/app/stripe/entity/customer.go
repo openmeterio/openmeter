@@ -3,10 +3,10 @@ package appstripeentity
 import (
 	"errors"
 
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
+	"github.com/openmeterio/openmeter/openmeter/app"
 )
 
-var _ appentity.CustomerData = (*CustomerData)(nil)
+var _ app.CustomerData = (*CustomerData)(nil)
 
 type CustomerData struct {
 	StripeCustomerID             string

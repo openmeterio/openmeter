@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datex"
 )
@@ -234,7 +234,7 @@ func (g GetProfileWithCustomerOverrideInput) Validate() error {
 }
 
 type GetCustomerOverrideAdapterInput struct {
-	Customer customerentity.CustomerID
+	Customer customer.CustomerID
 
 	IncludeDeleted bool
 }
@@ -264,6 +264,6 @@ func (i UpdateCustomerOverrideAdapterInput) Validate() error {
 type HasCustomerOverrideReferencingProfileAdapterInput = ProfileID
 
 type (
-	UpsertCustomerOverrideAdapterInput = customerentity.CustomerID
-	LockCustomerForUpdateAdapterInput  = customerentity.CustomerID
+	UpsertCustomerOverrideAdapterInput = customer.CustomerID
+	LockCustomerForUpdateAdapterInput  = customer.CustomerID
 )

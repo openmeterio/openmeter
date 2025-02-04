@@ -18,8 +18,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
@@ -28,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -692,60 +689,60 @@ var _ app.Service = (*NoopAppService)(nil)
 
 type NoopAppService struct{}
 
-func (n NoopAppService) RegisterMarketplaceListing(input appentity.RegisterMarketplaceListingInput) error {
+func (n NoopAppService) RegisterMarketplaceListing(input app.RegisterMarketplaceListingInput) error {
 	return nil
 }
 
-func (n NoopAppService) GetMarketplaceListing(ctx context.Context, input appentity.MarketplaceGetInput) (appentity.RegistryItem, error) {
-	return appentity.RegistryItem{}, nil
+func (n NoopAppService) GetMarketplaceListing(ctx context.Context, input app.MarketplaceGetInput) (app.RegistryItem, error) {
+	return app.RegistryItem{}, nil
 }
 
-func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input appentity.MarketplaceListInput) (pagination.PagedResponse[appentity.RegistryItem], error) {
-	return pagination.PagedResponse[appentity.RegistryItem]{}, nil
+func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input app.MarketplaceListInput) (pagination.PagedResponse[app.RegistryItem], error) {
+	return pagination.PagedResponse[app.RegistryItem]{}, nil
 }
 
-func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input appentity.InstallAppWithAPIKeyInput) (appentity.App, error) {
+func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
 	return appstripeentityapp.App{}, nil
 }
 
-func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input appentity.GetOauth2InstallURLInput) (appentity.GetOauth2InstallURLOutput, error) {
-	return appentity.GetOauth2InstallURLOutput{}, nil
+func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
+	return app.GetOauth2InstallURLOutput{}, nil
 }
 
-func (n NoopAppService) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input appentity.AuthorizeOauth2InstallInput) error {
+func (n NoopAppService) AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input app.AuthorizeOauth2InstallInput) error {
 	return nil
 }
 
-func (n NoopAppService) CreateApp(ctx context.Context, input appentity.CreateAppInput) (appentitybase.AppBase, error) {
-	return appentitybase.AppBase{}, nil
+func (n NoopAppService) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
+	return app.AppBase{}, nil
 }
 
-func (n NoopAppService) UpdateAppStatus(ctx context.Context, input appentity.UpdateAppStatusInput) error {
+func (n NoopAppService) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
 	return nil
 }
 
-func (n NoopAppService) GetApp(ctx context.Context, input appentity.GetAppInput) (appentity.App, error) {
+func (n NoopAppService) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
 	return appstripeentityapp.App{}, nil
 }
 
-func (n NoopAppService) GetDefaultApp(ctx context.Context, input appentity.GetDefaultAppInput) (appentity.App, error) {
+func (n NoopAppService) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
 	return appstripeentityapp.App{}, nil
 }
 
-func (n NoopAppService) UpdateApp(ctx context.Context, input appentity.UpdateAppInput) (appentity.App, error) {
+func (n NoopAppService) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
 	return appstripeentityapp.App{}, nil
 }
 
-func (n NoopAppService) ListApps(ctx context.Context, input appentity.ListAppInput) (pagination.PagedResponse[appentity.App], error) {
-	return pagination.PagedResponse[appentity.App]{}, nil
+func (n NoopAppService) ListApps(ctx context.Context, input app.ListAppInput) (pagination.PagedResponse[app.App], error) {
+	return pagination.PagedResponse[app.App]{}, nil
 }
 
-func (n NoopAppService) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+func (n NoopAppService) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	return nil
 }
 
-func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[appentity.CustomerApp], error) {
-	return pagination.PagedResponse[appentity.CustomerApp]{}, nil
+func (n NoopAppService) ListCustomerData(ctx context.Context, input app.ListCustomerInput) (pagination.PagedResponse[app.CustomerApp], error) {
+	return pagination.PagedResponse[app.CustomerApp]{}, nil
 }
 
 func (n NoopAppService) EnsureCustomer(ctx context.Context, input app.EnsureCustomerInput) error {
@@ -801,15 +798,15 @@ func (n NoopAppStripeService) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.
 }
 
 // Factory methods
-func (n NoopAppStripeService) NewApp(ctx context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+func (n NoopAppStripeService) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
 	return nil, nil
 }
 
-func (n NoopAppStripeService) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+func (n NoopAppStripeService) InstallAppWithAPIKey(ctx context.Context, input app.AppFactoryInstallAppWithAPIKeyInput) (app.App, error) {
 	return nil, nil
 }
 
-func (n NoopAppStripeService) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+func (n NoopAppStripeService) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	return nil
 }
 
@@ -826,26 +823,26 @@ var _ customer.Service = (*NoopCustomerService)(nil)
 
 type NoopCustomerService struct{}
 
-func (n NoopCustomerService) ListCustomers(ctx context.Context, params customerentity.ListCustomersInput) (pagination.PagedResponse[customerentity.Customer], error) {
-	return pagination.PagedResponse[customerentity.Customer]{}, nil
+func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
+	return pagination.PagedResponse[customer.Customer]{}, nil
 }
 
-func (n NoopCustomerService) CreateCustomer(ctx context.Context, params customerentity.CreateCustomerInput) (*customerentity.Customer, error) {
-	return &customerentity.Customer{}, nil
+func (n NoopCustomerService) CreateCustomer(ctx context.Context, params customer.CreateCustomerInput) (*customer.Customer, error) {
+	return &customer.Customer{}, nil
 }
 
-func (n NoopCustomerService) DeleteCustomer(ctx context.Context, customer customerentity.DeleteCustomerInput) error {
+func (n NoopCustomerService) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	return nil
 }
 
-func (n NoopCustomerService) GetCustomer(ctx context.Context, customer customerentity.GetCustomerInput) (*customerentity.Customer, error) {
-	return &customerentity.Customer{}, nil
+func (n NoopCustomerService) GetCustomer(ctx context.Context, input customer.GetCustomerInput) (*customer.Customer, error) {
+	return &customer.Customer{}, nil
 }
 
-func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customerentity.UpdateCustomerInput) (*customerentity.Customer, error) {
-	return &customerentity.Customer{}, nil
+func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customer.UpdateCustomerInput) (*customer.Customer, error) {
+	return &customer.Customer{}, nil
 }
 
-func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input customerentity.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
+func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input customer.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
 	return nil, nil
 }

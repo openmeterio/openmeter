@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -39,7 +39,7 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 
 		// Let's fetch the override with edges
 		return tx.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        input.CustomerID,
 			},
@@ -93,7 +93,7 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 		}
 
 		return tx.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-			Customer: customerentity.CustomerID{
+			Customer: customer.CustomerID{
 				Namespace: input.Namespace,
 				ID:        input.CustomerID,
 			},
@@ -164,7 +164,7 @@ func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	return nil
 }
 
-func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customerentity.CustomerID, error) {
+func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, input billing.HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error) {
 	dbCustomerOverrides, err := a.db.BillingCustomerOverride.Query().
 		Where(billingcustomeroverride.Namespace(input.Namespace)).
 		Where(billingcustomeroverride.BillingProfileID(input.ID)).
@@ -175,9 +175,9 @@ func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 		return nil, err
 	}
 
-	var customerIDs []customerentity.CustomerID
+	var customerIDs []customer.CustomerID
 	for _, dbCustomerOverride := range dbCustomerOverrides {
-		customerIDs = append(customerIDs, customerentity.CustomerID{
+		customerIDs = append(customerIDs, customer.CustomerID{
 			Namespace: input.Namespace,
 			ID:        dbCustomerOverride.CustomerID,
 		})

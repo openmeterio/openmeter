@@ -9,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -60,7 +59,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	}
 
 	// Fetch the customer
-	cust, err := s.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: namespace,
 		ID:        spec.CustomerId,
 	})
@@ -130,7 +129,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		}
 
 		// Re-Fetch the customer
-		cust, err := s.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+		cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 			Namespace: namespace,
 			ID:        spec.CustomerId,
 		})
@@ -140,9 +139,9 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 
 		// Let's set the customer's currency to the subscription currency (if not already set)
 		if cust.Currency == nil {
-			if _, err := s.CustomerService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+			if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 				CustomerID: cust.GetID(),
-				CustomerMutate: customerentity.CustomerMutate{
+				CustomerMutate: customer.CustomerMutate{
 					Name:             cust.Name,
 					Description:      cust.Description,
 					UsageAttribution: cust.UsageAttribution,
@@ -401,7 +400,7 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, err
 	}
 
-	cust, err := s.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: sub.Namespace,
 		ID:        sub.CustomerId,
 	})

@@ -8,13 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-var TestType = appentitybase.AppTypeStripe
+var TestType = app.AppTypeStripe
 
 type AppHandlerTestSuite struct {
 	Env TestEnv
@@ -42,7 +40,7 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.NotNil(t, expectedListing, "Expected Listing must not be nil")
 
 	// Get the listing
-	registryItem, err := service.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
+	registryItem, err := service.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
 		Type: TestType,
 	})
 
@@ -56,13 +54,13 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 	require.ElementsMatch(t, expectedListing.Capabilities, listing.Capabilities, "Listing capabilities must match")
 
 	// Test type not found
-	_, err = service.GetMarketplaceListing(ctx, appentity.MarketplaceGetInput{
-		Type: appentitybase.AppType("unknown"),
+	_, err = service.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
+		Type: app.AppType("unknown"),
 	})
 
 	require.ErrorIs(t, err, app.MarketplaceListingNotFoundError{
-		MarketplaceListingID: appentity.MarketplaceListingID{
-			Type: appentitybase.AppType("unknown"),
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppType("unknown"),
 		},
 	}, "Fetching listing must return not found error")
 }
@@ -74,7 +72,7 @@ func (s *AppHandlerTestSuite) TestListMarketplaceListings(ctx context.Context, t
 	service := s.Env.App()
 
 	// Get the listing
-	list, err := service.ListMarketplaceListings(ctx, appentity.MarketplaceListInput{
+	list, err := service.ListMarketplaceListings(ctx, app.MarketplaceListInput{
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,

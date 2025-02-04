@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -72,7 +71,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	// Register stripe app in marketplace
-	err := config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
+	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
 		Listing: appstripeentity.StripeMarketplaceListing,
 		Factory: service,
 	})

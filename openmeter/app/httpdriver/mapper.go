@@ -8,8 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
@@ -34,9 +33,9 @@ type AppMapper struct {
 }
 
 // MapAppToAPI maps an app to an API app
-func (a *AppMapper) MapAppToAPI(item appentity.App) (api.App, error) {
+func (a *AppMapper) MapAppToAPI(item app.App) (api.App, error) {
 	switch item.GetType() {
-	case appentitybase.AppTypeStripe:
+	case app.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
 
 		stripeAPIApp, err := a.mapStripeAppToAPI(stripeApp)
@@ -50,7 +49,7 @@ func (a *AppMapper) MapAppToAPI(item appentity.App) (api.App, error) {
 		}
 
 		return app, nil
-	case appentitybase.AppTypeSandbox:
+	case app.AppTypeSandbox:
 		sandboxApp := item.(appsandbox.App)
 
 		app := api.App{}

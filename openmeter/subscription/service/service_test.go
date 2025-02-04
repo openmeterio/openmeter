@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -97,9 +97,9 @@ func TestCreation(t *testing.T) {
 		service := services.Service
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_, err := deps.CustomerService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 			CustomerID: cust.GetID(),
-			CustomerMutate: customerentity.CustomerMutate{
+			CustomerMutate: customer.CustomerMutate{
 				Name:             cust.Name,
 				Description:      cust.Description,
 				UsageAttribution: cust.UsageAttribution,
@@ -141,9 +141,9 @@ func TestCreation(t *testing.T) {
 		service := services.Service
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_, err := deps.CustomerService.UpdateCustomer(ctx, customerentity.UpdateCustomerInput{
+		_, err := deps.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 			CustomerID: cust.GetID(),
-			CustomerMutate: customerentity.CustomerMutate{
+			CustomerMutate: customer.CustomerMutate{
 				Name:             cust.Name,
 				Description:      cust.Description,
 				UsageAttribution: cust.UsageAttribution,
@@ -169,7 +169,7 @@ func TestCreation(t *testing.T) {
 
 		require.NoError(t, err)
 
-		c, err := deps.CustomerService.GetCustomer(ctx, customerentity.GetCustomerInput{
+		c, err := deps.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 			Namespace: cust.Namespace,
 			ID:        cust.ID,
 		})

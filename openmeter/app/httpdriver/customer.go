@@ -9,13 +9,10 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -42,7 +39,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			}
 
 			req := ListCustomerDataRequest{
-				CustomerID: customerentity.CustomerID{
+				CustomerID: customer.CustomerID{
 					Namespace: ns,
 					ID:        params.CustomerId,
 				},
@@ -55,7 +52,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			}
 
 			if params.Type != nil {
-				req.Type = lo.ToPtr(appentitybase.AppType(*params.Type))
+				req.Type = lo.ToPtr(app.AppType(*params.Type))
 			}
 
 			return req, nil
@@ -94,7 +91,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 }
 
 type UpsertCustomerDataRequest struct {
-	CustomerId customerentity.CustomerID
+	CustomerId customer.CustomerID
 	Data       []api.CustomerAppData
 }
 
@@ -121,7 +118,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 				return UpsertCustomerDataRequest{}, err
 			}
 
-			customerId := customerentity.CustomerID{
+			customerId := customer.CustomerID{
 				Namespace: ns,
 				ID:        params.CustomerId,
 			}
@@ -133,12 +130,12 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 		},
 		func(ctx context.Context, req UpsertCustomerDataRequest) (UpsertCustomerDataResponse, error) {
 			for _, apiCustomerData := range req.Data {
-				app, customerData, err := h.getCustomerData(ctx, req.CustomerId.Namespace, apiCustomerData)
+				customerApp, customerData, err := h.getCustomerData(ctx, req.CustomerId.Namespace, apiCustomerData)
 				if err != nil {
 					return nil, err
 				}
 
-				err = app.UpsertCustomerData(ctx, appentity.UpsertAppInstanceCustomerDataInput{
+				err = customerApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
 					CustomerID: req.CustomerId,
 					Data:       customerData,
 				})
@@ -164,8 +161,8 @@ type DeleteCustomerDataParams struct {
 }
 
 type DeleteCustomerDataRequest struct {
-	AppID      appentitybase.AppID
-	CustomerID customerentity.CustomerID
+	AppID      app.AppID
+	CustomerID customer.CustomerID
 }
 
 type (
@@ -183,11 +180,11 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 			}
 
 			return DeleteCustomerDataRequest{
-				CustomerID: customerentity.CustomerID{
+				CustomerID: customer.CustomerID{
 					Namespace: ns,
 					ID:        params.CustomerId,
 				},
-				AppID: appentitybase.AppID{
+				AppID: app.AppID{
 					Namespace: ns,
 					ID:        params.AppId,
 				},
@@ -195,13 +192,13 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 		},
 		func(ctx context.Context, request DeleteCustomerDataRequest) (DeleteCustomerDataResponse, error) {
 			// Get app
-			app, err := h.service.GetApp(ctx, request.AppID)
+			existingApp, err := h.service.GetApp(ctx, request.AppID)
 			if err != nil {
 				return nil, err
 			}
 
 			// Delete customer data
-			err = app.DeleteCustomerData(ctx, appentity.DeleteAppInstanceCustomerDataInput{
+			err = existingApp.DeleteCustomerData(ctx, app.DeleteAppInstanceCustomerDataInput{
 				CustomerID: request.CustomerID,
 			})
 			if err != nil {
@@ -220,7 +217,7 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 }
 
 // getCustomerData converts an API CustomerAppData to a list of CustomerData
-func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp api.CustomerAppData) (appentity.App, appentity.CustomerData, error) {
+func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
@@ -229,7 +226,7 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 
 	switch appType {
 	// Sandbox app
-	case string(appentitybase.AppTypeSandbox):
+	case string(app.AppTypeSandbox):
 		// Parse as sandbox app
 		apiSandboxCustomerData, err := apiApp.AsSandboxCustomerAppData()
 		if err != nil {
@@ -237,7 +234,7 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 		}
 
 		// Get app ID from API data or get default app
-		app, err := h.getApp(ctx, namespace, apiSandboxCustomerData.Id, appentitybase.AppTypeSandbox)
+		app, err := h.getApp(ctx, namespace, apiSandboxCustomerData.Id, app.AppTypeSandbox)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error getting sandbox app: %w", err)
 		}
@@ -247,7 +244,7 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 		return app, sandboxCustomerData, nil
 
 	// Stripe app
-	case string(appentitybase.AppTypeStripe):
+	case string(app.AppTypeStripe):
 		// Parse as stripe app
 		apiStripeCustomerData, err := apiApp.AsStripeCustomerAppData()
 		if err != nil {
@@ -255,7 +252,7 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 		}
 
 		// Get app ID from API data or get default app
-		app, err := h.getApp(ctx, namespace, apiStripeCustomerData.Id, appentitybase.AppTypeStripe)
+		app, err := h.getApp(ctx, namespace, apiStripeCustomerData.Id, app.AppTypeStripe)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error getting stripe app: %w", err)
 		}
@@ -272,9 +269,9 @@ func (h *handler) getCustomerData(ctx context.Context, namespace string, apiApp 
 }
 
 // getApp gets an app by ID or gets the default app by type
-func (h *handler) getApp(ctx context.Context, namespace string, appID *string, appType appentitybase.AppType) (appentity.App, error) {
+func (h *handler) getApp(ctx context.Context, namespace string, appID *string, appType app.AppType) (app.App, error) {
 	if appID != nil {
-		app, err := h.service.GetApp(ctx, appentitybase.AppID{
+		app, err := h.service.GetApp(ctx, app.AppID{
 			Namespace: namespace,
 			ID:        *appID,
 		})
@@ -284,7 +281,7 @@ func (h *handler) getApp(ctx context.Context, namespace string, appID *string, a
 
 		return app, nil
 	}
-	app, err := h.service.GetDefaultApp(ctx, appentity.GetDefaultAppInput{
+	app, err := h.service.GetDefaultApp(ctx, app.GetDefaultAppInput{
 		Namespace: namespace,
 		Type:      appType,
 	})
@@ -296,7 +293,7 @@ func (h *handler) getApp(ctx context.Context, namespace string, appID *string, a
 }
 
 // customerAppToAPI converts a CustomerApp to an API CustomerAppData
-func (h *handler) customerAppToAPI(a appentity.CustomerApp) (api.CustomerAppData, error) {
+func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 

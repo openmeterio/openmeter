@@ -7,9 +7,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -35,14 +34,14 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var createCustomerInput *customerentity.CreateCustomerInput
-			var customerId *customerentity.CustomerID
+			var createCustomerInput *customer.CreateCustomerInput
+			var customerId *customer.CustomerID
 			var customerKey *string
 
 			// Try to parse customer field as customer ID first
 			apiCustomerId, err := body.Customer.AsCustomerId()
 			if err == nil && apiCustomerId.Id != "" {
-				customerId = &customerentity.CustomerID{
+				customerId = &customer.CustomerID{
 					Namespace: namespace,
 					ID:        apiCustomerId.Id,
 				}
@@ -67,7 +66,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 					}
 				}
 
-				createCustomerInput = &customerentity.CreateCustomerInput{
+				createCustomerInput = &customer.CreateCustomerInput{
 					Namespace:      namespace,
 					CustomerMutate: customerhttpdriver.MapCustomerCreate(customerCreate),
 				}
@@ -83,7 +82,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			}
 
 			if body.AppId != nil {
-				req.AppID = &appentitybase.AppID{Namespace: namespace, ID: *body.AppId}
+				req.AppID = &app.AppID{Namespace: namespace, ID: *body.AppId}
 			}
 
 			return req, nil

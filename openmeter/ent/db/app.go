@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 )
 
 // App is the model entity for the App schema.
@@ -34,9 +34,9 @@ type App struct {
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// Type holds the value of the "type" field.
-	Type appentitybase.AppType `json:"type,omitempty"`
+	Type app.AppType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
-	Status appentitybase.AppStatus `json:"status,omitempty"`
+	Status app.AppStatus `json:"status,omitempty"`
 	// IsDefault holds the value of the "is_default" field.
 	IsDefault bool `json:"is_default,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -134,13 +134,13 @@ func (*App) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case app.FieldMetadata:
+		case dbapp.FieldMetadata:
 			values[i] = new([]byte)
-		case app.FieldIsDefault:
+		case dbapp.FieldIsDefault:
 			values[i] = new(sql.NullBool)
-		case app.FieldID, app.FieldNamespace, app.FieldName, app.FieldDescription, app.FieldType, app.FieldStatus:
+		case dbapp.FieldID, dbapp.FieldNamespace, dbapp.FieldName, dbapp.FieldDescription, dbapp.FieldType, dbapp.FieldStatus:
 			values[i] = new(sql.NullString)
-		case app.FieldCreatedAt, app.FieldUpdatedAt, app.FieldDeletedAt:
+		case dbapp.FieldCreatedAt, dbapp.FieldUpdatedAt, dbapp.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -157,19 +157,19 @@ func (a *App) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case app.FieldID:
+		case dbapp.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				a.ID = value.String
 			}
-		case app.FieldNamespace:
+		case dbapp.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				a.Namespace = value.String
 			}
-		case app.FieldMetadata:
+		case dbapp.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -177,51 +177,51 @@ func (a *App) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case app.FieldCreatedAt:
+		case dbapp.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				a.CreatedAt = value.Time
 			}
-		case app.FieldUpdatedAt:
+		case dbapp.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				a.UpdatedAt = value.Time
 			}
-		case app.FieldDeletedAt:
+		case dbapp.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				a.DeletedAt = new(time.Time)
 				*a.DeletedAt = value.Time
 			}
-		case app.FieldName:
+		case dbapp.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				a.Name = value.String
 			}
-		case app.FieldDescription:
+		case dbapp.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				a.Description = new(string)
 				*a.Description = value.String
 			}
-		case app.FieldType:
+		case dbapp.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				a.Type = appentitybase.AppType(value.String)
+				a.Type = app.AppType(value.String)
 			}
-		case app.FieldStatus:
+		case dbapp.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				a.Status = appentitybase.AppStatus(value.String)
+				a.Status = app.AppStatus(value.String)
 			}
-		case app.FieldIsDefault:
+		case dbapp.FieldIsDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field is_default", values[i])
 			} else if value.Valid {

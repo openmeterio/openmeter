@@ -4,17 +4,17 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
-func (s *Service) validateCustomerForUpdate(ctx context.Context, customerID customerentity.CustomerID) error {
+func (s *Service) validateCustomerForUpdate(ctx context.Context, customerID customer.CustomerID) error {
 	if err := customerID.Validate(); err != nil {
 		return billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	cust, err := s.customerService.GetCustomer(ctx, customerentity.GetCustomerInput(customerID))
+	cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput(customerID))
 	if err != nil {
 		return err
 	}

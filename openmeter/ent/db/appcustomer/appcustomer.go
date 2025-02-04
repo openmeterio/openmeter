@@ -35,7 +35,7 @@ const (
 	// AppTable is the table that holds the app relation/edge.
 	AppTable = "app_customers"
 	// AppInverseTable is the table name for the App entity.
-	// It exists in this package in order to avoid circular dependency with the "app" package.
+	// It exists in this package in order to avoid circular dependency with the "dbapp" package.
 	AppInverseTable = "apps"
 	// AppColumn is the table column denoting the app relation/edge.
 	AppColumn = "app_id"

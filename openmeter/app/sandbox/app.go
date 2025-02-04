@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appentity "github.com/openmeterio/openmeter/openmeter/app/entity"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
-	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
@@ -26,7 +24,7 @@ var (
 	_ customerapp.App                     = (*App)(nil)
 	_ billing.InvoicingApp                = (*App)(nil)
 	_ billing.InvoicingAppPostAdvanceHook = (*App)(nil)
-	_ appentity.CustomerData              = (*CustomerData)(nil)
+	_ app.CustomerData                    = (*CustomerData)(nil)
 
 	InvoiceSequenceNumber = billing.SequenceDefinition{
 		Template: "OM-SANDBOX-{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
@@ -35,12 +33,12 @@ var (
 )
 
 type App struct {
-	appentitybase.AppBase
+	app.AppBase
 
 	billingService billing.Service
 }
 
-func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Customer, capabilities []appentitybase.CapabilityType) error {
+func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	if err := a.ValidateCapabilities(capabilities...); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
@@ -48,15 +46,15 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customerentity.Cust
 	return nil
 }
 
-func (a App) GetCustomerData(ctx context.Context, input appentity.GetAppInstanceCustomerDataInput) (appentity.CustomerData, error) {
+func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return CustomerData{}, nil
 }
 
-func (a App) UpsertCustomerData(ctx context.Context, input appentity.UpsertAppInstanceCustomerDataInput) error {
+func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (a App) DeleteCustomerData(ctx context.Context, input appentity.DeleteAppInstanceCustomerDataInput) error {
+func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	return nil
 }
 
@@ -174,7 +172,7 @@ func NewFactory(config Config) (*Factory, error) {
 		billingService: config.BillingService,
 	}
 
-	err := config.AppService.RegisterMarketplaceListing(appentity.RegistryItem{
+	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
 		Listing: MarketplaceListing,
 		Factory: fact,
 	})
@@ -186,23 +184,23 @@ func NewFactory(config Config) (*Factory, error) {
 }
 
 // Factory
-func (a *Factory) NewApp(_ context.Context, appBase appentitybase.AppBase) (appentity.App, error) {
+func (a *Factory) NewApp(_ context.Context, appBase app.AppBase) (app.App, error) {
 	return App{
 		AppBase:        appBase,
 		billingService: a.billingService,
 	}, nil
 }
 
-func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppFactoryInstallAppWithAPIKeyInput) (appentity.App, error) {
+func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input app.AppFactoryInstallAppWithAPIKeyInput) (app.App, error) {
 	// Validate input
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	appBase, err := a.appService.CreateApp(ctx, appentity.CreateAppInput{
+	appBase, err := a.appService.CreateApp(ctx, app.CreateAppInput{
 		Namespace: input.Namespace,
 		Name:      input.Name,
-		Type:      appentitybase.AppTypeSandbox,
+		Type:      app.AppTypeSandbox,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app: %w", err)
@@ -211,6 +209,6 @@ func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input appentity.AppF
 	return a.NewApp(ctx, appBase)
 }
 
-func (a *Factory) UninstallApp(ctx context.Context, input appentity.UninstallAppInput) error {
+func (a *Factory) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
 	return nil
 }

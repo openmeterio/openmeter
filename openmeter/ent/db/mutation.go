@@ -12,11 +12,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	appentitybase "github.com/openmeterio/openmeter/openmeter/app/entity/base"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
@@ -112,8 +112,8 @@ type AppMutation struct {
 	deleted_at                           *time.Time
 	name                                 *string
 	description                          *string
-	_type                                *appentitybase.AppType
-	status                               *appentitybase.AppStatus
+	_type                                *app.AppType
+	status                               *app.AppStatus
 	is_default                           *bool
 	clearedFields                        map[string]struct{}
 	customer_apps                        map[int]struct{}
@@ -316,19 +316,19 @@ func (m *AppMutation) OldMetadata(ctx context.Context) (v map[string]string, err
 // ClearMetadata clears the value of the "metadata" field.
 func (m *AppMutation) ClearMetadata() {
 	m.metadata = nil
-	m.clearedFields[app.FieldMetadata] = struct{}{}
+	m.clearedFields[dbapp.FieldMetadata] = struct{}{}
 }
 
 // MetadataCleared returns if the "metadata" field was cleared in this mutation.
 func (m *AppMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[app.FieldMetadata]
+	_, ok := m.clearedFields[dbapp.FieldMetadata]
 	return ok
 }
 
 // ResetMetadata resets all changes to the "metadata" field.
 func (m *AppMutation) ResetMetadata() {
 	m.metadata = nil
-	delete(m.clearedFields, app.FieldMetadata)
+	delete(m.clearedFields, dbapp.FieldMetadata)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -437,19 +437,19 @@ func (m *AppMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *AppMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[app.FieldDeletedAt] = struct{}{}
+	m.clearedFields[dbapp.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *AppMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[app.FieldDeletedAt]
+	_, ok := m.clearedFields[dbapp.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *AppMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, app.FieldDeletedAt)
+	delete(m.clearedFields, dbapp.FieldDeletedAt)
 }
 
 // SetName sets the "name" field.
@@ -522,28 +522,28 @@ func (m *AppMutation) OldDescription(ctx context.Context) (v *string, err error)
 // ClearDescription clears the value of the "description" field.
 func (m *AppMutation) ClearDescription() {
 	m.description = nil
-	m.clearedFields[app.FieldDescription] = struct{}{}
+	m.clearedFields[dbapp.FieldDescription] = struct{}{}
 }
 
 // DescriptionCleared returns if the "description" field was cleared in this mutation.
 func (m *AppMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[app.FieldDescription]
+	_, ok := m.clearedFields[dbapp.FieldDescription]
 	return ok
 }
 
 // ResetDescription resets all changes to the "description" field.
 func (m *AppMutation) ResetDescription() {
 	m.description = nil
-	delete(m.clearedFields, app.FieldDescription)
+	delete(m.clearedFields, dbapp.FieldDescription)
 }
 
 // SetType sets the "type" field.
-func (m *AppMutation) SetType(at appentitybase.AppType) {
+func (m *AppMutation) SetType(at app.AppType) {
 	m._type = &at
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *AppMutation) GetType() (r appentitybase.AppType, exists bool) {
+func (m *AppMutation) GetType() (r app.AppType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -554,7 +554,7 @@ func (m *AppMutation) GetType() (r appentitybase.AppType, exists bool) {
 // OldType returns the old "type" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldType(ctx context.Context) (v appentitybase.AppType, err error) {
+func (m *AppMutation) OldType(ctx context.Context) (v app.AppType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -574,12 +574,12 @@ func (m *AppMutation) ResetType() {
 }
 
 // SetStatus sets the "status" field.
-func (m *AppMutation) SetStatus(as appentitybase.AppStatus) {
+func (m *AppMutation) SetStatus(as app.AppStatus) {
 	m.status = &as
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *AppMutation) Status() (r appentitybase.AppStatus, exists bool) {
+func (m *AppMutation) Status() (r app.AppStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -590,7 +590,7 @@ func (m *AppMutation) Status() (r appentitybase.AppStatus, exists bool) {
 // OldStatus returns the old "status" field's value of the App entity.
 // If the App object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AppMutation) OldStatus(ctx context.Context) (v appentitybase.AppStatus, err error) {
+func (m *AppMutation) OldStatus(ctx context.Context) (v app.AppStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -1059,34 +1059,34 @@ func (m *AppMutation) Type() string {
 func (m *AppMutation) Fields() []string {
 	fields := make([]string, 0, 10)
 	if m.namespace != nil {
-		fields = append(fields, app.FieldNamespace)
+		fields = append(fields, dbapp.FieldNamespace)
 	}
 	if m.metadata != nil {
-		fields = append(fields, app.FieldMetadata)
+		fields = append(fields, dbapp.FieldMetadata)
 	}
 	if m.created_at != nil {
-		fields = append(fields, app.FieldCreatedAt)
+		fields = append(fields, dbapp.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, app.FieldUpdatedAt)
+		fields = append(fields, dbapp.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, app.FieldDeletedAt)
+		fields = append(fields, dbapp.FieldDeletedAt)
 	}
 	if m.name != nil {
-		fields = append(fields, app.FieldName)
+		fields = append(fields, dbapp.FieldName)
 	}
 	if m.description != nil {
-		fields = append(fields, app.FieldDescription)
+		fields = append(fields, dbapp.FieldDescription)
 	}
 	if m._type != nil {
-		fields = append(fields, app.FieldType)
+		fields = append(fields, dbapp.FieldType)
 	}
 	if m.status != nil {
-		fields = append(fields, app.FieldStatus)
+		fields = append(fields, dbapp.FieldStatus)
 	}
 	if m.is_default != nil {
-		fields = append(fields, app.FieldIsDefault)
+		fields = append(fields, dbapp.FieldIsDefault)
 	}
 	return fields
 }
@@ -1096,25 +1096,25 @@ func (m *AppMutation) Fields() []string {
 // schema.
 func (m *AppMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case app.FieldNamespace:
+	case dbapp.FieldNamespace:
 		return m.Namespace()
-	case app.FieldMetadata:
+	case dbapp.FieldMetadata:
 		return m.Metadata()
-	case app.FieldCreatedAt:
+	case dbapp.FieldCreatedAt:
 		return m.CreatedAt()
-	case app.FieldUpdatedAt:
+	case dbapp.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case app.FieldDeletedAt:
+	case dbapp.FieldDeletedAt:
 		return m.DeletedAt()
-	case app.FieldName:
+	case dbapp.FieldName:
 		return m.Name()
-	case app.FieldDescription:
+	case dbapp.FieldDescription:
 		return m.Description()
-	case app.FieldType:
+	case dbapp.FieldType:
 		return m.GetType()
-	case app.FieldStatus:
+	case dbapp.FieldStatus:
 		return m.Status()
-	case app.FieldIsDefault:
+	case dbapp.FieldIsDefault:
 		return m.IsDefault()
 	}
 	return nil, false
@@ -1125,25 +1125,25 @@ func (m *AppMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case app.FieldNamespace:
+	case dbapp.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case app.FieldMetadata:
+	case dbapp.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case app.FieldCreatedAt:
+	case dbapp.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case app.FieldUpdatedAt:
+	case dbapp.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case app.FieldDeletedAt:
+	case dbapp.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case app.FieldName:
+	case dbapp.FieldName:
 		return m.OldName(ctx)
-	case app.FieldDescription:
+	case dbapp.FieldDescription:
 		return m.OldDescription(ctx)
-	case app.FieldType:
+	case dbapp.FieldType:
 		return m.OldType(ctx)
-	case app.FieldStatus:
+	case dbapp.FieldStatus:
 		return m.OldStatus(ctx)
-	case app.FieldIsDefault:
+	case dbapp.FieldIsDefault:
 		return m.OldIsDefault(ctx)
 	}
 	return nil, fmt.Errorf("unknown App field %s", name)
@@ -1154,70 +1154,70 @@ func (m *AppMutation) OldField(ctx context.Context, name string) (ent.Value, err
 // type.
 func (m *AppMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case app.FieldNamespace:
+	case dbapp.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case app.FieldMetadata:
+	case dbapp.FieldMetadata:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
 		return nil
-	case app.FieldCreatedAt:
+	case dbapp.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case app.FieldUpdatedAt:
+	case dbapp.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case app.FieldDeletedAt:
+	case dbapp.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case app.FieldName:
+	case dbapp.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
 		return nil
-	case app.FieldDescription:
+	case dbapp.FieldDescription:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
 		return nil
-	case app.FieldType:
-		v, ok := value.(appentitybase.AppType)
+	case dbapp.FieldType:
+		v, ok := value.(app.AppType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
 		return nil
-	case app.FieldStatus:
-		v, ok := value.(appentitybase.AppStatus)
+	case dbapp.FieldStatus:
+		v, ok := value.(app.AppStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
 		return nil
-	case app.FieldIsDefault:
+	case dbapp.FieldIsDefault:
 		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -1254,14 +1254,14 @@ func (m *AppMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *AppMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(app.FieldMetadata) {
-		fields = append(fields, app.FieldMetadata)
+	if m.FieldCleared(dbapp.FieldMetadata) {
+		fields = append(fields, dbapp.FieldMetadata)
 	}
-	if m.FieldCleared(app.FieldDeletedAt) {
-		fields = append(fields, app.FieldDeletedAt)
+	if m.FieldCleared(dbapp.FieldDeletedAt) {
+		fields = append(fields, dbapp.FieldDeletedAt)
 	}
-	if m.FieldCleared(app.FieldDescription) {
-		fields = append(fields, app.FieldDescription)
+	if m.FieldCleared(dbapp.FieldDescription) {
+		fields = append(fields, dbapp.FieldDescription)
 	}
 	return fields
 }
@@ -1277,13 +1277,13 @@ func (m *AppMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *AppMutation) ClearField(name string) error {
 	switch name {
-	case app.FieldMetadata:
+	case dbapp.FieldMetadata:
 		m.ClearMetadata()
 		return nil
-	case app.FieldDeletedAt:
+	case dbapp.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case app.FieldDescription:
+	case dbapp.FieldDescription:
 		m.ClearDescription()
 		return nil
 	}
@@ -1294,34 +1294,34 @@ func (m *AppMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *AppMutation) ResetField(name string) error {
 	switch name {
-	case app.FieldNamespace:
+	case dbapp.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case app.FieldMetadata:
+	case dbapp.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case app.FieldCreatedAt:
+	case dbapp.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case app.FieldUpdatedAt:
+	case dbapp.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case app.FieldDeletedAt:
+	case dbapp.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case app.FieldName:
+	case dbapp.FieldName:
 		m.ResetName()
 		return nil
-	case app.FieldDescription:
+	case dbapp.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case app.FieldType:
+	case dbapp.FieldType:
 		m.ResetType()
 		return nil
-	case app.FieldStatus:
+	case dbapp.FieldStatus:
 		m.ResetStatus()
 		return nil
-	case app.FieldIsDefault:
+	case dbapp.FieldIsDefault:
 		m.ResetIsDefault()
 		return nil
 	}
@@ -1332,25 +1332,25 @@ func (m *AppMutation) ResetField(name string) error {
 func (m *AppMutation) AddedEdges() []string {
 	edges := make([]string, 0, 7)
 	if m.customer_apps != nil {
-		edges = append(edges, app.EdgeCustomerApps)
+		edges = append(edges, dbapp.EdgeCustomerApps)
 	}
 	if m.billing_profile_tax_app != nil {
-		edges = append(edges, app.EdgeBillingProfileTaxApp)
+		edges = append(edges, dbapp.EdgeBillingProfileTaxApp)
 	}
 	if m.billing_profile_invoicing_app != nil {
-		edges = append(edges, app.EdgeBillingProfileInvoicingApp)
+		edges = append(edges, dbapp.EdgeBillingProfileInvoicingApp)
 	}
 	if m.billing_profile_payment_app != nil {
-		edges = append(edges, app.EdgeBillingProfilePaymentApp)
+		edges = append(edges, dbapp.EdgeBillingProfilePaymentApp)
 	}
 	if m.billing_invoice_tax_app != nil {
-		edges = append(edges, app.EdgeBillingInvoiceTaxApp)
+		edges = append(edges, dbapp.EdgeBillingInvoiceTaxApp)
 	}
 	if m.billing_invoice_invoicing_app != nil {
-		edges = append(edges, app.EdgeBillingInvoiceInvoicingApp)
+		edges = append(edges, dbapp.EdgeBillingInvoiceInvoicingApp)
 	}
 	if m.billing_invoice_payment_app != nil {
-		edges = append(edges, app.EdgeBillingInvoicePaymentApp)
+		edges = append(edges, dbapp.EdgeBillingInvoicePaymentApp)
 	}
 	return edges
 }
@@ -1359,43 +1359,43 @@ func (m *AppMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *AppMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case app.EdgeCustomerApps:
+	case dbapp.EdgeCustomerApps:
 		ids := make([]ent.Value, 0, len(m.customer_apps))
 		for id := range m.customer_apps {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingProfileTaxApp:
+	case dbapp.EdgeBillingProfileTaxApp:
 		ids := make([]ent.Value, 0, len(m.billing_profile_tax_app))
 		for id := range m.billing_profile_tax_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingProfileInvoicingApp:
+	case dbapp.EdgeBillingProfileInvoicingApp:
 		ids := make([]ent.Value, 0, len(m.billing_profile_invoicing_app))
 		for id := range m.billing_profile_invoicing_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingProfilePaymentApp:
+	case dbapp.EdgeBillingProfilePaymentApp:
 		ids := make([]ent.Value, 0, len(m.billing_profile_payment_app))
 		for id := range m.billing_profile_payment_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingInvoiceTaxApp:
+	case dbapp.EdgeBillingInvoiceTaxApp:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_tax_app))
 		for id := range m.billing_invoice_tax_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingInvoiceInvoicingApp:
+	case dbapp.EdgeBillingInvoiceInvoicingApp:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_invoicing_app))
 		for id := range m.billing_invoice_invoicing_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingInvoicePaymentApp:
+	case dbapp.EdgeBillingInvoicePaymentApp:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_payment_app))
 		for id := range m.billing_invoice_payment_app {
 			ids = append(ids, id)
@@ -1409,25 +1409,25 @@ func (m *AppMutation) AddedIDs(name string) []ent.Value {
 func (m *AppMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 7)
 	if m.removedcustomer_apps != nil {
-		edges = append(edges, app.EdgeCustomerApps)
+		edges = append(edges, dbapp.EdgeCustomerApps)
 	}
 	if m.removedbilling_profile_tax_app != nil {
-		edges = append(edges, app.EdgeBillingProfileTaxApp)
+		edges = append(edges, dbapp.EdgeBillingProfileTaxApp)
 	}
 	if m.removedbilling_profile_invoicing_app != nil {
-		edges = append(edges, app.EdgeBillingProfileInvoicingApp)
+		edges = append(edges, dbapp.EdgeBillingProfileInvoicingApp)
 	}
 	if m.removedbilling_profile_payment_app != nil {
-		edges = append(edges, app.EdgeBillingProfilePaymentApp)
+		edges = append(edges, dbapp.EdgeBillingProfilePaymentApp)
 	}
 	if m.removedbilling_invoice_tax_app != nil {
-		edges = append(edges, app.EdgeBillingInvoiceTaxApp)
+		edges = append(edges, dbapp.EdgeBillingInvoiceTaxApp)
 	}
 	if m.removedbilling_invoice_invoicing_app != nil {
-		edges = append(edges, app.EdgeBillingInvoiceInvoicingApp)
+		edges = append(edges, dbapp.EdgeBillingInvoiceInvoicingApp)
 	}
 	if m.removedbilling_invoice_payment_app != nil {
-		edges = append(edges, app.EdgeBillingInvoicePaymentApp)
+		edges = append(edges, dbapp.EdgeBillingInvoicePaymentApp)
 	}
 	return edges
 }
@@ -1436,43 +1436,43 @@ func (m *AppMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *AppMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case app.EdgeCustomerApps:
+	case dbapp.EdgeCustomerApps:
 		ids := make([]ent.Value, 0, len(m.removedcustomer_apps))
 		for id := range m.removedcustomer_apps {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingProfileTaxApp:
+	case dbapp.EdgeBillingProfileTaxApp:
 		ids := make([]ent.Value, 0, len(m.removedbilling_profile_tax_app))
 		for id := range m.removedbilling_profile_tax_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingProfileInvoicingApp:
+	case dbapp.EdgeBillingProfileInvoicingApp:
 		ids := make([]ent.Value, 0, len(m.removedbilling_profile_invoicing_app))
 		for id := range m.removedbilling_profile_invoicing_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingProfilePaymentApp:
+	case dbapp.EdgeBillingProfilePaymentApp:
 		ids := make([]ent.Value, 0, len(m.removedbilling_profile_payment_app))
 		for id := range m.removedbilling_profile_payment_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingInvoiceTaxApp:
+	case dbapp.EdgeBillingInvoiceTaxApp:
 		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_tax_app))
 		for id := range m.removedbilling_invoice_tax_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingInvoiceInvoicingApp:
+	case dbapp.EdgeBillingInvoiceInvoicingApp:
 		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_invoicing_app))
 		for id := range m.removedbilling_invoice_invoicing_app {
 			ids = append(ids, id)
 		}
 		return ids
-	case app.EdgeBillingInvoicePaymentApp:
+	case dbapp.EdgeBillingInvoicePaymentApp:
 		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_payment_app))
 		for id := range m.removedbilling_invoice_payment_app {
 			ids = append(ids, id)
@@ -1486,25 +1486,25 @@ func (m *AppMutation) RemovedIDs(name string) []ent.Value {
 func (m *AppMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 7)
 	if m.clearedcustomer_apps {
-		edges = append(edges, app.EdgeCustomerApps)
+		edges = append(edges, dbapp.EdgeCustomerApps)
 	}
 	if m.clearedbilling_profile_tax_app {
-		edges = append(edges, app.EdgeBillingProfileTaxApp)
+		edges = append(edges, dbapp.EdgeBillingProfileTaxApp)
 	}
 	if m.clearedbilling_profile_invoicing_app {
-		edges = append(edges, app.EdgeBillingProfileInvoicingApp)
+		edges = append(edges, dbapp.EdgeBillingProfileInvoicingApp)
 	}
 	if m.clearedbilling_profile_payment_app {
-		edges = append(edges, app.EdgeBillingProfilePaymentApp)
+		edges = append(edges, dbapp.EdgeBillingProfilePaymentApp)
 	}
 	if m.clearedbilling_invoice_tax_app {
-		edges = append(edges, app.EdgeBillingInvoiceTaxApp)
+		edges = append(edges, dbapp.EdgeBillingInvoiceTaxApp)
 	}
 	if m.clearedbilling_invoice_invoicing_app {
-		edges = append(edges, app.EdgeBillingInvoiceInvoicingApp)
+		edges = append(edges, dbapp.EdgeBillingInvoiceInvoicingApp)
 	}
 	if m.clearedbilling_invoice_payment_app {
-		edges = append(edges, app.EdgeBillingInvoicePaymentApp)
+		edges = append(edges, dbapp.EdgeBillingInvoicePaymentApp)
 	}
 	return edges
 }
@@ -1513,19 +1513,19 @@ func (m *AppMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *AppMutation) EdgeCleared(name string) bool {
 	switch name {
-	case app.EdgeCustomerApps:
+	case dbapp.EdgeCustomerApps:
 		return m.clearedcustomer_apps
-	case app.EdgeBillingProfileTaxApp:
+	case dbapp.EdgeBillingProfileTaxApp:
 		return m.clearedbilling_profile_tax_app
-	case app.EdgeBillingProfileInvoicingApp:
+	case dbapp.EdgeBillingProfileInvoicingApp:
 		return m.clearedbilling_profile_invoicing_app
-	case app.EdgeBillingProfilePaymentApp:
+	case dbapp.EdgeBillingProfilePaymentApp:
 		return m.clearedbilling_profile_payment_app
-	case app.EdgeBillingInvoiceTaxApp:
+	case dbapp.EdgeBillingInvoiceTaxApp:
 		return m.clearedbilling_invoice_tax_app
-	case app.EdgeBillingInvoiceInvoicingApp:
+	case dbapp.EdgeBillingInvoiceInvoicingApp:
 		return m.clearedbilling_invoice_invoicing_app
-	case app.EdgeBillingInvoicePaymentApp:
+	case dbapp.EdgeBillingInvoicePaymentApp:
 		return m.clearedbilling_invoice_payment_app
 	}
 	return false
@@ -1543,25 +1543,25 @@ func (m *AppMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *AppMutation) ResetEdge(name string) error {
 	switch name {
-	case app.EdgeCustomerApps:
+	case dbapp.EdgeCustomerApps:
 		m.ResetCustomerApps()
 		return nil
-	case app.EdgeBillingProfileTaxApp:
+	case dbapp.EdgeBillingProfileTaxApp:
 		m.ResetBillingProfileTaxApp()
 		return nil
-	case app.EdgeBillingProfileInvoicingApp:
+	case dbapp.EdgeBillingProfileInvoicingApp:
 		m.ResetBillingProfileInvoicingApp()
 		return nil
-	case app.EdgeBillingProfilePaymentApp:
+	case dbapp.EdgeBillingProfilePaymentApp:
 		m.ResetBillingProfilePaymentApp()
 		return nil
-	case app.EdgeBillingInvoiceTaxApp:
+	case dbapp.EdgeBillingInvoiceTaxApp:
 		m.ResetBillingInvoiceTaxApp()
 		return nil
-	case app.EdgeBillingInvoiceInvoicingApp:
+	case dbapp.EdgeBillingInvoiceInvoicingApp:
 		m.ResetBillingInvoiceInvoicingApp()
 		return nil
-	case app.EdgeBillingInvoicePaymentApp:
+	case dbapp.EdgeBillingInvoicePaymentApp:
 		m.ResetBillingInvoicePaymentApp()
 		return nil
 	}

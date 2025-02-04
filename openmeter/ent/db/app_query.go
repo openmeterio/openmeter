@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -24,7 +24,7 @@ import (
 type AppQuery struct {
 	config
 	ctx                            *QueryContext
-	order                          []app.OrderOption
+	order                          []dbapp.OrderOption
 	inters                         []Interceptor
 	predicates                     []predicate.App
 	withCustomerApps               *AppCustomerQuery
@@ -66,7 +66,7 @@ func (aq *AppQuery) Unique(unique bool) *AppQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (aq *AppQuery) Order(o ...app.OrderOption) *AppQuery {
+func (aq *AppQuery) Order(o ...dbapp.OrderOption) *AppQuery {
 	aq.order = append(aq.order, o...)
 	return aq
 }
@@ -83,9 +83,9 @@ func (aq *AppQuery) QueryCustomerApps() *AppCustomerQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(appcustomer.Table, appcustomer.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.CustomerAppsTable, app.CustomerAppsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.CustomerAppsTable, dbapp.CustomerAppsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -105,9 +105,9 @@ func (aq *AppQuery) QueryBillingProfileTaxApp() *BillingProfileQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfileTaxAppTable, app.BillingProfileTaxAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfileTaxAppTable, dbapp.BillingProfileTaxAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -127,9 +127,9 @@ func (aq *AppQuery) QueryBillingProfileInvoicingApp() *BillingProfileQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfileInvoicingAppTable, app.BillingProfileInvoicingAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfileInvoicingAppTable, dbapp.BillingProfileInvoicingAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -149,9 +149,9 @@ func (aq *AppQuery) QueryBillingProfilePaymentApp() *BillingProfileQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingProfilePaymentAppTable, app.BillingProfilePaymentAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingProfilePaymentAppTable, dbapp.BillingProfilePaymentAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -171,9 +171,9 @@ func (aq *AppQuery) QueryBillingInvoiceTaxApp() *BillingInvoiceQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoiceTaxAppTable, app.BillingInvoiceTaxAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoiceTaxAppTable, dbapp.BillingInvoiceTaxAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -193,9 +193,9 @@ func (aq *AppQuery) QueryBillingInvoiceInvoicingApp() *BillingInvoiceQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoiceInvoicingAppTable, app.BillingInvoiceInvoicingAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoiceInvoicingAppTable, dbapp.BillingInvoiceInvoicingAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -215,9 +215,9 @@ func (aq *AppQuery) QueryBillingInvoicePaymentApp() *BillingInvoiceQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(app.Table, app.FieldID, selector),
+			sqlgraph.From(dbapp.Table, dbapp.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, app.BillingInvoicePaymentAppTable, app.BillingInvoicePaymentAppColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbapp.BillingInvoicePaymentAppTable, dbapp.BillingInvoicePaymentAppColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -233,7 +233,7 @@ func (aq *AppQuery) First(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{app.Label}
+		return nil, &NotFoundError{dbapp.Label}
 	}
 	return nodes[0], nil
 }
@@ -255,7 +255,7 @@ func (aq *AppQuery) FirstID(ctx context.Context) (id string, err error) {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{app.Label}
+		err = &NotFoundError{dbapp.Label}
 		return
 	}
 	return ids[0], nil
@@ -282,9 +282,9 @@ func (aq *AppQuery) Only(ctx context.Context) (*App, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{app.Label}
+		return nil, &NotFoundError{dbapp.Label}
 	default:
-		return nil, &NotSingularError{app.Label}
+		return nil, &NotSingularError{dbapp.Label}
 	}
 }
 
@@ -309,9 +309,9 @@ func (aq *AppQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{app.Label}
+		err = &NotFoundError{dbapp.Label}
 	default:
-		err = &NotSingularError{app.Label}
+		err = &NotSingularError{dbapp.Label}
 	}
 	return
 }
@@ -350,7 +350,7 @@ func (aq *AppQuery) IDs(ctx context.Context) (ids []string, err error) {
 		aq.Unique(true)
 	}
 	ctx = setContextOp(ctx, aq.ctx, ent.OpQueryIDs)
-	if err = aq.Select(app.FieldID).Scan(ctx, &ids); err != nil {
+	if err = aq.Select(dbapp.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -414,7 +414,7 @@ func (aq *AppQuery) Clone() *AppQuery {
 	return &AppQuery{
 		config:                         aq.config,
 		ctx:                            aq.ctx.Clone(),
-		order:                          append([]app.OrderOption{}, aq.order...),
+		order:                          append([]dbapp.OrderOption{}, aq.order...),
 		inters:                         append([]Interceptor{}, aq.inters...),
 		predicates:                     append([]predicate.App{}, aq.predicates...),
 		withCustomerApps:               aq.withCustomerApps.Clone(),
@@ -518,14 +518,14 @@ func (aq *AppQuery) WithBillingInvoicePaymentApp(opts ...func(*BillingInvoiceQue
 //	}
 //
 //	client.App.Query().
-//		GroupBy(app.FieldNamespace).
+//		GroupBy(dbapp.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (aq *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
 	aq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &AppGroupBy{build: aq}
 	grbuild.flds = &aq.ctx.Fields
-	grbuild.label = app.Label
+	grbuild.label = dbapp.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -540,12 +540,12 @@ func (aq *AppQuery) GroupBy(field string, fields ...string) *AppGroupBy {
 //	}
 //
 //	client.App.Query().
-//		Select(app.FieldNamespace).
+//		Select(dbapp.FieldNamespace).
 //		Scan(ctx, &v)
 func (aq *AppQuery) Select(fields ...string) *AppSelect {
 	aq.ctx.Fields = append(aq.ctx.Fields, fields...)
 	sbuild := &AppSelect{AppQuery: aq}
-	sbuild.label = app.Label
+	sbuild.label = dbapp.Label
 	sbuild.flds, sbuild.scan = &aq.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -567,7 +567,7 @@ func (aq *AppQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range aq.ctx.Fields {
-		if !app.ValidColumn(f) {
+		if !dbapp.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -694,7 +694,7 @@ func (aq *AppQuery) loadCustomerApps(ctx context.Context, query *AppCustomerQuer
 		query.ctx.AppendFieldOnce(appcustomer.FieldAppID)
 	}
 	query.Where(predicate.AppCustomer(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.CustomerAppsColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.CustomerAppsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -724,7 +724,7 @@ func (aq *AppQuery) loadBillingProfileTaxApp(ctx context.Context, query *Billing
 		query.ctx.AppendFieldOnce(billingprofile.FieldTaxAppID)
 	}
 	query.Where(predicate.BillingProfile(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.BillingProfileTaxAppColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.BillingProfileTaxAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -754,7 +754,7 @@ func (aq *AppQuery) loadBillingProfileInvoicingApp(ctx context.Context, query *B
 		query.ctx.AppendFieldOnce(billingprofile.FieldInvoicingAppID)
 	}
 	query.Where(predicate.BillingProfile(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.BillingProfileInvoicingAppColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.BillingProfileInvoicingAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -784,7 +784,7 @@ func (aq *AppQuery) loadBillingProfilePaymentApp(ctx context.Context, query *Bil
 		query.ctx.AppendFieldOnce(billingprofile.FieldPaymentAppID)
 	}
 	query.Where(predicate.BillingProfile(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.BillingProfilePaymentAppColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.BillingProfilePaymentAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -814,7 +814,7 @@ func (aq *AppQuery) loadBillingInvoiceTaxApp(ctx context.Context, query *Billing
 		query.ctx.AppendFieldOnce(billinginvoice.FieldTaxAppID)
 	}
 	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.BillingInvoiceTaxAppColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.BillingInvoiceTaxAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -844,7 +844,7 @@ func (aq *AppQuery) loadBillingInvoiceInvoicingApp(ctx context.Context, query *B
 		query.ctx.AppendFieldOnce(billinginvoice.FieldInvoicingAppID)
 	}
 	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.BillingInvoiceInvoicingAppColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.BillingInvoiceInvoicingAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -874,7 +874,7 @@ func (aq *AppQuery) loadBillingInvoicePaymentApp(ctx context.Context, query *Bil
 		query.ctx.AppendFieldOnce(billinginvoice.FieldPaymentAppID)
 	}
 	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(app.BillingInvoicePaymentAppColumn), fks...))
+		s.Where(sql.InValues(s.C(dbapp.BillingInvoicePaymentAppColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -904,7 +904,7 @@ func (aq *AppQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(app.Table, app.Columns, sqlgraph.NewFieldSpec(app.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(dbapp.Table, dbapp.Columns, sqlgraph.NewFieldSpec(dbapp.FieldID, field.TypeString))
 	_spec.From = aq.sql
 	if unique := aq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -913,9 +913,9 @@ func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := aq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, app.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbapp.FieldID)
 		for i := range fields {
-			if fields[i] != app.FieldID {
+			if fields[i] != dbapp.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -945,10 +945,10 @@ func (aq *AppQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (aq *AppQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(aq.driver.Dialect())
-	t1 := builder.Table(app.Table)
+	t1 := builder.Table(dbapp.Table)
 	columns := aq.ctx.Fields
 	if len(columns) == 0 {
-		columns = app.Columns
+		columns = dbapp.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if aq.sql != nil {
