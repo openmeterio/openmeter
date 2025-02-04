@@ -109,12 +109,7 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 			return nil, fmt.Errorf("failed to get customer profile [customer=%s]: %w", params.CustomerID, err)
 		}
 
-		collectionInterval, ok := profile.Profile.WorkflowConfig.Collection.Interval.Duration()
-		if !ok {
-			return nil, fmt.Errorf("failed to get collection interval for customer [customer=%s]: %w", params.CustomerID, err)
-		}
-
-		asOf = time.Now().Add(-1 * collectionInterval)
+		asOf, _ = profile.Profile.WorkflowConfig.Collection.Interval.Negate().AddTo(time.Now())
 	}
 
 	// Calculate alignedAsOf time which is set to the latest invoiceAt time which is still before the time defined by asOf.
