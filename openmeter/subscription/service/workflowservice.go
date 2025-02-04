@@ -49,11 +49,16 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		return def, fmt.Errorf("unexpected nil customer")
 	}
 
+	activeFrom, err := inp.Timing.Resolve()
+	if err != nil {
+		return def, fmt.Errorf("failed to resolve active from: %w", err)
+	}
+
 	// Let's create the new Spec
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 		CustomerId:     cust.ID,
 		Currency:       plan.Currency(),
-		ActiveFrom:     inp.ActiveFrom,
+		ActiveFrom:     activeFrom,
 		AnnotatedModel: inp.AnnotatedModel,
 		Name:           inp.Name,
 		Description:    inp.Description,
@@ -121,13 +126,32 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 
 	// Changing the plan means canceling the current subscription and creating a new one with the provided timestamp
 	r, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (res, error) {
-		// First, let's try to cancel the current subscription
-		curr, err := s.Service.Cancel(ctx, subscriptionID, inp.ActiveFrom)
+		// First, let's fetch the current subscription
+		view, err := s.Service.GetView(ctx, subscriptionID)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to fetch subscription: %w", err)
+		}
+
+		// Let's get the timing
+		changeTime, err := inp.Timing.ResolveForSpec(view.Spec)
+		if err != nil {
+			return res{}, fmt.Errorf("failed to resolve change timing: %w", err)
+		}
+
+		// Let's create a new timing with the exact value as later steps might resolve it differently to how we want it here
+		verbatumTiming := subscription.Timing{
+			Custom: &changeTime,
+		}
+
+		// Second, let's try to cancel the current subscription
+		curr, err := s.Service.Cancel(ctx, subscriptionID, verbatumTiming)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to end current subscription: %w", err)
 		}
 
-		// Now, let's create a new subscription with the new plan
+		inp.Timing = verbatumTiming
+
+		// Third, let's create a new subscription with the new plan
 		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,

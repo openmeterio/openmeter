@@ -2,7 +2,6 @@ package subscriptiontestutils
 
 import (
 	"context"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -12,7 +11,7 @@ type MockService struct {
 	CreateFn   func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error)
 	UpdateFn   func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error)
 	DeleteFn   func(ctx context.Context, subscriptionID models.NamespacedID) error
-	CancelFn   func(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error)
+	CancelFn   func(ctx context.Context, subscriptionID models.NamespacedID, at subscription.Timing) (subscription.Subscription, error)
 	ContinueFn func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetFn      func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetViewFn  func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
@@ -32,7 +31,7 @@ func (s *MockService) Delete(ctx context.Context, subscriptionID models.Namespac
 	return s.DeleteFn(ctx, subscriptionID)
 }
 
-func (s *MockService) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error) {
+func (s *MockService) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at subscription.Timing) (subscription.Subscription, error) {
 	return s.CancelFn(ctx, subscriptionID, at)
 }
 

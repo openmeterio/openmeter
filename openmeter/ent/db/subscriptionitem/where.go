@@ -111,6 +111,11 @@ func EntitlementID(v string) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldEntitlementID, v))
 }
 
+// RestartsBillingPeriod applies equality check predicate on the "restarts_billing_period" field. It's identical to RestartsBillingPeriodEQ.
+func RestartsBillingPeriod(v bool) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldRestartsBillingPeriod, v))
+}
+
 // ActiveFromOverrideRelativeToPhaseStart applies equality check predicate on the "active_from_override_relative_to_phase_start" field. It's identical to ActiveFromOverrideRelativeToPhaseStartEQ.
 func ActiveFromOverrideRelativeToPhaseStart(v datex.ISOString) predicate.SubscriptionItem {
 	vc := string(v)
@@ -642,6 +647,26 @@ func EntitlementIDEqualFold(v string) predicate.SubscriptionItem {
 // EntitlementIDContainsFold applies the ContainsFold predicate on the "entitlement_id" field.
 func EntitlementIDContainsFold(v string) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldEntitlementID, v))
+}
+
+// RestartsBillingPeriodEQ applies the EQ predicate on the "restarts_billing_period" field.
+func RestartsBillingPeriodEQ(v bool) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldRestartsBillingPeriod, v))
+}
+
+// RestartsBillingPeriodNEQ applies the NEQ predicate on the "restarts_billing_period" field.
+func RestartsBillingPeriodNEQ(v bool) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNEQ(FieldRestartsBillingPeriod, v))
+}
+
+// RestartsBillingPeriodIsNil applies the IsNil predicate on the "restarts_billing_period" field.
+func RestartsBillingPeriodIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldRestartsBillingPeriod))
+}
+
+// RestartsBillingPeriodNotNil applies the NotNil predicate on the "restarts_billing_period" field.
+func RestartsBillingPeriodNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldRestartsBillingPeriod))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartEQ applies the EQ predicate on the "active_from_override_relative_to_phase_start" field.

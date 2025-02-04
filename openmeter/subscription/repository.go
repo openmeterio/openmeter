@@ -93,6 +93,8 @@ type CreateSubscriptionItemEntityInput struct {
 
 	models.CadencedModel
 
+	BillingBehaviorOverride BillingBehaviorOverride
+
 	// PhaseID is the ID of the phase this item belongs to.
 	PhaseID string
 

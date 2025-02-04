@@ -2,7 +2,6 @@ package subscription
 
 import (
 	"context"
-	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -15,7 +14,7 @@ type Service interface {
 	// Delete a scheduled subscription with the given ID
 	Delete(ctx context.Context, subscriptionID models.NamespacedID) error
 	// Cancel a running subscription at the provided time
-	Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (Subscription, error)
+	Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing Timing) (Subscription, error)
 	// Continue a canceled subscription (effectively undoing the cancellation)
 	Continue(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
 	// Get the subscription with the given ID
@@ -37,7 +36,7 @@ type CreateSubscriptionWorkflowInput struct {
 }
 
 type ChangeSubscriptionWorkflowInput struct {
-	ActiveFrom time.Time
+	Timing
 	models.AnnotatedModel
 	Name        string
 	Description *string

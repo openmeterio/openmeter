@@ -340,8 +340,10 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-			ActiveFrom: start,
-			Name:       "subs-1",
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(start),
+			},
+			Name: "subs-1",
 		},
 		Namespace:  namespace,
 		CustomerID: s.Customer.ID,
@@ -459,7 +461,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
-		}, cancelAt)
+		}, subscription.Timing{
+			Custom: lo.ToPtr(cancelAt),
+		})
 		s.NoError(err)
 
 		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
@@ -634,8 +638,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-			ActiveFrom: start,
-			Name:       "subs-1",
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(start),
+			},
+			Name: "subs-1",
 		},
 		Namespace:  namespace,
 		CustomerID: customerEntity.ID,
@@ -684,7 +690,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
-		}, cancelAt)
+		}, subscription.Timing{
+			Custom: lo.ToPtr(cancelAt),
+		})
 		s.NoError(err)
 
 		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
@@ -1469,7 +1477,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	// let's cancel the subscription
 	cancelAt := s.mustParseTime("2024-01-04T12:00:00Z")
 
-	subs, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, cancelAt)
+	subs, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: &cancelAt,
+	})
 	s.NoError(err)
 
 	subsView, err = s.SubscriptionService.GetView(ctx, subs.NamespacedID)
@@ -2330,7 +2340,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	s.NotNil(updatedLine)
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T11:00:00Z"))
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, s.mustParseTime("2024-01-01T11:00:00Z"))
+	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: lo.ToPtr(s.mustParseTime("2024-01-01T11:00:00Z")),
+	})
 	s.NoError(err)
 
 	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
@@ -2500,7 +2512,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.NotNil(updatedLine)
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T11:00:00Z"))
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, s.mustParseTime("2024-01-01T11:00:00Z"))
+	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: lo.ToPtr(s.mustParseTime("2024-01-01T11:00:00Z")),
+	})
 	s.NoError(err)
 
 	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
@@ -2861,8 +2875,10 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-			ActiveFrom: clock.Now(),
-			Name:       "subs-1",
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(clock.Now()),
+			},
+			Name: "subs-1",
 		},
 		Namespace:  s.Namespace,
 		CustomerID: s.Customer.ID,

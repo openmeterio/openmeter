@@ -2043,6 +2043,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearEntitlementID(value *string) *Subs
 	return u.SetEntitlementID(*value)
 }
 
+func (u *SubscriptionItemUpdate) SetOrClearRestartsBillingPeriod(value *bool) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearRestartsBillingPeriod()
+	}
+	return u.SetRestartsBillingPeriod(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearRestartsBillingPeriod(value *bool) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearRestartsBillingPeriod()
+	}
+	return u.SetRestartsBillingPeriod(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearActiveFromOverrideRelativeToPhaseStart(value *datex.ISOString) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearActiveFromOverrideRelativeToPhaseStart()

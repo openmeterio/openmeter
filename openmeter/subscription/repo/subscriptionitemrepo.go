@@ -102,7 +102,8 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			SetNillableDescription(input.RateCard.Description).
 			SetNillableFeatureKey(input.RateCard.FeatureKey).
 			SetNillableEntitlementID(input.EntitlementID).
-			SetNillableBillingCadence(input.RateCard.BillingCadence.ISOStringPtrOrNil())
+			SetNillableBillingCadence(input.RateCard.BillingCadence.ISOStringPtrOrNil()).
+			SetNillableRestartsBillingPeriod(input.BillingBehaviorOverride.RestartBillingPeriod)
 
 		// Due to the custom value scanner, these fields don't have Nillable setters generated, and the normal setters panic when trying to call .Validate() on nil
 		if input.RateCard.EntitlementTemplate != nil {

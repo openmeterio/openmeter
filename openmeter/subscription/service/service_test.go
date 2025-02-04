@@ -212,7 +212,9 @@ func TestCancellation(t *testing.T) {
 
 		// Second, let's cancel the subscription
 		cancelTime := testutils.GetRFC3339Time(t, "2021-04-01T00:00:00Z")
-		cancelledSub, err := service.Cancel(ctx, sub.NamespacedID, cancelTime)
+		cancelledSub, err := service.Cancel(ctx, sub.NamespacedID, subscription.Timing{
+			Custom: &cancelTime,
+		})
 
 		assert.Nil(t, err)
 		assert.Equal(t, sub.ID, cancelledSub.ID)
@@ -326,7 +328,9 @@ func TestContinuing(t *testing.T) {
 
 		// Second, let's cancel the subscription
 		cancelTime := testutils.GetRFC3339Time(t, "2021-04-01T00:00:00Z")
-		_, err = service.Cancel(ctx, sub.NamespacedID, cancelTime)
+		_, err = service.Cancel(ctx, sub.NamespacedID, subscription.Timing{
+			Custom: &cancelTime,
+		})
 
 		require.Nil(t, err)
 

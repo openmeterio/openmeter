@@ -244,7 +244,7 @@ interface Subscriptions {
       /**
        * If not provided the subscription is canceled immediately.
        */
-      effectiveDate?: DateTime;
+      timing?: SubscriptionTiming;
     },
   ):
     | Subscription

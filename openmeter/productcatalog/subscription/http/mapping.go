@@ -345,6 +345,24 @@ func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, erro
 	return res, nil
 }
 
+func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing, error) {
+	var res subscription.Timing
+
+	t, err := apiTiming.AsSubscriptionTiming1()
+	if err != nil {
+		e, err := apiTiming.AsSubscriptionTimingEnum()
+		if err != nil {
+			return res, fmt.Errorf("failed to cast to SubscriptionChangeTiming: %w", err)
+		}
+
+		res.Enum = lo.ToPtr(subscription.TimingEnum(e))
+	} else {
+		res.Custom = &t
+	}
+
+	return res, nil
+}
+
 func MapSubscriptionPhaseToAPI(phaseView subscription.SubscriptionPhaseView, endOfPhase *time.Time) (api.SubscriptionPhaseExpanded, error) {
 	flatItems := lo.Flatten(lo.Values(phaseView.ItemsByKey))
 	items := make([]api.SubscriptionItem, 0, len(flatItems))

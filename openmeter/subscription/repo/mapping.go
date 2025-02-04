@@ -126,6 +126,9 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		AnnotatedModel: models.AnnotatedModel{
 			Metadata: item.Metadata,
 		},
+		BillingBehaviorOverride: subscription.BillingBehaviorOverride{
+			RestartBillingPeriod: item.RestartsBillingPeriod,
+		},
 		Name:                                   item.Name,
 		Description:                            item.Description,
 		ActiveFromOverrideRelativeToPhaseStart: sa,

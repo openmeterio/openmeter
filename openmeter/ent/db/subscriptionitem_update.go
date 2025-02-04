@@ -124,6 +124,26 @@ func (siu *SubscriptionItemUpdate) ClearEntitlementID() *SubscriptionItemUpdate 
 	return siu
 }
 
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (siu *SubscriptionItemUpdate) SetRestartsBillingPeriod(b bool) *SubscriptionItemUpdate {
+	siu.mutation.SetRestartsBillingPeriod(b)
+	return siu
+}
+
+// SetNillableRestartsBillingPeriod sets the "restarts_billing_period" field if the given value is not nil.
+func (siu *SubscriptionItemUpdate) SetNillableRestartsBillingPeriod(b *bool) *SubscriptionItemUpdate {
+	if b != nil {
+		siu.SetRestartsBillingPeriod(*b)
+	}
+	return siu
+}
+
+// ClearRestartsBillingPeriod clears the value of the "restarts_billing_period" field.
+func (siu *SubscriptionItemUpdate) ClearRestartsBillingPeriod() *SubscriptionItemUpdate {
+	siu.mutation.ClearRestartsBillingPeriod()
+	return siu
+}
+
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
 func (siu *SubscriptionItemUpdate) SetActiveFromOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemUpdate {
 	siu.mutation.SetActiveFromOverrideRelativeToPhaseStart(ds)
@@ -426,6 +446,12 @@ func (siu *SubscriptionItemUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if siu.mutation.ActiveToCleared() {
 		_spec.ClearField(subscriptionitem.FieldActiveTo, field.TypeTime)
 	}
+	if value, ok := siu.mutation.RestartsBillingPeriod(); ok {
+		_spec.SetField(subscriptionitem.FieldRestartsBillingPeriod, field.TypeBool, value)
+	}
+	if siu.mutation.RestartsBillingPeriodCleared() {
+		_spec.ClearField(subscriptionitem.FieldRestartsBillingPeriod, field.TypeBool)
+	}
 	if value, ok := siu.mutation.ActiveFromOverrideRelativeToPhaseStart(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, field.TypeString, value)
 	}
@@ -672,6 +698,26 @@ func (siuo *SubscriptionItemUpdateOne) SetNillableEntitlementID(s *string) *Subs
 // ClearEntitlementID clears the value of the "entitlement_id" field.
 func (siuo *SubscriptionItemUpdateOne) ClearEntitlementID() *SubscriptionItemUpdateOne {
 	siuo.mutation.ClearEntitlementID()
+	return siuo
+}
+
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (siuo *SubscriptionItemUpdateOne) SetRestartsBillingPeriod(b bool) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetRestartsBillingPeriod(b)
+	return siuo
+}
+
+// SetNillableRestartsBillingPeriod sets the "restarts_billing_period" field if the given value is not nil.
+func (siuo *SubscriptionItemUpdateOne) SetNillableRestartsBillingPeriod(b *bool) *SubscriptionItemUpdateOne {
+	if b != nil {
+		siuo.SetRestartsBillingPeriod(*b)
+	}
+	return siuo
+}
+
+// ClearRestartsBillingPeriod clears the value of the "restarts_billing_period" field.
+func (siuo *SubscriptionItemUpdateOne) ClearRestartsBillingPeriod() *SubscriptionItemUpdateOne {
+	siuo.mutation.ClearRestartsBillingPeriod()
 	return siuo
 }
 
@@ -1006,6 +1052,12 @@ func (siuo *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subs
 	}
 	if siuo.mutation.ActiveToCleared() {
 		_spec.ClearField(subscriptionitem.FieldActiveTo, field.TypeTime)
+	}
+	if value, ok := siuo.mutation.RestartsBillingPeriod(); ok {
+		_spec.SetField(subscriptionitem.FieldRestartsBillingPeriod, field.TypeBool, value)
+	}
+	if siuo.mutation.RestartsBillingPeriodCleared() {
+		_spec.ClearField(subscriptionitem.FieldRestartsBillingPeriod, field.TypeBool)
 	}
 	if value, ok := siuo.mutation.ActiveFromOverrideRelativeToPhaseStart(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, field.TypeString, value)

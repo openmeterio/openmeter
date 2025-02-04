@@ -16,6 +16,35 @@ type Recurrence struct {
 	Anchor time.Time `json:"anchor"`
 }
 
+// Returns a period where p.Contains(t) is true
+func (r Recurrence) GetPeriodAt(t time.Time) (Period, error) {
+	var def Period
+
+	next, err := r.NextAfter(t)
+	if err != nil {
+		return def, err
+	}
+
+	// As Period.Contains() is inclusive at the start and exclusive at the end, we need to get the next time
+	if next.Equal(t) {
+		start := next
+		end, err := r.Next(start)
+		if err != nil {
+			return def, err
+		}
+
+		return Period{start, end}, nil
+	}
+
+	// Otherwise the next time will be the end
+	prev, err := r.PrevBefore(t)
+	if err != nil {
+		return def, err
+	}
+
+	return Period{prev, next}, nil
+}
+
 // NextAfter returns the next time after t that the recurrence should occur.
 // If at t the recurrence should occur, it will return t.
 func (r Recurrence) NextAfter(t time.Time) (time.Time, error) {

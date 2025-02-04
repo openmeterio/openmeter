@@ -48,7 +48,9 @@ func TestCreateFromPlan(t *testing.T) {
 
 				_, err := deps.WorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						ActiveFrom: deps.CurrentTime,
+						Timing: subscription.Timing{
+							Custom: &deps.CurrentTime,
+						},
 					},
 					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
 					Namespace:  subscriptiontestutils.ExampleNamespace,
@@ -273,8 +275,10 @@ func TestEditRunning(t *testing.T) {
 			// Let's create an example subscription
 			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: tcDeps.CurrentTime,
-					Name:       "Example Subscription",
+					Timing: subscription.Timing{
+						Custom: &tcDeps.CurrentTime,
+					},
+					Name: "Example Subscription",
 				},
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
@@ -464,8 +468,10 @@ func TestEditingCurrentPhase(t *testing.T) {
 			// Let's create an example subscription
 			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: tcDeps.CurrentTime,
-					Name:       "Example Subscription",
+					Timing: subscription.Timing{
+						Custom: &tcDeps.CurrentTime,
+					},
+					Name: "Example Subscription",
 				},
 				CustomerID: cust.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
@@ -633,8 +639,10 @@ func TestChangeToPlan(t *testing.T) {
 			// Let's create an example subscription
 			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: deps.CurrentTime,
-					Name:       "Example Subscription",
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
 				},
 				CustomerID: deps.Customer.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
@@ -644,8 +652,10 @@ func TestChangeToPlan(t *testing.T) {
 			someTimeLater := deps.CurrentTime.AddDate(0, 0, 10)
 
 			changeInput := subscription.ChangeSubscriptionWorkflowInput{
-				ActiveFrom: someTimeLater,
-				Name:       "New Subscription",
+				Timing: subscription.Timing{
+					Custom: &someTimeLater,
+				},
+				Name: "New Subscription",
 			}
 
 			curr, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, changeInput, deps.Plan2)
@@ -666,7 +676,7 @@ func TestChangeToPlan(t *testing.T) {
 				AnnotatedModel: changeInput.AnnotatedModel,
 				CustomerId:     curr.CustomerId,
 				Currency:       deps.Plan2.Currency(),
-				ActiveFrom:     changeInput.ActiveFrom,
+				ActiveFrom:     *changeInput.Custom,
 				ActiveTo:       nil,
 			})
 			require.Nil(t, err)
@@ -729,8 +739,10 @@ func TestEditCombinations(t *testing.T) {
 			// Let's create an example subscription
 			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
 				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: deps.CurrentTime,
-					Name:       "Example Subscription",
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
 				},
 				CustomerID: deps.Customer.ID,
 				Namespace:  subscriptiontestutils.ExampleNamespace,
@@ -790,7 +802,9 @@ func TestEditCombinations(t *testing.T) {
 			require.Equal(t, sub.Subscription.NamespacedID, view.Subscription.NamespacedID)
 
 			// Now let's cancel the subscription
-			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, clock.Now().Add(-time.Minute))
+			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
+				Custom: lo.ToPtr(clock.Now().Add(-time.Minute)),
+			})
 			require.Nil(t, err)
 
 			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))

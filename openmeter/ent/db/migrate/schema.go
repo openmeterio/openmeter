@@ -1626,6 +1626,7 @@ var (
 		{Name: "active_from", Type: field.TypeTime},
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
 		{Name: "key", Type: field.TypeString},
+		{Name: "restarts_billing_period", Type: field.TypeBool, Nullable: true},
 		{Name: "active_from_override_relative_to_phase_start", Type: field.TypeString, Nullable: true},
 		{Name: "active_to_override_relative_to_phase_start", Type: field.TypeString, Nullable: true},
 		{Name: "name", Type: field.TypeString},
@@ -1646,13 +1647,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_items_entitlements_subscription_item",
-				Columns:    []*schema.Column{SubscriptionItemsColumns[18]},
+				Columns:    []*schema.Column{SubscriptionItemsColumns[19]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "subscription_items_subscription_phases_items",
-				Columns:    []*schema.Column{SubscriptionItemsColumns[19]},
+				Columns:    []*schema.Column{SubscriptionItemsColumns[20]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1676,7 +1677,7 @@ var (
 			{
 				Name:    "subscriptionitem_namespace_phase_id_key",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[19], SubscriptionItemsColumns[8]},
+				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[20], SubscriptionItemsColumns[8]},
 			},
 		},
 	}

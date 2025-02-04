@@ -114,6 +114,7 @@ func (SubscriptionItem) Fields() []ent.Field {
 		field.String("phase_id").NotEmpty().Immutable(),
 		field.String("key").NotEmpty().Immutable(),
 		field.String("entitlement_id").Optional().Nillable(),
+		field.Bool("restarts_billing_period").Optional().Nillable(),
 		// Items can have different intended cadence compared to the phase due to edits.
 		// To preserve this across cancels and other complex scenarios, we store the intended cadence relative to the phase start.
 		field.String("active_from_override_relative_to_phase_start").

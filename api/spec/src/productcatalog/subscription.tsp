@@ -256,9 +256,15 @@ model SubscriptionEdit {
  */
 @friendlyName("SubscriptionChangeResponseBody")
 model SubscriptionChangeResponseBody {
+  /**
+   * The current subscription before the change.
+   */
   @summary("Current subscription")
   current: Subscription;
 
+  /**
+   * The new state of the subscription after the change.
+   */
   @summary("The subscription it will be changed to")
   next: SubscriptionExpanded;
 }
@@ -289,6 +295,10 @@ union SubscriptionChange {
 @friendlyName("CustomSubscriptionCreate")
 model CustomSubscriptionCreate {
   ...CustomSubscriptionChange;
+
+  /**
+   * The ID of the customer.
+   */
   customerId: ULID;
 }
 
@@ -297,7 +307,16 @@ model CustomSubscriptionCreate {
  */
 @friendlyName("CustomSubscriptionChange")
 model CustomSubscriptionChange {
-  activeFrom: DateTime;
+  /**
+   * Timing configuration for the change, when the change should take effect.
+   * For creating a subscription, only specifying an exact time is supported.
+   * For changing a subscription, the accepted values depend on the subscription configuration.
+   */
+  timing: SubscriptionTiming;
+
+  /**
+   * The custom plan description which defines the Subscription.
+   */
   customPlan: CustomPlanInput;
 }
 
@@ -317,6 +336,10 @@ model CustomPlanInput
 @friendlyName("PlanSubscriptionCreate")
 model PlanSubscriptionCreate {
   ...PlanSubscriptionChange;
+
+  /**
+   * The ID of the customer.
+   */
   customerId: ULID;
 }
 
@@ -325,17 +348,67 @@ model PlanSubscriptionCreate {
  */
 @friendlyName("PlanSubscriptionChange")
 model PlanSubscriptionChange {
+  /**
+   * Timing configuration for the change, when the change should take effect.
+   * For creating a subscription, only specifying an exact time is supported.
+   * For changing a subscription, the accepted values depend on the subscription configuration.
+   */
+  timing: SubscriptionTiming;
+
+  /**
+   * What alignment settings the subscription should have.
+   */
   alignment?: Alignment;
+
+  /**
+   * Arbitrary metadata associated with the subscription.
+   */
   metadata?: global.Metadata;
+
+  /**
+   * The plan reference to change to.
+   */
   plan: PlanReferenceInput;
-  activeFrom: DateTime;
+
+  /**
+   * The name of the Subscription.
+   */
   name: string;
+
+  /**
+   * Description for the Subscription.
+   */
   description?: string;
 }
 
-@friendlyName("SubscriptionEditOperation")
+/**
+ * Subscription edit timing defined when the changes should take effect.
+ * If the provided configuration is not supported by the subscription, an error will be returned.
+ */
+@oneOf
+@friendlyName("SubscriptionTiming")
+union SubscriptionTiming {
+  Enum: SubscriptionTimingEnum,
+  Custom: DateTime,
+}
+
+/**
+ * Subscription edit timing.
+ * When immediate, the requested changes take effect immediately.
+ * When nextBillingCycle, the requested changes take effect at the next billing cycle.
+ */
+@friendlyName("SubscriptionTimingEnum")
+enum SubscriptionTimingEnum {
+  Immediate: "immediate",
+  NextBillingCycle: "next_billing_cycle",
+}
+
+/**
+ * The operation to be performed on the subscription.
+ */
 @oneOf
 @discriminator("op")
+@friendlyName("SubscriptionEditOperation")
 union SubscriptionEditOperation {
   EditSubscriptionAddItem,
   EditSubscriptionRemoveItem,
@@ -344,6 +417,9 @@ union SubscriptionEditOperation {
   EditSubscriptionStretchPhase,
 }
 
+/**
+ * Enum listing the different operation types.
+ */
 @friendlyName("EditOp")
 enum EditOp {
   AddItem: "add_item",

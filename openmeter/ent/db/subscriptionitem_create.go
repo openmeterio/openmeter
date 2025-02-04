@@ -128,6 +128,20 @@ func (sic *SubscriptionItemCreate) SetNillableEntitlementID(s *string) *Subscrip
 	return sic
 }
 
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (sic *SubscriptionItemCreate) SetRestartsBillingPeriod(b bool) *SubscriptionItemCreate {
+	sic.mutation.SetRestartsBillingPeriod(b)
+	return sic
+}
+
+// SetNillableRestartsBillingPeriod sets the "restarts_billing_period" field if the given value is not nil.
+func (sic *SubscriptionItemCreate) SetNillableRestartsBillingPeriod(b *bool) *SubscriptionItemCreate {
+	if b != nil {
+		sic.SetRestartsBillingPeriod(*b)
+	}
+	return sic
+}
+
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
 func (sic *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemCreate {
 	sic.mutation.SetActiveFromOverrideRelativeToPhaseStart(ds)
@@ -442,6 +456,10 @@ func (sic *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cr
 		_spec.SetField(subscriptionitem.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
+	if value, ok := sic.mutation.RestartsBillingPeriod(); ok {
+		_spec.SetField(subscriptionitem.FieldRestartsBillingPeriod, field.TypeBool, value)
+		_node.RestartsBillingPeriod = &value
+	}
 	if value, ok := sic.mutation.ActiveFromOverrideRelativeToPhaseStart(); ok {
 		_spec.SetField(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, field.TypeString, value)
 		_node.ActiveFromOverrideRelativeToPhaseStart = &value
@@ -685,6 +703,24 @@ func (u *SubscriptionItemUpsert) UpdateEntitlementID() *SubscriptionItemUpsert {
 // ClearEntitlementID clears the value of the "entitlement_id" field.
 func (u *SubscriptionItemUpsert) ClearEntitlementID() *SubscriptionItemUpsert {
 	u.SetNull(subscriptionitem.FieldEntitlementID)
+	return u
+}
+
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (u *SubscriptionItemUpsert) SetRestartsBillingPeriod(v bool) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldRestartsBillingPeriod, v)
+	return u
+}
+
+// UpdateRestartsBillingPeriod sets the "restarts_billing_period" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateRestartsBillingPeriod() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldRestartsBillingPeriod)
+	return u
+}
+
+// ClearRestartsBillingPeriod clears the value of the "restarts_billing_period" field.
+func (u *SubscriptionItemUpsert) ClearRestartsBillingPeriod() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldRestartsBillingPeriod)
 	return u
 }
 
@@ -1013,6 +1049,27 @@ func (u *SubscriptionItemUpsertOne) UpdateEntitlementID() *SubscriptionItemUpser
 func (u *SubscriptionItemUpsertOne) ClearEntitlementID() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearEntitlementID()
+	})
+}
+
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (u *SubscriptionItemUpsertOne) SetRestartsBillingPeriod(v bool) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetRestartsBillingPeriod(v)
+	})
+}
+
+// UpdateRestartsBillingPeriod sets the "restarts_billing_period" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateRestartsBillingPeriod() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateRestartsBillingPeriod()
+	})
+}
+
+// ClearRestartsBillingPeriod clears the value of the "restarts_billing_period" field.
+func (u *SubscriptionItemUpsertOne) ClearRestartsBillingPeriod() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearRestartsBillingPeriod()
 	})
 }
 
@@ -1537,6 +1594,27 @@ func (u *SubscriptionItemUpsertBulk) UpdateEntitlementID() *SubscriptionItemUpse
 func (u *SubscriptionItemUpsertBulk) ClearEntitlementID() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearEntitlementID()
+	})
+}
+
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (u *SubscriptionItemUpsertBulk) SetRestartsBillingPeriod(v bool) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetRestartsBillingPeriod(v)
+	})
+}
+
+// UpdateRestartsBillingPeriod sets the "restarts_billing_period" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateRestartsBillingPeriod() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateRestartsBillingPeriod()
+	})
+}
+
+// ClearRestartsBillingPeriod clears the value of the "restarts_billing_period" field.
+func (u *SubscriptionItemUpsertBulk) ClearRestartsBillingPeriod() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearRestartsBillingPeriod()
 	})
 }
 
