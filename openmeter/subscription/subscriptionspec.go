@@ -193,11 +193,14 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		return def, fmt.Errorf("phase %s has no recurring billables", phaseKey)
 	}
 
-	dur := recurringFlatBillables[0].RateCard.BillingCadence
+	dur, err := phase.GetBillingCadence()
+	if err != nil {
+		return def, fmt.Errorf("failed to get billing cadence for phase %s: %w", phaseKey, err)
+	}
 
 	// To find the period anchor, we need to know if any item serves as a reanchor point (RestartBillingPeriod)
 	reanchoringItems := lo.Filter(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) bool {
-		return *i.BillingBehaviorOverride.RestartBillingPeriod
+		return i.BillingBehaviorOverride.RestartBillingPeriod != nil && *i.BillingBehaviorOverride.RestartBillingPeriod
 	})
 
 	reanchoringItems = lo.UniqBy(reanchoringItems, func(i *SubscriptionItemSpec) *datex.Period { return i.ActiveFromOverrideRelativeToPhaseStart })
@@ -230,7 +233,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		}
 	}
 
-	recurrenceOfAnchor, err := recurrence.FromISODuration(dur, anchor)
+	recurrenceOfAnchor, err := recurrence.FromISODuration(&dur, anchor)
 	if err != nil {
 		return def, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 	}
@@ -238,6 +241,11 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 	period, err := recurrenceOfAnchor.GetPeriodAt(at)
 	if err != nil {
 		return def, fmt.Errorf("failed to get period at %s: %w", at, err)
+	}
+
+	// If the phase ends we have to truncate the period (this also includes the subscription end)
+	if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(period.To) {
+		period.To = *phaseCadence.ActiveTo
 	}
 
 	// If there's a reanchor we have to truncate the period
@@ -366,6 +374,31 @@ func (s SubscriptionPhaseSpec) HasBillables() bool {
 	return len(s.GetBillableItemsByKey()) > 0
 }
 
+func (s SubscriptionPhaseSpec) GetBillingCadence() (datex.Period, error) {
+	var def datex.Period
+
+	billables := s.GetBillableItemsByKey()
+
+	faltBillables := lo.Flatten(lo.Values(billables))
+	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
+		return i.RateCard.BillingCadence != nil
+	})
+
+	if len(recurringFlatBillables) == 0 {
+		return def, fmt.Errorf("phase %s has no recurring billables", s.PhaseKey)
+	}
+
+	durs := lo.Map(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) datex.Period {
+		return *i.RateCard.BillingCadence
+	})
+
+	if len(lo.Uniq(durs)) > 1 {
+		return def, fmt.Errorf("phase %s has multiple billing cadences", s.PhaseKey)
+	}
+
+	return durs[0], nil
+}
+
 func (s SubscriptionPhaseSpec) Validate(
 	phaseCadence models.CadencedModel,
 	alignment productcatalog.Alignment,
@@ -465,13 +498,19 @@ func (s SubscriptionPhaseSpec) Validate(
 			}
 		}
 
-		if len(lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
+		cadences := lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
 			return i.RateCard.BillingCadence != nil
 		}), func(i SubscriptionItemSpec) datex.Period {
 			return *i.RateCard.BillingCadence
-		})) > 1 {
+		})
+
+		if len(cadences) > 1 {
 			errs = append(errs, &AllowedDuringApplyingPatchesError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
 		}
+
+		// Some validations that might feel reasonable but are misleading:
+		//
+		// 1. The phase length doesn't have to be a multiple of the billing cadence. If an edit is done with resetanchor, alignment would drift either way. If a cancel or stretch is done, valid cancels and stretches would break this condition.
 	}
 
 	if len(errs) == 0 {

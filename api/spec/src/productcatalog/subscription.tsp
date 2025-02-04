@@ -249,6 +249,17 @@ model SubscriptionEdit {
    */
   @maxItems(100)
   customizations: SubscriptionEditOperation[];
+
+  /**
+   * Whether the billing period should be restarted.
+   */
+  // restartBillingPeriod?: boolean;
+
+  /**
+   * Timing configuration will later be available for the edit operation.
+   * Currently, timing can be edited on the patch level.
+   */
+  // timing: SubscriptionTiming;
 }
 
 /**

@@ -20,16 +20,12 @@ import (
 var timeInfinity = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 
 type PhaseIterator struct {
-	// subscriptionID is the ID of the subscription that is being iterated (used for unique ID generation)
-	subscriptionID string
-	// phaseKey is the key of the phase that is being iterated (used for unique ID generation)
-	phaseKey string
-	// phaseID is the database ID of the phase that is being iterated (used for DB references)
-	phaseID string
+	// sub is the Subscription
+	sub subscription.SubscriptionView
 	// phaseCadence is the cadence of the phase that is being iterated
 	phaseCadence models.CadencedModel
-
-	items [][]subscription.SubscriptionItemView
+	// phase is the phase that is being iterated
+	phase subscription.SubscriptionPhaseView
 }
 
 type subscriptionItemWithPeriod struct {
@@ -59,65 +55,31 @@ func (r subscriptionItemWithPeriod) PeriodPercentage() alpacadecimal.Decimal {
 }
 
 func NewPhaseIterator(subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {
+	phase, ok := subs.GetPhaseByKey(phaseKey)
+	if !ok {
+		return nil, fmt.Errorf("phase %s not found in subscription %s", phaseKey, subs.Subscription.ID)
+	}
+
+	if phase == nil {
+		return nil, fmt.Errorf("unexpected nil: phase %s not found in subscription %s", phaseKey, subs.Subscription.ID)
+	}
+
+	phaseCadence, err := subs.Spec.GetPhaseCadence(phaseKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate Cadence for phase %s: %w", phaseKey, err)
+	}
+
 	it := &PhaseIterator{
-		subscriptionID: subs.Subscription.ID,
-		phaseKey:       phaseKey,
+		sub:          subs,
+		phase:        *phase,
+		phaseCadence: phaseCadence,
 	}
 
-	return it, it.ResolvePhaseData(subs, phaseKey)
-}
-
-func (it *PhaseIterator) ResolvePhaseData(subs subscription.SubscriptionView, phaseKey string) error {
-	phaseCadence := models.CadencedModel{}
-	var currentPhase *subscription.SubscriptionPhaseView
-
-	slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
-		return timex.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
-	})
-
-	for i, phase := range subs.Phases {
-		if phase.SubscriptionPhase.Key == phaseKey {
-			phaseCadence.ActiveFrom = phase.SubscriptionPhase.ActiveFrom
-
-			if i < len(subs.Phases)-1 {
-				phaseCadence.ActiveTo = lo.ToPtr(subs.Phases[i+1].SubscriptionPhase.ActiveFrom)
-			}
-
-			currentPhase = &phase
-
-			break
-		}
-	}
-
-	if currentPhase == nil {
-		return fmt.Errorf("phase %s not found in subscription %s", phaseKey, subs.Subscription.ID)
-	}
-
-	it.phaseCadence = phaseCadence
-	it.phaseID = currentPhase.SubscriptionPhase.ID
-
-	it.items = make([][]subscription.SubscriptionItemView, 0, len(currentPhase.ItemsByKey))
-	for _, items := range currentPhase.ItemsByKey {
-		slices.SortFunc(items, func(i, j subscription.SubscriptionItemView) int {
-			return timex.Compare(i.SubscriptionItem.ActiveFrom, j.SubscriptionItem.ActiveFrom)
-		})
-
-		it.items = append(it.items, items)
-	}
-
-	return nil
+	return it, nil
 }
 
 func (it *PhaseIterator) HasInvoicableItems() bool {
-	for _, itemsByKey := range it.items {
-		for _, item := range itemsByKey {
-			if item.Spec.RateCard.Price != nil {
-				return true
-			}
-		}
-	}
-
-	return false
+	return it.phase.Spec.HasBillables()
 }
 
 func (it *PhaseIterator) PhaseEnd() *time.Time {
@@ -132,7 +94,7 @@ func (it *PhaseIterator) PhaseStart() time.Time {
 // yielding a line item)
 func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	minTime := timeInfinity
-	for _, itemsByKey := range it.items {
+	for _, itemsByKey := range it.phase.ItemsByKey {
 		for _, item := range itemsByKey {
 			if item.Spec.RateCard.Price == nil {
 				continue
@@ -172,9 +134,10 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 	return minTime
 }
 
+// TODO: rewrite so that periods are aligned!
 func (it *PhaseIterator) Generate(iterationEnd time.Time) ([]subscriptionItemWithPeriod, error) {
 	out := []subscriptionItemWithPeriod{}
-	for _, itemsByKey := range it.items {
+	for _, itemsByKey := range it.phase.ItemsByKey {
 		slices.SortFunc(itemsByKey, func(i, j subscription.SubscriptionItemView) int {
 			return timex.Compare(i.SubscriptionItem.ActiveFrom, j.SubscriptionItem.ActiveFrom)
 		})
@@ -227,15 +190,15 @@ func (it *PhaseIterator) Generate(iterationEnd time.Time) ([]subscriptionItemWit
 					},
 
 					UniqueID: strings.Join([]string{
-						it.subscriptionID,
-						it.phaseKey,
+						it.sub.Subscription.ID,
+						it.phase.Spec.PhaseKey,
 						item.Spec.ItemKey,
 						fmt.Sprintf("v[%d]", versionID),
 						fmt.Sprintf("period[%d]", periodID),
 					}, "/"),
 
 					NonTruncatedPeriod: nonTruncatedPeriod,
-					PhaseID:            it.phaseID,
+					PhaseID:            it.phase.SubscriptionPhase.ID,
 				}
 
 				out = append(out, generatedItem)
@@ -328,11 +291,11 @@ func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemV
 		Period:               period,
 		NonTruncatedPeriod:   period,
 		UniqueID: strings.Join([]string{
-			it.subscriptionID,
-			it.phaseKey,
+			it.sub.Subscription.ID,
+			it.phase.Spec.PhaseKey,
 			item.Spec.ItemKey,
 			fmt.Sprintf("v[%d]", versionID),
 		}, "/"),
-		PhaseID: it.phaseID,
+		PhaseID: it.phase.SubscriptionPhase.ID,
 	}, nil
 }

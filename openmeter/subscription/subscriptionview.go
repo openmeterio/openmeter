@@ -29,6 +29,15 @@ func (s SubscriptionView) AsSpec() SubscriptionSpec {
 	return s.Spec
 }
 
+func (s SubscriptionView) GetPhaseByKey(key string) (*SubscriptionPhaseView, bool) {
+	for _, phase := range s.Phases {
+		if phase.SubscriptionPhase.Key == key {
+			return &phase, true
+		}
+	}
+	return nil, false
+}
+
 func (s *SubscriptionView) Validate(includePhases bool) error {
 	spec := s.Spec
 	if spec.ActiveFrom.Compare(s.Subscription.ActiveFrom) != 0 {

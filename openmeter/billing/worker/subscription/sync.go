@@ -381,6 +381,20 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		},
 	}
 
+	// If there is no recurring price in the item's phase, we can't determine a billing period, so we can use the default periods used by the line
+	// TODO: subscriptionItemWithPeriod should be replaced with a different type where all this below logic is included existing state of item
+	itemBillingPeriod := item.Period
+
+	// If the sub is aligned, we attempt to create the line with aligned invoicing
+	if subs.Spec.Alignment.BillablesMustAlign {
+		// If the phase has a recurring alignment, we should use that
+		if per, err := subs.Spec.GetAlignedBillingPeriodAt(item.Spec.PhaseKey, item.Period.Start); err == nil {
+			// FIXME: there is no HARD GUARANTEE here that two subscriptionItemWithPeriod won't map to the same period!
+			itemBillingPeriod.Start = per.From
+			itemBillingPeriod.End = per.To
+		}
+	}
+
 	switch item.SubscriptionItem.RateCard.Price.Type() {
 	case productcatalog.FlatPriceType:
 		price, err := item.SubscriptionItem.RateCard.Price.AsFlat()
@@ -397,13 +411,15 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 
 		switch price.PaymentTerm {
 		case productcatalog.InArrearsPaymentTerm:
-			line.InvoiceAt = item.Period.End
+			line.InvoiceAt = itemBillingPeriod.End
 		case productcatalog.InAdvancePaymentTerm:
 			// In case of inAdvance we should always invoice at the start of the period and if there's a change
 			// prorating should void the item and credit the customer.
 			//
 			// Warning: We are not supporting voiding or crediting right now, so we are going to overcharge on
 			// inAdvance items in case of a change on a finalized invoice.
+
+			// For now let's invoice in advance items immediately
 			line.InvoiceAt = item.Period.Start
 		default:
 			return nil, fmt.Errorf("unsupported payment term: %v", price.PaymentTerm)
@@ -434,7 +450,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 		line.Type = billing.InvoiceLineTypeUsageBased
-		line.InvoiceAt = item.Period.End
+		line.InvoiceAt = itemBillingPeriod.End
 		line.UsageBased = &billing.UsageBasedLine{
 			Price:      item.SubscriptionItem.RateCard.Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.FeatureKey,

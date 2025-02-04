@@ -40,8 +40,8 @@ type subscriptionItemViewMock struct {
 	Key     string
 	Cadence string
 
-	ActiveFrom string
-	ActiveTo   string
+	StartAfter *datex.Period
+	EndAfter   *datex.Period
 
 	Type productcatalog.PriceType
 }
@@ -58,8 +58,9 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 		items       []subscriptionItemViewMock
 		end         time.Time
 		expected    []expectedIterations
+		expectedErr error
 		phaseEnd    *time.Time
-		expectError bool
+		alignedSub  bool
 	}{
 		{
 			name:     "empty",
@@ -187,12 +188,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					ActiveTo: "2021-01-02T00:00:00Z",
+					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					ActiveFrom: "2021-01-02T00:00:00Z",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 				},
 			},
 			end: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -215,12 +216,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					ActiveTo: "2021-01-02T20:00:00Z",
+					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					ActiveFrom: "2021-01-02T20:00:00Z",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
 				},
 			},
 			end: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -249,27 +250,27 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					ActiveTo: "2021-01-02T20:00:02Z",
+					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H2S")),
 					Type:     productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					ActiveFrom: "2021-01-02T20:00:02Z",
-					ActiveTo:   "2021-01-02T20:00:03Z",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H2S")),
+					EndAfter:   lo.ToPtr(datex.MustParse(s.T(), "P1DT20H3S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					ActiveFrom: "2021-01-02T20:00:03Z",
-					ActiveTo:   "2021-01-02T20:00:04Z",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H3S")),
+					EndAfter:   lo.ToPtr(datex.MustParse(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					ActiveFrom: "2021-01-02T20:00:04Z",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 			},
@@ -341,13 +342,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:      "item-key",
 					Type:     productcatalog.FlatPriceType,
 					Cadence:  "P1D",
-					ActiveTo: "2021-01-02T20:00:00Z",
+					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Type:       productcatalog.FlatPriceType,
 					Cadence:    "P1D",
-					ActiveFrom: "2021-01-02T20:00:00Z",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
 				},
 			},
 			end: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -371,14 +372,40 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			},
 		},
 		{
-			name: "flat-fee one-time, no phase end",
+			name: "aligned flat-fee recurring",
 			items: []subscriptionItemViewMock{
 				{
-					Key:  "item-key",
-					Type: productcatalog.FlatPriceType,
+					Key:      "item-key",
+					Type:     productcatalog.FlatPriceType,
+					Cadence:  "P1D",
+					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+				},
+				{
+					Key:        "item-key",
+					Type:       productcatalog.FlatPriceType,
+					Cadence:    "P1D",
+					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
 				},
 			},
-			expectError: false,
+			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			expected: []expectedIterations{
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[0]/period[0]",
+				},
+				{
+					Start:           s.mustParseTime("2021-01-02T00:00:00Z"),
+					End:             s.mustParseTime("2021-01-02T20:00:00Z"),
+					Key:             "subID/phase-test/item-key/v[0]/period[1]",
+					NonTruncatedEnd: s.mustParseTime("2021-01-03T00:00:00Z"),
+				},
+				{
+					Start: s.mustParseTime("2021-01-02T20:00:00Z"),
+					End:   s.mustParseTime("2021-01-03T20:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[1]/period[0]",
+				},
+			},
 		},
 	}
 
@@ -390,40 +417,68 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:        "phase-test",
 				},
 				ItemsByKey: map[string][]subscription.SubscriptionItemView{},
+				Spec: subscription.SubscriptionPhaseSpec{
+					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+						PhaseKey: "phase-test",
+					},
+					ItemsByKey: map[string][]*subscription.SubscriptionItemSpec{},
+				},
 			}
 
 			for _, item := range tc.items {
-				sitem := subscription.SubscriptionItemView{}
+				spec := subscription.SubscriptionItemSpec{
+					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+							ItemKey:  item.Key,
+							PhaseKey: "phase-test",
+						},
+					},
+				}
+				view := subscription.SubscriptionItemView{}
 
-				sitem.Spec.ItemKey = item.Key
+				var pp *productcatalog.Price
+
 				switch item.Type {
 				case productcatalog.UnitPriceType:
-					sitem.Spec.RateCard.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{})
+					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{})
 				case productcatalog.FlatPriceType:
-					sitem.Spec.RateCard.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{})
+					pp = productcatalog.NewPriceFrom(productcatalog.FlatPrice{})
 				case NoPriceType:
-					sitem.Spec.RateCard.Price = nil
+					pp = nil
 				default:
-					sitem.Spec.RateCard.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{})
+					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{})
 				}
+
+				spec.RateCard.Price = pp
+				view.SubscriptionItem.RateCard.Price = pp
 
 				if item.Cadence != "" {
-					sitem.Spec.RateCard.BillingCadence = lo.ToPtr(datex.MustParse(s.T(), item.Cadence))
+					bc := lo.ToPtr(datex.MustParse(s.T(), item.Cadence))
+
+					spec.RateCard.BillingCadence = bc
+					view.SubscriptionItem.RateCard.BillingCadence = bc
 				}
 
-				if item.ActiveFrom != "" {
-					sitem.SubscriptionItem.ActiveFrom = lo.Must(time.Parse(time.RFC3339, item.ActiveFrom))
+				if item.StartAfter != nil {
+					af, _ := item.StartAfter.AddTo(phase.SubscriptionPhase.ActiveFrom)
+					view.SubscriptionItem.ActiveFrom = af
+					spec.ActiveFromOverrideRelativeToPhaseStart = item.StartAfter
 				}
 
-				if item.ActiveTo != "" {
-					sitem.SubscriptionItem.ActiveTo = lo.ToPtr(lo.Must(time.Parse(time.RFC3339, item.ActiveTo)))
+				if item.EndAfter != nil {
+					at, _ := item.EndAfter.AddTo(phase.SubscriptionPhase.ActiveFrom)
+					view.SubscriptionItem.ActiveTo = &at
+					spec.ActiveToOverrideRelativeToPhaseStart = item.EndAfter
 				}
 
-				if sitem.SubscriptionItem.ActiveFrom.IsZero() {
-					sitem.SubscriptionItem.ActiveFrom = phase.SubscriptionPhase.ActiveFrom
+				if view.SubscriptionItem.ActiveFrom.IsZero() {
+					view.SubscriptionItem.ActiveFrom = phase.SubscriptionPhase.ActiveFrom
 				}
 
-				phase.ItemsByKey[sitem.Spec.ItemKey] = append(phase.ItemsByKey[sitem.Spec.ItemKey], sitem)
+				view.Spec = spec
+
+				phase.ItemsByKey[view.Spec.ItemKey] = append(phase.ItemsByKey[view.Spec.ItemKey], view)
+				phase.Spec.ItemsByKey[view.Spec.ItemKey] = append(phase.Spec.ItemsByKey[view.Spec.ItemKey], &spec)
 			}
 
 			subs := subscription.SubscriptionView{
@@ -432,15 +487,26 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 						ID: "subID",
 					},
 				},
+				Spec: subscription.SubscriptionSpec{
+					CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+						ActiveFrom: phase.SubscriptionPhase.ActiveFrom,
+					},
+					Phases: map[string]*subscription.SubscriptionPhaseSpec{
+						phase.SubscriptionPhase.Key: &phase.Spec,
+					},
+				},
 				Phases: []subscription.SubscriptionPhaseView{phase},
 			}
 
+			if tc.alignedSub {
+				subs.Subscription.BillablesMustAlign = true
+				subs.Spec.BillablesMustAlign = true
+			}
+
 			if tc.phaseEnd != nil {
-				subs.Phases = append(subs.Phases, subscription.SubscriptionPhaseView{
-					SubscriptionPhase: subscription.SubscriptionPhase{
-						ActiveFrom: *tc.phaseEnd,
-					},
-				})
+				subs.Spec.ActiveTo = tc.phaseEnd
+				subs.Subscription.ActiveTo = tc.phaseEnd
+				// Item activity is butched here
 			}
 
 			it, err := NewPhaseIterator(
@@ -450,12 +516,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			s.NoError(err)
 
 			out, err := it.Generate(tc.end)
-			if tc.expectError {
-				s.Error(err)
+
+			if tc.expectedErr != nil {
+				s.EqualError(err, tc.expectedErr.Error())
 				return
-			} else {
-				s.NoError(err)
 			}
+
+			s.NoError(err)
 
 			outAsExpect := make([]expectedIterations, 0, len(out))
 			for i, item := range out {
