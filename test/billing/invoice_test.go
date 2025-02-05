@@ -655,6 +655,56 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
 		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 0, "deleted gathering invoice is empty")
 	})
+
+	s.Run("When staging more lines the old gathering invoice gets reused", func() {
+		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+			billing.CreateInvoiceLinesInput{
+				Namespace: namespace,
+				Lines: []billing.LineWithCustomer{
+					{
+						Line: billing.Line{
+							LineBase: billing.LineBase{
+								Namespace: namespace,
+								Period:    billing.Period{Start: periodStart, End: periodEnd},
+
+								InvoiceAt: line1IssueAt,
+
+								Type:      billing.InvoiceLineTypeFee,
+								ManagedBy: billing.ManuallyManagedLine,
+
+								Name:     "Test item1",
+								Currency: currencyx.Code(currency.USD),
+
+								Metadata: map[string]string{
+									"key": "value",
+								},
+							},
+							FlatFee: &billing.FlatFeeLine{
+								PerUnitAmount: alpacadecimal.NewFromFloat(100),
+								Quantity:      alpacadecimal.NewFromFloat(1),
+								Category:      billing.FlatFeeCategoryRegular,
+								PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+							},
+						},
+						CustomerID: customerEntity.ID,
+					},
+				},
+			})
+
+		s.NoError(err)
+		s.Len(res, 1)
+
+		newPendingLine := res[0]
+		s.Equal(gatheringInvoiceID.ID, newPendingLine.InvoiceID)
+
+		// The gathering invoice is undeleted
+		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			Invoice: gatheringInvoiceID,
+			Expand:  billing.InvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Nil(gatheringInvoice.DeletedAt)
+	})
 }
 
 type draftInvoiceInput struct {

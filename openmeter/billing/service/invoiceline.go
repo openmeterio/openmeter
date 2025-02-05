@@ -81,21 +81,35 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 					lines := make(lineservice.Lines, 0, len(lineByCustomer))
 
-					// TODO[OM-949]: we should optimize this as this does O(n) queries for invoices per line
-					for i, line := range lineByCustomer {
-						updateResult, err := s.upsertLineInvoice(ctx, line.Line, input, customerProfile)
-						if err != nil {
-							return nil, fmt.Errorf("upserting line[%d]: %w", i, err)
+					invoicesByCurrency := make(map[currencyx.Code]upsertGatheringInvoiceForCurrencyResponse)
+
+					for _, line := range lineByCustomer {
+						currency := line.Line.Currency
+						if _, ok := invoicesByCurrency[currency]; ok {
+							continue
 						}
 
-						if updateResult.Invoice == nil {
+						res, err := s.upsertGatheringInvoiceForCurrency(ctx, currency, input, customerProfile)
+						if err != nil {
+							return nil, fmt.Errorf("upserting gathering invoice[currency=%s]: %w", currency, err)
+						}
+
+						invoicesByCurrency[currency] = *res
+					}
+
+					for i, line := range lineByCustomer {
+						targetInvoice := invoicesByCurrency[line.Line.Currency]
+
+						if targetInvoice.Invoice == nil {
 							return nil, fmt.Errorf("invoice not found for line[%d]", i)
 						}
 
 						invoiceID := billing.InvoiceID{
 							Namespace: input.Namespace,
-							ID:        updateResult.Invoice.ID,
+							ID:        targetInvoice.Invoice.ID,
 						}
+
+						line.InvoiceID = targetInvoice.Invoice.ID
 
 						// NOTE: invoices collected once at first encounter in order to make sure that the information
 						// (captured by IsInvoiceNew attribute) about newly created gathering invoices is kept.
@@ -105,16 +119,16 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 							upsertedInvoices[invoiceID] = UpsertedInvoiceWithProfile{
 								InvoiceID:       invoiceID,
 								CustomerProfile: customerProfile,
-								IsInvoiceNew:    updateResult.IsInvoiceNew,
+								IsInvoiceNew:    targetInvoice.IsInvoiceNew,
 							}
 						}
 
-						lineService, err := s.lineService.FromEntity(&updateResult.Line)
+						lineService, err := s.lineService.FromEntity(&line.Line)
 						if err != nil {
 							return nil, fmt.Errorf("creating line service[%d]: %w", i, err)
 						}
 
-						if err := lineService.Validate(ctx, updateResult.Invoice); err != nil {
+						if err := lineService.Validate(ctx, targetInvoice.Invoice); err != nil {
 							return nil, fmt.Errorf("validating line[%s]: %w", input.Lines[i].ID, err)
 						}
 
@@ -182,13 +196,12 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	})
 }
 
-type upsertLineInvoiceResponse struct {
-	Line         billing.Line
+type upsertGatheringInvoiceForCurrencyResponse struct {
 	Invoice      *billing.Invoice
 	IsInvoiceNew bool
 }
 
-func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, input billing.CreateInvoiceLinesInput, customerProfile *billing.ProfileWithCustomerDetails) (*upsertLineInvoiceResponse, error) {
+func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, input billing.CreateInvoiceLinesInput, customerProfile *billing.ProfileWithCustomerDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
 		Page: pagination.Page{
@@ -198,9 +211,10 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 		Customers:        []string{customerProfile.Customer.ID},
 		Namespaces:       []string{input.Namespace},
 		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
-		Currencies:       []currencyx.Code{line.Currency},
+		Currencies:       []currencyx.Code{currency},
 		OrderBy:          api.InvoiceOrderByCreatedAt,
 		Order:            sortx.OrderAsc,
+		IncludeDeleted:   true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("fetching gathering invoices: %w", err)
@@ -211,7 +225,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 			billing.SequenceGenerationInput{
 				Namespace:    input.Namespace,
 				CustomerName: customerProfile.Customer.Name,
-				Currency:     line.Currency,
+				Currency:     currency,
 			},
 			billing.GatheringInvoiceSequenceNumber)
 		if err != nil {
@@ -224,7 +238,7 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 			Customer:  customerProfile.Customer,
 			Profile:   customerProfile.Profile,
 			Number:    invoiceNumber,
-			Currency:  line.Currency,
+			Currency:  currency,
 			Status:    billing.InvoiceStatusGathering,
 			Type:      billing.InvoiceTypeStandard,
 		})
@@ -232,17 +246,11 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 			return nil, fmt.Errorf("creating invoice: %w", err)
 		}
 
-		line.InvoiceID = invoice.ID
-
-		return &upsertLineInvoiceResponse{
-			Line:         line,
+		return &upsertGatheringInvoiceForCurrencyResponse{
 			Invoice:      &invoice,
 			IsInvoiceNew: true,
 		}, nil
 	}
-
-	// Attach to the first pending invoice
-	line.InvoiceID = pendingInvoiceList.Items[0].ID
 
 	if len(pendingInvoiceList.Items) > 1 {
 		// Note: Given that we are not using serializable transactions (which is fine), we might
@@ -252,9 +260,18 @@ func (s *Service) upsertLineInvoice(ctx context.Context, line billing.Line, inpu
 		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", customerProfile.Customer.ID, "namespace", input.Namespace)
 	}
 
-	return &upsertLineInvoiceResponse{
-		Line:    line,
-		Invoice: &pendingInvoiceList.Items[0],
+	invoice := pendingInvoiceList.Items[0]
+	if invoice.DeletedAt != nil {
+		invoice.DeletedAt = nil
+
+		invoice, err = s.adapter.UpdateInvoice(ctx, invoice)
+		if err != nil {
+			return nil, fmt.Errorf("restoring deleted invoice[id=%s]: %w", invoice.ID, err)
+		}
+	}
+
+	return &upsertGatheringInvoiceForCurrencyResponse{
+		Invoice: &invoice,
 	}, nil
 }
 
