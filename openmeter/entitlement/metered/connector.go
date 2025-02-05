@@ -3,6 +3,7 @@ package meteredentitlement
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -65,6 +66,7 @@ type connector struct {
 
 	granularity time.Duration
 	publisher   eventbus.Publisher
+	logger      *slog.Logger
 }
 
 func NewMeteredEntitlementConnector(
@@ -75,6 +77,7 @@ func NewMeteredEntitlementConnector(
 	grantRepo grant.Repo,
 	entitlementRepo entitlement.EntitlementRepo,
 	publisher eventbus.Publisher,
+	logger *slog.Logger,
 ) Connector {
 	return &connector{
 		streamingConnector: streamingConnector,
@@ -88,6 +91,7 @@ func NewMeteredEntitlementConnector(
 		granularity: time.Minute,
 
 		publisher: publisher,
+		logger:    logger,
 	}
 }
 

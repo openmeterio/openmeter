@@ -56,9 +56,9 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			RetainAnchor: params.RetainAnchor,
 		}
 
-		if err := e.publisher.Publish(ctx, event); err != nil {
-			return nil, err
-		}
+		transaction.AddPostCommitHook(ctx, e.logger, func(ctx context.Context) error {
+			return e.publisher.Publish(ctx, event)
+		})
 
 		return &EntitlementBalance{
 			EntitlementID: entitlementID.ID,

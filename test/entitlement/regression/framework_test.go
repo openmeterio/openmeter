@@ -125,6 +125,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		grantRepo,
 		entitlementRepo,
 		mockPublisher,
+		log,
 	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
@@ -138,6 +139,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
 		mockPublisher,
+		log,
 	)
 
 	return Dependencies{

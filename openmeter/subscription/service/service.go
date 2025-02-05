@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/samber/lo"
@@ -29,6 +30,7 @@ type ServiceConfig struct {
 	Publisher          eventbus.Publisher
 	// External validations (optional)
 	Validators []subscription.SubscriptionValidator
+	Logger     *slog.Logger
 }
 
 func New(conf ServiceConfig) subscription.Service {
@@ -167,12 +169,11 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
-			SubscriptionView: view,
+		transaction.AddPostCommitHook(ctx, s.Logger, func(ctx context.Context) error {
+			return s.Publisher.Publish(ctx, subscription.CreatedEvent{
+				SubscriptionView: view,
+			})
 		})
-		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
-		}
 
 		// Return sub reference
 		return sub, nil
@@ -214,12 +215,11 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
-			UpdatedView: updatedView,
+		transaction.AddPostCommitHook(ctx, s.Logger, func(ctx context.Context) error {
+			return s.Publisher.Publish(ctx, subscription.UpdatedEvent{
+				UpdatedView: updatedView,
+			})
 		})
-		if err != nil {
-			return subs, fmt.Errorf("failed to publish event: %w", err)
-		}
 
 		return subs, nil
 	})
@@ -262,12 +262,11 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 		}
 
 		// Let's publish the event for the deletion
-		err = s.Publisher.Publish(ctx, subscription.DeletedEvent{
-			SubscriptionView: view,
+		transaction.AddPostCommitHook(ctx, s.Logger, func(ctx context.Context) error {
+			return s.Publisher.Publish(ctx, subscription.DeletedEvent{
+				SubscriptionView: view,
+			})
 		})
-		if err != nil {
-			return fmt.Errorf("failed to publish event: %w", err)
-		}
 
 		return nil
 	})
@@ -317,12 +316,11 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.CancelledEvent{
-			SubscriptionView: view,
+		transaction.AddPostCommitHook(ctx, s.Logger, func(ctx context.Context) error {
+			return s.Publisher.Publish(ctx, subscription.CancelledEvent{
+				SubscriptionView: view,
+			})
 		})
-		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
-		}
 
 		return sub, nil
 	})
@@ -372,12 +370,11 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.ContinuedEvent{
-			SubscriptionView: view,
+		transaction.AddPostCommitHook(ctx, s.Logger, func(ctx context.Context) error {
+			return s.Publisher.Publish(ctx, subscription.ContinuedEvent{
+				SubscriptionView: view,
+			})
 		})
-		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
-		}
 
 		return sub, nil
 	})

@@ -75,6 +75,7 @@ func NewSubscriptionServices(
 		TransactionManager:    subscriptionRepo,
 		Publisher:             eventPublisher,
 		Validators:            validators,
+		Logger:                logger.With("subsystem", "subscription.service"),
 	})
 
 	subscriptionWorkflowService := subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
