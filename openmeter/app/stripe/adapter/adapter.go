@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -24,6 +25,7 @@ type Config struct {
 	SecretService          secret.Service
 	StripeClientFactory    stripeclient.StripeClientFactory
 	StripeAppClientFactory stripeclient.StripeAppClientFactory
+	Logger                 *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -41,6 +43,10 @@ func (c Config) Validate() error {
 
 	if c.SecretService == nil {
 		return errors.New("secret service is required")
+	}
+
+	if c.Logger == nil {
+		return errors.New("logger is required")
 	}
 
 	return nil
@@ -66,6 +72,7 @@ func New(config Config) (appstripe.Adapter, error) {
 	// Create app stripe adapter
 	adapter := &adapter{
 		db:                     config.Client,
+		logger:                 config.Logger,
 		appService:             config.AppService,
 		customerService:        config.CustomerService,
 		secretService:          config.SecretService,
@@ -80,6 +87,8 @@ var _ appstripe.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	db *entdb.Client
+
+	logger *slog.Logger
 
 	appService             app.Service
 	customerService        customer.Service

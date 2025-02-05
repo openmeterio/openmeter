@@ -60,7 +60,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 	}
 
 	// Get the stripe app client
-	stripeAppData, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	stripeAppData, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID, "upsertStripeCustomerData", "customer_id", input.CustomerID.ID, "stripe_customer_id", input.StripeCustomerID)
 	if err != nil {
 		return fmt.Errorf("failed to get stripe app client: %w", err)
 	}
@@ -232,6 +232,7 @@ func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity
 		AppID:      input.AppID,
 		AppService: a.appService,
 		APIKey:     apiKeySecret.Value,
+		Logger:     a.logger.With("operation", "createStripeCustomer", "app_id", input.AppID.ID, "customer_id", input.CustomerID.ID),
 	})
 	if err != nil {
 		return appstripeentity.CreateStripeCustomerOutput{}, fmt.Errorf("failed to create stripe client: %w", err)

@@ -3,6 +3,7 @@ package appstripeentityapp
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	stripeapp "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -15,6 +16,8 @@ import (
 type App struct {
 	app.AppBase
 	appstripeentity.AppData
+
+	Logger *slog.Logger `json:"-"`
 
 	AppService             app.Service                         `json:"-"`
 	StripeAppClientFactory stripeclient.StripeAppClientFactory `json:"-"`
@@ -53,6 +56,10 @@ func (a App) Validate() error {
 
 	if a.SecretService == nil {
 		return errors.New("secret service is required")
+	}
+
+	if a.Logger == nil {
+		return errors.New("logger is required")
 	}
 
 	return nil

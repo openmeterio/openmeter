@@ -46,6 +46,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 	stripeClient, err := s.adapter.GetStripeClientFactory()(stripeclient.StripeClientConfig{
 		Namespace: input.Namespace,
 		APIKey:    input.APIKey,
+		Logger:    s.logger.With("operation", "installAppWithAPIKey", "namespace", input.Namespace, "app_name", input.Name),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stripe client: %w", err)
@@ -178,6 +179,7 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 			AppID:      input,
 			AppService: s.appService,
 			APIKey:     apiKeySecret.Value,
+			Logger:     s.logger.With("operation", "uninstalApp", "app_id", input.ID),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create stripe client")
@@ -216,6 +218,7 @@ func (s *Service) newApp(appBase app.AppBase, stripeApp appstripeentity.AppData)
 		StripeAppService:       s,
 		SecretService:          s.secretService,
 		StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),
+		Logger:                 s.logger,
 	}
 
 	if err := app.Validate(); err != nil {
