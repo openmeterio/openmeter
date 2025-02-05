@@ -667,6 +667,26 @@ func (biu *BillingInvoiceUpdate) SetNillableStatus(bs *billing.InvoiceStatus) *B
 	return biu
 }
 
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (biu *BillingInvoiceUpdate) SetStatusDetailsCache(bsd billing.InvoiceStatusDetails) *BillingInvoiceUpdate {
+	biu.mutation.SetStatusDetailsCache(bsd)
+	return biu
+}
+
+// SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
+func (biu *BillingInvoiceUpdate) SetNillableStatusDetailsCache(bsd *billing.InvoiceStatusDetails) *BillingInvoiceUpdate {
+	if bsd != nil {
+		biu.SetStatusDetailsCache(*bsd)
+	}
+	return biu
+}
+
+// ClearStatusDetailsCache clears the value of the "status_details_cache" field.
+func (biu *BillingInvoiceUpdate) ClearStatusDetailsCache() *BillingInvoiceUpdate {
+	biu.mutation.ClearStatusDetailsCache()
+	return biu
+}
+
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (biu *BillingInvoiceUpdate) SetWorkflowConfigID(s string) *BillingInvoiceUpdate {
 	biu.mutation.SetWorkflowConfigID(s)
@@ -1211,6 +1231,12 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if value, ok := biu.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := biu.mutation.StatusDetailsCache(); ok {
+		_spec.SetField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON, value)
+	}
+	if biu.mutation.StatusDetailsCacheCleared() {
+		_spec.ClearField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON)
 	}
 	if value, ok := biu.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
@@ -2064,6 +2090,26 @@ func (biuo *BillingInvoiceUpdateOne) SetNillableStatus(bs *billing.InvoiceStatus
 	return biuo
 }
 
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (biuo *BillingInvoiceUpdateOne) SetStatusDetailsCache(bsd billing.InvoiceStatusDetails) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetStatusDetailsCache(bsd)
+	return biuo
+}
+
+// SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
+func (biuo *BillingInvoiceUpdateOne) SetNillableStatusDetailsCache(bsd *billing.InvoiceStatusDetails) *BillingInvoiceUpdateOne {
+	if bsd != nil {
+		biuo.SetStatusDetailsCache(*bsd)
+	}
+	return biuo
+}
+
+// ClearStatusDetailsCache clears the value of the "status_details_cache" field.
+func (biuo *BillingInvoiceUpdateOne) ClearStatusDetailsCache() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearStatusDetailsCache()
+	return biuo
+}
+
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (biuo *BillingInvoiceUpdateOne) SetWorkflowConfigID(s string) *BillingInvoiceUpdateOne {
 	biuo.mutation.SetWorkflowConfigID(s)
@@ -2638,6 +2684,12 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if value, ok := biuo.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := biuo.mutation.StatusDetailsCache(); ok {
+		_spec.SetField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON, value)
+	}
+	if biuo.mutation.StatusDetailsCacheCleared() {
+		_spec.ClearField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON)
 	}
 	if value, ok := biuo.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)

@@ -110,6 +110,8 @@ type BillingInvoice struct {
 	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
 	Status billing.InvoiceStatus `json:"status,omitempty"`
+	// StatusDetailsCache holds the value of the "status_details_cache" field.
+	StatusDetailsCache billing.InvoiceStatusDetails `json:"status_details_cache,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// TaxAppID holds the value of the "tax_app_id" field.
@@ -259,7 +261,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoice.FieldMetadata, billinginvoice.FieldCustomerUsageAttribution:
+		case billinginvoice.FieldMetadata, billinginvoice.FieldCustomerUsageAttribution, billinginvoice.FieldStatusDetailsCache:
 			values[i] = new([]byte)
 		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
@@ -565,6 +567,14 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				bi.Status = billing.InvoiceStatus(value.String)
+			}
+		case billinginvoice.FieldStatusDetailsCache:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field status_details_cache", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bi.StatusDetailsCache); err != nil {
+					return fmt.Errorf("unmarshal field status_details_cache: %w", err)
+				}
 			}
 		case billinginvoice.FieldWorkflowConfigID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -881,6 +891,9 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", bi.Status))
+	builder.WriteString(", ")
+	builder.WriteString("status_details_cache=")
+	builder.WriteString(fmt.Sprintf("%v", bi.StatusDetailsCache))
 	builder.WriteString(", ")
 	builder.WriteString("workflow_config_id=")
 	builder.WriteString(bi.WorkflowConfigID)

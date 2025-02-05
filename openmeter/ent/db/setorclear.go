@@ -587,6 +587,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearDueAt(value *time.Time) *BillingInvo
 	return u.SetDueAt(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearStatusDetailsCache(value *billing.InvoiceStatusDetails) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearStatusDetailsCache()
+	}
+	return u.SetStatusDetailsCache(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearStatusDetailsCache(value *billing.InvoiceStatusDetails) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearStatusDetailsCache()
+	}
+	return u.SetStatusDetailsCache(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearInvoicingAppExternalID(value *string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearInvoicingAppExternalID()

@@ -71,6 +71,19 @@ func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.Invoi
 }
 
 func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
+	if invoice.Status == billing.InvoiceStatusGathering {
+		// Let's use the default and recalculateGatheringInvoice will fix the gaps
+		invoice.StatusDetails = gatheringInvoiceStatusDetails
+		return invoice, nil
+	}
+
+	// If we are not in a time sensitive state and the status details is not empty, we can return the invoice as is, so we
+	// don't have to lock the invoice in the DB
+	if !lo.IsEmpty(invoice.StatusDetails) &&
+		invoice.Status != billing.InvoiceStatusDraftWaitingAutoApproval { // The status details depends on the current time, so we should recalculate
+		return invoice, nil
+	}
+
 	// let's resolve the statatus details (the invoice state machine has this side-effect after the callback)
 	resolvedInvoice, err := s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, sm *InvoiceStateMachine) error {
 		return nil
