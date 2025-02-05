@@ -36,7 +36,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 	}
 
 	// Stripe Client
-	stripeAppData, stripeClient, err := a.getStripeClient(ctx)
+	stripeAppData, stripeClient, err := a.getStripeClient(ctx, "validateCustomer", "customer_id", customerID.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get stripe client: %w", err)
 	}

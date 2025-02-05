@@ -176,6 +176,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) {
 			return stripeAppClientMock, nil
 		},
+		Logger: logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)

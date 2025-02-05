@@ -74,6 +74,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) {
 			return stripeAppClient, nil
 		},
+		Logger: slog.Default(),
 	})
 	s.Require().NoError(err, "failed to create app stripe adapter")
 
