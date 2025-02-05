@@ -114,6 +114,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		grantRepo,
 		entitlementRepo,
 		mockPublisher,
+		testLogger,
 	)
 
 	return connector, &dependencies{

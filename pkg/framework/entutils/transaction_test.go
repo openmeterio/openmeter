@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -422,6 +423,162 @@ func TestTransaction(t *testing.T) {
 				ent3, err := db1Adapter.Get(ctx, "3")
 				assert.Nil(t, err)
 				assert.NotNil(t, ent3)
+			},
+		},
+		// Transaction hooks
+		{
+			name: "Non-transactional context results in immiediate execution (failsafe for now)",
+			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
+				ctx := context.Background()
+
+				called := false
+				transaction.AddPostCommitHook(ctx, slog.Default(), func(ctx context.Context) error {
+					called = true
+					return nil
+				})
+
+				assert.True(t, called)
+			},
+		},
+		{
+			name: "Failed post commit hook should not prevent transaction from happening",
+			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
+				ctx := context.Background()
+
+				logger := slog.Default()
+
+				calledMap := map[string]bool{
+					"hook1": false,
+				}
+
+				// start outer transaction
+				_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+					tx, err := entutils.GetDriverFromContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// do something in outer transaction first
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "1",
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+						calledMap["hook1"] = true
+						return fmt.Errorf("hook1 failed")
+					})
+
+					return nil, err
+				})
+				if err != nil {
+					t.Fatalf("failed to run transaction %s", err)
+				}
+
+				ent1, err := db1Adapter.Get(ctx, "1")
+				assert.Nil(t, err)
+				assert.NotNil(t, ent1)
+
+				assert.Equal(t, map[string]bool{
+					"hook1": true,
+				}, calledMap)
+			},
+		},
+		{
+			name: "Should call transaction hooks only for non-rolled-back parts of the transaction",
+			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
+				ctx := context.Background()
+
+				logger := slog.Default()
+
+				calledMap := map[string]bool{
+					"hook1": false,
+					"hook2": false,
+					"hook3": false,
+				}
+
+				// start outer transaction
+				_, err := transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+					tx, err := entutils.GetDriverFromContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					// do something in outer transaction first
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "1",
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+						calledMap["hook1"] = true
+						return nil
+					})
+
+					// start inner transaction
+					_, err = transaction.Run(ctx, db1Adapter, func(ctx context.Context) (*interface{}, error) {
+						tx, err := entutils.GetDriverFromContext(ctx)
+						if err != nil {
+							t.Fatal(err)
+						}
+						// do something else in the inner transaction
+						_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+							ID: "2",
+						})
+						if err != nil {
+							return nil, err
+						}
+
+						transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+							calledMap["hook2"] = true
+							return nil
+						})
+
+						return nil, fmt.Errorf("lets roll back")
+					})
+
+					// we assert for this error but then continue execution as if nothing happened
+					assert.Equal(t, "lets roll back", err.Error())
+
+					// do a third thing
+					_, err = db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
+						ID: "3",
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+						calledMap["hook3"] = true
+						return nil
+					})
+
+					return nil, err
+				})
+				if err != nil {
+					t.Fatalf("failed to run transaction %s", err)
+				}
+
+				ent1, err := db1Adapter.Get(ctx, "1")
+				assert.Nil(t, err)
+				assert.NotNil(t, ent1)
+
+				// validate that middle item was rolled back
+				ent2, err := db1Adapter.Get(ctx, "2")
+				assert.True(t, db1.IsNotFound(err))
+				assert.Nil(t, ent2)
+
+				ent3, err := db1Adapter.Get(ctx, "3")
+				assert.Nil(t, err)
+				assert.NotNil(t, ent3)
+
+				assert.Equal(t, map[string]bool{
+					"hook1": true,
+					"hook2": false,
+					"hook3": true,
+				}, calledMap)
 			},
 		},
 	}

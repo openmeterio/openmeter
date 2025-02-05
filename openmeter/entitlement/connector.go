@@ -3,6 +3,7 @@ package entitlement
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/samber/lo"
@@ -92,6 +93,7 @@ type entitlementConnector struct {
 	meterRepo        meter.Repository
 
 	publisher eventbus.Publisher
+	logger    *slog.Logger
 }
 
 func NewEntitlementConnector(
@@ -102,6 +104,7 @@ func NewEntitlementConnector(
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
 	publisher eventbus.Publisher,
+	logger *slog.Logger,
 ) Connector {
 	return &entitlementConnector{
 		meteredEntitlementConnector: meteredEntitlementConnector,
@@ -111,6 +114,7 @@ func NewEntitlementConnector(
 		featureConnector:            featureConnector,
 		meterRepo:                   meterRepo,
 		publisher:                   publisher,
+		logger:                      logger,
 	}
 }
 
@@ -165,15 +169,14 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, EntitlementDeletedEvent{
-			Entitlement: *ent,
-			Namespace: eventmodels.NamespaceID{
-				ID: namespace,
-			},
+		transaction.AddPostCommitHook(ctx, c.logger, func(ctx context.Context) error {
+			return c.publisher.Publish(ctx, EntitlementDeletedEvent{
+				Entitlement: *ent,
+				Namespace: eventmodels.NamespaceID{
+					ID: namespace,
+				},
+			})
 		})
-		if err != nil {
-			return nil, err
-		}
 
 		return ent, nil
 	}
