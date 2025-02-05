@@ -460,6 +460,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetMetadata(in.Metadata).
 			// Currency is immutable
 			SetStatus(in.Status).
+			SetOrClearStatusDetailsCache(lo.EmptyableToPtr(in.StatusDetails)).
 			// Type is immutable
 			SetNumber(in.Number).
 			SetOrClearDescription(in.Description).
@@ -668,6 +669,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 			Metadata:         invoice.Metadata,
 			Currency:         invoice.Currency,
 			Status:           invoice.Status,
+			StatusDetails:    invoice.StatusDetailsCache,
 			Type:             invoice.Type,
 			Number:           invoice.Number,
 			Description:      invoice.Description,
