@@ -2,6 +2,8 @@ package subscription
 
 import (
 	"fmt"
+	"log/slog"
+	"runtime/debug"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -88,6 +90,84 @@ func (c Timing) ResolveForSpec(spec SubscriptionSpec) (time.Time, error) {
 	}
 
 	return def, fmt.Errorf("no logical branch entered")
+}
+
+func (c Timing) ValidateForAction(action SubscriptionAction, subView *SubscriptionView) error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
+	switch action {
+	case SubscriptionAction("any"):
+		return nil
+	case SubscriptionActionUpdate:
+		if subView == nil {
+			return fmt.Errorf("missing subscription view")
+		}
+
+		if c.Custom != nil {
+			return &models.GenericUserError{Inner: fmt.Errorf("cannot edit running subscription with custom timing")}
+		}
+
+		currentTime := clock.Now()
+		editTime, err := c.ResolveForSpec(subView.Spec)
+		if err != nil {
+			return fmt.Errorf("failed to resolve timing: %w", err)
+		}
+
+		// As we're possibly time-traveling, we need to set some constraints on what times we can travel to, otherwise, well, we know from sci-fi movies what happens
+		if editTime.Before(currentTime) {
+			return &models.GenericUserError{Inner: fmt.Errorf("cannot execute edits in the past")}
+		}
+
+		currentPhase, currentPhaseExists := subView.Spec.GetCurrentPhaseAt(currentTime)
+		editPhase, editPhaseExists := subView.Spec.GetCurrentPhaseAt(editTime)
+
+		if currentPhaseExists && editPhaseExists && currentPhase.PhaseKey != editPhase.PhaseKey {
+			// Let's check if this happens due to a known cause. If so, we can return a more user-friendly error
+			if c.Enum != nil && *c.Enum == TimingNextBillingCycle {
+				return &models.GenericUserError{Inner: fmt.Errorf("cannot edit to the next billing cycle as it falls into a different phase")}
+			}
+
+			// If not, we return a generic error
+			return &models.GenericUserError{Inner: fmt.Errorf("cannot time-travel to edit a different phase")}
+		}
+
+	case SubscriptionActionCreate:
+		if c.Enum != nil && *c.Enum == TimingImmediate {
+			return nil
+		}
+
+		tolerance := 2 * time.Minute
+
+		if c.Custom != nil {
+			if c.Custom.Before(clock.Now().Add(-tolerance)) {
+				return &models.GenericUserError{Inner: fmt.Errorf("cannot create subscription in the past")}
+			}
+
+			return nil
+		}
+
+	case SubscriptionActionCancel:
+		if subView == nil {
+			return fmt.Errorf("missing subscription view")
+		}
+
+		if subView.Subscription.Alignment.BillablesMustAlign && c.Custom != nil {
+			return &models.GenericUserError{Inner: fmt.Errorf("cannot cancel aligned subscription with custom timing")}
+		}
+
+		if !subView.Subscription.Alignment.BillablesMustAlign && c.Enum != nil && *c.Enum == TimingNextBillingCycle {
+			return &models.GenericUserError{Inner: fmt.Errorf("cannot cancel misaligned subscription with next_billing_cycle timing")}
+		}
+
+	default:
+		slog.Default().Warn("timing called with unsupported action", slog.Any("action", action), slog.String("stack", string(debug.Stack())))
+
+		return nil
+	}
+
+	return nil
 }
 
 type TimingEnum string

@@ -254,12 +254,10 @@ model SubscriptionEdit {
    * Whether the billing period should be restarted.
    */
   // restartBillingPeriod?: boolean;
-
   /**
-   * Timing configuration will later be available for the edit operation.
-   * Currently, timing can be edited on the patch level.
+   * Timing configuration to allow for the changes to take effect at different times.
    */
-  // timing: SubscriptionTiming;
+  timing?: SubscriptionTiming;
 }
 
 /**

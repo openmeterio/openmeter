@@ -471,7 +471,7 @@ func TestPlan(t *testing.T) {
 		require.NotEmpty(t, subscriptionId)
 
 		ct := &api.SubscriptionTiming{}
-		require.NoError(t, ct.FromSubscriptionTiming1(time.Now().Add(time.Hour).UTC()))
+		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnum("next_billing_cycle")))
 
 		apiRes, err := client.CancelSubscriptionWithResponse(ctx, subscriptionId, api.CancelSubscriptionJSONRequestBody{
 			Timing: ct,
@@ -543,7 +543,6 @@ func TestPlan(t *testing.T) {
 	})
 
 	var migratedSubscriptionId string
-	var migratedSubView api.SubscriptionExpanded
 
 	t.Run("Should migrate the subscription to a newer version", func(t *testing.T) {
 		require.NotNil(t, subscriptionId)
@@ -562,7 +561,6 @@ func TestPlan(t *testing.T) {
 		require.NotEqual(t, subscriptionId, *apiRes.JSON200.Next.Id)
 
 		migratedSubscriptionId = *apiRes.JSON200.Next.Id
-		migratedSubView = apiRes.JSON200.Next
 
 		require.Equal(t, 3, len(apiRes.JSON200.Next.Phases))
 		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.Next.Phases[2].Key)
@@ -574,7 +572,7 @@ func TestPlan(t *testing.T) {
 		req := api.SubscriptionChange{}
 
 		ct := &api.SubscriptionTiming{}
-		require.NoError(t, ct.FromSubscriptionTiming1(migratedSubView.ActiveFrom.Add(time.Minute)))
+		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnum("immediate")))
 
 		err := req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
 			Timing:     *ct,

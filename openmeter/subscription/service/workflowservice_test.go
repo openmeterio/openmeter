@@ -114,7 +114,7 @@ func TestEditRunning(t *testing.T) {
 				_, err := deps.WorkflowService.EditRunning(ctx, models.NamespacedID{
 					ID:        "nonexistent-subscription",
 					Namespace: subscriptiontestutils.ExampleNamespace,
-				}, nil)
+				}, nil, immediate)
 
 				assert.ErrorAs(t, err, lo.ToPtr(&subscription.NotFoundError{}), "expected subscription not found error, got %T", err)
 			},
@@ -125,7 +125,7 @@ func TestEditRunning(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 
-				subView, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, nil)
+				subView, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, nil, immediate)
 				assert.Nil(t, err)
 
 				assert.Equal(t, deps.SubView, subView)
@@ -145,7 +145,7 @@ func TestEditRunning(t *testing.T) {
 					},
 				}
 
-				_, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{&invalidPatch})
+				_, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{&invalidPatch}, immediate)
 				assert.ErrorContains(t, err, errorMsg, "expected error message to contain %q, got %v", errorMsg, err)
 			},
 		},
@@ -193,6 +193,7 @@ func TestEditRunning(t *testing.T) {
 					ctx,
 					deps.SubView.Subscription.NamespacedID,
 					[]subscription.Patch{&patch1, &patch2},
+					immediate,
 				)
 				assert.ErrorContains(t, err, errMSg, "expected error message to contain %q, got %v", errMSg, err)
 			},
@@ -247,7 +248,7 @@ func TestEditRunning(t *testing.T) {
 					TransactionManager: tuDeps.CustomerAdapter,
 				})
 
-				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1})
+				_, err := workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
 				assert.Nil(t, err)
 			},
 		},
@@ -345,7 +346,7 @@ func TestEditingCurrentPhase(t *testing.T) {
 						PhaseKey: second_phase_key,
 						ItemKey:  item_key,
 					},
-				})
+				}, immediate)
 				require.Nil(t, err)
 				require.NotNil(t, s)
 
@@ -405,7 +406,7 @@ func TestEditingCurrentPhase(t *testing.T) {
 						PhaseKey: second_phase_key,
 						ItemKey:  item_key,
 					},
-				})
+				}, immediate)
 				require.Nil(t, err)
 				require.NotNil(t, s)
 
@@ -462,6 +463,255 @@ func TestEditingCurrentPhase(t *testing.T) {
 			services, deps := subscriptiontestutils.NewService(t, dbDeps)
 			deps.FeatureConnector.CreateExampleFeature(t)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+
+			// Let's create an example subscription
+			sub, err := services.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &tcDeps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: cust.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, plan)
+			require.Nil(t, err)
+
+			tcDeps.SubView = sub
+			tcDeps.Customer = *cust
+			tcDeps.DBDeps = dbDeps
+			tcDeps.Service = services.Service
+			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Plan = plan
+			tcDeps.ItemRepo = deps.ItemRepo
+			tcDeps.EntReg = deps.EntitlementRegistry
+
+			tc.Handler(t, tcDeps)
+		})
+	}
+}
+
+func TestEditingWithTiming(t *testing.T) {
+	type testCaseDeps struct {
+		CurrentTime     time.Time
+		SubView         subscription.SubscriptionView
+		Customer        customer.Customer
+		WorkflowService subscription.WorkflowService
+		Service         subscription.Service
+		ItemRepo        subscription.SubscriptionItemRepository
+		DBDeps          *subscriptiontestutils.DBDeps
+		Plan            subscription.Plan
+		EntReg          *registry.Entitlement
+	}
+	testCases := []struct {
+		Name      string
+		IsAligned bool
+		Handler   func(t *testing.T, deps testCaseDeps)
+	}{
+		{
+			Name: "Should error when trying to time to next_billing_cycle in a non-aligned Subscription",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				second_phase_key := "test_phase_2"
+				item_key := "rate-card-2"
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Let's assert we have two items in the second phase
+				require.GreaterOrEqual(t, len(deps.SubView.Phases), 2, "expected at least two phases")
+				require.GreaterOrEqual(t, len(deps.SubView.Phases[1].ItemsByKey), 2, "expected at least two items in the second phase")
+				require.Equal(t, second_phase_key, deps.SubView.Phases[1].SubscriptionPhase.Key, "expected the second phase to be of known key")
+				itOrigi, ok := deps.SubView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				require.Len(t, itOrigi, 1, "expected one item to be present")
+
+				// Let's assert the second phase starts when we expect it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 1, 0), deps.SubView.Phases[1].SubscriptionPhase.ActiveFrom, "expected the second phase to start in a month")
+
+				// Let's advance the clock into the 2nd phase where we have two items
+				currentTime := deps.CurrentTime.AddDate(0, 1, 1)
+				clock.SetTime(currentTime)
+				defer clock.ResetTime()
+
+				// Let's remove the item without feature & entitlement at the end of the billingcycle
+				_, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchRemoveItem{
+						PhaseKey: second_phase_key,
+						ItemKey:  item_key,
+					},
+				}, subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+				})
+				require.Error(t, err)
+
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}), "expected error to be of type models.GenericUserError")
+				require.ErrorContains(t, err, "next_billing_cycle is not supported for non-aligned subscriptions", "expected error to be about non-aligned subscriptions, while it was: %v", err)
+			},
+		},
+		{
+			Name:      "Should error when trying to time to next_billing_cycle when that falls into a different phase (ergo no next billingcycle in the current phase)",
+			IsAligned: true,
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				second_phase_key := "test_phase_2"
+				item_key := "rate-card-2"
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Let's assert we have two items in the second phase
+				require.GreaterOrEqual(t, len(deps.SubView.Phases), 3, "expected at least three phases")
+				require.GreaterOrEqual(t, len(deps.SubView.Phases[1].ItemsByKey), 2, "expected at least two items in the second phase")
+				require.Equal(t, second_phase_key, deps.SubView.Phases[1].SubscriptionPhase.Key, "expected the second phase to be of known key")
+				itOrigi, ok := deps.SubView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				require.Len(t, itOrigi, 1, "expected one item to be present")
+
+				// Let's assert the second phase starts when we expect it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 1, 0), deps.SubView.Phases[1].SubscriptionPhase.ActiveFrom, "expected the second phase to start in a month")
+
+				// Let's assert that the third phase starts when we expct it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 3, 0), deps.SubView.Phases[2].SubscriptionPhase.ActiveFrom, "expected the third phase to start in 3 months")
+
+				// Let's advance the clock into the 2nd cycle of the 2nd phase where we have two items
+				currentTime := deps.CurrentTime.AddDate(0, 2, 1)
+				clock.SetTime(currentTime)
+				defer clock.ResetTime()
+
+				// Let's remove the item without feature & entitlement at the end of the billingcycle
+				_, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchRemoveItem{
+						PhaseKey: second_phase_key,
+						ItemKey:  item_key,
+					},
+				}, subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+				})
+				require.Error(t, err)
+
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}), "expected error to be of type models.GenericUserError")
+				require.ErrorContains(t, err, "cannot edit to the next billing cycle as it falls into a different phase", "expected error to be about next billing cycle, while it was: %v", err)
+			},
+		},
+		{
+			Name:      "Should error when trying to time to a specified time",
+			IsAligned: true,
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				second_phase_key := "test_phase_2"
+				item_key := "rate-card-2"
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Let's assert we have two items in the second phase
+				require.GreaterOrEqual(t, len(deps.SubView.Phases), 3, "expected at least three phases")
+				require.GreaterOrEqual(t, len(deps.SubView.Phases[1].ItemsByKey), 2, "expected at least two items in the second phase")
+				require.Equal(t, second_phase_key, deps.SubView.Phases[1].SubscriptionPhase.Key, "expected the second phase to be of known key")
+				itOrigi, ok := deps.SubView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				require.Len(t, itOrigi, 1, "expected one item to be present")
+
+				// Let's assert the second phase starts when we expect it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 1, 0), deps.SubView.Phases[1].SubscriptionPhase.ActiveFrom, "expected the second phase to start in a month")
+
+				// Let's assert that the third phase starts when we expct it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 3, 0), deps.SubView.Phases[2].SubscriptionPhase.ActiveFrom, "expected the third phase to start in 3 months")
+
+				// Let's advance the clock into the 2nd cycle of the 2nd phase where we have two items
+				currentTime := deps.CurrentTime.AddDate(0, 1, 1)
+				clock.SetTime(currentTime)
+				defer clock.ResetTime()
+
+				// Let's remove the item without feature & entitlement at the end of the billingcycle
+				_, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchRemoveItem{
+						PhaseKey: second_phase_key,
+						ItemKey:  item_key,
+					},
+				}, subscription.Timing{
+					Custom: lo.ToPtr(currentTime.Add(time.Hour)),
+				})
+				require.Error(t, err)
+
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}), "expected error to be of type models.GenericUserError")
+				require.ErrorContains(t, err, "cannot edit running subscription with custom timing", "expected error to be about custom timing, while it was: %v", err)
+			},
+		},
+		{
+			Name:      "Should edit with the start of the next billing cycle",
+			IsAligned: true,
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				second_phase_key := "test_phase_2"
+				item_key := "rate-card-2"
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Let's assert we have two items in the second phase
+				require.GreaterOrEqual(t, len(deps.SubView.Phases), 3, "expected at least three phases")
+				require.GreaterOrEqual(t, len(deps.SubView.Phases[1].ItemsByKey), 2, "expected at least two items in the second phase")
+				require.Equal(t, second_phase_key, deps.SubView.Phases[1].SubscriptionPhase.Key, "expected the second phase to be of known key")
+				itOrigi, ok := deps.SubView.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+				require.Len(t, itOrigi, 1, "expected one item to be present")
+
+				// Let's assert the second phase starts when we expect it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 1, 0), deps.SubView.Phases[1].SubscriptionPhase.ActiveFrom, "expected the second phase to start in a month")
+
+				// Let's assert that the third phase starts when we expct it to
+				require.Equal(t, deps.CurrentTime.AddDate(0, 3, 0), deps.SubView.Phases[2].SubscriptionPhase.ActiveFrom, "expected the third phase to start in 3 months")
+
+				// Let's advance the clock into the 2nd cycle of the 2nd phase where we have two items
+				currentTime := deps.CurrentTime.AddDate(0, 1, 1)
+				clock.SetTime(currentTime)
+				defer clock.ResetTime()
+
+				// Let's remove the item without feature & entitlement at the end of the billingcycle
+				view, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchRemoveItem{
+						PhaseKey: second_phase_key,
+						ItemKey:  item_key,
+					},
+				}, subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+				})
+				require.NoError(t, err)
+
+				expectedEditTime := deps.CurrentTime.AddDate(0, 2, 0)
+
+				// Let's validate that the removed item is present until that point
+				items, ok := view.Phases[1].ItemsByKey[item_key]
+				require.True(t, ok, "expected item to be present in the second phase")
+
+				assert.Len(t, items, 1, "expected one item to be present")
+				testutils.TimeEqualsApproximately(t, expectedEditTime, *items[0].SubscriptionItem.ActiveTo, time.Second)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup(t)
+
+			services, deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeature(t)
+			planInput := subscriptiontestutils.GetExamplePlanInput(t)
+
+			if tc.IsAligned {
+				planInput.Plan.Alignment.BillablesMustAlign = true
+			}
+
+			plan := deps.PlanHelper.CreatePlan(t, planInput)
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
 
@@ -792,7 +1042,7 @@ func TestEditCombinations(t *testing.T) {
 			// Let 5 minutes pass
 			clock.SetTime(deps.CurrentTime.Add(5 * time.Minute))
 
-			_, err = deps.WorkflowService.EditRunning(ctx, sub.Subscription.NamespacedID, edits)
+			_, err = deps.WorkflowService.EditRunning(ctx, sub.Subscription.NamespacedID, edits, immediate)
 			require.Nil(t, err)
 
 			// Now let's fetch the view
@@ -810,4 +1060,8 @@ func TestEditCombinations(t *testing.T) {
 			require.Equal(t, subscription.SubscriptionStatusInactive, s.GetStatusAt(clock.Now()))
 		})
 	})
+}
+
+var immediate = subscription.Timing{
+	Enum: lo.ToPtr(subscription.TimingImmediate),
 }

@@ -202,6 +202,8 @@ func TestEditingAndCanceling(t *testing.T) {
 				},
 			},
 		},
+	}, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
 	})
 	require.NoError(t, err)
 

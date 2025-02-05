@@ -782,7 +782,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -859,7 +859,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -955,7 +955,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1052,7 +1052,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1180,7 +1180,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1323,7 +1323,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1496,7 +1496,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				},
 			},
 		},
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 
 	// Now let's synchronize the subscription
@@ -1786,7 +1786,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1952,7 +1952,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -2116,7 +2116,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -2329,7 +2329,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
@@ -2823,7 +2823,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 			TaxConfig:      taxConfig,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -3098,6 +3098,12 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlan(planInput plan
 	s.NoError(err)
 	s.NotNil(subsView)
 	return subsView
+}
+
+func (s *SubscriptionHandlerTestSuite) timingImmediate() subscription.Timing {
+	return subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	}
 }
 
 func getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {

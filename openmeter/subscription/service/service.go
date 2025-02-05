@@ -289,7 +289,7 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 	spec := view.AsSpec()
 
 	// Let's try to decode when the subscription should be canceled
-	if err := timing.Validate(); err != nil {
+	if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &view); err != nil {
 		return subscription.Subscription{}, fmt.Errorf("invalid cancelation timing: %w", err)
 	}
 

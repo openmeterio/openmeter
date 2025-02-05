@@ -15118,6 +15118,10 @@ components:
           description: |-
             Batch processing commands for manipulating running subscriptions.
             The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: Whether the billing period should be restarted.Timing configuration to allow for the changes to take effect at different times.
       description: Subscription edit input.
     SubscriptionEditOperation:
       oneOf:
