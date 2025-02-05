@@ -6371,6 +6371,7 @@ type BillingInvoiceMutation struct {
 	currency                                 *currencyx.Code
 	due_at                                   *time.Time
 	status                                   *billing.InvoiceStatus
+	status_details_cache                     *billing.InvoiceStatusDetails
 	invoicing_app_external_id                *string
 	payment_app_external_id                  *string
 	tax_app_external_id                      *string
@@ -8319,6 +8320,55 @@ func (m *BillingInvoiceMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (m *BillingInvoiceMutation) SetStatusDetailsCache(bsd billing.InvoiceStatusDetails) {
+	m.status_details_cache = &bsd
+}
+
+// StatusDetailsCache returns the value of the "status_details_cache" field in the mutation.
+func (m *BillingInvoiceMutation) StatusDetailsCache() (r billing.InvoiceStatusDetails, exists bool) {
+	v := m.status_details_cache
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusDetailsCache returns the old "status_details_cache" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldStatusDetailsCache(ctx context.Context) (v billing.InvoiceStatusDetails, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusDetailsCache is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusDetailsCache requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusDetailsCache: %w", err)
+	}
+	return oldValue.StatusDetailsCache, nil
+}
+
+// ClearStatusDetailsCache clears the value of the "status_details_cache" field.
+func (m *BillingInvoiceMutation) ClearStatusDetailsCache() {
+	m.status_details_cache = nil
+	m.clearedFields[billinginvoice.FieldStatusDetailsCache] = struct{}{}
+}
+
+// StatusDetailsCacheCleared returns if the "status_details_cache" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) StatusDetailsCacheCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldStatusDetailsCache]
+	return ok
+}
+
+// ResetStatusDetailsCache resets all changes to the "status_details_cache" field.
+func (m *BillingInvoiceMutation) ResetStatusDetailsCache() {
+	m.status_details_cache = nil
+	delete(m.clearedFields, billinginvoice.FieldStatusDetailsCache)
+}
+
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (m *BillingInvoiceMutation) SetWorkflowConfigID(s string) {
 	m.billing_workflow_config = &s
@@ -9141,7 +9191,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 52)
+	fields := make([]string, 0, 53)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -9268,6 +9318,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, billinginvoice.FieldStatus)
 	}
+	if m.status_details_cache != nil {
+		fields = append(fields, billinginvoice.FieldStatusDetailsCache)
+	}
 	if m.billing_workflow_config != nil {
 		fields = append(fields, billinginvoice.FieldWorkflowConfigID)
 	}
@@ -9390,6 +9443,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.DueAt()
 	case billinginvoice.FieldStatus:
 		return m.Status()
+	case billinginvoice.FieldStatusDetailsCache:
+		return m.StatusDetailsCache()
 	case billinginvoice.FieldWorkflowConfigID:
 		return m.WorkflowConfigID()
 	case billinginvoice.FieldTaxAppID:
@@ -9503,6 +9558,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldDueAt(ctx)
 	case billinginvoice.FieldStatus:
 		return m.OldStatus(ctx)
+	case billinginvoice.FieldStatusDetailsCache:
+		return m.OldStatusDetailsCache(ctx)
 	case billinginvoice.FieldWorkflowConfigID:
 		return m.OldWorkflowConfigID(ctx)
 	case billinginvoice.FieldTaxAppID:
@@ -9826,6 +9883,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case billinginvoice.FieldStatusDetailsCache:
+		v, ok := value.(billing.InvoiceStatusDetails)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusDetailsCache(v)
+		return nil
 	case billinginvoice.FieldWorkflowConfigID:
 		v, ok := value.(string)
 		if !ok {
@@ -9995,6 +10059,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldDueAt) {
 		fields = append(fields, billinginvoice.FieldDueAt)
 	}
+	if m.FieldCleared(billinginvoice.FieldStatusDetailsCache) {
+		fields = append(fields, billinginvoice.FieldStatusDetailsCache)
+	}
 	if m.FieldCleared(billinginvoice.FieldInvoicingAppExternalID) {
 		fields = append(fields, billinginvoice.FieldInvoicingAppExternalID)
 	}
@@ -10095,6 +10162,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldDueAt:
 		m.ClearDueAt()
+		return nil
+	case billinginvoice.FieldStatusDetailsCache:
+		m.ClearStatusDetailsCache()
 		return nil
 	case billinginvoice.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
@@ -10247,6 +10317,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case billinginvoice.FieldStatusDetailsCache:
+		m.ResetStatusDetailsCache()
 		return nil
 	case billinginvoice.FieldWorkflowConfigID:
 		m.ResetWorkflowConfigID()

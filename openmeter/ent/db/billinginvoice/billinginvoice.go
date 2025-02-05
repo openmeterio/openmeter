@@ -100,6 +100,8 @@ const (
 	FieldDueAt = "due_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldStatusDetailsCache holds the string denoting the status_details_cache field in the database.
+	FieldStatusDetailsCache = "status_details_cache"
 	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
 	FieldWorkflowConfigID = "workflow_config_id"
 	// FieldTaxAppID holds the string denoting the tax_app_id field in the database.
@@ -250,6 +252,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldDueAt,
 	FieldStatus,
+	FieldStatusDetailsCache,
 	FieldWorkflowConfigID,
 	FieldTaxAppID,
 	FieldInvoicingAppID,
