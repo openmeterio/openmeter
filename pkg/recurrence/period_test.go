@@ -19,23 +19,47 @@ func TestPeriod(t *testing.T) {
 		To:   endTime,
 	}
 
-	t.Run("Should be inclusive of start time", func(t *testing.T) {
-		assert.True(t, period.Contains(startTime))
+	t.Run("ContainsInclusive", func(t *testing.T) {
+		t.Run("Should be inclusive of start time", func(t *testing.T) {
+			assert.True(t, period.ContainsInclusive(startTime))
+		})
+
+		t.Run("Should be inclusive of end time", func(t *testing.T) {
+			assert.True(t, period.ContainsInclusive(endTime))
+		})
+
+		t.Run("Should be true for value in between", func(t *testing.T) {
+			assert.True(t, period.ContainsInclusive(startTime.Add(time.Second)))
+		})
+
+		t.Run("Should be false for earlier time", func(t *testing.T) {
+			assert.False(t, period.ContainsInclusive(startTime.Add(-time.Second)))
+		})
+
+		t.Run("Should be false for later time", func(t *testing.T) {
+			assert.False(t, period.ContainsInclusive(endTime.Add(time.Second)))
+		})
 	})
 
-	t.Run("Should be inclusive of end time", func(t *testing.T) {
-		assert.True(t, period.Contains(endTime))
-	})
+	t.Run("Contains", func(t *testing.T) {
+		t.Run("Should be inclusive of start time", func(t *testing.T) {
+			assert.True(t, period.Contains(startTime))
+		})
 
-	t.Run("Should be true for value in between", func(t *testing.T) {
-		assert.True(t, period.Contains(startTime.Add(time.Second)))
-	})
+		t.Run("Should be exclusive of end time", func(t *testing.T) {
+			assert.False(t, period.Contains(endTime))
+		})
 
-	t.Run("Should be false for earlier time", func(t *testing.T) {
-		assert.False(t, period.Contains(startTime.Add(-time.Second)))
-	})
+		t.Run("Should be true for value in between", func(t *testing.T) {
+			assert.True(t, period.Contains(startTime.Add(time.Second)))
+		})
 
-	t.Run("Should be false for later time", func(t *testing.T) {
-		assert.False(t, period.Contains(endTime.Add(time.Second)))
+		t.Run("Should be false for earlier time", func(t *testing.T) {
+			assert.False(t, period.Contains(startTime.Add(-time.Second)))
+		})
+
+		t.Run("Should be false for later time", func(t *testing.T) {
+			assert.False(t, period.Contains(endTime.Add(time.Second)))
+		})
 	})
 }

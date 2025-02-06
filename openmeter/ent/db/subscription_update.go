@@ -89,6 +89,20 @@ func (su *SubscriptionUpdate) ClearActiveTo() *SubscriptionUpdate {
 	return su
 }
 
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (su *SubscriptionUpdate) SetBillablesMustAlign(b bool) *SubscriptionUpdate {
+	su.mutation.SetBillablesMustAlign(b)
+	return su
+}
+
+// SetNillableBillablesMustAlign sets the "billables_must_align" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillableBillablesMustAlign(b *bool) *SubscriptionUpdate {
+	if b != nil {
+		su.SetBillablesMustAlign(*b)
+	}
+	return su
+}
+
 // SetName sets the "name" field.
 func (su *SubscriptionUpdate) SetName(s string) *SubscriptionUpdate {
 	su.mutation.SetName(s)
@@ -313,6 +327,9 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if su.mutation.ActiveToCleared() {
 		_spec.ClearField(subscription.FieldActiveTo, field.TypeTime)
 	}
+	if value, ok := su.mutation.BillablesMustAlign(); ok {
+		_spec.SetField(subscription.FieldBillablesMustAlign, field.TypeBool, value)
+	}
 	if value, ok := su.mutation.Name(); ok {
 		_spec.SetField(subscription.FieldName, field.TypeString, value)
 	}
@@ -516,6 +533,20 @@ func (suo *SubscriptionUpdateOne) SetNillableActiveTo(t *time.Time) *Subscriptio
 // ClearActiveTo clears the value of the "active_to" field.
 func (suo *SubscriptionUpdateOne) ClearActiveTo() *SubscriptionUpdateOne {
 	suo.mutation.ClearActiveTo()
+	return suo
+}
+
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (suo *SubscriptionUpdateOne) SetBillablesMustAlign(b bool) *SubscriptionUpdateOne {
+	suo.mutation.SetBillablesMustAlign(b)
+	return suo
+}
+
+// SetNillableBillablesMustAlign sets the "billables_must_align" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillableBillablesMustAlign(b *bool) *SubscriptionUpdateOne {
+	if b != nil {
+		suo.SetBillablesMustAlign(*b)
+	}
 	return suo
 }
 
@@ -772,6 +803,9 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.ActiveToCleared() {
 		_spec.ClearField(subscription.FieldActiveTo, field.TypeTime)
+	}
+	if value, ok := suo.mutation.BillablesMustAlign(); ok {
+		_spec.SetField(subscription.FieldBillablesMustAlign, field.TypeBool, value)
 	}
 	if value, ok := suo.mutation.Name(); ok {
 		_spec.SetField(subscription.FieldName, field.TypeString, value)

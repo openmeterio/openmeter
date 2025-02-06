@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -196,6 +197,49 @@ func TestPrevBefore(t *testing.T) {
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
 			got, _ := tt.recurrence.PrevBefore(tt.time)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestGetPeriodAt(t *testing.T) {
+	now := clock.Now().Truncate(time.Millisecond)
+
+	tc := []struct {
+		name       string
+		recurrence recurrence.Recurrence
+		time       time.Time
+		want       recurrence.Period
+	}{
+		{
+			name: "Should return next period if time falls on recurrence period",
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
+			},
+			time: now,
+			want: recurrence.Period{
+				From: now,
+				To:   now.AddDate(0, 0, 1),
+			},
+		},
+		{
+			name: "Should return containing period in general case",
+			recurrence: recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
+			},
+			time: now.Add(-time.Hour),
+			want: recurrence.Period{
+				From: now.AddDate(0, 0, -1),
+				To:   now,
+			},
+		},
+	}
+
+	for _, tt := range tc {
+		t.Run(tt.name, func(t *testing.T) {
+			got, _ := tt.recurrence.GetPeriodAt(tt.time)
 			assert.Equal(t, tt.want, got)
 		})
 	}

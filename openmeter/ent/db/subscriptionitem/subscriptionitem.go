@@ -36,6 +36,8 @@ const (
 	FieldKey = "key"
 	// FieldEntitlementID holds the string denoting the entitlement_id field in the database.
 	FieldEntitlementID = "entitlement_id"
+	// FieldRestartsBillingPeriod holds the string denoting the restarts_billing_period field in the database.
+	FieldRestartsBillingPeriod = "restarts_billing_period"
 	// FieldActiveFromOverrideRelativeToPhaseStart holds the string denoting the active_from_override_relative_to_phase_start field in the database.
 	FieldActiveFromOverrideRelativeToPhaseStart = "active_from_override_relative_to_phase_start"
 	// FieldActiveToOverrideRelativeToPhaseStart holds the string denoting the active_to_override_relative_to_phase_start field in the database.
@@ -98,6 +100,7 @@ var Columns = []string{
 	FieldPhaseID,
 	FieldKey,
 	FieldEntitlementID,
+	FieldRestartsBillingPeriod,
 	FieldActiveFromOverrideRelativeToPhaseStart,
 	FieldActiveToOverrideRelativeToPhaseStart,
 	FieldName,
@@ -195,6 +198,11 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 // ByEntitlementID orders the results by the entitlement_id field.
 func ByEntitlementID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEntitlementID, opts...).ToFunc()
+}
+
+// ByRestartsBillingPeriod orders the results by the restarts_billing_period field.
+func ByRestartsBillingPeriod(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRestartsBillingPeriod, opts...).ToFunc()
 }
 
 // ByActiveFromOverrideRelativeToPhaseStart orders the results by the active_from_override_relative_to_phase_start field.

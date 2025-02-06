@@ -136,8 +136,10 @@ func TestEditingAndCanceling(t *testing.T) {
 			Namespace:  namespace,
 			CustomerID: c.ID,
 			ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-				ActiveFrom: currentTime,
-				Name:       "Test Subscription",
+				Timing: subscription.Timing{
+					Custom: &currentTime,
+				},
+				Name: "Test Subscription",
 			},
 		},
 		PlanInput: *pi,
@@ -152,8 +154,10 @@ func TestEditingAndCanceling(t *testing.T) {
 				Namespace:  namespace,
 				CustomerID: cust.ID,
 				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: currentTime,
-					Name:       "Test Subscription",
+					Timing: subscription.Timing{
+						Custom: &currentTime,
+					},
+					Name: "Test Subscription",
 				},
 			},
 			PlanInput: *pi,
@@ -198,6 +202,8 @@ func TestEditingAndCanceling(t *testing.T) {
 				},
 			},
 		},
+	}, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
 	})
 	require.NoError(t, err)
 
@@ -205,6 +211,8 @@ func TestEditingAndCanceling(t *testing.T) {
 	clock.SetTime(currentTime)
 
 	// Sixth, let's cancel the subscription
-	_, err = tDeps.subscriptionService.Cancel(ctx, s.NamespacedID, currentTime)
+	_, err = tDeps.subscriptionService.Cancel(ctx, s.NamespacedID, subscription.Timing{
+		Custom: &currentTime,
+	})
 	require.NoError(t, err)
 }

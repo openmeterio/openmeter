@@ -3,11 +3,11 @@ package httpdriver
 import (
 	"context"
 	"net/http"
-	"time"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -15,8 +15,8 @@ import (
 
 type (
 	CancelSubscriptionRequest = struct {
-		EffectiveAt *time.Time
-		ID          models.NamespacedID
+		Timing subscription.Timing
+		ID     models.NamespacedID
 	}
 	CancelSubscriptionResponse = api.Subscription
 	CancelSubscriptionParams   = struct {
@@ -39,13 +39,24 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 				return CancelSubscriptionRequest{}, err
 			}
 
+			var timing subscription.Timing
+
+			if body.Timing == nil {
+				timing.Enum = lo.ToPtr(subscription.TimingImmediate)
+			} else {
+				timing, err = MapAPITimingToTiming(*body.Timing)
+				if err != nil {
+					return CancelSubscriptionRequest{}, &models.GenericUserError{Inner: err}
+				}
+			}
+
 			return CancelSubscriptionRequest{
-				EffectiveAt: body.EffectiveDate,
-				ID:          models.NamespacedID{Namespace: ns, ID: params.ID},
+				Timing: timing,
+				ID:     models.NamespacedID{Namespace: ns, ID: params.ID},
 			}, nil
 		},
 		func(ctx context.Context, req CancelSubscriptionRequest) (CancelSubscriptionResponse, error) {
-			sub, err := h.SubscriptionService.Cancel(ctx, req.ID, defaultx.WithDefault(req.EffectiveAt, clock.Now()))
+			sub, err := h.SubscriptionService.Cancel(ctx, req.ID, req.Timing)
 			if err != nil {
 				return CancelSubscriptionResponse{}, err
 			}

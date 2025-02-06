@@ -3,6 +3,7 @@ package subscription
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -12,6 +13,8 @@ type Subscription struct {
 	models.ManagedModel
 	models.CadencedModel
 	models.AnnotatedModel
+
+	productcatalog.Alignment
 
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
@@ -29,6 +32,7 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
 		},
+		Alignment:      s.Alignment,
 		AnnotatedModel: s.AnnotatedModel,
 		Plan:           s.PlanRef,
 		Name:           s.Name,

@@ -102,6 +102,20 @@ func (sc *SubscriptionCreate) SetNillableActiveTo(t *time.Time) *SubscriptionCre
 	return sc
 }
 
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (sc *SubscriptionCreate) SetBillablesMustAlign(b bool) *SubscriptionCreate {
+	sc.mutation.SetBillablesMustAlign(b)
+	return sc
+}
+
+// SetNillableBillablesMustAlign sets the "billables_must_align" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillableBillablesMustAlign(b *bool) *SubscriptionCreate {
+	if b != nil {
+		sc.SetBillablesMustAlign(*b)
+	}
+	return sc
+}
+
 // SetName sets the "name" field.
 func (sc *SubscriptionCreate) SetName(s string) *SubscriptionCreate {
 	sc.mutation.SetName(s)
@@ -253,6 +267,10 @@ func (sc *SubscriptionCreate) defaults() {
 		v := subscription.DefaultUpdatedAt()
 		sc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := sc.mutation.BillablesMustAlign(); !ok {
+		v := subscription.DefaultBillablesMustAlign
+		sc.mutation.SetBillablesMustAlign(v)
+	}
 	if _, ok := sc.mutation.Name(); !ok {
 		v := subscription.DefaultName
 		sc.mutation.SetName(v)
@@ -281,6 +299,9 @@ func (sc *SubscriptionCreate) check() error {
 	}
 	if _, ok := sc.mutation.ActiveFrom(); !ok {
 		return &ValidationError{Name: "active_from", err: errors.New(`db: missing required field "Subscription.active_from"`)}
+	}
+	if _, ok := sc.mutation.BillablesMustAlign(); !ok {
+		return &ValidationError{Name: "billables_must_align", err: errors.New(`db: missing required field "Subscription.billables_must_align"`)}
 	}
 	if _, ok := sc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Subscription.name"`)}
@@ -372,6 +393,10 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := sc.mutation.ActiveTo(); ok {
 		_spec.SetField(subscription.FieldActiveTo, field.TypeTime, value)
 		_node.ActiveTo = &value
+	}
+	if value, ok := sc.mutation.BillablesMustAlign(); ok {
+		_spec.SetField(subscription.FieldBillablesMustAlign, field.TypeBool, value)
+		_node.BillablesMustAlign = value
 	}
 	if value, ok := sc.mutation.Name(); ok {
 		_spec.SetField(subscription.FieldName, field.TypeString, value)
@@ -569,6 +594,18 @@ func (u *SubscriptionUpsert) ClearActiveTo() *SubscriptionUpsert {
 	return u
 }
 
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (u *SubscriptionUpsert) SetBillablesMustAlign(v bool) *SubscriptionUpsert {
+	u.Set(subscription.FieldBillablesMustAlign, v)
+	return u
+}
+
+// UpdateBillablesMustAlign sets the "billables_must_align" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateBillablesMustAlign() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldBillablesMustAlign)
+	return u
+}
+
 // SetName sets the "name" field.
 func (u *SubscriptionUpsert) SetName(v string) *SubscriptionUpsert {
 	u.Set(subscription.FieldName, v)
@@ -754,6 +791,20 @@ func (u *SubscriptionUpsertOne) UpdateActiveTo() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearActiveTo() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearActiveTo()
+	})
+}
+
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (u *SubscriptionUpsertOne) SetBillablesMustAlign(v bool) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillablesMustAlign(v)
+	})
+}
+
+// UpdateBillablesMustAlign sets the "billables_must_align" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateBillablesMustAlign() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillablesMustAlign()
 	})
 }
 
@@ -1117,6 +1168,20 @@ func (u *SubscriptionUpsertBulk) UpdateActiveTo() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearActiveTo() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearActiveTo()
+	})
+}
+
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (u *SubscriptionUpsertBulk) SetBillablesMustAlign(v bool) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetBillablesMustAlign(v)
+	})
+}
+
+// UpdateBillablesMustAlign sets the "billables_must_align" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateBillablesMustAlign() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateBillablesMustAlign()
 	})
 }
 

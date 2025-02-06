@@ -29,6 +29,15 @@ func (s SubscriptionView) AsSpec() SubscriptionSpec {
 	return s.Spec
 }
 
+func (s SubscriptionView) GetPhaseByKey(key string) (*SubscriptionPhaseView, bool) {
+	for _, phase := range s.Phases {
+		if phase.SubscriptionPhase.Key == key {
+			return &phase, true
+		}
+	}
+	return nil, false
+}
+
 func (s *SubscriptionView) Validate(includePhases bool) error {
 	spec := s.Spec
 	if spec.ActiveFrom.Compare(s.Subscription.ActiveFrom) != 0 {
@@ -252,7 +261,7 @@ func NewSubscriptionView(
 	ents []SubscriptionEntitlement,
 ) (*SubscriptionView, error) {
 	spec := SubscriptionSpec{
-		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef},
+		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef, Alignment: sub.Alignment},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
 			CustomerId:     sub.CustomerId,
 			Currency:       sub.Currency,
@@ -379,6 +388,7 @@ func NewSubscriptionView(
 						CreateSubscriptionItemCustomerInput: CreateSubscriptionItemCustomerInput{
 							ActiveFromOverrideRelativeToPhaseStart: item.ActiveFromOverrideRelativeToPhaseStart,
 							ActiveToOverrideRelativeToPhaseStart:   item.ActiveToOverrideRelativeToPhaseStart,
+							BillingBehaviorOverride:                item.BillingBehaviorOverride,
 						},
 					},
 				}

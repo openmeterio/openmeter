@@ -70,11 +70,16 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				planInp := plansubscription.PlanInput{}
 				planInp.FromInput(&req)
 
+				timing, err := MapAPITimingToTiming(parsedBody.Timing)
+				if err != nil {
+					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				}
+
 				return ChangeSubscriptionRequest{
 					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
 					PlanInput: planInp,
 					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						ActiveFrom:  parsedBody.ActiveFrom,
+						Timing:      timing,
 						Name:        req.Name,
 						Description: req.Description,
 						AnnotatedModel: models.AnnotatedModel{
@@ -95,11 +100,16 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					Version: parsedBody.Plan.Version,
 				})
 
+				timing, err := MapAPITimingToTiming(parsedBody.Timing)
+				if err != nil {
+					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				}
+
 				return ChangeSubscriptionRequest{
 					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
 					PlanInput: planInp,
 					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						ActiveFrom: parsedBody.ActiveFrom,
+						Timing: timing,
 						AnnotatedModel: models.AnnotatedModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 						},

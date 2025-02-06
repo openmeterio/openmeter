@@ -96,6 +96,11 @@ func ActiveTo(v time.Time) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldActiveTo, v))
 }
 
+// BillablesMustAlign applies equality check predicate on the "billables_must_align" field. It's identical to BillablesMustAlignEQ.
+func BillablesMustAlign(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillablesMustAlign, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldName, v))
@@ -415,6 +420,16 @@ func ActiveToIsNil() predicate.Subscription {
 // ActiveToNotNil applies the NotNil predicate on the "active_to" field.
 func ActiveToNotNil() predicate.Subscription {
 	return predicate.Subscription(sql.FieldNotNull(FieldActiveTo))
+}
+
+// BillablesMustAlignEQ applies the EQ predicate on the "billables_must_align" field.
+func BillablesMustAlignEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillablesMustAlign, v))
+}
+
+// BillablesMustAlignNEQ applies the NEQ predicate on the "billables_must_align" field.
+func BillablesMustAlignNEQ(v bool) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldBillablesMustAlign, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
