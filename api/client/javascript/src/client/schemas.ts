@@ -2575,25 +2575,23 @@ export interface components {
     }
     /** @description Change a custom subscription. */
     CustomSubscriptionChange: {
-      /**
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
+      /** @description Timing configuration for the change, when the change should take effect.
+       *     For creating a subscription, only specifying an exact time is supported.
+       *     For changing a subscription, the accepted values depend on the subscription configuration. */
+      timing: components['schemas']['SubscriptionTiming']
+      /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
     }
     /** @description Create a custom subscription. */
     CustomSubscriptionCreate: {
-      /**
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
+      /** @description Timing configuration for the change, when the change should take effect.
+       *     For creating a subscription, only specifying an exact time is supported.
+       *     For changing a subscription, the accepted values depend on the subscription configuration. */
+      timing: components['schemas']['SubscriptionTiming']
+      /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
       /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @description The ID of the customer.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId: string
@@ -6119,31 +6117,39 @@ export interface components {
     PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
     /** @description Change subscription based on plan. */
     PlanSubscriptionChange: {
+      /** @description Timing configuration for the change, when the change should take effect.
+       *     For creating a subscription, only specifying an exact time is supported.
+       *     For changing a subscription, the accepted values depend on the subscription configuration. */
+      timing: components['schemas']['SubscriptionTiming']
+      /** @description What alignment settings the subscription should have. */
+      alignment?: components['schemas']['Alignment']
+      /** @description Arbitrary metadata associated with the subscription. */
       metadata?: components['schemas']['Metadata']
+      /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /**
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
+      /** @description The name of the Subscription. */
       name: string
+      /** @description Description for the Subscription. */
       description?: string
     }
     /** @description Create subscription based on plan. */
     PlanSubscriptionCreate: {
+      /** @description Timing configuration for the change, when the change should take effect.
+       *     For creating a subscription, only specifying an exact time is supported.
+       *     For changing a subscription, the accepted values depend on the subscription configuration. */
+      timing: components['schemas']['SubscriptionTiming']
+      /** @description What alignment settings the subscription should have. */
+      alignment?: components['schemas']['Alignment']
+      /** @description Arbitrary metadata associated with the subscription. */
       metadata?: components['schemas']['Metadata']
+      /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /**
-       * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      activeFrom: Date
+      /** @description The name of the Subscription. */
       name: string
+      /** @description Description for the Subscription. */
       description?: string
       /**
-       * @description ULID (Universally Unique Lexicographically Sortable Identifier).
+       * @description The ID of the customer.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId: string
@@ -6907,6 +6913,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /** @description The status of the subscription. */
       readonly status: components['schemas']['SubscriptionStatus']
       /**
@@ -6930,9 +6938,15 @@ export interface components {
       | components['schemas']['CustomSubscriptionChange']
     /** @description Response body for subscription change. */
     SubscriptionChangeResponseBody: {
-      /** Current subscription */
+      /**
+       * Current subscription
+       * @description The current subscription before the change.
+       */
       current: components['schemas']['Subscription']
-      /** The subscription it will be changed to */
+      /**
+       * The subscription it will be changed to
+       * @description The new state of the subscription after the change.
+       */
       next: components['schemas']['SubscriptionExpanded']
     }
     /** @description Create a subscription. */
@@ -6944,7 +6958,10 @@ export interface components {
       /** @description Batch processing commands for manipulating running subscriptions.
        *     The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`. */
       customizations: components['schemas']['SubscriptionEditOperation'][]
+      /** @description Whether the billing period should be restarted.Timing configuration to allow for the changes to take effect at different times. */
+      timing?: components['schemas']['SubscriptionTiming']
     }
+    /** @description The operation to be performed on the subscription. */
     SubscriptionEditOperation:
       | components['schemas']['EditSubscriptionAddItem']
       | components['schemas']['EditSubscriptionRemoveItem']
@@ -7007,6 +7024,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /** @description Alignment configuration for the plan. */
+      alignment?: components['schemas']['Alignment']
       /** @description The status of the subscription. */
       readonly status: components['schemas']['SubscriptionStatus']
       /**
@@ -7231,6 +7250,16 @@ export interface components {
      * @enum {string}
      */
     SubscriptionStatus: 'active' | 'inactive' | 'canceled'
+    /** @description Subscription edit timing defined when the changes should take effect.
+     *     If the provided configuration is not supported by the subscription, an error will be returned. */
+    SubscriptionTiming: components['schemas']['SubscriptionTimingEnum'] | Date
+    /**
+     * @description Subscription edit timing.
+     *     When immediate, the requested changes take effect immediately.
+     *     When nextBillingCycle, the requested changes take effect at the next billing cycle.
+     * @enum {string}
+     */
+    SubscriptionTimingEnum: 'immediate' | 'next_billing_cycle'
     /** @description Operational webhook reqeuest sent by Svix. */
     SvixOperationalWebhookRequest: {
       /**
@@ -8094,6 +8123,9 @@ export type SubscriptionPhaseCreate =
 export type SubscriptionPhaseExpanded =
   components['schemas']['SubscriptionPhaseExpanded']
 export type SubscriptionStatus = components['schemas']['SubscriptionStatus']
+export type SubscriptionTiming = components['schemas']['SubscriptionTiming']
+export type SubscriptionTimingEnum =
+  components['schemas']['SubscriptionTimingEnum']
 export type SvixOperationalWebhookRequest =
   components['schemas']['SvixOperationalWebhookRequest']
 export type TaxBehavior = components['schemas']['TaxBehavior']
@@ -17167,12 +17199,8 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          /**
-           * Format: date-time
-           * @description If not provided the subscription is canceled immediately.
-           * @example 2023-01-01T01:01:01.001Z
-           */
-          effectiveDate?: Date
+          /** @description If not provided the subscription is canceled immediately. */
+          timing?: components['schemas']['SubscriptionTiming']
         }
       }
     }
