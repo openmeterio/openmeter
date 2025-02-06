@@ -90,7 +90,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return i.AsEntityInput()
 	})
 
-	subscriptionTimeline := models.NewSortedTimeLine(scheduledInps)
+	subscriptionTimeline := models.NewSortedCadenceList(scheduledInps)
 
 	// Sanity check, lets validate that the scheduled timeline is consistent (without the new spec)
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
@@ -98,7 +98,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	}
 
 	// Now let's check that the new Spec also fits into the timeline
-	subscriptionTimeline = models.NewSortedTimeLine(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
+	subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
 
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
 		return def, &models.GenericConflictError{Inner: fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps)}

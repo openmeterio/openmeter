@@ -476,7 +476,7 @@ func (s SubscriptionPhaseSpec) Validate(
 			cadences = append(cadences, cadence)
 		}
 
-		timeline := models.Timeline[models.CadencedModel](cadences)
+		timeline := models.CadenceList[models.CadencedModel](cadences)
 
 		if !timeline.IsSorted() {
 			errs = append(errs, fmt.Errorf("items for key %s are not sorted", key))

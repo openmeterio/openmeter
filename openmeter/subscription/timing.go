@@ -162,7 +162,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 		}
 
 	default:
-		slog.Default().Warn("timing called with unsupported action", slog.Any("action", action), slog.String("stack", string(debug.Stack())))
+		slog.Warn("timing called with unsupported action", slog.Any("action", action), slog.String("stack", string(debug.Stack())))
 
 		return nil
 	}
