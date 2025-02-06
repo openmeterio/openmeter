@@ -71,6 +71,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			expected: []expectedIterations{},
 		},
 		{
+			name:       "empty2",
+			items:      []subscriptionItemViewMock{},
+			alignedSub: true,
+			end:        s.mustParseTime("2021-01-01T00:00:00Z"),
+			expected:   []expectedIterations{},
+		},
+		{
 			name: "sanity",
 			items: []subscriptionItemViewMock{
 				{
@@ -411,6 +418,58 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				},
 			},
 		},
+		{
+			name: "aligned one-time without cadence",
+			items: []subscriptionItemViewMock{
+				{
+					Key:  "item-key",
+					Type: productcatalog.FlatPriceType,
+				},
+			},
+			end:        s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedSub: true,
+			expected: []expectedIterations{
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-01T00:00:00Z"),
+					Key:   "subID/phase-test/item-key/v[0]",
+				},
+			},
+		},
+		{
+			name: "aligned one-time with cadence",
+			items: []subscriptionItemViewMock{
+				{
+					Key:  "item-key",
+					Type: productcatalog.FlatPriceType,
+				},
+				{
+					Key:     "item-key2",
+					Type:    productcatalog.FlatPriceType,
+					Cadence: "P1D",
+				},
+			},
+			end:        s.mustParseTime("2021-01-02T12:00:00Z"),
+			alignedSub: true,
+			expected: []expectedIterations{
+				{
+					Start:           s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:             s.mustParseTime("2021-01-01T00:00:00Z"),
+					NonTruncatedEnd: s.mustParseTime("2021-01-02T00:00:00Z"),
+					Key:             "subID/phase-test/item-key/v[0]",
+				},
+				{
+					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-02T00:00:00Z"),
+					Key:   "subID/phase-test/item-key2/v[0]/period[0]",
+				},
+				{
+					Start: s.mustParseTime("2021-01-02T00:00:00Z"),
+					End:   s.mustParseTime("2021-01-03T00:00:00Z"),
+					Key:   "subID/phase-test/item-key2/v[0]/period[1]",
+				},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -450,7 +509,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				case productcatalog.FlatPriceType:
 					pp = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromInt(1),
-						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
 					})
 				case NoPriceType:
 					pp = nil

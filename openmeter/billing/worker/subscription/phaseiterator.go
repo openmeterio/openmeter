@@ -158,6 +158,26 @@ func (it *PhaseIterator) generateAligned(iterationEnd time.Time) ([]subscription
 
 	for _, itemsByKey := range it.phase.ItemsByKey {
 		for version, item := range itemsByKey {
+			// Let's drop non-billable items
+			if item.Spec.RateCard.Price == nil {
+				continue
+			}
+
+			if item.Spec.RateCard.BillingCadence == nil {
+				generatedItem, err := it.generateOneTimeAlignedItem(item, version)
+				if err != nil {
+					return nil, err
+				}
+
+				if generatedItem == nil {
+					// One time item is not billable yet, let's skip it
+					break
+				}
+
+				items = append(items, *generatedItem)
+				continue
+			}
+
 			periodIdx := 0
 
 			at := item.SubscriptionItem.ActiveFrom
@@ -351,6 +371,72 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriod) 
 	}
 
 	return out
+}
+
+func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.SubscriptionItemView, versionID int) (*subscriptionItemWithPeriod, error) {
+	if item.Spec.RateCard.Price == nil {
+		return nil, nil
+	}
+
+	alignedPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(it.phase.Spec.PhaseKey, item.SubscriptionItem.ActiveFrom)
+	if err != nil {
+		// If there isn't a period to align with, we generate a simple oneTime item
+		return it.generateOneTimeItem(item, versionID)
+	}
+
+	nonTruncatedPeriod := billing.Period{
+		Start: alignedPeriod.From,
+		End:   alignedPeriod.To,
+	}
+
+	period := billing.Period{
+		Start: item.SubscriptionItem.ActiveFrom,
+	}
+
+	end := lo.CoalesceOrEmpty(item.SubscriptionItem.ActiveTo, it.phaseCadence.ActiveTo)
+	if end == nil {
+		// One time items are not usage based, so the price object will be a flat price
+		price := item.SubscriptionItem.RateCard.Price
+
+		if price == nil {
+			// If an item has no price it is not in scope for line generation
+			return nil, nil
+		}
+
+		if price.Type() != productcatalog.FlatPriceType {
+			return nil, fmt.Errorf("cannot determine period end for one-time item %s", item.Spec.ItemKey)
+		}
+
+		flatFee, err := item.SubscriptionItem.RateCard.Price.AsFlat()
+		if err != nil {
+			return nil, err
+		}
+
+		if flatFee.PaymentTerm == productcatalog.InArrearsPaymentTerm {
+			// If the item is InArrears but we cannot determine when that time is, let's just skip this item until we
+			// can determine the end of period
+			return nil, nil
+		}
+
+		// For in-advance fees we just specify an empty period, which is fine for non UBP items
+		period.End = item.SubscriptionItem.ActiveFrom
+	} else {
+		period.End = *end
+	}
+
+	return &subscriptionItemWithPeriod{
+		InvoiceAligned:       true,
+		SubscriptionItemView: item,
+		Period:               period,
+		NonTruncatedPeriod:   nonTruncatedPeriod,
+		UniqueID: strings.Join([]string{
+			it.sub.Subscription.ID,
+			it.phase.Spec.PhaseKey,
+			item.Spec.ItemKey,
+			fmt.Sprintf("v[%d]", versionID),
+		}, "/"),
+		PhaseID: it.phase.SubscriptionPhase.ID,
+	}, nil
 }
 
 func (it *PhaseIterator) generateOneTimeItem(item subscription.SubscriptionItemView, versionID int) (*subscriptionItemWithPeriod, error) {
