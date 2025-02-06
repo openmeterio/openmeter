@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -30,10 +31,11 @@ func (s *PhaseIteratorTestSuite) SetupSuite() {
 }
 
 type expectedIterations struct {
-	Start           time.Time
-	End             time.Time
-	Key             string
-	NonTruncatedEnd time.Time
+	Start             time.Time
+	End               time.Time
+	Key               string
+	NonTruncatedStart time.Time
+	NonTruncatedEnd   time.Time
 }
 
 type subscriptionItemViewMock struct {
@@ -387,7 +389,8 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
 				},
 			},
-			end: s.mustParseTime("2021-01-03T00:00:00Z"),
+			end:        s.mustParseTime("2021-01-03T00:00:00Z"),
+			alignedSub: true,
 			expected: []expectedIterations{
 				{
 					Start: s.mustParseTime("2021-01-01T00:00:00Z"),
@@ -401,9 +404,10 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					NonTruncatedEnd: s.mustParseTime("2021-01-03T00:00:00Z"),
 				},
 				{
-					Start: s.mustParseTime("2021-01-02T20:00:00Z"),
-					End:   s.mustParseTime("2021-01-03T20:00:00Z"),
-					Key:   "subID/phase-test/item-key/v[1]/period[0]",
+					Start:             s.mustParseTime("2021-01-02T20:00:00Z"),
+					End:               s.mustParseTime("2021-01-03T00:00:00Z"),
+					Key:               "subID/phase-test/item-key/v[1]/period[0]",
+					NonTruncatedStart: s.mustParseTime("2021-01-02T00:00:00Z"),
 				},
 			},
 		},
@@ -440,13 +444,20 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 
 				switch item.Type {
 				case productcatalog.UnitPriceType:
-					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{})
+					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					})
 				case productcatalog.FlatPriceType:
-					pp = productcatalog.NewPriceFrom(productcatalog.FlatPrice{})
+					pp = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(1),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					})
 				case NoPriceType:
 					pp = nil
 				default:
-					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{})
+					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					})
 				}
 
 				spec.RateCard.Price = pp
@@ -526,26 +537,29 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 
 			outAsExpect := make([]expectedIterations, 0, len(out))
 			for i, item := range out {
-				// For now we never truncate the start, so we can just codify this
-				s.Equal(item.Period.Start, item.NonTruncatedPeriod.Start)
-
 				nonTruncatedEnd := time.Time{}
 				if !item.NonTruncatedPeriod.End.Equal(item.Period.End) {
 					nonTruncatedEnd = item.NonTruncatedPeriod.End
 				}
 
+				nonTruncatedStart := time.Time{}
+				if !item.NonTruncatedPeriod.Start.Equal(item.Period.Start) {
+					nonTruncatedStart = item.NonTruncatedPeriod.Start
+				}
+
 				outAsExpect = append(outAsExpect, expectedIterations{
-					Start:           item.Period.Start,
-					End:             item.Period.End,
-					Key:             item.UniqueID,
-					NonTruncatedEnd: nonTruncatedEnd,
+					Start:             item.Period.Start,
+					End:               item.Period.End,
+					Key:               item.UniqueID,
+					NonTruncatedEnd:   nonTruncatedEnd,
+					NonTruncatedStart: nonTruncatedStart,
 				})
 
-				s.T().Logf("out[%d]: [%s..%s] %s (non-truncated: %s)\n", i, item.Period.Start, item.Period.End, item.UniqueID, nonTruncatedEnd)
+				s.T().Logf("out[%d]: [%s..%s] %s (non-truncated: %s..%s)\n", i, item.Period.Start, item.Period.End, item.UniqueID, nonTruncatedStart, nonTruncatedEnd)
 			}
 
 			for i, item := range tc.expected {
-				s.T().Logf("expected[%d]: [%s..%s] %s (non-truncated: %s)\n", i, item.Start, item.End, item.Key, item.NonTruncatedEnd)
+				s.T().Logf("expected[%d]: [%s..%s] %s (non-truncated: %s..%s)\n", i, item.Start, item.End, item.Key, item.NonTruncatedStart, item.NonTruncatedEnd)
 			}
 
 			s.ElementsMatch(tc.expected, outAsExpect)

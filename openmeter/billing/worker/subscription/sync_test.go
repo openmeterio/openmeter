@@ -1540,7 +1540,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-09T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
 			},
 			// in-advance items are invoiced immediately when change happens
@@ -1579,7 +1579,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 			Periods: []billing.Period{
 				{
 					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
-					End:   s.mustParseTime("2024-01-09T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
 				},
 			},
 			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
