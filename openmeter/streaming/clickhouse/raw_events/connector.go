@@ -12,8 +12,11 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/shopspring/decimal"
+	"golang.org/x/exp/constraints"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
+	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -33,6 +36,7 @@ type ConnectorConfig struct {
 	AsyncInsert         bool
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
+	ProgressManager     progressmanager.Service
 }
 
 func (c ConnectorConfig) Validate() error {
@@ -50,6 +54,10 @@ func (c ConnectorConfig) Validate() error {
 
 	if c.EventsTableName == "" {
 		return fmt.Errorf("events table is required")
+	}
+
+	if c.ProgressManager == nil {
+		return fmt.Errorf("progress manager is required")
 	}
 
 	return nil
@@ -110,7 +118,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mode
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("get values: %w", err)
+		return nil, err
 	}
 
 	// If the total usage is queried for a single period (no window size),
@@ -221,6 +229,8 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 }
 
 func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+	var err error
+
 	table := queryEventsTable{
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
@@ -235,6 +245,18 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		Limit:           params.Limit,
 	}
 
+	// If the client ID is set, we track track the progress of the query
+	if params.ClientID != nil {
+		// Build SQL query to count the total number of rows
+		countSQL, countArgs := table.toCountRowSQL()
+
+		ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs)
+		// Log error but don't return it
+		if err != nil {
+			c.config.Logger.Error("failed track progress", "error", err, "clientId", *params.ClientID)
+		}
+	}
+
 	sql, args := table.toSQL()
 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
@@ -245,6 +267,8 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 
 		return nil, fmt.Errorf("query events table query: %w", err)
 	}
+
+	defer rows.Close()
 
 	events := []api.IngestedEvent{}
 
@@ -300,6 +324,10 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		events = append(events, ingestedEvent)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("query events table rows error: %w", err)
+	}
+
 	return events, nil
 }
 
@@ -324,6 +352,8 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 
 	results := []streaming.CountEventRow{}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		result := streaming.CountEventRow{}
 
@@ -332,6 +362,10 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 		}
 
 		results = append(results, result)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("query events count rows error: %w", err)
 	}
 
 	return results, nil
@@ -364,6 +398,18 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 		return values, fmt.Errorf("query meter view: %w", err)
 	}
 
+	// If the client ID is set, we track track the progress of the query
+	if params.ClientID != nil {
+		// Build SQL query to count the total number of rows
+		countSQL, countArgs := queryMeter.toCountRowSQL()
+
+		ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs)
+		// Log error but don't return it
+		if err != nil {
+			c.config.Logger.Error("failed track progress", "error", err, "clientId", *params.ClientID)
+		}
+	}
+
 	start := time.Now()
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
@@ -375,6 +421,8 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 	}
 	elapsed := time.Since(start)
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
+
+	defer rows.Close()
 
 	for rows.Next() {
 		row := models.MeterQueryRow{
@@ -421,7 +469,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 
 		values = append(values, row)
 	}
-	rows.Close()
+
 	err = rows.Err()
 	if err != nil {
 		return values, fmt.Errorf("query meter rows error: %w", err)
@@ -451,6 +499,8 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("list meter view subjects: %w", err)
 	}
 
+	defer rows.Close()
+
 	subjects := []string{}
 	for rows.Next() {
 		var subject string
@@ -461,5 +511,69 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		subjects = append(subjects, subject)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("list meter view subjects rows error: %w", err)
+	}
+
 	return subjects, nil
+}
+
+// withProgressContext wraps the context with a progress tracking
+func (c *Connector) withProgressContext(ctx context.Context, namespace string, clientID string, countSQL string, countArgs []interface{}) (context.Context, error) {
+	totalRows := uint64(0)
+	successRows := uint64(0)
+
+	// Count the total number of rows
+	countRows, err := c.config.ClickHouse.Query(ctx, countSQL, countArgs...)
+	if err != nil {
+		return ctx, fmt.Errorf("count query: %w", err)
+	}
+
+	defer countRows.Close()
+
+	for countRows.Next() {
+		if err := countRows.Scan(&totalRows); err != nil {
+			return ctx, fmt.Errorf("count row scan: %w", err)
+		}
+	}
+
+	if err := countRows.Err(); err != nil {
+		return ctx, fmt.Errorf("count rows error: %w", err)
+	}
+
+	// Use context to pass a call back for progress and profile info
+	ctx = clickhouse.Context(ctx, clickhouse.WithProgress(func(p *clickhouse.Progress) {
+		successRows += p.Rows
+
+		progress := progressmanagerentity.Progress{
+			ProgressID: progressmanagerentity.ProgressID{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ID: clientID,
+			},
+			Total: totalRows,
+			// Rows it scans is maybe more than the total rows returned by the count query
+			Success:   min(successRows, totalRows),
+			UpdatedAt: time.Now(),
+		}
+
+		// Update progress
+		err = c.config.ProgressManager.UpsertProgress(ctx, progressmanagerentity.UpsertProgressInput{
+			Progress: progress,
+		})
+		// Log error but don't return it
+		if err != nil {
+			c.config.Logger.Error("failed to upsert progress", "error", err)
+		}
+	}))
+
+	return ctx, nil
+}
+
+func min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
 }

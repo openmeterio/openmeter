@@ -182,6 +182,7 @@ func main() {
 			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
 			Notification:                app.Notification,
 			Plan:                        app.Plan,
+			ProgressManager:             app.ProgressManager,
 			// modules
 			ProductCatalogEnabled: conf.ProductCatalog.Enabled,
 			AppsEnabled:           conf.Apps.Enabled,

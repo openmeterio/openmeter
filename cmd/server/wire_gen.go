@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -106,7 +107,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v2 := conf.Meters
 	inMemoryRepository := common.NewInMemoryRepository(v2)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	progressManagerConfiguration := conf.ProgressManager
+	progressmanagerService, err := common.NewProgressManager(logger, progressManagerConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger, progressmanagerService)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -375,6 +386,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Notification:          notificationService,
 		Meter:                 meter,
 		Plan:                  planService,
+		ProgressManager:       progressmanagerService,
 		RouterHook:            v6,
 		Secret:                secretserviceService,
 		Subscription:          subscriptionServiceWithWorkflow,
@@ -418,6 +430,7 @@ type Application struct {
 	Notification          notification.Service
 	Meter                 metric.Meter
 	Plan                  plan.Service
+	ProgressManager       progressmanager.Service
 	RouterHook            func(chi.Router)
 	Secret                secret.Service
 	Subscription          common.SubscriptionServiceWithWorkflow
