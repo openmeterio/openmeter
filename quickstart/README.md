@@ -26,67 +26,19 @@ docker compose up -d
 Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1/events \
--H 'Content-Type: application/cloudevents+json' \
---data-raw '
-{
-  "specversion" : "1.0",
-  "type": "request",
-  "id": "00001",
-  "time": "2023-01-01T00:00:00.001Z",
-  "source": "service-0",
-  "subject": "customer-1",
-  "data": {
-    "method": "GET",
-    "route": "/hello",
-    "duration_ms": 10
-  }
-}
-'
+curl -X POST http://localhost:8888/api/v1/events -H 'Content-Type: application/cloudevents+json' -d @examples/first.json
 ```
 
 Note how ID is different:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1/events \
--H 'Content-Type: application/cloudevents+json' \
---data-raw '
-{
-  "specversion" : "1.0",
-  "type": "request",
-  "id": "00002",
-  "time": "2023-01-01T00:00:00.001Z",
-  "source": "service-0",
-  "subject": "customer-1",
-  "data": {
-    "method": "GET",
-    "route": "/hello",
-    "duration_ms": 20
-  }
-}
-'
+curl -X POST http://localhost:8888/api/v1/events -H 'Content-Type: application/cloudevents+json' -d @examples/second.json
 ```
 
 Note how ID and time are different:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1/events \
--H 'Content-Type: application/cloudevents+json' \
---data-raw '
-{
-  "specversion" : "1.0",
-  "type": "request",
-  "id": "00003",
-  "time": "2023-01-02T00:00:00.001Z",
-  "source": "service-0",
-  "subject": "customer-1",
-  "data": {
-    "method": "GET",
-    "route": "/hello",
-    "duration_ms": 30
-  }
-}
-'
+curl -X POST http://localhost:8888/api/v1/events -H 'Content-Type: application/cloudevents+json' -d @examples/third.json
 ```
 
 ## 3. Query Usage
