@@ -12,6 +12,7 @@ import (
 	db_entitlement "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	db_grant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -76,7 +77,13 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	}
 
 	if !params.IncludeDeleted {
-		query = query.Where(db_grant.DeletedAtIsNil())
+		query = query.Where(
+			db_grant.Or(db_grant.DeletedAtIsNil(), db_grant.DeletedAtGT(clock.Now())),
+			db_grant.HasEntitlementWith(db_entitlement.Or(
+				db_entitlement.DeletedAtIsNil(),
+				db_entitlement.DeletedAtGT(clock.Now()),
+			)),
+		)
 	}
 
 	if len(params.SubjectKeys) > 0 {
