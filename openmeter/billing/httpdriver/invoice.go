@@ -59,7 +59,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 
 				IssuedAfter:  input.IssuedAfter,
 				IssuedBefore: input.IssuedBefore,
-				Expand:       mapInvoiceExpandToEntity(lo.FromPtrOr(input.Expand, nil)).SetGatheringTotals(true),
+				Expand:       mapInvoiceExpandToEntity(lo.FromPtrOr(input.Expand, nil)).SetRecalculateGatheringInvoice(true),
 
 				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
 				OrderBy: lo.FromPtrOr(input.OrderBy, ""),
@@ -196,7 +196,7 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 					ID:        params.InvoiceID,
 					Namespace: ns,
 				},
-				Expand: mapInvoiceExpandToEntity(params.Expand).SetDeletedLines(params.IncludeDeletedLines).SetGatheringTotals(true),
+				Expand: mapInvoiceExpandToEntity(params.Expand).SetDeletedLines(params.IncludeDeletedLines).SetRecalculateGatheringInvoice(true),
 			}, nil
 		},
 		func(ctx context.Context, request GetInvoiceRequest) (GetInvoiceResponse, error) {
