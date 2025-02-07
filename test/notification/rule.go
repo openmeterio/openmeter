@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -60,7 +60,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Getting meter must not return error")
 
 	feat, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
-	if _, ok := errorsx.ErrorAs[*feature.FeatureNotFoundError](err); !ok {
+	if _, ok := lo.ErrorsAs[*feature.FeatureNotFoundError](err); !ok {
 		require.NoError(t, err, "Getting feature must not return error")
 	}
 	if feat != nil {

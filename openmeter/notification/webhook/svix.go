@@ -18,7 +18,6 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 const (
@@ -642,7 +641,7 @@ func unwrapSvixError(err error) error {
 		return nil
 	}
 
-	svixErr, ok := errorsx.ErrorAs[*svix.Error](err)
+	svixErr, ok := lo.ErrorsAs[*svix.Error](err)
 	if !ok {
 		return err
 	}

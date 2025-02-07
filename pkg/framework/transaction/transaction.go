@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 
-	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/samber/lo"
 )
 
 // Driver is an interface for transaction drivers
@@ -35,7 +35,7 @@ func AddPostCommitHook(ctx context.Context, callback func(ctx context.Context) e
 	hookMgr, err := getHookManagerFromContext(ctx)
 	if err != nil {
 		// If we are not in transaction let's invoke the callback directly
-		if _, ok := errorsx.ErrorAs[*hookManagerNotFoundError](err); ok {
+		if _, ok := lo.ErrorsAs[*hookManagerNotFoundError](err); ok {
 			hook(ctx)
 			return
 		}
