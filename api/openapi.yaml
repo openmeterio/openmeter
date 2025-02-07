@@ -6752,11 +6752,10 @@ paths:
             schema:
               type: object
               properties:
-                effectiveDate:
-                  type: string
-                  format: date-time
+                timing:
+                  allOf:
+                    - $ref: '#/components/schemas/SubscriptionTiming'
                   description: If not provided the subscription is canceled immediately.
-                  example: '2023-01-01T01:01:01.001Z'
   /api/v1/subscriptions/{subscriptionId}/change:
     post:
       operationId: changeSubscription
@@ -8927,35 +8926,43 @@ components:
     CustomSubscriptionChange:
       type: object
       required:
-        - activeFrom
+        - timing
         - customPlan
       properties:
-        activeFrom:
-          type: string
-          format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          example: '2023-01-01T01:01:01.001Z'
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            For creating a subscription, only specifying an exact time is supported.
+            For changing a subscription, the accepted values depend on the subscription configuration.
         customPlan:
-          $ref: '#/components/schemas/CustomPlanInput'
+          allOf:
+            - $ref: '#/components/schemas/CustomPlanInput'
+          description: The custom plan description which defines the Subscription.
       description: Change a custom subscription.
     CustomSubscriptionCreate:
       type: object
       required:
-        - activeFrom
+        - timing
         - customPlan
         - customerId
       properties:
-        activeFrom:
-          type: string
-          format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          example: '2023-01-01T01:01:01.001Z'
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            For creating a subscription, only specifying an exact time is supported.
+            For changing a subscription, the accepted values depend on the subscription configuration.
         customPlan:
-          $ref: '#/components/schemas/CustomPlanInput'
+          allOf:
+            - $ref: '#/components/schemas/CustomPlanInput'
+          description: The custom plan description which defines the Subscription.
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          description: The ID of the customer.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Create a custom subscription.
     Customer:
@@ -9328,6 +9335,7 @@ components:
         - add_phase
         - remove_phase
         - stretch_phase
+      description: Enum listing the different operation types.
     EditSubscriptionAddItem:
       type: object
       required:
@@ -13890,49 +13898,73 @@ components:
     PlanSubscriptionChange:
       type: object
       required:
+        - timing
         - plan
-        - activeFrom
         - name
       properties:
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            For creating a subscription, only specifying an exact time is supported.
+            For changing a subscription, the accepted values depend on the subscription configuration.
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: What alignment settings the subscription should have.
         metadata:
-          $ref: '#/components/schemas/Metadata'
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Arbitrary metadata associated with the subscription.
         plan:
-          $ref: '#/components/schemas/PlanReferenceInput'
-        activeFrom:
-          type: string
-          format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          example: '2023-01-01T01:01:01.001Z'
+          allOf:
+            - $ref: '#/components/schemas/PlanReferenceInput'
+          description: The plan reference to change to.
         name:
           type: string
+          description: The name of the Subscription.
         description:
           type: string
+          description: Description for the Subscription.
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
       required:
+        - timing
         - plan
-        - activeFrom
         - name
         - customerId
       properties:
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            For creating a subscription, only specifying an exact time is supported.
+            For changing a subscription, the accepted values depend on the subscription configuration.
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: What alignment settings the subscription should have.
         metadata:
-          $ref: '#/components/schemas/Metadata'
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          description: Arbitrary metadata associated with the subscription.
         plan:
-          $ref: '#/components/schemas/PlanReferenceInput'
-        activeFrom:
-          type: string
-          format: date-time
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-          example: '2023-01-01T01:01:01.001Z'
+          allOf:
+            - $ref: '#/components/schemas/PlanReferenceInput'
+          description: The plan reference to change to.
         name:
           type: string
+          description: The name of the Subscription.
         description:
           type: string
+          description: Description for the Subscription.
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          description: The ID of the customer.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Create subscription based on plan.
     PlanVariant:
@@ -15019,6 +15051,10 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'
@@ -15056,10 +15092,12 @@ components:
         current:
           allOf:
             - $ref: '#/components/schemas/Subscription'
+          description: The current subscription before the change.
           title: Current subscription
         next:
           allOf:
             - $ref: '#/components/schemas/SubscriptionExpanded'
+          description: The new state of the subscription after the change.
           title: The subscription it will be changed to
       description: Response body for subscription change.
     SubscriptionCreate:
@@ -15080,6 +15118,10 @@ components:
           description: |-
             Batch processing commands for manipulating running subscriptions.
             The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: Whether the billing period should be restarted.Timing configuration to allow for the changes to take effect at different times.
       description: Subscription edit input.
     SubscriptionEditOperation:
       oneOf:
@@ -15096,6 +15138,7 @@ components:
           add_phase: '#/components/schemas/EditSubscriptionAddPhase'
           remove_phase: '#/components/schemas/EditSubscriptionRemovePhase'
           stretch_phase: '#/components/schemas/EditSubscriptionStretchPhase'
+      description: The operation to be performed on the subscription.
     SubscriptionExpanded:
       type: object
       required:
@@ -15165,6 +15208,10 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/Alignment'
+          description: Alignment configuration for the plan.
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'
@@ -15555,6 +15602,25 @@ components:
         - SubscriptionStatusActive
         - SubscriptionStatusInactive
         - SubscriptionStatusCanceled
+    SubscriptionTiming:
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionTimingEnum'
+        - type: string
+          format: date-time
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+          example: '2023-01-01T01:01:01.001Z'
+      description: |-
+        Subscription edit timing defined when the changes should take effect.
+        If the provided configuration is not supported by the subscription, an error will be returned.
+    SubscriptionTimingEnum:
+      type: string
+      enum:
+        - immediate
+        - next_billing_cycle
+      description: |-
+        Subscription edit timing.
+        When immediate, the requested changes take effect immediately.
+        When nextBillingCycle, the requested changes take effect at the next billing cycle.
     SvixOperationalWebhookRequest:
       type: object
       required:

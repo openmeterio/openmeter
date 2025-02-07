@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -49,11 +48,20 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		return def, fmt.Errorf("unexpected nil customer")
 	}
 
+	if err := inp.Timing.ValidateForAction(subscription.SubscriptionActionCreate, nil); err != nil {
+		return def, fmt.Errorf("invalid timing: %w", err)
+	}
+
+	activeFrom, err := inp.Timing.Resolve()
+	if err != nil {
+		return def, fmt.Errorf("failed to resolve active from: %w", err)
+	}
+
 	// Let's create the new Spec
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 		CustomerId:     cust.ID,
 		Currency:       plan.Currency(),
-		ActiveFrom:     inp.ActiveFrom,
+		ActiveFrom:     activeFrom,
 		AnnotatedModel: inp.AnnotatedModel,
 		Name:           inp.Name,
 		Description:    inp.Description,
@@ -73,7 +81,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	})
 }
 
-func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch) (subscription.SubscriptionView, error) {
+func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
 	// First, let's fetch the current state of the Subscription
 	curr, err := s.Service.GetView(ctx, subscriptionID)
 	if err != nil {
@@ -87,13 +95,25 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		}
 	}
 
+	// Let's try to decode when the subscription should be patched
+	if err := timing.ValidateForAction(subscription.SubscriptionActionUpdate, &curr); err != nil {
+		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: fmt.Errorf("invalid timing: %w", err)}
+	}
+
+	editTime, err := timing.ResolveForSpec(curr.Spec)
+	if err != nil {
+		return subscription.SubscriptionView{}, fmt.Errorf("failed to resolve timing: %w", err)
+	}
+
 	// Let's apply the customizations
 	spec := curr.AsSpec()
 
 	err = spec.ApplyPatches(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
-		CurrentTime: clock.Now(),
+		CurrentTime: editTime,
 	})
 	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
+		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
+	} else if sErr, ok := lo.ErrorsAs[*subscription.AlignmentError](err); ok {
 		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
 	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
@@ -119,13 +139,20 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 
 	// Changing the plan means canceling the current subscription and creating a new one with the provided timestamp
 	r, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (res, error) {
-		// First, let's try to cancel the current subscription
-		curr, err := s.Service.Cancel(ctx, subscriptionID, inp.ActiveFrom)
+		// Second, let's try to cancel the current subscription
+		curr, err := s.Service.Cancel(ctx, subscriptionID, inp.Timing)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to end current subscription: %w", err)
 		}
 
-		// Now, let's create a new subscription with the new plan
+		// Let's create a new timing with the exact value as the create step might not be able resolve it for itself
+		verbatumTiming := subscription.Timing{
+			Custom: curr.ActiveTo, // We have to make sure we resolve to the exact same timestamp
+		}
+
+		inp.Timing = verbatumTiming
+
+		// Third, let's create a new subscription with the new plan
 		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,

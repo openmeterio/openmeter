@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -51,7 +52,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	// Then let's create the subscription from the plan
 	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, subscription.ChangeSubscriptionWorkflowInput{
-		ActiveFrom:     clock.Now(),
+		Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
 		AnnotatedModel: sub.AnnotatedModel,
 		Name:           sub.Name,
 		Description:    sub.Description,

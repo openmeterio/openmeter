@@ -35409,6 +35409,7 @@ type SubscriptionMutation struct {
 	metadata             *map[string]string
 	active_from          *time.Time
 	active_to            *time.Time
+	billables_must_align *bool
 	name                 *string
 	description          *string
 	currency             *currencyx.Code
@@ -35823,6 +35824,42 @@ func (m *SubscriptionMutation) ResetActiveTo() {
 	delete(m.clearedFields, subscription.FieldActiveTo)
 }
 
+// SetBillablesMustAlign sets the "billables_must_align" field.
+func (m *SubscriptionMutation) SetBillablesMustAlign(b bool) {
+	m.billables_must_align = &b
+}
+
+// BillablesMustAlign returns the value of the "billables_must_align" field in the mutation.
+func (m *SubscriptionMutation) BillablesMustAlign() (r bool, exists bool) {
+	v := m.billables_must_align
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillablesMustAlign returns the old "billables_must_align" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldBillablesMustAlign(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillablesMustAlign is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillablesMustAlign requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillablesMustAlign: %w", err)
+	}
+	return oldValue.BillablesMustAlign, nil
+}
+
+// ResetBillablesMustAlign resets all changes to the "billables_must_align" field.
+func (m *SubscriptionMutation) ResetBillablesMustAlign() {
+	m.billables_must_align = nil
+}
+
 // SetName sets the "name" field.
 func (m *SubscriptionMutation) SetName(s string) {
 	m.name = &s
@@ -36225,7 +36262,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -36246,6 +36283,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.active_to != nil {
 		fields = append(fields, subscription.FieldActiveTo)
+	}
+	if m.billables_must_align != nil {
+		fields = append(fields, subscription.FieldBillablesMustAlign)
 	}
 	if m.name != nil {
 		fields = append(fields, subscription.FieldName)
@@ -36284,6 +36324,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.ActiveFrom()
 	case subscription.FieldActiveTo:
 		return m.ActiveTo()
+	case subscription.FieldBillablesMustAlign:
+		return m.BillablesMustAlign()
 	case subscription.FieldName:
 		return m.Name()
 	case subscription.FieldDescription:
@@ -36317,6 +36359,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldActiveFrom(ctx)
 	case subscription.FieldActiveTo:
 		return m.OldActiveTo(ctx)
+	case subscription.FieldBillablesMustAlign:
+		return m.OldBillablesMustAlign(ctx)
 	case subscription.FieldName:
 		return m.OldName(ctx)
 	case subscription.FieldDescription:
@@ -36384,6 +36428,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetActiveTo(v)
+		return nil
+	case subscription.FieldBillablesMustAlign:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillablesMustAlign(v)
 		return nil
 	case subscription.FieldName:
 		v, ok := value.(string)
@@ -36522,6 +36573,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldActiveTo:
 		m.ResetActiveTo()
+		return nil
+	case subscription.FieldBillablesMustAlign:
+		m.ResetBillablesMustAlign()
 		return nil
 	case subscription.FieldName:
 		m.ResetName()
@@ -36702,6 +36756,7 @@ type SubscriptionItemMutation struct {
 	active_from                                  *time.Time
 	active_to                                    *time.Time
 	key                                          *string
+	restarts_billing_period                      *bool
 	active_from_override_relative_to_phase_start *datex.ISOString
 	active_to_override_relative_to_phase_start   *datex.ISOString
 	name                                         *string
@@ -37238,6 +37293,55 @@ func (m *SubscriptionItemMutation) EntitlementIDCleared() bool {
 func (m *SubscriptionItemMutation) ResetEntitlementID() {
 	m.entitlement = nil
 	delete(m.clearedFields, subscriptionitem.FieldEntitlementID)
+}
+
+// SetRestartsBillingPeriod sets the "restarts_billing_period" field.
+func (m *SubscriptionItemMutation) SetRestartsBillingPeriod(b bool) {
+	m.restarts_billing_period = &b
+}
+
+// RestartsBillingPeriod returns the value of the "restarts_billing_period" field in the mutation.
+func (m *SubscriptionItemMutation) RestartsBillingPeriod() (r bool, exists bool) {
+	v := m.restarts_billing_period
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRestartsBillingPeriod returns the old "restarts_billing_period" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldRestartsBillingPeriod(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRestartsBillingPeriod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRestartsBillingPeriod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRestartsBillingPeriod: %w", err)
+	}
+	return oldValue.RestartsBillingPeriod, nil
+}
+
+// ClearRestartsBillingPeriod clears the value of the "restarts_billing_period" field.
+func (m *SubscriptionItemMutation) ClearRestartsBillingPeriod() {
+	m.restarts_billing_period = nil
+	m.clearedFields[subscriptionitem.FieldRestartsBillingPeriod] = struct{}{}
+}
+
+// RestartsBillingPeriodCleared returns if the "restarts_billing_period" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) RestartsBillingPeriodCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldRestartsBillingPeriod]
+	return ok
+}
+
+// ResetRestartsBillingPeriod resets all changes to the "restarts_billing_period" field.
+func (m *SubscriptionItemMutation) ResetRestartsBillingPeriod() {
+	m.restarts_billing_period = nil
+	delete(m.clearedFields, subscriptionitem.FieldRestartsBillingPeriod)
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
@@ -37810,7 +37914,7 @@ func (m *SubscriptionItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionItemMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionitem.FieldNamespace)
 	}
@@ -37840,6 +37944,9 @@ func (m *SubscriptionItemMutation) Fields() []string {
 	}
 	if m.entitlement != nil {
 		fields = append(fields, subscriptionitem.FieldEntitlementID)
+	}
+	if m.restarts_billing_period != nil {
+		fields = append(fields, subscriptionitem.FieldRestartsBillingPeriod)
 	}
 	if m.active_from_override_relative_to_phase_start != nil {
 		fields = append(fields, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart)
@@ -37896,6 +38003,8 @@ func (m *SubscriptionItemMutation) Field(name string) (ent.Value, bool) {
 		return m.Key()
 	case subscriptionitem.FieldEntitlementID:
 		return m.EntitlementID()
+	case subscriptionitem.FieldRestartsBillingPeriod:
+		return m.RestartsBillingPeriod()
 	case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 		return m.ActiveFromOverrideRelativeToPhaseStart()
 	case subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart:
@@ -37943,6 +38052,8 @@ func (m *SubscriptionItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldKey(ctx)
 	case subscriptionitem.FieldEntitlementID:
 		return m.OldEntitlementID(ctx)
+	case subscriptionitem.FieldRestartsBillingPeriod:
+		return m.OldRestartsBillingPeriod(ctx)
 	case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 		return m.OldActiveFromOverrideRelativeToPhaseStart(ctx)
 	case subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart:
@@ -38039,6 +38150,13 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEntitlementID(v)
+		return nil
+	case subscriptionitem.FieldRestartsBillingPeriod:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRestartsBillingPeriod(v)
 		return nil
 	case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 		v, ok := value.(datex.ISOString)
@@ -38145,6 +38263,9 @@ func (m *SubscriptionItemMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionitem.FieldEntitlementID) {
 		fields = append(fields, subscriptionitem.FieldEntitlementID)
 	}
+	if m.FieldCleared(subscriptionitem.FieldRestartsBillingPeriod) {
+		fields = append(fields, subscriptionitem.FieldRestartsBillingPeriod)
+	}
 	if m.FieldCleared(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart) {
 		fields = append(fields, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart)
 	}
@@ -38194,6 +38315,9 @@ func (m *SubscriptionItemMutation) ClearField(name string) error {
 		return nil
 	case subscriptionitem.FieldEntitlementID:
 		m.ClearEntitlementID()
+		return nil
+	case subscriptionitem.FieldRestartsBillingPeriod:
+		m.ClearRestartsBillingPeriod()
 		return nil
 	case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 		m.ClearActiveFromOverrideRelativeToPhaseStart()
@@ -38256,6 +38380,9 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 		return nil
 	case subscriptionitem.FieldEntitlementID:
 		m.ResetEntitlementID()
+		return nil
+	case subscriptionitem.FieldRestartsBillingPeriod:
+		m.ResetRestartsBillingPeriod()
 		return nil
 	case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 		m.ResetActiveFromOverrideRelativeToPhaseStart()

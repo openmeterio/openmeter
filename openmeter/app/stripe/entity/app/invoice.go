@@ -73,7 +73,7 @@ func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 // DeleteInvoice deletes the invoice for the app
 func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 	// Get the Stripe client
-	_, stripeClient, err := a.getStripeClient(ctx)
+	_, stripeClient, err := a.getStripeClient(ctx, "deleteInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
 		return fmt.Errorf("failed to get stripe client: %w", err)
 	}
@@ -87,7 +87,7 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 // FinalizeInvoice finalizes the invoice for the app
 func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
 	// Get the Stripe client
-	_, stripeClient, err := a.getStripeClient(ctx)
+	_, stripeClient, err := a.getStripeClient(ctx, "finalizeInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe client: %w", err)
 	}
@@ -136,7 +136,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Get the Stripe client
-	_, stripeClient, err := a.getStripeClient(ctx)
+	_, stripeClient, err := a.getStripeClient(ctx, "createInvoice", "customer_id", customerID.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe client: %w", err)
 	}
@@ -220,7 +220,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Get the Stripe client
-	_, stripeClient, err := a.getStripeClient(ctx)
+	_, stripeClient, err := a.getStripeClient(ctx, "updateInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe client: %w", err)
 	}

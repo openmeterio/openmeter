@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -91,7 +90,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return i.AsEntityInput()
 	})
 
-	subscriptionTimeline := models.NewSortedTimeLine(scheduledInps)
+	subscriptionTimeline := models.NewSortedCadenceList(scheduledInps)
 
 	// Sanity check, lets validate that the scheduled timeline is consistent (without the new spec)
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
@@ -99,7 +98,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	}
 
 	// Now let's check that the new Spec also fits into the timeline
-	subscriptionTimeline = models.NewSortedTimeLine(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
+	subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
 
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
 		return def, &models.GenericConflictError{Inner: fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps)}
@@ -270,7 +269,7 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 	})
 }
 
-func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, at time.Time) (subscription.Subscription, error) {
+func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing subscription.Timing) (subscription.Subscription, error) {
 	// First, let's get the subscription
 	view, err := s.GetView(ctx, subscriptionID)
 	if err != nil {
@@ -286,9 +285,19 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 
 	spec := view.AsSpec()
 
+	// Let's try to decode when the subscription should be canceled
+	if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &view); err != nil {
+		return subscription.Subscription{}, fmt.Errorf("invalid cancelation timing: %w", err)
+	}
+
+	cancelTime, err := timing.ResolveForSpec(view.Spec)
+	if err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to get cancelation time: %w", err)
+	}
+
 	// Cancellation means that we deactivate everything by that deadline (set ActiveTo)
 	// The different Cadences of the Spec are derived from the Subscription Cadence
-	spec.ActiveTo = lo.ToPtr(at)
+	spec.ActiveTo = lo.ToPtr(cancelTime)
 
 	if err := spec.Validate(); err != nil {
 		return subscription.Subscription{}, fmt.Errorf("spec is invalid after setting cancelation time: %w", err)

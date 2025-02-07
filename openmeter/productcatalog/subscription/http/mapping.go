@@ -183,6 +183,9 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		CreatedAt:   sub.CreatedAt,
 		UpdatedAt:   sub.UpdatedAt,
 		DeletedAt:   sub.DeletedAt,
+		Alignment: &api.Alignment{
+			BillablesMustAlign: &sub.BillablesMustAlign,
+		},
 	}
 }
 
@@ -342,6 +345,24 @@ func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, erro
 	return res, nil
 }
 
+func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing, error) {
+	var res subscription.Timing
+
+	t, err := apiTiming.AsSubscriptionTiming1()
+	if err != nil {
+		e, err := apiTiming.AsSubscriptionTimingEnum()
+		if err != nil {
+			return res, fmt.Errorf("failed to cast to SubscriptionChangeTiming: %w", err)
+		}
+
+		res.Enum = lo.ToPtr(subscription.TimingEnum(e))
+	} else {
+		res.Custom = &t
+	}
+
+	return res, nil
+}
+
 func MapSubscriptionPhaseToAPI(phaseView subscription.SubscriptionPhaseView, endOfPhase *time.Time) (api.SubscriptionPhaseExpanded, error) {
 	flatItems := lo.Flatten(lo.Values(phaseView.ItemsByKey))
 	items := make([]api.SubscriptionItem, 0, len(flatItems))
@@ -387,6 +408,7 @@ func MapAPISubscriptionToAPIExpanded(sub api.Subscription) api.SubscriptionExpan
 		Plan:        sub.Plan,
 		UpdatedAt:   sub.UpdatedAt,
 		Status:      sub.Status,
+		Alignment:   sub.Alignment,
 	}
 }
 
@@ -428,6 +450,12 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 			},
 			Phases: nil,
 		},
+	}
+
+	if a.Alignment != nil && a.Alignment.BillablesMustAlign != nil {
+		req.Plan.PlanMeta.Alignment = productcatalog.Alignment{
+			BillablesMustAlign: *a.Alignment.BillablesMustAlign,
+		}
 	}
 
 	req.Currency = currency.Code(a.Currency)

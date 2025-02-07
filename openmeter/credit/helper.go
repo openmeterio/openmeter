@@ -104,7 +104,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	// Let's write a function that replaces GetUsagePeriodStartAt with a cache lookup
 	getUsagePeriodStartAtFromCache := func(at time.Time) (time.Time, error) {
 		for _, period := range periodCache {
-			if period.Contains(at) {
+			if period.ContainsInclusive(at) {
 				return period.From, nil
 			}
 		}
@@ -127,8 +127,8 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 		Granularity: ownerMeter.Meter.WindowSize,
 		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
 			// Let's validate we're not querying outside the bounds
-			if !queryBounds.Contains(from) || !queryBounds.Contains(to) {
-				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", queryBounds.From, queryBounds.To, from, to, queryBounds.Contains(from), queryBounds.Contains(to))
+			if !queryBounds.ContainsInclusive(from) || !queryBounds.ContainsInclusive(to) {
+				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", queryBounds.From, queryBounds.To, from, to, queryBounds.ContainsInclusive(from), queryBounds.ContainsInclusive(to))
 			}
 
 			params := ownerMeter.DefaultParams

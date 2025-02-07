@@ -77,8 +77,10 @@ func TestMigrate(t *testing.T) {
 				PlanInput: p1Inp,
 				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						Name:       "test",
-						ActiveFrom: now.Add(time.Second),
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
 					},
 					Namespace:  cust.Namespace,
 					CustomerID: cust.ID,
@@ -152,8 +154,10 @@ func TestMigrate(t *testing.T) {
 				PlanInput: p1Inp,
 				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						Name:       "test",
-						ActiveFrom: now.Add(time.Second),
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
 					},
 					Namespace:  cust.Namespace,
 					CustomerID: cust.ID,

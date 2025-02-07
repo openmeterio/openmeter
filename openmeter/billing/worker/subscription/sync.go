@@ -381,6 +381,14 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		},
 	}
 
+	// In advance changes should always be invoiced immediately
+	inAdvanceInvoiceAt := item.Period.Start
+
+	inArrearsInvoiceAt := item.Period.End
+	if item.InvoiceAligned {
+		inArrearsInvoiceAt = item.NonTruncatedPeriod.End
+	}
+
 	switch item.SubscriptionItem.RateCard.Price.Type() {
 	case productcatalog.FlatPriceType:
 		price, err := item.SubscriptionItem.RateCard.Price.AsFlat()
@@ -397,14 +405,14 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 
 		switch price.PaymentTerm {
 		case productcatalog.InArrearsPaymentTerm:
-			line.InvoiceAt = item.Period.End
+			line.InvoiceAt = inArrearsInvoiceAt
 		case productcatalog.InAdvancePaymentTerm:
 			// In case of inAdvance we should always invoice at the start of the period and if there's a change
 			// prorating should void the item and credit the customer.
 			//
 			// Warning: We are not supporting voiding or crediting right now, so we are going to overcharge on
 			// inAdvance items in case of a change on a finalized invoice.
-			line.InvoiceAt = item.Period.Start
+			line.InvoiceAt = inAdvanceInvoiceAt
 		default:
 			return nil, fmt.Errorf("unsupported payment term: %v", price.PaymentTerm)
 		}
@@ -434,7 +442,7 @@ func (h *Handler) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 		}
 
 		line.Type = billing.InvoiceLineTypeUsageBased
-		line.InvoiceAt = item.Period.End
+		line.InvoiceAt = inArrearsInvoiceAt
 		line.UsageBased = &billing.UsageBasedLine{
 			Price:      item.SubscriptionItem.RateCard.Price,
 			FeatureKey: *item.SubscriptionItem.RateCard.FeatureKey,

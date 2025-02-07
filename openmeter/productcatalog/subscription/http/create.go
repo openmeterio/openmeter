@@ -67,10 +67,15 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				plan := plansubscription.PlanInput{}
 				plan.FromInput(&req)
 
+				timing, err := MapAPITimingToTiming(parsedBody.Timing)
+				if err != nil {
+					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				}
+
 				return CreateSubscriptionRequest{
 					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-							ActiveFrom:  parsedBody.ActiveFrom,
+							Timing:      timing,
 							Name:        req.Name,        // We map the plan name to the subscription name
 							Description: req.Description, // We map the plan description to the subscription description
 							AnnotatedModel: models.AnnotatedModel{
@@ -94,10 +99,15 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					Key: parsedBody.Plan.Key,
 				})
 
+				timing, err := MapAPITimingToTiming(parsedBody.Timing)
+				if err != nil {
+					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				}
+
 				return CreateSubscriptionRequest{
 					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-							ActiveFrom:  parsedBody.ActiveFrom,
+							Timing:      timing,
 							Name:        parsedBody.Name,
 							Description: parsedBody.Description,
 							AnnotatedModel: models.AnnotatedModel{

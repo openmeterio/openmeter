@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
@@ -28,6 +29,7 @@ import (
 
 type CreateSubscriptionPlanInput struct {
 	Plan *PlanRef `json:"plan"`
+	productcatalog.Alignment
 }
 
 type CreateSubscriptionCustomerInput struct {
@@ -53,6 +55,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
+		Alignment:      s.Alignment,
 		Plan:           s.Plan,
 		CustomerId:     s.CustomerId,
 		Currency:       s.Currency,
@@ -148,14 +151,122 @@ func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpe
 	return current, true
 }
 
+// For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
+// The period starts with the phase and iterates every BillingCadence duration, but can be reanchored to the time of an edit.
+func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (recurrence.Period, error) {
+	var def recurrence.Period
+
+	phase, exists := s.Phases[phaseKey]
+	if !exists {
+		return def, fmt.Errorf("phase %s not found", phaseKey)
+	}
+
+	if !s.Alignment.BillablesMustAlign {
+		return def, AlignmentError{Inner: fmt.Errorf("non-aligned subscription doesn't have recurring billing cadence")}
+	}
+
+	phaseCadence, err := s.GetPhaseCadence(phaseKey)
+	if err != nil {
+		return def, fmt.Errorf("failed to get phase cadence for phase %s: %w", phaseKey, err)
+	}
+
+	if !phaseCadence.IsActiveAt(at) {
+		return def, fmt.Errorf("phase %s is not active at %s", phaseKey, at)
+	}
+
+	if err := phase.Validate(phaseCadence, s.Alignment); err != nil {
+		return def, fmt.Errorf("phase %s validation failed: %w", phaseKey, err)
+	}
+
+	if !phase.HasBillables() {
+		return def, fmt.Errorf("phase %s has no billables", phaseKey)
+	}
+
+	billables := phase.GetBillableItemsByKey()
+
+	faltBillables := lo.Flatten(lo.Values(billables))
+	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
+		return i.RateCard.BillingCadence != nil
+	})
+
+	if len(recurringFlatBillables) == 0 {
+		return def, fmt.Errorf("phase %s has no recurring billables", phaseKey)
+	}
+
+	dur, err := phase.GetBillingCadence()
+	if err != nil {
+		return def, fmt.Errorf("failed to get billing cadence for phase %s: %w", phaseKey, err)
+	}
+
+	// To find the period anchor, we need to know if any item serves as a reanchor point (RestartBillingPeriod)
+	reanchoringItems := lo.Filter(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) bool {
+		return i.BillingBehaviorOverride.RestartBillingPeriod != nil && *i.BillingBehaviorOverride.RestartBillingPeriod
+	})
+
+	reanchoringItems = lo.UniqBy(reanchoringItems, func(i *SubscriptionItemSpec) *datex.Period { return i.ActiveFromOverrideRelativeToPhaseStart })
+
+	anchorTimes := []time.Time{phaseCadence.ActiveFrom}
+	anchorTimes = append(anchorTimes, lo.Map(reanchoringItems, func(i *SubscriptionItemSpec, _ int) time.Time { return i.GetCadence(phaseCadence).ActiveFrom })...)
+
+	// Let's sort in descending
+	slices.SortFunc(anchorTimes, func(i, j time.Time) int { return -i.Compare(j) })
+
+	// Anchor is the anchor time to be used at the queried time
+	anchor := phaseCadence.ActiveFrom
+
+	for _, anc := range anchorTimes {
+		// Lets find the first thats not after the time
+		if !anc.After(at) {
+			anchor = anc
+			break
+		}
+	}
+
+	// Now let's sort in ascending and find if there's a reanchor point after the queried time
+	slices.SortFunc(anchorTimes, func(i, j time.Time) int { return i.Compare(j) })
+
+	var reanchor *time.Time
+	for _, anc := range anchorTimes {
+		if anc.After(at) {
+			reanchor = &anc
+			break
+		}
+	}
+
+	recurrenceOfAnchor, err := recurrence.FromISODuration(&dur, anchor)
+	if err != nil {
+		return def, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
+	}
+
+	period, err := recurrenceOfAnchor.GetPeriodAt(at)
+	if err != nil {
+		return def, fmt.Errorf("failed to get period at %s: %w", at, err)
+	}
+
+	// If the phase ends we have to truncate the period (this also includes the subscription end)
+	if phaseCadence.ActiveTo != nil && phaseCadence.ActiveTo.Before(period.To) {
+		period.To = *phaseCadence.ActiveTo
+	}
+
+	// If there's a reanchor we have to truncate the period
+	if reanchor != nil && reanchor.Before(period.To) {
+		period.To = *reanchor
+	}
+
+	return period, nil
+}
+
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
 	for _, phase := range s.Phases {
-		if err := phase.Validate(models.CadencedModel{
-			ActiveFrom: s.ActiveFrom,
-			ActiveTo:   s.ActiveTo,
-		}); err != nil {
+		cadence, err := s.GetPhaseCadence(phase.PhaseKey)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("during validating spec failed to get phase cadence for phase %s: %w", phase.PhaseKey, err))
+			continue
+		}
+
+		if err := phase.Validate(cadence, s.Alignment); err != nil {
 			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
@@ -243,7 +354,55 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 	}
 }
 
-func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error {
+// GetBillableItemsByKey returns a map of billable items by key
+func (s SubscriptionPhaseSpec) GetBillableItemsByKey() map[string][]*SubscriptionItemSpec {
+	res := make(map[string][]*SubscriptionItemSpec)
+	for key, items := range s.ItemsByKey {
+		for _, item := range items {
+			if item.RateCard.Price != nil {
+				if res[key] == nil {
+					res[key] = make([]*SubscriptionItemSpec, 0)
+				}
+				res[key] = append(res[key], item)
+			}
+		}
+	}
+	return res
+}
+
+func (s SubscriptionPhaseSpec) HasBillables() bool {
+	return len(s.GetBillableItemsByKey()) > 0
+}
+
+func (s SubscriptionPhaseSpec) GetBillingCadence() (datex.Period, error) {
+	var def datex.Period
+
+	billables := s.GetBillableItemsByKey()
+
+	faltBillables := lo.Flatten(lo.Values(billables))
+	recurringFlatBillables := lo.Filter(faltBillables, func(i *SubscriptionItemSpec, _ int) bool {
+		return i.RateCard.BillingCadence != nil
+	})
+
+	if len(recurringFlatBillables) == 0 {
+		return def, fmt.Errorf("phase %s has no recurring billables", s.PhaseKey)
+	}
+
+	durs := lo.Map(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) datex.Period {
+		return *i.RateCard.BillingCadence
+	})
+
+	if len(lo.Uniq(durs)) > 1 {
+		return def, fmt.Errorf("phase %s has multiple billing cadences", s.PhaseKey)
+	}
+
+	return durs[0], nil
+}
+
+func (s SubscriptionPhaseSpec) Validate(
+	phaseCadence models.CadencedModel,
+	alignment productcatalog.Alignment,
+) error {
 	var errs []error
 
 	// Phase StartAfter really should not be negative
@@ -310,25 +469,14 @@ func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error 
 			}
 		}
 
-		// We don't know the exact phase Cadence (as we don't know the Phase end time)
-		// but to validate the ordering of items the phase endtime is irrelevant
-		phaseStartTime, _ := s.StartAfter.AddTo(subCadence.ActiveFrom)
-
-		somePhaseCadence := models.CadencedModel{
-			ActiveFrom: phaseStartTime,
-		}
-
 		// Let's validate that the items form a valid non-overlapping timeline
 		cadences := make([]models.CadencedModel, 0, len(items))
 		for i := range items {
-			cadence, err := items[i].GetCadence(somePhaseCadence)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("failed to get cadence for item %s: %w", items[i].ItemKey, err))
-			}
+			cadence := items[i].GetCadence(phaseCadence)
 			cadences = append(cadences, cadence)
 		}
 
-		timeline := models.Timeline[models.CadencedModel](cadences)
+		timeline := models.CadenceList[models.CadencedModel](cadences)
 
 		if !timeline.IsSorted() {
 			errs = append(errs, fmt.Errorf("items for key %s are not sorted", key))
@@ -337,6 +485,36 @@ func (s *SubscriptionPhaseSpec) Validate(subCadence models.CadencedModel) error 
 		if overlaps := timeline.GetOverlaps(); len(overlaps) > 0 {
 			errs = append(errs, fmt.Errorf("items for key %s are overlapping: %v", key, overlaps))
 		}
+	}
+
+	if alignment.BillablesMustAlign {
+		// Let's validate that all billables have the same billing cadence
+		billables := make([]SubscriptionItemSpec, 0)
+		for _, items := range s.ItemsByKey {
+			for _, item := range items {
+				if item.RateCard.Price != nil {
+					billables = append(billables, *item)
+				}
+			}
+		}
+
+		cadences := lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
+			return i.RateCard.BillingCadence != nil
+		}), func(i SubscriptionItemSpec) datex.Period {
+			return *i.RateCard.BillingCadence
+		})
+
+		if len(cadences) > 1 {
+			errs = append(errs, &AllowedDuringApplyingPatchesError{Inner: &AlignmentError{Inner: fmt.Errorf("all billables must have the same billing cadence")}})
+		}
+
+		// Some validations that might feel reasonable but are misleading:
+		//
+		// 1. The phase length doesn't have to be a multiple of the billing cadence. If an edit is done with resetanchor, alignment would drift either way. If a cancel or stretch is done, valid cancels and stretches would break this condition.
+	}
+
+	if len(errs) == 0 {
+		return nil
 	}
 
 	return errors.Join(errs...)
@@ -351,6 +529,7 @@ type CreateSubscriptionItemPlanInput struct {
 type CreateSubscriptionItemCustomerInput struct {
 	ActiveFromOverrideRelativeToPhaseStart *datex.Period `json:"activeFromOverrideRelativeToPhaseStart"`
 	ActiveToOverrideRelativeToPhaseStart   *datex.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+	BillingBehaviorOverride
 }
 
 type CreateSubscriptionItemInput struct {
@@ -362,7 +541,7 @@ type SubscriptionItemSpec struct {
 	CreateSubscriptionItemInput `json:",inline"`
 }
 
-func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (models.CadencedModel, error) {
+func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) models.CadencedModel {
 	start := phaseCadence.ActiveFrom
 	if s.ActiveFromOverrideRelativeToPhaseStart != nil {
 		start, _ = s.ActiveFromOverrideRelativeToPhaseStart.AddTo(phaseCadence.ActiveFrom)
@@ -375,7 +554,7 @@ func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (mod
 			return models.CadencedModel{
 				ActiveFrom: *phaseCadence.ActiveTo,
 				ActiveTo:   phaseCadence.ActiveTo,
-			}, nil
+			}
 		}
 	}
 
@@ -395,7 +574,7 @@ func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) (mod
 	return models.CadencedModel{
 		ActiveFrom: start,
 		ActiveTo:   end,
-	}, nil
+	}
 }
 
 func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
@@ -403,10 +582,7 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 	phaseCadence models.CadencedModel,
 	entitlement *entitlement.Entitlement,
 ) (CreateSubscriptionItemEntityInput, error) {
-	itemCadence, err := s.GetCadence(phaseCadence)
-	if err != nil {
-		return CreateSubscriptionItemEntityInput{}, fmt.Errorf("failed to get cadence for item %s: %w", s.ItemKey, err)
-	}
+	itemCadence := s.GetCadence(phaseCadence)
 
 	res := CreateSubscriptionItemEntityInput{
 		NamespacedModel: models.NamespacedModel{
@@ -420,6 +596,7 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 		RateCard:                               s.CreateSubscriptionItemPlanInput.RateCard,
 		Name:                                   s.RateCard.Name,
 		Description:                            s.RateCard.Description,
+		BillingBehaviorOverride:                s.BillingBehaviorOverride,
 	}
 
 	if entitlement != nil {
@@ -540,6 +717,11 @@ func (s *SubscriptionItemSpec) Validate() error {
 			},
 			Msg: fmt.Sprintf("RateCard validation failed: %s", err),
 		})
+	}
+
+	// Billing behavior should only be present for billable items
+	if s.BillingBehaviorOverride.RestartBillingPeriod != nil && s.RateCard.Price == nil {
+		errs = append(errs, fmt.Errorf("billing behavior override is only allowed for billable items"))
 	}
 
 	// The relative cadence should make sense
@@ -694,4 +876,16 @@ type SpecValidationError struct {
 
 func (e *SpecValidationError) Error() string {
 	return e.Msg
+}
+
+type AlignmentError struct {
+	Inner error
+}
+
+func (e AlignmentError) Error() string {
+	return fmt.Sprintf("alignment error: %s", e.Inner)
+}
+
+func (e AlignmentError) Unwrap() error {
+	return e.Inner
 }

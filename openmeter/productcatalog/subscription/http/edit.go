@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -16,6 +18,7 @@ type (
 	EditSubscriptionRequest = struct {
 		ID             models.NamespacedID
 		Customizations []subscription.Patch
+		Timing         subscription.Timing
 	}
 	EditSubscriptionResponse = api.Subscription
 	EditSubscriptionParams   = struct {
@@ -52,13 +55,27 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 				patches = append(patches, p)
 			}
 
+			var timing subscription.Timing
+
+			if body.Timing != nil {
+				timing, err = MapAPITimingToTiming(*body.Timing)
+				if err != nil {
+					return EditSubscriptionRequest{}, fmt.Errorf("failed to map timing to subscription.Timing: %w", err)
+				}
+			} else {
+				timing = subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				}
+			}
+
 			return EditSubscriptionRequest{
 				ID:             models.NamespacedID{Namespace: ns, ID: params.ID},
 				Customizations: patches,
+				Timing:         timing,
 			}, nil
 		},
 		func(ctx context.Context, req EditSubscriptionRequest) (EditSubscriptionResponse, error) {
-			sub, err := h.SubscriptionWorkflowService.EditRunning(ctx, req.ID, req.Customizations)
+			sub, err := h.SubscriptionWorkflowService.EditRunning(ctx, req.ID, req.Customizations, req.Timing)
 			if err != nil {
 				return EditSubscriptionResponse{}, err
 			}

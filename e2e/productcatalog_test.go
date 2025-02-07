@@ -355,9 +355,12 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, customer1)
 		require.NotNil(t, customer1.Id)
 
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
 		create := api.SubscriptionCreate{}
 		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			ActiveFrom: startTime,
+			Timing:     *ct,
 			CustomerId: *customer2.Id,
 			CustomPlan: customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
 		})
@@ -379,9 +382,12 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, customer1)
 		require.NotNil(t, customer1.Id)
 
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+
 		create := api.SubscriptionCreate{}
 		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
-			ActiveFrom:  startTime,
+			Timing:      *ct,
 			CustomerId:  *customer1.Id,
 			Name:        "Test Subscription",
 			Description: lo.ToPtr("Test Subscription Description"),
@@ -464,8 +470,11 @@ func TestPlan(t *testing.T) {
 	t.Run("Should schedule a cancellation for the subscription", func(t *testing.T) {
 		require.NotEmpty(t, subscriptionId)
 
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnum("next_billing_cycle")))
+
 		apiRes, err := client.CancelSubscriptionWithResponse(ctx, subscriptionId, api.CancelSubscriptionJSONRequestBody{
-			EffectiveDate: lo.ToPtr(time.Now().Add(time.Hour).UTC()),
+			Timing: ct,
 		})
 		require.Nil(t, err)
 
@@ -534,7 +543,6 @@ func TestPlan(t *testing.T) {
 	})
 
 	var migratedSubscriptionId string
-	var migratedSubView api.SubscriptionExpanded
 
 	t.Run("Should migrate the subscription to a newer version", func(t *testing.T) {
 		require.NotNil(t, subscriptionId)
@@ -553,7 +561,6 @@ func TestPlan(t *testing.T) {
 		require.NotEqual(t, subscriptionId, *apiRes.JSON200.Next.Id)
 
 		migratedSubscriptionId = *apiRes.JSON200.Next.Id
-		migratedSubView = apiRes.JSON200.Next
 
 		require.Equal(t, 3, len(apiRes.JSON200.Next.Phases))
 		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.Next.Phases[2].Key)
@@ -564,8 +571,11 @@ func TestPlan(t *testing.T) {
 
 		req := api.SubscriptionChange{}
 
+		ct := &api.SubscriptionTiming{}
+		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnum("immediate")))
+
 		err := req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
-			ActiveFrom: migratedSubView.ActiveFrom.Add(time.Minute),
+			Timing:     *ct,
 			CustomPlan: customPlanInput, // It will functionally be the same as the old plan
 		})
 		require.Nil(t, err)

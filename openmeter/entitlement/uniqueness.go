@@ -45,8 +45,8 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 		ent Entitlement
 	}
 
-	// We use models.Timeline to validate the uniqueness constraint.
-	timeline := models.NewSortedTimeLine(
+	// We use models.CadenceList to validate the uniqueness constraint.
+	timeline := models.NewSortedCadenceList(
 		// As entitlements where e.ActiveFromTime() == e.ActiveToTime() can never be active, we should ignore them.
 		lo.Map(
 			lo.Filter(ents, func(e Entitlement, _ int) bool {

@@ -78,6 +78,7 @@ func (InvoiceLineManagedBy) Values() []string {
 
 // Period represents a time period, in billing the time period is always interpreted as
 // [from, to) (i.e. from is inclusive, to is exclusive).
+// TODO: Lets merge this with recurrence.Period
 type Period struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`

@@ -77,8 +77,10 @@ func TestChange(t *testing.T) {
 				PlanInput: p1Inp,
 				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						Name:       "test",
-						ActiveFrom: now.Add(time.Second),
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
 					},
 					Namespace:  cust.Namespace,
 					CustomerID: cust.ID,
@@ -131,8 +133,10 @@ func TestChange(t *testing.T) {
 			resp, err := svc.Change(ctx, plansubscription.ChangeSubscriptionRequest{
 				ID: sub.NamespacedID,
 				WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: clock.Now(),
-					Name:       sub.Name,
+					Timing: subscription.Timing{
+						Custom: lo.ToPtr(clock.Now()),
+					},
+					Name: sub.Name,
 				},
 				PlanInput: pInp,
 			})
@@ -176,8 +180,10 @@ func TestChange(t *testing.T) {
 				PlanInput: p1Inp,
 				WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 					ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-						Name:       "test",
-						ActiveFrom: now.Add(time.Second),
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
 					},
 					Namespace:  cust.Namespace,
 					CustomerID: cust.ID,
@@ -249,8 +255,10 @@ func TestChange(t *testing.T) {
 			_, err = svc.Change(ctx, plansubscription.ChangeSubscriptionRequest{
 				ID: sub.NamespacedID,
 				WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-					ActiveFrom: clock.Now(),
-					Name:       sub.Name,
+					Timing: subscription.Timing{
+						Custom: lo.ToPtr(clock.Now()),
+					},
+					Name: sub.Name,
 				},
 				PlanInput: pInp,
 			})

@@ -18,6 +18,8 @@ type SubscriptionItem struct {
 	// The defacto cadence of the item is calculated and persisted after each change.
 	models.CadencedModel `json:",inline"`
 
+	BillingBehaviorOverride BillingBehaviorOverride `json:"billingBehaviorOverride"`
+
 	// SubscriptionID is the ID of the subscription this item belongs to.
 	SubscriptionId string `json:"subscriptionId"`
 	// PhaseID is the ID of the phase this item belongs to.
@@ -73,6 +75,7 @@ func (i SubscriptionItem) AsEntityInput() CreateSubscriptionItemEntityInput {
 		EntitlementID:                          i.EntitlementID,
 		Name:                                   i.Name,
 		Description:                            i.Description,
+		BillingBehaviorOverride:                i.BillingBehaviorOverride,
 	}
 }
 

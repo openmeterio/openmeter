@@ -519,6 +519,13 @@ type InvoiceExternalIDs struct {
 	Payment   string `json:"payment,omitempty"`
 }
 
+func (i *InvoiceExternalIDs) GetInvoicingOrEmpty() string {
+	if i == nil {
+		return ""
+	}
+	return i.Invoicing
+}
+
 type InvoiceAvailableActions struct {
 	Advance *InvoiceAvailableActionDetails        `json:"advance,omitempty"`
 	Approve *InvoiceAvailableActionDetails        `json:"approve,omitempty"`

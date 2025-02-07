@@ -342,8 +342,10 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-			ActiveFrom: start,
-			Name:       "subs-1",
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(start),
+			},
+			Name: "subs-1",
 		},
 		Namespace:  namespace,
 		CustomerID: s.Customer.ID,
@@ -352,10 +354,10 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.NoError(err)
 	s.NotNil(subsView)
 
-	freeTierPhase := getPhraseByKey(s.T(), subsView, "free-trial")
+	freeTierPhase := getPhaseByKey(s.T(), subsView, "free-trial")
 	s.Equal(lo.ToPtr(datex.MustParse(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.BillingCadence)
 
-	discountedPhase := getPhraseByKey(s.T(), subsView, "discounted-phase")
+	discountedPhase := getPhaseByKey(s.T(), subsView, "discounted-phase")
 	var gatheringInvoiceID billing.InvoiceID
 
 	// let's provision the first set of items
@@ -461,7 +463,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
-		}, cancelAt)
+		}, subscription.Timing{
+			Custom: lo.ToPtr(cancelAt),
+		})
 		s.NoError(err)
 
 		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
@@ -636,8 +640,10 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-			ActiveFrom: start,
-			Name:       "subs-1",
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(start),
+			},
+			Name: "subs-1",
 		},
 		Namespace:  namespace,
 		CustomerID: customerEntity.ID,
@@ -686,7 +692,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		subs, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{
 			Namespace: namespace,
 			ID:        subsView.Subscription.ID,
-		}, cancelAt)
+		}, subscription.Timing{
+			Custom: lo.ToPtr(cancelAt),
+		})
 		s.NoError(err)
 
 		subsView, err = s.SubscriptionService.GetView(ctx, models.NamespacedID{
@@ -776,7 +784,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -853,7 +861,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -949,7 +957,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1046,7 +1054,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1174,7 +1182,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1317,7 +1325,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 			}),
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1375,6 +1383,210 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	s.Len(approvedInvoice.ValidationIssues, 1)
 
 	s.expectValidationIssueForLine(approvedInvoice.Lines.OrEmpty()[0], approvedInvoice.ValidationIssues[0])
+}
+
+func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//	a subscription with a single phase with a single item with multiple versions of it
+	// When
+	//  we provision the lines
+	// Then
+	//  in-arrears lines should be invoiced aligned
+	//  in-advance lines should be invoiced immediately
+
+	// Let's create the initial subscription
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test-plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+						},
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-arrears",
+								Name: "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	// Let's advance a day and make some edits
+	clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
+
+	subView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subView.Subscription.NamespacedID, []subscription.Patch{
+		// Let's update in-advance item
+		&patch.PatchRemoveItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+		},
+		&patch.PatchAddItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-advance",
+			CreateInput: subscription.SubscriptionItemSpec{
+				CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+					CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+						PhaseKey: "first-phase",
+						ItemKey:  "in-advance",
+						RateCard: subscription.RateCard{
+							Name: "in-advance",
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromFloat(8), // changed price 5 -> 8
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+						},
+					},
+				},
+			},
+		},
+		// Let's update in-arrears item
+		&patch.PatchRemoveItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-arrears",
+		},
+		&patch.PatchAddItem{
+			PhaseKey: "first-phase",
+			ItemKey:  "in-arrears",
+			CreateInput: subscription.SubscriptionItemSpec{
+				CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+					CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+						PhaseKey: "first-phase",
+						ItemKey:  "in-arrears",
+						RateCard: subscription.RateCard{
+							Name: "in-arrears",
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromFloat(7), // changed price 5 -> 7
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1W")),
+						},
+					},
+				},
+			},
+		},
+	}, s.timingImmediate())
+	s.NoError(err)
+
+	// Now let's synchronize the subscription
+
+	asOf := s.mustParseTime("2024-01-03T12:00:00Z")
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, asOf))
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   1,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](8),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
+				},
+			},
+			// in-advance items are invoiced immediately when change happens
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-arrears",
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](5),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-arrears",
+				Version:   1,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](7),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-02T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-08T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-08T00:00:00Z")},
+		},
+	})
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceOneTimeFeeSyncing() {
@@ -1471,7 +1683,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	// let's cancel the subscription
 	cancelAt := s.mustParseTime("2024-01-04T12:00:00Z")
 
-	subs, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, cancelAt)
+	subs, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: &cancelAt,
+	})
 	s.NoError(err)
 
 	subsView, err = s.SubscriptionService.GetView(ctx, subs.NamespacedID)
@@ -1574,7 +1788,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1740,7 +1954,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -1904,7 +2118,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -2117,7 +2331,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
@@ -2332,7 +2546,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	s.NotNil(updatedLine)
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T11:00:00Z"))
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, s.mustParseTime("2024-01-01T11:00:00Z"))
+	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: lo.ToPtr(s.mustParseTime("2024-01-01T11:00:00Z")),
+	})
 	s.NoError(err)
 
 	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
@@ -2502,7 +2718,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.NotNil(updatedLine)
 
 	clock.FreezeTime(s.mustParseTime("2024-01-01T11:00:00Z"))
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, s.mustParseTime("2024-01-01T11:00:00Z"))
+	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: lo.ToPtr(s.mustParseTime("2024-01-01T11:00:00Z")),
+	})
 	s.NoError(err)
 
 	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
@@ -2607,7 +2825,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 			TaxConfig:      taxConfig,
 			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
-	})
+	}, s.timingImmediate())
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
@@ -2836,10 +3054,9 @@ func (s *SubscriptionHandlerTestSuite) populateChildIDsFromParents(invoice *bill
 }
 
 // helpers
-func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
-	ctx := s.Context
 
-	plan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
+	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
 		},
@@ -2852,7 +3069,15 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 			},
 			Phases: phases,
 		},
-	})
+	}
+
+	return s.createSubscriptionFromPlan(planInput)
+}
+
+func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
+	ctx := s.Context
+
+	plan, err := s.PlanService.CreatePlan(ctx, planInput)
 	s.NoError(err)
 
 	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
@@ -2863,8 +3088,10 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-			ActiveFrom: clock.Now(),
-			Name:       "subs-1",
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(clock.Now()),
+			},
+			Name: "subs-1",
 		},
 		Namespace:  s.Namespace,
 		CustomerID: s.Customer.ID,
@@ -2875,7 +3102,13 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlanPhases(phases [
 	return subsView
 }
 
-func getPhraseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
+func (s *SubscriptionHandlerTestSuite) timingImmediate() subscription.Timing {
+	return subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	}
+}
+
+func getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
 	for _, phase := range subsView.Phases {
 		if phase.SubscriptionPhase.Key == key {
 			return phase

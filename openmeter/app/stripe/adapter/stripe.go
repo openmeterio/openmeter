@@ -104,6 +104,7 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 		AppID:      input.AppID,
 		AppService: a.appService,
 		APIKey:     input.APIKey,
+		Logger:     a.logger.With("operation", "validateStripeAPIKey", "app_id", input.AppID.ID),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stripe client: %w", err)
@@ -501,6 +502,7 @@ func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentit
 			AppID:      appID,
 			AppService: repo.appService,
 			APIKey:     apiKeySecret.Value,
+			Logger:     a.logger.With("operation", "createCheckoutSession", "app_id", appID.ID, "customer_id", customerID.ID),
 		})
 		if err != nil {
 			return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to create stripe client: %w", err)
@@ -568,7 +570,7 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	}
 
 	// Get Stripe App client
-	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID, "getSupplierContact", "app_id", input.AppID.ID)
 	if err != nil {
 		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app client: %w", err)
 	}
@@ -612,7 +614,7 @@ func (a adapter) GetStripeInvoice(ctx context.Context, input appstripeentity.Get
 	}
 
 	// Get Stripe App client
-	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID)
+	_, stripeAppClient, err := a.getStripeAppClient(ctx, input.AppID, "getStripeInvoice", "app_id", input.AppID.ID, "stripe_invoice_id", input.StripeInvoiceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stripe app client: %w", err)
 	}
@@ -645,7 +647,7 @@ func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (st
 }
 
 // getStripeAppClient returns a Stripe App Client based on App ID
-func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
+func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID, logOperation string, logFields ...any) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
 	// Validate app id
 	if err := appID.Validate(); err != nil {
 		return appstripeentity.AppData{}, nil, fmt.Errorf("app id: %w", err)
@@ -670,6 +672,7 @@ func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID) (appst
 		AppID:      appID,
 		AppService: a.appService,
 		APIKey:     apiKeySecret.Value,
+		Logger:     a.logger.With("operation", logOperation).With(logFields...),
 	})
 	if err != nil {
 		return stripeAppData, nil, fmt.Errorf("failed to create stripe client: %w", err)

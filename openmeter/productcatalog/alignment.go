@@ -1,6 +1,7 @@
 package productcatalog
 
 type Alignment struct {
+	// BillablesMustAlign indicates whether all billable items in a given phase must share the same BillingPeriodDuration.
 	BillablesMustAlign bool `json:"billablesMustAlign"`
 }
 

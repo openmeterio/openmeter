@@ -42,6 +42,8 @@ type SubscriptionItem struct {
 	Key string `json:"key,omitempty"`
 	// EntitlementID holds the value of the "entitlement_id" field.
 	EntitlementID *string `json:"entitlement_id,omitempty"`
+	// RestartsBillingPeriod holds the value of the "restarts_billing_period" field.
+	RestartsBillingPeriod *bool `json:"restarts_billing_period,omitempty"`
 	// ActiveFromOverrideRelativeToPhaseStart holds the value of the "active_from_override_relative_to_phase_start" field.
 	ActiveFromOverrideRelativeToPhaseStart *datex.ISOString `json:"active_from_override_relative_to_phase_start,omitempty"`
 	// ActiveToOverrideRelativeToPhaseStart holds the value of the "active_to_override_relative_to_phase_start" field.
@@ -117,6 +119,8 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscriptionitem.FieldMetadata:
 			values[i] = new([]byte)
+		case subscriptionitem.FieldRestartsBillingPeriod:
+			values[i] = new(sql.NullBool)
 		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case subscriptionitem.FieldCreatedAt, subscriptionitem.FieldUpdatedAt, subscriptionitem.FieldDeletedAt, subscriptionitem.FieldActiveFrom, subscriptionitem.FieldActiveTo:
@@ -212,6 +216,13 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				si.EntitlementID = new(string)
 				*si.EntitlementID = value.String
+			}
+		case subscriptionitem.FieldRestartsBillingPeriod:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field restarts_billing_period", values[i])
+			} else if value.Valid {
+				si.RestartsBillingPeriod = new(bool)
+				*si.RestartsBillingPeriod = value.Bool
 			}
 		case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -357,6 +368,11 @@ func (si *SubscriptionItem) String() string {
 	if v := si.EntitlementID; v != nil {
 		builder.WriteString("entitlement_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := si.RestartsBillingPeriod; v != nil {
+		builder.WriteString("restarts_billing_period=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := si.ActiveFromOverrideRelativeToPhaseStart; v != nil {

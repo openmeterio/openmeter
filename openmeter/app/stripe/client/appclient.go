@@ -77,6 +77,7 @@ type StripeAppClientConfig struct {
 	AppService app.Service
 	AppID      app.AppID
 	APIKey     string
+	Logger     *slog.Logger
 }
 
 func (c *StripeAppClientConfig) Validate() error {
@@ -90,6 +91,10 @@ func (c *StripeAppClientConfig) Validate() error {
 
 	if c.APIKey == "" {
 		return fmt.Errorf("api key is required")
+	}
+
+	if c.Logger == nil {
+		return fmt.Errorf("logger is required")
 	}
 
 	return nil
@@ -108,7 +113,7 @@ func NewStripeAppClient(config StripeAppClientConfig) (StripeAppClient, error) {
 
 	backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
 		LeveledLogger: leveledLogger{
-			logger: slog.Default(),
+			logger: config.Logger,
 		},
 	})
 	client := &client.API{}

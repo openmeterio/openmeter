@@ -32,6 +32,7 @@ type StripeClientFactory = func(config StripeClientConfig) (StripeClient, error)
 type StripeClientConfig struct {
 	Namespace string
 	APIKey    string
+	Logger    *slog.Logger
 }
 
 func (c *StripeClientConfig) Validate() error {
@@ -41,6 +42,10 @@ func (c *StripeClientConfig) Validate() error {
 
 	if c.APIKey == "" {
 		return fmt.Errorf("api key is required")
+	}
+
+	if c.Logger == nil {
+		return fmt.Errorf("logger is required")
 	}
 
 	return nil
@@ -58,7 +63,7 @@ func NewStripeClient(config StripeClientConfig) (StripeClient, error) {
 
 	backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
 		LeveledLogger: leveledLogger{
-			logger: slog.Default(),
+			logger: config.Logger,
 		},
 	})
 	client := &client.API{}

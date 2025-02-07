@@ -60,6 +60,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		AppService:      appService,
 		CustomerService: customerService,
 		SecretService:   secretService,
+		Logger:          logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)

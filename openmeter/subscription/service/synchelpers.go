@@ -66,10 +66,7 @@ func (s *service) createItem(
 			Spec: itemSpec,
 		}
 
-		itemCadence, err := itemSpec.GetCadence(phaseCadence)
-		if err != nil {
-			return res, fmt.Errorf("failed to get item cadence: %w", err)
-		}
+		itemCadence := itemSpec.GetCadence(phaseCadence)
 
 		// First, let's see if we need to create an entitlement
 		entInput, hasEnt, err := itemSpec.ToScheduleSubscriptionEntitlementInput(
