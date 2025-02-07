@@ -550,6 +550,12 @@ func TestTransaction(t *testing.T) {
 						return nil
 					})
 
+					assert.Equal(t, map[string]bool{
+						"hook1": false,
+						"hook2": false,
+						"hook3": false,
+					}, calledMap, "no hooks called before commit")
+
 					return nil, err
 				})
 				if err != nil {

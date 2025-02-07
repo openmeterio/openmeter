@@ -32,10 +32,10 @@ func RunWithNoValue(ctx context.Context, creator Creator, cb func(ctx context.Co
 func AddPostCommitHook(ctx context.Context, callback func(ctx context.Context) error) {
 	hook := loggingHook(callback)
 
-	hookMgr, err := GetHookManagerFromContext(ctx)
+	hookMgr, err := getHookManagerFromContext(ctx)
 	if err != nil {
 		// If we are not in transaction let's invoke the callback directly
-		if _, ok := errorsx.ErrorAs[*HookManagerNotFoundError](err); ok {
+		if _, ok := errorsx.ErrorAs[*hookManagerNotFoundError](err); ok {
 			hook(ctx)
 			return
 		}
@@ -46,7 +46,7 @@ func AddPostCommitHook(ctx context.Context, callback func(ctx context.Context) e
 		return
 	}
 
-	if err := hookMgr.AddBeforeCommitHook(hook); err != nil {
+	if err := hookMgr.AddPostCommitHook(hook); err != nil {
 		// This could only happen if we have never called PostSavePoint
 		slog.WarnContext(ctx, "failed to add post commit hook, executing now", "error", err)
 		hook(ctx)
@@ -69,10 +69,10 @@ func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Contex
 	}
 
 	// Let's make sure we have a hook manager
-	ctx = UpsertHookManagerOnContext(ctx)
+	ctx, hookMgr := upserthookManagerOnContext(ctx)
 
 	// Execute the callback and manage the transaction
-	return manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
+	return manage(ctx, tx, hookMgr, func(ctx context.Context, tx Driver) (R, error) {
 		return cb(ctx)
 	})
 }
@@ -94,13 +94,8 @@ func getTx(ctx context.Context, creator Creator) (context.Context, Driver, error
 }
 
 // Manages the transaction based on the behavior of the callback
-func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, tx Driver) (R, error)) (R, error) {
+func manage[R any](ctx context.Context, tx Driver, hookMgr *hookManager, cb func(ctx context.Context, tx Driver) (R, error)) (R, error) {
 	var def R
-
-	hookMgr, err := GetHookManagerFromContext(ctx)
-	if err != nil {
-		return def, err
-	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -113,7 +108,7 @@ func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, 
 		}
 	}()
 
-	err = tx.SavePoint()
+	err := tx.SavePoint()
 	if err != nil {
 		return def, err
 	}

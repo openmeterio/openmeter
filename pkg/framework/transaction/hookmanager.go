@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
 )
 
 // Hook is the external type for hooks
@@ -22,10 +23,10 @@ func loggingHook(h Hook) hook {
 	}
 }
 
-type HookLayers [][]hook
+type hookLayers [][]hook
 
 // AppendToLastLayer appends hooks to the last layer of hooks
-func (h *HookLayers) AppendToLastLayer(hooks ...hook) bool {
+func (h *hookLayers) AppendToLastLayer(hooks ...hook) bool {
 	if len(*h) == 0 {
 		return false
 	}
@@ -35,7 +36,7 @@ func (h *HookLayers) AppendToLastLayer(hooks ...hook) bool {
 }
 
 // DiscardLastLayer discards the last layer of hooks, return false if there are no layers to discard
-func (h *HookLayers) DiscardLastLayer() bool {
+func (h *hookLayers) DiscardLastLayer() bool {
 	if len(*h) == 0 {
 		return false
 	}
@@ -45,7 +46,7 @@ func (h *HookLayers) DiscardLastLayer() bool {
 }
 
 // GetLastLayer returns the last layer of hooks
-func (h HookLayers) GetLastLayer() ([]hook, bool) {
+func (h hookLayers) GetLastLayer() ([]hook, bool) {
 	if len(h) == 0 {
 		return nil, false
 	}
@@ -54,21 +55,26 @@ func (h HookLayers) GetLastLayer() ([]hook, bool) {
 }
 
 // AddLayer adds a new layer of hooks
-func (h *HookLayers) AddLayer() {
+func (h *hookLayers) AddLayer() {
 	*h = append(*h, []hook{})
 }
 
 // GetLayerCount returns the number of layers
-func (h HookLayers) GetLayerCount() int {
+func (h hookLayers) GetLayerCount() int {
 	return len(h)
 }
 
-type TransactionHooks struct {
-	PostCommitHooks HookLayers
+type hookManager struct {
+	mu sync.Mutex
+
+	PostCommitHooks hookLayers
 }
 
-func (t *TransactionHooks) AddBeforeCommitHook(hook hook) error {
-	ok := t.PostCommitHooks.AppendToLastLayer(hook)
+func (m *hookManager) AddPostCommitHook(cb hook) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	ok := m.PostCommitHooks.AppendToLastLayer(cb)
 
 	if !ok {
 		// This signals that we have never called SavePoint
@@ -78,85 +84,104 @@ func (t *TransactionHooks) AddBeforeCommitHook(hook hook) error {
 	return nil
 }
 
-func (t *TransactionHooks) PostSavePoint() {
-	t.PostCommitHooks.AddLayer()
+func (m *hookManager) PostSavePoint() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.PostCommitHooks.AddLayer()
 }
 
-func (t *TransactionHooks) PostCommit(ctx context.Context) error {
-	layerCount := t.PostCommitHooks.GetLayerCount()
+func (m *hookManager) postCommit() ([]hook, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	layerCount := m.PostCommitHooks.GetLayerCount()
 
 	if layerCount == 0 {
-		return errors.New("hook logic error: there are no layers available in post commit hooks for commit")
+		return nil, errors.New("hook logic error: there are no layers available in post commit hooks for commit")
 	}
 
 	if layerCount == 1 {
 		// We are the last save point => let's execute the hooks
-		finalLayer, _ := t.PostCommitHooks.GetLastLayer()
-		for _, hook := range finalLayer {
-			hook(ctx)
-		}
+		finalLayer, _ := m.PostCommitHooks.GetLastLayer()
 
-		t.PostCommitHooks = HookLayers{}
-		return nil
+		m.PostCommitHooks = hookLayers{}
+		return finalLayer, nil
 	}
 
 	// We are not the last save point => let's add the commit hooks to the parent
-	currentHooks, _ := t.PostCommitHooks.GetLastLayer()
+	currentHooks, _ := m.PostCommitHooks.GetLastLayer()
 
-	t.PostCommitHooks.AppendToLastLayer(currentHooks...)
+	m.PostCommitHooks.AppendToLastLayer(currentHooks...)
+	return nil, nil
+}
+
+func (m *hookManager) PostCommit(ctx context.Context) error {
+	hooks, err := m.postCommit()
+	if err != nil {
+		return err
+	}
+
+	for _, hook := range hooks {
+		hook(ctx)
+	}
+
 	return nil
 }
 
-func (t *TransactionHooks) PostRollback() error {
-	if t.PostCommitHooks.GetLayerCount() == 0 {
+func (m *hookManager) PostRollback() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.PostCommitHooks.GetLayerCount() == 0 {
 		return errors.New("hook logic error: there are no layers available in post commit hooks for rollback")
 	}
 
-	_ = t.PostCommitHooks.DiscardLastLayer()
+	_ = m.PostCommitHooks.DiscardLastLayer()
 	return nil
 }
 
 // Context handling
 
-type omHookManagerContextKey string
+type omhookManagerContextKey string
 
-const hookManagerContextKey omHookManagerContextKey = "hook_manager_context_key"
+const hookManagerContextKey omhookManagerContextKey = "hook_manager_context_key"
 
-func GetHookManagerFromContext(ctx context.Context) (*TransactionHooks, error) {
-	hooks, ok := ctx.Value(hookManagerContextKey).(*TransactionHooks)
+func getHookManagerFromContext(ctx context.Context) (*hookManager, error) {
+	hooks, ok := ctx.Value(hookManagerContextKey).(*hookManager)
 	if !ok {
-		return nil, &HookManagerNotFoundError{}
+		return nil, &hookManagerNotFoundError{}
 	}
 	return hooks, nil
 }
 
-type HookManagerNotFoundError struct{}
+type hookManagerNotFoundError struct{}
 
-func (e *HookManagerNotFoundError) Error() string {
+func (e *hookManagerNotFoundError) Error() string {
 	return "hook manager not found in context"
 }
 
-func SetHookManagerOnContext(ctx context.Context, hooks *TransactionHooks) (context.Context, error) {
-	if _, err := GetHookManagerFromContext(ctx); err == nil {
-		return ctx, &HookManagerConflictError{}
+func setHookManagerOnContext(ctx context.Context, hooks *hookManager) (context.Context, error) {
+	if _, err := getHookManagerFromContext(ctx); err == nil {
+		return ctx, &hookManagerConflictError{}
 	}
 	return context.WithValue(ctx, hookManagerContextKey, hooks), nil
 }
 
-type HookManagerConflictError struct{}
+type hookManagerConflictError struct{}
 
-func (e *HookManagerConflictError) Error() string {
+func (e *hookManagerConflictError) Error() string {
 	return "hook manager already exists in context"
 }
 
-func UpsertHookManagerOnContext(ctx context.Context) context.Context {
-	if _, err := GetHookManagerFromContext(ctx); err == nil {
-		return ctx
+func upserthookManagerOnContext(ctx context.Context) (context.Context, *hookManager) {
+	if hookMgr, err := getHookManagerFromContext(ctx); err == nil {
+		return ctx, hookMgr
 	}
 
-	hooks := &TransactionHooks{
-		PostCommitHooks: HookLayers{},
+	hookMgr := &hookManager{
+		PostCommitHooks: hookLayers{},
 	}
-	ctx, _ = SetHookManagerOnContext(ctx, hooks)
-	return ctx
+	ctx, _ = setHookManagerOnContext(ctx, hookMgr)
+	return ctx, hookMgr
 }
