@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -82,15 +84,19 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner grant.NamespacedOwner) (time.Time, error) {
-	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
+	owningEntitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
-		return time.Time{}, &grant.OwnerNotFoundError{
-			Owner:          owner,
-			AttemptedOwner: "entitlement",
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return time.Time{}, &grant.OwnerNotFoundError{
+				Owner:          owner,
+				AttemptedOwner: "entitlement",
+			}
 		}
+
+		return time.Time{}, fmt.Errorf("failed to get entitlement: %w", err)
 	}
 
-	metered, err := ParseFromGenericEntitlement(entitlement)
+	metered, err := ParseFromGenericEntitlement(owningEntitlement)
 	if err != nil {
 		return time.Time{}, err
 	}
