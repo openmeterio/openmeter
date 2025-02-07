@@ -432,10 +432,11 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			for _, invoice := range out {
-				err := s.publisher.Publish(ctx, billing.NewInvoiceCreatedEvent(invoice))
-				if err != nil {
-					return nil, fmt.Errorf("publishing event: %w", err)
-				}
+				event := billing.NewInvoiceCreatedEvent(invoice)
+
+				transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
+					return s.publisher.Publish(ctx, event)
+				})
 			}
 
 			return out, nil
@@ -453,9 +454,11 @@ type gatherInScopeLineInput struct {
 
 func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine) error {
 	if s.advancementStrategy == billing.QueuedAdvancementStrategy {
-		return s.publisher.Publish(ctx, billing.AdvanceInvoiceEvent{
-			Invoice:    sm.Invoice.InvoiceID(),
-			CustomerID: sm.Invoice.Customer.CustomerID,
+		transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
+			return s.publisher.Publish(ctx, billing.AdvanceInvoiceEvent{
+				Invoice:    sm.Invoice.InvoiceID(),
+				CustomerID: sm.Invoice.Customer.CustomerID,
+			})
 		})
 	}
 
