@@ -8,7 +8,7 @@ namespace OpenMeter.Billing;
  * knowledge of the invoice ID.
  */
 @route("/api/v1/billing/invoices")
-@tag("Billing (Private Preview)")
+@tag("Billing (Beta)")
 interface InvoicesEndpoints {
   /**
    * Create a new invoice from the pending line items.
@@ -75,7 +75,7 @@ interface InvoicesEndpoints {
  * CustomerInvoice is a collection of endpoints that allow operations on a specific invoice.
  */
 @route("/api/v1/billing/invoices/{invoiceId}")
-@tag("Billing (Private Preview)")
+@tag("Billing (Beta)")
 interface InvoiceEndpoints {
   /**
    * Get an invoice by ID.
@@ -208,7 +208,7 @@ interface InvoiceEndpoints {
 }
 
 @route("/api/v1/billing/customers/{customerId}/invoices/simulate")
-@tag("Billing (Private Preview)")
+@tag("Billing (Beta)")
 interface InvoiceSimulationEndpoints {
   /**
    * Simulate an invoice for a customer.

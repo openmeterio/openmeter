@@ -36,33 +36,31 @@ using TypeSpec.OpenAPI;
   #{ description: "Lookup information for static data like currencies" }
 )
 @tagMetadata(
-  "Apps (Private Preview)",
+  "Apps (Beta)",
   #{
-    description: "Manage integrations for extending OpenMeter's functionality. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+    description: "Manage integrations for extending OpenMeter's functionality. ",
   }
 )
 @tagMetadata(
-  "Billing (Private Preview)",
+  "Billing (Beta)",
+  #{ description: "Manage your billing profiles and invoices. " }
+)
+@tagMetadata(
+  "Customers (Beta)",
   #{
-    description: "Manage your billing profiles and invoices. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+    description: "Manage customer subscription lifecycles and plan assignments. ",
   }
 )
 @tagMetadata(
-  "Customers (Private Preview)",
-  #{
-    description: "Manage customer subscription lifecycles and plan assignments. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
-  }
-)
-@tagMetadata(
-  "Subscriptions (Private Preview)",
+  "Subscriptions (Beta)",
   #{
     description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
   }
 )
 @tagMetadata(
-  "Product Catalog (Private Preview)",
+  "Product Catalog (Beta)",
   #{
-    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. ",
   }
 )
 @tagMetadata(
@@ -172,14 +170,14 @@ interface Debug extends OpenMeter.Debug {}
 
 namespace OpenMeterCloud.App {
   @route("/api/v1/marketplace")
-  @tag("Apps (Private Preview)")
+  @tag("Apps (Beta)")
   interface Marketplace extends OpenMeter.App.Marketplace {}
 
   @route("/api/v1/apps")
-  @tag("Apps (Private Preview)")
+  @tag("Apps (Beta)")
   interface Apps extends OpenMeter.App.Apps {}
 
-  @tag("Apps (Private Preview)")
+  @tag("Apps (Beta)")
   interface AppStripe extends OpenMeter.App.AppStripe {}
 }
 
@@ -222,38 +220,38 @@ namespace OpenMeterCloud.Entitlements {
 
 namespace OpenMeterCloud.Billing {
   @route("/api/v1/customers")
-  @tag("Customers (Private Preview)")
+  @tag("Customers (Beta)")
   interface Customers extends OpenMeter.Customers {}
 
   @route("/api/v1/billing/customers")
-  @tag("Billing (Private Preview)")
+  @tag("Billing (Beta)")
   interface CustomerOverrides extends OpenMeter.Billing.CustomerOverrides {}
 
   @route("/api/v1/billing/profiles")
-  @tag("Billing (Private Preview)")
+  @tag("Billing (Beta)")
   interface BillingProfiles extends OpenMeter.Billing.Profiles {}
 
   @route("/api/v1/billing/invoices")
-  @tag("Billing (Private Preview)")
+  @tag("Billing (Beta)")
   interface InvoicesEndpoints extends OpenMeter.Billing.InvoicesEndpoints {}
 
   @route("/api/v1/billing/invoices/{invoiceId}")
-  @tag("Billing (Private Preview)")
+  @tag("Billing (Beta)")
   interface InvoiceEndpoints extends OpenMeter.Billing.InvoiceEndpoints {}
 
   @route("/api/v1/billing/customers/{customerId}/invoices/simulate")
-  @tag("Billing (Private Preview)")
+  @tag("Billing (Beta)")
   interface InvoiceSimulationEndpoints
     extends OpenMeter.Billing.InvoiceSimulationEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {
   @route("/api/v1/plans")
-  @tag("Product Catalog (Private Preview)")
+  @tag("Product Catalog (Beta)")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}
 
   @route("/api/v1/subscriptions")
-  @tag("Subscriptions (Private Preview)")
+  @tag("Subscriptions (Beta)")
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
 }
 

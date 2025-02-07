@@ -21,7 +21,7 @@ namespace OpenMeter.App;
  * Installed Apps API.
  */
 @route("/api/v1/apps")
-@tag("Apps (Private Preview)")
+@tag("Apps (Beta)")
 interface Apps {
   /**
    * List apps.

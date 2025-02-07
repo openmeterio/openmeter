@@ -8,7 +8,7 @@ using TypeSpec.OpenAPI;
 alias PlanIdOrKey = ULID | Key;
 
 @route("/api/v1/plans")
-@tag("Product Catalog (Private Preview)")
+@tag("Product Catalog (Beta)")
 interface Plans {
   /**
    * List all plans.
@@ -150,7 +150,7 @@ interface Plans {
 }
 
 @route("/api/v1/subscriptions")
-@tag("Subscriptions (Private Preview)")
+@tag("Subscriptions (Beta)")
 interface Subscriptions {
   @get
   @sharedRoute
