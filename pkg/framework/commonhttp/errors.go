@@ -5,7 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -59,7 +60,7 @@ func ErrorEncoder(ctx context.Context, _ error, w http.ResponseWriter) bool {
 // Using the generic feature we can mandate that the error implements the error interface. This is a
 // must, as the errors.As would panic if the error does not implement the error interface.
 func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err error, w http.ResponseWriter, extendedProblemFunc ...func(T) map[string]interface{}) bool {
-	if err, ok := errorsx.ErrorAs[T](err); ok {
+	if err, ok := lo.ErrorsAs[T](err); ok {
 		extendedProblemFuncs := make([]ExtendProblemFunc, 0, len(extendedProblemFunc))
 		for _, f := range extendedProblemFunc {
 			extendedProblemFuncs = append(extendedProblemFuncs, func() map[string]interface{} {
