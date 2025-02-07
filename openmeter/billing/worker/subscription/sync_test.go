@@ -99,7 +99,6 @@ func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 		TransactionManager: subsRepo,
 		// events
 		Publisher: eventbus.NewMock(s.T()),
-		Logger:    slog.Default(),
 	})
 
 	s.SubscriptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{
@@ -219,7 +218,6 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		grantRepo,
 		entitlementRepo,
 		mockPublisher,
-		testLog,
 	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
@@ -233,7 +231,6 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
 		mockPublisher,
-		slog.Default(),
 	)
 }
 

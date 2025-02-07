@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -432,7 +431,7 @@ func TestTransaction(t *testing.T) {
 				ctx := context.Background()
 
 				called := false
-				transaction.AddPostCommitHook(ctx, slog.Default(), func(ctx context.Context) error {
+				transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 					called = true
 					return nil
 				})
@@ -444,8 +443,6 @@ func TestTransaction(t *testing.T) {
 			name: "Failed post commit hook should not prevent transaction from happening",
 			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
 				ctx := context.Background()
-
-				logger := slog.Default()
 
 				calledMap := map[string]bool{
 					"hook1": false,
@@ -465,7 +462,7 @@ func TestTransaction(t *testing.T) {
 						return nil, err
 					}
 
-					transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+					transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 						calledMap["hook1"] = true
 						return fmt.Errorf("hook1 failed")
 					})
@@ -490,8 +487,6 @@ func TestTransaction(t *testing.T) {
 			run: func(t *testing.T, db1Adapter SomeDBTx[db1.Example1], db2Adapter SomeDBTx[db2.Example2]) {
 				ctx := context.Background()
 
-				logger := slog.Default()
-
 				calledMap := map[string]bool{
 					"hook1": false,
 					"hook2": false,
@@ -512,7 +507,7 @@ func TestTransaction(t *testing.T) {
 						return nil, err
 					}
 
-					transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+					transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 						calledMap["hook1"] = true
 						return nil
 					})
@@ -531,7 +526,7 @@ func TestTransaction(t *testing.T) {
 							return nil, err
 						}
 
-						transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+						transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 							calledMap["hook2"] = true
 							return nil
 						})
@@ -550,7 +545,7 @@ func TestTransaction(t *testing.T) {
 						return nil, err
 					}
 
-					transaction.AddPostCommitHook(ctx, logger, func(ctx context.Context) error {
+					transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 						calledMap["hook3"] = true
 						return nil
 					})

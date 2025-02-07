@@ -91,7 +91,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		EntitlementAdapter:    entitlementAdapter,
 		TransactionManager:    subItemRepo,
 		Publisher:             eventbus.NewMock(t),
-		Logger:                logger,
 	})
 
 	workflowSvc := service.NewWorkflowService(service.WorkflowServiceConfig{

@@ -98,7 +98,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
 		}
 
-		transaction.AddPostCommitHook(ctx, m.logger, func(ctx context.Context) error {
+		transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 			return m.publisher.Publish(ctx, event)
 		})
 
@@ -148,7 +148,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, err
 		}
 
-		transaction.AddPostCommitHook(ctx, m.logger, func(ctx context.Context) error {
+		transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 			return m.publisher.Publish(ctx, grant.VoidedEvent{
 				Grant:     g,
 				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},

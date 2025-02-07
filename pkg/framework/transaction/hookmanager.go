@@ -14,10 +14,10 @@ type Hook func(ctx context.Context) error
 // missing events (e.g. periodic reconciliation jobs)
 type hook func(ctx context.Context)
 
-func loggingHook(logger *slog.Logger, h Hook) hook {
+func loggingHook(h Hook) hook {
 	return func(ctx context.Context) {
 		if err := h(ctx); err != nil {
-			logger.ErrorContext(ctx, "error executing post commit hook", "error", err)
+			slog.ErrorContext(ctx, "error executing post commit hook", "error", err)
 		}
 	}
 }

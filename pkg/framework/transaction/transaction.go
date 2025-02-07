@@ -29,8 +29,8 @@ func RunWithNoValue(ctx context.Context, creator Creator, cb func(ctx context.Co
 	return err
 }
 
-func AddPostCommitHook(ctx context.Context, logger *slog.Logger, callback func(ctx context.Context) error) {
-	hook := loggingHook(logger, callback)
+func AddPostCommitHook(ctx context.Context, callback func(ctx context.Context) error) {
+	hook := loggingHook(callback)
 
 	hookMgr, err := GetHookManagerFromContext(ctx)
 	if err != nil {
@@ -41,14 +41,14 @@ func AddPostCommitHook(ctx context.Context, logger *slog.Logger, callback func(c
 		}
 
 		// Should not happen, only for safety
-		logger.Error("failed to get hook manager from context", "error", err)
+		slog.ErrorContext(ctx, "failed to get hook manager from context", "error", err)
 		hook(ctx)
 		return
 	}
 
 	if err := hookMgr.AddBeforeCommitHook(hook); err != nil {
 		// This could only happen if we have never called PostSavePoint
-		logger.Warn("failed to add post commit hook, executing now", "error", err)
+		slog.WarnContext(ctx, "failed to add post commit hook, executing now", "error", err)
 		hook(ctx)
 	}
 }

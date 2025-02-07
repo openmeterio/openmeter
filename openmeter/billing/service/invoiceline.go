@@ -187,7 +187,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			// Publish system event for newly created invoices
 			if upsertedInvoice.IsInvoiceNew {
 				event := billing.NewInvoiceCreatedEvent(invoice)
-				transaction.AddPostCommitHook(ctx, s.logger, func(ctx context.Context) error {
+				transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
 					return s.publisher.Publish(ctx, event)
 				})
 			}

@@ -106,7 +106,6 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		&mockTypeConnector{},
 		&mockTypeConnector{},
 		mockPublisher,
-		testLogger,
 	)
 
 	deps := &dependencies{
