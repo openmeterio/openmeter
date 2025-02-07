@@ -48,33 +48,31 @@ using TypeSpec.Versioning;
   #{ description: "Lookup information for static data like currencies" }
 )
 @tagMetadata(
-  "Apps (Private Preview)",
+  "Apps (Beta)",
   #{
-    description: "Manage integrations for extending OpenMeter's functionality. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+    description: "Manage integrations for extending OpenMeter's functionality. ",
   }
 )
 @tagMetadata(
-  "Billing (Private Preview)",
+  "Billing (Beta)",
+  #{ description: "Manage your billing profiles and invoices. " }
+)
+@tagMetadata(
+  "Customers (Beta)",
   #{
-    description: "Manage your billing profiles and invoices. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+    description: "Manage customer subscription lifecycles and plan assignments. ",
   }
 )
 @tagMetadata(
-  "Customers (Private Preview)",
-  #{
-    description: "Manage customer subscription lifecycles and plan assignments. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
-  }
-)
-@tagMetadata(
-  "Subscriptions (Private Preview)",
+  "Subscriptions (Beta)",
   #{
     description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
   }
 )
 @tagMetadata(
-  "Product Catalog (Private Preview)",
+  "Product Catalog (Beta)",
   #{
-    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. Currently in private preview - [contact us](mailto:contact@openmeter.cloud) for access.",
+    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. ",
   }
 )
 @tagMetadata(
