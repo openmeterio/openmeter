@@ -2042,10 +2042,10 @@ github.com/redis/go-redis/v9 v9.7.0 h1:HhLSs+B6O021gwzl+locl0zEDnyNkxMtf/Z3NNBMa
 github.com/redis/go-redis/v9 v9.7.0/go.mod h1:f6zhXITC7JUJIlPEiBOTXxJgPLdZcA93GewI7inzyWw=
 github.com/redpanda-data/benthos/v4 v4.43.0 h1:DO/LsiBmbb/fykI8RtPhmFz1TsGKUWDnr/ImOTSiuHs=
 github.com/redpanda-data/benthos/v4 v4.43.0/go.mod h1:2dUKS2373CZQ5lzp1qm6XflDhlm1mbhMGXBVoEuZMFQ=
-github.com/redpanda-data/connect/public/bundle/free/v4 v4.45.1 h1:yK7Pe/caAelYQld9ilGK+FMW4W2uKYImb9fM+3E1804=
-github.com/redpanda-data/connect/public/bundle/free/v4 v4.45.1/go.mod h1:lKZgBHMoLm+gbZy78O44KPdxNqfcqfjvhXqQyG2ab0Q=
-github.com/redpanda-data/connect/v4 v4.45.1 h1:44bUWzJ4jY7ly+pnRsCs+8iTW++1HkF9LGP08Y5v7Rc=
-github.com/redpanda-data/connect/v4 v4.45.1/go.mod h1:QlJsSAYDltaTMCluTO95tfs9fHSMOL3+hQRCnFRC7o8=
+github.com/redpanda-data/connect/public/bundle/free/v4 v4.46.0 h1:TwcWq/diIYVDm1H65xbyenSFFkJM+ws4OXTJL4JAusM=
+github.com/redpanda-data/connect/public/bundle/free/v4 v4.46.0/go.mod h1:W0ENiYMrJEeCyt3d7wuG6/ecyJTKkPbZb881gHiefTw=
+github.com/redpanda-data/connect/v4 v4.46.0 h1:MSXQwpw1FjmZYBJznedX1LEbiQulvZwqD34StT9oPEE=
+github.com/redpanda-data/connect/v4 v4.46.0/go.mod h1:4ZUrJ0RjizXRlpO635elLn1HQU6mhcUI4ZZQEoE9maY=
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
@@ -2218,8 +2218,8 @@ github.com/twmb/franz-go/pkg/kadm v1.13.0 h1:bJq4C2ZikUE2jh/wl9MtMTQ/kpmnBgVFh8X
 github.com/twmb/franz-go/pkg/kadm v1.13.0/go.mod h1:VMvpfjz/szpH9WB+vGM+rteTzVv0djyHFimci9qm2C0=
 github.com/twmb/franz-go/pkg/kmsg v1.9.0 h1:JojYUph2TKAau6SBtErXpXGC7E3gg4vGZMv9xFU/B6M=
 github.com/twmb/franz-go/pkg/kmsg v1.9.0/go.mod h1:CMbfazviCyY6HM0SXuG5t9vOwYDHRCSrJJyBAe5paqg=
-github.com/twmb/franz-go/pkg/sr v1.2.0 h1:zYr0Ly7KLFfeCGaSr8teN6LvAVeYVrZoUsyyPHTYB+M=
-github.com/twmb/franz-go/pkg/sr v1.2.0/go.mod h1:gpd2Xl5/prkj3gyugcL+rVzagjaxFqMgvKMYcUlrpDw=
+github.com/twmb/franz-go/pkg/sr v1.3.0 h1:UlXpZ2suGgylzQBUb6Wn1jzqVShoPGzt7BbixznJ4qo=
+github.com/twmb/franz-go/pkg/sr v1.3.0/go.mod h1:gpd2Xl5/prkj3gyugcL+rVzagjaxFqMgvKMYcUlrpDw=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=
 github.com/ugorji/go/codec v1.1.7/go.mod h1:Ax+UKWsSmolVDwsd+7N3ZtXu+yMGCf907BLYF3GoBXY=

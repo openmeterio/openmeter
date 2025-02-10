@@ -50,7 +50,7 @@ require (
 	github.com/redis/go-redis/extra/redisotel/v9 v9.7.0
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/redpanda-data/benthos/v4 v4.43.0
-	github.com/redpanda-data/connect/public/bundle/free/v4 v4.45.1
+	github.com/redpanda-data/connect/public/bundle/free/v4 v4.46.0
 	github.com/rickb777/period v1.0.8
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/sagikazarmark/slog-shim v0.1.0
@@ -124,10 +124,10 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/qdrant/go-client v1.12.0 // indirect
 	github.com/questdb/go-questdb-client/v3 v3.2.0 // indirect
-	github.com/redpanda-data/connect/v4 v4.45.1 // indirect
+	github.com/redpanda-data/connect/v4 v4.46.0 // indirect
 	github.com/timeplus-io/proton-go-driver/v2 v2.0.17 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.13.0 // indirect
-	github.com/twmb/franz-go/pkg/sr v1.2.0 // indirect
+	github.com/twmb/franz-go/pkg/sr v1.3.0 // indirect
 	go.etcd.io/bbolt v1.3.11 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
