@@ -42,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 var mockEvent = event.New()
@@ -844,5 +845,9 @@ func (n NoopCustomerService) UpdateCustomer(ctx context.Context, params customer
 }
 
 func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input customer.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
+	return nil, nil
+}
+
+func (n NoopCustomerService) FindCustomer(ctx context.Context, namespace string, customerRef ref.IDOrKey) (*customer.Customer, error) {
 	return nil, nil
 }
