@@ -65,3 +65,11 @@ func EmptyResponseEncoder[Response any](statusCode int) httptransport.ResponseEn
 		return nil
 	}
 }
+
+// DummyErrorEncoder is a dummy error encoder that always returns a 400 status code with the received error.
+func DummyErrorEncoder() httptransport.ErrorEncoder {
+	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
+		NewHTTPError(http.StatusBadRequest, err).EncodeError(ctx, w)
+		return true
+	}
+}
