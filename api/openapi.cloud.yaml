@@ -8764,10 +8764,7 @@ components:
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
-          description: |-
-            Default tax configuration to apply to the invoices.
-
-            Each line can override the tax behavior. If not set, the provider's defaults are used.
+          description: Default tax configuration to apply to the invoices.
       description: BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow
       title: Workflow invoice settings
     BillingWorkflowPaymentSettings:
@@ -12650,10 +12647,7 @@ components:
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
-          description: |-
-            Default tax configuration to apply to the invoices.
-
-            Each line can override the tax behavior. If not set, the provider's defaults are used.
+          description: Default tax configuration to apply to the invoices.
       description: InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.
     InvoiceWorkflowReplaceUpdate:
       type: object
