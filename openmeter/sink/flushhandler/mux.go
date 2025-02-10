@@ -9,6 +9,8 @@ import (
 
 type DrainCompleteFunc func()
 
+var _ FlushEventHandler = (*FlushEventHandlers)(nil)
+
 type FlushEventHandlers struct {
 	handlers        []FlushEventHandler
 	onDrainComplete []DrainCompleteFunc
@@ -36,6 +38,18 @@ func (f *FlushEventHandlers) OnFlushSuccess(ctx context.Context, events []models
 	}
 
 	return finalError
+}
+
+func (f *FlushEventHandlers) Close() error {
+	var errs []error
+
+	for _, handler := range f.handlers {
+		if err := handler.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func (f *FlushEventHandlers) Start(ctx context.Context) error {

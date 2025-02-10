@@ -30,10 +30,19 @@ type FlushEventHandlerOptions struct {
 	CallbackTimeout time.Duration
 }
 
+var _ FlushEventHandler = (*flushEventHandler)(nil)
+
 type flushEventHandler struct {
-	name      string
-	events    chan []models.SinkMessage
-	drainDone chan struct{}
+	name string
+
+	events      chan []models.SinkMessage
+	eventsClose func()
+
+	stopChan      chan struct{}
+	stopChanClose func()
+
+	drainDone      chan struct{}
+	drainDoneClose func()
 
 	callback FlushCallback
 
@@ -80,16 +89,55 @@ func NewFlushEventHandler(opts FlushEventHandlerOptions) (FlushEventHandler, err
 		return nil, err
 	}
 
+	events := make(chan []models.SinkMessage, defaultFlushChanSize)
+	eventsClose := sync.OnceFunc(func() {
+		close(events)
+	})
+
+	stopChan := make(chan struct{})
+	stopChanClose := sync.OnceFunc(func() {
+		close(stopChan)
+	})
+
+	drainDone := make(chan struct{})
+	drainDoneClose := sync.OnceFunc(func() {
+		close(drainDone)
+	})
+
 	return &flushEventHandler{
 		callback:        opts.Callback,
 		callbackTimeout: opts.CallbackTimeout,
 		drainTimeout:    opts.DrainTimeout,
 		name:            opts.Name,
-		events:          make(chan []models.SinkMessage, defaultFlushChanSize),
-		drainDone:       make(chan struct{}),
+		events:          events,
+		eventsClose:     eventsClose,
+		stopChan:        stopChan,
+		stopChanClose:   stopChanClose,
+		drainDone:       drainDone,
+		drainDoneClose:  drainDoneClose,
 		metrics:         metrics,
 		logger:          opts.Logger,
 	}, nil
+}
+
+func (f *flushEventHandler) Close() error {
+	if f.isShutdown.Load() {
+		return nil
+	}
+
+	f.isShutdown.Store(true)
+
+	// Close control channel
+	f.stopChanClose()
+
+	// Acquire lock to avoid closing events channel while there is an ongoing OnFlushSuccess operation
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	// Close events channel in order to avoid readers getting blocked
+	f.eventsClose()
+
+	return nil
 }
 
 func (f *flushEventHandler) Start(ctx context.Context) error {
@@ -98,23 +146,24 @@ func (f *flushEventHandler) Start(ctx context.Context) error {
 }
 
 func (f *flushEventHandler) start(ctx context.Context) {
-	defer close(f.drainDone)
+	defer f.drainDoneClose()
 
 	if f.isShutdown.Load() {
 		f.logger.ErrorContext(ctx, "failed to start flush event handler as it is already shut down")
 		return
 	}
 
-	shouldRun := true
-	for shouldRun {
+	for !f.isShutdown.Load() {
 		select {
 		case event := <-f.events:
 			if err := f.invokeCallbackWithTimeout(event); err != nil {
 				f.logger.ErrorContext(ctx, "failed to invoke callback", "error", err)
 			}
 		case <-ctx.Done():
-			shouldRun = false
-			f.isShutdown.Store(true)
+			_ = f.Close()
+
+		case <-f.stopChan:
+			_ = f.Close()
 		}
 	}
 
@@ -122,6 +171,7 @@ func (f *flushEventHandler) start(ctx context.Context) {
 	drainContext, cancel := context.WithTimeout(context.Background(), f.drainTimeout)
 	defer cancel()
 
+	// NOTE: this will block if the events channel is not closed
 	for event := range f.events {
 		if err := f.invokeCallback(drainContext, event); err != nil {
 			f.logger.ErrorContext(ctx, "failed to invoke callback", "error", err)
@@ -161,6 +211,8 @@ func (f *flushEventHandler) OnFlushSuccess(ctx context.Context, event []models.S
 	defer f.mu.Unlock()
 
 	select {
+	case <-f.stopChan:
+		return fmt.Errorf("handler is shutting down")
 	case f.events <- event:
 		f.metrics.eventsReceived.Add(ctx, 1)
 	case <-ctx.Done():
@@ -169,7 +221,10 @@ func (f *flushEventHandler) OnFlushSuccess(ctx context.Context, event []models.S
 	default:
 		f.logger.ErrorContext(ctx, "flush handler: work queue full, callback might be hanging", "event", event, "name", f.name)
 		f.metrics.eventChannelFull.Add(ctx, 1)
+
 		select {
+		case <-f.stopChan:
+			return fmt.Errorf("handler is shutting down")
 		case f.events <- event:
 			f.metrics.eventsReceived.Add(ctx, 1)
 		case <-ctx.Done():
