@@ -51,7 +51,7 @@ require (
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/redpanda-data/benthos/v4 v4.43.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.45.1
-	github.com/rickb777/period v1.0.7
+	github.com/rickb777/period v1.0.8
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/sagikazarmark/slog-shim v0.1.0
 	github.com/samber/lo v1.47.0

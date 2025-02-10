@@ -2049,8 +2049,8 @@ github.com/redpanda-data/connect/v4 v4.45.1/go.mod h1:QlJsSAYDltaTMCluTO95tfs9fH
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
-github.com/rickb777/period v1.0.7 h1:IERfp7bk5a1w8rZ6A98CLScQbRQX+p/O5x3HwytKBwI=
-github.com/rickb777/period v1.0.7/go.mod h1:M13FB5SGZf4zJmF/zfLDqwfQ0XafHxgOsw6DAL0EFw0=
+github.com/rickb777/period v1.0.8 h1:lEo9kb7kpA6TNYG9u8ddFfwrVK+ftHQokt7UKNY+jFc=
+github.com/rickb777/period v1.0.8/go.mod h1:M13FB5SGZf4zJmF/zfLDqwfQ0XafHxgOsw6DAL0EFw0=
 github.com/rickb777/plural v1.4.2 h1:Kl/syFGLFZ5EbuV8c9SVud8s5HI2HpCCtOMw2U1kS+A=
 github.com/rickb777/plural v1.4.2/go.mod h1:kdmXUpmKBJTS0FtG/TFumd//VBWsNTD7zOw7x4umxNw=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
