@@ -40,9 +40,10 @@ func (m *Openmeter) Release(ctx context.Context, version string, githubActor str
 			})
 		},
 
-		func(ctx context.Context) error {
-			return m.publishPythonSdk(ctx, version, pypiToken)
-		},
+		// Disabled for now as we don't have a way to generate the SDK yet
+		// func(ctx context.Context) error {
+		// 	return m.publishPythonSdk(ctx, version, pypiToken)
+		// },
 		func(ctx context.Context) error {
 			return m.PublishJavascriptSdk(ctx, version, "latest", npmToken)
 		},
