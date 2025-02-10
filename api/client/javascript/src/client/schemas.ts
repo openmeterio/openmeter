@@ -2589,10 +2589,12 @@ export interface components {
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
       /**
-       * @description The ID of the customer.
+       * @description The ID of the customer. Provide either the key or ID. Has presedence over the key.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      customerId: string
+      customerId?: string
+      /** @description The key of the customer. Provide either the key or ID. */
+      customerKey?: string
     }
     /**
      * @description A customer object.
@@ -6123,8 +6125,8 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /** @description The name of the Subscription. */
-      name: string
+      /** @description The name of the Subscription. If not provided the plan name is used. */
+      name?: string
       /** @description Description for the Subscription. */
       description?: string
     }
@@ -6140,15 +6142,17 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /** @description The name of the Subscription. */
-      name: string
+      /** @description The name of the Subscription. If not provided the plan name is used. */
+      name?: string
       /** @description Description for the Subscription. */
       description?: string
       /**
-       * @description The ID of the customer.
+       * @description The ID of the customer. Provide either the key or ID. Has presedence over the key.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      customerId: string
+      customerId?: string
+      /** @description The key of the customer. Provide either the key or ID. */
+      customerKey?: string
     }
     /** @description A consumer portal token.
      *

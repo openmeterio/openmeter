@@ -54,6 +54,10 @@ type Plan struct {
 
 var _ subscription.Plan = &Plan{}
 
+func (p *Plan) GetName() string {
+	return p.Name
+}
+
 func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput {
 	// We only store a reference if the Plan exists
 	var ref *subscription.PlanRef

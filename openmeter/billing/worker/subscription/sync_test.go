@@ -43,6 +43,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -345,8 +346,10 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 			},
 			Name: "subs-1",
 		},
-		Namespace:  namespace,
-		CustomerID: s.Customer.ID,
+		Namespace: namespace,
+		CustomerRef: ref.IDOrKey{
+			ID: s.Customer.ID,
+		},
 	}, subscriptionPlan)
 
 	s.NoError(err)
@@ -643,8 +646,8 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 			},
 			Name: "subs-1",
 		},
-		Namespace:  namespace,
-		CustomerID: customerEntity.ID,
+		Namespace:   namespace,
+		CustomerRef: ref.IDOrKey{ID: customerEntity.ID},
 	}, subscriptionPlan)
 
 	s.NoError(err)
@@ -3161,8 +3164,8 @@ func (s *SubscriptionHandlerTestSuite) createSubscriptionFromPlan(planInput plan
 			},
 			Name: "subs-1",
 		},
-		Namespace:  s.Namespace,
-		CustomerID: s.Customer.ID,
+		Namespace:   s.Namespace,
+		CustomerRef: ref.IDOrKey{ID: s.Customer.ID},
 	}, subscriptionPlan)
 
 	s.NoError(err)

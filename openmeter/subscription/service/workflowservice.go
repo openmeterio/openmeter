@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type WorkflowServiceConfig struct {
@@ -35,11 +36,8 @@ var _ subscription.WorkflowService = &workflowService{}
 func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	var def subscription.SubscriptionView
 
-	// Let's validate the customer exists
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: inp.Namespace,
-		ID:        inp.CustomerID,
-	})
+	// Let's find the customer
+	cust, err := s.CustomerService.FindCustomer(ctx, inp.Namespace, inp.CustomerRef)
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch customer: %w", err)
 	}
@@ -63,7 +61,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		Currency:       plan.Currency(),
 		ActiveFrom:     activeFrom,
 		AnnotatedModel: inp.AnnotatedModel,
-		Name:           inp.Name,
+		Name:           lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 		Description:    inp.Description,
 	})
 	if err != nil {
@@ -156,7 +154,7 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
-			CustomerID:                      curr.CustomerId,
+			CustomerRef:                     ref.IDOrKey{ID: curr.CustomerId},
 		}, plan)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to create new subscription: %w", err)

@@ -8943,7 +8943,6 @@ components:
       required:
         - timing
         - customPlan
-        - customerId
       properties:
         timing:
           allOf:
@@ -8959,8 +8958,14 @@ components:
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the customer.
+          description: The ID of the customer. Provide either the key or ID. Has presedence over the key.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        customerKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The key of the customer. Provide either the key or ID.
       description: Create a custom subscription.
     Customer:
       type: object
@@ -13894,7 +13899,6 @@ components:
       required:
         - timing
         - plan
-        - name
       properties:
         timing:
           allOf:
@@ -13917,7 +13921,7 @@ components:
           description: The plan reference to change to.
         name:
           type: string
-          description: The name of the Subscription.
+          description: The name of the Subscription. If not provided the plan name is used.
         description:
           type: string
           description: Description for the Subscription.
@@ -13927,8 +13931,6 @@ components:
       required:
         - timing
         - plan
-        - name
-        - customerId
       properties:
         timing:
           allOf:
@@ -13951,15 +13953,21 @@ components:
           description: The plan reference to change to.
         name:
           type: string
-          description: The name of the Subscription.
+          description: The name of the Subscription. If not provided the plan name is used.
         description:
           type: string
           description: Description for the Subscription.
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the customer.
+          description: The ID of the customer. Provide either the key or ID. Has presedence over the key.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        customerKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: The key of the customer. Provide either the key or ID.
       description: Create subscription based on plan.
     PlanVariant:
       type: object
