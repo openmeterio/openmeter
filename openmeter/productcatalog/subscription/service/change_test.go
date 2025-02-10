@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 func TestChange(t *testing.T) {
@@ -82,8 +83,8 @@ func TestChange(t *testing.T) {
 							Custom: lo.ToPtr(now.Add(time.Second)),
 						},
 					},
-					Namespace:  cust.Namespace,
-					CustomerID: cust.ID,
+					Namespace:   cust.Namespace,
+					CustomerRef: ref.IDOrKey{ID: cust.ID},
 				},
 			})
 			require.Nil(t, err)
@@ -185,8 +186,8 @@ func TestChange(t *testing.T) {
 							Custom: lo.ToPtr(now.Add(time.Second)),
 						},
 					},
-					Namespace:  cust.Namespace,
-					CustomerID: cust.ID,
+					Namespace:   cust.Namespace,
+					CustomerRef: ref.IDOrKey{ID: cust.ID},
 				},
 			})
 			require.Nil(t, err)

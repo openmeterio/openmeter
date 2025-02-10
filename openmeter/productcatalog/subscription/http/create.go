@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -13,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type (
@@ -72,6 +75,13 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
 				}
 
+				ref := ref.IDOrKey{
+					ID: lo.FromPtrOr(parsedBody.CustomerId, ""),
+				}
+				if ref.ID == "" {
+					ref.Key = lo.FromPtrOr(parsedBody.CustomerKey, "")
+				}
+
 				return CreateSubscriptionRequest{
 					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
@@ -82,8 +92,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
 						},
-						Namespace:  ns,
-						CustomerID: parsedBody.CustomerId,
+						Namespace:   ns,
+						CustomerRef: ref,
 					},
 					PlanInput: plan,
 				}, nil
@@ -104,18 +114,25 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
 				}
 
+				ref := ref.IDOrKey{
+					ID: lo.FromPtrOr(parsedBody.CustomerId, ""),
+				}
+				if ref.ID == "" {
+					ref.Key = lo.FromPtrOr(parsedBody.CustomerKey, "")
+				}
+
 				return CreateSubscriptionRequest{
 					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
 							Timing:      timing,
-							Name:        parsedBody.Name,
+							Name:        lo.FromPtrOr(parsedBody.Name, ""),
 							Description: parsedBody.Description,
 							AnnotatedModel: models.AnnotatedModel{
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
 						},
-						Namespace:  ns,
-						CustomerID: parsedBody.CustomerId,
+						Namespace:   ns,
+						CustomerRef: ref,
 					},
 					PlanInput: plan,
 				}, nil
