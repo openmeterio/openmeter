@@ -75,7 +75,8 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 	return errors.Join(errs...)
 }
 
-func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
+// ListInvoicesPendingAutoAdvance lists invoices that are due to be auto-advanced
+func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
 	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
 		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusDraftWaitingAutoApproval},
 		DraftUntil:       lo.ToPtr(time.Now()),
@@ -87,6 +88,38 @@ func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespaces []s
 	}
 
 	return resp.Items, nil
+}
+
+// ListStuckInvoicesNeedingAdvance lists invoices that are stuck in some advancable state (this is a fail-safe mechanism)
+func (a *AutoAdvancer) ListStuckInvoicesNeedingAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
+	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
+		HasAvailableAction: []billing.InvoiceAvailableActionsFilter{billing.InvoiceAvailableActionsFilterAdvance},
+		Namespaces:         namespaces,
+		IDs:                ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Items, nil
+}
+
+func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespace []string, ids []string) ([]billing.Invoice, error) {
+	autoAdvanceInvoices, err := a.ListInvoicesPendingAutoAdvance(ctx, namespace, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list invoices to auto-advance: %w", err)
+	}
+
+	stuckInvoices, err := a.ListStuckInvoicesNeedingAdvance(ctx, namespace, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list invoices that can be advanced: %w", err)
+	}
+
+	allInvoices := append(autoAdvanceInvoices, stuckInvoices...)
+
+	return lo.UniqBy(allInvoices, func(i billing.Invoice) string {
+		return i.ID
+	}), nil
 }
 
 func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID) (billing.Invoice, error) {

@@ -36,3 +36,32 @@ func JSONBIn(field string, key string, values []string) func(*sql.Selector) {
 		}))
 	}
 }
+
+// JSONBKeyExistsInObject returns a function that filters the given JSONB field by mandating that a key exists in
+// a specifc object.
+//
+// Example:
+// given the field value of
+//
+//	{"failed": false, "immutable": false, "availableActions": {"delete": {"resultingState": "deleted"}, "advance": {"resultingState": "draft.waiting_auto_approval"}}}
+//
+// JSONBKeyExistsInObject("status_details_cache", "availableActions", "advance")
+//
+//	filters for such records that have the advance as an available action.
+//
+// Resulting condition:
+//
+//	status_details_cache -> 'availableActions' ? 'advance'
+func JSONBKeyExistsInObject(field string, member string, expectedKey string) func(*sql.Selector) {
+	return func(s *sql.Selector) {
+		s.Where(sql.P(func(b *sql.Builder) {
+			b.WriteString("(")
+			b.WriteString(field)
+			b.WriteString("->'")
+			b.WriteString(member)
+			b.WriteString("' ? '")
+			b.WriteString(expectedKey)
+			b.WriteString("')")
+		}))
+	}
+}

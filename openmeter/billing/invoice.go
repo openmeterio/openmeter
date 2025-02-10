@@ -656,6 +656,28 @@ func (f ListInvoicesExternalIDFilter) Validate() error {
 	return nil
 }
 
+type InvoiceAvailableActionsFilter string
+
+const (
+	InvoiceAvailableActionsFilterAdvance InvoiceAvailableActionsFilter = "advance"
+	InvoiceAvailableActionsFilterApprove InvoiceAvailableActionsFilter = "approve"
+)
+
+func (f InvoiceAvailableActionsFilter) Values() []InvoiceAvailableActionsFilter {
+	return []InvoiceAvailableActionsFilter{
+		InvoiceAvailableActionsFilterAdvance,
+		InvoiceAvailableActionsFilterApprove,
+	}
+}
+
+func (f InvoiceAvailableActionsFilter) Validate() error {
+	if !slices.Contains(f.Values(), f) {
+		return fmt.Errorf("invalid available action filter: %s", f)
+	}
+
+	return nil
+}
+
 type ListInvoicesInput struct {
 	pagination.Page
 
@@ -664,6 +686,9 @@ type ListInvoicesInput struct {
 	Customers  []string
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
 	Statuses []string
+
+	HasAvailableAction []InvoiceAvailableActionsFilter
+
 	// ExtendedStatuses searches by exact InvoiceStatus
 	ExtendedStatuses []InvoiceStatus
 	Currencies       []currencyx.Code
@@ -701,6 +726,17 @@ func (i ListInvoicesInput) Validate() error {
 	if i.ExternalIDs != nil {
 		if err := i.ExternalIDs.Validate(); err != nil {
 			return fmt.Errorf("external IDs: %w", err)
+		}
+	}
+
+	if len(i.HasAvailableAction) > 0 {
+		errs := errors.Join(
+			lo.Map(i.HasAvailableAction, func(action InvoiceAvailableActionsFilter, _ int) error {
+				return action.Validate()
+			})...,
+		)
+		if errs != nil {
+			return errs
 		}
 	}
 

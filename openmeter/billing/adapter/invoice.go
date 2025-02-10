@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -212,6 +213,19 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 				billinginvoice.CollectionAtLTE(*input.CollectionAt),
 				billinginvoice.CollectionAtIsNil(),
 			))
+		}
+
+		if len(input.HasAvailableAction) > 0 {
+			query = query.Where(
+				billinginvoice.Or(
+					lo.Map(
+						input.HasAvailableAction,
+						func(action billing.InvoiceAvailableActionsFilter, _ int) predicate.BillingInvoice {
+							return entutils.JSONBKeyExistsInObject(billinginvoice.FieldStatusDetailsCache, "availableActions", string(action))
+						},
+					)...,
+				),
+			)
 		}
 
 		if input.ExternalIDs != nil {
