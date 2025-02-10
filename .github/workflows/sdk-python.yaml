@@ -15,7 +15,7 @@ on:
   #     - .github/workflows/sdk-python.yaml
 
 env:
-  DAGGER_VERSION: 0.15.2
+  DAGGER_VERSION: 0.15.3
 
 jobs:
   generate:
