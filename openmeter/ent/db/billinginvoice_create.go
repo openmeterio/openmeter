@@ -478,6 +478,20 @@ func (bic *BillingInvoiceCreate) SetStatus(bs billing.InvoiceStatus) *BillingInv
 	return bic
 }
 
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (bic *BillingInvoiceCreate) SetStatusDetailsCache(bsd billing.InvoiceStatusDetails) *BillingInvoiceCreate {
+	bic.mutation.SetStatusDetailsCache(bsd)
+	return bic
+}
+
+// SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
+func (bic *BillingInvoiceCreate) SetNillableStatusDetailsCache(bsd *billing.InvoiceStatusDetails) *BillingInvoiceCreate {
+	if bsd != nil {
+		bic.SetStatusDetailsCache(*bsd)
+	}
+	return bic
+}
+
 // SetWorkflowConfigID sets the "workflow_config_id" field.
 func (bic *BillingInvoiceCreate) SetWorkflowConfigID(s string) *BillingInvoiceCreate {
 	bic.mutation.SetWorkflowConfigID(s)
@@ -1074,6 +1088,10 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 	if value, ok := bic.mutation.Status(); ok {
 		_spec.SetField(billinginvoice.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := bic.mutation.StatusDetailsCache(); ok {
+		_spec.SetField(billinginvoice.FieldStatusDetailsCache, field.TypeJSON, value)
+		_node.StatusDetailsCache = value
 	}
 	if value, ok := bic.mutation.InvoicingAppExternalID(); ok {
 		_spec.SetField(billinginvoice.FieldInvoicingAppExternalID, field.TypeString, value)
@@ -1880,6 +1898,24 @@ func (u *BillingInvoiceUpsert) SetStatus(v billing.InvoiceStatus) *BillingInvoic
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdateStatus() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldStatus)
+	return u
+}
+
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (u *BillingInvoiceUpsert) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldStatusDetailsCache, v)
+	return u
+}
+
+// UpdateStatusDetailsCache sets the "status_details_cache" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateStatusDetailsCache() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldStatusDetailsCache)
+	return u
+}
+
+// ClearStatusDetailsCache clears the value of the "status_details_cache" field.
+func (u *BillingInvoiceUpsert) ClearStatusDetailsCache() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldStatusDetailsCache)
 	return u
 }
 
@@ -2751,6 +2787,27 @@ func (u *BillingInvoiceUpsertOne) SetStatus(v billing.InvoiceStatus) *BillingInv
 func (u *BillingInvoiceUpsertOne) UpdateStatus() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (u *BillingInvoiceUpsertOne) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetStatusDetailsCache(v)
+	})
+}
+
+// UpdateStatusDetailsCache sets the "status_details_cache" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateStatusDetailsCache() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateStatusDetailsCache()
+	})
+}
+
+// ClearStatusDetailsCache clears the value of the "status_details_cache" field.
+func (u *BillingInvoiceUpsertOne) ClearStatusDetailsCache() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearStatusDetailsCache()
 	})
 }
 
@@ -3809,6 +3866,27 @@ func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.InvoiceStatus) *BillingIn
 func (u *BillingInvoiceUpsertBulk) UpdateStatus() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetStatusDetailsCache sets the "status_details_cache" field.
+func (u *BillingInvoiceUpsertBulk) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetStatusDetailsCache(v)
+	})
+}
+
+// UpdateStatusDetailsCache sets the "status_details_cache" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateStatusDetailsCache() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateStatusDetailsCache()
+	})
+}
+
+// ClearStatusDetailsCache clears the value of the "status_details_cache" field.
+func (u *BillingInvoiceUpsertBulk) ClearStatusDetailsCache() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearStatusDetailsCache()
 	})
 }
 

@@ -2754,6 +2754,16 @@ func StatusNotIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotIn(FieldStatus, v...))
 }
 
+// StatusDetailsCacheIsNil applies the IsNil predicate on the "status_details_cache" field.
+func StatusDetailsCacheIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldStatusDetailsCache))
+}
+
+// StatusDetailsCacheNotNil applies the NotNil predicate on the "status_details_cache" field.
+func StatusDetailsCacheNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldStatusDetailsCache))
+}
+
 // WorkflowConfigIDEQ applies the EQ predicate on the "workflow_config_id" field.
 func WorkflowConfigIDEQ(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldWorkflowConfigID, v))

@@ -262,18 +262,9 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.I
 func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.InvoiceStatusDetails, error) {
 	if m.Invoice.Status == billing.InvoiceStatusGathering {
 		// Gathering is a special state that is not part of the state machine, due to
-		// cross invoice operations
-		return billing.InvoiceStatusDetails{
-			Immutable: false,
-			// The invoicable state is calculated in the services recalculateGatheringInvoice for now, as the
-			// line data is available there. On the long run we need to cache this information.
-			//
-			// For now, as a safety measure we lie here, as the recalculation will be performed either ways
-			// and the CreateInvoice method will validate this once more.
-			AvailableActions: billing.InvoiceAvailableActions{
-				Invoice: &billing.InvoiceAvailableActionInvoiceDetails{},
-			},
-		}, nil
+		// cross invoice operations, for now the sugar around grathering invoices will handle
+		// the status details.
+		return billing.InvoiceStatusDetails{}, nil
 	}
 
 	var outErr, err error

@@ -270,11 +270,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				Number:   "GATHER-TECU-USD-1",
 				Currency: currencyx.Code(currency.USD),
 				Status:   billing.InvoiceStatusGathering,
-				StatusDetails: billing.InvoiceStatusDetails{
-					AvailableActions: billing.InvoiceAvailableActions{
-						Invoice: &billing.InvoiceAvailableActionInvoiceDetails{},
-					},
-				},
 
 				CreatedAt: usdInvoice.CreatedAt,
 				UpdatedAt: usdInvoice.UpdatedAt,
@@ -307,7 +302,6 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 			ExpandedFields: billing.InvoiceExpandAll,
 		}
-
 		_ = billingservice.UpdateInvoiceCollectionAt(&expectedInvoice, billingProfile.WorkflowConfig.Collection)
 
 		require.Equal(s.T(),
@@ -3166,7 +3160,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Expand: billing.InvoiceExpand{
-				GatheringTotals: true,
+				RecalculateGatheringInvoice: true,
 			},
 		})
 
@@ -3186,7 +3180,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Expand: billing.InvoiceExpand{
-				GatheringTotals: true,
+				RecalculateGatheringInvoice: true,
 			},
 		})
 
@@ -3206,7 +3200,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
 			Expand: billing.InvoiceExpand{
-				GatheringTotals: true,
+				RecalculateGatheringInvoice: true,
 			},
 		})
 

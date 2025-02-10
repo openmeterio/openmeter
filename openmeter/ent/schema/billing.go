@@ -680,6 +680,9 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Enum("status").
 			GoType(billing.InvoiceStatus("")),
 
+		field.JSON("status_details_cache", billing.InvoiceStatusDetails{}).
+			Optional(),
+
 		// Cloned profile settings
 		field.String("workflow_config_id").
 			SchemaType(map[string]string{
@@ -741,6 +744,13 @@ func (BillingInvoice) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "customer_id"),
+		index.Fields("namespace", "status"),
+		index.Fields("status_details_cache").
+			Annotations(
+				entsql.IndexTypes(map[string]string{
+					dialect.Postgres: "GIN",
+				}),
+			),
 	}
 }
 

@@ -39,7 +39,7 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoices.Items[i].ID, err)
 		}
 
-		if input.Expand.GatheringTotals {
+		if input.Expand.RecalculateGatheringInvoice {
 			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, recalculateGatheringInvoiceInput{
 				Invoice: invoices.Items[i],
 				Expand:  input.Expand,
@@ -71,6 +71,18 @@ func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.Invoi
 }
 
 func (s *Service) resolveStatusDetails(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
+	if invoice.Status == billing.InvoiceStatusGathering {
+		// Let's use the default and recalculateGatheringInvoice will fix the gaps
+		return invoice, nil
+	}
+
+	// If we are not in a time sensitive state and the status details is not empty, we can return the invoice as is, so we
+	// don't have to lock the invoice in the DB
+	if !lo.IsEmpty(invoice.StatusDetails) &&
+		invoice.Status != billing.InvoiceStatusDraftWaitingAutoApproval { // The status details depends on the current time, so we should recalculate
+		return invoice, nil
+	}
+
 	// let's resolve the statatus details (the invoice state machine has this side-effect after the callback)
 	resolvedInvoice, err := s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, sm *InvoiceStateMachine) error {
 		return nil
@@ -176,10 +188,11 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 	// TODO[later]: If this sugar is removed due to properly implemented progressive billing stack, we need to cache the when the invoice is first invoicable in the db
 	// so that we don't have to fetch all the lines to have proper status details.
 
-	if hasInvoicableLines.IsAbsent() {
-		invoice.StatusDetails.AvailableActions.Invoice = nil
-	} else {
-		invoice.StatusDetails.AvailableActions.Invoice = &billing.InvoiceAvailableActionInvoiceDetails{}
+	invoice.StatusDetails = billing.InvoiceStatusDetails{
+		Immutable: false,
+		AvailableActions: billing.InvoiceAvailableActions{
+			Invoice: lo.If(hasInvoicableLines.IsPresent(), &billing.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
+		},
 	}
 
 	return invoice, nil
@@ -201,7 +214,7 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 		return billing.Invoice{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoice.ID, err)
 	}
 
-	if input.Expand.GatheringTotals {
+	if input.Expand.RecalculateGatheringInvoice {
 		invoice, err = s.recalculateGatheringInvoice(ctx, recalculateGatheringInvoiceInput{
 			Invoice: invoice,
 			Expand:  input.Expand,
