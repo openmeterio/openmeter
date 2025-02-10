@@ -405,8 +405,6 @@ model BillingWorkflowInvoicingSettings {
 
   /**
    * Default tax configuration to apply to the invoices.
-   *
-   * Each line can override the tax behavior. If not set, the provider's defaults are used.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   defaultTaxConfig?: OpenMeter.ProductCatalog.TaxConfig;

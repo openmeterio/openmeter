@@ -74,19 +74,19 @@ func (c *TaxConfig) Validate() error {
 	return NewValidationError(errors.Join(errs...))
 }
 
-func MergeTaxConfigs(l, r *TaxConfig) *TaxConfig {
-	if l != nil && r != nil {
+func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
+	if base != nil && overrides != nil {
 		return &TaxConfig{
-			Behavior: lo.CoalesceOrEmpty(r.Behavior, l.Behavior),
-			Stripe:   lo.CoalesceOrEmpty(r.Stripe, l.Stripe),
+			Behavior: lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
+			Stripe:   lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
 		}
 	}
 
-	if r != nil {
-		return r
+	if overrides != nil {
+		return overrides
 	}
 
-	return l
+	return base
 }
 
 var StripeProductTaxCodeRegexp = regexp.MustCompile(`^txcd_\d{8}$`)

@@ -11,6 +11,7 @@ var InvoiceCalculations = []Calculation{
 	DraftUntilIfMissing,
 	RecalculateDetailedLinesAndTotals,
 	CalculateInvoicePeriod,
+	SnapshotTaxConfigIntoLines,
 }
 
 type Calculation func(*billing.Invoice, CalculatorDependencies) error
