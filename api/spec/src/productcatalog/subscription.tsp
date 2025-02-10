@@ -306,9 +306,14 @@ model CustomSubscriptionCreate {
   ...CustomSubscriptionChange;
 
   /**
-   * The ID of the customer.
+   * The ID of the customer. Provide either the key or ID. Has presedence over the key.
    */
-  customerId: ULID;
+  customerId?: ULID;
+
+  /**
+   * The key of the customer. Provide either the key or ID.
+   */
+  customerKey?: Key;
 }
 
 /**
@@ -347,9 +352,14 @@ model PlanSubscriptionCreate {
   ...PlanSubscriptionChange;
 
   /**
-   * The ID of the customer.
+   * The ID of the customer. Provide either the key or ID. Has presedence over the key.
    */
-  customerId: ULID;
+  customerId?: ULID;
+
+  /**
+   * The key of the customer. Provide either the key or ID.
+   */
+  customerKey?: Key;
 }
 
 /**
@@ -380,9 +390,9 @@ model PlanSubscriptionChange {
   plan: PlanReferenceInput;
 
   /**
-   * The name of the Subscription.
+   * The name of the Subscription. If not provided the plan name is used.
    */
-  name: string;
+  name?: string;
 
   /**
    * Description for the Subscription.
