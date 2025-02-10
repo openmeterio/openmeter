@@ -605,6 +605,19 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
 		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 1)
 		require.Equal(s.T(), line2ID, gatheringInvoice.Lines.MustGet()[0].ID)
+
+		// We expect the freshly generated invoice to be in waiting for auto approval state
+		require.Equal(s.T(), billing.InvoiceStatusDraftWaitingAutoApproval, invoice[0].Status)
+
+		// We expect that the invoice can be listed by filtering to it's status_details_cache field
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespaces:         []string{namespace},
+			HasAvailableAction: []billing.InvoiceAvailableActionsFilter{billing.InvoiceAvailableActionsFilterApprove},
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices.Items, 1)
+		require.Equal(s.T(), invoice[0].ID, invoices.Items[0].ID)
 	})
 
 	s.Run("When creating an invoice with only item2 included, but bad asof", func() {

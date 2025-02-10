@@ -40,7 +40,7 @@ var ListCmd = func() *cobra.Command {
 			}
 
 			for _, invoice := range invoices {
-				fmt.Printf("Namespace: %s ID: %s DraftUntil: %s\n", invoice.Namespace, invoice.ID, invoice.DraftUntil)
+				fmt.Printf("Namespace: %s ID: %s DraftUntil: %s Status: %s\n", invoice.Namespace, invoice.ID, invoice.DraftUntil, invoice.Status)
 			}
 
 			return nil
