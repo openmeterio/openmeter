@@ -121,11 +121,9 @@ func NewFlushEventHandler(opts FlushEventHandlerOptions) (FlushEventHandler, err
 }
 
 func (f *flushEventHandler) Close() error {
-	if f.isShutdown.Load() {
+	if f.isShutdown.Swap(true) {
 		return nil
 	}
-
-	f.isShutdown.Store(true)
 
 	// Close control channel
 	f.stopChanClose()
