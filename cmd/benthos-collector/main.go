@@ -11,8 +11,11 @@ import (
 
 	_ "github.com/openmeterio/openmeter/collector/benthos/input"  // import input plugins
 	_ "github.com/openmeterio/openmeter/collector/benthos/output" // import output plugins
+	"github.com/openmeterio/openmeter/pkg/paniclogger"
 )
 
 func main() {
+	defer paniclogger.PanicLogger()
+
 	service.RunCLI(context.Background())
 }

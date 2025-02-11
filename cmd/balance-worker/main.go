@@ -11,9 +11,12 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/pkg/paniclogger"
 )
 
 func main() {
+	defer paniclogger.PanicLogger()
+
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
