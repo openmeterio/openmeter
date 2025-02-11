@@ -609,13 +609,19 @@ func (s *Sink) Run(ctx context.Context) error {
 	// Periodically refetch namespaces and meters
 	var refetch func()
 	refetch = func() {
-		err := s.subscribeToNamespaces(ctx)
-		if err != nil {
-			// TODO: should we panic?
+		if !s.isRunning.Load() || ctx.Err() != nil {
+			logger.DebugContext(ctx, "skipping subscribing to namespaces as either context is canceled or sink is stopped")
+
+			return
+		}
+
+		if err = s.subscribeToNamespaces(ctx); err != nil {
 			logger.ErrorContext(ctx, "failed to subscribe to namespaces", "err", err)
 		}
+
 		s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 	}
+
 	s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 
 	// Reset state
