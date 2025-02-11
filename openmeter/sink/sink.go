@@ -326,7 +326,7 @@ func (s *Sink) flush(ctx context.Context) error {
 	// Call FlushEventHandler if set
 	if s.config.FlushEventHandler != nil {
 		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), s.config.FlushSuccessTimeout)
+			ctx, cancel := context.WithTimeout(ctx, s.config.FlushSuccessTimeout)
 			defer cancel()
 
 			err := s.config.FlushEventHandler.OnFlushSuccess(ctx, messages)
@@ -924,10 +924,14 @@ func (s *Sink) Close() error {
 
 	if s.config.FlushEventHandler != nil {
 		logger.Info("shutting down flush success handlers")
+		if err := s.config.FlushEventHandler.Close(); err != nil {
+			logger.Error("failed to close flush success handler", slog.String("err", err.Error()))
+		}
+
 		drainTimeoutContext, cancel := context.WithTimeout(context.Background(), s.config.DrainTimeout)
 		defer cancel()
 		if err := s.config.FlushEventHandler.WaitForDrain(drainTimeoutContext); err != nil {
-			logger.Error("failed to shutdown flush success handlers", slog.String("err", err.Error()))
+			logger.Error("failed to drain flush success handlers", slog.String("err", err.Error()))
 		}
 	}
 
