@@ -28,9 +28,7 @@ import (
 )
 
 func main() {
-	defer log.PanicLogger(
-		log.WithPropagationStrategy(log.PropagationStrategyExit),
-	)
+	defer log.PanicLogger(log.WithExit)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

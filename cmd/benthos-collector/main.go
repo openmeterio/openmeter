@@ -15,9 +15,7 @@ import (
 )
 
 func main() {
-	defer log.PanicLogger(
-		log.WithPropagationStrategy(log.PropagationStrategyExit),
-	)
+	defer log.PanicLogger(log.WithExit)
 
 	service.RunCLI(context.Background())
 }

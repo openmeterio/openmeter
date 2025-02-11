@@ -15,9 +15,7 @@ import (
 )
 
 func main() {
-	defer log.PanicLogger(
-		log.WithPropagationStrategy(log.PropagationStrategyExit),
-	)
+	defer log.PanicLogger(log.WithExit)
 
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()

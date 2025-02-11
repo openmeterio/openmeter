@@ -25,9 +25,7 @@ var rootCmd = cobra.Command{
 }
 
 func main() {
-	defer log.PanicLogger(
-		log.WithPropagationStrategy(log.PropagationStrategyExit),
-	)
+	defer log.PanicLogger(log.WithExit)
 
 	// Create os.Signal aware context.Context which will trigger context cancellation
 	// upon receiving any of the listed signals.

@@ -7,38 +7,45 @@ import (
 	"runtime/debug"
 )
 
-type PropagationStrategy string
+type propagationStrategy string
 
 const (
-	// PropagationStrategyPanic will propagate the panic after logging it
-	PropagationStrategyPanic PropagationStrategy = "panic"
+	// propagationStrategyPanic will propagate the panic after logging it
+	propagationStrategyRePanic propagationStrategy = "panic"
 
-	// PropagationStrategyExit will exit the program after logging the panic
-	PropagationStrategyExit PropagationStrategy = "exit"
+	// propagationStrategyExit will exit the program after logging the panic
+	propagationStrategyExit propagationStrategy = "exit"
 
-	// PropagationStrategyContinue will continue the program after logging the panic
-	PropagationStrategyContinue PropagationStrategy = "continue"
+	// propagationStrategyContinue will continue the program after logging the panic
+	propagationStrategyContinue propagationStrategy = "continue"
 )
 
 type panicLoggerOptions struct {
-	propagationStrategy PropagationStrategy
+	propagationStrategy propagationStrategy
 }
 
-func WithPropagationStrategy(strategy PropagationStrategy) func(*panicLoggerOptions) {
-	return func(o *panicLoggerOptions) {
-		o.propagationStrategy = strategy
-	}
+// WithRePanic is an option to set the propagation strategy to propagate the panic after logging it
+func WithRePanic(o *panicLoggerOptions) {
+	o.propagationStrategy = propagationStrategyRePanic
 }
 
-// PanicLogger is a function that logs panics and then propagates the failure based on the PropagationStrategy setting
+// WithExit is an option to set the propagation strategy to exit the program after logging the panic
+func WithExit(o *panicLoggerOptions) {
+	o.propagationStrategy = propagationStrategyExit
+}
+
+// WithContinue is an option to set the propagation strategy to continue the program after logging the panic
+func WithContinue(o *panicLoggerOptions) {
+	o.propagationStrategy = propagationStrategyContinue
+}
+
+// PanicLogger is a function that logs panics and then propagates the failure based on the propagationStrategy setting
 // Usage (in main):
 //
-//	defer log.PanicLogger(
-//		log.WithPropagationStrategy(log.PropagationStrategyExit),
-//	)
+//	defer log.PanicLogger(log.WithExit)
 func PanicLogger(options ...func(*panicLoggerOptions)) {
 	opts := &panicLoggerOptions{
-		propagationStrategy: PropagationStrategyPanic,
+		propagationStrategy: propagationStrategyRePanic,
 	}
 
 	for _, o := range options {
@@ -51,14 +58,13 @@ func PanicLogger(options ...func(*panicLoggerOptions)) {
 		slog.Error(description, "stack", string(debug.Stack()))
 
 		switch opts.propagationStrategy {
-		case PropagationStrategyExit:
+		case propagationStrategyExit:
 			os.Exit(1)
-		case PropagationStrategyContinue:
+		case propagationStrategyContinue:
 			return
-		case PropagationStrategyPanic:
+		case propagationStrategyRePanic:
 			fallthrough
 		default:
-			// Let's propagate the panic as we don't know how the system should recover from it
 			panic(r)
 		}
 	}
