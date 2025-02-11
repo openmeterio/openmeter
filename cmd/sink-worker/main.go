@@ -24,11 +24,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	"github.com/openmeterio/openmeter/pkg/paniclogger"
+	"github.com/openmeterio/openmeter/pkg/log"
 )
 
 func main() {
-	defer paniclogger.PanicLogger()
+	defer log.PanicLogger(log.WithExit)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

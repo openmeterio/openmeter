@@ -17,11 +17,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
-	"github.com/openmeterio/openmeter/pkg/paniclogger"
+	"github.com/openmeterio/openmeter/pkg/log"
 )
 
 func main() {
-	defer paniclogger.PanicLogger()
+	defer log.PanicLogger(log.WithExit)
 
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
