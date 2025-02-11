@@ -6929,6 +6929,14 @@ export interface components {
        */
       currency: components['schemas']['CurrencyCode']
     }
+    /** @description Alignment details enriched with the current billing period. */
+    SubscriptionAlignment: {
+      /** @description Whether all Billable items and RateCards must align.
+       *     Alignment means the Price's BillingCadence must align for both duration and anchor time. */
+      billablesMustAlign?: boolean
+      /** @description The current billing period. Only has value if the subscription is aligned and active. */
+      currentAlignedBillingPeriod?: components['schemas']['Period']
+    }
     /** @description Change a subscription. */
     SubscriptionChange:
       | components['schemas']['PlanSubscriptionChange']
@@ -7021,8 +7029,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
-      /** @description Alignment configuration for the plan. */
-      alignment?: components['schemas']['Alignment']
       /** @description The status of the subscription. */
       readonly status: components['schemas']['SubscriptionStatus']
       /**
@@ -7039,6 +7045,9 @@ export interface components {
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /** @description Alignment details enriched with the current billing period. */
+      alignment?: components['schemas']['SubscriptionAlignment']
+      /** @description The phases of the subscription. */
       phases: components['schemas']['SubscriptionPhaseExpanded'][]
     }
     /** @description The actual contents of the Subscription, what the user gets, what they pay, etc... */
@@ -8104,6 +8113,8 @@ export type StripeWebhookResponse =
 export type Subject = components['schemas']['Subject']
 export type SubjectUpsert = components['schemas']['SubjectUpsert']
 export type Subscription = components['schemas']['Subscription']
+export type SubscriptionAlignment =
+  components['schemas']['SubscriptionAlignment']
 export type SubscriptionChange = components['schemas']['SubscriptionChange']
 export type SubscriptionChangeResponseBody =
   components['schemas']['SubscriptionChangeResponseBody']

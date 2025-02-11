@@ -392,28 +392,44 @@ func MapSubscriptionPhaseToAPI(phaseView subscription.SubscriptionPhaseView, end
 	}, nil
 }
 
-func MapAPISubscriptionToAPIExpanded(sub api.Subscription) api.SubscriptionExpanded {
-	return api.SubscriptionExpanded{
-		ActiveFrom:  sub.ActiveFrom,
-		ActiveTo:    sub.ActiveTo,
-		CreatedAt:   sub.CreatedAt,
-		Currency:    sub.Currency,
-		CustomerId:  sub.CustomerId,
-		DeletedAt:   sub.DeletedAt,
-		Description: sub.Description,
-		Id:          sub.Id,
-		Metadata:    sub.Metadata,
-		Name:        sub.Name,
-		Phases:      nil,
-		Plan:        sub.Plan,
-		UpdatedAt:   sub.UpdatedAt,
-		Status:      sub.Status,
-		Alignment:   sub.Alignment,
-	}
-}
-
 func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.SubscriptionExpanded, error) {
-	base := MapAPISubscriptionToAPIExpanded(MapSubscriptionToAPI(view.Subscription))
+	apiSub := MapSubscriptionToAPI(view.Subscription)
+	alg := api.SubscriptionAlignment{
+		BillablesMustAlign: apiSub.Alignment.BillablesMustAlign,
+	}
+
+	if view.Subscription.BillablesMustAlign {
+		if currPhase, ok := view.Spec.GetCurrentPhaseAt(clock.Now()); ok {
+			period, err := view.Spec.GetAlignedBillingPeriodAt(currPhase.PhaseKey, clock.Now())
+			if err != nil {
+				// We should be able to determine this
+				return api.SubscriptionExpanded{}, err
+			}
+
+			alg.CurrentAlignedBillingPeriod = &api.Period{
+				From: period.From,
+				To:   period.To,
+			}
+		}
+	}
+
+	base := api.SubscriptionExpanded{
+		ActiveFrom:  apiSub.ActiveFrom,
+		ActiveTo:    apiSub.ActiveTo,
+		CreatedAt:   apiSub.CreatedAt,
+		Currency:    apiSub.Currency,
+		CustomerId:  apiSub.CustomerId,
+		DeletedAt:   apiSub.DeletedAt,
+		Description: apiSub.Description,
+		Id:          apiSub.Id,
+		Metadata:    apiSub.Metadata,
+		Name:        apiSub.Name,
+		Phases:      nil,
+		Plan:        apiSub.Plan,
+		UpdatedAt:   apiSub.UpdatedAt,
+		Status:      apiSub.Status,
+		Alignment:   &alg,
+	}
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
 	for _, phase := range view.Phases {
