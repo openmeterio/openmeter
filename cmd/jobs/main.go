@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/cmd/jobs/billing"
 	"github.com/openmeterio/openmeter/cmd/jobs/entitlement"
 	"github.com/openmeterio/openmeter/cmd/jobs/internal"
-	"github.com/openmeterio/openmeter/pkg/paniclogger"
+	"github.com/openmeterio/openmeter/pkg/log"
 )
 
 var configFileName string
@@ -25,7 +25,9 @@ var rootCmd = cobra.Command{
 }
 
 func main() {
-	defer paniclogger.PanicLogger()
+	defer log.PanicLogger(
+		log.WithPropagationStrategy(log.PropagationStrategyExit),
+	)
 
 	// Create os.Signal aware context.Context which will trigger context cancellation
 	// upon receiving any of the listed signals.

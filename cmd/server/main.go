@@ -26,11 +26,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/paniclogger"
+	"github.com/openmeterio/openmeter/pkg/log"
 )
 
 func main() {
-	defer paniclogger.PanicLogger()
+	defer log.PanicLogger(
+		log.WithPropagationStrategy(log.PropagationStrategyExit),
+	)
 
 	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
