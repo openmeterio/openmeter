@@ -23,7 +23,16 @@ namespace OpenMeter.ProductCatalog;
  */
 @friendlyName("SubscriptionExpanded")
 model SubscriptionExpanded {
-  ...Subscription;
+  ...OmitProperties<Subscription, "alignment">;
+
+  /**
+   * Alignment details enriched with the current billing period.
+   */
+  alignment?: SubscriptionAlignment;
+
+  /**
+   * The phases of the subscription.
+   */
   phases: SubscriptionPhaseExpanded[];
 }
 
@@ -43,6 +52,19 @@ enum SubscriptionStatus {
   Active: "active",
   Inactive: "inactive",
   Canceled: "canceled",
+}
+
+/**
+ * Alignment details enriched with the current billing period.
+ */
+@friendlyName("SubscriptionAlignment")
+model SubscriptionAlignment {
+  ...Alignment;
+
+  /**
+   * The current billing period. Only has value if the subscription is aligned and active.
+   */
+  currentAlignedBillingPeriod?: Period;
 }
 
 /**
