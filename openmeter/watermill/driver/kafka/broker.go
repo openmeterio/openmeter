@@ -9,6 +9,7 @@ import (
 
 	"github.com/IBM/sarama"
 	otelmetric "go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka/metrics"
@@ -60,13 +61,15 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	config.ClientID = fmt.Sprintf("%s-%s", o.ClientID, role)
 
 	// These are globals, so we cannot append the publisher/subscriber name to them
+	logger := o.Logger.With(slog.String(string(semconv.OTelScopeNameKey), "sarama"))
+
 	sarama.Logger = &SaramaLoggerAdaptor{
-		loggerFunc: o.Logger.Info,
+		loggerFunc: logger.Info,
 	}
 
 	// NOTE: always set the sarama.DebugLogger otherwise the debug level logs are redirected to the sarama.Logger by default
 	sarama.DebugLogger = &SaramaLoggerAdaptor{
-		loggerFunc: o.Logger.Debug,
+		loggerFunc: logger.Debug,
 	}
 
 	if o.KafkaConfig.SecurityProtocol == "SASL_SSL" {
