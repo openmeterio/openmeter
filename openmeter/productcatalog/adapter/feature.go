@@ -67,15 +67,19 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 		query = query.Where(db_feature.ArchivedAtIsNil())
 	}
 
-	entity, err := query.Only(ctx)
+	// This ensures that the first item is the most recent one
+	query = query.Order(db_feature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
+
+	entities, err := query.All(ctx)
 	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, &feature.FeatureNotFoundError{ID: idOrKey}
-		}
 		return nil, err
 	}
 
-	res := mapFeatureEntity(entity)
+	if len(entities) == 0 {
+		return nil, &feature.FeatureNotFoundError{ID: idOrKey}
+	}
+
+	res := mapFeatureEntity(entities[0])
 
 	return &res, nil
 }
