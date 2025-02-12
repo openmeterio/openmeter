@@ -40,17 +40,15 @@ var WatermillRouter = wire.NewSet(
 
 func NewBrokerConfiguration(
 	kafkaConfig config.KafkaConfiguration,
-	logConfig config.LogTelemetryConfig,
 	appMetadata Metadata,
 	logger *slog.Logger,
 	meter metric.Meter,
 ) watermillkafka.BrokerOptions {
 	return watermillkafka.BrokerOptions{
-		KafkaConfig:  kafkaConfig,
-		ClientID:     appMetadata.OpenTelemetryName, // TODO: use a better name or rename otel name
-		Logger:       logger,
-		MetricMeter:  meter,
-		DebugLogging: logConfig.Level == slog.LevelDebug,
+		KafkaConfig: kafkaConfig,
+		ClientID:    appMetadata.OpenTelemetryName, // TODO: use a better name or rename otel name
+		Logger:      logger,
+		MetricMeter: meter,
 	}
 }
 

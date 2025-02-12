@@ -63,7 +63,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	meter := common.NewMeter(meterProvider, commonMetadata)
-	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, logTelemetryConfig, commonMetadata, logger, meter)
+	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	v := common.SinkWorkerProvisionTopics(eventsConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
