@@ -46,30 +46,29 @@ func (s *Service) FindCustomer(ctx context.Context, namespace string, customerRe
 			Namespace: namespace,
 			ID:        customerRef.ID,
 		})
-	} else {
-		custs, err := s.ListCustomers(ctx, customer.ListCustomersInput{
-			Namespace:      namespace,
-			IncludeDeleted: false,
-			Key:            lo.ToPtr(customerRef.Key),
-			Page:           pagination.NewPage(1, 1),
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if custs.TotalCount == 0 {
-			return nil, customer.NotFoundError{CustomerID: customer.CustomerID{
-				Namespace: namespace,
-				ID:        customerRef.Key,
-			}}
-		}
-
-		if custs.TotalCount == 1 {
-			return &custs.Items[0], nil
-		}
-
-		return nil, &models.GenericConflictError{Inner: fmt.Errorf("multiple (%d) customers found with key %s while expecting one", custs.TotalCount, customerRef.Key)}
 	}
+	custs, err := s.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:      namespace,
+		IncludeDeleted: false,
+		Key:            lo.ToPtr(customerRef.Key),
+		Page:           pagination.NewPage(1, 1),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if custs.TotalCount == 0 {
+		return nil, customer.NotFoundError{CustomerID: customer.CustomerID{
+			Namespace: namespace,
+			ID:        customerRef.Key,
+		}}
+	}
+
+	if custs.TotalCount == 1 {
+		return &custs.Items[0], nil
+	}
+
+	return nil, &models.GenericConflictError{Inner: fmt.Errorf("multiple (%d) customers found with key %s while expecting one", custs.TotalCount, customerRef.Key)}
 }
 
 func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
