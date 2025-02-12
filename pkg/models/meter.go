@@ -178,8 +178,12 @@ func (m *Meter) Validate() error {
 		return errors.New("meter aggregation is required")
 	}
 
-	// ValueProperty is required when the aggregation is not count
-	if m.Aggregation != MeterAggregationCount {
+	// ValueProperty is required for all aggregations except count
+	if m.Aggregation == MeterAggregationCount {
+		if m.ValueProperty != "" {
+			return errors.New("meter value property is not allowed when the aggregation is count")
+		}
+	} else {
 		if m.ValueProperty == "" {
 			return errors.New("meter value property is required when the aggregation is not count")
 		}
