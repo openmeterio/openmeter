@@ -22,6 +22,13 @@ scalar ULID extends string;
 scalar Key extends string;
 
 /**
+ * ExternalKey is a looser version of key.
+ */
+@maxLength(256)
+@minLength(1)
+scalar ExternalKey extends string;
+
+/**
  * ULID (Universally Unique Lexicographically Sortable Identifier).
  * A key is a unique string that is used to identify a resource.
  *

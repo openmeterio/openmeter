@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 func TestCreateFromPlan(t *testing.T) {
@@ -52,8 +53,8 @@ func TestCreateFromPlan(t *testing.T) {
 							Custom: &deps.CurrentTime,
 						},
 					},
-					CustomerID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID),
-					Namespace:  subscriptiontestutils.ExampleNamespace,
+					CustomerRef: ref.IDOrKey{ID: fmt.Sprintf("nonexistent-customer-%s", deps.Customer.ID)},
+					Namespace:   subscriptiontestutils.ExampleNamespace,
 				}, deps.Plan)
 
 				assert.ErrorAs(t, err, &customer.NotFoundError{}, "expected customer not found error, got %T", err)
@@ -281,8 +282,8 @@ func TestEditRunning(t *testing.T) {
 					},
 					Name: "Example Subscription",
 				},
-				CustomerID: cust.ID,
-				Namespace:  subscriptiontestutils.ExampleNamespace,
+				CustomerRef: ref.IDOrKey{ID: cust.ID},
+				Namespace:   subscriptiontestutils.ExampleNamespace,
 			}, plan)
 			require.Nil(t, err)
 
@@ -474,8 +475,8 @@ func TestEditingCurrentPhase(t *testing.T) {
 					},
 					Name: "Example Subscription",
 				},
-				CustomerID: cust.ID,
-				Namespace:  subscriptiontestutils.ExampleNamespace,
+				CustomerRef: ref.IDOrKey{ID: cust.ID},
+				Namespace:   subscriptiontestutils.ExampleNamespace,
 			}, plan)
 			require.Nil(t, err)
 
@@ -723,8 +724,8 @@ func TestEditingWithTiming(t *testing.T) {
 					},
 					Name: "Example Subscription",
 				},
-				CustomerID: cust.ID,
-				Namespace:  subscriptiontestutils.ExampleNamespace,
+				CustomerRef: ref.IDOrKey{ID: cust.ID},
+				Namespace:   subscriptiontestutils.ExampleNamespace,
 			}, plan)
 			require.Nil(t, err)
 
@@ -894,8 +895,8 @@ func TestChangeToPlan(t *testing.T) {
 					},
 					Name: "Example Subscription",
 				},
-				CustomerID: deps.Customer.ID,
-				Namespace:  subscriptiontestutils.ExampleNamespace,
+				CustomerRef: ref.IDOrKey{ID: deps.Customer.ID},
+				Namespace:   subscriptiontestutils.ExampleNamespace,
 			}, deps.Plan1)
 			require.Nil(t, err)
 
@@ -994,8 +995,8 @@ func TestEditCombinations(t *testing.T) {
 					},
 					Name: "Example Subscription",
 				},
-				CustomerID: deps.Customer.ID,
-				Namespace:  subscriptiontestutils.ExampleNamespace,
+				CustomerRef: ref.IDOrKey{ID: deps.Customer.ID},
+				Namespace:   subscriptiontestutils.ExampleNamespace,
 			}, deps.Plan1)
 			require.Nil(t, err)
 

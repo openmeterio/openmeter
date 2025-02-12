@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -113,7 +115,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						AnnotatedModel: models.AnnotatedModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 						},
-						Name:        parsedBody.Name,
+						Name:        lo.FromPtrOr(parsedBody.Name, ""),
 						Description: parsedBody.Description,
 					},
 				}, nil
