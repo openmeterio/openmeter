@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
-
-	"github.com/samber/lo"
 )
 
 // Driver is an interface for transaction drivers
@@ -29,30 +27,6 @@ func RunWithNoValue(ctx context.Context, creator Creator, cb func(ctx context.Co
 	return err
 }
 
-func AddPostCommitHook(ctx context.Context, callback func(ctx context.Context) error) {
-	hook := loggingHook(callback)
-
-	hookMgr, err := getHookManagerFromContext(ctx)
-	if err != nil {
-		// If we are not in transaction let's invoke the callback directly
-		if _, ok := lo.ErrorsAs[*hookManagerNotFoundError](err); ok {
-			hook(ctx)
-			return
-		}
-
-		// Should not happen, only for safety
-		slog.ErrorContext(ctx, "failed to get hook manager from context", "error", err)
-		hook(ctx)
-		return
-	}
-
-	if err := hookMgr.AddPostCommitHook(hook); err != nil {
-		// This could only happen if we have never called PostSavePoint
-		slog.WarnContext(ctx, "failed to add post commit hook, executing now", "error", err)
-		hook(ctx)
-	}
-}
-
 // Runs the callback inside a transaction
 func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Context) (R, error)) (R, error) {
 	var def R
@@ -68,11 +42,8 @@ func Run[R any](ctx context.Context, creator Creator, cb func(ctx context.Contex
 		return def, fmt.Errorf("unknown error %w", err)
 	}
 
-	// Let's make sure we have a hook manager
-	ctx, hookMgr := upserthookManagerOnContext(ctx)
-
 	// Execute the callback and manage the transaction
-	return manage(ctx, tx, hookMgr, func(ctx context.Context, tx Driver) (R, error) {
+	return manage(ctx, tx, func(ctx context.Context, tx Driver) (R, error) {
 		return cb(ctx)
 	})
 }
@@ -94,16 +65,14 @@ func getTx(ctx context.Context, creator Creator) (context.Context, Driver, error
 }
 
 // Manages the transaction based on the behavior of the callback
-func manage[R any](ctx context.Context, tx Driver, hookMgr *hookManager, cb func(ctx context.Context, tx Driver) (R, error)) (R, error) {
+func manage[R any](ctx context.Context, tx Driver, cb func(ctx context.Context, tx Driver) (R, error)) (R, error) {
 	var def R
-
 	defer func() {
 		if r := recover(); r != nil {
 			pMsg := fmt.Sprintf("%v:\n%s", r, debug.Stack())
 
 			// roll back the tx for all downstream (WithTx) clients
 			_ = tx.Rollback()
-			_ = hookMgr.PostRollback()
 			panic(pMsg)
 		}
 	}()
@@ -113,27 +82,18 @@ func manage[R any](ctx context.Context, tx Driver, hookMgr *hookManager, cb func
 		return def, err
 	}
 
-	hookMgr.PostSavePoint()
-
 	result, err := cb(ctx, tx)
 	if err != nil {
 		// roll back the tx for all downstream (WithTx) clients
 		if rerr := tx.Rollback(); rerr != nil {
 			err = fmt.Errorf("%w: %v", err, rerr)
 		}
-
-		_ = hookMgr.PostRollback()
-
 		return def, err
 	}
 
 	// commit the transaction
 	err = tx.Commit()
 	if err != nil {
-		return def, err
-	}
-
-	if err := hookMgr.PostCommit(ctx); err != nil {
 		return def, err
 	}
 
