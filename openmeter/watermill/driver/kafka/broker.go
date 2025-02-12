@@ -19,11 +19,10 @@ const (
 )
 
 type BrokerOptions struct {
-	KafkaConfig  config.KafkaConfiguration
-	ClientID     string
-	Logger       *slog.Logger
-	MetricMeter  otelmetric.Meter
-	DebugLogging bool
+	KafkaConfig config.KafkaConfiguration
+	ClientID    string
+	Logger      *slog.Logger
+	MetricMeter otelmetric.Meter
 }
 
 func (o *BrokerOptions) Validate() error {
@@ -65,10 +64,9 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		loggerFunc: o.Logger.Info,
 	}
 
-	if o.DebugLogging {
-		sarama.DebugLogger = &SaramaLoggerAdaptor{
-			loggerFunc: o.Logger.Debug,
-		}
+	// NOTE: always set the sarama.DebugLogger otherwise the debug level logs are redirected to the sarama.Logger by default
+	sarama.DebugLogger = &SaramaLoggerAdaptor{
+		loggerFunc: o.Logger.Debug,
 	}
 
 	if o.KafkaConfig.SecurityProtocol == "SASL_SSL" {
