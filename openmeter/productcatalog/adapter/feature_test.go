@@ -330,3 +330,58 @@ func TestArchiveFeature(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestFetchingArchivedFeature(t *testing.T) {
+	namespace := "default"
+	meter := models.Meter{
+		Namespace: namespace,
+		ID:        "meter-1",
+		Slug:      "meter-1",
+		GroupBy:   map[string]string{"key": "$.path"},
+	}
+
+	testFeature := feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "feature-1",
+		Key:       "feature-1",
+		MeterSlug: &meter.Slug,
+		MeterGroupByFilters: map[string]string{
+			"key": "value",
+		},
+	}
+
+	t.Run("Should allow archiving feature", func(t *testing.T) {
+		testdb := testutils.InitPostgresDB(t)
+		defer testdb.PGDriver.Close()
+		dbClient := testdb.EntDriver.Client()
+		defer dbClient.Close()
+
+		if err := dbClient.Schema.Create(context.Background()); err != nil {
+			t.Fatalf("failed to create schema: %v", err)
+		}
+
+		ctx := context.Background()
+		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+
+		featureIn := testFeature
+
+		createFeatureOutArchived, err := connector.CreateFeature(ctx, featureIn)
+		assert.NoError(t, err)
+
+		err = connector.ArchiveFeature(ctx, models.NamespacedID{
+			Namespace: createFeatureOutArchived.Namespace,
+			ID:        createFeatureOutArchived.ID,
+		})
+		assert.NoError(t, err)
+
+		createFeatureOut, err := connector.CreateFeature(ctx, featureIn)
+		assert.NoError(t, err)
+
+		assert.NotEqual(t, createFeatureOutArchived.ID, createFeatureOut.ID)
+
+		featchedFeature, err := connector.GetByIdOrKey(ctx, namespace, createFeatureOut.Key, true)
+		assert.NoError(t, err)
+
+		assert.Equal(t, createFeatureOut.ID, featchedFeature.ID)
+	})
+}
