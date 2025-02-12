@@ -165,14 +165,15 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
-			return c.publisher.Publish(ctx, EntitlementDeletedEvent{
-				Entitlement: *ent,
-				Namespace: eventmodels.NamespaceID{
-					ID: namespace,
-				},
-			})
+		err = c.publisher.Publish(ctx, EntitlementDeletedEvent{
+			Entitlement: *ent,
+			Namespace: eventmodels.NamespaceID{
+				ID: namespace,
+			},
 		})
+		if err != nil {
+			return nil, err
+		}
 
 		return ent, nil
 	}

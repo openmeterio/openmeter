@@ -109,14 +109,15 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 			return nil, err
 		}
 
-		transaction.AddPostCommitHook(ctx, func(ctx context.Context) error {
-			return c.publisher.Publish(ctx, EntitlementCreatedEvent{
-				Entitlement: *ent,
-				Namespace: eventmodels.NamespaceID{
-					ID: input.Namespace,
-				},
-			})
+		err = c.publisher.Publish(ctx, EntitlementCreatedEvent{
+			Entitlement: *ent,
+			Namespace: eventmodels.NamespaceID{
+				ID: input.Namespace,
+			},
 		})
+		if err != nil {
+			return nil, err
+		}
 
 		return ent, err
 	})

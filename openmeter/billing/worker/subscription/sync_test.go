@@ -177,8 +177,6 @@ func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
 }
 
 func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector {
-	testLog := slog.Default()
-
 	// Init grants/credit
 	grantRepo := grantrepo.NewPostgresGrantRepo(s.DBClient)
 	balanceSnapshotRepo := grantrepo.NewPostgresBalanceSnapshotRepo(s.DBClient)
@@ -194,7 +192,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		entitlementRepo,
 		usageResetRepo,
 		s.MeterRepo,
-		testLog,
+		slog.Default(),
 	)
 
 	transactionManager := enttx.NewCreator(s.DBClient)
@@ -204,7 +202,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		balanceSnapshotRepo,
 		owner,
 		s.MockStreamingConnector,
-		testLog,
+		slog.Default(),
 		time.Minute,
 		mockPublisher,
 		transactionManager,
