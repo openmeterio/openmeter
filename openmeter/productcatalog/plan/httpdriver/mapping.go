@@ -859,7 +859,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (*productcatalog.Entitleme
 
 		tmpl = productcatalog.NewEntitlementTemplateFrom(staticTemplate)
 	case string(api.RateCardBooleanEntitlementTypeBoolean):
-		boolean, err := e.AsRateCardMeteredEntitlement()
+		boolean, err := e.AsRateCardBooleanEntitlement()
 		if err != nil {
 			return tmpl, fmt.Errorf("failed to cast Boolean EntitlementTemplate: %w", err)
 		}
