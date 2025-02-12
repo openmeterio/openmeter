@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,8 +37,11 @@ func (h *Handler) HandleCancelledEvent(ctx context.Context, event *subscription.
 
 	if event.Spec.ActiveTo.Before(now) {
 		invoices, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: event.Customer.GetID(),
-			AsOf:     event.Spec.ActiveTo,
+			Customer: customer.CustomerID{
+				Namespace: event.Subscription.Namespace,
+				ID:        event.Customer.ID,
+			},
+			AsOf: event.Spec.ActiveTo,
 		})
 		if err != nil {
 			// Let's wait for the collector to create the invoice in case we run into any errors
