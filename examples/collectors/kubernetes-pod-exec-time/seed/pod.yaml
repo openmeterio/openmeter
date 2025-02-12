@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: pod-1
+  labels:
+    app: seed
   annotations:
     openmeter.io/subject: customer-1
     data.openmeter.io/customer_group: platinum
@@ -10,12 +12,22 @@ spec:
     - name: busybox
       image: busybox
       command: ["sh", "-c", "echo The app is running! && sleep 3600"]
-
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+          # nvidia.com/gpu: 1
+        limits:
+          cpu: 20m
+          memory: 128Mi
+          # nvidia.com/gpu: 1
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: pod-2
+  labels:
+    app: seed
   annotations:
     openmeter.io/subject: customer-1
     data.openmeter.io/customer_group: platinum
@@ -24,12 +36,20 @@ spec:
     - name: busybox
       image: busybox
       command: ["sh", "-c", "echo The app is running! && sleep 3600"]
-
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 20m
+          memory: 128Mi
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: pod-3
+  labels:
+    app: seed
   annotations:
     openmeter.io/subject: customer-2
     data.openmeter.io/customer_group: gold
@@ -38,12 +58,20 @@ spec:
     - name: busybox
       image: busybox
       command: ["sh", "-c", "echo The app is running! && sleep 3600"]
-
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 20m
+          memory: 128Mi
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: pod-4
+  labels:
+    app: seed
   annotations:
     openmeter.io/subject: customer-3
     data.openmeter.io/customer_group: gold
@@ -52,12 +80,20 @@ spec:
     - name: busybox
       image: busybox
       command: ["sh", "-c", "echo The app is running! && sleep 3600"]
-
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 20m
+          memory: 128Mi
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: pod-5
+  labels:
+    app: seed
   annotations:
     openmeter.io/subject: customer-3
     data.openmeter.io/customer_group: gold
@@ -66,12 +102,20 @@ spec:
     - name: busybox
       image: busybox
       command: ["sh", "-c", "echo The app is running! && sleep 3600"]
-
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 20m
+          memory: 128Mi
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: pod-6
+  labels:
+    app: seed
   annotations:
     openmeter.io/subject: customer-3
     data.openmeter.io/customer_group: gold
@@ -80,3 +124,20 @@ spec:
     - name: busybox
       image: busybox
       command: ["sh", "-c", "echo The app is running! && sleep 3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 20m
+          memory: 128Mi
+    - name: busybox-2
+      image: busybox
+      command: ["sh", "-c", "echo The app is running! && sleep 3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 20m
+          memory: 128Mi

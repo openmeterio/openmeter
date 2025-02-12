@@ -9,13 +9,11 @@ import (
 	"github.com/redpanda-data/benthos/v4/public/service"
 	_ "github.com/redpanda-data/connect/public/bundle/free/v4"
 
-	_ "github.com/openmeterio/openmeter/collector/benthos/input"  // import input plugins
-	_ "github.com/openmeterio/openmeter/collector/benthos/output" // import output plugins
-	"github.com/openmeterio/openmeter/pkg/log"
+	_ "github.com/openmeterio/openmeter/collector/benthos/bloblang" // import bloblang plugins
+	_ "github.com/openmeterio/openmeter/collector/benthos/input"    // import input plugins
+	_ "github.com/openmeterio/openmeter/collector/benthos/output"   // import output plugins
 )
 
 func main() {
-	defer log.PanicLogger(log.WithExit)
-
 	service.RunCLI(context.Background())
 }
