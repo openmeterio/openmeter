@@ -7,17 +7,22 @@ import (
 	"runtime/debug"
 )
 
-type propagationStrategy string
+// OTelCodeStackTrace a stacktrace as a string in the natural representation for the language runtime.
+// The representation is to be determined and documented by each language SIG.
+// See: https://github.com/open-telemetry/semantic-conventions/blob/v1.29.0/docs/attributes-registry/code.md
+const OTelCodeStackTrace = "code.stacktrace"
+
+type propagationStrategy int8
 
 const (
 	// propagationStrategyPanic will propagate the panic after logging it
-	propagationStrategyRePanic propagationStrategy = "panic"
+	propagationStrategyRePanic propagationStrategy = iota
 
 	// propagationStrategyExit will exit the program after logging the panic
-	propagationStrategyExit propagationStrategy = "exit"
+	propagationStrategyExit
 
 	// propagationStrategyContinue will continue the program after logging the panic
-	propagationStrategyContinue propagationStrategy = "continue"
+	propagationStrategyContinue
 )
 
 type panicLoggerOptions struct {
@@ -44,9 +49,7 @@ func WithContinue(o *panicLoggerOptions) {
 //
 //	defer log.PanicLogger(log.WithExit)
 func PanicLogger(options ...func(*panicLoggerOptions)) {
-	opts := &panicLoggerOptions{
-		propagationStrategy: propagationStrategyRePanic,
-	}
+	opts := &panicLoggerOptions{}
 
 	for _, o := range options {
 		o(opts)
@@ -55,7 +58,7 @@ func PanicLogger(options ...func(*panicLoggerOptions)) {
 	if r := recover(); r != nil {
 		description := fmt.Sprintf("panic: %s", r)
 
-		slog.Error(description, "stack", string(debug.Stack()))
+		slog.Error(description, OTelCodeStackTrace, string(debug.Stack()))
 
 		switch opts.propagationStrategy {
 		case propagationStrategyExit:
