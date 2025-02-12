@@ -550,6 +550,14 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 		},
 	}
 
+	if flat.BillingCadence != nil {
+		isoString := datex.ISOString(*flat.BillingCadence)
+		rc.BillingCadence, err = isoString.ParsePtrOrNil()
+		if err != nil {
+			return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
+		}
+	}
+
 	if flat.FeatureKey != nil {
 		rc.RateCardMeta.Feature = &feature.Feature{
 			Key: *flat.FeatureKey,
@@ -557,7 +565,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.EntitlementTemplate != nil {
-		tmpl, err := AsEntitlementTemplate(*flat.EntitlementTemplate)
+		tmpl, err := AsEntitlementTemplate(*flat.EntitlementTemplate, rc.BillingCadence)
 		if err != nil {
 			return productcatalog.FlatFeeRateCard{}, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 		}
@@ -567,14 +575,6 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 
 	if flat.TaxConfig != nil {
 		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*flat.TaxConfig))
-	}
-
-	if flat.BillingCadence != nil {
-		isoString := datex.ISOString(*flat.BillingCadence)
-		rc.BillingCadence, err = isoString.ParsePtrOrNil()
-		if err != nil {
-			return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
-		}
 	}
 
 	if flat.Price != nil {
@@ -618,6 +618,12 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 		},
 	}
 
+	isoString := datex.ISOString(usage.BillingCadence)
+	rc.BillingCadence, err = isoString.Parse()
+	if err != nil {
+		return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
+	}
+
 	if usage.FeatureKey != nil {
 		rc.RateCardMeta.Feature = &feature.Feature{
 			Key: *usage.FeatureKey,
@@ -625,7 +631,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 	}
 
 	if usage.EntitlementTemplate != nil {
-		tmpl, err := AsEntitlementTemplate(*usage.EntitlementTemplate)
+		tmpl, err := AsEntitlementTemplate(*usage.EntitlementTemplate, &rc.BillingCadence)
 		if err != nil {
 			return rc, fmt.Errorf("failed to cast EntitlementTemplate: %w", err)
 		}
@@ -635,12 +641,6 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 
 	if usage.TaxConfig != nil {
 		rc.TaxConfig = lo.ToPtr(AsTaxConfig(*usage.TaxConfig))
-	}
-
-	isoString := datex.ISOString(usage.BillingCadence)
-	rc.BillingCadence, err = isoString.Parse()
-	if err != nil {
-		return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
 	}
 
 	if usage.Price != nil {
@@ -815,7 +815,7 @@ func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
 	return tier, nil
 }
 
-func AsEntitlementTemplate(e api.RateCardEntitlement) (*productcatalog.EntitlementTemplate, error) {
+func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datex.Period) (*productcatalog.EntitlementTemplate, error) {
 	tmpl := &productcatalog.EntitlementTemplate{}
 
 	eType, err := e.Discriminator()
@@ -830,10 +830,20 @@ func AsEntitlementTemplate(e api.RateCardEntitlement) (*productcatalog.Entitleme
 			return nil, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
 		}
 
-		usagePeriodISO := datex.ISOString(lo.FromPtrOr(metered.UsagePeriod, ""))
-		usagePeriod, err := usagePeriodISO.Parse()
-		if err != nil {
-			return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)
+		var usagePeriod datex.Period
+
+		if metered.UsagePeriod == nil {
+			if billingCadence == nil {
+				return nil, &models.GenericUserError{Inner: fmt.Errorf("missing UsagePeriod for Metered EntitlementTemplate where cannot infer from BillingCadence")}
+			}
+
+			usagePeriod = *billingCadence
+		} else {
+			usagePeriodISO := datex.ISOString(lo.FromPtrOr(metered.UsagePeriod, ""))
+			usagePeriod, err = usagePeriodISO.Parse()
+			if err != nil {
+				return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)
+			}
 		}
 
 		meteredTemplate := productcatalog.MeteredEntitlementTemplate{
