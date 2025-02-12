@@ -335,7 +335,7 @@ model CustomSubscriptionCreate {
   /**
    * The key of the customer. Provide either the key or ID.
    */
-  customerKey?: Key;
+  customerKey?: ExternalKey;
 }
 
 /**
@@ -381,7 +381,7 @@ model PlanSubscriptionCreate {
   /**
    * The key of the customer. Provide either the key or ID.
    */
-  customerKey?: Key;
+  customerKey?: ExternalKey;
 }
 
 /**

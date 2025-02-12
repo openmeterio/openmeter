@@ -9269,8 +9269,7 @@ components:
         customerKey:
           type: string
           minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          maxLength: 256
           description: The key of the customer. Provide either the key or ID.
       description: Create a custom subscription.
     Customer:
@@ -9330,6 +9329,8 @@ components:
           readOnly: true
         key:
           type: string
+          minLength: 1
+          maxLength: 256
           description: |-
             An optional unique key of the customer.
             Useful to reference the customer in external systems.
@@ -9439,6 +9440,8 @@ components:
           title: Metadata
         key:
           type: string
+          minLength: 1
+          maxLength: 256
           description: |-
             An optional unique key of the customer.
             Useful to reference the customer in external systems.
@@ -9546,6 +9549,8 @@ components:
           title: Metadata
         key:
           type: string
+          minLength: 1
+          maxLength: 256
           description: |-
             An optional unique key of the customer.
             Useful to reference the customer in external systems.
@@ -14237,8 +14242,7 @@ components:
         customerKey:
           type: string
           minLength: 1
-          maxLength: 64
-          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          maxLength: 256
           description: The key of the customer. Provide either the key or ID.
       description: Create subscription based on plan.
     PortalToken:

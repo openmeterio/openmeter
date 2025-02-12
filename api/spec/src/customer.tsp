@@ -221,7 +221,7 @@ model Customer {
    * For example, your database ID.
    */
   @summary("Key")
-  key?: string;
+  key?: ExternalKey;
 
   /**
    * Mapping to attribute metered usage to the customer
