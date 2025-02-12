@@ -4,6 +4,7 @@ default:
 
 generate:
     dagger call generate server export --path api
+    dagger call generate javascript-sdk export --path api/client/javascript
 
     # TODO: move this to dagger?
     GOWORK=off go generate ./cmd/...
