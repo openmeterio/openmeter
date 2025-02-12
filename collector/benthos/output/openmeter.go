@@ -40,7 +40,7 @@ func openmeterOutputConfig() *service.ConfigSpec {
 		Beta().
 		Categories("Services").
 		Summary("Sends events the OpenMeter ingest API.").
-		Description("").
+		Description("This output is used to send events to the OpenMeter ingest API.").
 		Fields(
 			service.NewURLField(urlField).
 				Description("OpenMeter API endpoint"),

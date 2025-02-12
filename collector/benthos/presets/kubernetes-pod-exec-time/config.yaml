@@ -2,27 +2,38 @@ input:
   schedule:
     input:
       kubernetes_resources:
-        resource:
-          version: v1
-          name: pods
         namespaces:
-          - ${SCRAPE_NAMESPACE:default}
+          - ${SCRAPE_NAMESPACE:}
+        label_selector: "app=seed"
     interval: "${SCRAPE_INTERVAL:15s}"
 
 pipeline:
   processors:
     - mapping: |
+        let duration_seconds = (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64()
         root = {
           "id": uuid_v4(),
           "specversion": "1.0",
-          "type": "kube-pod-exec-time",
+          "type": "kubernetes",
           "source": "kubernetes-api",
           "time": meta("schedule_time"),
           "subject": this.metadata.annotations."openmeter.io/subject".or(this.metadata.name),
           "data": this.metadata.annotations.filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign({
             "pod_name": this.metadata.name,
             "pod_namespace": this.metadata.namespace,
-            "duration_seconds": (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64(),
+            "duration_seconds": $duration_seconds,
+            "cpu_request_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum(),
+            "cpu_request_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum() / $duration_seconds,
+            "cpu_limit_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum(),
+            "cpu_limit_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum() / $duration_seconds,
+            "memory_request_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum(),
+            "memory_request_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum() / $duration_seconds,
+            "memory_limit_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum(),
+            "memory_limit_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum() / $duration_seconds,
+            "gpu_request_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum(),
+            "gpu_request_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum() / $duration_seconds,
+            "gpu_limit_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum(),
+            "gpu_limit_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum() / $duration_seconds,
           }),
         }
     - json_schema:
@@ -30,7 +41,7 @@ pipeline:
     - catch:
         - log:
             level: ERROR
-            message: "Schema validation failed due to: ${!error()}"
+            message: "schema validation failed due to: ${!error()}"
         - mapping: "root = deleted()"
 
 output:
@@ -43,8 +54,8 @@ output:
             url: "${OPENMETER_URL:https://openmeter.cloud}"
             token: "${OPENMETER_TOKEN:}"
             batching:
-              count: ${BATCH_SIZE:20}
-              period: ${BATCH_PERIOD:}
+              count: ${BATCH_SIZE:100}
+              period: ${BATCH_PERIOD:1s}
 
       - check: '"${DEBUG:false}" == "true"'
         output:

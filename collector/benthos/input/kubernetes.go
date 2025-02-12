@@ -2,16 +2,21 @@ package input
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/redpanda-data/benthos/v4/public/service"
 	"github.com/samber/lo"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // import kubernetes auth plugins
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 // TODO: add batching config and policy
@@ -20,24 +25,10 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 	return service.NewConfigSpec().
 		Beta().
 		Categories("Services").
-		Summary("List objects in Kubernetes.").
+		Summary("List pods in Kubernetes.").
 		Fields(
-			service.NewObjectField(
-				"resource",
-				service.NewStringField("group").
-					Description("Kubernetes API group.").
-					Optional(),
-				service.NewStringField("version").
-					Description("Kubernetes API group version.").
-					Example("v1"),
-				service.NewStringField("name").
-					Description("Kubernetes API resource name.").
-					Example("pods"),
-			).
-				Description("Kubernetes resource details.").
-				Advanced(),
 			service.NewStringListField("namespaces").
-				Description("List of namespaces to list objects from."),
+				Description("List of namespaces to list pods from."),
 			service.NewStringField("label_selector").
 				Description("Label selector applied to each list operation.").
 				Optional(),
@@ -46,7 +37,7 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 
 func init() {
 	err := service.RegisterBatchInput("kubernetes_resources", kubernetesResourcesInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
-		return newKubernetesResourcesInput(conf)
+		return newKubernetesResourcesInput(conf, mgr.Logger())
 	})
 	if err != nil {
 		panic(err)
@@ -54,101 +45,202 @@ func init() {
 }
 
 type kubernetesResourcesInput struct {
-	gvr           schema.GroupVersionResource
 	namespaces    []string
-	labelSelector string
+	labelSelector labels.Selector
+	logger        *service.Logger
 
-	client dynamic.Interface
+	manager manager.Manager
+	client  client.Client
+
+	// Used for graceful shutdown of the manager.
+	cancel context.CancelFunc
+	done   chan struct{}
 }
 
-func newKubernetesResourcesInput(conf *service.ParsedConfig) (*kubernetesResourcesInput, error) {
-	var gvr schema.GroupVersionResource
-
-	{
-		conf := conf.Namespace("resource")
-
-		var err error
-
-		if conf.Contains("group") {
-			if gvr.Group, err = conf.FieldString("group"); err != nil {
-				return nil, err
-			}
-		}
-
-		if gvr.Version, err = conf.FieldString("version"); err != nil {
-			return nil, err
-		}
-
-		if gvr.Resource, err = conf.FieldString("name"); err != nil {
-			return nil, err
-		}
-	}
-
+func newKubernetesResourcesInput(conf *service.ParsedConfig, logger *service.Logger) (*kubernetesResourcesInput, error) {
 	namespaces, err := conf.FieldStringList("namespaces")
 	if err != nil {
 		return nil, err
 	}
 
+	// Normalize the namespaces to lowercase and deduplicate.
 	namespaces = lo.Uniq(lo.Map(namespaces, func(s string, _ int) string { return strings.ToLower(s) }))
 
-	var labelSelector string
+	// If no namespaces are provided, use all namespaces.
+	if len(namespaces) == 0 {
+		namespaces = []string{corev1.NamespaceAll}
+	}
 
+	// Convert a non-empty label selector into a labels.Selector.
+	var selector labels.Selector
 	if conf.Contains("label_selector") {
-		if labelSelector, err = conf.FieldString("label_selector"); err != nil {
+		labelSelector, err := conf.FieldString("label_selector")
+		if err != nil {
+			return nil, err
+		}
+
+		selector, err = labels.Parse(labelSelector)
+		if err != nil {
 			return nil, err
 		}
 	}
 
+	// Get the kubeconfig.
 	kubeconfig, err := config.GetConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := dynamic.NewForConfig(kubeconfig)
+	// Build a scheme and register core/v1 (pods) into it.
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+
+	// Create a new manager. Its client will automatically use a cache.
+	mgr, err := manager.New(kubeconfig, manager.Options{
+		Logger: logr.New(&managerLogger{logger}),
+		Scheme: scheme,
+		// Disable servers.
+		Metrics:                metricsserver.Options{BindAddress: "0"},
+		HealthProbeBindAddress: "0",
+		PprofBindAddress:       "0",
+	})
 	if err != nil {
 		return nil, err
 	}
 
+	// Get Kubernetes client.
+	client := mgr.GetClient()
+
 	return &kubernetesResourcesInput{
-		gvr:           gvr,
 		namespaces:    namespaces,
-		labelSelector: labelSelector,
+		labelSelector: selector,
+		manager:       mgr,
 		client:        client,
+		logger:        logger,
 	}, nil
 }
 
-func (in *kubernetesResourcesInput) Connect(_ context.Context) error {
+func (in *kubernetesResourcesInput) Connect(ctx context.Context) error {
+	// Create a cancellable context for the manager.
+	mgrCtx, cancel := context.WithCancel(ctx)
+	in.cancel = cancel
+	in.done = make(chan struct{})
+
+	// Start the manager in a separate goroutine.
+	go func() {
+		defer close(in.done)
+
+		// Start blocks, so we run it in the background.
+		if err := in.manager.Start(mgrCtx); err != nil {
+			in.logger.Errorf("failed to start manager: %v", err)
+			in.Close(ctx)
+		}
+	}()
+
+	// Wait for the cache to sync. This ensures that subsequent List() calls
+	// use up-to-date cached data.
+	if synced := in.manager.GetCache().WaitForCacheSync(ctx); !synced {
+		return errors.New("failed to sync cache")
+	}
+
 	return nil
 }
 
 func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.MessageBatch, service.AckFunc, error) {
-	var resources []unstructured.Unstructured
+	batch := make([]*service.Message, 0)
 
-	for _, namespace := range in.namespaces {
-		list, err := in.client.Resource(in.gvr).Namespace(namespace).List(ctx, v1.ListOptions{
-			LabelSelector: in.labelSelector,
-		})
-		if err != nil {
+	// Iterate over each namespace and list pods.
+	for _, ns := range in.namespaces {
+		podList := &corev1.PodList{}
+		opts := []client.ListOption{client.InNamespace(ns)}
+		if in.labelSelector != nil {
+			opts = append(opts, client.MatchingLabelsSelector{
+				Selector: in.labelSelector,
+			})
+		}
+
+		if err := in.client.List(ctx, podList, opts...); err != nil {
 			return nil, nil, err
 		}
 
-		resources = append(resources, list.Items...)
-	}
+		for _, pod := range podList.Items {
+			if !lo.EveryBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
+				return cs.State.Running != nil
+			}) {
+				continue
+			}
 
-	batch := make([]*service.Message, 0, len(resources))
+			encoded, err := json.Marshal(pod)
+			if err != nil {
+				return nil, nil, err
+			}
 
-	for _, resource := range resources {
-		encoded, err := resource.MarshalJSON()
-		if err != nil { // TODO: better error handling
-			return nil, nil, err
+			in.logger.Debugf("adding pod %s to batch", pod.Name)
+			batch = append(batch, service.NewMessage(encoded))
 		}
-
-		batch = append(batch, service.NewMessage(encoded))
 	}
 
-	return batch, func(context.Context, error) error { return nil }, nil
+	in.logger.Debugf("batch size: %d", len(batch))
+
+	return batch, func(context.Context, error) error {
+		// A nack (when err is non-nil) is handled automatically when we
+		// construct using service.AutoRetryNacks.
+		return nil
+	}, nil
 }
 
-func (in *kubernetesResourcesInput) Close(_ context.Context) error {
+func (in *kubernetesResourcesInput) Close(ctx context.Context) error {
+	if in.cancel != nil {
+		// Trigger graceful shutdown of the manager
+		in.cancel()
+	}
+	// Wait for the manager's goroutine to exit or for the context to be canceled.
+	select {
+	case <-in.done:
+		in.logger.Info("manager exited")
+	case <-ctx.Done():
+		in.logger.Info("context canceled")
+		return ctx.Err()
+	}
 	return nil
+}
+
+type managerLogger struct {
+	logger *service.Logger
+}
+
+func (l *managerLogger) Init(info logr.RuntimeInfo) {
+}
+
+func (l *managerLogger) Enabled(level int) bool {
+	return true
+}
+
+func (l *managerLogger) Info(level int, msg string, keysAndValues ...any) {
+	switch level {
+	case 0:
+		l.logger.Debugf(msg, keysAndValues...)
+	case 1:
+		l.logger.Infof(msg, keysAndValues...)
+	case 2:
+		l.logger.Warnf(msg, keysAndValues...)
+	case 3:
+		l.logger.Errorf(msg, keysAndValues...)
+	}
+}
+
+func (l *managerLogger) Error(err error, msg string, keysAndValues ...any) {
+	l.logger.Errorf(msg, keysAndValues...)
+}
+
+func (l *managerLogger) WithValues(keysAndValues ...any) logr.LogSink {
+	// Not implemented.
+	return l
+}
+
+func (l *managerLogger) WithName(name string) logr.LogSink {
+	// Not implemented.
+	return l
 }
