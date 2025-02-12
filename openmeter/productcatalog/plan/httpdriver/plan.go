@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -247,7 +248,7 @@ func (h *handler) GetPlan() GetPlanHandler {
 			}
 
 			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
-			idOrKey := NewIDOrKey(params.IDOrKey)
+			idOrKey := ref.ParseIDOrKey(params.IDOrKey)
 
 			return GetPlanRequest{
 				NamespacedID: models.NamespacedID{
@@ -381,7 +382,7 @@ func (h *handler) NextPlan() NextPlanHandler {
 			// TODO(chrisgacsal): update api.Request in TypeSpec definition to allow setting EffectivePeriod.To
 
 			// Try to detect whether the IdOrKey is an ID in ULID format or Key.
-			idOrKey := NewIDOrKey(planIdOrKey)
+			idOrKey := ref.ParseIDOrKey(planIdOrKey)
 
 			req := NextPlanRequest{
 				NamespacedID: models.NamespacedID{

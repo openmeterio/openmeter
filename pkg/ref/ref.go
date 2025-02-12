@@ -1,6 +1,10 @@
 package ref
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/oklog/ulid/v2"
+)
 
 type IDOrKey struct {
 	ID  string `json:"id"`
@@ -13,4 +17,17 @@ func (i IDOrKey) Validate() error {
 	}
 
 	return nil
+}
+
+func ParseIDOrKey(s string) IDOrKey {
+	n := IDOrKey{}
+
+	_, err := ulid.Parse(s)
+	if err != nil {
+		n.Key = s
+	} else {
+		n.ID = s
+	}
+
+	return n
 }
