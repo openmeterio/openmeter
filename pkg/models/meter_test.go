@@ -94,7 +94,7 @@ func TestMeterValidation(t *testing.T) {
 			error: nil,
 		},
 		{
-			description: "slug is empty",
+			description: "count is invalid with value property",
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationCount,
@@ -102,6 +102,16 @@ func TestMeterValidation(t *testing.T) {
 				EventType:     "event-type-test",
 				ValueProperty: "$.my_property",
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
+			},
+			error: fmt.Errorf("meter value property is not allowed when the aggregation is count"),
+		},
+		{
+			description: "slug is empty",
+			meter: Meter{
+				Aggregation: MeterAggregationCount,
+				WindowSize:  WindowSizeMinute,
+				EventType:   "event-type-test",
+				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter slug is required"),
 		},
@@ -119,13 +129,12 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "window size is empty",
 			meter: Meter{
-				Slug:          "slug-test",
-				Aggregation:   MeterAggregationCount,
-				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
-				GroupBy:       map[string]string{"test_group": "$.test_group"},
+				Slug:        "slug-test",
+				Aggregation: MeterAggregationCount,
+				EventType:   "event-type-test",
+				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
-			error: fmt.Errorf("meter aggregation is required"),
+			error: nil,
 		},
 		{
 			description: "event type is empty",
@@ -204,12 +213,13 @@ func TestMeterValidation(t *testing.T) {
 		tt := tt
 		t.Run(tt.description, func(t *testing.T) {
 			err := tt.meter.Validate()
-			if err != nil {
-				if tt.error == nil {
-					t.Error(err)
-				}
 
-				assert.Equal(t, tt.error, err)
+			if tt.error == nil && err != nil {
+				t.Error(err)
+			}
+
+			if tt.error != nil && err == nil {
+				t.Errorf("expected error %v, got nil", tt.error)
 			}
 		})
 	}
