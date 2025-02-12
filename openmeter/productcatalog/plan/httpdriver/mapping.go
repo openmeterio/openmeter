@@ -832,18 +832,22 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datex.Peri
 
 		var usagePeriod datex.Period
 
-		if metered.UsagePeriod == nil {
-			if billingCadence == nil {
-				return nil, &models.GenericUserError{Inner: fmt.Errorf("missing UsagePeriod for Metered EntitlementTemplate where cannot infer from BillingCadence")}
+		if metered.UsagePeriod != nil {
+			usagePeriodISO := datex.ISOString(lo.FromPtr(metered.UsagePeriod))
+
+			if usagePeriod, err = usagePeriodISO.Parse(); err != nil {
+				return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)
+			}
+		}
+
+		if usagePeriod.IsZero() {
+			if billingCadence == nil || billingCadence.IsZero() {
+				return nil, &models.GenericUserError{
+					Inner: fmt.Errorf("missing UsagePeriod for Metered EntitlementTemplate where cannot infer from BillingCadence"),
+				}
 			}
 
 			usagePeriod = *billingCadence
-		} else {
-			usagePeriodISO := datex.ISOString(lo.FromPtrOr(metered.UsagePeriod, ""))
-			usagePeriod, err = usagePeriodISO.Parse()
-			if err != nil {
-				return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)
-			}
 		}
 
 		meteredTemplate := productcatalog.MeteredEntitlementTemplate{
