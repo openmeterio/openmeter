@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type WorkflowServiceConfig struct {
@@ -37,7 +36,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	var def subscription.SubscriptionView
 
 	// Let's find the customer
-	cust, err := s.CustomerService.FindCustomer(ctx, inp.Namespace, inp.CustomerRef)
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{ID: inp.CustomerID, Namespace: inp.Namespace})
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch customer: %w", err)
 	}
@@ -154,7 +153,7 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 		new, err := s.CreateFromPlan(ctx, subscription.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
-			CustomerRef:                     ref.IDOrKey{ID: curr.CustomerId},
+			CustomerID:                      curr.CustomerId,
 		}, plan)
 		if err != nil {
 			return res{}, fmt.Errorf("failed to create new subscription: %w", err)

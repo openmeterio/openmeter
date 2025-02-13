@@ -301,6 +301,7 @@ func NewRouter(config Config) (*Router, error) {
 				SubscriptionService:         config.SubscriptionService,
 				PlanSubscriptionService:     config.PlanSubscriptionService,
 				NamespaceDecoder:            staticNamespaceDecoder,
+				CustomerService:             config.Customer,
 				Logger:                      config.Logger,
 			},
 			httptransport.WithErrorHandler(config.ErrorHandler),
