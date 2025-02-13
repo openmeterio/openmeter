@@ -84,41 +84,65 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				err := json.Unmarshal(request.Event.Data.Raw, &paymentIntent)
 				if err != nil {
 					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("failed to unmarshal payment intent: %w", err),
+						Err: fmt.Errorf("failed to unmarshal payment intent for app: %s in event: %s: %w", request.AppID.ID, request.Event.ID, err),
 					}
 				}
 
 				// Validate the payment intent metadata
-				if metadataAppId, ok := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataAppID]; !ok {
-					// When the app id is set, it must match the app id in the API path
-					if metadataAppId != "" && metadataAppId != request.AppID.ID {
-						return AppStripeWebhookResponse{}, app.ValidationError{
-							Err: fmt.Errorf("appid mismatch: in request %s, in payment intent metadata %s", request.AppID.ID, metadataAppId),
-						}
-					}
+				metadataAppId, hasMetadataAppId := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataAppID]
 
-					// If the app id is not set, we ignore the event as it's not initiated by the app
-					// This can be the case when someone manually creates a payment intent
+				// If the event has not app metadata it's not initiated by an OpenMeter app and we ignore it.
+				// This can be the case when someone manually creates a payment intent.
+				if !hasMetadataAppId {
 					return AppStripeWebhookResponse{}, nil
 				}
 
-				// This is an extra consistency check that should never fail as we skip manually created payment intents above
-				if metadataNamespace, ok := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataNamespace]; !ok || metadataNamespace != request.AppID.Namespace {
+				// When the OpenMeter app id is set it cannot be empty
+				if metadataAppId == "" {
 					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("namespace mismatch: in request %s, in payment intent metadata %s", request.AppID.Namespace, metadataNamespace),
+						Err: fmt.Errorf("appid metadata cannot be empty if provided for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					}
+				}
+
+				// If someone installs the same Stripe account in multiple apps, we need to ignore the event from other apps
+				if metadataAppId != request.AppID.ID {
+					// Ignore the event from other apps
+					return AppStripeWebhookResponse{}, nil
+				}
+
+				// Validate the namespace
+				// At this point we know that the event is for this specific app so require the namespace.
+				metadataNamespace, hasMetadataNamespace := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataNamespace]
+				if !hasMetadataNamespace {
+					return AppStripeWebhookResponse{}, app.ValidationError{
+						Err: fmt.Errorf("namespace metadata is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					}
+				}
+
+				// When the namespace is set it cannot be empty
+				if metadataNamespace == "" {
+					return AppStripeWebhookResponse{}, app.ValidationError{
+						Err: fmt.Errorf("namespace metadata cannot be empty if provided for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					}
+				}
+
+				// As we already checked that this event is for this specific app we validate the namespace
+				if metadataNamespace != request.AppID.Namespace {
+					return AppStripeWebhookResponse{}, app.ValidationError{
+						Err: fmt.Errorf("namespace mismatch: in request %s, in payment intent metadata %s in event: %s", request.AppID.Namespace, metadataNamespace, request.Event.ID),
 					}
 				}
 
 				// Validate the payment intent object
 				if paymentIntent.Customer == nil {
 					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("payment intent customer is required"),
+						Err: fmt.Errorf("payment intent customer is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),
 					}
 				}
 
 				if paymentIntent.PaymentMethod == nil {
 					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("payment intent payment method is required"),
+						Err: fmt.Errorf("payment intent payment method is required for app %s in event: %s", request.AppID.ID, request.Event.ID),
 					}
 				}
 
