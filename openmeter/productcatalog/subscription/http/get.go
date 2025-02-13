@@ -52,7 +52,7 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 				return def, err
 			}
 
-			return MapSubscriptionViewToAPI(view.WithOnlyActivesInCurrentPhase())
+			return MapSubscriptionViewToAPI(view)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(
