@@ -9237,7 +9237,6 @@ components:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: |-
             Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
             For changing a subscription, the accepted values depend on the subscription configuration.
         customPlan:
           allOf:
@@ -9247,20 +9246,18 @@ components:
     CustomSubscriptionCreate:
       type: object
       required:
-        - timing
         - customPlan
       properties:
+        customPlan:
+          allOf:
+            - $ref: '#/components/schemas/CustomPlanInput'
+          description: The custom plan description which defines the Subscription.
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: |-
             Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
-            For changing a subscription, the accepted values depend on the subscription configuration.
-        customPlan:
-          allOf:
-            - $ref: '#/components/schemas/CustomPlanInput'
-          description: The custom plan description which defines the Subscription.
+            The default is immediate.
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -14182,7 +14179,6 @@ components:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: |-
             Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
             For changing a subscription, the accepted values depend on the subscription configuration.
         alignment:
           allOf:
@@ -14206,16 +14202,8 @@ components:
     PlanSubscriptionCreate:
       type: object
       required:
-        - timing
         - plan
       properties:
-        timing:
-          allOf:
-            - $ref: '#/components/schemas/SubscriptionTiming'
-          description: |-
-            Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
-            For changing a subscription, the accepted values depend on the subscription configuration.
         alignment:
           allOf:
             - $ref: '#/components/schemas/Alignment'
@@ -14234,6 +14222,12 @@ components:
         description:
           type: string
           description: Description for the Subscription.
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            The default is immediate.
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
