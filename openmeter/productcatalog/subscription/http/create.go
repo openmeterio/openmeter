@@ -75,9 +75,14 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				plan := plansubscription.PlanInput{}
 				plan.FromInput(&req)
 
-				timing, err := MapAPITimingToTiming(parsedBody.Timing)
-				if err != nil {
-					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				timing := subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				}
+				if parsedBody.Timing != nil {
+					timing, err = MapAPITimingToTiming(*parsedBody.Timing)
+					if err != nil {
+						return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+					}
 				}
 
 				ref := ref.IDOrKey{
@@ -116,9 +121,14 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					Key: parsedBody.Plan.Key,
 				})
 
-				timing, err := MapAPITimingToTiming(parsedBody.Timing)
-				if err != nil {
-					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				timing := subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				}
+				if parsedBody.Timing != nil {
+					timing, err = MapAPITimingToTiming(*parsedBody.Timing)
+					if err != nil {
+						return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+					}
 				}
 
 				ref := ref.IDOrKey{

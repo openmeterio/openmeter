@@ -361,7 +361,7 @@ func TestPlan(t *testing.T) {
 
 		create := api.SubscriptionCreate{}
 		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			Timing:      *ct,
+			Timing:      ct,
 			CustomerKey: customer2.Key,   // Let's use the key
 			CustomPlan:  customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
 		})
@@ -388,7 +388,7 @@ func TestPlan(t *testing.T) {
 
 		create := api.SubscriptionCreate{}
 		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
-			Timing:      *ct,
+			Timing:      ct,
 			CustomerId:  customer1.Id,
 			Name:        lo.ToPtr("Test Subscription"),
 			Description: lo.ToPtr("Test Subscription Description"),

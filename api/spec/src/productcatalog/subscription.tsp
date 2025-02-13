@@ -325,7 +325,13 @@ union SubscriptionChange {
  */
 @friendlyName("CustomSubscriptionCreate")
 model CustomSubscriptionCreate {
-  ...CustomSubscriptionChange;
+  ...OmitProperties<CustomSubscriptionChange, "timing">;
+
+  /**
+   * Timing configuration for the change, when the change should take effect.
+   * The default is immediate.
+   */
+  timing?: SubscriptionTiming;
 
   /**
    * The ID of the customer. Provide either the key or ID. Has presedence over the key.
@@ -345,7 +351,6 @@ model CustomSubscriptionCreate {
 model CustomSubscriptionChange {
   /**
    * Timing configuration for the change, when the change should take effect.
-   * For creating a subscription, only specifying an exact time is supported.
    * For changing a subscription, the accepted values depend on the subscription configuration.
    */
   timing: SubscriptionTiming;
@@ -371,7 +376,13 @@ model CustomPlanInput
  */
 @friendlyName("PlanSubscriptionCreate")
 model PlanSubscriptionCreate {
-  ...PlanSubscriptionChange;
+  ...OmitProperties<PlanSubscriptionChange, "timing">;
+
+  /**
+   * Timing configuration for the change, when the change should take effect.
+   * The default is immediate.
+   */
+  timing?: SubscriptionTiming;
 
   /**
    * The ID of the customer. Provide either the key or ID. Has presedence over the key.
@@ -391,7 +402,6 @@ model PlanSubscriptionCreate {
 model PlanSubscriptionChange {
   /**
    * Timing configuration for the change, when the change should take effect.
-   * For creating a subscription, only specifying an exact time is supported.
    * For changing a subscription, the accepted values depend on the subscription configuration.
    */
   timing: SubscriptionTiming;
