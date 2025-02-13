@@ -64,7 +64,8 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 		Description:   inp.Description,
 	})
-	if err != nil {
+
+	if err := mapSubscriptionErrors(err); err != nil {
 		return def, fmt.Errorf("failed to create spec from plan: %w", err)
 	}
 
@@ -109,13 +110,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	err = spec.ApplyPatches(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
 		CurrentTime: editTime,
 	})
-	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
-		return subscription.SubscriptionView{}, models.NewGenericValidationError(sErr)
-	} else if sErr, ok := lo.ErrorsAs[*subscription.AlignmentError](err); ok {
-		return subscription.SubscriptionView{}, models.NewGenericConflictError(sErr)
-	} else if sErr, ok := lo.ErrorsAs[*subscription.NoBillingPeriodError](err); ok {
-		return subscription.SubscriptionView{}, models.NewGenericValidationError(sErr)
-	} else if err != nil {
+	if err := mapSubscriptionErrors(err); err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
