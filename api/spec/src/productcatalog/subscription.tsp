@@ -309,7 +309,7 @@ model CustomSubscriptionCreate {
    * Timing configuration for the change, when the change should take effect.
    * The default is immediate.
    */
-  timing?: SubscriptionTiming;
+  timing?: SubscriptionTiming = SubscriptionTimingEnum.Immediate;
 
   /**
    * The ID of the customer. Provide either the key or ID. Has presedence over the key.
@@ -360,7 +360,7 @@ model PlanSubscriptionCreate {
    * Timing configuration for the change, when the change should take effect.
    * The default is immediate.
    */
-  timing?: SubscriptionTiming;
+  timing?: SubscriptionTiming = SubscriptionTimingEnum.Immediate;
 
   /**
    * The ID of the customer. Provide either the key or ID. Has presedence over the key.
