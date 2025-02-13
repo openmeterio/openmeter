@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/webhook"
 
@@ -94,7 +95,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				// If the event has not app metadata it's not initiated by an OpenMeter app and we ignore it.
 				// This can be the case when someone manually creates a payment intent.
 				if !hasMetadataAppId {
-					return AppStripeWebhookResponse{}, nil
+					return AppStripeWebhookResponse{
+						Message: lo.ToPtr("ignoring event as it was not initiated by the openmeter app"),
+					}, nil
 				}
 
 				// When the OpenMeter app id is set it cannot be empty
@@ -107,7 +110,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				// If someone installs the same Stripe account in multiple apps, we need to ignore the event from other apps
 				if metadataAppId != request.AppID.ID {
 					// Ignore the event from other apps
-					return AppStripeWebhookResponse{}, nil
+					return AppStripeWebhookResponse{
+						Message: lo.ToPtr("ignoring event as it was initiated by a different openmeter app"),
+					}, nil
 				}
 
 				// Validate the namespace
@@ -161,6 +166,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 					CustomerId:  &out.CustomerID.ID,
+					Message:     lo.ToPtr("customer default payment method set"),
 				}, nil
 
 			case stripeclient.WebhookEventTypeSetupIntentFailed:
