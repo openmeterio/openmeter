@@ -68,6 +68,7 @@ model StripeWebhookResponse {
   namespaceId: ULID;
   appId: ULID;
   customerId?: ULID;
+  message?: string;
 }
 
 /**
