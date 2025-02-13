@@ -5,7 +5,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type Service interface {
@@ -17,7 +16,6 @@ type CustomerService interface {
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
-	FindCustomer(ctx context.Context, namespace string, customerRef ref.IDOrKey) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
 	GetEntitlementValue(ctx context.Context, input GetEntitlementValueInput) (entitlement.EntitlementValue, error)
 }

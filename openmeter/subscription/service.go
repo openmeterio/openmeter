@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type Service interface {
@@ -32,8 +31,8 @@ type WorkflowService interface {
 
 type CreateSubscriptionWorkflowInput struct {
 	ChangeSubscriptionWorkflowInput
-	Namespace   string
-	CustomerRef ref.IDOrKey
+	Namespace  string
+	CustomerID string
 }
 
 type ChangeSubscriptionWorkflowInput struct {
