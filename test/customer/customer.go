@@ -464,7 +464,8 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
-	service := s.Env.Customer()
+	cService := s.Env.Customer()
+	sService := s.Env.Subscription()
 
 	// Create a customer
 	input := customer.CreateCustomerInput{
@@ -476,7 +477,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 			},
 		},
 	}
-	originalCustomer, err := service.CreateCustomer(ctx, input)
+	originalCustomer, err := cService.CreateCustomer(ctx, input)
 
 	require.NoError(t, err, "Creating customer must not return error")
 	require.NotNil(t, originalCustomer, "Customer must not be nil")
@@ -486,25 +487,83 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 		ID:        originalCustomer.ID,
 	}
 
+	// Let's create a subscription for the customer
+	emptyExamplePlan := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Empty Plan",
+				Currency: currency.Code("USD"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:  "empty-phase",
+						Name: "Empty Phase",
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "empty-rate-card",
+								Name: "Empty Rate Card",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)
+	require.Nil(t, err)
+
+	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
+		CustomerId: originalCustomer.ID,
+		Name:       "Test Subscription",
+		Currency:   currencyx.Code("USD"),
+		ActiveFrom: clock.Now(),
+	})
+	require.Nil(t, err)
+
+	clock.SetTime(clock.Now().Add(1 * time.Minute))
+
+	sub, err := sService.Create(ctx, s.namespace, spec)
+	require.Nil(t, err)
+
 	// Delete the customer
-	err = service.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	err = cService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+
+	require.EqualError(t, err, "cannot delete customer with active subscription", "Deleting customer with active subscription must return error")
+
+	// Now let's delete the subscription
+	_, err = sService.Cancel(ctx, sub.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	require.NoError(t, err, "Canceling subscription must not return error")
+
+	clock.SetTime(clock.Now().Add(1 * time.Minute))
+
+	// Delete the customer again
+	err = cService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
 
 	require.NoError(t, err, "Deleting customer must not return error")
 
 	// Get the customer
-	getCustomer, err := service.GetCustomer(ctx, customer.GetCustomerInput(customerId))
+	getCustomer, err := cService.GetCustomer(ctx, customer.GetCustomerInput(customerId))
 
 	require.NoError(t, err, "Getting a deleted customer must not return error")
 	require.NotNil(t, getCustomer.DeletedAt, "DeletedAt must not be nil")
 
 	// Delete the customer again should return not found error
-	err = service.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	err = cService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
 
 	// TODO: it is a wrapped error, we need to unwrap it, instead we are checking the error message for now
 	// require.ErrorAs(t, err, customer.NotFoundError{CustomerID: customerId}, "Deleting customer again must return not found error")
 	require.ErrorContains(t, err, "not found", "Deleting customer again must return not found error")
 
 	// Should allow to create a customer with the same subject keys
-	_, err = service.CreateCustomer(ctx, input)
+	_, err = cService.CreateCustomer(ctx, input)
 	require.NoError(t, err, "Creating a customer with the same subject keys must not return error")
 }
