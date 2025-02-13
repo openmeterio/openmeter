@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/invopop/gobl/currency"
@@ -363,17 +364,79 @@ func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing
 	return res, nil
 }
 
-func MapSubscriptionPhaseToAPI(phaseView subscription.SubscriptionPhaseView, endOfPhase *time.Time) (api.SubscriptionPhaseExpanded, error) {
+// We map the items as follows:
+// - for the current phase, the API will only return the active item for each key
+// - for past phases, the API will return the last item for each key
+// - for future phases, the API will return the first version
+func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView) (api.SubscriptionPhaseExpanded, error) {
+	var endOfPhase *time.Time
+	if dur, err := subView.Spec.GetPhaseCadence(phaseView.SubscriptionPhase.Key); err == nil {
+		endOfPhase = dur.ActiveTo
+	}
+
+	now := clock.Now()
+	currPhase, currExists := subView.Spec.GetCurrentPhaseAt(now)
+
 	flatItems := lo.Flatten(lo.Values(phaseView.ItemsByKey))
-	items := make([]api.SubscriptionItem, 0, len(flatItems))
+	apiItems := make([]api.SubscriptionItem, 0, len(flatItems))
 
-	for _, item := range flatItems {
-		apiItem, err := MapSubscriptionItemToAPI(item)
-		if err != nil {
-			return api.SubscriptionPhaseExpanded{}, err
+	var relativePhaseTime string
+
+	if currExists && currPhase.PhaseKey == phaseView.SubscriptionPhase.Key {
+		relativePhaseTime = "current"
+	} else if phaseView.SubscriptionPhase.ActiveFrom.After(now) {
+		relativePhaseTime = "future"
+	} else {
+		relativePhaseTime = "past"
+	}
+
+	for _, items := range phaseView.ItemsByKey {
+		switch relativePhaseTime {
+		// If this is the current phase
+		case "current":
+			// Let's find if there's a current item, if so add that to the output
+			curr := slices.IndexFunc(items, func(i subscription.SubscriptionItemView) bool {
+				return i.SubscriptionItem.IsActiveAt(now)
+			})
+
+			if curr != -1 {
+				apiItem, err := MapSubscriptionItemToAPI(items[curr])
+				if err != nil {
+					return api.SubscriptionPhaseExpanded{}, err
+				}
+
+				apiItems = append(apiItems, apiItem)
+			}
+
+			continue
+		// If this is a future phase lets add the first item
+		case "future":
+			if len(items) > 0 {
+				apiItem, err := MapSubscriptionItemToAPI(items[0])
+				if err != nil {
+					return api.SubscriptionPhaseExpanded{}, err
+				}
+
+				apiItems = append(apiItems, apiItem)
+			}
+
+			continue
+		// If this is a past phase
+		case "past":
+			// Let's find the last item
+			if len(items) > 0 {
+				apiItem, err := MapSubscriptionItemToAPI(items[len(items)-1])
+				if err != nil {
+					return api.SubscriptionPhaseExpanded{}, err
+				}
+
+				apiItems = append(apiItems, apiItem)
+			}
+
+			continue
+		default:
+			return api.SubscriptionPhaseExpanded{}, fmt.Errorf("no logical branch enetered: %s", relativePhaseTime)
 		}
-
-		items = append(items, apiItem)
 	}
 
 	return api.SubscriptionPhaseExpanded{
@@ -385,7 +448,7 @@ func MapSubscriptionPhaseToAPI(phaseView subscription.SubscriptionPhaseView, end
 		Description: phaseView.SubscriptionPhase.Description,
 		Discounts:   nil, // TODO: add discounts
 		Id:          phaseView.SubscriptionPhase.ID,
-		Items:       items,
+		Items:       apiItems,
 		Key:         phaseView.SubscriptionPhase.Key,
 		Metadata:    &phaseView.SubscriptionPhase.Metadata,
 		Name:        phaseView.SubscriptionPhase.Name,
@@ -433,12 +496,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))
 	for _, phase := range view.Phases {
-		var endOfPhase *time.Time
-		if dur, err := view.Spec.GetPhaseCadence(phase.SubscriptionPhase.Key); err == nil {
-			endOfPhase = dur.ActiveTo
-		}
-
-		phaseAPI, err := MapSubscriptionPhaseToAPI(phase, endOfPhase)
+		phaseAPI, err := MapSubscriptionPhaseToAPI(view, phase)
 		if err != nil {
 			return base, err
 		}
