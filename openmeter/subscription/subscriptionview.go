@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -66,50 +65,6 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 		}
 	}
 	return nil
-}
-
-// WithoutItemHistory returns a copy of the SubscriptionView with only the last item present for each key.
-func (v SubscriptionView) WithoutItemHistory() SubscriptionView {
-	v2 := v
-	for i, phase := range v.Phases {
-		phase2 := phase
-		phase2.ItemsByKey = make(map[string][]SubscriptionItemView)
-		for key, items := range phase.ItemsByKey {
-			if len(items) > 0 {
-				// only keep the last item
-				phase2.ItemsByKey[key] = items[len(items)-1:]
-			}
-		}
-		v2.Phases[i] = phase2
-	}
-	return v2
-}
-
-func (v SubscriptionView) WithOnlyActivesInCurrentPhase() SubscriptionView {
-	v2 := v.WithoutItemHistory()
-
-	// If there is a current phase, lets remove all inactive items from that
-	current, ok := v.Spec.GetCurrentPhaseAt(clock.Now())
-	if ok {
-		for i, phase := range v.Phases {
-			if phase.SubscriptionPhase.Key == current.PhaseKey {
-				phase2 := phase
-				phase2.ItemsByKey = make(map[string][]SubscriptionItemView)
-
-				for key, items := range phase.ItemsByKey {
-					for _, item := range items {
-						if item.SubscriptionItem.IsActiveAt(clock.Now()) {
-							phase2.ItemsByKey[key] = append(phase2.ItemsByKey[key], item)
-						}
-					}
-				}
-
-				v2.Phases[i] = phase2
-			}
-		}
-	}
-
-	return v2
 }
 
 type SubscriptionPhaseView struct {
