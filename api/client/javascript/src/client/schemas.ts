@@ -2583,8 +2583,11 @@ export interface components {
     CustomSubscriptionCreate: {
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
-      /** @description Timing configuration for the change, when the change should take effect.
-       *     The default is immediate. */
+      /**
+       * @description Timing configuration for the change, when the change should take effect.
+       *     The default is immediate.
+       * @default immediate
+       */
       timing?: components['schemas']['SubscriptionTiming']
       /**
        * @description The ID of the customer. Provide either the key or ID. Has presedence over the key.
@@ -6139,8 +6142,11 @@ export interface components {
       name?: string
       /** @description Description for the Subscription. */
       description?: string
-      /** @description Timing configuration for the change, when the change should take effect.
-       *     The default is immediate. */
+      /**
+       * @description Timing configuration for the change, when the change should take effect.
+       *     The default is immediate.
+       * @default immediate
+       */
       timing?: components['schemas']['SubscriptionTiming']
       /**
        * @description The ID of the customer. Provide either the key or ID. Has presedence over the key.

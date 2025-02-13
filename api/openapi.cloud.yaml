@@ -9258,6 +9258,7 @@ components:
           description: |-
             Timing configuration for the change, when the change should take effect.
             The default is immediate.
+          default: immediate
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -14228,6 +14229,7 @@ components:
           description: |-
             Timing configuration for the change, when the change should take effect.
             The default is immediate.
+          default: immediate
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
