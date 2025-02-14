@@ -70,17 +70,16 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: models.Meter{
-					Slug:          "meter1",
-					EventType:     "event1",
-					Aggregation:   models.MeterAggregationCount,
-					ValueProperty: "$.value",
+					Slug:        "meter1",
+					EventType:   "event1",
+					Aggregation: models.MeterAggregationCount,
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
 					},
 				},
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, count(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value'))) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, toFloat64(count(*)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{ // Aggregate data from start
