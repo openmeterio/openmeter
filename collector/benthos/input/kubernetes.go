@@ -32,6 +32,10 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 			service.NewStringField("label_selector").
 				Description("Label selector applied to each list operation.").
 				Optional(),
+			service.NewStringEnumField("unit", "ms", "s", "m", "h").
+				Description("Unit of the data for reporting. For example cpu_request_millicores_per_second").
+				Optional().
+				Default("s"),
 		)
 }
 
