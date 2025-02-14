@@ -129,7 +129,7 @@ func (d createMeterView) toSelectSQL() (string, error) {
 		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
 		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
 	}
-	if d.ValueProperty == "" && d.Aggregation == models.MeterAggregationCount {
+	if d.Aggregation == models.MeterAggregationCount {
 		selects = append(selects, fmt.Sprintf("%s(*) AS value", aggStateFn))
 	} else if d.Aggregation == models.MeterAggregationUniqueCount {
 		selects = append(selects, fmt.Sprintf("%s(JSON_VALUE(data, '%s')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
