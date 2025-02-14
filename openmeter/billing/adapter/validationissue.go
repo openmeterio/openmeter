@@ -34,12 +34,15 @@ func issueDedupeHash(issue billing.ValidationIssue) []byte {
 // existing issues that are not present in the new list. It relies on consistent hashing to deduplicate
 // issues.
 func (a *adapter) persistValidationIssues(ctx context.Context, invoice billing.InvoiceID, issues []billing.ValidationIssue) error {
-	hashedIssues := lo.Map(issues, func(issue billing.ValidationIssue, _ int) validationIssueWithDedupe {
-		return validationIssueWithDedupe{
-			issue: issue,
-			hash:  issueDedupeHash(issue),
-		}
-	})
+	// FIXME (pmarton): Why do we need to deduplicate issues?
+	hashedIssues := dedupeIssues(
+		lo.Map(issues, func(issue billing.ValidationIssue, _ int) validationIssueWithDedupe {
+			return validationIssueWithDedupe{
+				issue: issue,
+				hash:  issueDedupeHash(issue),
+			}
+		}),
+	)
 
 	err := a.db.BillingInvoiceValidationIssue.Update().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).
@@ -119,4 +122,23 @@ func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billin
 			DeletedAt: issue.DeletedAt,
 		}
 	}), nil
+}
+
+// dedupeIssues deduplicates the given list of issues by hash.
+func dedupeIssues(issues []validationIssueWithDedupe) []validationIssueWithDedupe {
+	issueSet := map[string]struct{}{}
+
+	for _, hashedIssue := range issues {
+		issueSet[string(hashedIssue.hash)] = struct{}{}
+	}
+
+	var dedupedIssues []validationIssueWithDedupe
+
+	for _, hashedIssue := range issues {
+		if _, ok := issueSet[string(hashedIssue.hash)]; ok {
+			dedupedIssues = append(dedupedIssues, hashedIssue)
+		}
+	}
+
+	return dedupedIssues
 }
