@@ -3,6 +3,7 @@ version: 2
 updates:
   - package-ecosystem: gomod
     directory: /
+    open-pull-requests-limit: 10
     schedule:
       interval: weekly
       day: monday
@@ -15,6 +16,32 @@ updates:
         patterns:
           - "k8s.io/*"
           - "sigs.sk8s.io/*"
+      aws:
+        patterns:
+          - "github.com/aws/*"
+      azure:
+        patterns:
+          - "github.com/Azure/azure-sdk-for-go"
+          - "github.com/Azure/azure-sdk-for-go/*"
+      googlecloud:
+        patterns:
+          - "cloud.google.com/go"
+          - "cloud.google.com/go/*"
+          - "github.com/GoogleCloudPlatform/*"
+          - "google.golang.org/*"
+      golang:
+        patterns:
+          - "google.golang.org/*"
+          - "golang.org/x/*"
+      otel:
+        patterns:
+          - "go.opentelemetry.io/*"
+      samber:
+        patterns:
+          - "github.com/samber/*"
+      prometheus:
+        patterns:
+          - "github.com/prometheus/*"
 
   - package-ecosystem: github-actions
     directory: /
