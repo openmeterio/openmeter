@@ -1383,6 +1383,76 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	s.expectValidationIssueForLine(approvedInvoice.Lines.OrEmpty()[0], approvedInvoice.ValidationIssues[0])
 }
 
+func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with a single FlatFee price that is zero
+	// When
+	//  we provision the lines
+	// Then
+	//  No lines should be invoiced
+
+	// Let's create the initial subscription
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Test Plan",
+				Key:      "test-plan",
+				Version:  1,
+				Currency: currency.USD,
+				Alignment: productcatalog.Alignment{
+					BillablesMustAlign: true,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(0),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(testutils.GetISODuration(s.T(), "P1D")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	// Now let's synchronize the subscription
+
+	asOf := s.mustParseTime("2024-01-03T12:00:00Z")
+	s.NoError(s.Handler.SyncronizeSubscription(ctx, subView, asOf))
+
+	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespaces: []string{s.Namespace},
+		Customers:  []string{s.Customer.ID},
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+		Expand: billing.InvoiceExpandAll,
+		Statuses: []string{
+			string(billing.InvoiceStatusGathering),
+		},
+	})
+	require.NoError(s.T(), err)
+
+	// Now let's assert that there are no lines
+	require.Len(s.T(), invoices.Items, 0)
+}
+
 func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 	ctx := s.Context
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
