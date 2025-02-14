@@ -96,7 +96,7 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
 
-	if d.Meter.ValueProperty == "" && d.Meter.Aggregation == models.MeterAggregationCount {
+	if d.Meter.Aggregation == models.MeterAggregationCount {
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
 	} else if d.Meter.Aggregation == models.MeterAggregationUniqueCount {
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(d.Meter.ValueProperty)))
