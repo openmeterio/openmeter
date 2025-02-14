@@ -208,34 +208,67 @@ func main() {
 	for _, meter := range conf.Meters {
 		err := app.StreamingConnector.CreateMeter(ctx, app.NamespaceManager.GetDefaultNamespace(), *meter)
 		if err != nil {
-			slog.Warn("failed to initialize meter", "error", err)
+			logger.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)
 		}
 	}
-	slog.Info("meters successfully created", "count", len(conf.Meters))
+	logger.Info("meters successfully created", "count", len(conf.Meters))
 
 	// Set up telemetry server
 	{
-		server := app.TelemetryServer
+		// Close telemetry server on exit. It drops all connections regardless of their states.
+		defer func() {
+			if err = app.TelemetryServer.Close(); err != nil {
+				logger.Warn("failed to close telemetry server", "error", err)
+			}
+		}()
 
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) },
-		)
+		telemetryServerRun := func() error {
+			logger.Info("starting telemetry server", slog.String("address", conf.Telemetry.Address))
+
+			return app.TelemetryServer.ListenAndServe()
+		}
+
+		telemetryServerShutdown := func(err error) {
+			logger.Debug("shutting down telemetry server gracefully...", "error", err)
+
+			if err = app.TelemetryServer.Shutdown(ctx); err != nil {
+				logger.Warn("failed to shutdown telemetry server", "error", err)
+			}
+		}
+
+		group.Add(telemetryServerRun, telemetryServerShutdown)
 	}
 
 	// Set up server
 	{
-		server := &http.Server{
+		apiServer := &http.Server{
 			Addr:    conf.Address,
 			Handler: s,
 		}
-		defer server.Close()
 
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) }, // TODO: context deadline
-		)
+		// Close API server on exit. It drops all connections regardless of their states.
+		defer func() {
+			if err = apiServer.Close(); err != nil {
+				logger.Warn("failed to close API server", "error", err)
+			}
+		}()
+
+		apiServerRun := func() error {
+			logger.Info("starting API server", slog.String("address", conf.Address))
+
+			return apiServer.ListenAndServe()
+		}
+
+		apiServerShutdown := func(err error) {
+			logger.Debug("shutting down API server gracefully...", "error", err)
+
+			if err = apiServer.Shutdown(ctx); err != nil {
+				logger.Warn("failed to shutdown API server", "error", err)
+			}
+		}
+
+		group.Add(apiServerRun, apiServerShutdown)
 	}
 
 	// Setup signal handler
