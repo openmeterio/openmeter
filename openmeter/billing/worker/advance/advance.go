@@ -123,7 +123,32 @@ func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespace []st
 }
 
 func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID) (billing.Invoice, error) {
-	return a.invoice.AdvanceInvoice(ctx, id)
+	invoice, err := a.invoice.AdvanceInvoice(ctx, id)
+	if err != nil {
+		// ErrInvoiceCannotAdvance is returned when the invoice cannot be advanced due to state machine settings
+		// thus we can safely ignore this error, we will retry
+		if errors.Is(err, billing.ErrInvoiceCannotAdvance) {
+			invoice, err := a.invoice.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+				Invoice: id,
+			})
+			if err != nil {
+				return billing.Invoice{}, fmt.Errorf("failed to get invoice by id: %w", err)
+			}
+
+			a.logger.WarnContext(ctx, "invoice cannot be advanced by billing-worker's advancer",
+				"invoice_id", invoice.ID,
+				"namespace", invoice.Namespace,
+				"updated_at", invoice.UpdatedAt.Format(time.RFC3339),
+				"status", invoice.Status,
+				"status_details", invoice.StatusDetails,
+				"draft_until", invoice.DraftUntil.Format(time.RFC3339),
+			)
+
+			return invoice, nil
+		}
+	}
+
+	return invoice, err
 }
 
 type Config struct {
