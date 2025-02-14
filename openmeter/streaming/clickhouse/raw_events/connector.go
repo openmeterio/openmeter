@@ -11,7 +11,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -381,7 +380,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 			GroupBy: map[string]*string{},
 		}
 
-		var value decimal.Decimal
+		var value *float64
 		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
 		argCount := len(args)
 
@@ -394,8 +393,14 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
+		// If there is no value for the period, we skip the row
+		// This can happen when the event doesn't have the value field.
+		if value == nil {
+			continue
+		}
+
 		// TODO: should we use decima all the way?
-		row.Value, _ = value.Float64()
+		row.Value = *value
 
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
