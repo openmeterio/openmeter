@@ -8931,7 +8931,6 @@ components:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: |-
             Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
             For changing a subscription, the accepted values depend on the subscription configuration.
         customPlan:
           allOf:
@@ -8941,26 +8940,29 @@ components:
     CustomSubscriptionCreate:
       type: object
       required:
-        - timing
         - customPlan
-        - customerId
       properties:
+        customPlan:
+          allOf:
+            - $ref: '#/components/schemas/CustomPlanInput'
+          description: The custom plan description which defines the Subscription.
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: |-
             Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
-            For changing a subscription, the accepted values depend on the subscription configuration.
-        customPlan:
-          allOf:
-            - $ref: '#/components/schemas/CustomPlanInput'
-          description: The custom plan description which defines the Subscription.
+            The default is immediate.
+          default: immediate
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the customer.
+          description: The ID of the customer. Provide either the key or ID. Has presedence over the key.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        customerKey:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The key of the customer. Provide either the key or ID.
       description: Create a custom subscription.
     Customer:
       type: object
@@ -9019,6 +9021,8 @@ components:
           readOnly: true
         key:
           type: string
+          minLength: 1
+          maxLength: 256
           description: |-
             An optional unique key of the customer.
             Useful to reference the customer in external systems.
@@ -9128,6 +9132,8 @@ components:
           title: Metadata
         key:
           type: string
+          minLength: 1
+          maxLength: 256
           description: |-
             An optional unique key of the customer.
             Useful to reference the customer in external systems.
@@ -9235,6 +9241,8 @@ components:
           title: Metadata
         key:
           type: string
+          minLength: 1
+          maxLength: 256
           description: |-
             An optional unique key of the customer.
             Useful to reference the customer in external systems.
@@ -13894,14 +13902,12 @@ components:
       required:
         - timing
         - plan
-        - name
       properties:
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
           description: |-
             Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
             For changing a subscription, the accepted values depend on the subscription configuration.
         alignment:
           allOf:
@@ -13917,7 +13923,7 @@ components:
           description: The plan reference to change to.
         name:
           type: string
-          description: The name of the Subscription.
+          description: The name of the Subscription. If not provided the plan name is used.
         description:
           type: string
           description: Description for the Subscription.
@@ -13925,18 +13931,8 @@ components:
     PlanSubscriptionCreate:
       type: object
       required:
-        - timing
         - plan
-        - name
-        - customerId
       properties:
-        timing:
-          allOf:
-            - $ref: '#/components/schemas/SubscriptionTiming'
-          description: |-
-            Timing configuration for the change, when the change should take effect.
-            For creating a subscription, only specifying an exact time is supported.
-            For changing a subscription, the accepted values depend on the subscription configuration.
         alignment:
           allOf:
             - $ref: '#/components/schemas/Alignment'
@@ -13951,15 +13947,27 @@ components:
           description: The plan reference to change to.
         name:
           type: string
-          description: The name of the Subscription.
+          description: The name of the Subscription. If not provided the plan name is used.
         description:
           type: string
           description: Description for the Subscription.
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionTiming'
+          description: |-
+            Timing configuration for the change, when the change should take effect.
+            The default is immediate.
+          default: immediate
         customerId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: The ID of the customer.
+          description: The ID of the customer. Provide either the key or ID. Has presedence over the key.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        customerKey:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The key of the customer. Provide either the key or ID.
       description: Create subscription based on plan.
     PlanVariant:
       type: object

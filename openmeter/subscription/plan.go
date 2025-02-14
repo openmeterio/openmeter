@@ -53,6 +53,8 @@ type PlanPhase interface {
 type Plan interface {
 	ToCreateSubscriptionPlanInput() CreateSubscriptionPlanInput
 
+	GetName() string
+
 	// Phases are expected to be returned in the order they activate.
 	GetPhases() []PlanPhase
 

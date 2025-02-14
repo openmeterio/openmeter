@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -26,6 +27,7 @@ type Handler interface {
 type HandlerConfig struct {
 	SubscriptionWorkflowService subscription.WorkflowService
 	SubscriptionService         subscription.Service
+	CustomerService             customer.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Logger                      *slog.Logger
