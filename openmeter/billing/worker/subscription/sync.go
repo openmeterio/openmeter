@@ -488,15 +488,19 @@ func (h *Handler) provisionPendingLines(ctx context.Context, subs subscription.S
 		return fmt.Errorf("creating new lines: %w", err)
 	}
 
-	newLines = lo.Filter(newLines, func(l *billing.LineWithCustomer, _ int) bool {
-		return l != nil
-	})
-
 	_, err = h.billingService.CreatePendingInvoiceLines(ctx, billing.CreateInvoiceLinesInput{
 		Namespace: subs.Subscription.Namespace,
-		Lines: lo.Map(newLines, func(l *billing.LineWithCustomer, _ int) billing.LineWithCustomer {
-			return *l
-		}),
+		Lines: func() []billing.LineWithCustomer {
+			lines := make([]billing.LineWithCustomer, 0, len(newLines))
+
+			for _, l := range newLines {
+				if l != nil {
+					lines = append(lines, *l)
+				}
+			}
+
+			return lines
+		}(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating pending invoice lines: %w", err)
