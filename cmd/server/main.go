@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -213,6 +214,16 @@ func main() {
 		}
 	}
 	logger.Info("meters successfully created", "count", len(conf.Meters))
+
+	// Add service termination checker
+	{
+		terminationCheckerRun, terminationCheckerShutdown, err := common.NewTerminationCheckerActor(app.TerminationChecker, app.Logger)
+		if err != nil {
+			logger.Error("failed to initialize termination checker actor", "error", err)
+		}
+
+		group.Add(terminationCheckerRun, terminationCheckerShutdown)
+	}
 
 	// Set up telemetry server
 	{
