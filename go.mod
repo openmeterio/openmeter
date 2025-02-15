@@ -82,9 +82,9 @@ require (
 	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.4
 	gotest.tools/gotestsum v1.12.0
-	k8s.io/api v0.32.1
-	k8s.io/apimachinery v0.32.1
-	k8s.io/client-go v0.32.1
+	k8s.io/api v0.32.2
+	k8s.io/apimachinery v0.32.2
+	k8s.io/client-go v0.32.2
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.20.1
 )
