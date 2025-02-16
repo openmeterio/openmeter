@@ -245,6 +245,8 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		return nil, fmt.Errorf("query events table query: %w", err)
 	}
 
+	defer rows.Close()
+
 	events := []api.IngestedEvent{}
 
 	for rows.Next() {
@@ -299,6 +301,10 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		events = append(events, ingestedEvent)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
 	return events, nil
 }
 
@@ -321,6 +327,8 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 		return nil, fmt.Errorf("query events count query: %w", err)
 	}
 
+	defer rows.Close()
+
 	results := []streaming.CountEventRow{}
 
 	for rows.Next() {
@@ -331,6 +339,10 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 		}
 
 		results = append(results, result)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
 	}
 
 	return results, nil
@@ -372,6 +384,9 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 
 		return values, fmt.Errorf("query meter view query: %w", err)
 	}
+
+	defer rows.Close()
+
 	elapsed := time.Since(start)
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
@@ -426,10 +441,10 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 
 		values = append(values, row)
 	}
-	rows.Close()
+
 	err = rows.Err()
 	if err != nil {
-		return values, fmt.Errorf("query meter rows error: %w", err)
+		return values, fmt.Errorf("rows error: %w", err)
 	}
 
 	return values, nil
@@ -456,6 +471,8 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("list meter view subjects: %w", err)
 	}
 
+	defer rows.Close()
+
 	subjects := []string{}
 	for rows.Next() {
 		var subject string
@@ -464,6 +481,10 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		}
 
 		subjects = append(subjects, subject)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
 	}
 
 	return subjects, nil

@@ -321,6 +321,9 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 
 		return values, fmt.Errorf("query meter view query: %w", err)
 	}
+
+	defer rows.Close()
+
 	elapsed := time.Since(start)
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
@@ -364,10 +367,10 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 
 		values = append(values, value)
 	}
-	rows.Close()
+
 	err = rows.Err()
 	if err != nil {
-		return values, fmt.Errorf("query meter rows error: %w", err)
+		return values, fmt.Errorf("rows error: %w", err)
 	}
 
 	return values, nil
@@ -393,6 +396,8 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("list meter view subjects: %w", err)
 	}
 
+	defer rows.Close()
+
 	subjects := []string{}
 	for rows.Next() {
 		var subject string
@@ -401,6 +406,10 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 		}
 
 		subjects = append(subjects, subject)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
 	}
 
 	return subjects, nil
