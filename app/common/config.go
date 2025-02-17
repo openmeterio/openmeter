@@ -35,6 +35,8 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Notification"),
 	// ProductCatalog
 	wire.FieldsOf(new(config.Configuration), "ProductCatalog"),
+	// ProgressManager
+	wire.FieldsOf(new(config.Configuration), "ProgressManager"),
 	// Svix
 	wire.FieldsOf(new(config.Configuration), "Svix"),
 	// Telemetry

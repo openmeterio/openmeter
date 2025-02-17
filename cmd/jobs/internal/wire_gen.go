@@ -105,7 +105,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	v2 := conf.Meters
 	inMemoryRepository := common.NewInMemoryRepository(v2)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	progressManagerConfiguration := conf.ProgressManager
+	progressmanagerService, err := common.NewProgressManager(logger, progressManagerConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger, progressmanagerService)
 	if err != nil {
 		cleanup5()
 		cleanup4()

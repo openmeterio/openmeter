@@ -32,45 +32,9 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	from := defaultx.WithDefault(params.From, minimumFrom)
 	limit := defaultx.WithDefault(params.Limit, 100)
 
-	// Validate params
-	if from.Before(minimumFrom) {
-		err := fmt.Errorf("from date is too old: %s", from)
-
-		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
-
-		return
-	}
-
-	if params.To != nil && params.To.Before(from) {
-		err := fmt.Errorf("to date is before from date: %s < %s", params.To, params.From)
-
-		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
-
-		return
-	}
-
-	if params.IngestedAtFrom != nil && params.IngestedAtFrom.Before(minimumFrom) {
-		err := fmt.Errorf("ingestedAtFrom date is too old: %s", params.IngestedAtFrom)
-
-		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
-
-		return
-	}
-
-	if params.IngestedAtFrom != nil && params.IngestedAtTo != nil && params.IngestedAtTo.Before(*params.IngestedAtFrom) {
-		err := fmt.Errorf("ingestedAtTo date is before ingestedAtFrom date: %s < %s", params.IngestedAtTo, params.IngestedAtFrom)
-
-		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
-
-		return
-	}
-
 	queryParams := streaming.ListEventsParams{
-		From:           &from,
+		ClientID:       params.ClientId,
+		From:           from,
 		To:             params.To,
 		IngestedAtFrom: params.IngestedAtFrom,
 		IngestedAtTo:   params.IngestedAtTo,
@@ -78,6 +42,16 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 		Subject:        params.Subject,
 		HasError:       params.HasError,
 		Limit:          limit,
+	}
+
+	// Validate params
+	if err := queryParams.Validate(minimumFrom); err != nil {
+		err := fmt.Errorf("validate query params: %w", err)
+
+		a.config.ErrorHandler.HandleContext(ctx, errorsx.NewWarnError(err))
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
+
+		return
 	}
 
 	// Query events

@@ -121,7 +121,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
+	progressManagerConfiguration := conf.ProgressManager
+	service, err := common.NewProgressManager(logger, progressManagerConfiguration)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger, service)
 	if err != nil {
 		cleanup4()
 		cleanup3()
