@@ -426,6 +426,12 @@ func TestPlan(t *testing.T) {
 
 		assert.Equal(t, subscriptionId, *subscription.Id)
 		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
+
+		// Should have the current period info
+		assert.NotNil(t, subscription.Alignment)
+		assert.NotNil(t, subscription.Alignment.CurrentAlignedBillingPeriod)
+		assert.NotEmpty(t, subscription.Alignment.CurrentAlignedBillingPeriod.From)
+		assert.NotEmpty(t, subscription.Alignment.CurrentAlignedBillingPeriod.To)
 	})
 
 	t.Run("Should edit the subscription", func(t *testing.T) {

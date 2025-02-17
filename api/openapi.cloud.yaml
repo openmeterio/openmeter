@@ -15234,6 +15234,19 @@ components:
           title: Currency
           default: USD
       description: Subscription is an exact subscription instance.
+    SubscriptionAlignment:
+      type: object
+      properties:
+        billablesMustAlign:
+          type: boolean
+          description: |-
+            Whether all Billable items and RateCards must align.
+            Alignment means the Price's BillingCadence must align for both duration and anchor time.
+        currentAlignedBillingPeriod:
+          allOf:
+            - $ref: '#/components/schemas/Period'
+          description: The current billing period. Only has value if the subscription is aligned and active.
+      description: Alignment details enriched with the current billing period.
     SubscriptionChange:
       oneOf:
         - $ref: '#/components/schemas/PlanSubscriptionChange'
@@ -15364,10 +15377,6 @@ components:
           format: date-time
           description: The cadence end of the resource.
           example: '2023-01-01T01:01:01.001Z'
-        alignment:
-          allOf:
-            - $ref: '#/components/schemas/Alignment'
-          description: Alignment configuration for the plan.
         status:
           allOf:
             - $ref: '#/components/schemas/SubscriptionStatus'
@@ -15390,10 +15399,15 @@ components:
             Will be revised once we add multi currency support.
           title: Currency
           default: USD
+        alignment:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionAlignment'
+          description: Alignment details enriched with the current billing period.
         phases:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionPhaseExpanded'
+          description: The phases of the subscription.
       description: Expanded subscription
     SubscriptionItem:
       type: object
