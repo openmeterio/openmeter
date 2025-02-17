@@ -4,6 +4,9 @@ go 1.23.4
 
 toolchain go1.23.5
 
+// ee: https://github.com/oklog/run/pull/35
+replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
+
 require (
 	entgo.io/ent v0.14.1
 	github.com/AppsFlyer/go-sundheit v0.6.0

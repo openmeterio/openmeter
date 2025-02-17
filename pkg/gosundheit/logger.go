@@ -18,7 +18,7 @@ func NewLogger(logger *slog.Logger) health.CheckListener {
 
 func (c checkListener) OnCheckRegistered(name string, result health.Result) {
 	if result.Error != nil {
-		c.logger.Error("initial health check failed", slog.String("check", name), slog.Any("error", result.Error))
+		c.logger.Warn("initial health check failed", slog.String("check", name), slog.Any("error", result.Error))
 
 		return
 	}
@@ -32,7 +32,7 @@ func (c checkListener) OnCheckStarted(name string) {
 
 func (c checkListener) OnCheckCompleted(name string, result health.Result) {
 	if result.Error != nil {
-		c.logger.Error("health check failed", slog.String("check", name), slog.Any("error", result.Error))
+		c.logger.Warn("health check failed", slog.String("check", name), slog.Any("error", result.Error))
 
 		return
 	}

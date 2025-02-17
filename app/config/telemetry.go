@@ -504,4 +504,6 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.log.exporters.otlp.enabled", false)
 	v.SetDefault("telemetry.log.exporters.otlp.address", "")
 	v.SetDefault("telemetry.log.exporters.stdout.enabled", false)
+
+	v.SetDefault("telemetry.readiness.interval", 3*time.Second)
 }

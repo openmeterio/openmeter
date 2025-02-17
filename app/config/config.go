@@ -20,6 +20,8 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
+	Termination TerminationConfig
+
 	Aggregation    AggregationConfiguration
 	Entitlements   EntitlementsConfiguration
 	Dedupe         DedupeConfiguration
@@ -120,6 +122,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "apps"))
 	}
 
+	if err := c.Termination.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "termination"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -158,4 +164,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)
+	ConfigureTermination(v, "termination")
 }

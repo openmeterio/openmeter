@@ -4,6 +4,18 @@ telemetry:
   log:
     level: debug
 
+termination:
+  # checkInterval defines the time period used for updating the readiness check based on the termination status.
+  checkInterval: 1s
+  # gracefulShutdownTimeout defines the maximum time for the process to gracefully stop on receiving stop signal.
+  gracefulShutdownTimeout: 30s
+  # propagationTimeout defines how long to block the termination process in order
+  # to allow the termination event to be propagated to other systems. e.g. reverse proxy.
+  # Its value should be set higher than the failure threshold for readiness probe.
+  # In Kubernetes it should be: readiness.periodSeconds * (readiness.failureThreshold + 1) + CheckInterval
+  # propagationTimeout must always less than GracefulShutdownTimeout.
+  propagationTimeout: 3s
+
 #ingest:
 #  kafka:
 #    # To enable stats reporting set this value to >=5s.

@@ -60,6 +60,7 @@ type Application struct {
 	Subscription            common.SubscriptionServiceWithWorkflow
 	StreamingConnector      streaming.Connector
 	TelemetryServer         common.TelemetryServer
+	TerminationChecker      *common.TerminationChecker
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
 }
 
@@ -90,6 +91,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Secret,
 		common.ServerProvisionTopics,
 		common.Telemetry,
+		common.NewTerminationChecker,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
 	)

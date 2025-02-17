@@ -364,6 +364,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
 	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	terminationConfig := conf.Termination
+	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
@@ -391,6 +404,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Subscription:            subscriptionServiceWithWorkflow,
 		StreamingConnector:      connector,
 		TelemetryServer:         v7,
+		TerminationChecker:      terminationChecker,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 	}
 	return application, func() {
@@ -435,6 +449,7 @@ type Application struct {
 	Subscription            common.SubscriptionServiceWithWorkflow
 	StreamingConnector      streaming.Connector
 	TelemetryServer         common.TelemetryServer
+	TerminationChecker      *common.TerminationChecker
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
 }
 

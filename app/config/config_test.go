@@ -337,6 +337,11 @@ func TestComplete(t *testing.T) {
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
 		},
+		Termination: TerminationConfig{
+			CheckInterval:           7 * time.Second,
+			GracefulShutdownTimeout: 43 * time.Second,
+			PropagationTimeout:      18 * time.Second,
+		},
 	}
 
 	assert.Equal(t, expected, actual)
