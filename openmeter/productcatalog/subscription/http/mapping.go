@@ -462,16 +462,20 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 	}
 
 	if view.Subscription.BillablesMustAlign {
-		if currPhase, ok := view.Spec.GetCurrentPhaseAt(clock.Now()); ok {
+		if currPhase, ok := view.Spec.GetCurrentPhaseAt(clock.Now()); ok && currPhase.HasBillables() {
 			period, err := view.Spec.GetAlignedBillingPeriodAt(currPhase.PhaseKey, clock.Now())
 			if err != nil {
-				// We should be able to determine this
-				return api.SubscriptionExpanded{}, err
+				// GetAlignedBillingPeriodAt cannot be calculated for all aligned subscriptions.
+				if _, ok := lo.ErrorsAs[subscription.NoBillingPeriodError](err); !ok {
+					return api.SubscriptionExpanded{}, err
+				}
 			}
 
-			alg.CurrentAlignedBillingPeriod = &api.Period{
-				From: period.From,
-				To:   period.To,
+			if err == nil {
+				alg.CurrentAlignedBillingPeriod = &api.Period{
+					From: period.From,
+					To:   period.To,
+				}
 			}
 		}
 	}

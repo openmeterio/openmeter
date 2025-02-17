@@ -111,6 +111,8 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
 		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
 	} else if sErr, ok := lo.ErrorsAs[*subscription.AlignmentError](err); ok {
+		return subscription.SubscriptionView{}, &models.GenericConflictError{Inner: sErr}
+	} else if sErr, ok := lo.ErrorsAs[*subscription.NoBillingPeriodError](err); ok {
 		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
 	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)

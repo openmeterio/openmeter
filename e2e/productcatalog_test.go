@@ -351,6 +351,7 @@ func TestPlan(t *testing.T) {
 	startTime := time.Now()
 
 	var subscriptionId string
+	var customSubscriptionId string
 
 	t.Run("Should create a custom subscription", func(t *testing.T) {
 		require.NotNil(t, customer1)
@@ -377,6 +378,8 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, subscription.Id)
 		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
 		assert.Nil(t, subscription.Plan)
+
+		customSubscriptionId = *subscription.Id
 	})
 
 	t.Run("Should create a subscription based on the plan", func(t *testing.T) {
@@ -574,7 +577,8 @@ func TestPlan(t *testing.T) {
 	})
 
 	t.Run("Should change the subscription's plan", func(t *testing.T) {
-		require.NotNil(t, migratedSubscriptionId)
+		// We'll use the custom sub for this
+		require.NotNil(t, customSubscriptionId)
 
 		req := api.SubscriptionChange{}
 
@@ -588,7 +592,7 @@ func TestPlan(t *testing.T) {
 		require.Nil(t, err)
 
 		// For simplicity, let's change the plan to a custom one
-		apiRes, err := client.ChangeSubscriptionWithResponse(ctx, migratedSubscriptionId, req)
+		apiRes, err := client.ChangeSubscriptionWithResponse(ctx, customSubscriptionId, req)
 		require.Nil(t, err)
 
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
@@ -596,8 +600,8 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, apiRes.JSON200.Current.Id)
 		require.NotNil(t, apiRes.JSON200.Next.Id)
 
-		require.Equal(t, migratedSubscriptionId, *apiRes.JSON200.Current.Id)
-		require.NotEqual(t, migratedSubscriptionId, *apiRes.JSON200.Next.Id)
+		require.Equal(t, customSubscriptionId, *apiRes.JSON200.Current.Id)
+		require.NotEqual(t, customSubscriptionId, *apiRes.JSON200.Next.Id)
 
 		require.Equal(t, 2, len(planCreate.Phases))
 	})

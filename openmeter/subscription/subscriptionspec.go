@@ -179,7 +179,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 	}
 
 	if !phase.HasBillables() {
-		return def, fmt.Errorf("phase %s has no billables", phaseKey)
+		return def, NoBillingPeriodError{Inner: fmt.Errorf("phase %s has no billables so it doesn't have a billing period", phaseKey)}
 	}
 
 	billables := phase.GetBillableItemsByKey()
@@ -190,7 +190,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 	})
 
 	if len(recurringFlatBillables) == 0 {
-		return def, fmt.Errorf("phase %s has no recurring billables", phaseKey)
+		return def, NoBillingPeriodError{Inner: fmt.Errorf("phase %s has no recurring billables so it doesn't have a billing period", phaseKey)}
 	}
 
 	dur, err := phase.GetBillingCadence()
@@ -878,6 +878,7 @@ func (e *SpecValidationError) Error() string {
 	return e.Msg
 }
 
+// AlignmentError is an error that occurs when the spec is not aligned but we expect it to be.
 type AlignmentError struct {
 	Inner error
 }
@@ -887,5 +888,18 @@ func (e AlignmentError) Error() string {
 }
 
 func (e AlignmentError) Unwrap() error {
+	return e.Inner
+}
+
+// NoBillingPeriodError is an error that occurs when a phase has no billing period.
+type NoBillingPeriodError struct {
+	Inner error
+}
+
+func (e NoBillingPeriodError) Error() string {
+	return fmt.Sprintf("no billing period: %s", e.Inner)
+}
+
+func (e NoBillingPeriodError) Unwrap() error {
 	return e.Inner
 }
