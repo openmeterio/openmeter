@@ -57,6 +57,7 @@ func TestMigrate(t *testing.T) {
 				WorkflowService:     deps.wfSvc,
 				Logger:              logger,
 				PlanService:         deps.subDeps.PlanService,
+				CustomerService:     deps.subDeps.CustomerService,
 			})
 
 			// Let's set up the feature & customer
@@ -134,6 +135,7 @@ func TestMigrate(t *testing.T) {
 				WorkflowService:     deps.wfSvc,
 				Logger:              logger,
 				PlanService:         deps.subDeps.PlanService,
+				CustomerService:     deps.subDeps.CustomerService,
 			})
 
 			// Let's set up the feature & customer

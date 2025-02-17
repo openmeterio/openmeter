@@ -87,6 +87,7 @@ func NewSubscriptionServices(
 		WorkflowService:     subscriptionWorkflowService,
 		SubscriptionService: subscriptionService,
 		PlanService:         planService,
+		CustomerService:     customerService,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
 	})
 

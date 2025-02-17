@@ -3,6 +3,7 @@ package service
 import (
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -14,6 +15,7 @@ type Config struct {
 	SubscriptionService subscription.Service
 	PlanService         plan.Service
 	Logger              *slog.Logger
+	CustomerService     customer.Service
 }
 
 type service struct {

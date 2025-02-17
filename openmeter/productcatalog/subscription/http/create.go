@@ -9,22 +9,18 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type (
-	CreateSubscriptionRequest = struct {
-		plansubscription.CreateSubscriptionRequest
-		CustomerRef ref.IDOrKey
-	}
+	CreateSubscriptionRequest = plansubscription.CreateSubscriptionRequest
+
 	CreateSubscriptionResponse = api.Subscription
 	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
 )
@@ -93,20 +89,18 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 
 				return CreateSubscriptionRequest{
-					CreateSubscriptionRequest: plansubscription.CreateSubscriptionRequest{
-						WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-							ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-								Timing:      timing,
-								Name:        req.Name,        // We map the plan name to the subscription name
-								Description: req.Description, // We map the plan description to the subscription description
-								AnnotatedModel: models.AnnotatedModel{
-									Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
-								},
+					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+							Timing:      timing,
+							Name:        req.Name,        // We map the plan name to the subscription name
+							Description: req.Description, // We map the plan description to the subscription description
+							AnnotatedModel: models.AnnotatedModel{
+								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
-							Namespace: ns,
 						},
-						PlanInput: plan,
+						Namespace: ns,
 					},
+					PlanInput:   plan,
 					CustomerRef: ref,
 				}, nil
 			} else {
@@ -139,20 +133,18 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 
 				return CreateSubscriptionRequest{
-					CreateSubscriptionRequest: plansubscription.CreateSubscriptionRequest{
-						WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
-							ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
-								Timing:      timing,
-								Name:        lo.FromPtrOr(parsedBody.Name, ""),
-								Description: parsedBody.Description,
-								AnnotatedModel: models.AnnotatedModel{
-									Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
-								},
+					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
+						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+							Timing:      timing,
+							Name:        lo.FromPtrOr(parsedBody.Name, ""),
+							Description: parsedBody.Description,
+							AnnotatedModel: models.AnnotatedModel{
+								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
-							Namespace: ns,
 						},
-						PlanInput: plan,
+						Namespace: ns,
 					},
+					PlanInput:   plan,
 					CustomerRef: ref,
 				}, nil
 			}
@@ -166,30 +158,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				}
 			}
 
-			customerID := request.CustomerRef.ID
-			if customerID == "" {
-				cust, err := h.CustomerService.ListCustomers(ctx, customer.ListCustomersInput{
-					Key:            lo.ToPtr(request.CustomerRef.Key),
-					Namespace:      request.WorkflowInput.Namespace,
-					Page:           pagination.NewPage(1, 1),
-					IncludeDeleted: false,
-				})
-				if err != nil {
-					return CreateSubscriptionResponse{}, err
-				}
-
-				if cust.TotalCount != 1 {
-					return CreateSubscriptionResponse{}, &models.GenericConflictError{
-						Inner: fmt.Errorf("%d customers found with key %s", cust.TotalCount, request.CustomerRef.Key),
-					}
-				}
-
-				customerID = cust.Items[0].ID
-			}
-
-			request.CreateSubscriptionRequest.WorkflowInput.CustomerID = customerID
-
-			res, err := h.PlanSubscriptionService.Create(ctx, request.CreateSubscriptionRequest)
+			res, err := h.PlanSubscriptionService.Create(ctx, request)
 			if err != nil {
 				return CreateSubscriptionResponse{}, err
 			}
