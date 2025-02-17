@@ -18,6 +18,12 @@ func init() {
 			return nil, err
 		}
 
+		if value == "" {
+			return func() (any, error) {
+				return 0, nil
+			}, nil
+		}
+
 		// Parse the resource quantity.
 		quantity, err := resource.ParseQuantity(value)
 		if err != nil {
