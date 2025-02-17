@@ -50,13 +50,27 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		return def, err
 	}
 
+	currView, err := s.SubscriptionService.GetView(ctx, request.ID)
+	if err != nil {
+		return def, err
+	}
+
+	// If we can, we want to migrate immediately.
+	timing := subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}
+
+	// If we cannot, we want to migrate at the end of the current billing period
+	if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &currView); err != nil {
+		timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
+	}
+
 	// Then let's create the subscription from the plan
-	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, subscription.ChangeSubscriptionWorkflowInput{
-		Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+	workflowInput := subscription.ChangeSubscriptionWorkflowInput{
+		Timing:         timing,
 		AnnotatedModel: sub.AnnotatedModel,
 		Name:           sub.Name,
 		Description:    sub.Description,
-	}, pp)
+	}
+	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, workflowInput, pp)
 	if err != nil {
 		return def, err
 	}

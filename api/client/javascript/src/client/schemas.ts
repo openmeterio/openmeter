@@ -1663,6 +1663,8 @@ export interface paths {
     /**
      * Migrate subscription
      * @description Migrates the subscripiton to the provided version of the current plan.
+     *     If possible, the migration will be done immediately.
+     *     If not, the migration will be scheduled to the end of the current billing period.
      */
     post: operations['migrateSubscription']
     delete?: never
