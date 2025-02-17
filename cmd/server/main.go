@@ -99,12 +99,6 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
-	var group run.Group
-
-	// TODO: move kafkaingest.KafkaProducerGroup to pkg/kafka
-	// TODO: move to .... somewhere else?
-	group.Add(kafkaingest.KafkaProducerGroup(ctx, app.KafkaProducer, logger, app.KafkaMetrics))
-
 	// Initialize Namespace
 	err = initNamespace(app.NamespaceManager, logger)
 	if err != nil {
@@ -215,15 +209,7 @@ func main() {
 	}
 	logger.Info("meters successfully created", "count", len(conf.Meters))
 
-	// Add service termination checker
-	{
-		terminationCheckerRun, terminationCheckerShutdown, err := common.NewTerminationCheckerActor(app.TerminationChecker, app.Logger)
-		if err != nil {
-			logger.Error("failed to initialize termination checker actor", "error", err)
-		}
-
-		group.Add(terminationCheckerRun, terminationCheckerShutdown)
-	}
+	var group run.Group
 
 	// Set up telemetry server
 	{
@@ -250,6 +236,9 @@ func main() {
 
 		group.Add(telemetryServerRun, telemetryServerShutdown)
 	}
+
+	// Set up kafka ingest
+	group.Add(kafkaingest.KafkaProducerGroup(ctx, app.KafkaProducer, logger, app.KafkaMetrics))
 
 	// Set up server
 	{
@@ -282,10 +271,20 @@ func main() {
 		group.Add(apiServerRun, apiServerShutdown)
 	}
 
+	// Add service termination checker
+	{
+		terminationCheckerRun, terminationCheckerShutdown, err := common.NewTerminationCheckerActor(app.TerminationChecker, app.Logger)
+		if err != nil {
+			logger.Error("failed to initialize termination checker actor", "error", err)
+		}
+
+		group.Add(terminationCheckerRun, terminationCheckerShutdown)
+	}
+
 	// Setup signal handler
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
-	err = group.Run()
+	err = group.Run(run.WithReverseShutdownOrder())
 	if e := &(run.SignalError{}); errors.As(err, &e) {
 		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
