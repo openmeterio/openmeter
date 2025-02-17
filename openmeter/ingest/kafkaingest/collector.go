@@ -176,6 +176,8 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 			}
 		},
 		func(error) {
+			logger.DebugContext(ctx, "kafka ingest producer shutting down...")
+
 			cancel()
 		}
 }
