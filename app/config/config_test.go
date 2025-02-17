@@ -79,6 +79,7 @@ func TestComplete(t *testing.T) {
 				Format: "json",
 				Level:  slog.LevelInfo,
 			},
+			CollectRuntimeMetrics: true,
 		},
 		Namespace: NamespaceConfiguration{
 			Default:           "default",

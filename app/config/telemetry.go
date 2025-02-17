@@ -67,6 +67,8 @@ type TelemetryConfig struct {
 	Metrics MetricsTelemetryConfig
 
 	Log LogTelemetryConfig
+
+	CollectRuntimeMetrics bool
 }
 
 // Validate validates the configuration.

@@ -18,6 +18,7 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	realotelslog "go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -46,6 +47,8 @@ var TelemetryWithoutServer = wire.NewSet(
 	NewTracerProvider,
 	wire.Bind(new(trace.TracerProvider), new(*sdktrace.TracerProvider)),
 	NewTracer,
+
+	NewRuntimeMetricsCollector,
 )
 
 var Telemetry = wire.NewSet(
@@ -66,6 +69,8 @@ var Telemetry = wire.NewSet(
 
 	NewTelemetryHandler,
 	NewTelemetryServer,
+
+	NewRuntimeMetricsCollector,
 )
 
 // Set the default logger to JSON for messages emitted before the "real" logger is initialized.
@@ -265,6 +270,43 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 			)
 		})
 	}
+}
+
+type RuntimeMetricsCollector struct {
+	meterProvider metric.MeterProvider
+	logger        *slog.Logger
+	conf          config.TelemetryConfig
+}
+
+func (c RuntimeMetricsCollector) Start() error {
+	if !c.conf.CollectRuntimeMetrics {
+		c.logger.Debug("runtime metrics collection is disabled")
+		return nil
+	}
+
+	err := runtime.Start(
+		runtime.WithMinimumReadMemStatsInterval(time.Second),
+		runtime.WithMeterProvider(c.meterProvider),
+	)
+	if err != nil {
+		c.logger.Error("failed to start runtime metrics", slog.String("error", err.Error()))
+		return err
+	}
+
+	c.logger.Debug("Started collecting runtime metrics")
+	return nil
+}
+
+func NewRuntimeMetricsCollector(
+	meterProvider metric.MeterProvider,
+	conf config.TelemetryConfig,
+	logger *slog.Logger,
+) (RuntimeMetricsCollector, error) {
+	return RuntimeMetricsCollector{
+		meterProvider: meterProvider,
+		logger:        logger,
+		conf:          conf,
+	}, nil
 }
 
 // Compile-time check LevelHandler implements slog.Handler.

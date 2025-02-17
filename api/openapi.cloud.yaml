@@ -15042,6 +15042,8 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        message:
+          type: string
       description: Stripe webhook response.
     Subject:
       type: object
