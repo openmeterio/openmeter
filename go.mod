@@ -32,7 +32,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.33.1
+	github.com/huandu/go-sqlbuilder v1.34.0
 	github.com/invopop/gobl v0.209.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/lmittmann/tint v1.0.7
@@ -68,6 +68,7 @@ require (
 	github.com/svix/svix-webhooks v1.56.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.59.0
 	go.opentelemetry.io/otel v1.34.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.10.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.34.0
@@ -143,7 +144,6 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.33.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.59.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
