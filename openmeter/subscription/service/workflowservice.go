@@ -35,11 +35,8 @@ var _ subscription.WorkflowService = &workflowService{}
 func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	var def subscription.SubscriptionView
 
-	// Let's validate the customer exists
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: inp.Namespace,
-		ID:        inp.CustomerID,
-	})
+	// Let's find the customer
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{ID: inp.CustomerID, Namespace: inp.Namespace})
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch customer: %w", err)
 	}
@@ -63,7 +60,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		Currency:       plan.Currency(),
 		ActiveFrom:     activeFrom,
 		AnnotatedModel: inp.AnnotatedModel,
-		Name:           inp.Name,
+		Name:           lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 		Description:    inp.Description,
 	})
 	if err != nil {

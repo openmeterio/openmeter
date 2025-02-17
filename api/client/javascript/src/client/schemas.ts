@@ -2574,7 +2574,6 @@ export interface components {
     /** @description Change a custom subscription. */
     CustomSubscriptionChange: {
       /** @description Timing configuration for the change, when the change should take effect.
-       *     For creating a subscription, only specifying an exact time is supported.
        *     For changing a subscription, the accepted values depend on the subscription configuration. */
       timing: components['schemas']['SubscriptionTiming']
       /** @description The custom plan description which defines the Subscription. */
@@ -2582,17 +2581,21 @@ export interface components {
     }
     /** @description Create a custom subscription. */
     CustomSubscriptionCreate: {
-      /** @description Timing configuration for the change, when the change should take effect.
-       *     For creating a subscription, only specifying an exact time is supported.
-       *     For changing a subscription, the accepted values depend on the subscription configuration. */
-      timing: components['schemas']['SubscriptionTiming']
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
       /**
-       * @description The ID of the customer.
+       * @description Timing configuration for the change, when the change should take effect.
+       *     The default is immediate.
+       * @default immediate
+       */
+      timing?: components['schemas']['SubscriptionTiming']
+      /**
+       * @description The ID of the customer. Provide either the key or ID. Has presedence over the key.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      customerId: string
+      customerId?: string
+      /** @description The key of the customer. Provide either the key or ID. */
+      customerKey?: string
     }
     /**
      * @description A customer object.
@@ -6114,7 +6117,6 @@ export interface components {
     /** @description Change subscription based on plan. */
     PlanSubscriptionChange: {
       /** @description Timing configuration for the change, when the change should take effect.
-       *     For creating a subscription, only specifying an exact time is supported.
        *     For changing a subscription, the accepted values depend on the subscription configuration. */
       timing: components['schemas']['SubscriptionTiming']
       /** @description What alignment settings the subscription should have. */
@@ -6123,32 +6125,36 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /** @description The name of the Subscription. */
-      name: string
+      /** @description The name of the Subscription. If not provided the plan name is used. */
+      name?: string
       /** @description Description for the Subscription. */
       description?: string
     }
     /** @description Create subscription based on plan. */
     PlanSubscriptionCreate: {
-      /** @description Timing configuration for the change, when the change should take effect.
-       *     For creating a subscription, only specifying an exact time is supported.
-       *     For changing a subscription, the accepted values depend on the subscription configuration. */
-      timing: components['schemas']['SubscriptionTiming']
       /** @description What alignment settings the subscription should have. */
       alignment?: components['schemas']['Alignment']
       /** @description Arbitrary metadata associated with the subscription. */
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /** @description The name of the Subscription. */
-      name: string
+      /** @description The name of the Subscription. If not provided the plan name is used. */
+      name?: string
       /** @description Description for the Subscription. */
       description?: string
       /**
-       * @description The ID of the customer.
+       * @description Timing configuration for the change, when the change should take effect.
+       *     The default is immediate.
+       * @default immediate
+       */
+      timing?: components['schemas']['SubscriptionTiming']
+      /**
+       * @description The ID of the customer. Provide either the key or ID. Has presedence over the key.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      customerId: string
+      customerId?: string
+      /** @description The key of the customer. Provide either the key or ID. */
+      customerKey?: string
     }
     /** @description A consumer portal token.
      *

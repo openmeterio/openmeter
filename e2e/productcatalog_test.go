@@ -52,6 +52,7 @@ func TestPlan(t *testing.T) {
 
 	customerAPIRes, err = client.CreateCustomerWithResponse(ctx, api.CreateCustomerJSONRequestBody{
 		Name:         "Test Customer 2",
+		Key:          lo.ToPtr("test_customer_2"),
 		Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 		Description:  lo.ToPtr("Test Customer Description"),
 		PrimaryEmail: lo.ToPtr("customer2@mail.com"),
@@ -360,9 +361,9 @@ func TestPlan(t *testing.T) {
 
 		create := api.SubscriptionCreate{}
 		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			Timing:     *ct,
-			CustomerId: *customer2.Id,
-			CustomPlan: customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
+			Timing:      ct,
+			CustomerKey: customer2.Key,   // Let's use the key
+			CustomPlan:  customPlanInput, // For simplicity we can reuse the same plan input, we know its valid
 		})
 		require.Nil(t, err)
 
@@ -387,9 +388,9 @@ func TestPlan(t *testing.T) {
 
 		create := api.SubscriptionCreate{}
 		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
-			Timing:      *ct,
-			CustomerId:  *customer1.Id,
-			Name:        "Test Subscription",
+			Timing:      ct,
+			CustomerId:  customer1.Id,
+			Name:        lo.ToPtr("Test Subscription"),
 			Description: lo.ToPtr("Test Subscription Description"),
 			Plan: api.PlanReferenceInput{
 				Key:     PlanKey,

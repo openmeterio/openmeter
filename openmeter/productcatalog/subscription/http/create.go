@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -13,10 +15,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type (
-	CreateSubscriptionRequest  = plansubscription.CreateSubscriptionRequest
+	CreateSubscriptionRequest = plansubscription.CreateSubscriptionRequest
+
 	CreateSubscriptionResponse = api.Subscription
 	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionRequest, CreateSubscriptionResponse]
 )
@@ -67,9 +71,21 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				plan := plansubscription.PlanInput{}
 				plan.FromInput(&req)
 
-				timing, err := MapAPITimingToTiming(parsedBody.Timing)
-				if err != nil {
-					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				timing := subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				}
+				if parsedBody.Timing != nil {
+					timing, err = MapAPITimingToTiming(*parsedBody.Timing)
+					if err != nil {
+						return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+					}
+				}
+
+				ref := ref.IDOrKey{
+					ID: lo.FromPtrOr(parsedBody.CustomerId, ""),
+				}
+				if ref.ID == "" {
+					ref.Key = lo.FromPtrOr(parsedBody.CustomerKey, "")
 				}
 
 				return CreateSubscriptionRequest{
@@ -82,10 +98,10 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
 						},
-						Namespace:  ns,
-						CustomerID: parsedBody.CustomerId,
+						Namespace: ns,
 					},
-					PlanInput: plan,
+					PlanInput:   plan,
+					CustomerRef: ref,
 				}, nil
 			} else {
 				// Plan subscription creation
@@ -99,29 +115,49 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					Key: parsedBody.Plan.Key,
 				})
 
-				timing, err := MapAPITimingToTiming(parsedBody.Timing)
-				if err != nil {
-					return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+				timing := subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				}
+				if parsedBody.Timing != nil {
+					timing, err = MapAPITimingToTiming(*parsedBody.Timing)
+					if err != nil {
+						return CreateSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
+					}
+				}
+
+				ref := ref.IDOrKey{
+					ID: lo.FromPtrOr(parsedBody.CustomerId, ""),
+				}
+				if ref.ID == "" {
+					ref.Key = lo.FromPtrOr(parsedBody.CustomerKey, "")
 				}
 
 				return CreateSubscriptionRequest{
 					WorkflowInput: subscription.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
 							Timing:      timing,
-							Name:        parsedBody.Name,
+							Name:        lo.FromPtrOr(parsedBody.Name, ""),
 							Description: parsedBody.Description,
 							AnnotatedModel: models.AnnotatedModel{
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
 						},
-						Namespace:  ns,
-						CustomerID: parsedBody.CustomerId,
+						Namespace: ns,
 					},
-					PlanInput: plan,
+					PlanInput:   plan,
+					CustomerRef: ref,
 				}, nil
 			}
 		},
 		func(ctx context.Context, request CreateSubscriptionRequest) (CreateSubscriptionResponse, error) {
+			// Let's resolve the customer
+			// We resolve it in the handler as we don't want to introduce the IdOrKey abstraction to the package internal code
+			if err := request.CustomerRef.Validate(); err != nil {
+				return CreateSubscriptionResponse{}, &models.GenericUserError{
+					Inner: fmt.Errorf("invalid customer ref: %w", err),
+				}
+			}
+
 			res, err := h.PlanSubscriptionService.Create(ctx, request)
 			if err != nil {
 				return CreateSubscriptionResponse{}, err

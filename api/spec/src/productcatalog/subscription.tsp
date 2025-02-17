@@ -325,12 +325,23 @@ union SubscriptionChange {
  */
 @friendlyName("CustomSubscriptionCreate")
 model CustomSubscriptionCreate {
-  ...CustomSubscriptionChange;
+  ...OmitProperties<CustomSubscriptionChange, "timing">;
 
   /**
-   * The ID of the customer.
+   * Timing configuration for the change, when the change should take effect.
+   * The default is immediate.
    */
-  customerId: ULID;
+  timing?: SubscriptionTiming = SubscriptionTimingEnum.Immediate;
+
+  /**
+   * The ID of the customer. Provide either the key or ID. Has presedence over the key.
+   */
+  customerId?: ULID;
+
+  /**
+   * The key of the customer. Provide either the key or ID.
+   */
+  customerKey?: ExternalKey;
 }
 
 /**
@@ -340,7 +351,6 @@ model CustomSubscriptionCreate {
 model CustomSubscriptionChange {
   /**
    * Timing configuration for the change, when the change should take effect.
-   * For creating a subscription, only specifying an exact time is supported.
    * For changing a subscription, the accepted values depend on the subscription configuration.
    */
   timing: SubscriptionTiming;
@@ -366,12 +376,23 @@ model CustomPlanInput
  */
 @friendlyName("PlanSubscriptionCreate")
 model PlanSubscriptionCreate {
-  ...PlanSubscriptionChange;
+  ...OmitProperties<PlanSubscriptionChange, "timing">;
 
   /**
-   * The ID of the customer.
+   * Timing configuration for the change, when the change should take effect.
+   * The default is immediate.
    */
-  customerId: ULID;
+  timing?: SubscriptionTiming = SubscriptionTimingEnum.Immediate;
+
+  /**
+   * The ID of the customer. Provide either the key or ID. Has presedence over the key.
+   */
+  customerId?: ULID;
+
+  /**
+   * The key of the customer. Provide either the key or ID.
+   */
+  customerKey?: ExternalKey;
 }
 
 /**
@@ -381,7 +402,6 @@ model PlanSubscriptionCreate {
 model PlanSubscriptionChange {
   /**
    * Timing configuration for the change, when the change should take effect.
-   * For creating a subscription, only specifying an exact time is supported.
    * For changing a subscription, the accepted values depend on the subscription configuration.
    */
   timing: SubscriptionTiming;
@@ -402,9 +422,9 @@ model PlanSubscriptionChange {
   plan: PlanReferenceInput;
 
   /**
-   * The name of the Subscription.
+   * The name of the Subscription. If not provided the plan name is used.
    */
-  name: string;
+  name?: string;
 
   /**
    * Description for the Subscription.

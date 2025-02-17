@@ -36,6 +36,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		SubscriptionService: services.Service,
 		PlanService:         deps.PlanService,
 		Logger:              testutils.NewLogger(t),
+		CustomerService:     deps.CustomerService,
 	})
 
 	return testDeps{
