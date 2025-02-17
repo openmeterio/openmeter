@@ -24,8 +24,6 @@ telemetry:
     format: json
     level: info
 
-  collectRuntimeMetrics: true
-
 namespace:
   default: default
 

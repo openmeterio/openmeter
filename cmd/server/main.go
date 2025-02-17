@@ -98,11 +98,6 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
-	// Start runtime metrics collector
-	if err := app.RuntimeMetricsCollector.Start(); err != nil {
-		logger.Error("failed to start runtime metrics collector, continuing startup", "error", err)
-	}
-
 	var group run.Group
 
 	// TODO: move kafkaingest.KafkaProducerGroup to pkg/kafka

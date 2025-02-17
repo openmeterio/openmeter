@@ -212,7 +212,12 @@ func NewHealthChecker(logger *slog.Logger) health.Health {
 
 type TelemetryHandler http.Handler
 
-func NewTelemetryHandler(metricsConf config.MetricsTelemetryConfig, healthChecker health.Health) TelemetryHandler {
+func NewTelemetryHandler(
+	metricsConf config.MetricsTelemetryConfig,
+	healthChecker health.Health,
+	runtimeMetricsCollector RuntimeMetricsCollector,
+	logger *slog.Logger,
+) TelemetryHandler {
 	router := chi.NewRouter()
 	router.Mount("/debug", middleware.Profiler())
 
@@ -230,6 +235,13 @@ func NewTelemetryHandler(metricsConf config.MetricsTelemetryConfig, healthChecke
 			_, _ = w.Write([]byte("ok"))
 		})
 		router.Handle("/healthz/ready", handler)
+	}
+
+	// Start runtime metrics collector
+	{
+		if err := runtimeMetricsCollector.Start(); err != nil {
+			logger.Error("failed to start runtime metrics collector, continuing startup", slog.String("error", err.Error()))
+		}
 	}
 
 	return router
@@ -279,11 +291,6 @@ type RuntimeMetricsCollector struct {
 }
 
 func (c RuntimeMetricsCollector) Start() error {
-	if !c.conf.CollectRuntimeMetrics {
-		c.logger.Debug("runtime metrics collection is disabled")
-		return nil
-	}
-
 	err := runtime.Start(
 		runtime.WithMinimumReadMemStatsInterval(time.Second),
 		runtime.WithMeterProvider(c.meterProvider),
