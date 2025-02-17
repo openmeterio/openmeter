@@ -6756,6 +6756,7 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId?: string
+      message?: string
     }
     /**
      * @description A subject is a unique identifier for a user or entity.
