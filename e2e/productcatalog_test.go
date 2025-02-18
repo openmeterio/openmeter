@@ -475,6 +475,22 @@ func TestPlan(t *testing.T) {
 		require.Nil(t, err)
 
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+		// Let's fetch the sub and see the change in the timeline
+		viewRes, err := client.GetSubscriptionWithResponse(ctx, subscriptionId, nil)
+		require.Nil(t, err)
+
+		assert.Equal(t, 200, viewRes.StatusCode(), "received the following body: %s", viewRes.Body)
+
+		require.NotNil(t, viewRes.JSON200)
+
+		// Let's get the phase
+		require.GreaterOrEqual(t, len(viewRes.JSON200.Phases), 3)
+		phase := viewRes.JSON200.Phases[2]
+
+		require.NotNil(t, phase.ItemTimelines)
+		require.NotNil(t, phase.ItemTimelines["test_plan_phase_3_rate_card_1"])
+		require.Equal(t, 1, len(phase.ItemTimelines["test_plan_phase_3_rate_card_1"]))
 	})
 
 	t.Run("Should schedule a cancellation for the subscription", func(t *testing.T) {
