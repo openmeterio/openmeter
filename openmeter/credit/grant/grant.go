@@ -102,10 +102,10 @@ func (g Grant) RecurrenceBalance(currentBalance float64) float64 {
 }
 
 // Calculates the new balance after a rollover from the current balance
-func (g Grant) RolloverBalance(currentBalance float64) float64 {
+func (g Grant) RolloverBalance(endingBalance float64) float64 {
 	// At a rollover the maximum balance that can remain is the ResetMaxRollover,
 	// while the minimum that has to be granted is ResetMinRollover.
-	return math.Min(g.ResetMaxRollover, math.Max(g.ResetMinRollover, currentBalance))
+	return math.Min(g.ResetMaxRollover, math.Max(g.ResetMinRollover, endingBalance))
 }
 
 func (g Grant) GetNamespacedID() models.NamespacedID {
