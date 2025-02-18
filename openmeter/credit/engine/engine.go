@@ -10,12 +10,29 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+type RunParams struct {
+	// List of all grants that are active at the relevant period at some point.
+	Grants []grant.Grant
+	// Starting balances of all grants at the start of the period.
+	StartingBalances balance.Map
+	// Overage at the start of the period.
+	Overage float64
+	// Period to burn down the grants for.
+	Period timeutil.Period
+}
+
+type RunResult struct {
+	EndingBalances balance.Map
+	EndingOverage  float64
+	History        []GrantBurnDownHistorySegment
+}
+
 type Engine interface {
 	// Burns down all grants in the defined period by the usage amounts.
 	//
 	// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 	// If a grant is inactive at the end of the period, it will still be in the output.
-	Run(ctx context.Context, grants []grant.Grant, startingBalances balance.Map, startingOverage float64, period timeutil.Period) (endingBalances balance.Map, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
+	Run(ctx context.Context, params RunParams) (RunResult, error)
 }
 
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)

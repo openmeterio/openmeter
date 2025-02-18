@@ -57,57 +57,63 @@ func TestEngine(t *testing.T) {
 	}{
 		{
 			name: "Should return the same result on subsequent runs",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
 
-				b1, o1, s1, err1 := engine.Run(
+				res1, err1 := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1},
-					balance.Map{
-						g1.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+					engine.RunParams{
+						Grants: []grant.Grant{g1},
+						StartingBalances: balance.Map{
+							g1.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+						},
 					})
 				assert.NoError(t, err1)
 
-				b2, o2, s2, err2 := engine.Run(
+				res2, err2 := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1},
-					balance.Map{
-						g1.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+					engine.RunParams{
+						Grants: []grant.Grant{g1},
+						StartingBalances: balance.Map{
+							g1.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+						},
 					})
 				assert.NoError(t, err2)
 
-				assert.Equal(t, b1, b2)
-				assert.Equal(t, o1, o2)
-				assert.Equal(t, s1, s2)
+				assert.Equal(t, res1, res2)
 			},
 		},
 		{
 			name: "Reports overage if there are no grants",
 			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				res, overage, segments, err := eng.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{},
-					balance.Map{}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 30),
+					engine.RunParams{
+						Grants:           []grant.Grant{},
+						StartingBalances: balance.Map{},
+						Overage:          0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 30),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 50.0, overage)
-				assert.Equal(t, balance.Map{}, res)
+				assert.Equal(t, 50.0, res.EndingOverage)
+				assert.Equal(t, balance.Map{}, res.EndingBalances)
 				assert.Equal(t, []engine.GrantBurnDownHistorySegment{
 					{
 						BalanceAtStart: balance.Map{},
@@ -120,21 +126,25 @@ func TestEngine(t *testing.T) {
 						TotalUsage:         50.0,
 						Overage:            50.0,
 					},
-				}, segments)
+				}, res.History)
 			},
 		},
 		{
 			name: "Errors if balance was provided for nonexistent grants",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				_, _, _, err := engine.Run(
+				_, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{},
-					balance.Map{
-						grant1.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 30),
+					engine.RunParams{
+						Grants: []grant.Grant{},
+						StartingBalances: balance.Map{
+							grant1.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 30),
+						},
 					})
 
 				assert.Error(t, err)
@@ -142,20 +152,24 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Errors on missing balance for one of the grants",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
 				g2 := grant2
 				g2 = makeGrant(g2)
-				_, _, _, err := engine.Run(
+				_, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					balance.Map{
-						grant1.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 30),
+					engine.RunParams{
+						Grants: []grant.Grant{g1, g2},
+						StartingBalances: balance.Map{
+							grant1.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 30),
+						},
 					})
 
 				assert.Error(t, err)
@@ -163,70 +177,82 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Able to burn down single active grant",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{grant1},
-					balance.Map{
-						grant1.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 30),
+					engine.RunParams{
+						Grants: []grant.Grant{grant1},
+						StartingBalances: balance.Map{
+							grant1.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 30),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 50.0, res[grant1.ID])
+				assert.Equal(t, 50.0, res.EndingBalances[grant1.ID])
 			},
 		},
 		{
 			name: "Return 0 balance for grant with future effectiveAt",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1.AddDate(0, 0, 10)
 				g = makeGrant(g)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 5),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 5),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
 			},
 		},
 		{
 			name: "Return 0 balance for deleted grant",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1
 				g.DeletedAt = &t1
 				g = makeGrant(g)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 5),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 5),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
 			},
 		},
 		{
 			name: "Burns down grant until it's deleted",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				deletionTime := t1.Add(time.Hour)
 				use(50.0, deletionTime.Add(-time.Minute))
 				use(50.0, deletionTime.Add(time.Minute))
@@ -235,28 +261,32 @@ func TestEngine(t *testing.T) {
 				g.DeletedAt = &deletionTime
 				g = makeGrant(g)
 
-				res, overage, history, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 5),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 5),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
-				assert.Equal(t, 50.0, overage) // usage after grant deletion
-				assert.Len(t, history, 2)
-				assert.Equal(t, 50.0, history[0].TotalUsage)
-				assert.Equal(t, 50.0, history[1].TotalUsage)
-				assert.Equal(t, 0.0, history[1].BalanceAtStart[g.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 50.0, res.EndingOverage) // usage after grant deletion
+				assert.Len(t, res.History, 2)
+				assert.Equal(t, 50.0, res.History[0].TotalUsage)
+				assert.Equal(t, 50.0, res.History[1].TotalUsage)
+				assert.Equal(t, 0.0, res.History[1].BalanceAtStart[g.ID])
 			},
 		},
 		{
 			name: "Burns down grant until it's voided",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				voidingTime := t1.Add(time.Hour)
 				use(50.0, voidingTime.Add(-time.Minute))
 				use(50.0, voidingTime.Add(time.Minute))
@@ -265,28 +295,32 @@ func TestEngine(t *testing.T) {
 				g.VoidedAt = &voidingTime
 				g = makeGrant(g)
 
-				res, overage, history, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 5),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 5),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
-				assert.Equal(t, 50.0, overage) // usage after grant deletion
-				assert.Len(t, history, 2)
-				assert.Equal(t, 50.0, history[0].TotalUsage)
-				assert.Equal(t, 50.0, history[1].TotalUsage)
-				assert.Equal(t, 0.0, history[1].BalanceAtStart[g.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 50.0, res.EndingOverage) // usage after grant deletion
+				assert.Len(t, res.History, 2)
+				assert.Equal(t, 50.0, res.History[0].TotalUsage)
+				assert.Equal(t, 50.0, res.History[1].TotalUsage)
+				assert.Equal(t, 0.0, res.History[1].BalanceAtStart[g.ID])
 			},
 		},
 		{
 			name: "Return 0 balance for grant with past expiresAt",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1.AddDate(-1, 0, 0)
@@ -294,23 +328,27 @@ func TestEngine(t *testing.T) {
 				g.Expiration.Count = 1
 				g = makeGrant(g)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 100.0,
-					}, 0, timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 5),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 5),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
 			},
 		},
 		{
 			name: "Does not burn down grant that expires at start of period",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				g := grant1
 				g.EffectiveAt = t1.AddDate(-1, 0, 0)
@@ -318,25 +356,27 @@ func TestEngine(t *testing.T) {
 				g.Expiration.Count = 1
 				g = makeGrant(g)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: g.ExpiresAt,
-						To:   g.ExpiresAt.AddDate(0, 0, 5),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: g.ExpiresAt,
+							To:   g.ExpiresAt.AddDate(0, 0, 5),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
 			},
 		},
 		{
 			name: "Burns down grant that becomes active during phase",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(25.0, t1.Add(time.Hour))
 				// burn down with usage prior to grant effectiveAt
@@ -347,34 +387,36 @@ func TestEngine(t *testing.T) {
 				g.Expiration.Count = 30
 				g = makeGrant(g)
 
-				res, _, segments, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g},
-					balance.Map{
-						g.ID: 0.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1.AddDate(0, 0, -1),
-						To:   t1.AddDate(0, 0, 1),
+					engine.RunParams{
+						Grants: []grant.Grant{g},
+						StartingBalances: balance.Map{
+							g.ID: 0.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1.AddDate(0, 0, -1),
+							To:   t1.AddDate(0, 0, 1),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 50.0, res[grant1.ID])
+				assert.Equal(t, 50.0, res.EndingBalances[grant1.ID])
 
 				// sets correct starting balance for grant in segment
-				assert.Len(t, segments, 2)
-				assert.Equal(t, 0.0, segments[0].BalanceAtStart[g.ID])
+				assert.Len(t, res.History, 2)
+				assert.Equal(t, 0.0, res.History[0].BalanceAtStart[g.ID])
 
 				// starting balance doesnt have overage deducted
-				assert.Equal(t, g.Amount, segments[1].BalanceAtStart[g.ID])
+				assert.Equal(t, g.Amount, res.History[1].BalanceAtStart[g.ID])
 				// but it is stored separately
-				assert.Equal(t, 25.0, segments[1].OverageAtStart)
+				assert.Equal(t, 25.0, res.History[1].OverageAtStart)
 			},
 		},
 		{
 			name: "Burns down multiple grants",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(200, t1.Add(time.Hour))
 				g1 := grant1
@@ -385,27 +427,29 @@ func TestEngine(t *testing.T) {
 				g2.EffectiveAt = t1
 				g2 = makeGrant(g2)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					balance.Map{
-						g1.ID: 100.0,
-						g2.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1),
+					engine.RunParams{
+						Grants: []grant.Grant{g1, g2},
+						StartingBalances: balance.Map{
+							g1.ID: 100.0,
+							g2.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
-				assert.Equal(t, 0.0, res[grant2.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant2.ID])
 			},
 		},
 		{
 			name: "Burns down grant with higher priority first",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -418,27 +462,29 @@ func TestEngine(t *testing.T) {
 				g2.Priority = 2
 				g2 = makeGrant(g2)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g2, g1},
-					balance.Map{
-						g1.ID: 100.0,
-						g2.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1),
+					engine.RunParams{
+						Grants: []grant.Grant{g2, g1},
+						StartingBalances: balance.Map{
+							g1.ID: 100.0,
+							g2.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
-				assert.Equal(t, 80.0, res[grant2.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 80.0, res.EndingBalances[grant2.ID])
 			},
 		},
 		{
 			name: "Burns down grant that expires first",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -451,27 +497,29 @@ func TestEngine(t *testing.T) {
 				g2.Expiration.Count = 100
 				g2 = makeGrant(g2)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g2, g1},
-					balance.Map{
-						g1.ID: 100.0,
-						g2.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1),
+					engine.RunParams{
+						Grants: []grant.Grant{g2, g1},
+						StartingBalances: balance.Map{
+							g1.ID: 100.0,
+							g2.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1),
+						},
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res[grant1.ID])
-				assert.Equal(t, 80.0, res[grant2.ID])
+				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 80.0, res.EndingBalances[grant2.ID])
 			},
 		},
 		{
 			name: "Burns down grant that expires first among many",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// make lots of grants
 				nGrant := func(i int) grant.Grant {
 					return makeGrant(grant.Grant{
@@ -510,29 +558,31 @@ func TestEngine(t *testing.T) {
 				// burn down with usage after grant effectiveAt
 				use(99, t1.Add(time.Hour))
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					grants,
-					bm,
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1),
+					engine.RunParams{
+						Grants:           grants,
+						StartingBalances: bm,
+						Overage:          0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1),
+						},
 					})
 
 				assert.NoError(t, err)
 				for _, g := range grants {
 					if g.ID == gToBurn.ID {
-						assert.Equal(t, 1.0, res[g.ID])
+						assert.Equal(t, 1.0, res.EndingBalances[g.ID])
 					} else {
-						assert.Equal(t, 100.0, res[g.ID])
+						assert.Equal(t, 100.0, res.EndingBalances[g.ID])
 					}
 				}
 			},
 		},
 		{
 			name: "Burns down recurring grant",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -543,26 +593,28 @@ func TestEngine(t *testing.T) {
 				}
 				g1 = makeGrant(g1)
 
-				res, _, _, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1},
-					balance.Map{
-						g1.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+					engine.RunParams{
+						Grants: []grant.Grant{g1},
+						StartingBalances: balance.Map{
+							g1.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+						},
 					})
 
 				assert.NoError(t, err)
 				// grant recurrs daily, so it should be 80.0
-				assert.Equal(t, 80.0, res[grant1.ID])
+				assert.Equal(t, 80.0, res.EndingBalances[grant1.ID])
 			},
 		},
 		{
 			name: "Burns down recurring grant that takes effect later before it has recurred",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				tg1 := start.AddDate(0, 0, -1)
@@ -588,28 +640,30 @@ func TestEngine(t *testing.T) {
 				}
 				g2 = makeGrant(g2)
 
-				res1, _, _, err := engine.Run(
+				res1, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					balance.Map{
-						g1.ID: 80.0, // due to use before start
-						g2.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 10), // right after recurrence
+					engine.RunParams{
+						Grants: []grant.Grant{g1, g2},
+						StartingBalances: balance.Map{
+							g1.ID: 80.0, // due to use before start
+							g2.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 10), // right after recurrence
+						},
 					})
 
 				assert.NoError(t, err)
 
-				assert.Equal(t, 40.0, res1[grant1.ID])
-				assert.Equal(t, 100.0, res1[grant2.ID]) // recurred just now (t1 + day10)
+				assert.Equal(t, 40.0, res1.EndingBalances[grant1.ID])
+				assert.Equal(t, 100.0, res1.EndingBalances[grant2.ID]) // recurred just now (t1 + day10)
 			},
 		},
 		{
 			name: "Burns down recurring grant that takes effect later after it has recurred",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				tg1 := start.AddDate(0, 0, -1)
@@ -636,29 +690,31 @@ func TestEngine(t *testing.T) {
 				}
 				g2 = makeGrant(g2)
 
-				res2, _, _, err := engine.Run(
+				res2, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					balance.Map{
-						g1.ID: 80.0, // due to use before start
-						g2.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: t1,
-						To:   t1.AddDate(0, 0, 10).Add(-time.Hour), // right before recurrence
+					engine.RunParams{
+						Grants: []grant.Grant{g1, g2},
+						StartingBalances: balance.Map{
+							g1.ID: 80.0, // due to use before start
+							g2.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 10).Add(-time.Hour), // right before recurrence
+						},
 					})
 
 				assert.NoError(t, err)
 
-				assert.Equal(t, 40.0, res2[grant1.ID])
+				assert.Equal(t, 40.0, res2.EndingBalances[grant1.ID])
 				// 20 usage as above
-				assert.Equal(t, 80.0, res2[grant2.ID])
+				assert.Equal(t, 80.0, res2.EndingBalances[grant2.ID])
 			},
 		},
 		{
 			name: "Return GrantBurnDownHistory",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				end := start.AddDate(0, 1, 0)
@@ -691,28 +747,30 @@ func TestEngine(t *testing.T) {
 				}
 				g2 = makeGrant(g2)
 
-				_, _, segments, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					balance.Map{
-						g1.ID: 80.0, // due to use before start
-						g2.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: start,
-						To:   end,
+					engine.RunParams{
+						Grants: []grant.Grant{g1, g2},
+						StartingBalances: balance.Map{
+							g1.ID: 80.0, // due to use before start
+							g2.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: start,
+							To:   end,
+						},
 					})
 
 				assert.NoError(t, err)
 
-				assert.NotEmpty(t, segments)
-				assert.Equal(t, 4, len(segments))
+				assert.NotEmpty(t, res.History)
+				assert.Equal(t, 4, len(res.History))
 			},
 		},
 		{
 			name: "Should calculate sequential periods across timezones and convert to UTC",
-			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				t1 := start.Add(time.Hour)
@@ -756,34 +814,36 @@ func TestEngine(t *testing.T) {
 				g3.Expiration.Duration = grant.ExpirationPeriodDurationWeek
 				g3 = makeGrant(g3)
 
-				_, _, segments, err := engine.Run(
+				res, err := eng.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2, g3},
-					balance.Map{
-						g1.ID: 80.0, // due to use before start
-						g2.ID: 100.0,
-						g3.ID: 100.0,
-					},
-					0,
-					timeutil.Period{
-						From: start,
-						To:   end,
+					engine.RunParams{
+						Grants: []grant.Grant{g1, g2, g3},
+						StartingBalances: balance.Map{
+							g1.ID: 80.0, // due to use before start
+							g2.ID: 100.0,
+							g3.ID: 100.0,
+						},
+						Overage: 0,
+						Period: timeutil.Period{
+							From: start,
+							To:   end,
+						},
 					})
 
 				assert.NoError(t, err)
 
-				assert.NotEmpty(t, segments)
-				assert.Equal(t, 5, len(segments))
-				assert.Equal(t, start.In(time.UTC), segments[0].Period.From)
-				assert.Equal(t, t1.In(time.UTC), segments[0].Period.To)
-				assert.Equal(t, t1.In(time.UTC), segments[1].Period.From)
-				assert.Equal(t, t2.In(time.UTC), segments[1].Period.To)
-				assert.Equal(t, t2.In(time.UTC), segments[2].Period.From)
-				assert.Equal(t, t3.In(time.UTC), segments[2].Period.To)
-				assert.Equal(t, t3.In(time.UTC), segments[3].Period.From)
-				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), segments[3].Period.To)
-				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), segments[4].Period.From)
-				assert.Equal(t, end.In(time.UTC), segments[4].Period.To)
+				assert.NotEmpty(t, res.History)
+				assert.Equal(t, 5, len(res.History))
+				assert.Equal(t, start.In(time.UTC), res.History[0].Period.From)
+				assert.Equal(t, t1.In(time.UTC), res.History[0].Period.To)
+				assert.Equal(t, t1.In(time.UTC), res.History[1].Period.From)
+				assert.Equal(t, t2.In(time.UTC), res.History[1].Period.To)
+				assert.Equal(t, t2.In(time.UTC), res.History[2].Period.From)
+				assert.Equal(t, t3.In(time.UTC), res.History[2].Period.To)
+				assert.Equal(t, t3.In(time.UTC), res.History[3].Period.From)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History[3].Period.To)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History[4].Period.From)
+				assert.Equal(t, end.In(time.UTC), res.History[4].Period.To)
 			},
 		},
 	}

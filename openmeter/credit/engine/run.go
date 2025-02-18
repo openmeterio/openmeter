@@ -15,25 +15,27 @@ import (
 //
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
-func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances balance.Map, overage float64, period timeutil.Period) (balance.Map, float64, []GrantBurnDownHistorySegment, error) {
-	if !startingBalances.ExactlyForGrants(grants) {
-		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", grants, startingBalances)
+func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
+	if !params.StartingBalances.ExactlyForGrants(params.Grants) {
+		return RunResult{}, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", params.Grants, params.StartingBalances)
 	}
 
-	e.grants = grants
-	phases, err := e.getPhases(period)
+	e.grants = make([]grant.Grant, len(params.Grants))
+	copy(e.grants, params.Grants)
+
+	phases, err := e.getPhases(params.Period)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("failed to get burn phases: %w", err)
+		return RunResult{}, fmt.Errorf("failed to get burn phases: %w", err)
 	}
 
 	err = PrioritizeGrants(e.grants)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("failed to prioritize grants: %w", err)
+		return RunResult{}, fmt.Errorf("failed to prioritize grants: %w", err)
 	}
 
 	// Only respect balances that we know the grants of, otherwise we cannot guarantee
 	// that the output balance is correct for said grants.
-	balancesAtPhaseStart := startingBalances.Copy()
+	balancesAtPhaseStart := params.StartingBalances.Copy()
 
 	rePrioritize := false
 	recurredGrants := []string{}
@@ -45,12 +47,14 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 
 	segments := make([]GrantBurnDownHistorySegment, 0, len(phases))
 
+	overage := params.Overage
+
 	for _, phase := range phases {
 		// reprioritize grants if needed
 		if rePrioritize {
 			err = PrioritizeGrants(e.grants)
 			if err != nil {
-				return nil, 0, nil, fmt.Errorf("failed to prioritize grants: %w", err)
+				return RunResult{}, fmt.Errorf("failed to prioritize grants: %w", err)
 			}
 			rePrioritize = false
 		}
@@ -60,7 +64,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 			for _, grantID := range recurredGrants {
 				grant, ok := grantMap[grantID]
 				if !ok {
-					return nil, 0, nil, fmt.Errorf("failed to get grant with id %s", grantID)
+					return RunResult{}, fmt.Errorf("failed to get grant with id %s", grantID)
 				}
 				balancesAtPhaseStart.Set(grant.ID, grant.RecurrenceBalance(balancesAtPhaseStart[grantID]))
 			}
@@ -97,11 +101,11 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 		// query feature usage in the burning phase
 		usage, err := e.QueryUsage(ctx, phase.from, phase.to)
 		if err != nil {
-			return nil, 0, nil, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
+			return RunResult{}, fmt.Errorf("failed to get feature usage for period %s - %s: %w", params.Period.From, params.Period.To, err)
 		}
 		balancesAtPhaseStart, segment.GrantUsages, overage, err = BurnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
 		if err != nil {
-			return nil, 0, nil, fmt.Errorf("failed to burn down grants in period %s - %s: %w", period.From, period.To, err)
+			return RunResult{}, fmt.Errorf("failed to burn down grants in period %s - %s: %w", params.Period.From, params.Period.To, err)
 		}
 
 		segment.TotalUsage = usage
@@ -117,7 +121,11 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 			recurredGrants = phase.grantsRecurredAtEnd
 		}
 	}
-	return balancesAtPhaseStart, overage, segments, nil
+	return RunResult{
+		EndingBalances: balancesAtPhaseStart,
+		EndingOverage:  overage,
+		History:        segments,
+	}, nil
 }
 
 // Burns down the grants of the priority sorted list. Manages overage.

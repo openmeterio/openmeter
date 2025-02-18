@@ -79,18 +79,20 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		return nil, err
 	}
 
-	result, overage, segments, err := eng.Run(
+	result, err := eng.Run(
 		ctx,
-		grants,
-		bal.Balances,
-		bal.Overage,
-		queriedPeriod,
+		engine.RunParams{
+			Grants:           grants,
+			StartingBalances: bal.Balances,
+			Overage:          bal.Overage,
+			Period:           queriedPeriod,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, at, err)
 	}
 
-	history, err := engine.NewGrantBurnDownHistory(segments)
+	history, err := engine.NewGrantBurnDownHistory(result.History)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
@@ -124,8 +126,8 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	// return balance
 	return &balance.Snapshot{
 		At:       at,
-		Balances: result,
-		Overage:  overage,
+		Balances: result.EndingBalances,
+		Overage:  result.EndingOverage,
 	}, nil
 }
 
@@ -189,20 +191,22 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			return engine.GrantBurnDownHistory{}, err
 		}
 
-		balances, overage, _, err := eng.Run(
+		result, err := eng.Run(
 			ctx,
-			grants,
-			snap.Balances,
-			snap.Overage,
-			periodFromSnapshotToPeriodStart,
+			engine.RunParams{
+				Grants:           grants,
+				StartingBalances: snap.Balances,
+				Overage:          snap.Overage,
+				Period:           periodFromSnapshotToPeriodStart,
+			},
 		)
 		if err != nil {
 			return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, period.From, err)
 		}
 
 		fakeSnapshotForPeriodStart := balance.Snapshot{
-			Balances: balances,
-			Overage:  overage,
+			Balances: result.EndingBalances,
+			Overage:  result.EndingOverage,
 			At:       period.From,
 		}
 
@@ -223,12 +227,14 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			return engine.GrantBurnDownHistory{}, err
 		}
 
-		_, _, segments, err := eng.Run(
+		res, err := eng.Run(
 			ctx,
-			grants,
-			fakeSnapshotForPeriodStart.Balances,
-			fakeSnapshotForPeriodStart.Overage,
-			period,
+			engine.RunParams{
+				Grants:           grants,
+				StartingBalances: fakeSnapshotForPeriodStart.Balances,
+				Overage:          fakeSnapshotForPeriodStart.Overage,
+				Period:           period,
+			},
 		)
 		if err != nil {
 			return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, period.To, err)
@@ -236,10 +242,10 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 
 		// set reset as reason for last segment if current period end is a reset
 		if slices.Contains(startTimes, period.To) {
-			segments[len(segments)-1].TerminationReasons.UsageReset = true
+			res.History[len(res.History)-1].TerminationReasons.UsageReset = true
 		}
 
-		historySegments = append(historySegments, segments...)
+		historySegments = append(historySegments, res.History...)
 	}
 
 	// return history
@@ -305,12 +311,14 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, err
 	}
 
-	endingBalance, endingOverage, _, err := eng.Run(
+	res, err := eng.Run(
 		ctx,
-		grants,
-		bal.Balances,
-		bal.Overage,
-		queriedPeriod,
+		engine.RunParams{
+			Grants:           grants,
+			StartingBalances: bal.Balances,
+			Overage:          bal.Overage,
+			Period:           queriedPeriod,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
@@ -324,7 +332,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	// We have to roll over the grants and save the starting balance for the next period at the reset time.
 	// Engine treates the output balance as a period end (exclusive), but we need to treat it as a period start (inclusive).
 	startingBalance := balance.Map{}
-	for grantID, grantBalance := range endingBalance {
+	for grantID, grantBalance := range res.EndingBalances {
 		grant, ok := grantMap[grantID]
 		// inconsistency check, shouldn't happen
 		if !ok {
@@ -341,7 +349,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 
 	startingOverage := 0.0
 	if params.PreserveOverage {
-		startingOverage = endingOverage
+		startingOverage = res.EndingOverage
 	}
 
 	gCopy := make([]grant.Grant, len(grants))
