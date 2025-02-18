@@ -50,8 +50,8 @@ func TestQueryEventsTable(t *testing.T) {
 				Namespace:       "my_namespace",
 				Limit:           100,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT 100",
-			wantArgs: []interface{}{"my_namespace"},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", 100},
 		},
 		{
 			query: queryEventsTable{
@@ -61,8 +61,8 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				Subject:         &subjectFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject = ? ORDER BY time DESC LIMIT 100",
-			wantArgs: []interface{}{"my_namespace", subjectFilter},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject = ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", subjectFilter, 100},
 		},
 		{
 			query: queryEventsTable{
@@ -72,8 +72,8 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				ID:              &idFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND id LIKE ? ORDER BY time DESC LIMIT 100",
-			wantArgs: []interface{}{"my_namespace", "%event-id-1%"},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", "%event-id-1%", 100},
 		},
 		{
 			query: queryEventsTable{
@@ -83,8 +83,8 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				HasError:        &hasErrorTrue,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND notEmpty(validation_error) = 1 ORDER BY time DESC LIMIT 100",
-			wantArgs: []interface{}{"my_namespace"},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND notEmpty(validation_error) = 1 ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", 100},
 		},
 		{
 			query: queryEventsTable{
@@ -94,8 +94,8 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				HasError:        &hasErrorFalse,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND empty(validation_error) = 1 ORDER BY time DESC LIMIT 100",
-			wantArgs: []interface{}{"my_namespace"},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND empty(validation_error) = 1 ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", 100},
 		},
 	}
 
