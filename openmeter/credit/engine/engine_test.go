@@ -97,44 +97,50 @@ func Test_Fuzzing(t *testing.T) {
 					Granularity: meterpkg.WindowSizeMinute,
 				}) // runs for both parts
 
-				intermediateBalance, overage, _, err := engine1.Run(
+				res, err := engine1.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					startingBalance,
-					0,
-					timeutil.Period{
-						From: start,
-						To:   intermediate,
+					engine.RunParams{
+						Grants:           []grant.Grant{g1, g2},
+						StartingBalances: startingBalance,
+						Overage:          0,
+						Period: timeutil.Period{
+							From: start,
+							To:   intermediate,
+						},
 					})
 
 				assert.NoError(t, err)
 
-				finalBalance1, _, _, err := engine2.Run(
+				res2, err := engine2.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					intermediateBalance,
-					overage,
-					timeutil.Period{
-						From: intermediate,
-						To:   end,
+					engine.RunParams{
+						Grants:           []grant.Grant{g1, g2},
+						StartingBalances: res.EndingBalances,
+						Overage:          res.EndingOverage,
+						Period: timeutil.Period{
+							From: intermediate,
+							To:   end,
+						},
 					})
 
 				assert.NoError(t, err)
 
-				finalBalance2, _, _, err := engine3.Run(
+				res3, err := engine3.Run(
 					context.Background(),
-					[]grant.Grant{g1, g2},
-					startingBalance,
-					0,
-					timeutil.Period{
-						From: start,
-						To:   end,
+					engine.RunParams{
+						Grants:           []grant.Grant{g1, g2},
+						StartingBalances: startingBalance,
+						Overage:          0,
+						Period: timeutil.Period{
+							From: start,
+							To:   end,
+						},
 					})
 
 				assert.NoError(t, err)
 
 				// assert equivalence
-				assert.Equal(t, finalBalance1, finalBalance2)
+				assert.Equal(t, res2.EndingBalances, res3.EndingBalances)
 			},
 		},
 		{
@@ -190,23 +196,27 @@ func Test_Fuzzing(t *testing.T) {
 				balances := startingBalances.Copy()
 				results := make([]balance.Map, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
-					engine := engine.NewEngine(engine.EngineConfig{
+					eng := engine.NewEngine(engine.EngineConfig{
 						QueryUsage:  queryFn,
 						Granularity: meterpkg.WindowSizeMinute,
 					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
-					result, _, _, err := engine.Run(
+					result, err := eng.Run(
 						context.Background(),
-						gCp, balances, 0,
-						timeutil.Period{
-							From: start,
-							To:   end,
+						engine.RunParams{
+							Grants:           gCp,
+							StartingBalances: balances,
+							Overage:          0,
+							Period: timeutil.Period{
+								From: start,
+								To:   end,
+							},
 						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
-					results[i] = result.Copy()
+					results[i] = result.EndingBalances.Copy()
 				}
 
 				sumVals := func(m balance.Map) float64 {
@@ -279,12 +289,16 @@ func Test_Fuzzing(t *testing.T) {
 				})
 				gCp := make([]grant.Grant, len(grants))
 				copy(gCp, grants)
-				singleEngineResult, _, _, err := singleEngine.Run(
+				singleEngineResult, err := singleEngine.Run(
 					context.Background(),
-					gCp, startingBalances, 0,
-					timeutil.Period{
-						From: start,
-						To:   end,
+					engine.RunParams{
+						Grants:           gCp,
+						StartingBalances: startingBalances,
+						Overage:          0,
+						Period: timeutil.Period{
+							From: start,
+							To:   end,
+						},
 					})
 				if err != nil {
 					// lets save ourselves the calculation if this already fails
@@ -307,32 +321,34 @@ func Test_Fuzzing(t *testing.T) {
 						pEnd = end
 					}
 
-					// periods = append(periods, timeutil.Period{
-					// 	From: pStart,
-					// 	To:   pEnd,
-					// })
-
-					engine := engine.NewEngine(engine.EngineConfig{
+					eng := engine.NewEngine(engine.EngineConfig{
 						QueryUsage:  queryFn,
 						Granularity: meterpkg.WindowSizeMinute,
 					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
-					balances, overage, _, err = engine.Run(
+					res, err := eng.Run(
 						context.Background(),
-						gCp, balances, overage,
-						timeutil.Period{
-							From: pStart,
-							To:   pEnd,
+						engine.RunParams{
+							Grants:           gCp,
+							StartingBalances: balances,
+							Overage:          overage,
+							Period: timeutil.Period{
+								From: pStart,
+								To:   pEnd,
+							},
 						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
 
+					balances = res.EndingBalances
+					overage = res.EndingOverage
+
 					pStart = pEnd
 				}
 
-				assert.Equal(t, singleEngineResult, balances)
+				assert.Equal(t, singleEngineResult.EndingBalances, balances)
 			},
 		},
 	}
