@@ -155,6 +155,9 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 		}
 
 		return p, nil
+	case string(api.EditSubscriptionUnscheduleEditOpUnscheduleEdit):
+		p := patch.PatchUnscheduleEdit{}
+		return p, nil
 	default:
 		return nil, fmt.Errorf("unknown discriminator: %s", disc)
 	}

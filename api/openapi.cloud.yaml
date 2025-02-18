@@ -9714,6 +9714,16 @@ components:
           type: string
           format: duration
       description: Stretch a phase
+    EditSubscriptionUnscheduleEdit:
+      type: object
+      required:
+        - op
+      properties:
+        op:
+          type: string
+          enum:
+            - unschedule_edit
+      description: Unschedules any edits from the current phase.
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -15310,6 +15320,7 @@ components:
         - $ref: '#/components/schemas/EditSubscriptionAddPhase'
         - $ref: '#/components/schemas/EditSubscriptionRemovePhase'
         - $ref: '#/components/schemas/EditSubscriptionStretchPhase'
+        - $ref: '#/components/schemas/EditSubscriptionUnscheduleEdit'
       discriminator:
         propertyName: op
         mapping:
@@ -15318,6 +15329,7 @@ components:
           add_phase: '#/components/schemas/EditSubscriptionAddPhase'
           remove_phase: '#/components/schemas/EditSubscriptionRemovePhase'
           stretch_phase: '#/components/schemas/EditSubscriptionStretchPhase'
+          unschedule_edit: '#/components/schemas/EditSubscriptionUnscheduleEdit'
       description: The operation to be performed on the subscription.
     SubscriptionExpanded:
       type: object

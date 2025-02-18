@@ -2932,6 +2932,14 @@ export interface components {
       /** Format: duration */
       extendBy: string
     }
+    /** @description Unschedules any edits from the current phase. */
+    EditSubscriptionUnscheduleEdit: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      op: 'unschedule_edit'
+    }
     /** @description Entitlement templates are used to define the entitlements of a plan.
      *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     Entitlement:
@@ -6981,6 +6989,7 @@ export interface components {
       | components['schemas']['EditSubscriptionAddPhase']
       | components['schemas']['EditSubscriptionRemovePhase']
       | components['schemas']['EditSubscriptionStretchPhase']
+      | components['schemas']['EditSubscriptionUnscheduleEdit']
     /** @description Expanded subscription */
     SubscriptionExpanded: {
       /**
@@ -7869,6 +7878,8 @@ export type EditSubscriptionRemovePhase =
   components['schemas']['EditSubscriptionRemovePhase']
 export type EditSubscriptionStretchPhase =
   components['schemas']['EditSubscriptionStretchPhase']
+export type EditSubscriptionUnscheduleEdit =
+  components['schemas']['EditSubscriptionUnscheduleEdit']
 export type Entitlement = components['schemas']['Entitlement']
 export type EntitlementBaseTemplate =
   components['schemas']['EntitlementBaseTemplate']

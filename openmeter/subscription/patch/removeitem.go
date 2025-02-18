@@ -34,6 +34,7 @@ func (r PatchRemoveItem) Validate() error {
 
 var _ subscription.Patch = PatchRemoveItem{}
 
+// RemoveItem removes the last version for the provided key
 func (r PatchRemoveItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
 	phase, ok := spec.Phases[r.PhaseKey]
 	if !ok {

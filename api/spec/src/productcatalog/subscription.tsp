@@ -479,6 +479,7 @@ union SubscriptionEditOperation {
   EditSubscriptionAddPhase,
   EditSubscriptionRemovePhase,
   EditSubscriptionStretchPhase,
+  EditSubscriptionUnscheduleEdit,
 }
 
 /**
@@ -488,9 +489,18 @@ union SubscriptionEditOperation {
 enum EditOp {
   AddItem: "add_item",
   RemoveItem: "remove_item",
+  UnscheduleEdit: "unschedule_edit",
   AddPhase: "add_phase",
   RemovePhase: "remove_phase",
   StretchPhase: "stretch_phase",
+}
+
+/**
+ * Unschedules any edits from the current phase.
+ */
+@friendlyName("EditSubscriptionUnscheduleEdit")
+model EditSubscriptionUnscheduleEdit {
+  `op`: EditOp.UnscheduleEdit;
 }
 
 /**

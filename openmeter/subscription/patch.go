@@ -35,9 +35,10 @@ func (e *PatchForbiddenError) Error() string {
 type PatchOperation string
 
 const (
-	PatchOperationAdd     PatchOperation = "add"
-	PatchOperationRemove  PatchOperation = "remove"
-	PatchOperationStretch PatchOperation = "stretch"
+	PatchOperationAdd        PatchOperation = "add"
+	PatchOperationRemove     PatchOperation = "remove"
+	PatchOperationUnschedule PatchOperation = "unschedule"
+	PatchOperationStretch    PatchOperation = "stretch"
 )
 
 func (o PatchOperation) Validate() error {
