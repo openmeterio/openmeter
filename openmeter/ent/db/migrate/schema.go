@@ -142,6 +142,9 @@ var (
 				Name:    "appstripe_namespace_stripe_account_id_stripe_livemode",
 				Unique:  true,
 				Columns: []*schema.Column{AppStripesColumns[1], AppStripesColumns[5], AppStripesColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -849,9 +852,12 @@ var (
 				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[0]},
 			},
 			{
-				Name:    "billingprofile_namespace_default_deleted_at",
+				Name:    "billingprofile_namespace_default",
 				Unique:  true,
-				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[15], BillingProfilesColumns[5]},
+				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[15]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -1145,6 +1151,14 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[0]},
 			},
+			{
+				Name:    "feature_namespace_key",
+				Unique:  true,
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "archived_at IS NULL",
+				},
+			},
 		},
 	}
 	// GrantsColumns holds the columns for the "grants" table.
@@ -1427,9 +1441,12 @@ var (
 				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[5]},
 			},
 			{
-				Name:    "plan_namespace_key_version_deleted_at",
+				Name:    "plan_namespace_key_version",
 				Unique:  true,
-				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[10], PlansColumns[5]},
+				Columns: []*schema.Column{PlansColumns[1], PlansColumns[8], PlansColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -1489,14 +1506,20 @@ var (
 				Columns: []*schema.Column{PlanPhasesColumns[1], PlanPhasesColumns[8]},
 			},
 			{
-				Name:    "planphase_plan_id_key_deleted_at",
+				Name:    "planphase_plan_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[8], PlanPhasesColumns[5]},
+				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
-				Name:    "planphase_plan_id_index_deleted_at",
+				Name:    "planphase_plan_id_index",
 				Unique:  true,
-				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[9], PlanPhasesColumns[5]},
+				Columns: []*schema.Column{PlanPhasesColumns[12], PlanPhasesColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -1561,14 +1584,20 @@ var (
 				Columns: []*schema.Column{PlanRateCardsColumns[1], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
 			},
 			{
-				Name:    "planratecard_phase_id_key_deleted_at",
+				Name:    "planratecard_phase_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
+				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
-				Name:    "planratecard_phase_id_feature_key_deleted_at",
+				Name:    "planratecard_phase_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[10], PlanRateCardsColumns[5]},
+				Columns: []*schema.Column{PlanRateCardsColumns[16], PlanRateCardsColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
