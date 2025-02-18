@@ -1386,6 +1386,55 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 	}
 }
 
+func (s *InvoicingTestSuite) TestBillingProfileChange() {
+	namespace := "ns-billing-profile-default-change"
+	ctx := context.Background()
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	oldCreateProfileInput := MinimalCreateProfileInputTemplate
+	oldCreateProfileInput.Namespace = namespace
+	oldCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
+
+	oldBillingProfile, err := s.BillingService.CreateProfile(ctx, oldCreateProfileInput)
+	s.NoError(err)
+	s.NotNil(oldBillingProfile)
+
+	newCreateProfileInput := MinimalCreateProfileInputTemplate
+	newCreateProfileInput.Namespace = namespace
+	newCreateProfileInput.WorkflowConfig.Invoicing.ProgressiveBilling = true
+
+	newBillingProfile, err := s.BillingService.CreateProfile(ctx, newCreateProfileInput)
+	s.NoError(err)
+	s.NotNil(newBillingProfile)
+
+	defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: namespace,
+	})
+	s.NoError(err)
+	s.NotNil(defaultProfile)
+
+	s.Equal(newBillingProfile.ID, defaultProfile.ID)
+	s.NotEqual(newBillingProfile.ID, oldBillingProfile.ID)
+
+	// Changing the old profile to default works
+
+	oldBillingProfile.AppReferences = nil
+
+	oldProfileAsDefault, err := s.BillingService.UpdateProfile(ctx, billing.UpdateProfileInput(oldBillingProfile.BaseProfile))
+	s.NoError(err)
+	s.NotNil(oldProfileAsDefault)
+	s.True(oldProfileAsDefault.Default)
+
+	defaultProfile, err = s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: namespace,
+	})
+	s.NoError(err)
+	s.NotNil(defaultProfile)
+
+	s.Equal(oldProfileAsDefault.ID, defaultProfile.ID)
+}
+
 func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	namespace := "ns-ubp-invoicing-progressive"
 	ctx := context.Background()

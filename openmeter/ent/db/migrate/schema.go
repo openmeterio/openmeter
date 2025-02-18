@@ -856,7 +856,7 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[15]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL",
+					Where: "\"default\" AND deleted_at IS NULL",
 				},
 			},
 		},

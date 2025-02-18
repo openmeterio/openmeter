@@ -94,7 +94,7 @@ func (BillingProfile) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "default").
 			Annotations(
-				entsql.IndexWhere("deleted_at IS NULL"),
+				entsql.IndexWhere("\"default\" AND deleted_at IS NULL"),
 			).
 			Unique(),
 	}
