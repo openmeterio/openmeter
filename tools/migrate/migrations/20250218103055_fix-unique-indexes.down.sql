@@ -20,6 +20,10 @@ CREATE UNIQUE INDEX "planphase_plan_id_key_deleted_at" ON "plan_phases" ("plan_i
 CREATE UNIQUE INDEX "planphase_plan_id_index_deleted_at" ON "plan_phases" ("plan_id", "index", "deleted_at");
 -- reverse: create index "feature_namespace_key" to table: "features"
 DROP INDEX "feature_namespace_key";
+-- reverse: create index "billingprofile_namespace_default" to table: "billing_profiles"
+DROP INDEX "billingprofile_namespace_default";
+-- reverse: drop index "billingprofile_namespace_default_deleted_at" from table: "billing_profiles"
+CREATE UNIQUE INDEX "billingprofile_namespace_default_deleted_at" ON "billing_profiles" ("namespace", "default", "deleted_at");
 -- reverse: create index "appstripe_namespace_stripe_account_id_stripe_livemode" to table: "app_stripes"
 DROP INDEX "appstripe_namespace_stripe_account_id_stripe_livemode";
 -- reverse: drop index "appstripe_namespace_stripe_account_id_stripe_livemode" from table: "app_stripes"
