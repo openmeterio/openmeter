@@ -92,7 +92,10 @@ func (BillingProfile) Edges() []ent.Edge {
 
 func (BillingProfile) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "default", "deleted_at").
+		index.Fields("namespace", "default").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }
