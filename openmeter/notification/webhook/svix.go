@@ -14,6 +14,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
+	svixmodels "github.com/svix/svix-webhooks/go/models"
 	"k8s.io/utils/strings/slices"
 
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -76,18 +77,23 @@ func newSvixWebhookHandler(config SvixConfig) (Handler, error) {
 		}
 	}
 
+	client, err := svix.New(config.APIKey, &opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create svix client: %w", err)
+	}
+
 	return &svixWebhookHandler{
-		client: svix.New(config.APIKey, &opts),
+		client: client,
 	}, nil
 }
 
 func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params RegisterEventTypesInputs) error {
 	for _, eventType := range params.EventTypes {
-		input := &svix.EventTypeUpdate{
+		input := svixmodels.EventTypeUpdate{
 			Description: eventType.Description,
 			FeatureFlag: nil,
 			GroupName:   &eventType.GroupName,
-			Schemas:     eventType.Schemas,
+			Schemas:     &eventType.Schemas,
 			Deprecated:  &eventType.Deprecated,
 		}
 
@@ -102,8 +108,8 @@ func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params Regis
 	return nil
 }
 
-func (h svixWebhookHandler) CreateApplication(ctx context.Context, id string) (*svix.ApplicationOut, error) {
-	input := &svix.ApplicationIn{
+func (h svixWebhookHandler) CreateApplication(ctx context.Context, id string) (*svixmodels.ApplicationOut, error) {
+	input := svixmodels.ApplicationIn{
 		Name: id,
 		Uid:  &id,
 	}
@@ -113,7 +119,7 @@ func (h svixWebhookHandler) CreateApplication(ctx context.Context, id string) (*
 		return nil, fmt.Errorf("failed to generate idempotency key: %w", err)
 	}
 
-	app, err := h.client.Application.GetOrCreateWithOptions(ctx, input, &svix.PostOptions{
+	app, err := h.client.Application.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{
 		IdempotencyKey: &idempotencyKey,
 	})
 	if err != nil {
@@ -129,7 +135,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appI
 	var resp map[string]string
 
 	if len(headers) > 0 {
-		input := &svix.EndpointHeadersIn{
+		input := svixmodels.EndpointHeadersIn{
 			Headers: headers,
 		}
 
@@ -171,7 +177,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID
 	resp = secretOut.Key
 
 	if secret != nil && *secret != secretOut.Key {
-		input := &svix.EndpointSecretRotateIn{
+		input := svixmodels.EndpointSecretRotateIn{
 			Key: secret,
 		}
 
@@ -180,7 +186,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID
 			return resp, fmt.Errorf("failed to generate idempotency key: %w", err)
 		}
 
-		err = h.client.Endpoint.RotateSecretWithOptions(ctx, appID, endpointID, input, &svix.PostOptions{
+		err = h.client.Endpoint.RotateSecret(ctx, appID, endpointID, input, &svix.EndpointRotateSecretOptions{
 			IdempotencyKey: &idempotencyKey,
 		})
 		if err != nil {
@@ -243,7 +249,7 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 		endpointUID = uid.String()
 	}
 
-	input := &svix.EndpointIn{
+	input := svixmodels.EndpointIn{
 		Uid: &endpointUID,
 		Description: convert.SafeDeRef(params.Description, func(p string) *string {
 			if p != "" {
@@ -272,7 +278,7 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 		return nil, fmt.Errorf("failed to generate idempotency key: %w", err)
 	}
 
-	endpoint, err := h.client.Endpoint.CreateWithOptions(ctx, app.Id, input, &svix.PostOptions{
+	endpoint, err := h.client.Endpoint.Create(ctx, app.Id, input, &svix.EndpointCreateOptions{
 		IdempotencyKey: &idempotencyKey,
 	})
 	if err != nil {
@@ -330,7 +336,7 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 		}
 	}
 
-	input := &svix.EndpointUpdate{
+	input := svixmodels.EndpointUpdate{
 		Uid: &params.ID,
 		Description: convert.SafeDeRef(params.Description, func(p string) *string {
 			if p != "" {
@@ -497,7 +503,7 @@ func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhook
 		return nil, fmt.Errorf("failed to list Svix endpoints: %w", err)
 	}
 
-	filterFn := func(o svix.EndpointOut) bool {
+	filterFn := func(o svixmodels.EndpointOut) bool {
 		if slices.Contains(params.IDs, o.Id) {
 			return true
 		}
@@ -561,7 +567,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 		eventID = &params.EventID
 	}
 
-	input := &svix.MessageIn{
+	input := svixmodels.MessageIn{
 		Channels:  params.Channels,
 		EventId:   eventID,
 		EventType: params.EventType,
@@ -573,7 +579,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 		return nil, fmt.Errorf("failed to generate idempotency key: %w", err)
 	}
 
-	o, err := h.client.Message.CreateWithOptions(ctx, params.Namespace, input, &svix.PostOptions{
+	o, err := h.client.Message.Create(ctx, params.Namespace, input, &svix.MessageCreateOptions{
 		IdempotencyKey: &idempotencyKey,
 	})
 	if err != nil {
@@ -592,7 +598,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 	}, nil
 }
 
-func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *Webhook {
+func WebhookFromSvixEndpointOut(e *svixmodels.EndpointOut) *Webhook {
 	return &Webhook{
 		ID:          lo.FromPtr(e.Uid),
 		URL:         e.Url,
@@ -609,7 +615,7 @@ func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *Webhook {
 }
 
 type idempotencyKeyTypes interface {
-	*svix.ApplicationIn | *svix.EndpointIn | *svix.EndpointSecretRotateIn | *svix.MessageIn
+	svixmodels.ApplicationIn | svixmodels.EndpointIn | svixmodels.EndpointSecretRotateIn | svixmodels.MessageIn
 }
 
 func toIdempotencyKey[T idempotencyKeyTypes](v T, t time.Time) (string, error) {

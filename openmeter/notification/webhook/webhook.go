@@ -22,7 +22,7 @@ type Webhook struct {
 	Secret        string
 	CustomHeaders map[string]string
 	Disabled      bool
-	RateLimit     *int32
+	RateLimit     *uint16
 	Description   string
 	EventTypes    []string
 	Channels      []string
@@ -62,7 +62,7 @@ type CreateWebhookInput struct {
 	CustomHeaders map[string]string
 	Disabled      bool
 	Secret        *string
-	RateLimit     *int32
+	RateLimit     *uint16
 	Description   *string
 	EventTypes    []string
 	Channels      []string
@@ -103,7 +103,7 @@ type UpdateWebhookInput struct {
 	CustomHeaders map[string]string
 	Disabled      bool
 	Secret        *string
-	RateLimit     *int32
+	RateLimit     *uint16
 	Description   *string
 	EventTypes    []string
 	Channels      []string

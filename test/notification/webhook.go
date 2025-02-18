@@ -86,7 +86,7 @@ func (s *WebhookTestSuite) TestUpdateWebhook(ctx context.Context, t *testing.T) 
 		},
 		Disabled:    true,
 		Secret:      convert.ToPointer("whsec_mCP4QSwe52D0IEU/UXLSD6Fif1RykRRMFHL0KJnGeQg="),
-		RateLimit:   convert.ToPointer[int32](50),
+		RateLimit:   convert.ToPointer[uint16](50),
 		Description: convert.ToPointer(webhook.Description),
 		EventTypes:  nil,
 		Channels:    []string{"test-channel"},
