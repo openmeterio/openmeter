@@ -37,6 +37,9 @@ func (AppStripe) Fields() []ent.Field {
 func (AppStripe) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "stripe_account_id", "stripe_livemode").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }

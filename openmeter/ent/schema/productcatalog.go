@@ -54,7 +54,10 @@ func (Plan) Edges() []ent.Edge {
 
 func (Plan) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "key", "version", "deleted_at").
+		index.Fields("namespace", "key", "version").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }
@@ -108,9 +111,15 @@ func (PlanPhase) Edges() []ent.Edge {
 func (PlanPhase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "key"),
-		index.Fields("plan_id", "key", "deleted_at").
+		index.Fields("plan_id", "key").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
-		index.Fields("plan_id", "index", "deleted_at").
+		index.Fields("plan_id", "index").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }
@@ -187,9 +196,15 @@ func (PlanRateCard) Edges() []ent.Edge {
 
 func (PlanRateCard) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("phase_id", "key", "deleted_at").
+		index.Fields("phase_id", "key").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
-		index.Fields("phase_id", "feature_key", "deleted_at").
+		index.Fields("phase_id", "feature_key").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }
