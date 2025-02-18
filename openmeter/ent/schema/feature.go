@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -35,6 +36,11 @@ func (Feature) Fields() []ent.Field {
 func (Feature) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
+		index.Fields("namespace", "key").
+			Annotations(
+				entsql.IndexWhere("archived_at IS NULL"),
+			).
+			Unique(),
 	}
 }
 
