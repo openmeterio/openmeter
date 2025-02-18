@@ -11,6 +11,42 @@ pipeline:
   processors:
     - mapping: |
         let duration_seconds = (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64()
+
+        let unit = match {
+          meta("unit") == "ms" => "millisecond"
+          meta("unit") == "s" => "second"
+          meta("unit") == "m" => "minute"
+          meta("unit") == "h" => "hour"
+        }
+        let unit_seconds = (meta("unit").parse_duration() / 1000 / 1000 / 1000).round().int64()
+        let normalizer = $duration_seconds / $unit_seconds
+
+        data = {
+          "pod_name": this.metadata.name,
+          "pod_namespace": this.metadata.namespace,
+          "duration_seconds": $normalizer,
+
+          "cpu_request_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum(),
+          "cpu_request_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum() * $normalizer,
+
+          "cpu_limit_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum(),
+          "cpu_limit_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum() * $normalizer,
+
+          "memory_request_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum(),
+          "memory_request_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum() * $normalizer,
+
+          "memory_limit_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum(),
+          "memory_limit_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum() * $normalizer,
+
+          "gpu_request_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum(),
+          "gpu_request_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum() * $normalizer,
+
+          "gpu_limit_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum(),
+          "gpu_limit_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum() * $normalizer,
+        }
+
+        data = data.map_each_key(key -> key.replace_all("second", unit))
+
         root = {
           "id": uuid_v4(),
           "specversion": "1.0",
@@ -18,23 +54,7 @@ pipeline:
           "source": "kubernetes-api",
           "time": meta("schedule_time"),
           "subject": this.metadata.annotations."openmeter.io/subject".or(this.metadata.name),
-          "data": this.metadata.annotations.filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign({
-            "pod_name": this.metadata.name,
-            "pod_namespace": this.metadata.namespace,
-            "duration_seconds": $duration_seconds,
-            "cpu_request_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum(),
-            "cpu_request_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum() / $duration_seconds,
-            "cpu_limit_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum(),
-            "cpu_limit_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum() / $duration_seconds,
-            "memory_request_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum(),
-            "memory_request_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum() / $duration_seconds,
-            "memory_limit_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum(),
-            "memory_limit_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum() / $duration_seconds,
-            "gpu_request_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum(),
-            "gpu_request_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum() / $duration_seconds,
-            "gpu_limit_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum(),
-            "gpu_limit_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum() / $duration_seconds,
-          }),
+          "data": this.metadata.annotations.filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign(data)
         }
     - json_schema:
         schema_path: "file://./cloudevents.spec.json"
