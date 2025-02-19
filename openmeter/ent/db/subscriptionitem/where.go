@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // ID filters vertices based on their ID field.
@@ -117,13 +117,13 @@ func RestartsBillingPeriod(v bool) predicate.SubscriptionItem {
 }
 
 // ActiveFromOverrideRelativeToPhaseStart applies equality check predicate on the "active_from_override_relative_to_phase_start" field. It's identical to ActiveFromOverrideRelativeToPhaseStartEQ.
-func ActiveFromOverrideRelativeToPhaseStart(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStart(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStart applies equality check predicate on the "active_to_override_relative_to_phase_start" field. It's identical to ActiveToOverrideRelativeToPhaseStartEQ.
-func ActiveToOverrideRelativeToPhaseStart(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStart(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
@@ -144,7 +144,7 @@ func FeatureKey(v string) predicate.SubscriptionItem {
 }
 
 // BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
-func BillingCadence(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadence(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldBillingCadence, vc))
 }
@@ -670,19 +670,19 @@ func RestartsBillingPeriodNotNil() predicate.SubscriptionItem {
 }
 
 // ActiveFromOverrideRelativeToPhaseStartEQ applies the EQ predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartEQ(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartEQ(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartNEQ applies the NEQ predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartNEQ(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartNEQ(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldNEQ(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartIn applies the In predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartIn(vs ...datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartIn(vs ...isodate.String) predicate.SubscriptionItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -691,7 +691,7 @@ func ActiveFromOverrideRelativeToPhaseStartIn(vs ...datex.ISOString) predicate.S
 }
 
 // ActiveFromOverrideRelativeToPhaseStartNotIn applies the NotIn predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartNotIn(vs ...datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartNotIn(vs ...isodate.String) predicate.SubscriptionItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -700,43 +700,43 @@ func ActiveFromOverrideRelativeToPhaseStartNotIn(vs ...datex.ISOString) predicat
 }
 
 // ActiveFromOverrideRelativeToPhaseStartGT applies the GT predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartGT(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartGT(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldGT(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartGTE applies the GTE predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartGTE(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartGTE(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldGTE(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartLT applies the LT predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartLT(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartLT(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldLT(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartLTE applies the LTE predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartLTE(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartLTE(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldLTE(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartContains applies the Contains predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartContains(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartContains(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldContains(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartHasPrefix applies the HasPrefix predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartHasPrefix(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartHasPrefix(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartHasSuffix applies the HasSuffix predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartHasSuffix(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartHasSuffix(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
@@ -752,31 +752,31 @@ func ActiveFromOverrideRelativeToPhaseStartNotNil() predicate.SubscriptionItem {
 }
 
 // ActiveFromOverrideRelativeToPhaseStartEqualFold applies the EqualFold predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartEqualFold(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartEqualFold(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveFromOverrideRelativeToPhaseStartContainsFold applies the ContainsFold predicate on the "active_from_override_relative_to_phase_start" field.
-func ActiveFromOverrideRelativeToPhaseStartContainsFold(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveFromOverrideRelativeToPhaseStartContainsFold(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldActiveFromOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartEQ applies the EQ predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartEQ(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartEQ(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartNEQ applies the NEQ predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartNEQ(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartNEQ(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldNEQ(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartIn applies the In predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartIn(vs ...datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartIn(vs ...isodate.String) predicate.SubscriptionItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -785,7 +785,7 @@ func ActiveToOverrideRelativeToPhaseStartIn(vs ...datex.ISOString) predicate.Sub
 }
 
 // ActiveToOverrideRelativeToPhaseStartNotIn applies the NotIn predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartNotIn(vs ...datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartNotIn(vs ...isodate.String) predicate.SubscriptionItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -794,43 +794,43 @@ func ActiveToOverrideRelativeToPhaseStartNotIn(vs ...datex.ISOString) predicate.
 }
 
 // ActiveToOverrideRelativeToPhaseStartGT applies the GT predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartGT(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartGT(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldGT(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartGTE applies the GTE predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartGTE(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartGTE(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldGTE(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartLT applies the LT predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartLT(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartLT(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldLT(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartLTE applies the LTE predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartLTE(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartLTE(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldLTE(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartContains applies the Contains predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartContains(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartContains(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldContains(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartHasPrefix applies the HasPrefix predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartHasPrefix(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartHasPrefix(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartHasSuffix applies the HasSuffix predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartHasSuffix(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartHasSuffix(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
@@ -846,13 +846,13 @@ func ActiveToOverrideRelativeToPhaseStartNotNil() predicate.SubscriptionItem {
 }
 
 // ActiveToOverrideRelativeToPhaseStartEqualFold applies the EqualFold predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartEqualFold(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartEqualFold(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
 
 // ActiveToOverrideRelativeToPhaseStartContainsFold applies the ContainsFold predicate on the "active_to_override_relative_to_phase_start" field.
-func ActiveToOverrideRelativeToPhaseStartContainsFold(v datex.ISOString) predicate.SubscriptionItem {
+func ActiveToOverrideRelativeToPhaseStartContainsFold(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldActiveToOverrideRelativeToPhaseStart, vc))
 }
@@ -1093,19 +1093,19 @@ func TaxConfigNotNil() predicate.SubscriptionItem {
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.
-func BillingCadenceEQ(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceEQ(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
 // BillingCadenceNEQ applies the NEQ predicate on the "billing_cadence" field.
-func BillingCadenceNEQ(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceNEQ(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldNEQ(FieldBillingCadence, vc))
 }
 
 // BillingCadenceIn applies the In predicate on the "billing_cadence" field.
-func BillingCadenceIn(vs ...datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceIn(vs ...isodate.String) predicate.SubscriptionItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -1114,7 +1114,7 @@ func BillingCadenceIn(vs ...datex.ISOString) predicate.SubscriptionItem {
 }
 
 // BillingCadenceNotIn applies the NotIn predicate on the "billing_cadence" field.
-func BillingCadenceNotIn(vs ...datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceNotIn(vs ...isodate.String) predicate.SubscriptionItem {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -1123,43 +1123,43 @@ func BillingCadenceNotIn(vs ...datex.ISOString) predicate.SubscriptionItem {
 }
 
 // BillingCadenceGT applies the GT predicate on the "billing_cadence" field.
-func BillingCadenceGT(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceGT(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldGT(FieldBillingCadence, vc))
 }
 
 // BillingCadenceGTE applies the GTE predicate on the "billing_cadence" field.
-func BillingCadenceGTE(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceGTE(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldGTE(FieldBillingCadence, vc))
 }
 
 // BillingCadenceLT applies the LT predicate on the "billing_cadence" field.
-func BillingCadenceLT(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceLT(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldLT(FieldBillingCadence, vc))
 }
 
 // BillingCadenceLTE applies the LTE predicate on the "billing_cadence" field.
-func BillingCadenceLTE(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceLTE(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldLTE(FieldBillingCadence, vc))
 }
 
 // BillingCadenceContains applies the Contains predicate on the "billing_cadence" field.
-func BillingCadenceContains(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceContains(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldContains(FieldBillingCadence, vc))
 }
 
 // BillingCadenceHasPrefix applies the HasPrefix predicate on the "billing_cadence" field.
-func BillingCadenceHasPrefix(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceHasPrefix(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldBillingCadence, vc))
 }
 
 // BillingCadenceHasSuffix applies the HasSuffix predicate on the "billing_cadence" field.
-func BillingCadenceHasSuffix(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceHasSuffix(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldBillingCadence, vc))
 }
@@ -1175,13 +1175,13 @@ func BillingCadenceNotNil() predicate.SubscriptionItem {
 }
 
 // BillingCadenceEqualFold applies the EqualFold predicate on the "billing_cadence" field.
-func BillingCadenceEqualFold(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceEqualFold(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldBillingCadence, vc))
 }
 
 // BillingCadenceContainsFold applies the ContainsFold predicate on the "billing_cadence" field.
-func BillingCadenceContainsFold(v datex.ISOString) predicate.SubscriptionItem {
+func BillingCadenceContainsFold(v isodate.String) predicate.SubscriptionItem {
 	vc := string(v)
 	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldBillingCadence, vc))
 }

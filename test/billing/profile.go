@@ -5,7 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,12 +16,12 @@ var MinimalCreateProfileInputTemplate = billing.CreateProfileInput{
 	WorkflowConfig: billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment: billing.AlignmentKindSubscription,
-			Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
+			Interval:  lo.Must(isodate.String("PT2H").Parse()),
 		},
 		Invoicing: billing.InvoicingConfig{
 			AutoAdvance: true,
-			DraftPeriod: lo.Must(datex.ISOString("P1D").Parse()),
-			DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+			DraftPeriod: lo.Must(isodate.String("P1D").Parse()),
+			DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 		},
 		Payment: billing.PaymentConfig{
 			CollectionMethod: billing.CollectionMethodChargeAutomatically,

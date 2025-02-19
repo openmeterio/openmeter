@@ -1,4 +1,4 @@
-package datex_test
+package isodate_test
 
 import (
 	"testing"
@@ -6,14 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func TestISOOperations(t *testing.T) {
 	t.Run("Parse", func(t *testing.T) {
 		isoDuration := "P1Y2M3DT4H5M6S"
 
-		period, err := datex.ISOString(isoDuration).Parse()
+		period, err := isodate.String(isoDuration).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -29,14 +29,14 @@ func TestISOOperations(t *testing.T) {
 	t.Run("ParseError", func(t *testing.T) {
 		isoDuration := "P1Y2M3DT4H5M6SX"
 
-		_, err := datex.ISOString(isoDuration).Parse()
+		_, err := isodate.String(isoDuration).Parse()
 		assert.NotNil(t, err)
 	})
 
 	t.Run("Works with 0 duration", func(t *testing.T) {
 		isoDuration := "PT0S"
 
-		period, err := datex.ISOString(isoDuration).Parse()
+		period, err := isodate.String(isoDuration).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -53,18 +53,18 @@ func TestISOOperations(t *testing.T) {
 		isoDuration1 := "PT5M"
 		isoDuration2 := "PT1M1S"
 
-		period1, err := datex.ISOString(isoDuration1).Parse()
+		period1, err := isodate.String(isoDuration1).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		period2, err := datex.ISOString(isoDuration2).Parse()
+		period2, err := isodate.String(isoDuration2).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		expectedS := "PT6M1S"
-		expected, err := datex.ISOString(expectedS).Parse()
+		expected, err := isodate.String(expectedS).Parse()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

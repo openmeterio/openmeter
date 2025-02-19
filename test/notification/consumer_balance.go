@@ -18,8 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type BalanceNotificaiontHandlerTestSuite struct {
@@ -33,12 +33,12 @@ type BalanceNotificaiontHandlerTestSuite struct {
 }
 
 var (
-	TestEntitlementCurrentUsagePeriod = recurrence.Period{
+	TestEntitlementCurrentUsagePeriod = timeutil.Period{
 		From: time.Now().Add(-time.Hour),
 		To:   time.Now().Add(24 * time.Hour),
 	}
 	TestEntitlementUsagePeriod = entitlement.UsagePeriod{
-		Interval: recurrence.RecurrencePeriodDaily,
+		Interval: timeutil.RecurrencePeriodDaily,
 		Anchor:   TestEntitlementCurrentUsagePeriod.From,
 	}
 	TestEntitlementID = "test-entitlement-id"
@@ -316,7 +316,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 
 	// Step 8: The entitlement gets reset, no events should be created
 
-	newUsagePeriod := recurrence.Period{
+	newUsagePeriod := timeutil.Period{
 		From: TestEntitlementCurrentUsagePeriod.To,
 		To:   TestEntitlementCurrentUsagePeriod.To.Add(24 * time.Hour),
 	}

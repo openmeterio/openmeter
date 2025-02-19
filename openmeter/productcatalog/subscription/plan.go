@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -78,14 +78,14 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 
 func (p *Plan) GetPhases() []subscription.PlanPhase {
 	ps := make([]subscription.PlanPhase, 0, len(p.Phases))
-	startAfter := datex.Period{}
+	startAfter := isodate.Period{}
 	for _, ph := range p.Phases {
 		ps = append(ps, &Phase{
 			Phase:      ph,
 			StartAfter: startAfter,
 		})
 
-		startAfter, _ = startAfter.Add(lo.FromPtrOr(ph.Duration, datex.Period{}))
+		startAfter, _ = startAfter.Add(lo.FromPtrOr(ph.Duration, isodate.Period{}))
 	}
 
 	return ps
@@ -97,7 +97,7 @@ func (p *Plan) Currency() currencyx.Code {
 
 type Phase struct {
 	productcatalog.Phase
-	StartAfter datex.Period
+	StartAfter isodate.Period
 }
 
 var _ subscription.PlanPhase = &Phase{}

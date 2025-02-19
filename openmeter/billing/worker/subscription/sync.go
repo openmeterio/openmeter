@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/openmeterio/openmeter/pkg/timex"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 const (
@@ -205,7 +205,7 @@ func (h *Handler) getPatchesFromPlan(p *syncPlan, subs subscription.Subscription
 func (h *Handler) calculateSyncPlan(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*syncPlan, error) {
 	// Let's see what's in scope for the subscription
 	slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
-		return timex.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
+		return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 	})
 
 	inScopeLines, err := h.collectUpcomingLines(subs, asOf)
@@ -564,7 +564,7 @@ func (h *Handler) inScopeLinePatches(existingLine *billing.Line, expectedLine *b
 			children := existingLine.Children.OrEmpty()
 			if len(children) > 0 {
 				slices.SortFunc(children, func(i, j *billing.Line) int {
-					return timex.Compare(i.Period.End, j.Period.End)
+					return timeutil.Compare(i.Period.End, j.Period.End)
 				})
 
 				lastChild := h.cloneLineForUpsert(children[len(children)-1])

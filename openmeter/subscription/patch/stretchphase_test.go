@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func TestStretchPhase(t *testing.T) {
@@ -55,7 +55,7 @@ func TestStretchPhase(t *testing.T) {
 					require.True(t, ok)
 
 					// The second phase should start after 1 month
-					require.Equal(t, p2.StartAfter, datex.NewPeriod(0, 1, 0, 0, 0, 0, 0))
+					require.Equal(t, p2.StartAfter, isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0))
 
 					return &s
 				},
@@ -97,7 +97,7 @@ func TestStretchPhase(t *testing.T) {
 					require.True(t, ok)
 
 					// The second phase should start after 1 month
-					require.Equal(t, p2.StartAfter, datex.NewPeriod(0, 1, 0, 0, 0, 0, 0))
+					require.Equal(t, p2.StartAfter, isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0))
 
 					return &s
 				},

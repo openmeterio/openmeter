@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // ID filters vertices based on their ID field.
@@ -108,7 +108,7 @@ func FeatureKey(v string) predicate.PlanRateCard {
 }
 
 // BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
-func BillingCadence(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadence(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldEQ(FieldBillingCadence, vc))
 }
@@ -659,19 +659,19 @@ func TaxConfigNotNil() predicate.PlanRateCard {
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.
-func BillingCadenceEQ(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceEQ(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
 // BillingCadenceNEQ applies the NEQ predicate on the "billing_cadence" field.
-func BillingCadenceNEQ(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceNEQ(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldNEQ(FieldBillingCadence, vc))
 }
 
 // BillingCadenceIn applies the In predicate on the "billing_cadence" field.
-func BillingCadenceIn(vs ...datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceIn(vs ...isodate.String) predicate.PlanRateCard {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -680,7 +680,7 @@ func BillingCadenceIn(vs ...datex.ISOString) predicate.PlanRateCard {
 }
 
 // BillingCadenceNotIn applies the NotIn predicate on the "billing_cadence" field.
-func BillingCadenceNotIn(vs ...datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceNotIn(vs ...isodate.String) predicate.PlanRateCard {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -689,43 +689,43 @@ func BillingCadenceNotIn(vs ...datex.ISOString) predicate.PlanRateCard {
 }
 
 // BillingCadenceGT applies the GT predicate on the "billing_cadence" field.
-func BillingCadenceGT(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceGT(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldGT(FieldBillingCadence, vc))
 }
 
 // BillingCadenceGTE applies the GTE predicate on the "billing_cadence" field.
-func BillingCadenceGTE(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceGTE(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldGTE(FieldBillingCadence, vc))
 }
 
 // BillingCadenceLT applies the LT predicate on the "billing_cadence" field.
-func BillingCadenceLT(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceLT(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldLT(FieldBillingCadence, vc))
 }
 
 // BillingCadenceLTE applies the LTE predicate on the "billing_cadence" field.
-func BillingCadenceLTE(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceLTE(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldLTE(FieldBillingCadence, vc))
 }
 
 // BillingCadenceContains applies the Contains predicate on the "billing_cadence" field.
-func BillingCadenceContains(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceContains(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldContains(FieldBillingCadence, vc))
 }
 
 // BillingCadenceHasPrefix applies the HasPrefix predicate on the "billing_cadence" field.
-func BillingCadenceHasPrefix(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceHasPrefix(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldHasPrefix(FieldBillingCadence, vc))
 }
 
 // BillingCadenceHasSuffix applies the HasSuffix predicate on the "billing_cadence" field.
-func BillingCadenceHasSuffix(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceHasSuffix(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldHasSuffix(FieldBillingCadence, vc))
 }
@@ -741,13 +741,13 @@ func BillingCadenceNotNil() predicate.PlanRateCard {
 }
 
 // BillingCadenceEqualFold applies the EqualFold predicate on the "billing_cadence" field.
-func BillingCadenceEqualFold(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceEqualFold(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldEqualFold(FieldBillingCadence, vc))
 }
 
 // BillingCadenceContainsFold applies the ContainsFold predicate on the "billing_cadence" field.
-func BillingCadenceContainsFold(v datex.ISOString) predicate.PlanRateCard {
+func BillingCadenceContainsFold(v isodate.String) predicate.PlanRateCard {
 	vc := string(v)
 	return predicate.PlanRateCard(sql.FieldContainsFold(FieldBillingCadence, vc))
 }

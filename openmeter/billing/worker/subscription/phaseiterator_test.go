@@ -11,7 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -42,8 +42,8 @@ type subscriptionItemViewMock struct {
 	Key     string
 	Cadence string
 
-	StartAfter *datex.Period
-	EndAfter   *datex.Period
+	StartAfter *isodate.Period
+	EndAfter   *isodate.Period
 
 	Type productcatalog.PriceType
 }
@@ -197,12 +197,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 				},
 			},
 			end: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -225,12 +225,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 			},
 			end: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -259,27 +259,27 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				{
 					Key:      "item-key",
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H2S")),
+					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H2S")),
 					Type:     productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H2S")),
-					EndAfter:   lo.ToPtr(datex.MustParse(s.T(), "P1DT20H3S")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H2S")),
+					EndAfter:   lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H3S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H3S")),
-					EndAfter:   lo.ToPtr(datex.MustParse(s.T(), "P1DT20H4S")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H3S")),
+					EndAfter:   lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 				{
 					Key:        "item-key",
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H4S")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H4S")),
 					Type:       productcatalog.UnitPriceType,
 				},
 			},
@@ -351,13 +351,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:      "item-key",
 					Type:     productcatalog.FlatPriceType,
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Type:       productcatalog.FlatPriceType,
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 			},
 			end: s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -387,13 +387,13 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					Key:      "item-key",
 					Type:     productcatalog.FlatPriceType,
 					Cadence:  "P1D",
-					EndAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+					EndAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 				{
 					Key:        "item-key",
 					Type:       productcatalog.FlatPriceType,
 					Cadence:    "P1D",
-					StartAfter: lo.ToPtr(datex.MustParse(s.T(), "P1DT20H")),
+					StartAfter: lo.ToPtr(isodate.MustParse(s.T(), "P1DT20H")),
 				},
 			},
 			end:        s.mustParseTime("2021-01-03T00:00:00Z"),
@@ -523,7 +523,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 				view.SubscriptionItem.RateCard.Price = pp
 
 				if item.Cadence != "" {
-					bc := lo.ToPtr(datex.MustParse(s.T(), item.Cadence))
+					bc := lo.ToPtr(isodate.MustParse(s.T(), item.Cadence))
 
 					spec.RateCard.BillingCadence = bc
 					view.SubscriptionItem.RateCard.BillingCadence = bc

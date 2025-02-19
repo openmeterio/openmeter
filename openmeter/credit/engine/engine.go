@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Engine interface {
@@ -20,7 +20,7 @@ type Engine interface {
 	//
 	// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 	// If a grant is inactive at the end of the period, it will still be in the output.
-	Run(ctx context.Context, grants []grant.Grant, startingBalances balance.Map, startingOverage float64, period recurrence.Period) (endingBalances balance.Map, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
+	Run(ctx context.Context, grants []grant.Grant, startingBalances balance.Map, startingOverage float64, period timeutil.Period) (endingBalances balance.Map, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
 }
 
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
@@ -52,7 +52,7 @@ var _ Engine = (*engine)(nil)
 //
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
-func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances balance.Map, overage float64, period recurrence.Period) (balance.Map, float64, []GrantBurnDownHistorySegment, error) {
+func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances balance.Map, overage float64, period timeutil.Period) (balance.Map, float64, []GrantBurnDownHistorySegment, error) {
 	if !startingBalances.ExactlyForGrants(grants) {
 		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", grants, startingBalances)
 	}
@@ -122,7 +122,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 		}
 
 		segment := GrantBurnDownHistorySegment{
-			Period:         recurrence.Period{From: phase.from, To: phase.to},
+			Period:         timeutil.Period{From: phase.from, To: phase.to},
 			BalanceAtStart: balancesAtPhaseStart.Copy(),
 			OverageAtStart: overage,
 			TerminationReasons: SegmentTerminationReason{
@@ -165,7 +165,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 //
 // Note that grant balance does not effect the burndown order if we simply ignore grants that don't
 // have balance while burning down.
-func (e *engine) GetPhases(period recurrence.Period) ([]burnPhase, error) {
+func (e *engine) GetPhases(period timeutil.Period) ([]burnPhase, error) {
 	activityChanges := e.getGrantActivityChanges(period)
 	recurrenceTimes, err := e.getGrantRecurrenceTimes(period)
 	if err != nil {
@@ -260,7 +260,7 @@ func (e *engine) GetPhases(period recurrence.Period) ([]burnPhase, error) {
 }
 
 // An activity change is a grant becoming active or a grant expiring.
-func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
+func (e *engine) getGrantActivityChanges(period timeutil.Period) []time.Time {
 	activityChanges := []time.Time{}
 	for _, grant := range e.grants {
 		// grants that take effect in the period
@@ -305,7 +305,7 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 }
 
 // Get all times grants recurr in the period.
-func (e *engine) getGrantRecurrenceTimes(period recurrence.Period) ([]struct {
+func (e *engine) getGrantRecurrenceTimes(period timeutil.Period) ([]struct {
 	time     time.Time
 	grantIDs []string
 }, error,

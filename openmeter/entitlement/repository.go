@@ -7,12 +7,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type UpdateEntitlementUsagePeriodParams struct {
 	NewAnchor          *time.Time
-	CurrentUsagePeriod recurrence.Period
+	CurrentUsagePeriod timeutil.Period
 }
 
 type EntitlementRepo interface {
@@ -65,14 +65,14 @@ type CreateEntitlementRepoInputs struct {
 	ActiveFrom      *time.Time        `json:"activeFrom,omitempty"`
 	ActiveTo        *time.Time        `json:"activeTo,omitempty"`
 
-	MeasureUsageFrom        *time.Time         `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset         *float64           `json:"issueAfterReset,omitempty"`
-	IssueAfterResetPriority *uint8             `json:"issueAfterResetPriority,omitempty"`
-	IsSoftLimit             *bool              `json:"isSoftLimit,omitempty"`
-	Config                  []byte             `json:"config,omitempty"`
-	UsagePeriod             *UsagePeriod       `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod      *recurrence.Period `json:"currentUsagePeriod,omitempty"`
-	PreserveOverageAtReset  *bool              `json:"preserveOverageAtReset,omitempty"`
+	MeasureUsageFrom        *time.Time       `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset         *float64         `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8           `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool            `json:"isSoftLimit,omitempty"`
+	Config                  []byte           `json:"config,omitempty"`
+	UsagePeriod             *UsagePeriod     `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod      *timeutil.Period `json:"currentUsagePeriod,omitempty"`
+	PreserveOverageAtReset  *bool            `json:"preserveOverageAtReset,omitempty"`
 
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }

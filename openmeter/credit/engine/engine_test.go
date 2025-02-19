@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestEngine(t *testing.T) {
@@ -73,7 +73,7 @@ func TestEngine(t *testing.T) {
 						g1.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
@@ -86,7 +86,7 @@ func TestEngine(t *testing.T) {
 						g1.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
@@ -104,7 +104,7 @@ func TestEngine(t *testing.T) {
 				res, overage, segments, err := eng.Run(
 					context.Background(),
 					[]grant.Grant{},
-					balance.Map{}, 0, recurrence.Period{
+					balance.Map{}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 30),
 					})
@@ -116,7 +116,7 @@ func TestEngine(t *testing.T) {
 					{
 						BalanceAtStart: balance.Map{},
 						GrantUsages:    []engine.GrantUsage{},
-						Period: recurrence.Period{
+						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
 						},
@@ -136,7 +136,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{},
 					balance.Map{
 						grant1.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 30),
 					})
@@ -157,7 +157,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g1, g2},
 					balance.Map{
 						grant1.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 30),
 					})
@@ -174,7 +174,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{grant1},
 					balance.Map{
 						grant1.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 30),
 					})
@@ -196,7 +196,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g},
 					balance.Map{
 						g.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -219,7 +219,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g},
 					balance.Map{
 						g.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -244,7 +244,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g},
 					balance.Map{
 						g.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -274,7 +274,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g},
 					balance.Map{
 						g.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -303,7 +303,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g},
 					balance.Map{
 						g.ID: 100.0,
-					}, 0, recurrence.Period{
+					}, 0, timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -329,7 +329,7 @@ func TestEngine(t *testing.T) {
 						g.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: g.ExpiresAt,
 						To:   g.ExpiresAt.AddDate(0, 0, 5),
 					})
@@ -358,7 +358,7 @@ func TestEngine(t *testing.T) {
 						g.ID: 0.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1.AddDate(0, 0, -1),
 						To:   t1.AddDate(0, 0, 1),
 					})
@@ -397,7 +397,7 @@ func TestEngine(t *testing.T) {
 						g2.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1),
 					})
@@ -430,7 +430,7 @@ func TestEngine(t *testing.T) {
 						g2.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1),
 					})
@@ -463,7 +463,7 @@ func TestEngine(t *testing.T) {
 						g2.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1),
 					})
@@ -519,7 +519,7 @@ func TestEngine(t *testing.T) {
 					grants,
 					bm,
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1),
 					})
@@ -541,8 +541,8 @@ func TestEngine(t *testing.T) {
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
 				g1.EffectiveAt = t1
-				g1.Recurrence = &recurrence.Recurrence{
-					Interval: recurrence.RecurrencePeriodDaily,
+				g1.Recurrence = &timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodDaily,
 					Anchor:   t1,
 				}
 				g1 = makeGrant(g1)
@@ -554,7 +554,7 @@ func TestEngine(t *testing.T) {
 						g1.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
@@ -586,8 +586,8 @@ func TestEngine(t *testing.T) {
 				g2 := grant2
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
-				g2.Recurrence = &recurrence.Recurrence{
-					Interval: recurrence.RecurrencePeriodWeek,
+				g2.Recurrence = &timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodWeek,
 					Anchor:   tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -600,7 +600,7 @@ func TestEngine(t *testing.T) {
 						g2.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 10), // right after recurrence
 					})
@@ -634,8 +634,8 @@ func TestEngine(t *testing.T) {
 				g2 := grant2
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
-				g2.Recurrence = &recurrence.Recurrence{
-					Interval: recurrence.RecurrencePeriodWeek,
+				g2.Recurrence = &timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodWeek,
 					Anchor:   tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -648,7 +648,7 @@ func TestEngine(t *testing.T) {
 						g2.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 10).Add(-time.Hour), // right before recurrence
 					})
@@ -689,8 +689,8 @@ func TestEngine(t *testing.T) {
 				// so they dont expire
 				g2.Expiration.Count = 2
 				g2.Expiration.Duration = grant.ExpirationPeriodDurationMonth
-				g2.Recurrence = &recurrence.Recurrence{
-					Interval: recurrence.RecurrencePeriodWeek,
+				g2.Recurrence = &timeutil.Recurrence{
+					Interval: timeutil.RecurrencePeriodWeek,
 					Anchor:   tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -703,7 +703,7 @@ func TestEngine(t *testing.T) {
 						g2.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: start,
 						To:   end,
 					})
@@ -769,7 +769,7 @@ func TestEngine(t *testing.T) {
 						g3.ID: 100.0,
 					},
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: start,
 						To:   end,
 					})
@@ -874,7 +874,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g1, g2},
 					startingBalance,
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: start,
 						To:   intermediate,
 					})
@@ -886,7 +886,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g1, g2},
 					intermediateBalance,
 					overage,
-					recurrence.Period{
+					timeutil.Period{
 						From: intermediate,
 						To:   end,
 					})
@@ -898,7 +898,7 @@ func TestEngine(t *testing.T) {
 					[]grant.Grant{g1, g2},
 					startingBalance,
 					0,
-					recurrence.Period{
+					timeutil.Period{
 						From: start,
 						To:   end,
 					})
@@ -939,8 +939,8 @@ func TestEngine(t *testing.T) {
 					}
 
 					if gofakeit.Bool() {
-						grant.Recurrence = &recurrence.Recurrence{
-							Interval: recurrence.RecurrencePeriodDaily,
+						grant.Recurrence = &timeutil.Recurrence{
+							Interval: timeutil.RecurrencePeriodDaily,
 							Anchor:   gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
@@ -971,7 +971,7 @@ func TestEngine(t *testing.T) {
 					result, _, _, err := engine.Run(
 						context.Background(),
 						gCp, balances, 0,
-						recurrence.Period{
+						timeutil.Period{
 							From: start,
 							To:   end,
 						})
@@ -1025,8 +1025,8 @@ func TestEngine(t *testing.T) {
 					}
 
 					if gofakeit.Bool() {
-						grant.Recurrence = &recurrence.Recurrence{
-							Interval: recurrence.RecurrencePeriodDaily,
+						grant.Recurrence = &timeutil.Recurrence{
+							Interval: timeutil.RecurrencePeriodDaily,
 							Anchor:   gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
@@ -1054,7 +1054,7 @@ func TestEngine(t *testing.T) {
 				singleEngineResult, _, _, err := singleEngine.Run(
 					context.Background(),
 					gCp, startingBalances, 0,
-					recurrence.Period{
+					timeutil.Period{
 						From: start,
 						To:   end,
 					})
@@ -1070,7 +1070,7 @@ func TestEngine(t *testing.T) {
 				runLength := end.Sub(start) / time.Duration(numOfEngines)
 				overage := 0.0
 
-				// periods := make([]recurrence.Period, 0, numOfEngines)
+				// periods := make([]timeutil.Period, 0, numOfEngines)
 
 				for i := 0; i < numOfEngines; i++ {
 					// get period end by even distribution
@@ -1079,7 +1079,7 @@ func TestEngine(t *testing.T) {
 						pEnd = end
 					}
 
-					// periods = append(periods, recurrence.Period{
+					// periods = append(periods, timeutil.Period{
 					// 	From: pStart,
 					// 	To:   pEnd,
 					// })
@@ -1093,7 +1093,7 @@ func TestEngine(t *testing.T) {
 					balances, overage, _, err = engine.Run(
 						context.Background(),
 						gCp, balances, overage,
-						recurrence.Period{
+						timeutil.Period{
 							From: pStart,
 							To:   pEnd,
 						})

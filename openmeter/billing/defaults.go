@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 const (
@@ -15,12 +15,12 @@ const (
 var DefaultWorkflowConfig = WorkflowConfig{
 	Collection: CollectionConfig{
 		Alignment: AlignmentKindSubscription,
-		Interval:  lo.Must(datex.ISOString("PT2H").Parse()),
+		Interval:  lo.Must(isodate.String("PT2H").Parse()),
 	},
 	Invoicing: InvoicingConfig{
 		AutoAdvance:        true,
-		DraftPeriod:        lo.Must(datex.ISOString("P1D").Parse()),
-		DueAfter:           lo.Must(datex.ISOString("P1W").Parse()),
+		DraftPeriod:        lo.Must(isodate.String("P1D").Parse()),
+		DueAfter:           lo.Must(isodate.String("P1W").Parse()),
 		ProgressiveBilling: false,
 		DefaultTaxConfig:   nil,
 	},

@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Fetches the last valid snapshot for an owner.
@@ -63,7 +63,7 @@ func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, o
 
 // Builds the engine for a given owner caching the period boundaries for the given range (queryBounds).
 // As QueryUsageFn is frequently called, getting the CurrentUsagePeriodStartTime during it's execution would impact performance, so we cache all possible values during engine building.
-func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.NamespacedOwner, queryBounds recurrence.Period) (engine.Engine, error) {
+func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.NamespacedOwner, queryBounds timeutil.Period) (engine.Engine, error) {
 	// Let's validate the parameters
 	if queryBounds.From.IsZero() || queryBounds.To.IsZero() {
 		return nil, fmt.Errorf("query bounds must have both from and to set")
@@ -98,7 +98,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 
 	if len(periodCache) == 0 {
 		// If we didn't have at least 2 different timestamps, we need to create a period from the first start time and the bound
-		periodCache = []recurrence.Period{{From: firstPeriodStart, To: queryBounds.To}}
+		periodCache = []timeutil.Period{{From: firstPeriodStart, To: queryBounds.To}}
 	}
 
 	// Let's write a function that replaces GetUsagePeriodStartAt with a cache lookup
@@ -263,7 +263,7 @@ func (m *connector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *b
 }
 
 // Returns a list of non-overlapping periods between the sorted times.
-func SortedPeriodsFromDedupedTimes(ts []time.Time) []recurrence.Period {
+func SortedPeriodsFromDedupedTimes(ts []time.Time) []timeutil.Period {
 	times := lo.UniqBy(ts, func(t time.Time) int64 {
 		// We unique by unixnano because time.Time == time.Time comparison is finicky
 		return t.UnixNano()
@@ -278,9 +278,9 @@ func SortedPeriodsFromDedupedTimes(ts []time.Time) []recurrence.Period {
 		return times[i].Before(times[j])
 	})
 
-	periods := make([]recurrence.Period, 0, len(times)-1)
+	periods := make([]timeutil.Period, 0, len(times)-1)
 	for i := 1; i < len(times); i++ {
-		periods = append(periods, recurrence.Period{From: times[i-1], To: times[i]})
+		periods = append(periods, timeutil.Period{From: times[i-1], To: times[i]})
 	}
 
 	return periods

@@ -8,8 +8,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -66,7 +66,7 @@ type CreateSubscriptionPhaseEntityInput struct {
 	Description *string `json:"description,omitempty"`
 
 	// StartAfter
-	StartAfter datex.Period `json:"interval"`
+	StartAfter isodate.Period `json:"interval"`
 }
 
 func (i CreateSubscriptionPhaseEntityInput) Equal(other CreateSubscriptionPhaseEntityInput) bool {
@@ -88,8 +88,8 @@ type CreateSubscriptionItemEntityInput struct {
 	models.NamespacedModel
 	models.AnnotatedModel
 
-	ActiveFromOverrideRelativeToPhaseStart *datex.Period
-	ActiveToOverrideRelativeToPhaseStart   *datex.Period
+	ActiveFromOverrideRelativeToPhaseStart *isodate.Period
+	ActiveToOverrideRelativeToPhaseStart   *isodate.Period
 
 	models.CadencedModel
 

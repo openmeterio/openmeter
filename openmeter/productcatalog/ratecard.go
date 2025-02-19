@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -34,7 +34,7 @@ type RateCard interface {
 	Feature() *feature.Feature
 	Key() string
 	Merge(RateCard) error
-	GetBillingCadence() *datex.Period
+	GetBillingCadence() *isodate.Period
 }
 
 type RateCardSerde struct {
@@ -151,10 +151,10 @@ type FlatFeeRateCard struct {
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// When nil (null) it means it is a one time fee.
 	// Example: "P1D12H"
-	BillingCadence *datex.Period `json:"billingCadence"`
+	BillingCadence *isodate.Period `json:"billingCadence"`
 }
 
-func (r *FlatFeeRateCard) GetBillingCadence() *datex.Period {
+func (r *FlatFeeRateCard) GetBillingCadence() *isodate.Period {
 	return r.BillingCadence
 }
 
@@ -224,7 +224,7 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 
 		// Billing Cadence has to be at least 1 ohur
-		if per, err := r.BillingCadence.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
 		}
 	}
@@ -239,10 +239,10 @@ type UsageBasedRateCard struct {
 
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
-	BillingCadence datex.Period `json:"billingCadence"`
+	BillingCadence isodate.Period `json:"billingCadence"`
 }
 
-func (r *UsageBasedRateCard) GetBillingCadence() *datex.Period {
+func (r *UsageBasedRateCard) GetBillingCadence() *isodate.Period {
 	return &r.BillingCadence
 }
 
@@ -311,7 +311,7 @@ func (r *UsageBasedRateCard) Validate() error {
 	}
 
 	// Billing Cadence has to be at least 1 ohur
-	if per, err := r.BillingCadence.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+	if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 		errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
 	}
 

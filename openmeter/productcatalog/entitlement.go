@@ -8,8 +8,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/hasher"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -248,7 +248,7 @@ type MeteredEntitlementTemplate struct {
 	// UsagePeriod defines the interval of the entitlement in ISO8601 format.
 	// Defaults to the billing cadence of the rate card.
 	// Example: "P1D12H"
-	UsagePeriod datex.Period `json:"usagePeriod,omitempty"`
+	UsagePeriod isodate.Period `json:"usagePeriod,omitempty"`
 }
 
 func (t *MeteredEntitlementTemplate) Equal(v *MeteredEntitlementTemplate) bool {
@@ -315,7 +315,7 @@ func (t *MeteredEntitlementTemplate) Validate() error {
 		return NewValidationError(errors.New("UsagePeriod must be positive"))
 	}
 
-	hour := datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
 	if diff, err := t.UsagePeriod.Subtract(hour); err == nil && diff.Sign() == -1 {
 		return NewValidationError(errors.New("UsagePeriod must be at least 1 hour"))
 	}

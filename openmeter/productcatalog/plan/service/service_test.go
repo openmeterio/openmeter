@@ -23,7 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -622,10 +622,10 @@ func TestPlanService(t *testing.T) {
 }
 
 var (
-	MonthPeriod      = datex.FromDuration(30 * 24 * time.Hour)
-	TwoMonthPeriod   = datex.FromDuration(60 * 24 * time.Hour)
-	ThreeMonthPeriod = datex.FromDuration(90 * 24 * time.Hour)
-	SixMonthPeriod   = datex.FromDuration(180 * 24 * time.Hour)
+	MonthPeriod      = isodate.FromDuration(30 * 24 * time.Hour)
+	TwoMonthPeriod   = isodate.FromDuration(60 * 24 * time.Hour)
+	ThreeMonthPeriod = isodate.FromDuration(90 * 24 * time.Hour)
+	SixMonthPeriod   = isodate.FromDuration(180 * 24 * time.Hour)
 )
 
 func NewProPlan(t *testing.T, namespace string) plan.CreatePlanInput {

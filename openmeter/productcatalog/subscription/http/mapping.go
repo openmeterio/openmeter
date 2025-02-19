@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -76,19 +76,19 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionAddPhase: %w", err)
 		}
 
-		var sa datex.Period
+		var sa isodate.Period
 		if apiP.Phase.StartAfter != nil {
-			saStr := datex.ISOString(*apiP.Phase.StartAfter)
+			saStr := isodate.String(*apiP.Phase.StartAfter)
 			sa, err = saStr.Parse()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse start after: %w", err)
 			}
 		}
 
-		var dur *datex.Period
+		var dur *isodate.Period
 
 		if apiP.Phase.Duration != nil {
-			dS := datex.ISOString(*apiP.Phase.Duration)
+			dS := isodate.String(*apiP.Phase.Duration)
 			d, err := dS.Parse()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse duration: %w", err)
@@ -142,7 +142,7 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			return nil, fmt.Errorf("failed to cast to EditSubscriptionStretchPhase: %w", err)
 		}
 
-		durStr := datex.ISOString(apiP.ExtendBy)
+		durStr := isodate.String(apiP.ExtendBy)
 		d, err := durStr.Parse()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse duration: %w", err)

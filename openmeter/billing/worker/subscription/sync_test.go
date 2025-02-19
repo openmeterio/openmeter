@@ -40,7 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -280,7 +280,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 								Name:    s.APIRequestsTotalFeature.Key,
 								Feature: &s.APIRequestsTotalFeature,
 							},
-							BillingCadence: datex.MustParse(s.T(), "P1M"),
+							BillingCadence: isodate.MustParse(s.T(), "P1M"),
 						},
 					},
 				},
@@ -301,7 +301,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
 							},
-							BillingCadence: datex.MustParse(s.T(), "P1M"),
+							BillingCadence: isodate.MustParse(s.T(), "P1M"),
 						},
 					},
 				},
@@ -321,7 +321,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
 							},
-							BillingCadence: datex.MustParse(s.T(), "P1M"),
+							BillingCadence: isodate.MustParse(s.T(), "P1M"),
 						},
 					},
 				},
@@ -353,7 +353,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	s.NotNil(subsView)
 
 	freeTierPhase := getPhaseByKey(s.T(), subsView, "free-trial")
-	s.Equal(lo.ToPtr(datex.MustParse(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.BillingCadence)
+	s.Equal(lo.ToPtr(isodate.MustParse(s.T(), "P1M")), freeTierPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].Spec.RateCard.BillingCadence)
 
 	discountedPhase := getPhaseByKey(s.T(), subsView, "discounted-phase")
 	var gatheringInvoiceID billing.InvoiceID
@@ -619,7 +619,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
 							},
-							BillingCadence: datex.MustParse(s.T(), "P1D"),
+							BillingCadence: isodate.MustParse(s.T(), "P1D"),
 						},
 					},
 				},
@@ -757,7 +757,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -780,7 +780,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -834,7 +834,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -857,7 +857,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -930,7 +930,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 							PaymentTerm: productcatalog.InArrearsPaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -953,7 +953,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1027,7 +1027,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -1050,7 +1050,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncBillableAmountP
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1124,7 +1124,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -1178,7 +1178,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1263,7 +1263,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -1321,7 +1321,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1809,7 +1809,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -1843,7 +1843,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datex.MustParse(s.T(), "P1DT12H"),
+					StartAfter: isodate.MustParse(s.T(), "P1DT12H"),
 				},
 			},
 		},
@@ -1854,7 +1854,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdate() {
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -1943,7 +1943,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2009,7 +2009,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datex.MustParse(s.T(), "PT12H"),
+					StartAfter: isodate.MustParse(s.T(), "PT12H"),
 				},
 			},
 		},
@@ -2020,7 +2020,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -2118,7 +2118,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2173,7 +2173,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datex.MustParse(s.T(), "PT12H"),
+					StartAfter: isodate.MustParse(s.T(), "PT12H"),
 				},
 			},
 		},
@@ -2184,7 +2184,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -2271,7 +2271,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 							Amount: alpacadecimal.NewFromFloat(10),
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2386,7 +2386,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "second-phase",
 					Name:       "second-phase",
-					StartAfter: datex.MustParse(s.T(), "PT6H"),
+					StartAfter: isodate.MustParse(s.T(), "PT6H"),
 				},
 			},
 		},
@@ -2397,7 +2397,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),
 			FeatureKey:     s.APIRequestsTotalFeature.Key,
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 
@@ -2501,7 +2501,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2572,7 +2572,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 						}),
 						Feature: &s.APIRequestsTotalFeature,
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2672,7 +2672,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2745,7 +2745,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 						}),
 						Feature: &s.APIRequestsTotalFeature,
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2860,7 +2860,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 						}),
 						TaxConfig: taxConfig,
 					},
-					BillingCadence: datex.MustParse(s.T(), "P1D"),
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
 				},
 			},
 		},
@@ -2891,7 +2891,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
 			TaxConfig:      taxConfig,
-			BillingCadence: lo.ToPtr(datex.MustParse(s.T(), "P1D")),
+			BillingCadence: lo.ToPtr(isodate.MustParse(s.T(), "P1D")),
 		}.AsPatch(),
 	}, s.timingImmediate())
 	s.NoError(err)
@@ -3015,7 +3015,7 @@ func (s *SubscriptionHandlerTestSuite) phaseMeta(key string, duration string) pr
 	}
 
 	if duration != "" {
-		out.Duration = lo.ToPtr(datex.MustParse(s.T(), duration))
+		out.Duration = lo.ToPtr(isodate.MustParse(s.T(), duration))
 	}
 
 	return out
@@ -3038,7 +3038,7 @@ type subscriptionAddItem struct {
 	PhaseKey       string
 	ItemKey        string
 	Price          *productcatalog.Price
-	BillingCadence *datex.Period
+	BillingCadence *isodate.Period
 	FeatureKey     string
 	TaxConfig      *productcatalog.TaxConfig
 }
@@ -3068,7 +3068,7 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 func (s *SubscriptionHandlerTestSuite) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
 	start := s.mustParseTime(startStr)
 	end := s.mustParseTime(endStr)
-	cadence := datex.MustParse(s.T(), cadenceStr)
+	cadence := isodate.MustParse(s.T(), cadenceStr)
 
 	out := []billing.Period{}
 
@@ -3092,7 +3092,7 @@ func (s *SubscriptionHandlerTestSuite) generatePeriods(startStr, endStr string, 
 
 func (s *SubscriptionHandlerTestSuite) generateDailyTimestamps(startStr string, n int) []time.Time {
 	start := s.mustParseTime(startStr)
-	cadence := datex.MustParse(s.T(), "P1D")
+	cadence := isodate.MustParse(s.T(), "P1D")
 
 	out := []time.Time{}
 

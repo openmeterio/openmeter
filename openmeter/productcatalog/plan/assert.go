@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func AssertPlanCreateInputEqual(t *testing.T, i CreatePlanInput, p Plan) {
@@ -198,7 +198,7 @@ func AssertRateCardEqual(t *testing.T, r1, r2 productcatalog.RateCard) {
 
 	assert.Truef(t, m1.Price.Equal(m2.Price), "price mismatch")
 
-	var billingCadence1, billingCadence2 datex.Period
+	var billingCadence1, billingCadence2 isodate.Period
 
 	switch vv := r1.(type) {
 	case *productcatalog.FlatFeeRateCard:

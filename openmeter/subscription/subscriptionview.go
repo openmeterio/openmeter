@@ -12,9 +12,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SubscriptionView struct {
@@ -189,7 +189,7 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement %s preserveOverageAtReset does not match template preserveOverageAtReset", s.Entitlement.Entitlement.ID)
 			}
 
-			upRec, err := recurrence.FromISODuration(&e.UsagePeriod, mEnt.UsagePeriod.Anchor)
+			upRec, err := timeutil.FromISODuration(&e.UsagePeriod, mEnt.UsagePeriod.Anchor)
 			if err != nil {
 				return fmt.Errorf("failed to convert Item %s EntitlementTemplate UsagePeriod ISO duration to Recurrence: %w", s.SubscriptionItem.Key, err)
 			}
@@ -274,7 +274,7 @@ func NewSubscriptionView(
 			return nil, fmt.Errorf("phase %s is duplicated", phase.Key)
 		}
 
-		phaseStartAfter := datex.Between(sub.ActiveFrom, phase.ActiveFrom)
+		phaseStartAfter := isodate.Between(sub.ActiveFrom, phase.ActiveFrom)
 
 		phaseSpec := SubscriptionPhaseSpec{
 			CreateSubscriptionPhasePlanInput: CreateSubscriptionPhasePlanInput{

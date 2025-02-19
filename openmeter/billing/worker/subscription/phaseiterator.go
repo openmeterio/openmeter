@@ -15,8 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
-	"github.com/openmeterio/openmeter/pkg/timex"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // timeInfinity is a big enough time that we can use to represent infinity (biggest possible date for our system)
@@ -189,7 +188,7 @@ func (it *PhaseIterator) generateAligned(iterationEnd time.Time) ([]subscription
 				}
 
 				// Period otherwise is truncated by activeFrom and activeTo times
-				period := recurrence.Period{
+				period := timeutil.Period{
 					From: nonTruncatedPeriod.From,
 					To:   nonTruncatedPeriod.To,
 				}
@@ -262,7 +261,7 @@ func (it *PhaseIterator) generate(iterationEnd time.Time) ([]subscriptionItemWit
 	out := []subscriptionItemWithPeriod{}
 	for _, itemsByKey := range it.phase.ItemsByKey {
 		slices.SortFunc(itemsByKey, func(i, j subscription.SubscriptionItemView) int {
-			return timex.Compare(i.SubscriptionItem.ActiveFrom, j.SubscriptionItem.ActiveFrom)
+			return timeutil.Compare(i.SubscriptionItem.ActiveFrom, j.SubscriptionItem.ActiveFrom)
 		})
 
 		for versionID, item := range itemsByKey {

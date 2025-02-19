@@ -1,7 +1,7 @@
 package subscriptiontestutils
 
-import "github.com/openmeterio/openmeter/pkg/datex"
+import "github.com/openmeterio/openmeter/pkg/isodate"
 
 var ExampleNamespace = "test-namespace"
 
-var ISOMonth, _ = datex.ISOString("P1M").Parse()
+var ISOMonth, _ = isodate.String("P1M").Parse()

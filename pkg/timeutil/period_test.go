@@ -1,4 +1,4 @@
-package recurrence_test
+package timeutil_test
 
 import (
 	"testing"
@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestPeriod(t *testing.T) {
 	startTime := testutils.GetRFC3339Time(t, "2021-01-01T01:00:00Z")
 	endTime := testutils.GetRFC3339Time(t, "2021-01-01T02:00:00Z")
 
-	period := recurrence.Period{
+	period := timeutil.Period{
 		From: startTime,
 		To:   endTime,
 	}

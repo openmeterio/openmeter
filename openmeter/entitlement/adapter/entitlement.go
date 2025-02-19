@@ -22,8 +22,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type entitlementDBAdapter struct {
@@ -451,12 +451,12 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 
 		ent.UsagePeriod = &entitlement.UsagePeriod{
 			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
-			Interval: recurrence.RecurrenceInterval{Period: parsed},
+			Interval: timeutil.RecurrenceInterval{Period: parsed},
 		}
 	}
 
 	if e.CurrentUsagePeriodEnd != nil && e.CurrentUsagePeriodStart != nil {
-		ent.CurrentUsagePeriod = &recurrence.Period{
+		ent.CurrentUsagePeriod = &timeutil.Period{
 			From: e.CurrentUsagePeriodStart.In(time.UTC),
 			To:   e.CurrentUsagePeriodEnd.In(time.UTC),
 		}

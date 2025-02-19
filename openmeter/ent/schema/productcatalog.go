@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent/schema/mixin"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type Plan struct {
@@ -80,7 +80,7 @@ func (PlanPhase) Fields() []ent.Field {
 		field.Uint8("index").
 			Comment("The index of the phase in the plan."),
 		field.String("duration").
-			GoType(datex.ISOString("")).
+			GoType(isodate.String("")).
 			Optional().
 			Nillable().
 			Comment("The duration of the phase."),
@@ -159,7 +159,7 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("billing_cadence").
-			GoType(datex.ISOString("")).
+			GoType(isodate.String("")).
 			Optional().
 			Nillable(),
 		field.String("price").

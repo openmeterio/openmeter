@@ -14,9 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -683,7 +683,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updatedWorkfl
 	if updatedWorkflow.Workflow.Invoicing.DraftPeriod == nil {
 		existing.Config.Invoicing.DraftPeriod = billing.DefaultWorkflowConfig.Invoicing.DraftPeriod
 	} else {
-		period, err := datex.ISOString(*updatedWorkflow.Workflow.Invoicing.DraftPeriod).Parse()
+		period, err := isodate.String(*updatedWorkflow.Workflow.Invoicing.DraftPeriod).Parse()
 		if err != nil {
 			return existing, billing.ValidationError{
 				Err: fmt.Errorf("failed to parse draft period: %w", err),
@@ -696,7 +696,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updatedWorkfl
 	if updatedWorkflow.Workflow.Invoicing.DueAfter == nil {
 		existing.Config.Invoicing.DueAfter = billing.DefaultWorkflowConfig.Invoicing.DueAfter
 	} else {
-		period, err := datex.ISOString(*updatedWorkflow.Workflow.Invoicing.DueAfter).Parse()
+		period, err := isodate.String(*updatedWorkflow.Workflow.Invoicing.DueAfter).Parse()
 		if err != nil {
 			return existing, billing.ValidationError{
 				Err: fmt.Errorf("failed to parse due after: %w", err),

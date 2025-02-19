@@ -13,10 +13,10 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -407,12 +407,12 @@ func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billing.Workflow
 	return fromAPIBillingWorkflow(api.BillingWorkflow(i))
 }
 
-func parseDurationPtr(d *string, defaultDuration datex.Period) (datex.Period, error) {
+func parseDurationPtr(d *string, defaultDuration isodate.Period) (isodate.Period, error) {
 	if d == nil {
 		return defaultDuration, nil
 	}
 
-	return datex.ISOString(*d).Parse()
+	return isodate.String(*d).Parse()
 }
 
 func (h *handler) MapProfileToApi(p *billing.Profile) (api.BillingProfile, error) {

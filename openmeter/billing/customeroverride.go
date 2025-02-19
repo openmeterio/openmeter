@@ -6,7 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type CustomerOverride struct {
@@ -60,8 +60,8 @@ func (c CustomerOverride) Validate() error {
 }
 
 type CollectionOverrideConfig struct {
-	Alignment *AlignmentKind `json:"alignment,omitempty"`
-	Interval  *datex.Period  `json:"interval,omitempty"`
+	Alignment *AlignmentKind  `json:"alignment,omitempty"`
+	Interval  *isodate.Period `json:"interval,omitempty"`
 }
 
 func (c *CollectionOverrideConfig) Validate() error {
@@ -78,8 +78,8 @@ func (c *CollectionOverrideConfig) Validate() error {
 
 type InvoicingOverrideConfig struct {
 	AutoAdvance        *bool                     `json:"autoAdvance,omitempty"`
-	DraftPeriod        *datex.Period             `json:"draftPeriod,omitempty"`
-	DueAfter           *datex.Period             `json:"dueAfter,omitempty"`
+	DraftPeriod        *isodate.Period           `json:"draftPeriod,omitempty"`
+	DueAfter           *isodate.Period           `json:"dueAfter,omitempty"`
 	ProgressiveBilling *bool                     `json:"progressiveBilling,omitempty"`
 	DefaultTaxConfig   *productcatalog.TaxConfig `json:"defaultTaxConfig,omitempty"`
 }

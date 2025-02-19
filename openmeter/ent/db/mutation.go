@@ -52,7 +52,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -5009,10 +5009,10 @@ type BillingCustomerOverrideMutation struct {
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
 	collection_alignment        *billing.AlignmentKind
-	line_collection_period      *datex.ISOString
+	line_collection_period      *isodate.String
 	invoice_auto_advance        *bool
-	invoice_draft_period        *datex.ISOString
-	invoice_due_after           *datex.ISOString
+	invoice_draft_period        *isodate.String
+	invoice_due_after           *isodate.String
 	invoice_collection_method   *billing.CollectionMethod
 	invoice_progressive_billing *bool
 	invoice_default_tax_config  *productcatalog.TaxConfig
@@ -5422,12 +5422,12 @@ func (m *BillingCustomerOverrideMutation) ResetCollectionAlignment() {
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (m *BillingCustomerOverrideMutation) SetLineCollectionPeriod(ds datex.ISOString) {
-	m.line_collection_period = &ds
+func (m *BillingCustomerOverrideMutation) SetLineCollectionPeriod(i isodate.String) {
+	m.line_collection_period = &i
 }
 
 // LineCollectionPeriod returns the value of the "line_collection_period" field in the mutation.
-func (m *BillingCustomerOverrideMutation) LineCollectionPeriod() (r datex.ISOString, exists bool) {
+func (m *BillingCustomerOverrideMutation) LineCollectionPeriod() (r isodate.String, exists bool) {
 	v := m.line_collection_period
 	if v == nil {
 		return
@@ -5438,7 +5438,7 @@ func (m *BillingCustomerOverrideMutation) LineCollectionPeriod() (r datex.ISOStr
 // OldLineCollectionPeriod returns the old "line_collection_period" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldLineCollectionPeriod(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *BillingCustomerOverrideMutation) OldLineCollectionPeriod(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldLineCollectionPeriod is only allowed on UpdateOne operations")
 	}
@@ -5520,12 +5520,12 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceAutoAdvance() {
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriod(ds datex.ISOString) {
-	m.invoice_draft_period = &ds
+func (m *BillingCustomerOverrideMutation) SetInvoiceDraftPeriod(i isodate.String) {
+	m.invoice_draft_period = &i
 }
 
 // InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriod() (r datex.ISOString, exists bool) {
+func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriod() (r isodate.String, exists bool) {
 	v := m.invoice_draft_period
 	if v == nil {
 		return
@@ -5536,7 +5536,7 @@ func (m *BillingCustomerOverrideMutation) InvoiceDraftPeriod() (r datex.ISOStrin
 // OldInvoiceDraftPeriod returns the old "invoice_draft_period" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDraftPeriod(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *BillingCustomerOverrideMutation) OldInvoiceDraftPeriod(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceDraftPeriod is only allowed on UpdateOne operations")
 	}
@@ -5569,12 +5569,12 @@ func (m *BillingCustomerOverrideMutation) ResetInvoiceDraftPeriod() {
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfter(ds datex.ISOString) {
-	m.invoice_due_after = &ds
+func (m *BillingCustomerOverrideMutation) SetInvoiceDueAfter(i isodate.String) {
+	m.invoice_due_after = &i
 }
 
 // InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
-func (m *BillingCustomerOverrideMutation) InvoiceDueAfter() (r datex.ISOString, exists bool) {
+func (m *BillingCustomerOverrideMutation) InvoiceDueAfter() (r isodate.String, exists bool) {
 	v := m.invoice_due_after
 	if v == nil {
 		return
@@ -5585,7 +5585,7 @@ func (m *BillingCustomerOverrideMutation) InvoiceDueAfter() (r datex.ISOString, 
 // OldInvoiceDueAfter returns the old "invoice_due_after" field's value of the BillingCustomerOverride entity.
 // If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingCustomerOverrideMutation) OldInvoiceDueAfter(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *BillingCustomerOverrideMutation) OldInvoiceDueAfter(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceDueAfter is only allowed on UpdateOne operations")
 	}
@@ -6027,7 +6027,7 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		m.SetCollectionAlignment(v)
 		return nil
 	case billingcustomeroverride.FieldLineCollectionPeriod:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -6041,14 +6041,14 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 		m.SetInvoiceAutoAdvance(v)
 		return nil
 	case billingcustomeroverride.FieldInvoiceDraftPeriod:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceDraftPeriod(v)
 		return nil
 	case billingcustomeroverride.FieldInvoiceDueAfter:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -19814,10 +19814,10 @@ type BillingWorkflowConfigMutation struct {
 	updated_at                   *time.Time
 	deleted_at                   *time.Time
 	collection_alignment         *billing.AlignmentKind
-	line_collection_period       *datex.ISOString
+	line_collection_period       *isodate.String
 	invoice_auto_advance         *bool
-	invoice_draft_period         *datex.ISOString
-	invoice_due_after            *datex.ISOString
+	invoice_draft_period         *isodate.String
+	invoice_due_after            *isodate.String
 	invoice_collection_method    *billing.CollectionMethod
 	invoice_progressive_billing  *bool
 	invoice_default_tax_settings *productcatalog.TaxConfig
@@ -20129,12 +20129,12 @@ func (m *BillingWorkflowConfigMutation) ResetCollectionAlignment() {
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (m *BillingWorkflowConfigMutation) SetLineCollectionPeriod(ds datex.ISOString) {
-	m.line_collection_period = &ds
+func (m *BillingWorkflowConfigMutation) SetLineCollectionPeriod(i isodate.String) {
+	m.line_collection_period = &i
 }
 
 // LineCollectionPeriod returns the value of the "line_collection_period" field in the mutation.
-func (m *BillingWorkflowConfigMutation) LineCollectionPeriod() (r datex.ISOString, exists bool) {
+func (m *BillingWorkflowConfigMutation) LineCollectionPeriod() (r isodate.String, exists bool) {
 	v := m.line_collection_period
 	if v == nil {
 		return
@@ -20145,7 +20145,7 @@ func (m *BillingWorkflowConfigMutation) LineCollectionPeriod() (r datex.ISOStrin
 // OldLineCollectionPeriod returns the old "line_collection_period" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldLineCollectionPeriod(ctx context.Context) (v datex.ISOString, err error) {
+func (m *BillingWorkflowConfigMutation) OldLineCollectionPeriod(ctx context.Context) (v isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldLineCollectionPeriod is only allowed on UpdateOne operations")
 	}
@@ -20201,12 +20201,12 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceAutoAdvance() {
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceDraftPeriod(ds datex.ISOString) {
-	m.invoice_draft_period = &ds
+func (m *BillingWorkflowConfigMutation) SetInvoiceDraftPeriod(i isodate.String) {
+	m.invoice_draft_period = &i
 }
 
 // InvoiceDraftPeriod returns the value of the "invoice_draft_period" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceDraftPeriod() (r datex.ISOString, exists bool) {
+func (m *BillingWorkflowConfigMutation) InvoiceDraftPeriod() (r isodate.String, exists bool) {
 	v := m.invoice_draft_period
 	if v == nil {
 		return
@@ -20217,7 +20217,7 @@ func (m *BillingWorkflowConfigMutation) InvoiceDraftPeriod() (r datex.ISOString,
 // OldInvoiceDraftPeriod returns the old "invoice_draft_period" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceDraftPeriod(ctx context.Context) (v datex.ISOString, err error) {
+func (m *BillingWorkflowConfigMutation) OldInvoiceDraftPeriod(ctx context.Context) (v isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceDraftPeriod is only allowed on UpdateOne operations")
 	}
@@ -20237,12 +20237,12 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceDraftPeriod() {
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (m *BillingWorkflowConfigMutation) SetInvoiceDueAfter(ds datex.ISOString) {
-	m.invoice_due_after = &ds
+func (m *BillingWorkflowConfigMutation) SetInvoiceDueAfter(i isodate.String) {
+	m.invoice_due_after = &i
 }
 
 // InvoiceDueAfter returns the value of the "invoice_due_after" field in the mutation.
-func (m *BillingWorkflowConfigMutation) InvoiceDueAfter() (r datex.ISOString, exists bool) {
+func (m *BillingWorkflowConfigMutation) InvoiceDueAfter() (r isodate.String, exists bool) {
 	v := m.invoice_due_after
 	if v == nil {
 		return
@@ -20253,7 +20253,7 @@ func (m *BillingWorkflowConfigMutation) InvoiceDueAfter() (r datex.ISOString, ex
 // OldInvoiceDueAfter returns the old "invoice_due_after" field's value of the BillingWorkflowConfig entity.
 // If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingWorkflowConfigMutation) OldInvoiceDueAfter(ctx context.Context) (v datex.ISOString, err error) {
+func (m *BillingWorkflowConfigMutation) OldInvoiceDueAfter(ctx context.Context) (v isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceDueAfter is only allowed on UpdateOne operations")
 	}
@@ -20652,7 +20652,7 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		m.SetCollectionAlignment(v)
 		return nil
 	case billingworkflowconfig.FieldLineCollectionPeriod:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -20666,14 +20666,14 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 		m.SetInvoiceAutoAdvance(v)
 		return nil
 	case billingworkflowconfig.FieldInvoiceDraftPeriod:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceDraftPeriod(v)
 		return nil
 	case billingworkflowconfig.FieldInvoiceDueAfter:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -23494,7 +23494,7 @@ type EntitlementMutation struct {
 	preserve_overage_at_reset     *bool
 	_config                       *[]uint8
 	append_config                 []uint8
-	usage_period_interval         *datex.ISOString
+	usage_period_interval         *isodate.String
 	usage_period_anchor           *time.Time
 	current_usage_period_start    *time.Time
 	current_usage_period_end      *time.Time
@@ -24424,12 +24424,12 @@ func (m *EntitlementMutation) ResetConfig() {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (m *EntitlementMutation) SetUsagePeriodInterval(ds datex.ISOString) {
-	m.usage_period_interval = &ds
+func (m *EntitlementMutation) SetUsagePeriodInterval(i isodate.String) {
+	m.usage_period_interval = &i
 }
 
 // UsagePeriodInterval returns the value of the "usage_period_interval" field in the mutation.
-func (m *EntitlementMutation) UsagePeriodInterval() (r datex.ISOString, exists bool) {
+func (m *EntitlementMutation) UsagePeriodInterval() (r isodate.String, exists bool) {
 	v := m.usage_period_interval
 	if v == nil {
 		return
@@ -24440,7 +24440,7 @@ func (m *EntitlementMutation) UsagePeriodInterval() (r datex.ISOString, exists b
 // OldUsagePeriodInterval returns the old "usage_period_interval" field's value of the Entitlement entity.
 // If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EntitlementMutation) OldUsagePeriodInterval(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *EntitlementMutation) OldUsagePeriodInterval(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUsagePeriodInterval is only allowed on UpdateOne operations")
 	}
@@ -25246,7 +25246,7 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		m.SetConfig(v)
 		return nil
 	case entitlement.FieldUsagePeriodInterval:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -26814,7 +26814,7 @@ type GrantMutation struct {
 	addreset_max_rollover *float64
 	reset_min_rollover    *float64
 	addreset_min_rollover *float64
-	recurrence_period     *datex.ISOString
+	recurrence_period     *isodate.String
 	recurrence_anchor     *time.Time
 	clearedFields         map[string]struct{}
 	entitlement           *string
@@ -27552,12 +27552,12 @@ func (m *GrantMutation) ResetResetMinRollover() {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (m *GrantMutation) SetRecurrencePeriod(ds datex.ISOString) {
-	m.recurrence_period = &ds
+func (m *GrantMutation) SetRecurrencePeriod(i isodate.String) {
+	m.recurrence_period = &i
 }
 
 // RecurrencePeriod returns the value of the "recurrence_period" field in the mutation.
-func (m *GrantMutation) RecurrencePeriod() (r datex.ISOString, exists bool) {
+func (m *GrantMutation) RecurrencePeriod() (r isodate.String, exists bool) {
 	v := m.recurrence_period
 	if v == nil {
 		return
@@ -27568,7 +27568,7 @@ func (m *GrantMutation) RecurrencePeriod() (r datex.ISOString, exists bool) {
 // OldRecurrencePeriod returns the old "recurrence_period" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRecurrencePeriod is only allowed on UpdateOne operations")
 	}
@@ -27961,7 +27961,7 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		m.SetResetMinRollover(v)
 		return nil
 	case dbgrant.FieldRecurrencePeriod:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -32857,7 +32857,7 @@ type PlanPhaseMutation struct {
 	key              *string
 	index            *uint8
 	addindex         *int8
-	duration         *datex.ISOString
+	duration         *isodate.String
 	discounts        *[]productcatalog.Discount
 	clearedFields    map[string]struct{}
 	plan             *string
@@ -33394,12 +33394,12 @@ func (m *PlanPhaseMutation) ResetIndex() {
 }
 
 // SetDuration sets the "duration" field.
-func (m *PlanPhaseMutation) SetDuration(ds datex.ISOString) {
-	m.duration = &ds
+func (m *PlanPhaseMutation) SetDuration(i isodate.String) {
+	m.duration = &i
 }
 
 // Duration returns the value of the "duration" field in the mutation.
-func (m *PlanPhaseMutation) Duration() (r datex.ISOString, exists bool) {
+func (m *PlanPhaseMutation) Duration() (r isodate.String, exists bool) {
 	v := m.duration
 	if v == nil {
 		return
@@ -33410,7 +33410,7 @@ func (m *PlanPhaseMutation) Duration() (r datex.ISOString, exists bool) {
 // OldDuration returns the old "duration" field's value of the PlanPhase entity.
 // If the PlanPhase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanPhaseMutation) OldDuration(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *PlanPhaseMutation) OldDuration(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDuration is only allowed on UpdateOne operations")
 	}
@@ -33788,7 +33788,7 @@ func (m *PlanPhaseMutation) SetField(name string, value ent.Value) error {
 		m.SetIndex(v)
 		return nil
 	case planphase.FieldDuration:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -34058,7 +34058,7 @@ type PlanRateCardMutation struct {
 	feature_key          *string
 	entitlement_template **productcatalog.EntitlementTemplate
 	tax_config           **productcatalog.TaxConfig
-	billing_cadence      *datex.ISOString
+	billing_cadence      *isodate.String
 	price                **productcatalog.Price
 	clearedFields        map[string]struct{}
 	phase                *string
@@ -34685,12 +34685,12 @@ func (m *PlanRateCardMutation) ResetTaxConfig() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *PlanRateCardMutation) SetBillingCadence(ds datex.ISOString) {
-	m.billing_cadence = &ds
+func (m *PlanRateCardMutation) SetBillingCadence(i isodate.String) {
+	m.billing_cadence = &i
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
-func (m *PlanRateCardMutation) BillingCadence() (r datex.ISOString, exists bool) {
+func (m *PlanRateCardMutation) BillingCadence() (r isodate.String, exists bool) {
 	v := m.billing_cadence
 	if v == nil {
 		return
@@ -34701,7 +34701,7 @@ func (m *PlanRateCardMutation) BillingCadence() (r datex.ISOString, exists bool)
 // OldBillingCadence returns the old "billing_cadence" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldBillingCadence(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *PlanRateCardMutation) OldBillingCadence(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldBillingCadence is only allowed on UpdateOne operations")
 	}
@@ -35192,7 +35192,7 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		m.SetTaxConfig(v)
 		return nil
 	case planratecard.FieldBillingCadence:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -36830,14 +36830,14 @@ type SubscriptionItemMutation struct {
 	active_to                                    *time.Time
 	key                                          *string
 	restarts_billing_period                      *bool
-	active_from_override_relative_to_phase_start *datex.ISOString
-	active_to_override_relative_to_phase_start   *datex.ISOString
+	active_from_override_relative_to_phase_start *isodate.String
+	active_to_override_relative_to_phase_start   *isodate.String
 	name                                         *string
 	description                                  *string
 	feature_key                                  *string
 	entitlement_template                         **productcatalog.EntitlementTemplate
 	tax_config                                   **productcatalog.TaxConfig
-	billing_cadence                              *datex.ISOString
+	billing_cadence                              *isodate.String
 	price                                        **productcatalog.Price
 	clearedFields                                map[string]struct{}
 	phase                                        *string
@@ -37418,12 +37418,12 @@ func (m *SubscriptionItemMutation) ResetRestartsBillingPeriod() {
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (m *SubscriptionItemMutation) SetActiveFromOverrideRelativeToPhaseStart(ds datex.ISOString) {
-	m.active_from_override_relative_to_phase_start = &ds
+func (m *SubscriptionItemMutation) SetActiveFromOverrideRelativeToPhaseStart(i isodate.String) {
+	m.active_from_override_relative_to_phase_start = &i
 }
 
 // ActiveFromOverrideRelativeToPhaseStart returns the value of the "active_from_override_relative_to_phase_start" field in the mutation.
-func (m *SubscriptionItemMutation) ActiveFromOverrideRelativeToPhaseStart() (r datex.ISOString, exists bool) {
+func (m *SubscriptionItemMutation) ActiveFromOverrideRelativeToPhaseStart() (r isodate.String, exists bool) {
 	v := m.active_from_override_relative_to_phase_start
 	if v == nil {
 		return
@@ -37434,7 +37434,7 @@ func (m *SubscriptionItemMutation) ActiveFromOverrideRelativeToPhaseStart() (r d
 // OldActiveFromOverrideRelativeToPhaseStart returns the old "active_from_override_relative_to_phase_start" field's value of the SubscriptionItem entity.
 // If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionItemMutation) OldActiveFromOverrideRelativeToPhaseStart(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *SubscriptionItemMutation) OldActiveFromOverrideRelativeToPhaseStart(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldActiveFromOverrideRelativeToPhaseStart is only allowed on UpdateOne operations")
 	}
@@ -37467,12 +37467,12 @@ func (m *SubscriptionItemMutation) ResetActiveFromOverrideRelativeToPhaseStart()
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (m *SubscriptionItemMutation) SetActiveToOverrideRelativeToPhaseStart(ds datex.ISOString) {
-	m.active_to_override_relative_to_phase_start = &ds
+func (m *SubscriptionItemMutation) SetActiveToOverrideRelativeToPhaseStart(i isodate.String) {
+	m.active_to_override_relative_to_phase_start = &i
 }
 
 // ActiveToOverrideRelativeToPhaseStart returns the value of the "active_to_override_relative_to_phase_start" field in the mutation.
-func (m *SubscriptionItemMutation) ActiveToOverrideRelativeToPhaseStart() (r datex.ISOString, exists bool) {
+func (m *SubscriptionItemMutation) ActiveToOverrideRelativeToPhaseStart() (r isodate.String, exists bool) {
 	v := m.active_to_override_relative_to_phase_start
 	if v == nil {
 		return
@@ -37483,7 +37483,7 @@ func (m *SubscriptionItemMutation) ActiveToOverrideRelativeToPhaseStart() (r dat
 // OldActiveToOverrideRelativeToPhaseStart returns the old "active_to_override_relative_to_phase_start" field's value of the SubscriptionItem entity.
 // If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionItemMutation) OldActiveToOverrideRelativeToPhaseStart(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *SubscriptionItemMutation) OldActiveToOverrideRelativeToPhaseStart(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldActiveToOverrideRelativeToPhaseStart is only allowed on UpdateOne operations")
 	}
@@ -37748,12 +37748,12 @@ func (m *SubscriptionItemMutation) ResetTaxConfig() {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (m *SubscriptionItemMutation) SetBillingCadence(ds datex.ISOString) {
-	m.billing_cadence = &ds
+func (m *SubscriptionItemMutation) SetBillingCadence(i isodate.String) {
+	m.billing_cadence = &i
 }
 
 // BillingCadence returns the value of the "billing_cadence" field in the mutation.
-func (m *SubscriptionItemMutation) BillingCadence() (r datex.ISOString, exists bool) {
+func (m *SubscriptionItemMutation) BillingCadence() (r isodate.String, exists bool) {
 	v := m.billing_cadence
 	if v == nil {
 		return
@@ -37764,7 +37764,7 @@ func (m *SubscriptionItemMutation) BillingCadence() (r datex.ISOString, exists b
 // OldBillingCadence returns the old "billing_cadence" field's value of the SubscriptionItem entity.
 // If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionItemMutation) OldBillingCadence(ctx context.Context) (v *datex.ISOString, err error) {
+func (m *SubscriptionItemMutation) OldBillingCadence(ctx context.Context) (v *isodate.String, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldBillingCadence is only allowed on UpdateOne operations")
 	}
@@ -38232,14 +38232,14 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		m.SetRestartsBillingPeriod(v)
 		return nil
 	case subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetActiveFromOverrideRelativeToPhaseStart(v)
 		return nil
 	case subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -38281,7 +38281,7 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		m.SetTaxConfig(v)
 		return nil
 	case subscriptionitem.FieldBillingCadence:
-		v, ok := value.(datex.ISOString)
+		v, ok := value.(isodate.String)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

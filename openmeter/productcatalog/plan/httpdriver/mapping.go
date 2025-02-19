@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -459,7 +459,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		},
 	}
 
-	phase.Duration, err = (*datex.ISOString)(a.Duration).ParsePtrOrNil()
+	phase.Duration, err = (*isodate.String)(a.Duration).ParsePtrOrNil()
 	if err != nil {
 		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
 	}
@@ -551,7 +551,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.BillingCadence != nil {
-		isoString := datex.ISOString(*flat.BillingCadence)
+		isoString := isodate.String(*flat.BillingCadence)
 		rc.BillingCadence, err = isoString.ParsePtrOrNil()
 		if err != nil {
 			return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
@@ -618,7 +618,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 		},
 	}
 
-	isoString := datex.ISOString(usage.BillingCadence)
+	isoString := isodate.String(usage.BillingCadence)
 	rc.BillingCadence, err = isoString.Parse()
 	if err != nil {
 		return rc, fmt.Errorf("failed to cast BillingCadence: %w", err)
@@ -815,7 +815,7 @@ func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
 	return tier, nil
 }
 
-func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datex.Period) (*productcatalog.EntitlementTemplate, error) {
+func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Period) (*productcatalog.EntitlementTemplate, error) {
 	tmpl := &productcatalog.EntitlementTemplate{}
 
 	eType, err := e.Discriminator()
@@ -830,10 +830,10 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datex.Peri
 			return nil, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
 		}
 
-		var usagePeriod datex.Period
+		var usagePeriod isodate.Period
 
 		if metered.UsagePeriod != nil {
-			usagePeriodISO := datex.ISOString(lo.FromPtr(metered.UsagePeriod))
+			usagePeriodISO := isodate.String(lo.FromPtr(metered.UsagePeriod))
 
 			if usagePeriod, err = usagePeriodISO.Parse(); err != nil {
 				return nil, fmt.Errorf("failed to cast UsagePeriod for Metered EntitlementTemplate: %w", err)

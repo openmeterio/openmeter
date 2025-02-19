@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // wPatch is used to serialize patches
@@ -107,7 +107,7 @@ func Deserialize(b []byte) (any, error) {
 			RemoveInput: *val,
 		}, nil
 	} else if pPath.Type() == subscription.PatchPathTypePhase && pOp == subscription.PatchOperationStretch {
-		var val *datex.Period
+		var val *isodate.Period
 
 		if err := json.Unmarshal(p.Value, &val); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal patch value: %w", err)

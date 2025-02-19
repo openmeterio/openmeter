@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -259,12 +259,12 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  datex.MustParse(t, "PT30M"),
+				Interval:  isodate.MustParse(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: datex.MustParse(t, "PT1H"),
-				DueAfter:    datex.MustParse(t, "PT24H"),
+				DraftPeriod: isodate.MustParse(t, "PT1H"),
+				DueAfter:    isodate.MustParse(t, "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -362,12 +362,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
-				Interval:  datex.MustParse(s.T(), "PT30M"),
+				Interval:  isodate.MustParse(s.T(), "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
 				AutoAdvance: true,
-				DraftPeriod: datex.MustParse(s.T(), "PT1H"),
-				DueAfter:    datex.MustParse(s.T(), "PT24H"),
+				DraftPeriod: isodate.MustParse(s.T(), "PT1H"),
+				DueAfter:    isodate.MustParse(s.T(), "PT24H"),
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -417,12 +417,12 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 			WorkflowConfig: billing.WorkflowConfig{
 				Collection: billing.CollectionConfig{
 					Alignment: billing.AlignmentKindSubscription,
-					Interval:  datex.MustParse(s.T(), "PT30M"),
+					Interval:  isodate.MustParse(s.T(), "PT30M"),
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: datex.MustParse(s.T(), "PT2H"),
-					DueAfter:    datex.MustParse(s.T(), "PT48H"),
+					DraftPeriod: isodate.MustParse(s.T(), "PT2H"),
+					DueAfter:    isodate.MustParse(s.T(), "PT48H"),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,

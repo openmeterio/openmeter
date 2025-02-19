@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // BillingCustomerOverrideUpdate is the builder for updating BillingCustomerOverride entities.
@@ -99,15 +99,15 @@ func (bcou *BillingCustomerOverrideUpdate) ClearCollectionAlignment() *BillingCu
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bcou *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetLineCollectionPeriod(ds)
+func (bcou *BillingCustomerOverrideUpdate) SetLineCollectionPeriod(i isodate.String) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetLineCollectionPeriod(i)
 	return bcou
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
-	if ds != nil {
-		bcou.SetLineCollectionPeriod(*ds)
+func (bcou *BillingCustomerOverrideUpdate) SetNillableLineCollectionPeriod(i *isodate.String) *BillingCustomerOverrideUpdate {
+	if i != nil {
+		bcou.SetLineCollectionPeriod(*i)
 	}
 	return bcou
 }
@@ -139,15 +139,15 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceAutoAdvance() *BillingCus
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceDraftPeriod(ds)
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDraftPeriod(i isodate.String) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceDraftPeriod(i)
 	return bcou
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
-	if ds != nil {
-		bcou.SetInvoiceDraftPeriod(*ds)
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingCustomerOverrideUpdate {
+	if i != nil {
+		bcou.SetInvoiceDraftPeriod(*i)
 	}
 	return bcou
 }
@@ -159,15 +159,15 @@ func (bcou *BillingCustomerOverrideUpdate) ClearInvoiceDraftPeriod() *BillingCus
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(ds datex.ISOString) *BillingCustomerOverrideUpdate {
-	bcou.mutation.SetInvoiceDueAfter(ds)
+func (bcou *BillingCustomerOverrideUpdate) SetInvoiceDueAfter(i isodate.String) *BillingCustomerOverrideUpdate {
+	bcou.mutation.SetInvoiceDueAfter(i)
 	return bcou
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingCustomerOverrideUpdate {
-	if ds != nil {
-		bcou.SetInvoiceDueAfter(*ds)
+func (bcou *BillingCustomerOverrideUpdate) SetNillableInvoiceDueAfter(i *isodate.String) *BillingCustomerOverrideUpdate {
+	if i != nil {
+		bcou.SetInvoiceDueAfter(*i)
 	}
 	return bcou
 }
@@ -498,15 +498,15 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearCollectionAlignment() *Billi
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetLineCollectionPeriod(ds)
+func (bcouo *BillingCustomerOverrideUpdateOne) SetLineCollectionPeriod(i isodate.String) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetLineCollectionPeriod(i)
 	return bcouo
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	if ds != nil {
-		bcouo.SetLineCollectionPeriod(*ds)
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableLineCollectionPeriod(i *isodate.String) *BillingCustomerOverrideUpdateOne {
+	if i != nil {
+		bcouo.SetLineCollectionPeriod(*i)
 	}
 	return bcouo
 }
@@ -538,15 +538,15 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceAutoAdvance() *Billin
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceDraftPeriod(ds)
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDraftPeriod(i isodate.String) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceDraftPeriod(i)
 	return bcouo
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	if ds != nil {
-		bcouo.SetInvoiceDraftPeriod(*ds)
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingCustomerOverrideUpdateOne {
+	if i != nil {
+		bcouo.SetInvoiceDraftPeriod(*i)
 	}
 	return bcouo
 }
@@ -558,15 +558,15 @@ func (bcouo *BillingCustomerOverrideUpdateOne) ClearInvoiceDraftPeriod() *Billin
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(ds datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	bcouo.mutation.SetInvoiceDueAfter(ds)
+func (bcouo *BillingCustomerOverrideUpdateOne) SetInvoiceDueAfter(i isodate.String) *BillingCustomerOverrideUpdateOne {
+	bcouo.mutation.SetInvoiceDueAfter(i)
 	return bcouo
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingCustomerOverrideUpdateOne {
-	if ds != nil {
-		bcouo.SetInvoiceDueAfter(*ds)
+func (bcouo *BillingCustomerOverrideUpdateOne) SetNillableInvoiceDueAfter(i *isodate.String) *BillingCustomerOverrideUpdateOne {
+	if i != nil {
+		bcouo.SetInvoiceDueAfter(*i)
 	}
 	return bcouo
 }

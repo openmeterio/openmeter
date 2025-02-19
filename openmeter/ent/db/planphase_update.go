@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // PlanPhaseUpdate is the builder for updating PlanPhase entities.
@@ -140,15 +140,15 @@ func (ppu *PlanPhaseUpdate) AddIndex(u int8) *PlanPhaseUpdate {
 }
 
 // SetDuration sets the "duration" field.
-func (ppu *PlanPhaseUpdate) SetDuration(ds datex.ISOString) *PlanPhaseUpdate {
-	ppu.mutation.SetDuration(ds)
+func (ppu *PlanPhaseUpdate) SetDuration(i isodate.String) *PlanPhaseUpdate {
+	ppu.mutation.SetDuration(i)
 	return ppu
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (ppu *PlanPhaseUpdate) SetNillableDuration(ds *datex.ISOString) *PlanPhaseUpdate {
-	if ds != nil {
-		ppu.SetDuration(*ds)
+func (ppu *PlanPhaseUpdate) SetNillableDuration(i *isodate.String) *PlanPhaseUpdate {
+	if i != nil {
+		ppu.SetDuration(*i)
 	}
 	return ppu
 }
@@ -532,15 +532,15 @@ func (ppuo *PlanPhaseUpdateOne) AddIndex(u int8) *PlanPhaseUpdateOne {
 }
 
 // SetDuration sets the "duration" field.
-func (ppuo *PlanPhaseUpdateOne) SetDuration(ds datex.ISOString) *PlanPhaseUpdateOne {
-	ppuo.mutation.SetDuration(ds)
+func (ppuo *PlanPhaseUpdateOne) SetDuration(i isodate.String) *PlanPhaseUpdateOne {
+	ppuo.mutation.SetDuration(i)
 	return ppuo
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (ppuo *PlanPhaseUpdateOne) SetNillableDuration(ds *datex.ISOString) *PlanPhaseUpdateOne {
-	if ds != nil {
-		ppuo.SetDuration(*ds)
+func (ppuo *PlanPhaseUpdateOne) SetNillableDuration(i *isodate.String) *PlanPhaseUpdateOne {
+	if i != nil {
+		ppuo.SetDuration(*i)
 	}
 	return ppuo
 }

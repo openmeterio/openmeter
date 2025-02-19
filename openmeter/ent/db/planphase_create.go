@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // PlanPhaseCreate is the builder for creating a PlanPhase entity.
@@ -120,15 +120,15 @@ func (ppc *PlanPhaseCreate) SetIndex(u uint8) *PlanPhaseCreate {
 }
 
 // SetDuration sets the "duration" field.
-func (ppc *PlanPhaseCreate) SetDuration(ds datex.ISOString) *PlanPhaseCreate {
-	ppc.mutation.SetDuration(ds)
+func (ppc *PlanPhaseCreate) SetDuration(i isodate.String) *PlanPhaseCreate {
+	ppc.mutation.SetDuration(i)
 	return ppc
 }
 
 // SetNillableDuration sets the "duration" field if the given value is not nil.
-func (ppc *PlanPhaseCreate) SetNillableDuration(ds *datex.ISOString) *PlanPhaseCreate {
-	if ds != nil {
-		ppc.SetDuration(*ds)
+func (ppc *PlanPhaseCreate) SetNillableDuration(i *isodate.String) *PlanPhaseCreate {
+	if i != nil {
+		ppc.SetDuration(*i)
 	}
 	return ppc
 }
@@ -544,7 +544,7 @@ func (u *PlanPhaseUpsert) AddIndex(v uint8) *PlanPhaseUpsert {
 }
 
 // SetDuration sets the "duration" field.
-func (u *PlanPhaseUpsert) SetDuration(v datex.ISOString) *PlanPhaseUpsert {
+func (u *PlanPhaseUpsert) SetDuration(v isodate.String) *PlanPhaseUpsert {
 	u.Set(planphase.FieldDuration, v)
 	return u
 }
@@ -763,7 +763,7 @@ func (u *PlanPhaseUpsertOne) UpdateIndex() *PlanPhaseUpsertOne {
 }
 
 // SetDuration sets the "duration" field.
-func (u *PlanPhaseUpsertOne) SetDuration(v datex.ISOString) *PlanPhaseUpsertOne {
+func (u *PlanPhaseUpsertOne) SetDuration(v isodate.String) *PlanPhaseUpsertOne {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.SetDuration(v)
 	})
@@ -1158,7 +1158,7 @@ func (u *PlanPhaseUpsertBulk) UpdateIndex() *PlanPhaseUpsertBulk {
 }
 
 // SetDuration sets the "duration" field.
-func (u *PlanPhaseUpsertBulk) SetDuration(v datex.ISOString) *PlanPhaseUpsertBulk {
+func (u *PlanPhaseUpsertBulk) SetDuration(v isodate.String) *PlanPhaseUpsertBulk {
 	return u.Update(func(s *PlanPhaseUpsert) {
 		s.SetDuration(v)
 	})

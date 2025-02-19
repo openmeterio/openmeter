@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -29,7 +29,7 @@ type PhaseMeta struct {
 	Metadata models.Metadata `json:"metadata,omitempty"`
 
 	// Duration is the duration of the Phase.
-	Duration *datex.Period `json:"duration"`
+	Duration *isodate.Period `json:"duration"`
 }
 
 // Equal returns true if the two PhaseMetas are equal.
@@ -75,7 +75,7 @@ func (p PhaseMeta) Validate() error {
 		}
 
 		// The duration must be at least 1 hour.
-		if per, err := p.Duration.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := p.Duration.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			errs = append(errs, fmt.Errorf("the Duration period must be at least 1 hour"))
 		}
 	}

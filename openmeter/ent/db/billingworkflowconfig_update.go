@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // BillingWorkflowConfigUpdate is the builder for updating BillingWorkflowConfig entities.
@@ -74,15 +74,15 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableCollectionAlignment(bk *bill
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetLineCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetLineCollectionPeriod(ds)
+func (bwcu *BillingWorkflowConfigUpdate) SetLineCollectionPeriod(i isodate.String) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetLineCollectionPeriod(i)
 	return bwcu
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
-	if ds != nil {
-		bwcu.SetLineCollectionPeriod(*ds)
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableLineCollectionPeriod(i *isodate.String) *BillingWorkflowConfigUpdate {
+	if i != nil {
+		bwcu.SetLineCollectionPeriod(*i)
 	}
 	return bwcu
 }
@@ -102,29 +102,29 @@ func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceAutoAdvance(b *bool) 
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceDraftPeriod(ds)
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDraftPeriod(i isodate.String) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceDraftPeriod(i)
 	return bwcu
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
-	if ds != nil {
-		bwcu.SetInvoiceDraftPeriod(*ds)
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingWorkflowConfigUpdate {
+	if i != nil {
+		bwcu.SetInvoiceDraftPeriod(*i)
 	}
 	return bwcu
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfter(ds datex.ISOString) *BillingWorkflowConfigUpdate {
-	bwcu.mutation.SetInvoiceDueAfter(ds)
+func (bwcu *BillingWorkflowConfigUpdate) SetInvoiceDueAfter(i isodate.String) *BillingWorkflowConfigUpdate {
+	bwcu.mutation.SetInvoiceDueAfter(i)
 	return bwcu
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingWorkflowConfigUpdate {
-	if ds != nil {
-		bwcu.SetInvoiceDueAfter(*ds)
+func (bwcu *BillingWorkflowConfigUpdate) SetNillableInvoiceDueAfter(i *isodate.String) *BillingWorkflowConfigUpdate {
+	if i != nil {
+		bwcu.SetInvoiceDueAfter(*i)
 	}
 	return bwcu
 }
@@ -455,15 +455,15 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableCollectionAlignment(bk *
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetLineCollectionPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetLineCollectionPeriod(ds)
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetLineCollectionPeriod(i isodate.String) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetLineCollectionPeriod(i)
 	return bwcuo
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	if ds != nil {
-		bwcuo.SetLineCollectionPeriod(*ds)
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableLineCollectionPeriod(i *isodate.String) *BillingWorkflowConfigUpdateOne {
+	if i != nil {
+		bwcuo.SetLineCollectionPeriod(*i)
 	}
 	return bwcuo
 }
@@ -483,29 +483,29 @@ func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceAutoAdvance(b *bo
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceDraftPeriod(ds)
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDraftPeriod(i isodate.String) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceDraftPeriod(i)
 	return bwcuo
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	if ds != nil {
-		bwcuo.SetInvoiceDraftPeriod(*ds)
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingWorkflowConfigUpdateOne {
+	if i != nil {
+		bwcuo.SetInvoiceDraftPeriod(*i)
 	}
 	return bwcuo
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfter(ds datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	bwcuo.mutation.SetInvoiceDueAfter(ds)
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetInvoiceDueAfter(i isodate.String) *BillingWorkflowConfigUpdateOne {
+	bwcuo.mutation.SetInvoiceDueAfter(i)
 	return bwcuo
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingWorkflowConfigUpdateOne {
-	if ds != nil {
-		bwcuo.SetInvoiceDueAfter(*ds)
+func (bwcuo *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDueAfter(i *isodate.String) *BillingWorkflowConfigUpdateOne {
+	if i != nil {
+		bwcuo.SetInvoiceDueAfter(*i)
 	}
 	return bwcuo
 }

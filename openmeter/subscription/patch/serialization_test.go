@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func assertSame(t *testing.T, in json.Marshaler) {
@@ -37,7 +37,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "asd",
-					StartAfter: datex.FromDuration(0),
+					StartAfter: isodate.FromDuration(0),
 				},
 				CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
 			},
@@ -50,7 +50,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 			CreateInput: subscription.CreateSubscriptionPhaseInput{
 				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
 					PhaseKey:   "asd",
-					StartAfter: datex.FromDuration(0),
+					StartAfter: isodate.FromDuration(0),
 				},
 			},
 		}
@@ -70,7 +70,7 @@ func TestShouldSerializeAndDeserialize(t *testing.T) {
 	t.Run("Should be the same for PatchStretchPhase", func(t *testing.T) {
 		p := &patch.PatchStretchPhase{
 			PhaseKey: "asd",
-			Duration: datex.FromDuration(time.Hour),
+			Duration: isodate.FromDuration(time.Hour),
 		}
 
 		assertSame(t, p)

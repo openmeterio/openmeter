@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // ID filters vertices based on their ID field.
@@ -127,7 +127,7 @@ func ResetMinRollover(v float64) predicate.Grant {
 }
 
 // RecurrencePeriod applies equality check predicate on the "recurrence_period" field. It's identical to RecurrencePeriodEQ.
-func RecurrencePeriod(v datex.ISOString) predicate.Grant {
+func RecurrencePeriod(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldEQ(FieldRecurrencePeriod, vc))
 }
@@ -698,19 +698,19 @@ func ResetMinRolloverLTE(v float64) predicate.Grant {
 }
 
 // RecurrencePeriodEQ applies the EQ predicate on the "recurrence_period" field.
-func RecurrencePeriodEQ(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodEQ(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldEQ(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodNEQ applies the NEQ predicate on the "recurrence_period" field.
-func RecurrencePeriodNEQ(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodNEQ(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldNEQ(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodIn applies the In predicate on the "recurrence_period" field.
-func RecurrencePeriodIn(vs ...datex.ISOString) predicate.Grant {
+func RecurrencePeriodIn(vs ...isodate.String) predicate.Grant {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -719,7 +719,7 @@ func RecurrencePeriodIn(vs ...datex.ISOString) predicate.Grant {
 }
 
 // RecurrencePeriodNotIn applies the NotIn predicate on the "recurrence_period" field.
-func RecurrencePeriodNotIn(vs ...datex.ISOString) predicate.Grant {
+func RecurrencePeriodNotIn(vs ...isodate.String) predicate.Grant {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -728,43 +728,43 @@ func RecurrencePeriodNotIn(vs ...datex.ISOString) predicate.Grant {
 }
 
 // RecurrencePeriodGT applies the GT predicate on the "recurrence_period" field.
-func RecurrencePeriodGT(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodGT(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldGT(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodGTE applies the GTE predicate on the "recurrence_period" field.
-func RecurrencePeriodGTE(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodGTE(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldGTE(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodLT applies the LT predicate on the "recurrence_period" field.
-func RecurrencePeriodLT(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodLT(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldLT(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodLTE applies the LTE predicate on the "recurrence_period" field.
-func RecurrencePeriodLTE(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodLTE(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldLTE(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodContains applies the Contains predicate on the "recurrence_period" field.
-func RecurrencePeriodContains(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodContains(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldContains(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodHasPrefix applies the HasPrefix predicate on the "recurrence_period" field.
-func RecurrencePeriodHasPrefix(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodHasPrefix(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldHasPrefix(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodHasSuffix applies the HasSuffix predicate on the "recurrence_period" field.
-func RecurrencePeriodHasSuffix(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodHasSuffix(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldHasSuffix(FieldRecurrencePeriod, vc))
 }
@@ -780,13 +780,13 @@ func RecurrencePeriodNotNil() predicate.Grant {
 }
 
 // RecurrencePeriodEqualFold applies the EqualFold predicate on the "recurrence_period" field.
-func RecurrencePeriodEqualFold(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodEqualFold(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldEqualFold(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodContainsFold applies the ContainsFold predicate on the "recurrence_period" field.
-func RecurrencePeriodContainsFold(v datex.ISOString) predicate.Grant {
+func RecurrencePeriodContainsFold(v isodate.String) predicate.Grant {
 	vc := string(v)
 	return predicate.Grant(sql.FieldContainsFold(FieldRecurrencePeriod, vc))
 }

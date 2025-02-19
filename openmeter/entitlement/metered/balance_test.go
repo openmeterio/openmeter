@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestGetEntitlementBalance(t *testing.T) {
@@ -46,7 +46,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
 				// TODO: properly test these anchors
-				Interval: recurrence.RecurrencePeriodYear,
+				Interval: timeutil.RecurrencePeriodYear,
 			},
 		}
 
@@ -433,7 +433,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
 				// TODO: properly test these anchors
-				Interval: recurrence.RecurrencePeriodYear,
+				Interval: timeutil.RecurrencePeriodYear,
 			},
 		}
 

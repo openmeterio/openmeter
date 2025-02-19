@@ -1,6 +1,6 @@
 // Package datex is a wrapper around github.com/rickb777/date/v2 and github.com/rickb777/period
 // so we don't depend on it directly.
-package datex
+package isodate
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ import (
 
 const MAX_SAFE_ITERATION_COUNT = 1_000_000
 
-type ISOString period.ISOString
+type String period.ISOString
 
-func (i ISOString) Parse() (Period, error) {
+func (i String) Parse() (Period, error) {
 	res, err := period.Parse(string(i))
 	return Period{res}, err
 }
@@ -27,7 +27,7 @@ func NewPeriod(years, months, weeks, days, hours, minutes, seconds int) Period {
 }
 
 // ParsePtrOrNil parses the ISO8601 string representation of the period or if ISOString is nil, returns nil
-func (i *ISOString) ParsePtrOrNil() (*Period, error) {
+func (i *String) ParsePtrOrNil() (*Period, error) {
 	if i == nil {
 		return nil, nil
 	}
@@ -40,7 +40,7 @@ func (i *ISOString) ParsePtrOrNil() (*Period, error) {
 	return lo.ToPtr(d), nil
 }
 
-func (i ISOString) String() string {
+func (i String) String() string {
 	return string(i)
 }
 
@@ -122,12 +122,12 @@ func FromDuration(d time.Duration) Period {
 }
 
 // ISOString() returns the ISO8601 string representation of the period
-func (p Period) ISOString() ISOString {
-	return ISOString(p.Period.String())
+func (p Period) ISOString() String {
+	return String(p.Period.String())
 }
 
 // ISOStringPtrOrNil() returns the ISO8601 string representation of the period or if Period is nil, returns nil
-func (d *Period) ISOStringPtrOrNil() *ISOString {
+func (d *Period) ISOStringPtrOrNil() *String {
 	if d == nil {
 		return nil
 	}

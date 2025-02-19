@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // PlanRateCardUpdate is the builder for updating PlanRateCard entities.
@@ -149,15 +149,15 @@ func (prcu *PlanRateCardUpdate) ClearTaxConfig() *PlanRateCardUpdate {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (prcu *PlanRateCardUpdate) SetBillingCadence(ds datex.ISOString) *PlanRateCardUpdate {
-	prcu.mutation.SetBillingCadence(ds)
+func (prcu *PlanRateCardUpdate) SetBillingCadence(i isodate.String) *PlanRateCardUpdate {
+	prcu.mutation.SetBillingCadence(i)
 	return prcu
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (prcu *PlanRateCardUpdate) SetNillableBillingCadence(ds *datex.ISOString) *PlanRateCardUpdate {
-	if ds != nil {
-		prcu.SetBillingCadence(*ds)
+func (prcu *PlanRateCardUpdate) SetNillableBillingCadence(i *isodate.String) *PlanRateCardUpdate {
+	if i != nil {
+		prcu.SetBillingCadence(*i)
 	}
 	return prcu
 }
@@ -592,15 +592,15 @@ func (prcuo *PlanRateCardUpdateOne) ClearTaxConfig() *PlanRateCardUpdateOne {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (prcuo *PlanRateCardUpdateOne) SetBillingCadence(ds datex.ISOString) *PlanRateCardUpdateOne {
-	prcuo.mutation.SetBillingCadence(ds)
+func (prcuo *PlanRateCardUpdateOne) SetBillingCadence(i isodate.String) *PlanRateCardUpdateOne {
+	prcuo.mutation.SetBillingCadence(i)
 	return prcuo
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (prcuo *PlanRateCardUpdateOne) SetNillableBillingCadence(ds *datex.ISOString) *PlanRateCardUpdateOne {
-	if ds != nil {
-		prcuo.SetBillingCadence(*ds)
+func (prcuo *PlanRateCardUpdateOne) SetNillableBillingCadence(i *isodate.String) *PlanRateCardUpdateOne {
+	if i != nil {
+		prcuo.SetBillingCadence(*i)
 	}
 	return prcuo
 }
