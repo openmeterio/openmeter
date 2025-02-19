@@ -9340,6 +9340,7 @@ components:
       enum:
         - add_item
         - remove_item
+        - unschedule_edit
         - add_phase
         - remove_phase
         - stretch_phase
@@ -9422,6 +9423,16 @@ components:
           type: string
           format: duration
       description: Stretch a phase
+    EditSubscriptionUnscheduleEdit:
+      type: object
+      required:
+        - op
+      properties:
+        op:
+          type: string
+          enum:
+            - unschedule_edit
+      description: Unschedules any edits from the current phase.
     Entitlement:
       anyOf:
         - $ref: '#/components/schemas/EntitlementMetered'
@@ -15150,6 +15161,7 @@ components:
         - $ref: '#/components/schemas/EditSubscriptionAddPhase'
         - $ref: '#/components/schemas/EditSubscriptionRemovePhase'
         - $ref: '#/components/schemas/EditSubscriptionStretchPhase'
+        - $ref: '#/components/schemas/EditSubscriptionUnscheduleEdit'
       discriminator:
         propertyName: op
         mapping:
@@ -15158,6 +15170,7 @@ components:
           add_phase: '#/components/schemas/EditSubscriptionAddPhase'
           remove_phase: '#/components/schemas/EditSubscriptionRemovePhase'
           stretch_phase: '#/components/schemas/EditSubscriptionStretchPhase'
+          unschedule_edit: '#/components/schemas/EditSubscriptionUnscheduleEdit'
       description: The operation to be performed on the subscription.
     SubscriptionExpanded:
       type: object
@@ -15538,6 +15551,7 @@ components:
         - key
         - activeFrom
         - items
+        - itemTimelines
       properties:
         id:
           type: string
@@ -15611,6 +15625,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionItem'
+          description: |-
+            The items of the phase. The structure is flattened to better conform to the Plan API.
+            The timelines are flattened according to the following rules:
+            - for the current phase, the `items` contains only the active item for each key
+            - for past phases, the `items` contains only the last item for each key
+            - for future phases, the `items` contains only the first version of the item for each key
+        itemTimelines:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/SubscriptionItem'
+          description: Includes all versions of the items on each key, including all edits, scheduled changes, etc...
       description: Expanded subscription phase
     SubscriptionStatus:
       type: string

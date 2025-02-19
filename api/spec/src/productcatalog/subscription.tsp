@@ -110,7 +110,20 @@ model Subscription {
 @friendlyName("SubscriptionPhaseExpanded")
 model SubscriptionPhaseExpanded {
   ...SubscriptionPhase;
+
+  /**
+   * The items of the phase. The structure is flattened to better conform to the Plan API.
+   * The timelines are flattened according to the following rules:
+   * - for the current phase, the `items` contains only the active item for each key
+   * - for past phases, the `items` contains only the last item for each key
+   * - for future phases, the `items` contains only the first version of the item for each key
+   */
   items: SubscriptionItem[];
+
+  /**
+   * Includes all versions of the items on each key, including all edits, scheduled changes, etc...
+   */
+  itemTimelines: Record<SubscriptionItem[]>;
 }
 
 /**
@@ -466,6 +479,7 @@ union SubscriptionEditOperation {
   EditSubscriptionAddPhase,
   EditSubscriptionRemovePhase,
   EditSubscriptionStretchPhase,
+  EditSubscriptionUnscheduleEdit,
 }
 
 /**
@@ -475,9 +489,18 @@ union SubscriptionEditOperation {
 enum EditOp {
   AddItem: "add_item",
   RemoveItem: "remove_item",
+  UnscheduleEdit: "unschedule_edit",
   AddPhase: "add_phase",
   RemovePhase: "remove_phase",
   StretchPhase: "stretch_phase",
+}
+
+/**
+ * Unschedules any edits from the current phase.
+ */
+@friendlyName("EditSubscriptionUnscheduleEdit")
+model EditSubscriptionUnscheduleEdit {
+  `op`: EditOp.UnscheduleEdit;
 }
 
 /**

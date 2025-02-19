@@ -178,7 +178,7 @@ func (ts *testsuite[T]) Run(t *testing.T) {
 			if err == nil {
 				require.NotNil(t, tc.GetExpectedSpec)
 				expectedSpec := tc.GetExpectedSpec(t)
-				subscriptiontestutils.SpecsEqual(t, *spec, expectedSpec)
+				subscriptiontestutils.SpecsEqual(t, expectedSpec, *spec)
 			}
 		})
 	}

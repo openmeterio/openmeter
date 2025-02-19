@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperation) (subscription.Patch, error) {
@@ -153,6 +154,9 @@ func MapAPISubscriptionEditOperationToPatch(apiPatch api.SubscriptionEditOperati
 			Duration: d,
 		}
 
+		return p, nil
+	case string(api.EditSubscriptionUnscheduleEditOpUnscheduleEdit):
+		p := patch.PatchUnscheduleEdit{}
 		return p, nil
 	default:
 		return nil, fmt.Errorf("unknown discriminator: %s", disc)
@@ -380,6 +384,8 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 	flatItems := lo.Flatten(lo.Values(phaseView.ItemsByKey))
 	apiItems := make([]api.SubscriptionItem, 0, len(flatItems))
 
+	apiItemTimelines := make(map[string][]api.SubscriptionItem)
+
 	var relativePhaseTime string
 
 	if currExists && currPhase.PhaseKey == phaseView.SubscriptionPhase.Key {
@@ -390,7 +396,23 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 		relativePhaseTime = "past"
 	}
 
-	for _, items := range phaseView.ItemsByKey {
+	for key, items := range phaseView.ItemsByKey {
+		// Let's add the items to the timeline
+		timeline, err := slicesx.MapWithErr(items, func(item subscription.SubscriptionItemView) (api.SubscriptionItem, error) {
+			apiItem, err := MapSubscriptionItemToAPI(item)
+			if err != nil {
+				return api.SubscriptionItem{}, err
+			}
+
+			return apiItem, nil
+		})
+		if err != nil {
+			return api.SubscriptionPhaseExpanded{}, err
+		}
+
+		apiItemTimelines[key] = timeline
+
+		// Then let's add the items to the flat list
 		switch relativePhaseTime {
 		// If this is the current phase
 		case "current":
@@ -440,18 +462,19 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 	}
 
 	return api.SubscriptionPhaseExpanded{
-		ActiveFrom:  phaseView.SubscriptionPhase.ActiveFrom,
-		ActiveTo:    endOfPhase,
-		CreatedAt:   phaseView.SubscriptionPhase.CreatedAt,
-		UpdatedAt:   phaseView.SubscriptionPhase.UpdatedAt,
-		DeletedAt:   phaseView.SubscriptionPhase.DeletedAt,
-		Description: phaseView.SubscriptionPhase.Description,
-		Discounts:   nil, // TODO: add discounts
-		Id:          phaseView.SubscriptionPhase.ID,
-		Items:       apiItems,
-		Key:         phaseView.SubscriptionPhase.Key,
-		Metadata:    &phaseView.SubscriptionPhase.Metadata,
-		Name:        phaseView.SubscriptionPhase.Name,
+		ActiveFrom:    phaseView.SubscriptionPhase.ActiveFrom,
+		ActiveTo:      endOfPhase,
+		CreatedAt:     phaseView.SubscriptionPhase.CreatedAt,
+		UpdatedAt:     phaseView.SubscriptionPhase.UpdatedAt,
+		DeletedAt:     phaseView.SubscriptionPhase.DeletedAt,
+		Description:   phaseView.SubscriptionPhase.Description,
+		Discounts:     nil, // TODO: add discounts
+		Id:            phaseView.SubscriptionPhase.ID,
+		Items:         apiItems,
+		ItemTimelines: apiItemTimelines,
+		Key:           phaseView.SubscriptionPhase.Key,
+		Metadata:      &phaseView.SubscriptionPhase.Metadata,
+		Name:          phaseView.SubscriptionPhase.Name,
 	}, nil
 }
 

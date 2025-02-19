@@ -2932,6 +2932,14 @@ export interface components {
       /** Format: duration */
       extendBy: string
     }
+    /** @description Unschedules any edits from the current phase. */
+    EditSubscriptionUnscheduleEdit: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      op: 'unschedule_edit'
+    }
     /** @description Entitlement templates are used to define the entitlements of a plan.
      *     Features are omitted from the entitlement template, as they are defined in the rate card. */
     Entitlement:
@@ -6981,6 +6989,7 @@ export interface components {
       | components['schemas']['EditSubscriptionAddPhase']
       | components['schemas']['EditSubscriptionRemovePhase']
       | components['schemas']['EditSubscriptionStretchPhase']
+      | components['schemas']['EditSubscriptionUnscheduleEdit']
     /** @description Expanded subscription */
     SubscriptionExpanded: {
       /**
@@ -7257,7 +7266,16 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /** @description The items of the phase. The structure is flattened to better conform to the Plan API.
+       *     The timelines are flattened according to the following rules:
+       *     - for the current phase, the `items` contains only the active item for each key
+       *     - for past phases, the `items` contains only the last item for each key
+       *     - for future phases, the `items` contains only the first version of the item for each key */
       items: components['schemas']['SubscriptionItem'][]
+      /** @description Includes all versions of the items on each key, including all edits, scheduled changes, etc... */
+      itemTimelines: {
+        [key: string]: components['schemas']['SubscriptionItem'][]
+      }
     }
     /**
      * @description Subscription status.
@@ -7860,6 +7878,8 @@ export type EditSubscriptionRemovePhase =
   components['schemas']['EditSubscriptionRemovePhase']
 export type EditSubscriptionStretchPhase =
   components['schemas']['EditSubscriptionStretchPhase']
+export type EditSubscriptionUnscheduleEdit =
+  components['schemas']['EditSubscriptionUnscheduleEdit']
 export type Entitlement = components['schemas']['Entitlement']
 export type EntitlementBaseTemplate =
   components['schemas']['EntitlementBaseTemplate']

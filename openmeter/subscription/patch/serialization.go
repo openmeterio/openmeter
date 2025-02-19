@@ -50,6 +50,10 @@ func (p PatchStretchPhase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(asWPatch(p))
 }
 
+func (p PatchUnscheduleEdit) MarshalJSON() ([]byte, error) {
+	return json.Marshal(asWPatch(p))
+}
+
 type rPatch struct {
 	Op    string          `json:"op"`
 	Path  string          `json:"path"`
