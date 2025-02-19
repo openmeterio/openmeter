@@ -7,9 +7,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type OrderBy string
@@ -64,7 +64,7 @@ type RepoCreateInput struct {
 	Metadata         map[string]string
 	ResetMaxRollover float64
 	ResetMinRollover float64
-	Recurrence       *recurrence.Recurrence
+	Recurrence       *timeutil.Recurrence
 }
 
 type Repo interface {

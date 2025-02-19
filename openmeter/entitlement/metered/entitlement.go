@@ -5,7 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 const (
@@ -37,7 +37,7 @@ type Entitlement struct {
 	UsagePeriod entitlement.UsagePeriod `json:"usagePeriod,omitempty"`
 
 	// CurrentPeriod defines the current period for usage calculations.
-	CurrentUsagePeriod recurrence.Period `json:"currentUsagePeriod,omitempty"`
+	CurrentUsagePeriod timeutil.Period `json:"currentUsagePeriod,omitempty"`
 
 	// PreserveOverageAtReset defines if overage should be preserved when the entitlement is reset.
 	PreserveOverageAtReset bool `json:"preserveOverageAtReset,omitempty"`

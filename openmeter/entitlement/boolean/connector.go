@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Connector interface {
@@ -39,7 +39,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	}
 
 	var usagePeriod *entitlement.UsagePeriod
-	var currentUsagePeriod *recurrence.Period
+	var currentUsagePeriod *timeutil.Period
 
 	if model.UsagePeriod != nil {
 		usagePeriod = model.UsagePeriod

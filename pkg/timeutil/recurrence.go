@@ -1,4 +1,4 @@
-package recurrence
+package timeutil
 
 import (
 	"fmt"

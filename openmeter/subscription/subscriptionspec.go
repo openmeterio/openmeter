@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Spec is the complete generic specification of how a Subscription (sub)Entity should look like.
@@ -153,8 +153,8 @@ func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpe
 
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
 // The period starts with the phase and iterates every BillingCadence duration, but can be reanchored to the time of an edit.
-func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (recurrence.Period, error) {
-	var def recurrence.Period
+func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Time) (timeutil.Period, error) {
+	var def timeutil.Period
 
 	phase, exists := s.Phases[phaseKey]
 	if !exists {
@@ -233,7 +233,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		}
 	}
 
-	recurrenceOfAnchor, err := recurrence.FromISODuration(&dur, anchor)
+	recurrenceOfAnchor, err := timeutil.FromISODuration(&dur, anchor)
 	if err != nil {
 		return def, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 	}
@@ -663,7 +663,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		scheduleInput.IssueAfterReset = tpl.IssueAfterReset
 		scheduleInput.IssueAfterResetPriority = tpl.IssueAfterResetPriority
 		scheduleInput.PreserveOverageAtReset = tpl.PreserveOverageAtReset
-		rec, err := recurrence.FromISODuration(&tpl.UsagePeriod, truncatedStartTime)
+		rec, err := timeutil.FromISODuration(&tpl.UsagePeriod, truncatedStartTime)
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get recurrence from ISO duration: %w", err)
 		}

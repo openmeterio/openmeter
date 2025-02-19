@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type GrantConnector interface {
@@ -29,7 +29,7 @@ type CreateGrantInput struct {
 	Metadata         map[string]string
 	ResetMaxRollover float64
 	ResetMinRollover float64
-	Recurrence       *recurrence.Recurrence
+	Recurrence       *timeutil.Recurrence
 }
 
 func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input CreateGrantInput) (*grant.Grant, error) {

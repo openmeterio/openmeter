@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestGrantExpiringAtReset(t *testing.T) {
@@ -52,7 +52,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 		SubjectKey:      "subject-1",
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodDaily,
+			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-06-28T14:48:00Z"),
 		},
 	})
@@ -201,7 +201,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 		SubjectKey:      "subject-1",
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodDaily,
+			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-02T09:41:00Z"),
 		},
 	})
@@ -225,8 +225,8 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationWeek,
 			},
-			Recurrence: &recurrence.Recurrence{
-				Interval: recurrence.RecurrencePeriodDaily,
+			Recurrence: &timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
 				Anchor:   testutils.GetRFC3339Time(t, "2024-07-02T09:43:00Z"),
 			},
 		})
@@ -314,7 +314,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 		IssueAfterReset: convert.ToPointer(500.0),
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodMonth,
+			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
 		},
 	})
@@ -425,7 +425,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 		IssueAfterReset: convert.ToPointer(500.0),
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodMonth,
+			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
 		},
 	})
@@ -461,7 +461,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 		IssueAfterReset: convert.ToPointer(500.0),
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodMonth,
+			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
 		},
 	})
@@ -496,7 +496,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 		SubjectKey:      "subject-1",
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodMonth,
+			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
 		},
 	})
@@ -518,8 +518,8 @@ func TestGrantingAfterOverage(t *testing.T) {
 				Count:    1,
 				Duration: grant.ExpirationPeriodDurationMonth,
 			},
-			Recurrence: &recurrence.Recurrence{
-				Interval: recurrence.RecurrencePeriodMonth,
+			Recurrence: &timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
 				Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
 			},
 		})
@@ -605,7 +605,7 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 		SubjectKey:      "subject-1",
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodMonth,
+			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
 		},
 		ActiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z")),
@@ -621,7 +621,7 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 		SubjectKey:      "subject-1",
 		EntitlementType: entitlement.EntitlementTypeMetered,
 		UsagePeriod: &entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodMonth,
+			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
 		},
 		ActiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2024-08-22T11:30:00Z")),

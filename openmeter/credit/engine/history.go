@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SegmentTerminationReason struct {
@@ -48,7 +48,7 @@ type GrantUsage struct {
 //
 // It is not necessarily the largest such segment.
 type GrantBurnDownHistorySegment struct {
-	recurrence.Period
+	timeutil.Period
 	BalanceAtStart     balance.Map
 	TerminationReasons SegmentTerminationReason // Reason why the segment was terminated (could be multiple taking effect at same time)
 	TotalUsage         float64                  // Total usage of the feature in the Period

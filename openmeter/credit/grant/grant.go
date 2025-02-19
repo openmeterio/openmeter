@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type (
@@ -68,7 +68,7 @@ type Grant struct {
 	ResetMinRollover float64 `json:"resetMinRollover"`
 
 	// Recurrence config for the grant. If nil the grant doesn't recur.
-	Recurrence *recurrence.Recurrence `json:"recurrence,omitempty"`
+	Recurrence *timeutil.Recurrence `json:"recurrence,omitempty"`
 }
 
 // Calculates expiration from effectiveAt and Expiration.

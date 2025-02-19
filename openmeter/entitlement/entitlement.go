@@ -11,8 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type TypedEntitlement interface {
@@ -334,8 +334,8 @@ type GenericProperties struct {
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 
-	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
+	UsagePeriod        *UsagePeriod     `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod *timeutil.Period `json:"currentUsagePeriod,omitempty"`
 
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }
@@ -353,7 +353,7 @@ func (e GenericProperties) ActiveToTime() *time.Time {
 	return e.DeletedAt
 }
 
-type UsagePeriod recurrence.Recurrence
+type UsagePeriod timeutil.Recurrence
 
 func (u UsagePeriod) Validate() error {
 	hour := datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)
@@ -377,15 +377,15 @@ func (u UsagePeriod) Equal(other UsagePeriod) bool {
 }
 
 // The returned period is exclusive at the end end inclusive in the start
-func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error) {
-	rec := recurrence.Recurrence{
+func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.Period, error) {
+	rec := timeutil.Recurrence{
 		Anchor:   u.Anchor,
 		Interval: u.Interval,
 	}
 
 	nextAfter, err := rec.NextAfter(at)
 	if err != nil {
-		return recurrence.Period{}, err
+		return timeutil.Period{}, err
 	}
 
 	// The edgecase behavior of recurrence.Period doesn't work for us here
@@ -394,9 +394,9 @@ func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error)
 		from := nextAfter
 		to, err := rec.Next(from)
 		if err != nil {
-			return recurrence.Period{}, err
+			return timeutil.Period{}, err
 		}
-		return recurrence.Period{
+		return timeutil.Period{
 			From: from,
 			To:   to,
 		}, nil
@@ -404,10 +404,10 @@ func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error)
 
 	prevBefore, err := rec.PrevBefore(at)
 	if err != nil {
-		return recurrence.Period{}, err
+		return timeutil.Period{}, err
 	}
 
-	return recurrence.Period{
+	return timeutil.Period{
 		From: prevBefore,
 		To:   nextAfter,
 	}, nil

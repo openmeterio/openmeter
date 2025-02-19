@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type grantDBADapter struct {
@@ -233,8 +233,8 @@ func mapGrantEntity(entity *db.Grant) grant.Grant {
 	if entity.RecurrencePeriod != nil && entity.RecurrenceAnchor != nil {
 		parsed, _ := entity.RecurrencePeriod.Parse()
 
-		g.Recurrence = &recurrence.Recurrence{
-			Interval: recurrence.RecurrenceInterval{Period: parsed},
+		g.Recurrence = &timeutil.Recurrence{
+			Interval: timeutil.RecurrenceInterval{Period: parsed},
 			Anchor:   entity.RecurrenceAnchor.In(time.UTC),
 		}
 	}

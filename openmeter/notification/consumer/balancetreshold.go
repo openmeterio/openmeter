@@ -23,8 +23,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type BalanceThresholdEventHandler struct {
@@ -238,7 +238,7 @@ func (b *BalanceThresholdEventHandler) isBalanceThresholdEvent(event snapshot.Sn
 func (b *BalanceThresholdEventHandler) getPeriodsDeduplicationHash(snapshot snapshot.SnapshotEvent, ruleID string) string {
 	// Note: this should not happen, but let's be safe here
 	currentUsagePeriod := defaultx.WithDefault(
-		snapshot.Entitlement.CurrentUsagePeriod, recurrence.Period{
+		snapshot.Entitlement.CurrentUsagePeriod, timeutil.Period{
 			From: time.Time{},
 			To:   time.Time{},
 		})

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestUsagePeriod(t *testing.T) {
@@ -15,7 +15,7 @@ func TestUsagePeriod(t *testing.T) {
 
 	t.Run("Should be inclusive on period From and exclusive on period To", func(t *testing.T) {
 		up := entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodDaily,
+			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   t1,
 		}
 
@@ -39,7 +39,7 @@ func TestMeasureUsageFromInput(t *testing.T) {
 		t0 := time.Now().Truncate(time.Minute)
 		t1 := t0.Add(-time.Hour)
 		up := entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodDaily,
+			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   t1,
 		}
 
@@ -53,7 +53,7 @@ func TestMeasureUsageFromInput(t *testing.T) {
 		t0 := time.Now().Truncate(time.Minute)
 		t1 := t0.Add(-time.Hour)
 		up := entitlement.UsagePeriod{
-			Interval: recurrence.RecurrencePeriodDaily,
+			Interval: timeutil.RecurrencePeriodDaily,
 			Anchor:   t1,
 		}
 

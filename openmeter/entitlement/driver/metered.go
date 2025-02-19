@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type MeteredEntitlementHandler interface {
@@ -111,7 +111,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 					return req, fmt.Errorf("invalid interval: %w", err)
 				}
 
-				req.GrantInput.Recurrence = &recurrence.Recurrence{
+				req.GrantInput.Recurrence = &timeutil.Recurrence{
 					Interval: iv,
 					Anchor:   defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt),
 				}

@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type parser struct{}
@@ -188,7 +188,7 @@ func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	}
 }
 
-func mapPeriod(u *recurrence.Period) *api.Period {
+func mapPeriod(u *timeutil.Period) *api.Period {
 	if u == nil {
 		return nil
 	}
@@ -316,29 +316,29 @@ func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdO
 	return request, nil
 }
 
-func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (recurrence.RecurrenceInterval, error) {
+func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (timeutil.RecurrenceInterval, error) {
 	str, err := interval.AsRecurringPeriodInterval0()
 	if err != nil {
-		return recurrence.RecurrenceInterval{}, err
+		return timeutil.RecurrenceInterval{}, err
 	}
 
 	switch str {
 	case string(api.RecurringPeriodIntervalEnumDAY):
-		return recurrence.RecurrencePeriodDaily, nil
+		return timeutil.RecurrencePeriodDaily, nil
 	case string(api.RecurringPeriodIntervalEnumWEEK):
-		return recurrence.RecurrencePeriodWeek, nil
+		return timeutil.RecurrencePeriodWeek, nil
 	case string(api.RecurringPeriodIntervalEnumMONTH):
-		return recurrence.RecurrencePeriodMonth, nil
+		return timeutil.RecurrencePeriodMonth, nil
 	case string(api.RecurringPeriodIntervalEnumYEAR):
-		return recurrence.RecurrencePeriodYear, nil
+		return timeutil.RecurrencePeriodYear, nil
 	default:
 		p, err := datex.ISOString(str).Parse()
 
-		return recurrence.RecurrenceInterval{Period: p}, err
+		return timeutil.RecurrenceInterval{Period: p}, err
 	}
 }
 
-func MapRecurrenceToAPI(r recurrence.RecurrenceInterval) api.RecurringPeriodInterval {
+func MapRecurrenceToAPI(r timeutil.RecurrenceInterval) api.RecurringPeriodInterval {
 	// FIXME: due to the facts that
 	// 1. not all components of period.Period are normalizable (e.g. 24h != 1d)
 	// 2. `Diff(t1, t2 time.Time) period.Period` always calculates in seconds
@@ -349,13 +349,13 @@ func MapRecurrenceToAPI(r recurrence.RecurrenceInterval) api.RecurringPeriodInte
 
 	apiInt := &api.RecurringPeriodInterval{}
 
-	if d, err := normalised.Subtract(recurrence.RecurrencePeriodDaily.Period); err == nil && d.IsZero() {
+	if d, err := normalised.Subtract(timeutil.RecurrencePeriodDaily.Period); err == nil && d.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumDAY)
-	} else if w, err := normalised.Subtract(recurrence.RecurrencePeriodWeek.Period); err == nil && w.IsZero() {
+	} else if w, err := normalised.Subtract(timeutil.RecurrencePeriodWeek.Period); err == nil && w.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumWEEK)
-	} else if m, err := normalised.Subtract(recurrence.RecurrencePeriodMonth.Period); err == nil && m.IsZero() {
+	} else if m, err := normalised.Subtract(timeutil.RecurrencePeriodMonth.Period); err == nil && m.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH)
-	} else if y, err := normalised.Subtract(recurrence.RecurrencePeriodYear.Period); err == nil && y.IsZero() {
+	} else if y, err := normalised.Subtract(timeutil.RecurrencePeriodYear.Period); err == nil && y.IsZero() {
 		_ = apiInt.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumYEAR)
 	} else {
 		_ = apiInt.FromRecurringPeriodInterval0(r.ISOString().String())

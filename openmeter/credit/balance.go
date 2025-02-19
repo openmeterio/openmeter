@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ResetUsageForOwnerParams struct {
@@ -69,7 +69,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
 	// Let's define the period the engine will be queried for
-	queriedPeriod := recurrence.Period{
+	queriedPeriod := timeutil.Period{
 		From: bal.At,
 		To:   at,
 	}
@@ -179,7 +179,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 		// This is only possible in case the grant becomes active exactly at the start of the current period
 		m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, snap.At)
 
-		periodFromSnapshotToPeriodStart := recurrence.Period{
+		periodFromSnapshotToPeriodStart := timeutil.Period{
 			From: snap.At,
 			To:   period.From,
 		}
@@ -295,7 +295,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
 	// Let's define the period the engine will be queried for
-	queriedPeriod := recurrence.Period{
+	queriedPeriod := timeutil.Period{
 		From: bal.At,
 		To:   at,
 	}
