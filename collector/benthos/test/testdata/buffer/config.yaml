@@ -1,0 +1,66 @@
+input:
+  label: seeder
+  generate:
+    count: ${SEEDER_COUNT:0}
+    interval: "${SEEDER_INTERVAL:100ms}"
+    batch_size: ${SEEDER_BATCH:10}
+    mapping: |
+      let subject_count = ${SEEDER_SUBJECT_COUNT:10}
+
+      let event_type = "request"
+      let source = "demo-org-seeder"
+      let methods = ["GET", "POST"]
+      let routes = ["/", "/about", "/contact", "/pricing", "/docs"]
+
+      let subject = "demo-subject-%d".format(random_int(seed: timestamp_unix_nano()) % $subject_count)
+      let time = now()
+
+      let method = $methods.index(random_int(seed: timestamp_unix_nano()) % $methods.length())
+      let path = $routes.index(random_int(seed: timestamp_unix_nano()) % $routes.length())
+
+      root = {
+        "id": uuid_v4(),
+        "specversion": "1.0",
+        "type": $event_type,
+        "source": $source,
+        "subject": $subject,
+        "time": $time,
+        "data": {
+          "method": $method,
+          "path": $path,
+        },
+      }
+
+#output:
+#  label: output
+#  switch:
+#    cases:
+#     - label: accept
+#       check:
+#       output:
+#         stdout:
+#           codec: lines
+#
+#     - label: reject
+#       output:
+#         reject: "processing failed"
+
+output:
+  label: dynamic
+  dynamic:
+#    prefix: test
+    outputs:
+      fileOutput:
+        label: file
+        file:
+          path: "/tmp/buffer-test.ndjson"
+          codec: lines
+#      rejectOutput:
+#        label: reject
+#        reject: "processing failed"
+
+
+http:
+  enabled: true
+  address: 127.0.0.1:4195
+  debug_endpoints: false
