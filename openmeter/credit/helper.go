@@ -37,20 +37,9 @@ func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, o
 				return bal, err
 			}
 
-			balances := balance.Map{}
-			for _, grant := range grants {
-				if grant.ActiveAt(startOfMeasurement) {
-					// Grants that are active at the start will have full balance
-					balances.Set(grant.ID, grant.Amount)
-				} else {
-					// Grants that are not active at the start won't have a balance
-					balances.Set(grant.ID, 0.0)
-				}
-			}
-
 			bal = balance.Snapshot{
 				At:       startOfMeasurement,
-				Balances: balances,
+				Balances: balance.NewStartingMap(grants, startOfMeasurement),
 				Overage:  0.0, // There cannot be overage at the start of measurement
 			}
 		} else {

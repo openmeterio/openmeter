@@ -35,6 +35,7 @@ type Engine interface {
 	Run(ctx context.Context, params RunParams) (RunResult, error)
 }
 
+// TODO: should return alpacadecimal instead of float64, its fine to hard depend on it for now
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
 
 type EngineConfig struct {
