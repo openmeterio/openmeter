@@ -66,10 +66,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1},
-						StartingBalances: balance.Map{
-							g1.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
@@ -81,10 +84,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1},
-						StartingBalances: balance.Map{
-							g1.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
@@ -102,9 +108,12 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
-						Grants:           []grant.Grant{},
-						StartingBalances: balance.Map{},
-						Overage:          0,
+						Grants: []grant.Grant{},
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{},
+							Overage:  0,
+							At:       t1,
+						},
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
@@ -112,8 +121,8 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 50.0, res.EndingOverage)
-				assert.Equal(t, balance.Map{}, res.EndingBalances)
+				assert.Equal(t, 50.0, res.Snapshot.Overage)
+				assert.Equal(t, balance.Map{}, res.Snapshot.Balances)
 				assert.Equal(t, []engine.GrantBurnDownHistorySegment{
 					{
 						BalanceAtStart: balance.Map{},
@@ -137,10 +146,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{},
-						StartingBalances: balance.Map{
-							grant1.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								grant1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
@@ -162,10 +174,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2},
-						StartingBalances: balance.Map{
-							grant1.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								grant1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
@@ -183,10 +198,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{grant1},
-						StartingBalances: balance.Map{
-							grant1.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								grant1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
@@ -194,7 +212,7 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 50.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 50.0, res.Snapshot.Balances[grant1.ID])
 			},
 		},
 		{
@@ -209,10 +227,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 5),
@@ -220,7 +241,7 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
 			},
 		},
 		{
@@ -236,10 +257,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 5),
@@ -247,7 +271,7 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
 			},
 		},
 		{
@@ -265,10 +289,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 5),
@@ -276,8 +303,8 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
-				assert.Equal(t, 50.0, res.EndingOverage) // usage after grant deletion
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
+				assert.Equal(t, 50.0, res.Snapshot.Overage) // usage after grant deletion
 				assert.Len(t, res.History, 2)
 				assert.Equal(t, 50.0, res.History[0].TotalUsage)
 				assert.Equal(t, 50.0, res.History[1].TotalUsage)
@@ -299,10 +326,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 5),
@@ -310,8 +340,8 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
-				assert.Equal(t, 50.0, res.EndingOverage) // usage after grant deletion
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
+				assert.Equal(t, 50.0, res.Snapshot.Overage) // usage after grant deletion
 				assert.Len(t, res.History, 2)
 				assert.Equal(t, 50.0, res.History[0].TotalUsage)
 				assert.Equal(t, 50.0, res.History[1].TotalUsage)
@@ -332,10 +362,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 5),
@@ -343,7 +376,7 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
 			},
 		},
 		{
@@ -360,10 +393,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 100.0,
+							},
+							Overage: 0,
+							At:      g.ExpiresAt,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: g.ExpiresAt,
 							To:   g.ExpiresAt.AddDate(0, 0, 5),
@@ -371,7 +407,7 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
 			},
 		},
 		{
@@ -391,10 +427,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g},
-						StartingBalances: balance.Map{
-							g.ID: 0.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g.ID: 0.0,
+							},
+							Overage: 0,
+							At:      t1.AddDate(0, 0, -1),
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1.AddDate(0, 0, -1),
 							To:   t1.AddDate(0, 0, 1),
@@ -402,7 +441,7 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 50.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 50.0, res.Snapshot.Balances[grant1.ID])
 
 				// sets correct starting balance for grant in segment
 				assert.Len(t, res.History, 2)
@@ -431,11 +470,14 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2},
-						StartingBalances: balance.Map{
-							g1.ID: 100.0,
-							g2.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+								g2.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1),
@@ -443,8 +485,8 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
-				assert.Equal(t, 0.0, res.EndingBalances[grant2.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant2.ID])
 			},
 		},
 		{
@@ -466,11 +508,14 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g2, g1},
-						StartingBalances: balance.Map{
-							g1.ID: 100.0,
-							g2.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+								g2.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1),
@@ -478,8 +523,8 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
-				assert.Equal(t, 80.0, res.EndingBalances[grant2.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
+				assert.Equal(t, 80.0, res.Snapshot.Balances[grant2.ID])
 			},
 		},
 		{
@@ -501,11 +546,14 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g2, g1},
-						StartingBalances: balance.Map{
-							g1.ID: 100.0,
-							g2.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+								g2.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1),
@@ -513,8 +561,8 @@ func TestEngine(t *testing.T) {
 					})
 
 				assert.NoError(t, err)
-				assert.Equal(t, 0.0, res.EndingBalances[grant1.ID])
-				assert.Equal(t, 80.0, res.EndingBalances[grant2.ID])
+				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
+				assert.Equal(t, 80.0, res.Snapshot.Balances[grant2.ID])
 			},
 		},
 		{
@@ -561,9 +609,12 @@ func TestEngine(t *testing.T) {
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
-						Grants:           grants,
-						StartingBalances: bm,
-						Overage:          0,
+						Grants: grants,
+						StartingSnapshot: balance.Snapshot{
+							Balances: bm,
+							Overage:  0,
+							At:       t1,
+						},
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1),
@@ -573,9 +624,9 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 				for _, g := range grants {
 					if g.ID == gToBurn.ID {
-						assert.Equal(t, 1.0, res.EndingBalances[g.ID])
+						assert.Equal(t, 1.0, res.Snapshot.Balances[g.ID])
 					} else {
-						assert.Equal(t, 100.0, res.EndingBalances[g.ID])
+						assert.Equal(t, 100.0, res.Snapshot.Balances[g.ID])
 					}
 				}
 			},
@@ -597,10 +648,13 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1},
-						StartingBalances: balance.Map{
-							g1.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
@@ -609,7 +663,7 @@ func TestEngine(t *testing.T) {
 
 				assert.NoError(t, err)
 				// grant recurrs daily, so it should be 80.0
-				assert.Equal(t, 80.0, res.EndingBalances[grant1.ID])
+				assert.Equal(t, 80.0, res.Snapshot.Balances[grant1.ID])
 			},
 		},
 		{
@@ -644,11 +698,14 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2},
-						StartingBalances: balance.Map{
-							g1.ID: 80.0, // due to use before start
-							g2.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 80.0, // due to use before start
+								g2.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 10), // right after recurrence
@@ -657,8 +714,8 @@ func TestEngine(t *testing.T) {
 
 				assert.NoError(t, err)
 
-				assert.Equal(t, 40.0, res1.EndingBalances[grant1.ID])
-				assert.Equal(t, 100.0, res1.EndingBalances[grant2.ID]) // recurred just now (t1 + day10)
+				assert.Equal(t, 40.0, res1.Snapshot.Balances[grant1.ID])
+				assert.Equal(t, 100.0, res1.Snapshot.Balances[grant2.ID]) // recurred just now (t1 + day10)
 			},
 		},
 		{
@@ -694,11 +751,14 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2},
-						StartingBalances: balance.Map{
-							g1.ID: 80.0, // due to use before start
-							g2.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 80.0, // due to use before start
+								g2.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 10).Add(-time.Hour), // right before recurrence
@@ -707,9 +767,9 @@ func TestEngine(t *testing.T) {
 
 				assert.NoError(t, err)
 
-				assert.Equal(t, 40.0, res2.EndingBalances[grant1.ID])
+				assert.Equal(t, 40.0, res2.Snapshot.Balances[grant1.ID])
 				// 20 usage as above
-				assert.Equal(t, 80.0, res2.EndingBalances[grant2.ID])
+				assert.Equal(t, 80.0, res2.Snapshot.Balances[grant2.ID])
 			},
 		},
 		{
@@ -751,11 +811,14 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2},
-						StartingBalances: balance.Map{
-							g1.ID: 80.0, // due to use before start
-							g2.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 80.0, // due to use before start
+								g2.ID: 100.0,
+							},
+							Overage: 0,
+							At:      start,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: start,
 							To:   end,
@@ -818,12 +881,15 @@ func TestEngine(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2, g3},
-						StartingBalances: balance.Map{
-							g1.ID: 80.0, // due to use before start
-							g2.ID: 100.0,
-							g3.ID: 100.0,
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								g1.ID: 80.0, // due to use before start
+								g2.ID: 100.0,
+								g3.ID: 100.0,
+							},
+							Overage: 0,
+							At:      start,
 						},
-						Overage: 0,
 						Period: timeutil.Period{
 							From: start,
 							To:   end,

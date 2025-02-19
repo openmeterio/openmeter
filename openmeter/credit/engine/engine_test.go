@@ -100,9 +100,12 @@ func Test_Fuzzing(t *testing.T) {
 				res, err := engine1.Run(
 					context.Background(),
 					engine.RunParams{
-						Grants:           []grant.Grant{g1, g2},
-						StartingBalances: startingBalance,
-						Overage:          0,
+						Grants: []grant.Grant{g1, g2},
+						StartingSnapshot: balance.Snapshot{
+							Balances: startingBalance,
+							Overage:  0,
+							At:       start,
+						},
 						Period: timeutil.Period{
 							From: start,
 							To:   intermediate,
@@ -115,8 +118,7 @@ func Test_Fuzzing(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants:           []grant.Grant{g1, g2},
-						StartingBalances: res.EndingBalances,
-						Overage:          res.EndingOverage,
+						StartingSnapshot: res.Snapshot,
 						Period: timeutil.Period{
 							From: intermediate,
 							To:   end,
@@ -129,8 +131,7 @@ func Test_Fuzzing(t *testing.T) {
 					context.Background(),
 					engine.RunParams{
 						Grants:           []grant.Grant{g1, g2},
-						StartingBalances: startingBalance,
-						Overage:          0,
+						StartingSnapshot: res.Snapshot,
 						Period: timeutil.Period{
 							From: start,
 							To:   end,
@@ -140,7 +141,7 @@ func Test_Fuzzing(t *testing.T) {
 				assert.NoError(t, err)
 
 				// assert equivalence
-				assert.Equal(t, res2.EndingBalances, res3.EndingBalances)
+				assert.Equal(t, res2.Snapshot.Balances, res3.Snapshot.Balances)
 			},
 		},
 		{
@@ -205,9 +206,12 @@ func Test_Fuzzing(t *testing.T) {
 					result, err := eng.Run(
 						context.Background(),
 						engine.RunParams{
-							Grants:           gCp,
-							StartingBalances: balances,
-							Overage:          0,
+							Grants: gCp,
+							StartingSnapshot: balance.Snapshot{
+								Balances: balances,
+								Overage:  0,
+								At:       start,
+							},
 							Period: timeutil.Period{
 								From: start,
 								To:   end,
@@ -216,7 +220,7 @@ func Test_Fuzzing(t *testing.T) {
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
-					results[i] = result.EndingBalances.Clone()
+					results[i] = result.Snapshot.Balances.Clone()
 				}
 
 				sumVals := func(m balance.Map) float64 {
@@ -292,9 +296,12 @@ func Test_Fuzzing(t *testing.T) {
 				singleEngineResult, err := singleEngine.Run(
 					context.Background(),
 					engine.RunParams{
-						Grants:           gCp,
-						StartingBalances: startingBalances,
-						Overage:          0,
+						Grants: gCp,
+						StartingSnapshot: balance.Snapshot{
+							Balances: startingBalances,
+							Overage:  0,
+							At:       start,
+						},
 						Period: timeutil.Period{
 							From: start,
 							To:   end,
@@ -330,9 +337,12 @@ func Test_Fuzzing(t *testing.T) {
 					res, err := eng.Run(
 						context.Background(),
 						engine.RunParams{
-							Grants:           gCp,
-							StartingBalances: balances,
-							Overage:          overage,
+							Grants: gCp,
+							StartingSnapshot: balance.Snapshot{
+								Balances: balances,
+								Overage:  overage,
+								At:       pStart,
+							},
 							Period: timeutil.Period{
 								From: pStart,
 								To:   pEnd,
@@ -342,13 +352,13 @@ func Test_Fuzzing(t *testing.T) {
 						t.Fatalf("unexpected error: %v", err)
 					}
 
-					balances = res.EndingBalances
-					overage = res.EndingOverage
+					balances = res.Snapshot.Balances
+					overage = res.Snapshot.Overage
 
 					pStart = pEnd
 				}
 
-				assert.Equal(t, singleEngineResult.EndingBalances, balances)
+				assert.Equal(t, singleEngineResult.Snapshot.Balances, balances)
 			},
 		},
 	}

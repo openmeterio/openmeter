@@ -16,8 +16,8 @@ import (
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
 func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
-	if !params.StartingBalances.ExactlyForGrants(params.Grants) {
-		return RunResult{}, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", params.Grants, params.StartingBalances)
+	if !params.StartingSnapshot.Balances.ExactlyForGrants(params.Grants) {
+		return RunResult{}, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", params.Grants, params.StartingSnapshot.Balances)
 	}
 
 	e.grants = make([]grant.Grant, len(params.Grants))
@@ -35,7 +35,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 
 	// Only respect balances that we know the grants of, otherwise we cannot guarantee
 	// that the output balance is correct for said grants.
-	balancesAtPhaseStart := params.StartingBalances.Clone()
+	balancesAtPhaseStart := params.StartingSnapshot.Balances.Clone()
 
 	rePrioritize := false
 	recurredGrants := []string{}
@@ -47,7 +47,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 
 	segments := make([]GrantBurnDownHistorySegment, 0, len(phases))
 
-	overage := params.Overage
+	overage := params.StartingSnapshot.Overage
 
 	for _, phase := range phases {
 		// reprioritize grants if needed
@@ -122,9 +122,12 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		}
 	}
 	return RunResult{
-		EndingBalances: balancesAtPhaseStart,
-		EndingOverage:  overage,
-		History:        segments,
+		Snapshot: balance.Snapshot{
+			Balances: balancesAtPhaseStart,
+			Overage:  overage,
+			At:       params.Period.To,
+		},
+		History: segments,
 	}, nil
 }
 

@@ -13,18 +13,17 @@ import (
 type RunParams struct {
 	// List of all grants that are active at the relevant period at some point.
 	Grants []grant.Grant
-	// Starting balances of all grants at the start of the period.
-	StartingBalances balance.Map
-	// Overage at the start of the period.
-	Overage float64
 	// Period to burn down the grants for.
 	Period timeutil.Period
+	// Starting snapshot of the balances at the START OF THE PERIOD.
+	StartingSnapshot balance.Snapshot
 }
 
 type RunResult struct {
-	EndingBalances balance.Map
-	EndingOverage  float64
-	History        []GrantBurnDownHistorySegment
+	// Snapshot of the balances at the END OF THE PERIOD.
+	Snapshot balance.Snapshot
+	// History of the grant burn down.
+	History []GrantBurnDownHistorySegment
 }
 
 type Engine interface {

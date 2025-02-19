@@ -83,8 +83,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		ctx,
 		engine.RunParams{
 			Grants:           grants,
-			StartingBalances: bal.Balances,
-			Overage:          bal.Overage,
+			StartingSnapshot: bal,
 			Period:           queriedPeriod,
 		},
 	)
@@ -124,11 +123,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	}
 
 	// return balance
-	return &balance.Snapshot{
-		At:       at,
-		Balances: result.EndingBalances,
-		Overage:  result.EndingOverage,
-	}, nil
+	return &result.Snapshot, nil
 }
 
 // Returns the joined GrantBurnDownHistory across usage periods.
@@ -195,8 +190,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			ctx,
 			engine.RunParams{
 				Grants:           grants,
-				StartingBalances: snap.Balances,
-				Overage:          snap.Overage,
+				StartingSnapshot: snap,
 				Period:           periodFromSnapshotToPeriodStart,
 			},
 		)
@@ -204,11 +198,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, period.From, err)
 		}
 
-		fakeSnapshotForPeriodStart := balance.Snapshot{
-			Balances: result.EndingBalances,
-			Overage:  result.EndingOverage,
-			At:       period.From,
-		}
+		fakeSnapshotForPeriodStart := result.Snapshot
 
 		// Second, lets calculate the balance for the period
 
@@ -231,8 +221,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			ctx,
 			engine.RunParams{
 				Grants:           grants,
-				StartingBalances: fakeSnapshotForPeriodStart.Balances,
-				Overage:          fakeSnapshotForPeriodStart.Overage,
+				StartingSnapshot: fakeSnapshotForPeriodStart,
 				Period:           period,
 			},
 		)
@@ -315,8 +304,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		ctx,
 		engine.RunParams{
 			Grants:           grants,
-			StartingBalances: bal.Balances,
-			Overage:          bal.Overage,
+			StartingSnapshot: bal,
 			Period:           queriedPeriod,
 		},
 	)
@@ -332,7 +320,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	// We have to roll over the grants and save the starting balance for the next period at the reset time.
 	// Engine treates the output balance as a period end (exclusive), but we need to treat it as a period start (inclusive).
 	startingBalance := balance.Map{}
-	for grantID, grantBalance := range res.EndingBalances {
+	for grantID, grantBalance := range res.Snapshot.Balances {
 		grant, ok := grantMap[grantID]
 		// inconsistency check, shouldn't happen
 		if !ok {
@@ -349,7 +337,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 
 	startingOverage := 0.0
 	if params.PreserveOverage {
-		startingOverage = res.EndingOverage
+		startingOverage = res.Snapshot.Overage
 	}
 
 	gCopy := make([]grant.Grant, len(grants))
