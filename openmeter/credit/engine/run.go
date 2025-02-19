@@ -35,7 +35,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 
 	// Only respect balances that we know the grants of, otherwise we cannot guarantee
 	// that the output balance is correct for said grants.
-	balancesAtPhaseStart := params.StartingBalances.Copy()
+	balancesAtPhaseStart := params.StartingBalances.Clone()
 
 	rePrioritize := false
 	recurredGrants := []string{}
@@ -90,7 +90,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 
 		segment := GrantBurnDownHistorySegment{
 			Period:         timeutil.Period{From: phase.from, To: phase.to},
-			BalanceAtStart: balancesAtPhaseStart.Copy(),
+			BalanceAtStart: balancesAtPhaseStart.Clone(),
 			OverageAtStart: overage,
 			TerminationReasons: SegmentTerminationReason{
 				PriorityChange: phase.priorityChange,
@@ -132,7 +132,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 //
 // FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
 func BurnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, []GrantUsage, float64, error) {
-	balances := startingBalances.Copy()
+	balances := startingBalances.Clone()
 	uses := make([]GrantUsage, 0, len(prioritized))
 	exactUsage := alpacadecimal.NewFromFloat(usage)
 

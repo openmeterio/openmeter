@@ -193,7 +193,7 @@ func Test_Fuzzing(t *testing.T) {
 				}
 
 				// run calculation multiple times
-				balances := startingBalances.Copy()
+				balances := startingBalances.Clone()
 				results := make([]balance.Map, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
 					eng := engine.NewEngine(engine.EngineConfig{
@@ -216,7 +216,7 @@ func Test_Fuzzing(t *testing.T) {
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
-					results[i] = result.EndingBalances.Copy()
+					results[i] = result.EndingBalances.Clone()
 				}
 
 				sumVals := func(m balance.Map) float64 {
@@ -306,7 +306,7 @@ func Test_Fuzzing(t *testing.T) {
 				}
 
 				// run calculation on multiple engines
-				balances := startingBalances.Copy()
+				balances := startingBalances.Clone()
 				pStart := start.Truncate(granularity)
 
 				runLength := end.Sub(start) / time.Duration(numOfEngines)
