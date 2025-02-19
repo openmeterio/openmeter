@@ -2,45 +2,62 @@ FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.6.1@sha256:923441d7c25f1e2eb5789f
 
 FROM --platform=$BUILDPLATFORM golang:1.24.0-alpine3.21@sha256:2d40d4fc278dad38be0777d5e2a88a2c6dee51b0b29c97a764fc6c6a11ca893c AS builder
 
-COPY --from=xx / /
+COPY --link --from=xx / /
 
-RUN apk add --update --no-cache ca-certificates make git curl clang lld
+RUN xx-apk add --update --no-cache ca-certificates make git curl clang lld
 
 ARG TARGETPLATFORM
 
 RUN xx-apk --update --no-cache add musl-dev gcc
 
-RUN xx-go --wrap
-
-WORKDIR /usr/local/src/openmeter
+WORKDIR /src
 
 ARG GOPROXY
 
 ENV CGO_ENABLED=1
 
-COPY go.mod go.sum ./
-RUN go mod download
+ENV GOCACHE=/go/cache
+ENV GOMODCACHE=/go/pkg/mod
 
-COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    --mount=type=bind,source=.,target=/src,ro \
+    xx-go mod download -x
 
 ARG VERSION
 
 # See https://github.com/confluentinc/confluent-kafka-go#librdkafka
 # See https://github.com/confluentinc/confluent-kafka-go#static-builds-on-linux
 # Build server binary (default)
-RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter ./cmd/server
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    --mount=type=bind,source=.,target=/src,ro \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter ./cmd/server
+
 RUN xx-verify /usr/local/bin/openmeter
 
 # Build sink-worker binary
-RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    --mount=type=bind,source=.,target=/src,ro \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
+
 RUN xx-verify /usr/local/bin/openmeter-sink-worker
 
 # Build balance-worker binary
-RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-balance-worker ./cmd/balance-worker
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    --mount=type=bind,source=.,target=/src,ro \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-balance-worker ./cmd/balance-worker
+
 RUN xx-verify /usr/local/bin/openmeter-balance-worker
 
 # Build balance-worker binary
-RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-notification-service ./cmd/notification-service
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    --mount=type=bind,source=.,target=/src,ro \
+    xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-notification-service ./cmd/notification-service
+
 RUN xx-verify /usr/local/bin/openmeter-notification-service
 
 
@@ -54,6 +71,6 @@ COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
 COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
 COPY --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
-COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
+COPY --from=builder /src/go.* /usr/local/src/openmeter/
 
 CMD openmeter
