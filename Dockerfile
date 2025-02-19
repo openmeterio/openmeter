@@ -19,19 +19,21 @@ ENV CGO_ENABLED=1
 ENV GOCACHE=/go/cache
 ENV GOMODCACHE=/go/pkg/mod
 
+COPY --link go.mod go.sum ./
+
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    --mount=type=bind,source=.,target=/src,ro \
     xx-go mod download -x
 
 ARG VERSION
+
+COPY --link . .
 
 # See https://github.com/confluentinc/confluent-kafka-go#librdkafka
 # See https://github.com/confluentinc/confluent-kafka-go#static-builds-on-linux
 # Build server binary (default)
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    --mount=type=bind,source=.,target=/src,ro \
     xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter ./cmd/server
 
 RUN xx-verify /usr/local/bin/openmeter
@@ -39,7 +41,6 @@ RUN xx-verify /usr/local/bin/openmeter
 # Build sink-worker binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    --mount=type=bind,source=.,target=/src,ro \
     xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
 
 RUN xx-verify /usr/local/bin/openmeter-sink-worker
@@ -47,7 +48,6 @@ RUN xx-verify /usr/local/bin/openmeter-sink-worker
 # Build balance-worker binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    --mount=type=bind,source=.,target=/src,ro \
     xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-balance-worker ./cmd/balance-worker
 
 RUN xx-verify /usr/local/bin/openmeter-balance-worker
@@ -55,7 +55,6 @@ RUN xx-verify /usr/local/bin/openmeter-balance-worker
 # Build balance-worker binary
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    --mount=type=bind,source=.,target=/src,ro \
     xx-go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-notification-service ./cmd/notification-service
 
 RUN xx-verify /usr/local/bin/openmeter-notification-service
@@ -67,10 +66,10 @@ RUN apk add --update --no-cache ca-certificates tzdata bash
 
 SHELL ["/bin/bash", "-c"]
 
-COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
-COPY --from=builder /src/go.* /usr/local/src/openmeter/
+COPY --link --from=builder /usr/local/bin/openmeter /usr/local/bin/
+COPY --link --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
+COPY --link --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
+COPY --link --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
+COPY --link --from=builder /src/go.* /usr/local/src/openmeter/
 
 CMD openmeter
