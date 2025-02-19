@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 const MAX_SAFE_ITERATIONS = 10000
@@ -154,17 +154,17 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 }
 
 type RecurrenceInterval struct {
-	datex.Period
+	isodate.Period
 }
 
 var (
-	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 0, 0, 1, 0, 0, 0)}
-	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 0, 1, 0, 0, 0, 0)}
-	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
-	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{datex.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
+	RecurrencePeriodDaily RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(0, 0, 0, 1, 0, 0, 0)}
+	RecurrencePeriodWeek  RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(0, 0, 1, 0, 0, 0, 0)}
+	RecurrencePeriodMonth RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(0, 1, 0, 0, 0, 0, 0)}
+	RecurrencePeriodYear  RecurrenceInterval = RecurrenceInterval{isodate.NewPeriod(1, 0, 0, 0, 0, 0, 0)}
 )
 
-func FromISODuration(p *datex.Period, anchor time.Time) (Recurrence, error) {
+func FromISODuration(p *isodate.Period, anchor time.Time) (Recurrence, error) {
 	if p == nil {
 		return Recurrence{}, fmt.Errorf("period cannot be nil")
 	}

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -206,7 +206,7 @@ func (c CreateEntitlementInputs) Validate() error {
 
 	// Let's validate the Usage Period
 	if c.UsagePeriod != nil {
-		if per, err := c.UsagePeriod.Interval.Period.Subtract(datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
+		if per, err := c.UsagePeriod.Interval.Period.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 			return fmt.Errorf("UsagePeriod must be at least 1 hour")
 		}
 	}
@@ -356,7 +356,7 @@ func (e GenericProperties) ActiveToTime() *time.Time {
 type UsagePeriod timeutil.Recurrence
 
 func (u UsagePeriod) Validate() error {
-	hour := datex.NewPeriod(0, 0, 0, 0, 1, 0, 0)
+	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
 	if diff, err := u.Interval.Period.Subtract(hour); err == nil && diff.Sign() == -1 {
 		return errors.New("UsagePeriod must be at least 1 hour")
 	}

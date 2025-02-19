@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // SubscriptionItemUpdate is the builder for updating SubscriptionItem entities.
@@ -145,15 +145,15 @@ func (siu *SubscriptionItemUpdate) ClearRestartsBillingPeriod() *SubscriptionIte
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (siu *SubscriptionItemUpdate) SetActiveFromOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemUpdate {
-	siu.mutation.SetActiveFromOverrideRelativeToPhaseStart(ds)
+func (siu *SubscriptionItemUpdate) SetActiveFromOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemUpdate {
+	siu.mutation.SetActiveFromOverrideRelativeToPhaseStart(i)
 	return siu
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (siu *SubscriptionItemUpdate) SetNillableActiveFromOverrideRelativeToPhaseStart(ds *datex.ISOString) *SubscriptionItemUpdate {
-	if ds != nil {
-		siu.SetActiveFromOverrideRelativeToPhaseStart(*ds)
+func (siu *SubscriptionItemUpdate) SetNillableActiveFromOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemUpdate {
+	if i != nil {
+		siu.SetActiveFromOverrideRelativeToPhaseStart(*i)
 	}
 	return siu
 }
@@ -165,15 +165,15 @@ func (siu *SubscriptionItemUpdate) ClearActiveFromOverrideRelativeToPhaseStart()
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (siu *SubscriptionItemUpdate) SetActiveToOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemUpdate {
-	siu.mutation.SetActiveToOverrideRelativeToPhaseStart(ds)
+func (siu *SubscriptionItemUpdate) SetActiveToOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemUpdate {
+	siu.mutation.SetActiveToOverrideRelativeToPhaseStart(i)
 	return siu
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (siu *SubscriptionItemUpdate) SetNillableActiveToOverrideRelativeToPhaseStart(ds *datex.ISOString) *SubscriptionItemUpdate {
-	if ds != nil {
-		siu.SetActiveToOverrideRelativeToPhaseStart(*ds)
+func (siu *SubscriptionItemUpdate) SetNillableActiveToOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemUpdate {
+	if i != nil {
+		siu.SetActiveToOverrideRelativeToPhaseStart(*i)
 	}
 	return siu
 }
@@ -263,15 +263,15 @@ func (siu *SubscriptionItemUpdate) ClearTaxConfig() *SubscriptionItemUpdate {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (siu *SubscriptionItemUpdate) SetBillingCadence(ds datex.ISOString) *SubscriptionItemUpdate {
-	siu.mutation.SetBillingCadence(ds)
+func (siu *SubscriptionItemUpdate) SetBillingCadence(i isodate.String) *SubscriptionItemUpdate {
+	siu.mutation.SetBillingCadence(i)
 	return siu
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (siu *SubscriptionItemUpdate) SetNillableBillingCadence(ds *datex.ISOString) *SubscriptionItemUpdate {
-	if ds != nil {
-		siu.SetBillingCadence(*ds)
+func (siu *SubscriptionItemUpdate) SetNillableBillingCadence(i *isodate.String) *SubscriptionItemUpdate {
+	if i != nil {
+		siu.SetBillingCadence(*i)
 	}
 	return siu
 }
@@ -722,15 +722,15 @@ func (siuo *SubscriptionItemUpdateOne) ClearRestartsBillingPeriod() *Subscriptio
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (siuo *SubscriptionItemUpdateOne) SetActiveFromOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemUpdateOne {
-	siuo.mutation.SetActiveFromOverrideRelativeToPhaseStart(ds)
+func (siuo *SubscriptionItemUpdateOne) SetActiveFromOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetActiveFromOverrideRelativeToPhaseStart(i)
 	return siuo
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (siuo *SubscriptionItemUpdateOne) SetNillableActiveFromOverrideRelativeToPhaseStart(ds *datex.ISOString) *SubscriptionItemUpdateOne {
-	if ds != nil {
-		siuo.SetActiveFromOverrideRelativeToPhaseStart(*ds)
+func (siuo *SubscriptionItemUpdateOne) SetNillableActiveFromOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemUpdateOne {
+	if i != nil {
+		siuo.SetActiveFromOverrideRelativeToPhaseStart(*i)
 	}
 	return siuo
 }
@@ -742,15 +742,15 @@ func (siuo *SubscriptionItemUpdateOne) ClearActiveFromOverrideRelativeToPhaseSta
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (siuo *SubscriptionItemUpdateOne) SetActiveToOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemUpdateOne {
-	siuo.mutation.SetActiveToOverrideRelativeToPhaseStart(ds)
+func (siuo *SubscriptionItemUpdateOne) SetActiveToOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetActiveToOverrideRelativeToPhaseStart(i)
 	return siuo
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (siuo *SubscriptionItemUpdateOne) SetNillableActiveToOverrideRelativeToPhaseStart(ds *datex.ISOString) *SubscriptionItemUpdateOne {
-	if ds != nil {
-		siuo.SetActiveToOverrideRelativeToPhaseStart(*ds)
+func (siuo *SubscriptionItemUpdateOne) SetNillableActiveToOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemUpdateOne {
+	if i != nil {
+		siuo.SetActiveToOverrideRelativeToPhaseStart(*i)
 	}
 	return siuo
 }
@@ -840,15 +840,15 @@ func (siuo *SubscriptionItemUpdateOne) ClearTaxConfig() *SubscriptionItemUpdateO
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (siuo *SubscriptionItemUpdateOne) SetBillingCadence(ds datex.ISOString) *SubscriptionItemUpdateOne {
-	siuo.mutation.SetBillingCadence(ds)
+func (siuo *SubscriptionItemUpdateOne) SetBillingCadence(i isodate.String) *SubscriptionItemUpdateOne {
+	siuo.mutation.SetBillingCadence(i)
 	return siuo
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (siuo *SubscriptionItemUpdateOne) SetNillableBillingCadence(ds *datex.ISOString) *SubscriptionItemUpdateOne {
-	if ds != nil {
-		siuo.SetBillingCadence(*ds)
+func (siuo *SubscriptionItemUpdateOne) SetNillableBillingCadence(i *isodate.String) *SubscriptionItemUpdateOne {
+	if i != nil {
+		siuo.SetBillingCadence(*i)
 	}
 	return siuo
 }

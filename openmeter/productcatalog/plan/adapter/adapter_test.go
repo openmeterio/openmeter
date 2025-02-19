@@ -14,14 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var (
-	MonthPeriod      = datex.FromDuration(30 * 24 * time.Hour)
-	TwoMonthPeriod   = datex.FromDuration(60 * 24 * time.Hour)
-	ThreeMonthPeriod = datex.FromDuration(90 * 24 * time.Hour)
+	MonthPeriod      = isodate.FromDuration(30 * 24 * time.Hour)
+	TwoMonthPeriod   = isodate.FromDuration(60 * 24 * time.Hour)
+	ThreeMonthPeriod = isodate.FromDuration(90 * 24 * time.Hour)
 )
 
 var namespace = "01JBX0P4GQZCQY1WNGX3VT94P4"

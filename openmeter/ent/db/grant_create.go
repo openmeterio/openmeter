@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // GrantCreate is the builder for creating a Grant entity.
@@ -151,15 +151,15 @@ func (gc *GrantCreate) SetResetMinRollover(f float64) *GrantCreate {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (gc *GrantCreate) SetRecurrencePeriod(ds datex.ISOString) *GrantCreate {
-	gc.mutation.SetRecurrencePeriod(ds)
+func (gc *GrantCreate) SetRecurrencePeriod(i isodate.String) *GrantCreate {
+	gc.mutation.SetRecurrencePeriod(i)
 	return gc
 }
 
 // SetNillableRecurrencePeriod sets the "recurrence_period" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrencePeriod(ds *datex.ISOString) *GrantCreate {
-	if ds != nil {
-		gc.SetRecurrencePeriod(*ds)
+func (gc *GrantCreate) SetNillableRecurrencePeriod(i *isodate.String) *GrantCreate {
+	if i != nil {
+		gc.SetRecurrencePeriod(*i)
 	}
 	return gc
 }

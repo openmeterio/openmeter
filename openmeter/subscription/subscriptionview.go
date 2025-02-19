@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -274,7 +274,7 @@ func NewSubscriptionView(
 			return nil, fmt.Errorf("phase %s is duplicated", phase.Key)
 		}
 
-		phaseStartAfter := datex.Between(sub.ActiveFrom, phase.ActiveFrom)
+		phaseStartAfter := isodate.Between(sub.ActiveFrom, phase.ActiveFrom)
 
 		phaseSpec := SubscriptionPhaseSpec{
 			CreateSubscriptionPhasePlanInput: CreateSubscriptionPhasePlanInput{

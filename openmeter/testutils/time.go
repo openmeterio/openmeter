@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 func GetRFC3339Time(t *testing.T, timeString string) time.Time {
@@ -16,9 +16,9 @@ func GetRFC3339Time(t *testing.T, timeString string) time.Time {
 	return t1
 }
 
-func GetISODuration(t *testing.T, durationString string) datex.Period {
+func GetISODuration(t *testing.T, durationString string) isodate.Period {
 	t.Helper()
-	d, err := datex.ISOString(durationString).Parse()
+	d, err := isodate.String(durationString).Parse()
 	if err != nil {
 		t.Fatalf("Failed to parse duration: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -77,7 +77,7 @@ func TestRateCard_JSON(t *testing.T) {
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
 						}),
 					},
-					BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
+					BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
 				},
 			},
 		},
@@ -128,7 +128,7 @@ func TestRateCard_JSON(t *testing.T) {
 								IssueAfterReset:         lo.ToPtr(500.0),
 								IssueAfterResetPriority: lo.ToPtr[uint8](1),
 								PreserveOverageAtReset:  lo.ToPtr(true),
-								UsagePeriod:             datex.MustParse(t, "P1M"),
+								UsagePeriod:             isodate.MustParse(t, "P1M"),
 							}),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
@@ -142,7 +142,7 @@ func TestRateCard_JSON(t *testing.T) {
 								MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 							}),
 					},
-					BillingCadence: datex.MustParse(t, "P1M"),
+					BillingCadence: isodate.MustParse(t, "P1M"),
 				},
 			},
 		},
@@ -224,7 +224,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							}),
 						},
-						BillingCadence: lo.ToPtr(datex.MustParse(t, "P1M")),
+						BillingCadence: lo.ToPtr(isodate.MustParse(t, "P1M")),
 					},
 				},
 				ExpectedError: false,
@@ -284,7 +284,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 									PaymentTerm: productcatalog.PaymentTermType("invalid"),
 								}),
 						},
-						BillingCadence: lo.ToPtr(datex.MustParse(t, "P0M")),
+						BillingCadence: lo.ToPtr(isodate.MustParse(t, "P0M")),
 					},
 				},
 				ExpectedError: true,
@@ -358,7 +358,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									IssueAfterReset:         lo.ToPtr(500.0),
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
-									UsagePeriod:             datex.MustParse(t, "P1M"),
+									UsagePeriod:             isodate.MustParse(t, "P1M"),
 								}),
 							TaxConfig: &productcatalog.TaxConfig{
 								Stripe: &productcatalog.StripeTaxConfig{
@@ -372,7 +372,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 								}),
 						},
-						BillingCadence: datex.MustParse(t, "P1M"),
+						BillingCadence: isodate.MustParse(t, "P1M"),
 					},
 				},
 				ExpectedError: false,
@@ -423,7 +423,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									IssueAfterReset:         lo.ToPtr(500.0),
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
-									UsagePeriod:             datex.MustParse(t, "P1M"),
+									UsagePeriod:             isodate.MustParse(t, "P1M"),
 								}),
 							TaxConfig: &productcatalog.TaxConfig{
 								Stripe: &productcatalog.StripeTaxConfig{
@@ -437,7 +437,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 								}),
 						},
-						BillingCadence: datex.MustParse(t, "P0M"),
+						BillingCadence: isodate.MustParse(t, "P0M"),
 					},
 				},
 				ExpectedError: true,

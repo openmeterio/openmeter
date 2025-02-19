@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -75,8 +75,8 @@ func (a AppReference) Validate() error {
 
 // CollectionConfig groups fields related to item collection.
 type CollectionConfig struct {
-	Alignment AlignmentKind `json:"alignment"`
-	Interval  datex.Period  `json:"period,omitempty"`
+	Alignment AlignmentKind  `json:"alignment"`
+	Interval  isodate.Period `json:"period,omitempty"`
 }
 
 func (c *CollectionConfig) Validate() error {
@@ -94,8 +94,8 @@ func (c *CollectionConfig) Validate() error {
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
 	AutoAdvance        bool                      `json:"autoAdvance,omitempty"`
-	DraftPeriod        datex.Period              `json:"draftPeriod,omitempty"`
-	DueAfter           datex.Period              `json:"dueAfter,omitempty"`
+	DraftPeriod        isodate.Period            `json:"draftPeriod,omitempty"`
+	DueAfter           isodate.Period            `json:"dueAfter,omitempty"`
 	ProgressiveBilling bool                      `json:"progressiveBilling,omitempty"`
 	DefaultTaxConfig   *productcatalog.TaxConfig `json:"defaultTaxConfig,omitempty"`
 }

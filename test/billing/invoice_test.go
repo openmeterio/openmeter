@@ -25,7 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -834,8 +834,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
-					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+					DraftPeriod: lo.Must(isodate.String("PT0S").Parse()),
+					DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -861,8 +861,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: lo.Must(datex.ISOString("PT1H").Parse()),
-					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+					DraftPeriod: lo.Must(isodate.String("PT1H").Parse()),
+					DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -890,8 +890,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: false,
-					DraftPeriod: lo.Must(datex.ISOString("PT0H").Parse()),
-					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+					DraftPeriod: lo.Must(isodate.String("PT0H").Parse()),
+					DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -927,8 +927,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: false,
-					DraftPeriod: lo.Must(datex.ISOString("PT0H").Parse()),
-					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+					DraftPeriod: lo.Must(isodate.String("PT0H").Parse()),
+					DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -1052,8 +1052,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
-					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+					DraftPeriod: lo.Must(isodate.String("PT0S").Parse()),
+					DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -1283,8 +1283,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				},
 				Invoicing: billing.InvoicingConfig{
 					AutoAdvance: true,
-					DraftPeriod: lo.Must(datex.ISOString("PT0S").Parse()),
-					DueAfter:    lo.Must(datex.ISOString("P1W").Parse()),
+					DraftPeriod: lo.Must(isodate.String("PT0S").Parse()),
+					DueAfter:    lo.Must(isodate.String("P1W").Parse()),
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,

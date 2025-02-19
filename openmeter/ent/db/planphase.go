@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // PlanPhase is the model entity for the PlanPhase schema.
@@ -42,7 +42,7 @@ type PlanPhase struct {
 	// The index of the phase in the plan.
 	Index uint8 `json:"index,omitempty"`
 	// The duration of the phase.
-	Duration *datex.ISOString `json:"duration,omitempty"`
+	Duration *isodate.String `json:"duration,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -186,8 +186,8 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field duration", values[i])
 			} else if value.Valid {
-				pp.Duration = new(datex.ISOString)
-				*pp.Duration = datex.ISOString(value.String)
+				pp.Duration = new(isodate.String)
+				*pp.Duration = isodate.String(value.String)
 			}
 		case planphase.FieldDiscounts:
 			if value, err := planphase.ValueScanner.Discounts.FromValue(values[i]); err != nil {

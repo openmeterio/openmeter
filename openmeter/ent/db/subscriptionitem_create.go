@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // SubscriptionItemCreate is the builder for creating a SubscriptionItem entity.
@@ -143,29 +143,29 @@ func (sic *SubscriptionItemCreate) SetNillableRestartsBillingPeriod(b *bool) *Su
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (sic *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemCreate {
-	sic.mutation.SetActiveFromOverrideRelativeToPhaseStart(ds)
+func (sic *SubscriptionItemCreate) SetActiveFromOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemCreate {
+	sic.mutation.SetActiveFromOverrideRelativeToPhaseStart(i)
 	return sic
 }
 
 // SetNillableActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseStart(ds *datex.ISOString) *SubscriptionItemCreate {
-	if ds != nil {
-		sic.SetActiveFromOverrideRelativeToPhaseStart(*ds)
+func (sic *SubscriptionItemCreate) SetNillableActiveFromOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemCreate {
+	if i != nil {
+		sic.SetActiveFromOverrideRelativeToPhaseStart(*i)
 	}
 	return sic
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (sic *SubscriptionItemCreate) SetActiveToOverrideRelativeToPhaseStart(ds datex.ISOString) *SubscriptionItemCreate {
-	sic.mutation.SetActiveToOverrideRelativeToPhaseStart(ds)
+func (sic *SubscriptionItemCreate) SetActiveToOverrideRelativeToPhaseStart(i isodate.String) *SubscriptionItemCreate {
+	sic.mutation.SetActiveToOverrideRelativeToPhaseStart(i)
 	return sic
 }
 
 // SetNillableActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableActiveToOverrideRelativeToPhaseStart(ds *datex.ISOString) *SubscriptionItemCreate {
-	if ds != nil {
-		sic.SetActiveToOverrideRelativeToPhaseStart(*ds)
+func (sic *SubscriptionItemCreate) SetNillableActiveToOverrideRelativeToPhaseStart(i *isodate.String) *SubscriptionItemCreate {
+	if i != nil {
+		sic.SetActiveToOverrideRelativeToPhaseStart(*i)
 	}
 	return sic
 }
@@ -217,15 +217,15 @@ func (sic *SubscriptionItemCreate) SetTaxConfig(pc *productcatalog.TaxConfig) *S
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (sic *SubscriptionItemCreate) SetBillingCadence(ds datex.ISOString) *SubscriptionItemCreate {
-	sic.mutation.SetBillingCadence(ds)
+func (sic *SubscriptionItemCreate) SetBillingCadence(i isodate.String) *SubscriptionItemCreate {
+	sic.mutation.SetBillingCadence(i)
 	return sic
 }
 
 // SetNillableBillingCadence sets the "billing_cadence" field if the given value is not nil.
-func (sic *SubscriptionItemCreate) SetNillableBillingCadence(ds *datex.ISOString) *SubscriptionItemCreate {
-	if ds != nil {
-		sic.SetBillingCadence(*ds)
+func (sic *SubscriptionItemCreate) SetNillableBillingCadence(i *isodate.String) *SubscriptionItemCreate {
+	if i != nil {
+		sic.SetBillingCadence(*i)
 	}
 	return sic
 }
@@ -725,7 +725,7 @@ func (u *SubscriptionItemUpsert) ClearRestartsBillingPeriod() *SubscriptionItemU
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsert) SetActiveFromOverrideRelativeToPhaseStart(v datex.ISOString) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, v)
 	return u
 }
@@ -743,7 +743,7 @@ func (u *SubscriptionItemUpsert) ClearActiveFromOverrideRelativeToPhaseStart() *
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsert) SetActiveToOverrideRelativeToPhaseStart(v datex.ISOString) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, v)
 	return u
 }
@@ -845,7 +845,7 @@ func (u *SubscriptionItemUpsert) ClearTaxConfig() *SubscriptionItemUpsert {
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionItemUpsert) SetBillingCadence(v datex.ISOString) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetBillingCadence(v isodate.String) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldBillingCadence, v)
 	return u
 }
@@ -1074,7 +1074,7 @@ func (u *SubscriptionItemUpsertOne) ClearRestartsBillingPeriod() *SubscriptionIt
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertOne) SetActiveFromOverrideRelativeToPhaseStart(v datex.ISOString) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveFromOverrideRelativeToPhaseStart(v)
 	})
@@ -1095,7 +1095,7 @@ func (u *SubscriptionItemUpsertOne) ClearActiveFromOverrideRelativeToPhaseStart(
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertOne) SetActiveToOverrideRelativeToPhaseStart(v datex.ISOString) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveToOverrideRelativeToPhaseStart(v)
 	})
@@ -1214,7 +1214,7 @@ func (u *SubscriptionItemUpsertOne) ClearTaxConfig() *SubscriptionItemUpsertOne 
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionItemUpsertOne) SetBillingCadence(v datex.ISOString) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetBillingCadence(v isodate.String) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetBillingCadence(v)
 	})
@@ -1619,7 +1619,7 @@ func (u *SubscriptionItemUpsertBulk) ClearRestartsBillingPeriod() *SubscriptionI
 }
 
 // SetActiveFromOverrideRelativeToPhaseStart sets the "active_from_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertBulk) SetActiveFromOverrideRelativeToPhaseStart(v datex.ISOString) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetActiveFromOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveFromOverrideRelativeToPhaseStart(v)
 	})
@@ -1640,7 +1640,7 @@ func (u *SubscriptionItemUpsertBulk) ClearActiveFromOverrideRelativeToPhaseStart
 }
 
 // SetActiveToOverrideRelativeToPhaseStart sets the "active_to_override_relative_to_phase_start" field.
-func (u *SubscriptionItemUpsertBulk) SetActiveToOverrideRelativeToPhaseStart(v datex.ISOString) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetActiveToOverrideRelativeToPhaseStart(v isodate.String) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetActiveToOverrideRelativeToPhaseStart(v)
 	})
@@ -1759,7 +1759,7 @@ func (u *SubscriptionItemUpsertBulk) ClearTaxConfig() *SubscriptionItemUpsertBul
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
-func (u *SubscriptionItemUpsertBulk) SetBillingCadence(v datex.ISOString) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetBillingCadence(v isodate.String) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetBillingCadence(v)
 	})

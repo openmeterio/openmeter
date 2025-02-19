@@ -8,7 +8,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -95,7 +95,7 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 	// Let's check Alignment
 	if p.Alignment.BillablesMustAlign {
 		for i, phase := range p.Phases {
-			periods := make(map[datex.ISOString]bool)
+			periods := make(map[isodate.String]bool)
 
 			// For each phase, all RateCards that have a price associated must align
 			for _, rc := range phase.RateCards.Billables() {

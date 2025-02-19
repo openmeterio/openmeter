@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -101,12 +101,12 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 			CustomerID: customerID,
 
 			Collection: billing.CollectionOverrideConfig{
-				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
+				Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT1H")),
 			},
 			Invoicing: billing.InvoicingOverrideConfig{
 				AutoAdvance: lo.ToPtr(false),
-				DraftPeriod: lo.ToPtr(datex.MustParse(s.T(), "PT2H")),
-				DueAfter:    lo.ToPtr(datex.MustParse(s.T(), "PT3H")),
+				DraftPeriod: lo.ToPtr(isodate.MustParse(s.T(), "PT2H")),
+				DueAfter:    lo.ToPtr(isodate.MustParse(s.T(), "PT3H")),
 			},
 			Payment: billing.PaymentOverrideConfig{
 				CollectionMethod: lo.ToPtr(billing.CollectionMethodSendInvoice),
@@ -127,10 +127,10 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 
 		wfConfig := customerProfile.Profile.WorkflowConfig
 
-		require.Equal(t, wfConfig.Collection.Interval, datex.MustParse(t, "PT1H"))
+		require.Equal(t, wfConfig.Collection.Interval, isodate.MustParse(t, "PT1H"))
 		require.Equal(t, wfConfig.Invoicing.AutoAdvance, false)
-		require.Equal(t, wfConfig.Invoicing.DraftPeriod, datex.MustParse(t, "PT2H"))
-		require.Equal(t, wfConfig.Invoicing.DueAfter, datex.MustParse(t, "PT3H"))
+		require.Equal(t, wfConfig.Invoicing.DraftPeriod, isodate.MustParse(t, "PT2H"))
+		require.Equal(t, wfConfig.Invoicing.DueAfter, isodate.MustParse(t, "PT3H"))
 		require.Equal(t, wfConfig.Payment.CollectionMethod, billing.CollectionMethodSendInvoice)
 	})
 }
@@ -181,7 +181,7 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 			ProfileID:  pinnedProfile.ID,
 
 			Collection: billing.CollectionOverrideConfig{
-				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
+				Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT1H")),
 			},
 		})
 
@@ -199,10 +199,10 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 
 		wfConfig := customerProfile.Profile.WorkflowConfig
 
-		require.Equal(t, wfConfig.Collection.Interval, datex.MustParse(s.T(), "PT1H"))
+		require.Equal(t, wfConfig.Collection.Interval, isodate.MustParse(s.T(), "PT1H"))
 		require.Equal(t, wfConfig.Invoicing.AutoAdvance, true)
-		require.Equal(t, wfConfig.Invoicing.DraftPeriod, lo.Must(datex.ISOString("P1D").Parse()))
-		require.Equal(t, wfConfig.Invoicing.DueAfter, lo.Must(datex.ISOString("P1W").Parse()))
+		require.Equal(t, wfConfig.Invoicing.DraftPeriod, lo.Must(isodate.String("P1D").Parse()))
+		require.Equal(t, wfConfig.Invoicing.DueAfter, lo.Must(isodate.String("P1W").Parse()))
 		require.Equal(t, wfConfig.Payment.CollectionMethod, billing.CollectionMethodChargeAutomatically)
 	})
 }
@@ -248,7 +248,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 			CustomerID: customer.ID,
 
 			Collection: billing.CollectionOverrideConfig{
-				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1234H")),
+				Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT1234H")),
 			},
 		})
 
@@ -291,14 +291,14 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 			CustomerID: customer.ID,
 
 			Collection: billing.CollectionOverrideConfig{
-				Interval: lo.ToPtr(datex.MustParse(s.T(), "PT48H")),
+				Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT48H")),
 			},
 		})
 
 		// Then the override is created
 		require.NoError(t, err)
 		require.NotNil(t, createdCustomerOverride)
-		require.Equal(t, *createdCustomerOverride.Collection.Interval, datex.MustParse(s.T(), "PT48H"))
+		require.Equal(t, *createdCustomerOverride.Collection.Interval, isodate.MustParse(s.T(), "PT48H"))
 	})
 }
 
@@ -375,7 +375,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 		CustomerID: customer.ID,
 
 		Collection: billing.CollectionOverrideConfig{
-			Interval: lo.ToPtr(datex.MustParse(s.T(), "PT1H")),
+			Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT1H")),
 		},
 	})
 	require.NoError(s.T(), err)

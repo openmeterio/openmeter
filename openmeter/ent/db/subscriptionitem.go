@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // SubscriptionItem is the model entity for the SubscriptionItem schema.
@@ -45,9 +45,9 @@ type SubscriptionItem struct {
 	// RestartsBillingPeriod holds the value of the "restarts_billing_period" field.
 	RestartsBillingPeriod *bool `json:"restarts_billing_period,omitempty"`
 	// ActiveFromOverrideRelativeToPhaseStart holds the value of the "active_from_override_relative_to_phase_start" field.
-	ActiveFromOverrideRelativeToPhaseStart *datex.ISOString `json:"active_from_override_relative_to_phase_start,omitempty"`
+	ActiveFromOverrideRelativeToPhaseStart *isodate.String `json:"active_from_override_relative_to_phase_start,omitempty"`
 	// ActiveToOverrideRelativeToPhaseStart holds the value of the "active_to_override_relative_to_phase_start" field.
-	ActiveToOverrideRelativeToPhaseStart *datex.ISOString `json:"active_to_override_relative_to_phase_start,omitempty"`
+	ActiveToOverrideRelativeToPhaseStart *isodate.String `json:"active_to_override_relative_to_phase_start,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
@@ -59,7 +59,7 @@ type SubscriptionItem struct {
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
-	BillingCadence *datex.ISOString `json:"billing_cadence,omitempty"`
+	BillingCadence *isodate.String `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -228,15 +228,15 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field active_from_override_relative_to_phase_start", values[i])
 			} else if value.Valid {
-				si.ActiveFromOverrideRelativeToPhaseStart = new(datex.ISOString)
-				*si.ActiveFromOverrideRelativeToPhaseStart = datex.ISOString(value.String)
+				si.ActiveFromOverrideRelativeToPhaseStart = new(isodate.String)
+				*si.ActiveFromOverrideRelativeToPhaseStart = isodate.String(value.String)
 			}
 		case subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field active_to_override_relative_to_phase_start", values[i])
 			} else if value.Valid {
-				si.ActiveToOverrideRelativeToPhaseStart = new(datex.ISOString)
-				*si.ActiveToOverrideRelativeToPhaseStart = datex.ISOString(value.String)
+				si.ActiveToOverrideRelativeToPhaseStart = new(isodate.String)
+				*si.ActiveToOverrideRelativeToPhaseStart = isodate.String(value.String)
 			}
 		case subscriptionitem.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -274,8 +274,8 @@ func (si *SubscriptionItem) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
 			} else if value.Valid {
-				si.BillingCadence = new(datex.ISOString)
-				*si.BillingCadence = datex.ISOString(value.String)
+				si.BillingCadence = new(isodate.String)
+				*si.BillingCadence = isodate.String(value.String)
 			}
 		case subscriptionitem.FieldPrice:
 			if value, err := subscriptionitem.ValueScanner.Price.FromValue(values[i]); err != nil {

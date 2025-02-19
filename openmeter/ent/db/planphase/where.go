@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // ID filters vertices based on their ID field.
@@ -112,7 +112,7 @@ func Index(v uint8) predicate.PlanPhase {
 }
 
 // Duration applies equality check predicate on the "duration" field. It's identical to DurationEQ.
-func Duration(v datex.ISOString) predicate.PlanPhase {
+func Duration(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldEQ(FieldDuration, vc))
 }
@@ -633,19 +633,19 @@ func IndexLTE(v uint8) predicate.PlanPhase {
 }
 
 // DurationEQ applies the EQ predicate on the "duration" field.
-func DurationEQ(v datex.ISOString) predicate.PlanPhase {
+func DurationEQ(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldEQ(FieldDuration, vc))
 }
 
 // DurationNEQ applies the NEQ predicate on the "duration" field.
-func DurationNEQ(v datex.ISOString) predicate.PlanPhase {
+func DurationNEQ(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldNEQ(FieldDuration, vc))
 }
 
 // DurationIn applies the In predicate on the "duration" field.
-func DurationIn(vs ...datex.ISOString) predicate.PlanPhase {
+func DurationIn(vs ...isodate.String) predicate.PlanPhase {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -654,7 +654,7 @@ func DurationIn(vs ...datex.ISOString) predicate.PlanPhase {
 }
 
 // DurationNotIn applies the NotIn predicate on the "duration" field.
-func DurationNotIn(vs ...datex.ISOString) predicate.PlanPhase {
+func DurationNotIn(vs ...isodate.String) predicate.PlanPhase {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -663,43 +663,43 @@ func DurationNotIn(vs ...datex.ISOString) predicate.PlanPhase {
 }
 
 // DurationGT applies the GT predicate on the "duration" field.
-func DurationGT(v datex.ISOString) predicate.PlanPhase {
+func DurationGT(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldGT(FieldDuration, vc))
 }
 
 // DurationGTE applies the GTE predicate on the "duration" field.
-func DurationGTE(v datex.ISOString) predicate.PlanPhase {
+func DurationGTE(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldGTE(FieldDuration, vc))
 }
 
 // DurationLT applies the LT predicate on the "duration" field.
-func DurationLT(v datex.ISOString) predicate.PlanPhase {
+func DurationLT(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldLT(FieldDuration, vc))
 }
 
 // DurationLTE applies the LTE predicate on the "duration" field.
-func DurationLTE(v datex.ISOString) predicate.PlanPhase {
+func DurationLTE(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldLTE(FieldDuration, vc))
 }
 
 // DurationContains applies the Contains predicate on the "duration" field.
-func DurationContains(v datex.ISOString) predicate.PlanPhase {
+func DurationContains(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldContains(FieldDuration, vc))
 }
 
 // DurationHasPrefix applies the HasPrefix predicate on the "duration" field.
-func DurationHasPrefix(v datex.ISOString) predicate.PlanPhase {
+func DurationHasPrefix(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldHasPrefix(FieldDuration, vc))
 }
 
 // DurationHasSuffix applies the HasSuffix predicate on the "duration" field.
-func DurationHasSuffix(v datex.ISOString) predicate.PlanPhase {
+func DurationHasSuffix(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldHasSuffix(FieldDuration, vc))
 }
@@ -715,13 +715,13 @@ func DurationNotNil() predicate.PlanPhase {
 }
 
 // DurationEqualFold applies the EqualFold predicate on the "duration" field.
-func DurationEqualFold(v datex.ISOString) predicate.PlanPhase {
+func DurationEqualFold(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldEqualFold(FieldDuration, vc))
 }
 
 // DurationContainsFold applies the ContainsFold predicate on the "duration" field.
-func DurationContainsFold(v datex.ISOString) predicate.PlanPhase {
+func DurationContainsFold(v isodate.String) predicate.PlanPhase {
 	vc := string(v)
 	return predicate.PlanPhase(sql.FieldContainsFold(FieldDuration, vc))
 }

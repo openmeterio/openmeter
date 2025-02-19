@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // RateCard is a local implementation of plan.RateCard until productcatalog models are available
@@ -32,7 +32,7 @@ type RateCard struct {
 
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
-	BillingCadence *datex.Period `json:"billingCadence,omitempty"`
+	BillingCadence *isodate.Period `json:"billingCadence,omitempty"`
 }
 
 func (r RateCard) Equal(other RateCard) bool {

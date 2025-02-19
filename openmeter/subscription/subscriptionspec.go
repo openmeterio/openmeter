@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -203,7 +203,7 @@ func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(phaseKey string, at time.Ti
 		return i.BillingBehaviorOverride.RestartBillingPeriod != nil && *i.BillingBehaviorOverride.RestartBillingPeriod
 	})
 
-	reanchoringItems = lo.UniqBy(reanchoringItems, func(i *SubscriptionItemSpec) *datex.Period { return i.ActiveFromOverrideRelativeToPhaseStart })
+	reanchoringItems = lo.UniqBy(reanchoringItems, func(i *SubscriptionItemSpec) *isodate.Period { return i.ActiveFromOverrideRelativeToPhaseStart })
 
 	anchorTimes := []time.Time{phaseCadence.ActiveFrom}
 	anchorTimes = append(anchorTimes, lo.Map(reanchoringItems, func(i *SubscriptionItemSpec, _ int) time.Time { return i.GetCadence(phaseCadence).ActiveFrom })...)
@@ -274,10 +274,10 @@ func (s *SubscriptionSpec) Validate() error {
 }
 
 type CreateSubscriptionPhasePlanInput struct {
-	PhaseKey    string       `json:"key"`
-	StartAfter  datex.Period `json:"startAfter"`
-	Name        string       `json:"name"`
-	Description *string      `json:"description,omitempty"`
+	PhaseKey    string         `json:"key"`
+	StartAfter  isodate.Period `json:"startAfter"`
+	Name        string         `json:"name"`
+	Description *string        `json:"description,omitempty"`
 }
 
 func (i CreateSubscriptionPhasePlanInput) Validate() error {
@@ -314,7 +314,7 @@ type RemoveSubscriptionPhaseInput struct {
 
 type CreateSubscriptionPhaseInput struct {
 	// Duration is required exactly in cases where the phase wouldn't be the last phase.
-	Duration *datex.Period `json:"duration"`
+	Duration *isodate.Period `json:"duration"`
 	CreateSubscriptionPhasePlanInput
 	CreateSubscriptionPhaseCustomerInput
 }
@@ -374,8 +374,8 @@ func (s SubscriptionPhaseSpec) HasBillables() bool {
 	return len(s.GetBillableItemsByKey()) > 0
 }
 
-func (s SubscriptionPhaseSpec) GetBillingCadence() (datex.Period, error) {
-	var def datex.Period
+func (s SubscriptionPhaseSpec) GetBillingCadence() (isodate.Period, error) {
+	var def isodate.Period
 
 	billables := s.GetBillableItemsByKey()
 
@@ -388,7 +388,7 @@ func (s SubscriptionPhaseSpec) GetBillingCadence() (datex.Period, error) {
 		return def, fmt.Errorf("phase %s has no recurring billables", s.PhaseKey)
 	}
 
-	durs := lo.Map(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) datex.Period {
+	durs := lo.Map(recurringFlatBillables, func(i *SubscriptionItemSpec, _ int) isodate.Period {
 		return *i.RateCard.BillingCadence
 	})
 
@@ -500,7 +500,7 @@ func (s SubscriptionPhaseSpec) Validate(
 
 		cadences := lo.UniqBy(lo.Filter(billables, func(i SubscriptionItemSpec, _ int) bool {
 			return i.RateCard.BillingCadence != nil
-		}), func(i SubscriptionItemSpec) datex.Period {
+		}), func(i SubscriptionItemSpec) isodate.Period {
 			return *i.RateCard.BillingCadence
 		})
 
@@ -527,8 +527,8 @@ type CreateSubscriptionItemPlanInput struct {
 }
 
 type CreateSubscriptionItemCustomerInput struct {
-	ActiveFromOverrideRelativeToPhaseStart *datex.Period `json:"activeFromOverrideRelativeToPhaseStart"`
-	ActiveToOverrideRelativeToPhaseStart   *datex.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
+	ActiveFromOverrideRelativeToPhaseStart *isodate.Period `json:"activeFromOverrideRelativeToPhaseStart"`
+	ActiveToOverrideRelativeToPhaseStart   *isodate.Period `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
 	BillingBehaviorOverride
 }
 

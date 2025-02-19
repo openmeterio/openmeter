@@ -9,8 +9,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type Subscription struct {
@@ -118,9 +118,9 @@ func (SubscriptionItem) Fields() []ent.Field {
 		// Items can have different intended cadence compared to the phase due to edits.
 		// To preserve this across cancels and other complex scenarios, we store the intended cadence relative to the phase start.
 		field.String("active_from_override_relative_to_phase_start").
-			GoType(datex.ISOString("")).Nillable().Optional(),
+			GoType(isodate.String("")).Nillable().Optional(),
 		field.String("active_to_override_relative_to_phase_start").
-			GoType(datex.ISOString("")).Nillable().Optional(),
+			GoType(isodate.String("")).Nillable().Optional(),
 		// RateCard Fields
 		field.String("name").NotEmpty(),
 		field.String("description").Optional().Nillable(),
@@ -142,7 +142,7 @@ func (SubscriptionItem) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("billing_cadence").
-			GoType(datex.ISOString("")).
+			GoType(isodate.String("")).
 			Optional().
 			Nillable(),
 		field.String("price").

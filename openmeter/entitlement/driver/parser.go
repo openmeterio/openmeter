@@ -11,8 +11,8 @@ import (
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -332,7 +332,7 @@ func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (tim
 	case string(api.RecurringPeriodIntervalEnumYEAR):
 		return timeutil.RecurrencePeriodYear, nil
 	default:
-		p, err := datex.ISOString(str).Parse()
+		p, err := isodate.String(str).Parse()
 
 		return timeutil.RecurrenceInterval{Period: p}, err
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type PatchAddItem struct {
@@ -91,7 +91,7 @@ func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscrip
 				}
 			} else {
 				// 3. If it's added to the current phase, and start time is not specified, it will be set for the current time, as you cannot change the past
-				diff := datex.Between(phaseStartTime, actx.CurrentTime)
+				diff := isodate.Between(phaseStartTime, actx.CurrentTime)
 				a.CreateInput.ActiveFromOverrideRelativeToPhaseStart = &diff
 			}
 		} else if phaseStartTime.After(currentPhaseStartTime) {

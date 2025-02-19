@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type PatchStretchPhase struct {
 	PhaseKey string
 	// Signed duration
-	Duration datex.Period
+	Duration isodate.Period
 }
 
 func (p PatchStretchPhase) Op() subscription.PatchOperation {
@@ -21,7 +21,7 @@ func (p PatchStretchPhase) Path() subscription.PatchPath {
 	return subscription.NewPhasePath(p.PhaseKey)
 }
 
-func (p PatchStretchPhase) Value() datex.Period {
+func (p PatchStretchPhase) Value() isodate.Period {
 	return p.Duration
 }
 
@@ -45,7 +45,7 @@ func (p PatchStretchPhase) Validate() error {
 	return nil
 }
 
-var _ subscription.ValuePatch[datex.Period] = PatchStretchPhase{}
+var _ subscription.ValuePatch[isodate.Period] = PatchStretchPhase{}
 
 func (p PatchStretchPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
 	phase, ok := spec.Phases[p.PhaseKey]

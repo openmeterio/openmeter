@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // BillingCustomerOverrideCreate is the builder for creating a BillingCustomerOverride entity.
@@ -111,15 +111,15 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableCollectionAlignment(bk *bi
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (bcoc *BillingCustomerOverrideCreate) SetLineCollectionPeriod(ds datex.ISOString) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetLineCollectionPeriod(ds)
+func (bcoc *BillingCustomerOverrideCreate) SetLineCollectionPeriod(i isodate.String) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetLineCollectionPeriod(i)
 	return bcoc
 }
 
 // SetNillableLineCollectionPeriod sets the "line_collection_period" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableLineCollectionPeriod(ds *datex.ISOString) *BillingCustomerOverrideCreate {
-	if ds != nil {
-		bcoc.SetLineCollectionPeriod(*ds)
+func (bcoc *BillingCustomerOverrideCreate) SetNillableLineCollectionPeriod(i *isodate.String) *BillingCustomerOverrideCreate {
+	if i != nil {
+		bcoc.SetLineCollectionPeriod(*i)
 	}
 	return bcoc
 }
@@ -139,29 +139,29 @@ func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceAutoAdvance(b *bool
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDraftPeriod(ds datex.ISOString) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDraftPeriod(ds)
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDraftPeriod(i isodate.String) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetInvoiceDraftPeriod(i)
 	return bcoc
 }
 
 // SetNillableInvoiceDraftPeriod sets the "invoice_draft_period" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDraftPeriod(ds *datex.ISOString) *BillingCustomerOverrideCreate {
-	if ds != nil {
-		bcoc.SetInvoiceDraftPeriod(*ds)
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDraftPeriod(i *isodate.String) *BillingCustomerOverrideCreate {
+	if i != nil {
+		bcoc.SetInvoiceDraftPeriod(*i)
 	}
 	return bcoc
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDueAfter(ds datex.ISOString) *BillingCustomerOverrideCreate {
-	bcoc.mutation.SetInvoiceDueAfter(ds)
+func (bcoc *BillingCustomerOverrideCreate) SetInvoiceDueAfter(i isodate.String) *BillingCustomerOverrideCreate {
+	bcoc.mutation.SetInvoiceDueAfter(i)
 	return bcoc
 }
 
 // SetNillableInvoiceDueAfter sets the "invoice_due_after" field if the given value is not nil.
-func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfter(ds *datex.ISOString) *BillingCustomerOverrideCreate {
-	if ds != nil {
-		bcoc.SetInvoiceDueAfter(*ds)
+func (bcoc *BillingCustomerOverrideCreate) SetNillableInvoiceDueAfter(i *isodate.String) *BillingCustomerOverrideCreate {
+	if i != nil {
+		bcoc.SetInvoiceDueAfter(*i)
 	}
 	return bcoc
 }
@@ -555,7 +555,7 @@ func (u *BillingCustomerOverrideUpsert) ClearCollectionAlignment() *BillingCusto
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (u *BillingCustomerOverrideUpsert) SetLineCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsert {
+func (u *BillingCustomerOverrideUpsert) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpsert {
 	u.Set(billingcustomeroverride.FieldLineCollectionPeriod, v)
 	return u
 }
@@ -591,7 +591,7 @@ func (u *BillingCustomerOverrideUpsert) ClearInvoiceAutoAdvance() *BillingCustom
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (u *BillingCustomerOverrideUpsert) SetInvoiceDraftPeriod(v datex.ISOString) *BillingCustomerOverrideUpsert {
+func (u *BillingCustomerOverrideUpsert) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpsert {
 	u.Set(billingcustomeroverride.FieldInvoiceDraftPeriod, v)
 	return u
 }
@@ -609,7 +609,7 @@ func (u *BillingCustomerOverrideUpsert) ClearInvoiceDraftPeriod() *BillingCustom
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (u *BillingCustomerOverrideUpsert) SetInvoiceDueAfter(v datex.ISOString) *BillingCustomerOverrideUpsert {
+func (u *BillingCustomerOverrideUpsert) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpsert {
 	u.Set(billingcustomeroverride.FieldInvoiceDueAfter, v)
 	return u
 }
@@ -815,7 +815,7 @@ func (u *BillingCustomerOverrideUpsertOne) ClearCollectionAlignment() *BillingCu
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (u *BillingCustomerOverrideUpsertOne) SetLineCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
+func (u *BillingCustomerOverrideUpsertOne) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetLineCollectionPeriod(v)
 	})
@@ -857,7 +857,7 @@ func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceAutoAdvance() *BillingCus
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDraftPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetInvoiceDraftPeriod(v)
 	})
@@ -878,7 +878,7 @@ func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDraftPeriod() *BillingCus
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDueAfter(v datex.ISOString) *BillingCustomerOverrideUpsertOne {
+func (u *BillingCustomerOverrideUpsertOne) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetInvoiceDueAfter(v)
 	})
@@ -1263,7 +1263,7 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearCollectionAlignment() *BillingC
 }
 
 // SetLineCollectionPeriod sets the "line_collection_period" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetLineCollectionPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
+func (u *BillingCustomerOverrideUpsertBulk) SetLineCollectionPeriod(v isodate.String) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetLineCollectionPeriod(v)
 	})
@@ -1305,7 +1305,7 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceAutoAdvance() *BillingCu
 }
 
 // SetInvoiceDraftPeriod sets the "invoice_draft_period" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDraftPeriod(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDraftPeriod(v isodate.String) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetInvoiceDraftPeriod(v)
 	})
@@ -1326,7 +1326,7 @@ func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDraftPeriod() *BillingCu
 }
 
 // SetInvoiceDueAfter sets the "invoice_due_after" field.
-func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDueAfter(v datex.ISOString) *BillingCustomerOverrideUpsertBulk {
+func (u *BillingCustomerOverrideUpsertBulk) SetInvoiceDueAfter(v isodate.String) *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.SetInvoiceDueAfter(v)
 	})

@@ -18,7 +18,7 @@ import (
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // EntitlementCreate is the builder for creating a Entitlement entity.
@@ -212,15 +212,15 @@ func (ec *EntitlementCreate) SetConfig(u []uint8) *EntitlementCreate {
 }
 
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
-func (ec *EntitlementCreate) SetUsagePeriodInterval(ds datex.ISOString) *EntitlementCreate {
-	ec.mutation.SetUsagePeriodInterval(ds)
+func (ec *EntitlementCreate) SetUsagePeriodInterval(i isodate.String) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodInterval(i)
 	return ec
 }
 
 // SetNillableUsagePeriodInterval sets the "usage_period_interval" field if the given value is not nil.
-func (ec *EntitlementCreate) SetNillableUsagePeriodInterval(ds *datex.ISOString) *EntitlementCreate {
-	if ds != nil {
-		ec.SetUsagePeriodInterval(*ds)
+func (ec *EntitlementCreate) SetNillableUsagePeriodInterval(i *isodate.String) *EntitlementCreate {
+	if i != nil {
+		ec.SetUsagePeriodInterval(*i)
 	}
 	return ec
 }

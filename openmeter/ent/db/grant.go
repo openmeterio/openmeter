@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
-	"github.com/openmeterio/openmeter/pkg/datex"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 // Grant is the model entity for the Grant schema.
@@ -50,7 +50,7 @@ type Grant struct {
 	// ResetMinRollover holds the value of the "reset_min_rollover" field.
 	ResetMinRollover float64 `json:"reset_min_rollover,omitempty"`
 	// RecurrencePeriod holds the value of the "recurrence_period" field.
-	RecurrencePeriod *datex.ISOString `json:"recurrence_period,omitempty"`
+	RecurrencePeriod *isodate.String `json:"recurrence_period,omitempty"`
 	// RecurrenceAnchor holds the value of the "recurrence_anchor" field.
 	RecurrenceAnchor *time.Time `json:"recurrence_anchor,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -209,8 +209,8 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_period", values[i])
 			} else if value.Valid {
-				gr.RecurrencePeriod = new(datex.ISOString)
-				*gr.RecurrencePeriod = datex.ISOString(value.String)
+				gr.RecurrencePeriod = new(isodate.String)
+				*gr.RecurrencePeriod = isodate.String(value.String)
 			}
 		case dbgrant.FieldRecurrenceAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {
