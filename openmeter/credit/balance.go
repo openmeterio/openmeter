@@ -84,7 +84,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		engine.RunParams{
 			Grants:           grants,
 			StartingSnapshot: bal,
-			Period:           queriedPeriod,
+			Until:            queriedPeriod.To,
 		},
 	)
 	if err != nil {
@@ -191,7 +191,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			engine.RunParams{
 				Grants:           grants,
 				StartingSnapshot: snap,
-				Period:           periodFromSnapshotToPeriodStart,
+				Until:            periodFromSnapshotToPeriodStart.To,
 			},
 		)
 		if err != nil {
@@ -222,7 +222,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 			engine.RunParams{
 				Grants:           grants,
 				StartingSnapshot: fakeSnapshotForPeriodStart,
-				Period:           period,
+				Until:            period.To,
 			},
 		)
 		if err != nil {
@@ -305,7 +305,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		engine.RunParams{
 			Grants:           grants,
 			StartingSnapshot: bal,
-			Period:           queriedPeriod,
+			Until:            queriedPeriod.To,
 		},
 	)
 	if err != nil {

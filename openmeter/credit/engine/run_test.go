@@ -73,10 +73,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
-						},
+						Until: t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
 				assert.NoError(t, err1)
 
@@ -91,10 +88,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
-						},
+						Until: t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
 				assert.NoError(t, err2)
 
@@ -114,10 +108,7 @@ func TestEngine(t *testing.T) {
 							Overage:  0,
 							At:       t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 30),
-						},
+						Until: t1.AddDate(0, 0, 30),
 					})
 
 				assert.NoError(t, err)
@@ -153,10 +144,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 30),
-						},
+						Until: t1.AddDate(0, 0, 30),
 					})
 
 				assert.Error(t, err)
@@ -181,10 +169,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 30),
-						},
+						Until: t1.AddDate(0, 0, 30),
 					})
 
 				assert.Error(t, err)
@@ -205,10 +190,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 30),
-						},
+						Until: t1.AddDate(0, 0, 30),
 					})
 
 				assert.NoError(t, err)
@@ -234,10 +216,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 5),
-						},
+						Until: t1.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -264,10 +243,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 5),
-						},
+						Until: t1.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -296,10 +272,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 5),
-						},
+						Until: t1.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -333,10 +306,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 5),
-						},
+						Until: t1.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -369,10 +339,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 5),
-						},
+						Until: t1.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -400,10 +367,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      g.ExpiresAt,
 						},
-						Period: timeutil.Period{
-							From: g.ExpiresAt,
-							To:   g.ExpiresAt.AddDate(0, 0, 5),
-						},
+						Until: g.ExpiresAt.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -434,10 +398,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1.AddDate(0, 0, -1),
 						},
-						Period: timeutil.Period{
-							From: t1.AddDate(0, 0, -1),
-							To:   t1.AddDate(0, 0, 1),
-						},
+						Until: t1.AddDate(0, 0, 1),
 					})
 
 				assert.NoError(t, err)
@@ -478,10 +439,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1),
-						},
+						Until: t1.AddDate(0, 0, 1),
 					})
 
 				assert.NoError(t, err)
@@ -516,10 +474,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1),
-						},
+						Until: t1.AddDate(0, 0, 1),
 					})
 
 				assert.NoError(t, err)
@@ -554,10 +509,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1),
-						},
+						Until: t1.AddDate(0, 0, 1),
 					})
 
 				assert.NoError(t, err)
@@ -615,10 +567,7 @@ func TestEngine(t *testing.T) {
 							Overage:  0,
 							At:       t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1),
-						},
+						Until: t1.AddDate(0, 0, 1),
 					})
 
 				assert.NoError(t, err)
@@ -655,10 +604,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 1).Add(time.Hour),
-						},
+						Until: t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
 
 				assert.NoError(t, err)
@@ -706,10 +652,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 10), // right after recurrence
-						},
+						Until: t1.AddDate(0, 0, 10), // right after recurrence
 					})
 
 				assert.NoError(t, err)
@@ -759,10 +702,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      t1,
 						},
-						Period: timeutil.Period{
-							From: t1,
-							To:   t1.AddDate(0, 0, 10).Add(-time.Hour), // right before recurrence
-						},
+						Until: t1.AddDate(0, 0, 10).Add(-time.Hour), // right before recurrence
 					})
 
 				assert.NoError(t, err)
@@ -819,10 +759,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      start,
 						},
-						Period: timeutil.Period{
-							From: start,
-							To:   end,
-						},
+						Until: end,
 					})
 
 				assert.NoError(t, err)
@@ -890,10 +827,7 @@ func TestEngine(t *testing.T) {
 							Overage: 0,
 							At:      start,
 						},
-						Period: timeutil.Period{
-							From: start,
-							To:   end,
-						},
+						Until: end,
 					})
 
 				assert.NoError(t, err)

@@ -106,10 +106,7 @@ func Test_Fuzzing(t *testing.T) {
 							Overage:  0,
 							At:       start,
 						},
-						Period: timeutil.Period{
-							From: start,
-							To:   intermediate,
-						},
+						Until: intermediate,
 					})
 
 				assert.NoError(t, err)
@@ -119,10 +116,7 @@ func Test_Fuzzing(t *testing.T) {
 					engine.RunParams{
 						Grants:           []grant.Grant{g1, g2},
 						StartingSnapshot: res.Snapshot,
-						Period: timeutil.Period{
-							From: intermediate,
-							To:   end,
-						},
+						Until:            end,
 					})
 
 				assert.NoError(t, err)
@@ -132,10 +126,7 @@ func Test_Fuzzing(t *testing.T) {
 					engine.RunParams{
 						Grants:           []grant.Grant{g1, g2},
 						StartingSnapshot: res.Snapshot,
-						Period: timeutil.Period{
-							From: start,
-							To:   end,
-						},
+						Until:            end,
 					})
 
 				assert.NoError(t, err)
@@ -212,10 +203,7 @@ func Test_Fuzzing(t *testing.T) {
 								Overage:  0,
 								At:       start,
 							},
-							Period: timeutil.Period{
-								From: start,
-								To:   end,
-							},
+							Until: end,
 						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
@@ -302,10 +290,7 @@ func Test_Fuzzing(t *testing.T) {
 							Overage:  0,
 							At:       start,
 						},
-						Period: timeutil.Period{
-							From: start,
-							To:   end,
-						},
+						Until: end,
 					})
 				if err != nil {
 					// lets save ourselves the calculation if this already fails
@@ -343,10 +328,7 @@ func Test_Fuzzing(t *testing.T) {
 								Overage:  overage,
 								At:       pStart,
 							},
-							Period: timeutil.Period{
-								From: pStart,
-								To:   pEnd,
-							},
+							Until: pEnd,
 						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)

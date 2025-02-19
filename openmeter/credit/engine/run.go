@@ -16,6 +16,8 @@ import (
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
 func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
+	period := timeutil.Period{From: params.StartingSnapshot.At, To: params.Until}
+
 	if !params.StartingSnapshot.Balances.ExactlyForGrants(params.Grants) {
 		return RunResult{}, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", params.Grants, params.StartingSnapshot.Balances)
 	}
@@ -23,7 +25,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	e.grants = make([]grant.Grant, len(params.Grants))
 	copy(e.grants, params.Grants)
 
-	phases, err := e.getPhases(params.Period)
+	phases, err := e.getPhases(period)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to get burn phases: %w", err)
 	}
@@ -101,11 +103,11 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		// query feature usage in the burning phase
 		usage, err := e.QueryUsage(ctx, phase.from, phase.to)
 		if err != nil {
-			return RunResult{}, fmt.Errorf("failed to get feature usage for period %s - %s: %w", params.Period.From, params.Period.To, err)
+			return RunResult{}, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
 		}
 		balancesAtPhaseStart, segment.GrantUsages, overage, err = BurnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
 		if err != nil {
-			return RunResult{}, fmt.Errorf("failed to burn down grants in period %s - %s: %w", params.Period.From, params.Period.To, err)
+			return RunResult{}, fmt.Errorf("failed to burn down grants in period %s - %s: %w", period.From, period.To, err)
 		}
 
 		segment.TotalUsage = usage
@@ -125,7 +127,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		Snapshot: balance.Snapshot{
 			Balances: balancesAtPhaseStart,
 			Overage:  overage,
-			At:       params.Period.To,
+			At:       period.To,
 		},
 		History: segments,
 	}, nil
