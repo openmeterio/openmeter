@@ -39,6 +39,15 @@ func TestPeriod(t *testing.T) {
 		t.Run("Should be false for later time", func(t *testing.T) {
 			assert.False(t, period.ContainsInclusive(endTime.Add(time.Second)))
 		})
+
+		t.Run("Should be true for 0 length period", func(t *testing.T) {
+			period := timeutil.Period{
+				From: startTime,
+				To:   startTime,
+			}
+
+			assert.True(t, period.ContainsInclusive(startTime))
+		})
 	})
 
 	t.Run("Contains", func(t *testing.T) {
@@ -60,6 +69,56 @@ func TestPeriod(t *testing.T) {
 
 		t.Run("Should be false for later time", func(t *testing.T) {
 			assert.False(t, period.Contains(endTime.Add(time.Second)))
+		})
+
+		t.Run("Should be false for 0 length period", func(t *testing.T) {
+			period := timeutil.Period{
+				From: startTime,
+				To:   startTime,
+			}
+
+			assert.False(t, period.Contains(startTime))
+		})
+	})
+
+	t.Run("Overlaps", func(t *testing.T) {
+		t.Run("Should be false for exactly sequential periods", func(t *testing.T) {
+			assert.False(t, period.Overlaps(timeutil.Period{From: endTime, To: endTime.Add(time.Second)}))
+		})
+
+		t.Run("Should be false for distant periods", func(t *testing.T) {
+			assert.False(t, period.Overlaps(timeutil.Period{From: endTime.Add(time.Second), To: endTime.Add(time.Second * 2)}))
+			assert.False(t, period.Overlaps(timeutil.Period{From: startTime.Add(-2 * time.Second), To: startTime.Add(-time.Second)}))
+		})
+
+		t.Run("Should be true for overlapping periods", func(t *testing.T) {
+			assert.True(t, period.Overlaps(timeutil.Period{From: startTime.Add(-time.Second), To: endTime.Add(-time.Second)}))
+			assert.True(t, period.Overlaps(timeutil.Period{From: startTime.Add(time.Second), To: endTime.Add(time.Second)}))
+		})
+
+		t.Run("Should be true for containing periods", func(t *testing.T) {
+			assert.True(t, period.Overlaps(timeutil.Period{From: startTime.Add(-time.Second), To: endTime.Add(time.Second)}))
+			assert.True(t, period.Overlaps(timeutil.Period{From: startTime.Add(time.Second), To: endTime.Add(-time.Second)}))
+		})
+	})
+	t.Run("OverlapsInclusive", func(t *testing.T) {
+		t.Run("Should be true for exactly sequential periods", func(t *testing.T) {
+			assert.True(t, period.OverlapsInclusive(timeutil.Period{From: endTime, To: endTime.Add(time.Second)}))
+		})
+
+		t.Run("Should be false for distant periods", func(t *testing.T) {
+			assert.False(t, period.OverlapsInclusive(timeutil.Period{From: endTime.Add(time.Second), To: endTime.Add(time.Second * 2)}))
+			assert.False(t, period.OverlapsInclusive(timeutil.Period{From: startTime.Add(-2 * time.Second), To: startTime.Add(-time.Second)}))
+		})
+
+		t.Run("Should be true for overlapping periods", func(t *testing.T) {
+			assert.True(t, period.OverlapsInclusive(timeutil.Period{From: startTime.Add(-time.Second), To: endTime.Add(-time.Second)}))
+			assert.True(t, period.OverlapsInclusive(timeutil.Period{From: startTime.Add(time.Second), To: endTime.Add(time.Second)}))
+		})
+
+		t.Run("Should be true for containing periods", func(t *testing.T) {
+			assert.True(t, period.OverlapsInclusive(timeutil.Period{From: startTime.Add(-time.Second), To: endTime.Add(time.Second)}))
+			assert.True(t, period.OverlapsInclusive(timeutil.Period{From: startTime.Add(time.Second), To: endTime.Add(-time.Second)}))
 		})
 	})
 }

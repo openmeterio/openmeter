@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -11,26 +12,99 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
+	// Let's build the timeline
+	times := []time.Time{
+		params.StartingSnapshot.At,
+	}
+
+	times = append(times, params.Resets.GetTimes()...)
+
+	times = append(times, params.Until)
+
+	timeline := timeutil.NewTimeline(times)
+
+	boundingPeriod := timeline.GetBoundingPeriod()
+
+	// Let's validate that the timeline represents the correct period
+	// This would occur if the provided reset times fall outside of the provided period.
+	if boundingPeriod.From.Compare(params.StartingSnapshot.At) != 0 || boundingPeriod.To.Compare(params.Until) != 0 {
+		return RunResult{}, fmt.Errorf("timeline does not represent the correct period, expected %s - %s, got %s - %s", params.StartingSnapshot.At, params.Until, boundingPeriod.From, boundingPeriod.To)
+	}
+
+	snapshot := params.StartingSnapshot
+	history := make([]GrantBurnDownHistorySegment, 0)
+
+	for idx, period := range timeline.GetPeriods() {
+		// We need to find the grants that are relevant for this period.
+		// We do this filtering so that history isn't polluted with grants that are irrelevant.
+		relevantGrants := e.filterRelevantGrants(params.Grants, snapshot.Balances, period)
+
+		runRes, err := e.runBetweenResets(ctx, inbetweenRunParams{
+			Grants:           relevantGrants,
+			Until:            period.To,
+			StartingSnapshot: snapshot,
+		})
+		if err != nil {
+			return RunResult{}, fmt.Errorf("failed to run calculation for period %s - %s: %w", period.From, period.To, err)
+		}
+
+		snapshot = runRes.Snapshot
+		history = append(history, runRes.History...)
+
+		if idx != len(timeline.GetPeriods())-1 {
+			// We need to reset at each period, except the last one.
+			// FIXME: this is not true if the end of the queried period itself is a reset
+			snap, err := e.reset(relevantGrants, runRes.Snapshot, params.ResetBehavior, period.To)
+			if err != nil {
+				return RunResult{}, fmt.Errorf("failed to reset at end of period %s - %s: %w", period.From, period.To, err)
+			}
+
+			snapshot = snap
+
+			// We need to mark the history segment as one resulting from a reset for all periods except the last one
+			// FIXME: this is not true if the end of the queried period itself is a reset
+			if len(history) > 0 {
+				history[len(history)-1].TerminationReasons.UsageReset = true
+			}
+		}
+	}
+
+	return RunResult{
+		Snapshot: snapshot,
+		History:  history,
+	}, nil
+}
+
+type inbetweenRunParams struct {
+	// List of all grants that are active at the relevant period at some point.
+	Grants []grant.Grant
+	// End of the period to burn down the grants for.
+	Until time.Time
+	// Starting snapshot of the balances at the START OF THE PERIOD.
+	StartingSnapshot balance.Snapshot
+}
+
 // Burns down all grants in the defined period by the usage amounts.
 //
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
-func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
+func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams) (RunResult, error) {
 	period := timeutil.Period{From: params.StartingSnapshot.At, To: params.Until}
 
 	if !params.StartingSnapshot.Balances.ExactlyForGrants(params.Grants) {
 		return RunResult{}, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", params.Grants, params.StartingSnapshot.Balances)
 	}
 
-	e.grants = make([]grant.Grant, len(params.Grants))
-	copy(e.grants, params.Grants)
+	grants := make([]grant.Grant, len(params.Grants))
+	copy(grants, params.Grants)
 
-	phases, err := e.getPhases(period)
+	phases, err := e.getPhases(grants, period)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to get burn phases: %w", err)
 	}
 
-	err = PrioritizeGrants(e.grants)
+	err = PrioritizeGrants(grants)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to prioritize grants: %w", err)
 	}
@@ -43,7 +117,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	recurredGrants := []string{}
 
 	grantMap := make(map[string]grant.Grant)
-	for _, grant := range e.grants {
+	for _, grant := range grants {
 		grantMap[grant.ID] = grant
 	}
 
@@ -54,7 +128,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	for _, phase := range phases {
 		// reprioritize grants if needed
 		if rePrioritize {
-			err = PrioritizeGrants(e.grants)
+			err = PrioritizeGrants(grants)
 			if err != nil {
 				return RunResult{}, fmt.Errorf("failed to prioritize grants: %w", err)
 			}
@@ -73,8 +147,8 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		}
 
 		// get active and inactive grants in the phase
-		activeGrants := make([]grant.Grant, 0, len(e.grants))
-		for _, grant := range e.grants {
+		activeGrants := make([]grant.Grant, 0, len(grants))
+		for _, grant := range grants {
 			if grant.ActiveAt(phase.from) {
 				activeGrants = append(activeGrants, grant)
 			} else {

@@ -6,14 +6,15 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // An activity change is a grant becoming active or a grant expiring.
-func (e *engine) getGrantActivityChanges(period timeutil.Period) []time.Time {
+func (e *engine) getGrantActivityChanges(grants []grant.Grant, period timeutil.Period) []time.Time {
 	activityChanges := []time.Time{}
-	for _, grant := range e.grants {
+	for _, grant := range grants {
 		// grants that take effect in the period
 		if grant.EffectiveAt.After(period.From) && (grant.EffectiveAt.Before(period.To)) {
 			activityChanges = append(activityChanges, grant.EffectiveAt)
@@ -56,7 +57,7 @@ func (e *engine) getGrantActivityChanges(period timeutil.Period) []time.Time {
 }
 
 // Get all times grants recurr in the period.
-func (e *engine) getGrantRecurrenceTimes(period timeutil.Period) ([]struct {
+func (e *engine) getGrantRecurrenceTimes(grants []grant.Grant, period timeutil.Period) ([]struct {
 	time     time.Time
 	grantIDs []string
 }, error,
@@ -65,7 +66,7 @@ func (e *engine) getGrantRecurrenceTimes(period timeutil.Period) ([]struct {
 		time    time.Time
 		grantID string
 	}{}
-	grantsWithRecurrence := lo.Filter(e.grants, func(grant grant.Grant, _ int) bool {
+	grantsWithRecurrence := lo.Filter(grants, func(grant grant.Grant, _ int) bool {
 		return grant.Recurrence != nil
 	})
 	if len(grantsWithRecurrence) == 0 {
@@ -118,6 +119,21 @@ func (e *engine) getGrantRecurrenceTimes(period timeutil.Period) ([]struct {
 		}
 	}
 	return deduped, nil
+}
+
+// A grant is relevant if its active at any point during the period, both limits inclusive
+// A grant is also relevant if it is mentioned in the balance map
+func (e *engine) filterRelevantGrants(grants []grant.Grant, bm balance.Map, period timeutil.Period) []grant.Grant {
+	relevant := []grant.Grant{}
+	for _, grant := range grants {
+		if grant.GetEffectivePeriod().OverlapsInclusive(period) {
+			relevant = append(relevant, grant)
+		} else if _, ok := bm[grant.ID]; ok {
+			relevant = append(relevant, grant)
+		}
+	}
+
+	return relevant
 }
 
 // The correct order to burn down grants is:
