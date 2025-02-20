@@ -211,42 +211,42 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 //  1. We can save a segment if it is older than graceperiod.
 //  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
 //     starting values can be saved credibly.
-func (m *connector) getLastSaveableSnapshotAt(history *engine.GrantBurnDownHistory, lastValidBalance balance.Snapshot, at time.Time) (*balance.Snapshot, error) {
-	segments := history.Segments()
+// func (m *connector) getLastSaveableSnapshotAt(history *engine.GrantBurnDownHistory, lastValidBalance balance.Snapshot, at time.Time) (*balance.Snapshot, error) {
+// 	segments := history.Segments()
 
-	for i := len(segments) - 1; i >= 0; i-- {
-		segment := segments[i]
-		if segment.From.Add(m.snapshotGracePeriod).Before(at) {
-			s := segment.ToSnapshot()
-			if s.At.After(lastValidBalance.At) {
-				return &s, nil
-			} else {
-				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At)
-			}
-		}
-	}
+// 	for i := len(segments) - 1; i >= 0; i-- {
+// 		segment := segments[i]
+// 		if segment.From.Add(m.snapshotGracePeriod).Before(at) {
+// 			s := segment.ToSnapshot()
+// 			if s.At.After(lastValidBalance.At) {
+// 				return &s, nil
+// 			} else {
+// 				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At)
+// 			}
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
-}
+// 	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
+// }
 
-func (m *connector) excludeInactiveGrantsFromBalance(balances balance.Map, grants map[string]grant.Grant, at time.Time) (*balance.Map, error) {
-	filtered := &balance.Map{}
-	for grantID, grantBalance := range balances {
-		grant, ok := grants[grantID]
-		// inconsistency check, shouldn't happen
-		if !ok {
-			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
-		}
+// func (m *connector) excludeInactiveGrantsFromBalance(balances balance.Map, grants map[string]grant.Grant, at time.Time) (*balance.Map, error) {
+// 	filtered := &balance.Map{}
+// 	for grantID, grantBalance := range balances {
+// 		grant, ok := grants[grantID]
+// 		// inconsistency check, shouldn't happen
+// 		if !ok {
+// 			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
+// 		}
 
-		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
-		if !grant.ActiveAt(at) {
-			continue
-		}
+// 		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
+// 		if !grant.ActiveAt(at) {
+// 			continue
+// 		}
 
-		filtered.Set(grantID, grantBalance)
-	}
-	return filtered, nil
-}
+// 		filtered.Set(grantID, grantBalance)
+// 	}
+// 	return filtered, nil
+// }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
 func (m *connector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *balance.Snapshot, grants []grant.Grant, at time.Time) {

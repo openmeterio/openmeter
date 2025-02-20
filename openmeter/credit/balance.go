@@ -91,10 +91,12 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		return nil, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, at, err)
 	}
 
-	history, err := engine.NewGrantBurnDownHistory(result.History)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create grant burn down history: %w", err)
-	}
+	// TODO: add back saving snapshots
+
+	// history, err := engine.NewGrantBurnDownHistory(result.History)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to create grant burn down history: %w", err)
+	// }
 
 	// FIXME: It can be the case that we never actually save anything if the history has a single segment.
 	// In practice what we can save is the balance at the last activation or recurrence event
@@ -104,23 +106,23 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	// just so it can be saved...
 	//
 	// FIXME: we should do this comparison not with the queried time but the current time...
-	if snap, err := m.getLastSaveableSnapshotAt(history, bal, at); err == nil {
-		grantMap := make(map[string]grant.Grant, len(grants))
-		for _, grant := range grants {
-			grantMap[grant.ID] = grant
-		}
-		activeBalance, err := m.excludeInactiveGrantsFromBalance(snap.Balances, grantMap, at)
-		if err != nil {
-			return nil, err
-		}
-		snap.Balances = *activeBalance
-		err = m.balanceSnapshotRepo.Save(ctx, owner, []balance.Snapshot{
-			*snap,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
-		}
-	}
+	// if snap, err := m.getLastSaveableSnapshotAt(history, bal, at); err == nil {
+	// 	grantMap := make(map[string]grant.Grant, len(grants))
+	// 	for _, grant := range grants {
+	// 		grantMap[grant.ID] = grant
+	// 	}
+	// 	activeBalance, err := m.excludeInactiveGrantsFromBalance(snap.Balances, grantMap, at)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	snap.Balances = *activeBalance
+	// 	err = m.balanceSnapshotRepo.Save(ctx, owner, []balance.Snapshot{
+	// 		*snap,
+	// 	})
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
+	// 	}
+	// }
 
 	// return balance
 	return &result.Snapshot, nil

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -13,6 +14,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -222,14 +224,30 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				queryTime := startTime.Add(time.Hour * 5) // over grace period
 				// we get the balance to force snapshot creation
-				_, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, queryTime)
-				assert.NoError(t, err)
+				// We create a snapshot at the time of the grant
+				clock.SetTime(g1.EffectiveAt)
 
-				// for sanity check that snapshot was created (at g1.EffectiveAt)
 				owner := grant.NamespacedOwner{
 					Namespace: namespace,
 					ID:        grant.Owner(ent.ID),
 				}
+
+				err = deps.balanceSnapshotRepo.Save(ctx, grant.NamespacedOwner{
+					Namespace: namespace,
+					ID:        grant.Owner(ent.ID),
+				}, []balance.Snapshot{
+					{
+						At:      g1.EffectiveAt,
+						Overage: 0,
+						Balances: balance.Map{
+							g1.ID: 1000,
+						},
+					},
+				})
+				require.NoError(t, err)
+				clock.ResetTime()
+
+				// for sanity check that snapshot was created (at g1.EffectiveAt)
 				snap, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
 

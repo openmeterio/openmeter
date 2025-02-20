@@ -261,17 +261,6 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	assert.NotNil(currentBalance)
 	assert.Equal(0.0, currentBalance.Balance)
 
-	// Validate snapshot exists
-	snapshot, err := deps.BalanceSnapshotRepo.GetLatestValidAt(ctx, grant.NamespacedOwner{
-		Namespace: "namespace-1",
-		ID:        grant.Owner(entitlement.ID),
-	}, testutils.GetRFC3339Time(t, "2024-07-10T07:33:06Z"))
-	assert.NoError(err)
-	assert.NotNil(snapshot)
-	assert.NotEqual(resetCommand.At, snapshot.At)
-	assert.Greater(snapshot.At.Unix(), resetCommand.At.Unix())
-	assert.Equal(currentBalance.Balance, snapshot.Balances.Balance()) // because there's nothing it's just 0
-
 	// Let's query the usage again after snapshot exists
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-10T07:33:06Z"))
 	// clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-10T09:41:00Z"))
