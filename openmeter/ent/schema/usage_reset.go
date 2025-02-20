@@ -28,6 +28,7 @@ func (UsageReset) Fields() []ent.Field {
 			dialect.Postgres: "char(26)",
 		}),
 		field.Time("reset_time").Immutable(),
+		field.Time("anchor").Immutable(),
 	}
 }
 

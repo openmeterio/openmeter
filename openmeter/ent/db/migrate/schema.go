@@ -1789,6 +1789,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "reset_time", Type: field.TypeTime},
+		{Name: "anchor", Type: field.TypeTime},
 		{Name: "entitlement_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// UsageResetsTable holds the schema information for the "usage_resets" table.
@@ -1799,7 +1800,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "usage_resets_entitlements_usage_reset",
-				Columns:    []*schema.Column{UsageResetsColumns[6]},
+				Columns:    []*schema.Column{UsageResetsColumns[7]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1818,12 +1819,12 @@ var (
 			{
 				Name:    "usagereset_namespace_entitlement_id",
 				Unique:  false,
-				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[6]},
+				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[7]},
 			},
 			{
 				Name:    "usagereset_namespace_entitlement_id_reset_time",
 				Unique:  false,
-				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[6], UsageResetsColumns[5]},
+				Columns: []*schema.Column{UsageResetsColumns[1], UsageResetsColumns[7], UsageResetsColumns[5]},
 			},
 		},
 	}
