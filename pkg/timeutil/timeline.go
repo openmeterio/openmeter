@@ -28,6 +28,13 @@ func (t Timeline) GetTimes() []time.Time {
 }
 
 func (t Timeline) GetBoundingPeriod() Period {
+	if len(t.times) == 0 {
+		return Period{
+			From: time.Time{},
+			To:   time.Time{},
+		}
+	}
+
 	return Period{
 		From: t.times[0],
 		To:   t.times[len(t.times)-1],

@@ -20,6 +20,7 @@ type RunParams struct {
 	// ResetBehavior defines the behavior of the engine when a reset is encountered.
 	ResetBehavior ResetBehavior
 	// Timeline of the resets that occurred in the period.
+	// The resets must occur AFTER the starting snapshot and NOT AFTER the until time. (exclusive - inclusive)
 	Resets timeutil.Timeline
 }
 
