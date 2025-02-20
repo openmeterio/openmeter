@@ -18,6 +18,11 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		params.StartingSnapshot.At,
 	}
 
+	// If the start time is a reset, that reset shouldn't be included in the timeline
+	if params.Resets.GetBoundingPeriod().ContainsInclusive(params.StartingSnapshot.At) {
+		return RunResult{}, fmt.Errorf("provided reset times must occur after the starting snapshot, got %s", params.StartingSnapshot.At)
+	}
+
 	times = append(times, params.Resets.GetTimes()...)
 
 	times = append(times, params.Until)
@@ -54,7 +59,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 
 		if idx != len(timeline.GetPeriods())-1 {
 			// We need to reset at each period, except the last one.
-			// FIXME: this is not true if the end of the queried period itself is a reset
+			// If the ending time is also a reset, there will be a 0 length period at the end.
 			snap, err := e.reset(relevantGrants, runRes.Snapshot, params.ResetBehavior, period.To)
 			if err != nil {
 				return RunResult{}, fmt.Errorf("failed to reset at end of period %s - %s: %w", period.From, period.To, err)
@@ -63,7 +68,6 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 			snapshot = snap
 
 			// We need to mark the history segment as one resulting from a reset for all periods except the last one
-			// FIXME: this is not true if the end of the queried period itself is a reset
 			if len(history) > 0 {
 				history[len(history)-1].TerminationReasons.UsageReset = true
 			}
