@@ -42,6 +42,7 @@ func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime metereden
 				SetEntitlementID(usageResetTime.EntitlementID).
 				SetNamespace(usageResetTime.Namespace).
 				SetResetTime(usageResetTime.ResetTime).
+				SetAnchor(usageResetTime.Anchor).
 				Save(ctx)
 			return nil, err
 		},
@@ -106,5 +107,6 @@ func mapUsageResetTime(res *db.UsageReset) *meteredentitlement.UsageResetTime {
 	return &meteredentitlement.UsageResetTime{
 		EntitlementID: res.EntitlementID,
 		ResetTime:     res.ResetTime,
+		Anchor:        res.Anchor,
 	}
 }
