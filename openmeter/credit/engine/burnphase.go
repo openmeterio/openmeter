@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -17,6 +18,7 @@ type burnPhase struct {
 }
 
 // Calculates the burn phases for the given period.
+// The period is expected not to contain any resets.
 //
 // A new burn phase starts when:
 // 1) A grant recurrs
@@ -24,9 +26,9 @@ type burnPhase struct {
 //
 // Note that grant balance does not effect the burndown order if we simply ignore grants that don't
 // have balance while burning down.
-func (e *engine) getPhases(period timeutil.Period) ([]burnPhase, error) {
-	activityChanges := e.getGrantActivityChanges(period)
-	recurrenceTimes, err := e.getGrantRecurrenceTimes(period)
+func (e *engine) getPhases(grants []grant.Grant, period timeutil.Period) ([]burnPhase, error) {
+	activityChanges := e.getGrantActivityChanges(grants, period)
+	recurrenceTimes, err := e.getGrantRecurrenceTimes(grants, period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get grant recurrence times: %w", err)
 	}

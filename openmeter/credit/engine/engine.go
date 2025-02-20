@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type RunParams struct {
@@ -16,6 +17,10 @@ type RunParams struct {
 	Until time.Time
 	// Starting snapshot of the balances at the START OF THE PERIOD.
 	StartingSnapshot balance.Snapshot
+	// ResetBehavior defines the behavior of the engine when a reset is encountered.
+	ResetBehavior ResetBehavior
+	// Timeline of the resets that occurred in the period.
+	Resets timeutil.Timeline
 }
 
 type RunResult struct {
@@ -50,10 +55,6 @@ func NewEngine(conf EngineConfig) Engine {
 // engine burns down grants based on usage following the rules of Grant BurnDown.
 type engine struct {
 	EngineConfig
-
-	// List of all grants that are active at the relevant period at some point.
-	// Changes during execution, runtime state.
-	grants []grant.Grant
 }
 
 // Ensure engine implements Engine

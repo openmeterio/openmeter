@@ -26,3 +26,16 @@ func (p Period) ContainsInclusive(t time.Time) bool {
 func (p Period) Contains(t time.Time) bool {
 	return (t.After(p.From) || t.Equal(p.From)) && t.Before(p.To)
 }
+
+// Returns true if the two periods overlap at any point
+// Returns false if the periods are exactly sequential, e.g.: [1, 2] and [2, 3]
+func (p Period) Overlaps(other Period) bool {
+	// If one period ends before or exactly when the other starts, they don't overlap
+	return !(p.To.Before(other.From) || p.To.Equal(other.From) || other.To.Before(p.From) || other.To.Equal(p.From))
+}
+
+// Returns true if the two periods overlap at any point
+// Returns true if the periods are exactly sequential, e.g.: [1, 2] and [2, 3]
+func (p Period) OverlapsInclusive(other Period) bool {
+	return p.ContainsInclusive(other.From) || p.ContainsInclusive(other.To) || other.ContainsInclusive(p.From) || other.ContainsInclusive(p.To)
+}

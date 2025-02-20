@@ -119,7 +119,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 			Namespace: "namespace-1",
 			ID:        entitlement.ID,
 		},
-		testutils.GetRFC3339Time(t, "2024-06-28T14:30:41Z"))
+		testutils.GetRFC3339Time(t, "2024-06-30T14:30:41Z"))
 	assert.NoError(err)
 	assert.NotNil(currentBalance)
 	assert.Equal(10.0, currentBalance.Balance)
