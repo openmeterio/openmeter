@@ -81,20 +81,27 @@ func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(
 }
 
 func (a Authenticator) verifyPortalToken(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
-	ah := strings.TrimSpace(r.Header.Get("Authorization"))
-	if ah == "" {
+	meterSlug := chi.URLParam(r, "meterSlug")
+
+	authorizationHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authorizationHeader == "" {
 		return r, errors.New("missing authorization header")
 	}
 
-	meterSlug := chi.URLParam(r, "meterSlug")
-	h := strings.Split(ah, " ")
+	h := strings.Split(authorizationHeader, " ")
 	if len(h) != 2 || h[0] != "Bearer" {
 		return r, errors.New("invalid authorization header")
 	}
 
-	claims, err := a.portal.Validate(h[1])
+	bearerToken := h[1]
+
+	if bearerToken == "" {
+		return r, errors.New("bearer token cannot be empty")
+	}
+
+	claims, err := a.portal.Validate(bearerToken)
 	if err != nil {
-		return r, err
+		return r, fmt.Errorf("invalid token: %w", err)
 	}
 
 	if claims.Subject == "" {
