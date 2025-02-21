@@ -15,7 +15,7 @@ import (
 	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
+	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"

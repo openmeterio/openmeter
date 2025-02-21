@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
+	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -32,8 +32,8 @@ func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterS
 	ctx = contextx.WithAttr(ctx, "meterSlug", meterSlug)
 	ctx = contextx.WithAttr(ctx, "params", params) // TODO: we should probable NOT add this to the context
 
-	subject := authenticator.GetAuthenticatedSubject(ctx)
-	if subject == "" {
+	subject, ok := authenticator.GetAuthenticatedSubject(ctx)
+	if !ok {
 		err := fmt.Errorf("not authenticated")
 		models.NewStatusProblem(ctx, err, http.StatusUnauthorized).Respond(w)
 		return

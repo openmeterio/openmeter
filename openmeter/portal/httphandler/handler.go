@@ -3,7 +3,6 @@ package httpdriver
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -27,7 +26,6 @@ var _ Handler = (*handler)(nil)
 type handler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	logger           *slog.Logger
 	portalService    portal.Service
 }
 

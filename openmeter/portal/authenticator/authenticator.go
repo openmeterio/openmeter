@@ -24,12 +24,17 @@ const (
 	AuthenticatorSubjectSessionKey AuthenticatorContextKey = "openmeter_subject"
 )
 
-func GetAuthenticatedSubject(ctx context.Context) string {
+// GetAuthenticatedSubject returns the authenticated subject from the context.
+func GetAuthenticatedSubject(ctx context.Context) (string, bool) {
 	if c, ok := ctx.Value(AuthenticatorSubjectSessionKey).(string); ok {
-		return c
+		if c == "" {
+			return c, false
+		}
+
+		return c, true
 	}
 
-	return ""
+	return "", false
 }
 
 type Authenticator struct {

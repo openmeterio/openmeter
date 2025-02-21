@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/wire"
+
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
