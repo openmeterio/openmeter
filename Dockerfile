@@ -29,6 +29,8 @@ ARG VERSION
 
 COPY --link . .
 
+RUN chmod +x entrypoint.sh
+
 # See https://github.com/confluentinc/confluent-kafka-go#librdkafka
 # See https://github.com/confluentinc/confluent-kafka-go#static-builds-on-linux
 # Build server binary (default)
@@ -71,5 +73,8 @@ COPY --link --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
 COPY --link --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
 COPY --link --from=builder /src/go.* /usr/local/src/openmeter/
+COPY --link --from=builder /src/entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 CMD openmeter
