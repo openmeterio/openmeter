@@ -87,10 +87,10 @@ func (a *adapter) Validate(tokenString string) (*portal.PortalTokenClaims, error
 func (a *adapter) ListTokens(context.Context, portal.ListTokensInput) (pagination.PagedResponse[*portal.PortalToken], error) {
 	var resp pagination.PagedResponse[*portal.PortalToken]
 
-	return resp, fmt.Errorf("not implemented")
+	return resp, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
 }
 
 // InvalidateToken invalidates a portal token.
 func (a *adapter) InvalidateToken(ctx context.Context, input portal.InvalidateTokenInput) error {
-	return fmt.Errorf("not implemented")
+	return portal.NewNotImplementedError(fmt.Errorf("not implemented"))
 }

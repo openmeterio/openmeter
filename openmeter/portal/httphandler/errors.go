@@ -11,6 +11,6 @@ import (
 
 func errorEncoder() httptransport.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
-		return commonhttp.HandleErrorIfTypeMatches[*portal.NotImplementedError](ctx, http.StatusNotFound, err, w)
+		return commonhttp.HandleErrorIfTypeMatches[*portal.NotImplementedError](ctx, http.StatusNotImplemented, err, w)
 	}
 }

@@ -109,7 +109,8 @@ func (h *handler) CreateToken() CreateTokenHandler {
 
 			return lo.ToPtr(toAPIPortalToken(token)), nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[CreateTokenResponse](http.StatusCreated),
+		// TODO: status code is currently 200 in API definition, should be 201
+		commonhttp.JSONResponseEncoderWithStatus[CreateTokenResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createPortalToken"),
