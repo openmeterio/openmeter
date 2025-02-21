@@ -46,7 +46,8 @@ type PortalToken struct {
 	AllowedMeterSlugs *[]string
 	ExpiresAt         *time.Time
 	Subject           string
-	Token             *string
+	// Only set when creating a token.
+	Token *string
 }
 
 // CreateTokenInput is the input for the CreateToken method.

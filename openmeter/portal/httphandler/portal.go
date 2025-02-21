@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -107,7 +105,10 @@ func (h *handler) CreateToken() CreateTokenHandler {
 				return nil, fmt.Errorf("failed to create token")
 			}
 
-			return lo.ToPtr(toAPIPortalToken(token)), nil
+			portalToken := toAPIPortalToken(token)
+			portalToken.Token = token.Token
+
+			return &portalToken, nil
 		},
 		// TODO: status code is currently 200 in API definition, should be 201
 		commonhttp.JSONResponseEncoderWithStatus[CreateTokenResponse](http.StatusOK),
