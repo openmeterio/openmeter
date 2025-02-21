@@ -3,6 +3,7 @@ package entitlementdriver
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -322,7 +323,7 @@ func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (tim
 		return timeutil.RecurrenceInterval{}, err
 	}
 
-	switch str {
+	switch s := strings.ToUpper(str); s {
 	case string(api.RecurringPeriodIntervalEnumDAY):
 		return timeutil.RecurrencePeriodDaily, nil
 	case string(api.RecurringPeriodIntervalEnumWEEK):
@@ -332,7 +333,7 @@ func MapAPIPeriodIntervalToRecurrence(interval api.RecurringPeriodInterval) (tim
 	case string(api.RecurringPeriodIntervalEnumYEAR):
 		return timeutil.RecurrencePeriodYear, nil
 	default:
-		p, err := isodate.String(str).Parse()
+		p, err := isodate.String(s).Parse()
 
 		return timeutil.RecurrenceInterval{Period: p}, err
 	}
