@@ -56,7 +56,7 @@ type Entitlement struct {
 	Config []uint8 `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
 	UsagePeriodInterval *isodate.String `json:"usage_period_interval,omitempty"`
-	// UsagePeriodAnchor holds the value of the "usage_period_anchor" field.
+	// Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically
 	UsagePeriodAnchor *time.Time `json:"usage_period_anchor,omitempty"`
 	// CurrentUsagePeriodStart holds the value of the "current_usage_period_start" field.
 	CurrentUsagePeriodStart *time.Time `json:"current_usage_period_start,omitempty"`

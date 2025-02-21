@@ -11,7 +11,6 @@ import (
 )
 
 type UpdateEntitlementUsagePeriodParams struct {
-	NewAnchor          *time.Time
 	CurrentUsagePeriod timeutil.Period
 }
 

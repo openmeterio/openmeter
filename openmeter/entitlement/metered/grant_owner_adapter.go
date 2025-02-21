@@ -172,6 +172,11 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 			return nil, fmt.Errorf("failed to get entitlement: %w", err)
 		}
 
+		anchor := entitlementEntity.UsagePeriod.Anchor
+		if !params.RetainAnchor {
+			anchor = params.At
+		}
+
 		// Save usage reset
 		return nil, e.usageResetRepo.Save(txCtx, UsageResetTime{
 			NamespacedModel: models.NamespacedModel{
@@ -179,7 +184,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 			},
 			EntitlementID: owner.NamespacedID().ID,
 			ResetTime:     params.At,
-			Anchor:        entitlementEntity.UsagePeriod.Anchor,
+			Anchor:        anchor,
 		})
 	})
 	return err
@@ -197,11 +202,8 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 
 	usagePeriod := entitlementEntity.UsagePeriod
 
-	var newAnchor *time.Time
-
 	if !params.RetainAnchor {
 		usagePeriod.Anchor = params.At
-		newAnchor = &params.At
 	}
 
 	newCurrentUsagePeriod, err := usagePeriod.GetCurrentPeriodAt(params.At)
@@ -213,7 +215,6 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 		ctx,
 		owner.NamespacedID(),
 		entitlement.UpdateEntitlementUsagePeriodParams{
-			NewAnchor:          newAnchor,
 			CurrentUsagePeriod: newCurrentUsagePeriod,
 		})
 }
