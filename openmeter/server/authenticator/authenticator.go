@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -32,14 +33,14 @@ func GetAuthenticatedSubject(ctx context.Context) string {
 }
 
 type Authenticator struct {
-	portalTokenStrategy *PortalTokenStrategy
-	errorHandler        errorsx.Handler
+	portal       portal.Service
+	errorHandler errorsx.Handler
 }
 
-func NewAuthenticator(portalTokenStrategy *PortalTokenStrategy, errorHandler errorsx.Handler) Authenticator {
+func NewAuthenticator(portal portal.Service, errorHandler errorsx.Handler) Authenticator {
 	return Authenticator{
-		portalTokenStrategy: portalTokenStrategy,
-		errorHandler:        errorHandler,
+		portal:       portal,
+		errorHandler: errorHandler,
 	}
 }
 
@@ -75,10 +76,6 @@ func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(
 }
 
 func (a Authenticator) verifyPortalToken(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
-	if a.portalTokenStrategy == nil {
-		return r, errors.New("portal is not enabled")
-	}
-
 	ah := strings.TrimSpace(r.Header.Get("Authorization"))
 	if ah == "" {
 		return r, errors.New("missing authorization header")
@@ -90,7 +87,7 @@ func (a Authenticator) verifyPortalToken(w http.ResponseWriter, r *http.Request)
 		return r, errors.New("invalid authorization header")
 	}
 
-	claims, err := a.portalTokenStrategy.Validate(h[1])
+	claims, err := a.portal.Validate(h[1])
 	if err != nil {
 		return r, err
 	}

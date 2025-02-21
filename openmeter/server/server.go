@@ -69,7 +69,7 @@ func NewServer(config *Config) (*Server, error) {
 	})
 	r.Use(server.NewRequestLoggerMiddleware(slog.Default().Handler()))
 	r.Use(middleware.Recoverer)
-	if config.RouterConfig.PortalCORSEnabled && config.RouterConfig.PortalTokenStrategy != nil {
+	if config.RouterConfig.PortalCORSEnabled {
 		// Enable CORS for portal requests
 		r.Use(corsHandler(corsOptions{
 			AllowedPaths: []string{"/api/v1/portal/meters"},
@@ -101,7 +101,7 @@ func NewServer(config *Config) (*Server, error) {
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
 		BaseRouter: r,
 		Middlewares: []api.MiddlewareFunc{
-			authenticator.NewAuthenticator(config.RouterConfig.PortalTokenStrategy, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
+			authenticator.NewAuthenticator(config.RouterConfig.Portal, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
 			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
 				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
 					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w)

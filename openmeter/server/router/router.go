@@ -34,13 +34,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/portal"
+	portalhttphandler "github.com/openmeterio/openmeter/openmeter/portal/httphandler"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
-	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -66,14 +67,14 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager    *namespace.Manager
-	StreamingConnector  streaming.Connector
-	IngestHandler       http.Handler
-	Meters              meter.Repository
-	PortalCORSEnabled   bool
-	PortalTokenStrategy *authenticator.PortalTokenStrategy
-	ErrorHandler        errorsx.Handler
-	Logger              *slog.Logger
+	NamespaceManager   *namespace.Manager
+	StreamingConnector streaming.Connector
+	IngestHandler      http.Handler
+	Meters             meter.Repository
+	PortalCORSEnabled  bool
+	Portal             portal.Service
+	ErrorHandler       errorsx.Handler
+	Logger             *slog.Logger
 
 	// deps
 	App                         app.Service
@@ -182,6 +183,7 @@ type Router struct {
 	customerHandler           customerhttpdriver.CustomerHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
+	portalHandler             portalhttphandler.Handler
 	notificationHandler       notificationhttpdriver.Handler
 	infoHandler               infohttpdriver.Handler
 }
@@ -307,6 +309,13 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}
+
+	// Portal
+	router.portalHandler = portalhttphandler.New(
+		staticNamespaceDecoder,
+		config.Portal,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
 	return router, nil
 }
