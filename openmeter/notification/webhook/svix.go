@@ -14,7 +14,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	svix "github.com/svix/svix-webhooks/go"
-	svixmodels "github.com/svix/svix-webhooks/go/models"
 	"k8s.io/utils/strings/slices"
 
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -89,7 +88,7 @@ func newSvixWebhookHandler(config SvixConfig) (Handler, error) {
 
 func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params RegisterEventTypesInputs) error {
 	for _, eventType := range params.EventTypes {
-		input := svixmodels.EventTypeUpdate{
+		input := svix.EventTypeUpdate{
 			Description: eventType.Description,
 			FeatureFlag: nil,
 			GroupName:   &eventType.GroupName,
@@ -108,8 +107,8 @@ func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params Regis
 	return nil
 }
 
-func (h svixWebhookHandler) CreateApplication(ctx context.Context, id string) (*svixmodels.ApplicationOut, error) {
-	input := svixmodels.ApplicationIn{
+func (h svixWebhookHandler) CreateApplication(ctx context.Context, id string) (*svix.ApplicationOut, error) {
+	input := svix.ApplicationIn{
 		Name: id,
 		Uid:  &id,
 	}
@@ -135,7 +134,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appI
 	var resp map[string]string
 
 	if len(headers) > 0 {
-		input := svixmodels.EndpointHeadersIn{
+		input := svix.EndpointHeadersIn{
 			Headers: headers,
 		}
 
@@ -177,7 +176,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID
 	resp = secretOut.Key
 
 	if secret != nil && *secret != secretOut.Key {
-		input := svixmodels.EndpointSecretRotateIn{
+		input := svix.EndpointSecretRotateIn{
 			Key: secret,
 		}
 
@@ -249,7 +248,7 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 		endpointUID = uid.String()
 	}
 
-	input := svixmodels.EndpointIn{
+	input := svix.EndpointIn{
 		Uid: &endpointUID,
 		Description: convert.SafeDeRef(params.Description, func(p string) *string {
 			if p != "" {
@@ -336,7 +335,7 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 		}
 	}
 
-	input := svixmodels.EndpointUpdate{
+	input := svix.EndpointUpdate{
 		Uid: &params.ID,
 		Description: convert.SafeDeRef(params.Description, func(p string) *string {
 			if p != "" {
@@ -503,7 +502,7 @@ func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhook
 		return nil, fmt.Errorf("failed to list Svix endpoints: %w", err)
 	}
 
-	filterFn := func(o svixmodels.EndpointOut) bool {
+	filterFn := func(o svix.EndpointOut) bool {
 		if slices.Contains(params.IDs, o.Id) {
 			return true
 		}
@@ -567,7 +566,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 		eventID = &params.EventID
 	}
 
-	input := svixmodels.MessageIn{
+	input := svix.MessageIn{
 		Channels:  params.Channels,
 		EventId:   eventID,
 		EventType: params.EventType,
@@ -598,7 +597,7 @@ func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageI
 	}, nil
 }
 
-func WebhookFromSvixEndpointOut(e *svixmodels.EndpointOut) *Webhook {
+func WebhookFromSvixEndpointOut(e *svix.EndpointOut) *Webhook {
 	return &Webhook{
 		ID:          lo.FromPtr(e.Uid),
 		URL:         e.Url,
@@ -615,7 +614,7 @@ func WebhookFromSvixEndpointOut(e *svixmodels.EndpointOut) *Webhook {
 }
 
 type idempotencyKeyTypes interface {
-	svixmodels.ApplicationIn | svixmodels.EndpointIn | svixmodels.EndpointSecretRotateIn | svixmodels.MessageIn
+	svix.ApplicationIn | svix.EndpointIn | svix.EndpointSecretRotateIn | svix.MessageIn
 }
 
 func toIdempotencyKey[T idempotencyKeyTypes](v T, t time.Time) (string, error) {
