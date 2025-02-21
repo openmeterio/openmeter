@@ -46,8 +46,22 @@ data:
   config.yaml: |
     {{- $config := .Values.config -}}
     {{- $valuesConfig := fromYaml (include "openmeter.helmValuesConfig" .) -}}
-    {{- $config := mergeOverwrite $config $valuesConfig -}}
+    {{- $cfg := mergeOverwrite $config $valuesConfig -}}
 
 
-    {{ $config | toYaml | nindent 4 }}
+    {{ $cfg | toYaml | nindent 4 }}
 
+{{- if ne (len .Values.caRootCertificates) 0 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ca-certificates
+  labels:
+    {{- include "openmeter.labels" . | nindent 4 }}
+data:
+  {{- range $ca, $cert := .Values.caRootCertificates }}
+  {{- cat $ca ".crt" | nospace | lower | nindent 2 }}: |
+    {{- $cert | nindent 4 }}
+  {{- end }}
+{{- end }}

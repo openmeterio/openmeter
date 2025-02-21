@@ -1,0 +1,13 @@
+{{- if ne (len .Values.caRootCertificates) 0 -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ca-certificates
+  labels:
+    {{- include "benthos-collector.labels" . | nindent 4 }}
+data:
+  {{- range $ca, $cert := .Values.caRootCertificates }}
+  {{- cat $ca ".crt" | nospace | lower | nindent 2 }}: |
+    {{- $cert | nindent 4 }}
+  {{- end }}
+{{- end }}

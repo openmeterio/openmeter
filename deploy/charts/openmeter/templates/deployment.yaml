@@ -44,7 +44,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["openmeter", "--address", "0.0.0.0:80", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          command: ["/entrypoint.sh", "openmeter"]
+          args: ["--address", "0.0.0.0:80", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: http
               containerPort: 80
@@ -65,10 +66,20 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
+        {{- if ne (len .Values.caRootCertificates) 0 }}
+        - name: ca-certificates
+          configMap:
+            name: ca-certificates
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -128,7 +139,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["openmeter-balance-worker", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          command: ["/entrypoint.sh", "openmeter-balance-worker"]
+          args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
               containerPort: 10000
@@ -146,10 +158,20 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
+        {{- if ne (len .Values.caRootCertificates) 0 }}
+        - name: ca-certificates
+          configMap:
+            name: ca-certificates
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -209,7 +231,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["openmeter-notification-service", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          command: ["/entrypoint.sh", "openmeter-notification-service"]
+          args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
               containerPort: 10000
@@ -227,10 +250,20 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
+        {{- if ne (len .Values.caRootCertificates) 0 }}
+        - name: ca-certificates
+          configMap:
+            name: ca-certificates
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -290,7 +323,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["openmeter-sink-worker", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          command: ["/entrypoint.sh", "openmeter-sink-worker"]
+          args: ["--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: telemetry-http
               containerPort: 10000
@@ -308,10 +342,20 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
+            {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openmeter.fullname" . }}
+        {{- if ne (len .Values.caRootCertificates) 0 }}
+        - name: ca-certificates
+          configMap:
+            name: ca-certificates
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

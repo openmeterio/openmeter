@@ -160,3 +160,4 @@ config:
 | balanceWorker.replicaCount | int | `1` | Number of Balance Worker replicas (pods) to launch. |
 | notificationService.replicaCount | int | `1` | Number of Notification Service replicas (pods) to launch. |
 | sinkWorker.replicaCount | int | `1` | Number of Sink Worker replicas (pods) to launch. |
+| caRootCertificates | object | `{}` | List of CA Root certificates to inject into pods at runtime. See [values.yaml](values.yaml) |

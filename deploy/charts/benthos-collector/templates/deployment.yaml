@@ -34,6 +34,7 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/entrypoint.sh", "/usr/local/bin/benthos"]
           args: {{ include "benthos-collector.args" . }}
           env:
             {{- range $key, $value := .Values.env }}
@@ -56,6 +57,11 @@ spec:
               mountPath: /etc/benthos/config.yaml
               readOnly: true
               subPath: config.yaml
+          {{- if ne (len .Values.caRootCertificates) 0 }}
+            - name: ca-certificates
+              mountPath: /usr/local/share/ca-certificates
+              readOnly: true
+          {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -63,6 +69,11 @@ spec:
         - name: config
           secret:
             secretName: {{ include "benthos-collector.componentName" (list . "config") }}
+      {{- if ne (len .Values.caRootCertificates) 0 }}
+        - name: ca-certificates
+          configMap:
+            name: ca-certificates
+      {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}

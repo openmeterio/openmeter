@@ -242,3 +242,11 @@ notificationService:
 sinkWorker:
   # -- Number of Sink Worker replicas (pods) to launch.
   replicaCount: 1
+
+# -- List of CA Root certificates to inject into pods at runtime.
+# See [values.yaml](values.yaml)
+caRootCertificates: {}
+#  ca: |
+#    -----BEGIN CERTIFICATE-----
+#    ...
+#    -----END CERTIFICATE-----
