@@ -3,9 +3,10 @@ package httpdriver
 import (
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/portal"
-	"github.com/samber/lo"
 )
 
 // toAPIPortalToken maps a portal token to an API portal token.
