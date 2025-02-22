@@ -14,6 +14,16 @@ import (
 
 var PortalTokenIssuer = "openmeter"
 
+type JTWPortalTokenClaims struct {
+	jwt.RegisteredClaims
+
+	// Id is the unique identifier of the token.
+	Id string
+
+	// AllowedMeterSlugs is a list of meter slugs that the token allows access to.
+	AllowedMeterSlugs []string
+}
+
 // CreateToken creates a new portal token.
 func (a *adapter) CreateToken(ctx context.Context, input portal.CreateTokenInput) (*portal.PortalToken, error) {
 	if err := input.Validate(); err != nil {
@@ -32,7 +42,7 @@ func (a *adapter) CreateToken(ctx context.Context, input portal.CreateTokenInput
 		allowedMeterSlugs = input.AllowedMeterSlugs
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, portal.PortalTokenClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JTWPortalTokenClaims{
 		Id: id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   input.Subject,
@@ -70,14 +80,24 @@ func (a *adapter) Validate(tokenString string) (*portal.PortalTokenClaims, error
 		return a.secret, nil
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &portal.PortalTokenClaims{}, keyFunc, opts...)
+	jwtToken, err := jwt.ParseWithClaims(tokenString, &JTWPortalTokenClaims{}, keyFunc, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse claims: %w", err)
 	}
 
-	claims, ok := token.Claims.(*portal.PortalTokenClaims)
+	jwtClaims, ok := jwtToken.Claims.(*JTWPortalTokenClaims)
 	if !ok {
 		return nil, fmt.Errorf("not a portal token claims")
+	}
+
+	claims := &portal.PortalTokenClaims{
+		Id:                jwtClaims.Id,
+		AllowedMeterSlugs: jwtClaims.AllowedMeterSlugs,
+		Subject:           jwtClaims.Subject,
+	}
+
+	if jwtClaims.ExpiresAt != nil {
+		claims.ExpiresAt = &jwtClaims.ExpiresAt.Time
 	}
 
 	return claims, nil

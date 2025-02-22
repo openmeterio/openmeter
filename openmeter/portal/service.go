@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -26,13 +24,18 @@ type PortalTokenService interface {
 
 // PortalTokenClaims is the claims struct for the portal token.
 type PortalTokenClaims struct {
-	jwt.RegisteredClaims
-
 	// Id is the unique identifier of the token.
 	Id string
 
 	// AllowedMeterSlugs is a list of meter slugs that the token allows access to.
+	// All meter slugs are allowed if the list is empty.
 	AllowedMeterSlugs []string
+
+	// Subject is the subject of the token.
+	Subject string
+
+	// ExpiresAt is the expiration time of the token if any.
+	ExpiresAt *time.Time
 }
 
 // GetAllowedMeterSlugs returns the list of allowed meter slugs.
