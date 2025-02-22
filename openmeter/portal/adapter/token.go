@@ -17,6 +17,9 @@ var PortalTokenIssuer = "openmeter"
 type JTWPortalTokenClaims struct {
 	jwt.RegisteredClaims
 
+	// Namespace is the namespace where the token is created.
+	Namespace string
+
 	// Id is the unique identifier of the token.
 	Id string
 
@@ -43,7 +46,8 @@ func (a *adapter) CreateToken(ctx context.Context, input portal.CreateTokenInput
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JTWPortalTokenClaims{
-		Id: id,
+		Namespace: input.Namespace,
+		Id:        id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   input.Subject,
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
@@ -91,6 +95,7 @@ func (a *adapter) Validate(ctx context.Context, tokenString string) (*portal.Por
 	}
 
 	claims := &portal.PortalTokenClaims{
+		Namespace:         jwtClaims.Namespace,
 		Id:                jwtClaims.Id,
 		AllowedMeterSlugs: jwtClaims.AllowedMeterSlugs,
 		Subject:           jwtClaims.Subject,

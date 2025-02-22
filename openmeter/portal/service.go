@@ -24,6 +24,9 @@ type PortalTokenService interface {
 
 // PortalTokenClaims is the claims struct for the portal token.
 type PortalTokenClaims struct {
+	// Namespace is the namespace where the token is created.
+	Namespace string
+
 	// Id is the unique identifier of the token.
 	Id string
 
