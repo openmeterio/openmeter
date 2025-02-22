@@ -68,7 +68,7 @@ func (a *adapter) CreateToken(ctx context.Context, input portal.CreateTokenInput
 }
 
 // Validate validates a portal token.
-func (a *adapter) Validate(tokenString string) (*portal.PortalTokenClaims, error) {
+func (a *adapter) Validate(ctx context.Context, tokenString string) (*portal.PortalTokenClaims, error) {
 	opts := []jwt.ParserOption{
 		jwt.WithStrictDecoding(),
 		jwt.WithExpirationRequired(),

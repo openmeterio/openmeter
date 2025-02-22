@@ -99,7 +99,7 @@ func (a Authenticator) verifyPortalToken(w http.ResponseWriter, r *http.Request)
 		return r, errors.New("bearer token cannot be empty")
 	}
 
-	claims, err := a.portal.Validate(bearerToken)
+	claims, err := a.portal.Validate(r.Context(), bearerToken)
 	if err != nil {
 		return r, fmt.Errorf("invalid token: %w", err)
 	}

@@ -17,7 +17,7 @@ type Service interface {
 // PortalTokenService is the service for the portal token management.
 type PortalTokenService interface {
 	CreateToken(ctx context.Context, input CreateTokenInput) (*PortalToken, error)
-	Validate(tokenString string) (*PortalTokenClaims, error)
+	Validate(ctx context.Context, tokenString string) (*PortalTokenClaims, error)
 	ListTokens(ctx context.Context, input ListTokensInput) (pagination.PagedResponse[*PortalToken], error)
 	InvalidateToken(ctx context.Context, input InvalidateTokenInput) error
 }

@@ -18,7 +18,7 @@ func (a *noopAdapter) CreateToken(ctx context.Context, input portal.CreateTokenI
 	return nil, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
 }
 
-func (a *noopAdapter) Validate(tokenString string) (*portal.PortalTokenClaims, error) {
+func (a *noopAdapter) Validate(ctx context.Context, tokenString string) (*portal.PortalTokenClaims, error) {
 	return nil, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
 }
 
