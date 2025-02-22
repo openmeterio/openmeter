@@ -14,7 +14,7 @@ import (
 
 type (
 	ListTokensParams   = api.ListPortalTokensParams
-	ListTokensResponse = pagination.PagedResponse[api.PortalToken]
+	ListTokensResponse = []api.PortalToken
 	ListTokensHandler  httptransport.HandlerWithArgs[ListTokensRequest, ListTokensResponse, ListTokensParams]
 )
 
@@ -55,7 +55,7 @@ func (h *handler) ListTokens() ListTokensHandler {
 			// Response
 			resp := pagination.MapPagedResponse(result, toAPIPortalToken)
 
-			return resp, nil
+			return resp.Items, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListTokensResponse](http.StatusOK),
 		httptransport.AppendOptions(
