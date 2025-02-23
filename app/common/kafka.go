@@ -75,6 +75,10 @@ func NewKafkaAdminClient(conf config.KafkaConfiguration) (*kafka.AdminClient, er
 	// and initializing the client fails if this parameter is set.
 	delete(kafkaConfigMap, "go.logs.channel.enable")
 
+	// NOTE(chrisgacsal): disable collecting statistics as data is collected in an internal queue which needs to be polled,
+	// but the AdminClient does not expose interface for that.
+	delete(kafkaConfigMap, "statistics.interval.ms")
+
 	adminClient, err := kafka.NewAdminClient(&kafkaConfigMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Kafka admin client: %w", err)
