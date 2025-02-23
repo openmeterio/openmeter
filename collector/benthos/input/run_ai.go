@@ -162,22 +162,25 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 		return nil, err
 	}
 
-	// Create a cron scheduler
-	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
-	cronSchedule, err := parser.Parse(schedule)
-	if err != nil {
-		return nil, err
+	var interval time.Duration
+	{
+		// Create a cron scheduler
+		parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+		cronSchedule, err := parser.Parse(schedule)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get current time
+		now := time.Now()
+
+		// Get next two occurrences
+		nextRun := cronSchedule.Next(now)
+		secondRun := cronSchedule.Next(nextRun)
+
+		// Calculate the duration between runs
+		interval = secondRun.Sub(nextRun)
 	}
-
-	// Get current time
-	now := time.Now()
-
-	// Get next two occurrences
-	nextRun := cronSchedule.Next(now)
-	secondRun := cronSchedule.Next(nextRun)
-
-	// Calculate the duration between runs
-	interval := secondRun.Sub(nextRun)
 
 	requestTimeout, err := conf.FieldDuration(fieldHTTPConfig, fieldHTTPTimeout)
 	if err != nil {

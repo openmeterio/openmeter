@@ -78,9 +78,10 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		SetContext(ctx).
 		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
-			"limit":    fmt.Sprintf("%d", params.Limit),
-			"offset":   fmt.Sprintf("%d", params.Offset),
-			"filterBy": "phase==Running",
+			"limit":  fmt.Sprintf("%d", params.Limit),
+			"offset": fmt.Sprintf("%d", params.Offset),
+			// Matches phases: Creating, Initializing, Resuming, Pending, Deleting, Running, Updating, Stopping, Terminating
+			"filterBy": "phase=$ing",
 		}).
 		SetResult(&ListWorkloadsResponse{}).
 		Get("/api/v1/workloads")
