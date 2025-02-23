@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 type FeatureNotFoundError struct {
@@ -37,8 +37,8 @@ func (e *FeatureWithNameAlreadyExistsError) Error() string {
 
 type FeatureInvalidMeterAggregationError struct {
 	MeterSlug         string
-	Aggregation       models.MeterAggregation
-	ValidAggregations []models.MeterAggregation
+	Aggregation       meter.MeterAggregation
+	ValidAggregations []meter.MeterAggregation
 }
 
 func (e *FeatureInvalidMeterAggregationError) Error() string {
@@ -64,7 +64,7 @@ func (e *ForbiddenError) Error() string {
 // MeterGroupByFilters is a map of filters that can be applied to a meter when querying the usage for a feature.
 type MeterGroupByFilters map[string]string
 
-func (f MeterGroupByFilters) Validate(meter models.Meter) error {
+func (f MeterGroupByFilters) Validate(meter meter.Meter) error {
 	for filterProp := range f {
 		if _, ok := meter.GroupBy[filterProp]; !ok {
 			meterGroupByColumns := make([]string, 0, len(meter.GroupBy))

@@ -80,13 +80,6 @@ interface Meters {
 /**
  * A meter is a configuration that defines how to match and aggregate events.
  */
-@extension("x-go-type", "models.Meter")
-@extension(
-  "x-go-type-import",
-  {
-    path: "github.com/openmeterio/openmeter/pkg/models",
-  }
-)
 @friendlyName("Meter")
 @example(#{
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
@@ -120,11 +113,20 @@ model Meter {
   @example("AI Token Usage")
   description?: string;
 
+  /**
+   * The aggregation type to use for the meter.
+   */
   @example(MeterAggregation.SUM)
   aggregation: MeterAggregation;
 
+  /**
+   * The window size that the usage is stored in.
+   * This controls the query granularity of the usage data.
+   * The larger the window size, the less space is used to store the data.
+   * By default, the window size is a minute.
+   */
   @example(WindowSize.MINUTE)
-  windowSize: WindowSize;
+  windowSize?: WindowSize = WindowSize.MINUTE;
 
   /**
    * The event type to aggregate.
@@ -158,15 +160,11 @@ model Meter {
 /**
  * The aggregation type to use for the meter.
  */
-#suppress "@openmeter/api-spec/casing" "Use existing values"
-@extension("x-go-type", "models.MeterAggregation")
-@extension(
-  "x-go-type-import",
-  {
-    path: "github.com/openmeterio/openmeter/pkg/models",
-  }
-)
 @friendlyName("MeterAggregation")
+@extension(
+  "x-enum-varnames",
+  ["Sum", "Count", "UniqueCount", "Avg", "Min", "Max"]
+)
 enum MeterAggregation {
   SUM,
   COUNT,
@@ -179,15 +177,8 @@ enum MeterAggregation {
 /**
  * Aggregation window size.
  */
-#suppress "@openmeter/api-spec/casing" "Use existing values"
-@extension("x-go-type", "models.WindowSize")
-@extension(
-  "x-go-type-import",
-  {
-    path: "github.com/openmeterio/openmeter/pkg/models",
-  }
-)
 @friendlyName("WindowSize")
+@extension("x-enum-varnames", ["Minute", "Hour", "Day"])
 enum WindowSize {
   MINUTE,
   HOUR,
@@ -276,22 +267,34 @@ model MeterQuery {
   ],
 })
 model MeterQueryResult {
+  /**
+   * The start of the period the usage is queried from.
+   * If not specified, the usage is queried from the beginning of time.
+   */
   from?: DateTime;
+
+  /**
+   * The end of the period the usage is queried to.
+   * If not specified, the usage is queried up to the current time.
+   */
   to?: DateTime;
+
+  /**
+   * The window size that the usage is aggregated.
+   * If not specified, the usage is aggregated over the entire period.
+   */
   windowSize?: WindowSize;
+
+  /**
+   * The usage data.
+   * If no data is available, an empty array is returned.
+   */
   data: MeterQueryRow[];
 }
 
 /**
  * A row in the result of a meter query.
  */
-@extension("x-go-type", "models.MeterQueryRow")
-@extension(
-  "x-go-type-import",
-  {
-    path: "github.com/openmeterio/openmeter/pkg/models",
-  }
-)
 @friendlyName("MeterQueryRow")
 @example(#{
   value: 12,
@@ -301,9 +304,29 @@ model MeterQueryResult {
   groupBy: #{ `model`: "gpt-4-turbo", type: "prompt" },
 })
 model MeterQueryRow {
-  value: numeric;
+  /**
+   * The aggregated value.
+   */
+  value: float64;
+
+  /**
+   * The start of the window the value is aggregated over.
+   */
   windowStart: DateTime;
+
+  /**
+   * The end of the window the value is aggregated over.
+   */
   windowEnd: DateTime;
-  subject?: string;
-  groupBy?: Record<string>;
+
+  /**
+   * The subject the value is aggregated over.
+   * If not specified, the value is aggregated over all subjects.
+   */
+  subject: string | null;
+
+  /**
+   * The group by values the value is aggregated over.
+   */
+  groupBy: Record<string | null>;
 }

@@ -11,9 +11,10 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	raw_events "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ streaming.Connector = (*Connector)(nil)
@@ -25,11 +26,12 @@ type Connector struct {
 }
 
 type ConnectorConfig struct {
-	Logger               *slog.Logger
-	ClickHouse           clickhouse.Conn
-	Database             string
-	EventsTableName      string
-	Meters               meter.Repository
+	Logger          *slog.Logger
+	ClickHouse      clickhouse.Conn
+	Database        string
+	EventsTableName string
+	Meters          meter.Service
+
 	CreateOrReplaceMeter bool
 	PopulateMeter        bool
 	AsyncInsert          bool
@@ -112,7 +114,7 @@ func (c *Connector) ListEvents(ctx context.Context, namespace string, params str
 	return c.rawEventConnector.ListEvents(ctx, namespace, params)
 }
 
-func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
@@ -128,7 +130,7 @@ func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter mod
 	return nil
 }
 
-func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
@@ -138,7 +140,7 @@ func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter mod
 
 	err := c.deleteMeterView(ctx, namespace, meter)
 	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
+		if meterpkg.IsMeterNotFoundError(err) {
 			return err
 		}
 
@@ -148,12 +150,16 @@ func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter mod
 	return nil
 }
 
-func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
 	if meter.Slug == "" {
 		return nil, fmt.Errorf("meter is required")
+	}
+
+	if err := params.Validate(meter); err != nil {
+		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
 	// Query raw events if the flag is set
@@ -163,7 +169,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mode
 
 	values, err := c.queryMeterView(ctx, namespace, meter, params)
 	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
+		if meterpkg.IsMeterNotFoundError(err) {
 			return nil, err
 		}
 
@@ -187,12 +193,16 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mode
 	return values, nil
 }
 
-func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
 	if meter.Slug == "" {
 		return nil, fmt.Errorf("meter is required")
+	}
+
+	if err := params.Validate(); err != nil {
+		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
 	// Query raw events if the flag is set
@@ -202,7 +212,7 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 
 	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter, params)
 	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
+		if meterpkg.IsMeterNotFoundError(err) {
 			return nil, err
 		}
 
@@ -217,16 +227,19 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 // We only delete the materialized views for the meters
 func (c *Connector) deleteNamespace(ctx context.Context, namespace string) error {
 	// Retrieve meters belonging to the namespace
-	meters, err := c.config.Meters.ListMeters(ctx, namespace)
+	result, err := c.config.Meters.ListMeters(ctx, meterpkg.ListMetersParams{
+		Namespace: namespace,
+		Page:      pagination.NewPage(1, 100),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to list meters: %w", err)
 	}
 
-	for _, meter := range meters {
+	for _, meter := range result.Items {
 		err := c.deleteMeterView(ctx, namespace, meter)
 		if err != nil {
 			// If the meter view does not exist, we ignore the error
-			if _, ok := err.(*models.MeterNotFoundError); ok {
+			if meterpkg.IsMeterNotFoundError(err) {
 				return nil
 			}
 			return fmt.Errorf("delete meter view: %w", err)
@@ -236,7 +249,7 @@ func (c *Connector) deleteNamespace(ctx context.Context, namespace string) error
 	return nil
 }
 
-func (c *Connector) createMeterView(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) createMeterView(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	// CreateOrReplace is used to force the recreation of the materialized view
 	// This is not safe to use in production as it will drop the existing views
 	if c.config.CreateOrReplaceMeter {
@@ -269,7 +282,7 @@ func (c *Connector) createMeterView(ctx context.Context, namespace string, meter
 	return nil
 }
 
-func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	query := deleteMeterView{
 		Database:  c.config.Database,
 		Namespace: namespace,
@@ -281,7 +294,7 @@ func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter
 	err := c.config.ClickHouse.Exec(ctx, sql)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			return meterpkg.NewMeterNotFoundError(meter.Slug)
 		}
 
 		return fmt.Errorf("delete meter view: %w", err)
@@ -290,7 +303,7 @@ func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter
 	return nil
 }
 
-func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		Namespace:      namespace,
@@ -305,7 +318,7 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 		WindowTimeZone: params.WindowTimeZone,
 	}
 
-	values := []models.MeterQueryRow{}
+	values := []meterpkg.MeterQueryRow{}
 
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {
@@ -316,7 +329,7 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
@@ -328,7 +341,7 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	for rows.Next() {
-		value := models.MeterQueryRow{
+		value := meterpkg.MeterQueryRow{
 			GroupBy: map[string]*string{},
 		}
 
@@ -376,7 +389,7 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 	return values, nil
 }
 
-func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	query := listMeterViewSubjects{
 		Database:  c.config.Database,
 		Namespace: namespace,
@@ -390,7 +403,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

@@ -28,7 +28,7 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -52,7 +52,7 @@ type BaseSuite struct {
 
 	FeatureService         feature.FeatureConnector
 	FeatureRepo            feature.FeatureRepo
-	MeterRepo              *meter.InMemoryRepository
+	MeterAdapter           *meteradapter.TestAdapter
 	MockStreamingConnector *streamingtestutils.MockStreamingConnector
 
 	CustomerService customer.Service
@@ -87,15 +87,15 @@ func (s *BaseSuite) SetupSuite() {
 
 	// Meter repo
 
-	s.MeterRepo = meter.NewInMemoryRepository(nil)
 	s.MockStreamingConnector = streamingtestutils.NewMockStreamingConnector(t)
+	s.MeterAdapter = meteradapter.New(nil)
 
 	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: s.MockStreamingConnector,
 		Logger:             slog.Default(),
-		MeterRepository:    s.MeterRepo,
+		MeterService:       s.MeterAdapter,
 		Publisher:          eventbus.NewMock(t),
 	})
 
@@ -145,7 +145,7 @@ func (s *BaseSuite) SetupSuite() {
 		AppService:          s.AppService,
 		Logger:              slog.Default(),
 		FeatureService:      s.FeatureService,
-		MeterRepo:           s.MeterRepo,
+		MeterService:        s.MeterAdapter,
 		StreamingConnector:  s.MockStreamingConnector,
 		Publisher:           eventbus.NewMock(s.T()),
 		AdvancementStrategy: billing.ForegroundAdvancementStrategy,

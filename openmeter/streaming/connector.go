@@ -2,11 +2,12 @@ package streaming
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ListEventsParams struct {
@@ -31,11 +32,6 @@ type CountEventRow struct {
 	IsError bool
 }
 
-type ListMeterSubjectsParams struct {
-	From *time.Time
-	To   *time.Time
-}
-
 // RawEvent represents a single raw event
 type RawEvent struct {
 	Namespace       string
@@ -55,10 +51,27 @@ type Connector interface {
 
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
-	CreateMeter(ctx context.Context, namespace string, meter models.Meter) error
-	DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error
-	QueryMeter(ctx context.Context, namespace string, meter models.Meter, params QueryParams) ([]models.MeterQueryRow, error)
-	ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params ListMeterSubjectsParams) ([]string, error)
+	CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error
+	DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error
+	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
+	ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params ListMeterSubjectsParams) ([]string, error)
 	BatchInsert(ctx context.Context, events []RawEvent) error
 	// Add more methods as needed ...
+}
+
+// ListMeterSubjectsParams is a parameter object for listing subjects.
+type ListMeterSubjectsParams struct {
+	From *time.Time
+	To   *time.Time
+}
+
+// Validate validates the list meters parameters.
+func (p ListMeterSubjectsParams) Validate() error {
+	var errs []error
+
+	if p.From != nil && p.To != nil && p.From.After(*p.To) {
+		errs = append(errs, errors.New("from time must be before to time"))
+	}
+
+	return errors.Join(errs...)
 }

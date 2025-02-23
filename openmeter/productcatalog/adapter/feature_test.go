@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -20,7 +21,7 @@ import (
 
 func TestCreateFeature(t *testing.T) {
 	namespace := "default"
-	meter := models.Meter{
+	meter := meter.Meter{
 		Namespace: namespace,
 		ID:        "meter-1",
 		Slug:      "meter-1",
@@ -259,7 +260,7 @@ func TestCreateFeature(t *testing.T) {
 
 func TestArchiveFeature(t *testing.T) {
 	namespace := "default"
-	meter := models.Meter{
+	meter := meter.Meter{
 		Namespace: namespace,
 		ID:        "meter-1",
 		Slug:      "meter-1",
@@ -333,7 +334,7 @@ func TestArchiveFeature(t *testing.T) {
 
 func TestFetchingArchivedFeature(t *testing.T) {
 	namespace := "default"
-	meter := models.Meter{
+	meter := meter.Meter{
 		Namespace: namespace,
 		ID:        "meter-1",
 		Slug:      "meter-1",

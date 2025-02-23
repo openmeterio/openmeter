@@ -7,8 +7,6 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oliveagle/jsonpath"
-
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ParseEvent validates and parses an event against a meter.
@@ -82,7 +80,7 @@ func ParseEvent(meter Meter, ev event.Event) (*float64, *string, map[string]stri
 // parseGroupBy parses the group by fields from the event data
 // we allow the group by fields to be missing in the event data or the data to be null
 // in such cases we set the group by value to empty string
-func parseGroupBy(meter models.Meter, data interface{}) map[string]string {
+func parseGroupBy(meter Meter, data interface{}) map[string]string {
 	groupBy := map[string]string{}
 
 	// Group by fields

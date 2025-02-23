@@ -30,6 +30,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -70,7 +71,6 @@ type Config struct {
 	NamespaceManager   *namespace.Manager
 	StreamingConnector streaming.Connector
 	IngestHandler      http.Handler
-	Meters             meter.Repository
 	PortalCORSEnabled  bool
 	Portal             portal.Service
 	ErrorHandler       errorsx.Handler
@@ -81,6 +81,7 @@ type Config struct {
 	AppStripe                   appstripe.Service
 	Customer                    customer.Service
 	Billing                     billing.Service
+	MeterService                meter.Service
 	Plan                        plan.Service
 	SubscriptionService         subscription.Service
 	SubscriptionWorkflowService subscription.WorkflowService
@@ -113,7 +114,7 @@ func (c Config) Validate() error {
 	}
 
 	// Validate repositories
-	if c.Meters == nil {
+	if c.MeterService == nil {
 		return errors.New("meters repository is required")
 	}
 
@@ -182,6 +183,7 @@ type Router struct {
 	debugHandler              debug_httpdriver.DebugHandler
 	customerHandler           customerhttpdriver.CustomerHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
+	meterHandler              meterhttphandler.Handler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 	portalHandler             portalhttphandler.Handler
 	notificationHandler       notificationhttpdriver.Handler
@@ -217,6 +219,13 @@ func NewRouter(config Config) (*Router, error) {
 	router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
 		config.EntitlementConnector,
 		staticNamespaceDecoder,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.meterHandler = meterhttphandler.New(
+		staticNamespaceDecoder,
+		config.MeterService,
+		config.StreamingConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

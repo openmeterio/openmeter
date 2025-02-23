@@ -10,13 +10,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Meant to work for boolean entitlements
@@ -71,11 +71,11 @@ var m sync.Mutex
 func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
-	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
+	meterAdapter := meteradapter.New([]meter.Meter{{
 		Slug:        "meter1",
 		Namespace:   "ns1",
-		Aggregation: models.MeterAggregationMax,
-		WindowSize:  models.WindowSizeMinute,
+		Aggregation: meter.MeterAggregationMax,
+		WindowSize:  meter.WindowSizeMinute,
 	}})
 
 	// create isolated pg db for tests
@@ -94,14 +94,14 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	featureConnector := feature.NewFeatureConnector(featureRepo, meterRepo)
+	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter)
 
 	mockPublisher := eventbus.NewMock(t)
 
 	conn := entitlement.NewEntitlementConnector(
 		entitlementRepo,
 		featureConnector,
-		meterRepo,
+		meterAdapter,
 		&mockTypeConnector{},
 		&mockTypeConnector{},
 		&mockTypeConnector{},

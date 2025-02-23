@@ -89,7 +89,7 @@ type entitlementConnector struct {
 
 	entitlementRepo  EntitlementRepo
 	featureConnector feature.FeatureConnector
-	meterRepo        meter.Repository
+	meterService     meter.Service
 
 	publisher eventbus.Publisher
 }
@@ -97,7 +97,7 @@ type entitlementConnector struct {
 func NewEntitlementConnector(
 	entitlementRepo EntitlementRepo,
 	featureConnector feature.FeatureConnector,
-	meterRepo meter.Repository,
+	meterService meter.Service,
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
@@ -109,7 +109,7 @@ func NewEntitlementConnector(
 		booleanEntitlementConnector: booleanEntitlementConnector,
 		entitlementRepo:             entitlementRepo,
 		featureConnector:            featureConnector,
-		meterRepo:                   meterRepo,
+		meterService:                meterService,
 		publisher:                   publisher,
 	}
 }

@@ -22,13 +22,13 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -88,13 +88,15 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer repo: %w", err)
 	}
 
-	meterRepo := meter.NewInMemoryRepository([]models.Meter{})
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+
+	meterAdapter := meteradapter.New([]meter.Meter{})
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: streamingConnector,
 		Logger:             logger,
-		MeterRepository:    meterRepo,
+		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 	})
 
@@ -212,15 +214,15 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		return nil, fmt.Errorf("failed to validate input: %w", err)
 	}
 
-	meterRepo := meter.NewInMemoryRepository(nil)
 	mockStreamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+	meterAdapter := meteradapter.New(nil)
 
 	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     in.DBClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: mockStreamingConnector,
 		Logger:             slog.Default(),
-		MeterRepository:    meterRepo,
+		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 	})
 
@@ -240,7 +242,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		AppService:          in.AppService,
 		Logger:              slog.Default(),
 		FeatureService:      featureService,
-		MeterRepo:           meterRepo,
+		MeterService:        meterAdapter,
 		StreamingConnector:  mockStreamingConnector,
 		Publisher:           eventbus.NewMock(t),
 		AdvancementStrategy: billing.ForegroundAdvancementStrategy,

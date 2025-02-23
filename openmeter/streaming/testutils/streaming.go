@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ streaming.Connector = &MockStreamingConnector{}
@@ -27,12 +27,12 @@ type SimpleEvent struct {
 }
 
 type MockStreamingConnector struct {
-	rows   map[string][]models.MeterQueryRow
+	rows   map[string][]meter.MeterQueryRow
 	events map[string][]SimpleEvent
 }
 
 func (m *MockStreamingConnector) Reset() {
-	m.rows = map[string][]models.MeterQueryRow{}
+	m.rows = map[string][]meter.MeterQueryRow{}
 	m.events = map[string][]SimpleEvent{}
 }
 
@@ -51,7 +51,7 @@ func (m *MockStreamingConnector) SetSimpleEvents(meterSlug string, fn func(event
 	m.events[meterSlug] = fn(m.events[meterSlug])
 }
 
-func (m *MockStreamingConnector) AddRow(meterSlug string, row models.MeterQueryRow) {
+func (m *MockStreamingConnector) AddRow(meterSlug string, row meter.MeterQueryRow) {
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
 }
 
@@ -71,28 +71,28 @@ func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return []api.IngestedEvent{}, nil
 }
 
-func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }
 
-func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }
 
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
-func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
-	rows := []models.MeterQueryRow{}
-	_, rowOk := m.rows[meter.Slug]
+func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	rows := []meter.MeterQueryRow{}
+	_, rowOk := m.rows[mm.Slug]
 
 	if rowOk {
-		for _, row := range m.rows[meter.Slug] {
+		for _, row := range m.rows[mm.Slug] {
 			if row.WindowStart.Equal(*params.From) && row.WindowEnd.Equal(*params.To) {
 				rows = append(rows, row)
 			}
 		}
 	} else {
-		row, err := m.aggregateEvents(meter.Slug, params)
+		row, err := m.aggregateEvents(mm.Slug, params)
 		if err != nil {
 			return rows, err
 		}
@@ -106,20 +106,20 @@ func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []strea
 	return nil
 }
 
-func windowSizeToDuration(windowSize models.WindowSize) time.Duration {
+func windowSizeToDuration(windowSize meter.WindowSize) time.Duration {
 	return windowSize.Duration()
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases
-func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
 	from := defaultx.WithDefault(params.From, time.Now().AddDate(-10, 0, 0))
 	to := defaultx.WithDefault(params.To, time.Now())
 	if !ok {
-		return []models.MeterQueryRow{}, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		return []meter.MeterQueryRow{}, meter.NewMeterNotFoundError(meterSlug)
 	}
 
-	rows := make([]models.MeterQueryRow, 0)
+	rows := make([]meter.MeterQueryRow, 0)
 
 	if params.WindowSize != nil && params.WindowTimeZone != nil {
 		// prepopulate windows based on windowsize, from and to (TODO: windowtimezone will be ignored)
@@ -127,7 +127,7 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 		numOfWindows := numOfSecondsBetweenToAndFrom / int(windowSizeToDuration(*params.WindowSize).Seconds())
 
 		for i := 0; i < numOfWindows; i++ {
-			rows = append(rows, models.MeterQueryRow{
+			rows = append(rows, meter.MeterQueryRow{
 				Value:       0,
 				WindowStart: from.Add(time.Duration(time.Duration(i*int(windowSizeToDuration(*params.WindowSize))).Seconds()) * time.Second),
 				WindowEnd:   from.Add(time.Duration(time.Duration((i+1)*int(windowSizeToDuration(*params.WindowSize))).Seconds()) * time.Second),
@@ -136,7 +136,7 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 		}
 
 		if numOfWindows == 0 {
-			rows = append(rows, models.MeterQueryRow{
+			rows = append(rows, meter.MeterQueryRow{
 				Value:       0,
 				WindowStart: from,
 				WindowEnd:   to,
@@ -144,7 +144,7 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 			})
 		}
 	} else {
-		rows = append(rows, models.MeterQueryRow{
+		rows = append(rows, meter.MeterQueryRow{
 			Value:       0,
 			WindowStart: from,
 			WindowEnd:   to,
@@ -172,6 +172,6 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 	return rows, nil
 }
 
-func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{}, nil
 }

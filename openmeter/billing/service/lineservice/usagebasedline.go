@@ -8,9 +8,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -109,8 +109,8 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 	asOfTruncated := in.AsOf.Truncate(billing.DefaultMeterResolution)
 
 	switch meter.Aggregation {
-	case models.MeterAggregationSum, models.MeterAggregationCount,
-		models.MeterAggregationMax, models.MeterAggregationUniqueCount:
+	case meterpkg.MeterAggregationSum, meterpkg.MeterAggregationCount,
+		meterpkg.MeterAggregationMax, meterpkg.MeterAggregationUniqueCount:
 
 		periodStartTrucated := l.line.Period.Start.Truncate(billing.DefaultMeterResolution)
 

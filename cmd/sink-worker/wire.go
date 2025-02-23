@@ -31,7 +31,7 @@ type Application struct {
 	Logger           *slog.Logger
 	Metadata         common.Metadata
 	Meter            metric.Meter
-	MeterRepository  meter.Repository
+	MeterService     meter.Service
 	Streaming        streaming.Connector
 	TelemetryServer  common.TelemetryServer
 	TopicProvisioner pkgkafka.TopicProvisioner

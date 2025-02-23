@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 func TestIngest(t *testing.T) {
@@ -117,12 +117,12 @@ func TestAuth(t *testing.T) {
 func TestGetMeter(t *testing.T) {
 	ctx := context.Background()
 
-	meter := models.Meter{
+	meter := Meter{
 		Slug:          "meter-1",
-		Description:   "Test Meter",
-		Aggregation:   models.MeterAggregationSum,
-		ValueProperty: "$.tokens",
-		GroupBy:       map[string]string{"model": "$.model", "type": "$.type"},
+		Description:   lo.ToPtr("Test Meter"),
+		Aggregation:   MeterAggregation(meter.MeterAggregationSum),
+		ValueProperty: lo.ToPtr("$.tokens"),
+		GroupBy:       lo.ToPtr(map[string]string{"model": "$.model", "type": "$.type"}),
 	}
 
 	// Create a mock server to test the client
@@ -152,20 +152,20 @@ func TestGetMeter(t *testing.T) {
 func TestListMeters(t *testing.T) {
 	ctx := context.Background()
 
-	meters := []models.Meter{
+	meters := []Meter{
 		{
 			Slug:          "meter-1",
-			Description:   "Test Meter",
-			Aggregation:   models.MeterAggregationSum,
-			ValueProperty: "$.tokens",
-			GroupBy:       map[string]string{"model": "$.model", "type": "$.type"},
+			Description:   lo.ToPtr("Test Meter"),
+			Aggregation:   MeterAggregation(meter.MeterAggregationSum),
+			ValueProperty: lo.ToPtr("$.tokens"),
+			GroupBy:       lo.ToPtr(map[string]string{"model": "$.model", "type": "$.type"}),
 		},
 		{
 			Slug:          "meter-2",
-			Description:   "Test Meter 2",
-			Aggregation:   models.MeterAggregationSum,
-			ValueProperty: "$.tokens",
-			GroupBy:       map[string]string{"model": "$.model", "type": "$.type"},
+			Description:   lo.ToPtr("Test Meter 2"),
+			Aggregation:   MeterAggregation(meter.MeterAggregationSum),
+			ValueProperty: lo.ToPtr("$.tokens"),
+			GroupBy:       lo.ToPtr(map[string]string{"model": "$.model", "type": "$.type"}),
 		},
 	}
 
@@ -197,7 +197,7 @@ func TestMeterQuery(t *testing.T) {
 	ctx := context.Background()
 
 	result := MeterQueryResult{
-		Data: []models.MeterQueryRow{
+		Data: []MeterQueryRow{
 			{
 				Subject:     lo.ToPtr("customer-1"),
 				WindowStart: time.Now().UTC(),

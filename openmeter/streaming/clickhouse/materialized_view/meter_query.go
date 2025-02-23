@@ -9,7 +9,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -21,7 +21,7 @@ type column struct {
 type createMeterView struct {
 	Database        string
 	EventsTableName string
-	Aggregation     models.MeterAggregation
+	Aggregation     meter.MeterAggregation
 	Namespace       string
 	MeterSlug       string
 	EventType       string
@@ -44,23 +44,23 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	agg := ""
 
 	switch d.Aggregation {
-	case models.MeterAggregationSum:
+	case meter.MeterAggregationSum:
 		agg = "sum"
-	case models.MeterAggregationAvg:
+	case meter.MeterAggregationAvg:
 		agg = "avg"
-	case models.MeterAggregationMin:
+	case meter.MeterAggregationMin:
 		agg = "min"
-	case models.MeterAggregationMax:
+	case meter.MeterAggregationMax:
 		agg = "max"
-	case models.MeterAggregationCount:
+	case meter.MeterAggregationCount:
 		agg = "count"
-	case models.MeterAggregationUniqueCount:
+	case meter.MeterAggregationUniqueCount:
 		agg = "uniq"
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	if d.Aggregation == models.MeterAggregationUniqueCount {
+	if d.Aggregation == meter.MeterAggregationUniqueCount {
 		columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, String)", agg)})
 	} else {
 		columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, Float64)", agg)})
@@ -107,17 +107,17 @@ func (d createMeterView) toSelectSQL() (string, error) {
 
 	aggStateFn := ""
 	switch d.Aggregation {
-	case models.MeterAggregationSum:
+	case meter.MeterAggregationSum:
 		aggStateFn = "sumState"
-	case models.MeterAggregationAvg:
+	case meter.MeterAggregationAvg:
 		aggStateFn = "avgState"
-	case models.MeterAggregationMin:
+	case meter.MeterAggregationMin:
 		aggStateFn = "minState"
-	case models.MeterAggregationMax:
+	case meter.MeterAggregationMax:
 		aggStateFn = "maxState"
-	case models.MeterAggregationUniqueCount:
+	case meter.MeterAggregationUniqueCount:
 		aggStateFn = "uniqState"
-	case models.MeterAggregationCount:
+	case meter.MeterAggregationCount:
 		aggStateFn = "countState"
 	default:
 		return "", fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
@@ -129,9 +129,9 @@ func (d createMeterView) toSelectSQL() (string, error) {
 		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
 		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
 	}
-	if d.Aggregation == models.MeterAggregationCount {
+	if d.Aggregation == meter.MeterAggregationCount {
 		selects = append(selects, fmt.Sprintf("%s(*) AS value", aggStateFn))
-	} else if d.Aggregation == models.MeterAggregationUniqueCount {
+	} else if d.Aggregation == meter.MeterAggregationUniqueCount {
 		selects = append(selects, fmt.Sprintf("%s(JSON_VALUE(data, '%s')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
 	} else {
 		selects = append(selects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
@@ -175,13 +175,13 @@ type queryMeterView struct {
 	Database       string
 	Namespace      string
 	MeterSlug      string
-	Aggregation    models.MeterAggregation
+	Aggregation    meter.MeterAggregation
 	Subject        []string
 	FilterGroupBy  map[string][]string
 	From           *time.Time
 	To             *time.Time
 	GroupBy        []string
-	WindowSize     *models.WindowSize
+	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
 }
 
@@ -201,21 +201,21 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 
 	if groupByWindowSize {
 		switch *d.WindowSize {
-		case models.WindowSizeMinute:
+		case meter.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(windowstart, toIntervalMinute(1), '%s') AS windowstart", tz),
 				fmt.Sprintf("tumbleEnd(windowstart, toIntervalMinute(1), '%s') AS windowend", tz),
 			)
 
-		case models.WindowSizeHour:
+		case meter.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(windowstart, toIntervalHour(1), '%s') AS windowstart", tz),
 				fmt.Sprintf("tumbleEnd(windowstart, toIntervalHour(1), '%s') AS windowend", tz),
 			)
 
-		case models.WindowSizeDay:
+		case meter.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(windowstart, toIntervalDay(1), '%s') AS windowstart", tz),
@@ -232,17 +232,17 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	switch d.Aggregation {
-	case models.MeterAggregationSum:
+	case meter.MeterAggregationSum:
 		selectColumns = append(selectColumns, "sumMerge(value) AS value")
-	case models.MeterAggregationAvg:
+	case meter.MeterAggregationAvg:
 		selectColumns = append(selectColumns, "avgMerge(value) AS value")
-	case models.MeterAggregationMin:
+	case meter.MeterAggregationMin:
 		selectColumns = append(selectColumns, "minMerge(value) AS value")
-	case models.MeterAggregationMax:
+	case meter.MeterAggregationMax:
 		selectColumns = append(selectColumns, "maxMerge(value) AS value")
-	case models.MeterAggregationUniqueCount:
+	case meter.MeterAggregationUniqueCount:
 		selectColumns = append(selectColumns, "toFloat64(uniqMerge(value)) AS value")
-	case models.MeterAggregationCount:
+	case meter.MeterAggregationCount:
 		selectColumns = append(selectColumns, "toFloat64(countMerge(value)) AS value")
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)

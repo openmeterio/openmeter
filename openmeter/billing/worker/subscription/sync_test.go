@@ -25,6 +25,7 @@ import (
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -141,12 +142,12 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 
 	apiRequestsTotalMeterSlug := "api-requests-total"
 
-	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
+	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:   s.Namespace,
 			Slug:        apiRequestsTotalMeterSlug,
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 	})
 
@@ -171,7 +172,7 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
 	clock.UnFreeze()
 	clock.ResetTime()
-	s.MeterRepo.ReplaceMeters(s.Context, []models.Meter{})
+	s.MeterAdapter.ReplaceMeters(s.Context, []meter.Meter{})
 	s.MockStreamingConnector.Reset()
 	s.Handler.featureFlags = FeatureFlags{}
 }
@@ -191,7 +192,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		s.FeatureRepo,
 		entitlementRepo,
 		usageResetRepo,
-		s.MeterRepo,
+		s.MeterAdapter,
 		slog.Default(),
 	)
 
@@ -224,7 +225,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 	return entitlement.NewEntitlementConnector(
 		entitlementRepo,
 		s.FeatureService,
-		s.MeterRepo,
+		s.MeterAdapter,
 		meteredEntitlementConnector,
 		staticEntitlementConnector,
 		booleanEntitlementConnector,

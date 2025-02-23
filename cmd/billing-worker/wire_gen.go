@@ -172,8 +172,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v3 := conf.Meters
-	inMemoryRepository := common.NewInMemoryRepository(v3)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, inMemoryRepository, logger)
+	meterService := common.NewMeterService(v3)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, meterService, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -183,7 +183,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, inMemoryRepository, eventbusPublisher)
+	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	customerService, err := common.NewCustomerService(logger, client, entitlement)
 	if err != nil {
 		cleanup6()
@@ -194,9 +194,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	featureConnector := common.NewFeatureConnector(logger, client, meterService)
 	advancementStrategy := billingConfiguration.AdvancementStrategy
-	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher, advancementStrategy)
+	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -342,7 +342,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		AppStripe:             appstripeService,
 		AppSandboxProvisioner: appSandboxProvisioner,
 		Logger:                logger,
-		Meter:                 inMemoryRepository,
+		Meter:                 meterService,
 		Streaming:             connector,
 	}
 	return application, func() {
@@ -367,7 +367,7 @@ type Application struct {
 	AppStripe             appstripe.Service
 	AppSandboxProvisioner common.AppSandboxProvisioner
 	Logger                *slog.Logger
-	Meter                 meter.Repository
+	Meter                 meter.Service
 	Streaming             streaming.Connector
 }
 

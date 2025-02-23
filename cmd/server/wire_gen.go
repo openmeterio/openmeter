@@ -106,8 +106,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	inMemoryRepository := common.NewInMemoryRepository(v2)
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, inMemoryRepository, logger)
+	meterService := common.NewMeterService(v2)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, meterService, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -166,7 +166,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, inMemoryRepository, eventbusPublisher)
+	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	customerService, err := common.NewCustomerService(logger, client, entitlement)
 	if err != nil {
 		cleanup6()
@@ -198,9 +198,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	billingConfiguration := conf.Billing
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	featureConnector := common.NewFeatureConnector(logger, client, meterService)
 	advancementStrategy := billingConfiguration.AdvancementStrategy
-	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, inMemoryRepository, connector, eventbusPublisher, advancementStrategy)
+	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -406,7 +406,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaProducer:           producer,
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
-		MeterRepository:         inMemoryRepository,
+		MeterService:            meterService,
 		NamespaceHandlers:       v4,
 		NamespaceManager:        manager,
 		Notification:            notificationService,
@@ -452,7 +452,7 @@ type Application struct {
 	KafkaProducer           *kafka2.Producer
 	KafkaMetrics            *metrics.Metrics
 	Logger                  *slog.Logger
-	MeterRepository         meter.Repository
+	MeterService            meter.Service
 	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service

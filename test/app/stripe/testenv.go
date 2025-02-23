@@ -18,11 +18,11 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/models"
 	apptest "github.com/openmeterio/openmeter/test/app"
 )
 
@@ -111,13 +111,15 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create customer repo: %w", err)
 	}
 
-	meterRepo := meter.NewInMemoryRepository([]models.Meter{})
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+
+	meterAdapter := meteradapter.New([]meter.Meter{})
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: streamingConnector,
 		Logger:             logger,
-		MeterRepository:    meterRepo,
+		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 	})
 

@@ -23,13 +23,13 @@ func NewEntitlementRegistry(
 	db *entdb.Client,
 	entitlementConfig config.EntitlementsConfiguration,
 	streamingConnector streaming.Connector,
-	meterRepository meter.Repository,
+	meterService meter.Service,
 	eventPublisher eventbus.Publisher,
 ) *registry.Entitlement {
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     db,
 		StreamingConnector: streamingConnector,
-		MeterRepository:    meterRepository,
+		MeterService:       meterService,
 		Logger:             logger,
 		Publisher:          eventPublisher,
 	})

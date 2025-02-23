@@ -18,6 +18,7 @@ import (
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streaming_testutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -25,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type dependencies struct {
@@ -56,11 +56,11 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	testLogger := testutils.NewLogger(t)
 
 	streamingConnector := streaming_testutils.NewMockStreamingConnector(t)
-	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
+	meterAdapter := meteradapter.New([]meter.Meter{{
 		Slug:        "meter1",
 		Namespace:   "ns1",
-		Aggregation: models.MeterAggregationSum,
-		WindowSize:  models.WindowSizeMinute,
+		Aggregation: meter.MeterAggregationSum,
+		WindowSize:  meter.WindowSizeMinute,
 	}})
 
 	// create isolated pg db for tests
@@ -89,7 +89,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,
-		meterRepo,
+		meterAdapter,
 		testLogger,
 	)
 

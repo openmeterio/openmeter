@@ -8,16 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestNamespaceStore(t *testing.T) {
 	ctx := context.Background()
 	namespaces := sink.NewNamespaceStore()
 
-	meter1 := models.Meter{
+	meter1 := meter.Meter{
 		Namespace:     "default",
 		Slug:          "m1",
 		Description:   "",
@@ -28,7 +28,7 @@ func TestNamespaceStore(t *testing.T) {
 			"method": "$.method",
 			"path":   "$.path",
 		},
-		WindowSize: models.WindowSizeMinute,
+		WindowSize: meter.WindowSizeMinute,
 	}
 
 	namespaces.AddMeter(meter1)

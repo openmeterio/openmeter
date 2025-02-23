@@ -9,11 +9,11 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -80,7 +80,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	return finalErr
 }
 
-func (h *handler) getMeterSlugsFromMeters(meters []models.Meter) []string {
+func (h *handler) getMeterSlugsFromMeters(meters []meter.Meter) []string {
 	slugs := make([]string, len(meters))
 	for i, meter := range meters {
 		slugs[i] = meter.Slug

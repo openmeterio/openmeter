@@ -15,9 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -26,7 +26,7 @@ func TestEngine(t *testing.T) {
 	assert.NoError(t, err)
 	meterSlug := "meter-1"
 
-	meter := models.Meter{
+	meter := meterpkg.Meter{
 		Slug: meterSlug,
 	}
 
@@ -816,7 +816,7 @@ func TestEngine(t *testing.T) {
 			}
 			tc.run(t, engine.NewEngine(engine.EngineConfig{
 				QueryUsage:  queryFeatureUsage,
-				Granularity: models.WindowSizeMinute,
+				Granularity: meterpkg.WindowSizeMinute,
 			}), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
 			})
@@ -858,15 +858,15 @@ func TestEngine(t *testing.T) {
 
 				engine1 := engine.NewEngine(engine.EngineConfig{
 					QueryUsage:  queryFn,
-					Granularity: models.WindowSizeMinute,
+					Granularity: meterpkg.WindowSizeMinute,
 				}) // runs for first part
 				engine2 := engine.NewEngine(engine.EngineConfig{
 					QueryUsage:  queryFn,
-					Granularity: models.WindowSizeMinute,
+					Granularity: meterpkg.WindowSizeMinute,
 				}) // runs for second part
 				engine3 := engine.NewEngine(engine.EngineConfig{
 					QueryUsage:  queryFn,
-					Granularity: models.WindowSizeMinute,
+					Granularity: meterpkg.WindowSizeMinute,
 				}) // runs for both parts
 
 				intermediateBalance, overage, _, err := engine1.Run(
@@ -964,7 +964,7 @@ func TestEngine(t *testing.T) {
 				for i := 0; i < numOfRuns; i++ {
 					engine := engine.NewEngine(engine.EngineConfig{
 						QueryUsage:  queryFn,
-						Granularity: models.WindowSizeMinute,
+						Granularity: meterpkg.WindowSizeMinute,
 					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
@@ -1047,7 +1047,7 @@ func TestEngine(t *testing.T) {
 				// run calculation on single engine
 				singleEngine := engine.NewEngine(engine.EngineConfig{
 					QueryUsage:  queryFn,
-					Granularity: models.WindowSizeMinute,
+					Granularity: meterpkg.WindowSizeMinute,
 				})
 				gCp := make([]grant.Grant, len(grants))
 				copy(gCp, grants)
@@ -1086,7 +1086,7 @@ func TestEngine(t *testing.T) {
 
 					engine := engine.NewEngine(engine.EngineConfig{
 						QueryUsage:  queryFn,
-						Granularity: models.WindowSizeMinute,
+						Granularity: meterpkg.WindowSizeMinute,
 					})
 					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)

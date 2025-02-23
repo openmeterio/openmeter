@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 type QueryParams struct {
@@ -14,12 +14,12 @@ type QueryParams struct {
 	FilterSubject  []string
 	FilterGroupBy  map[string][]string
 	GroupBy        []string
-	WindowSize     *models.WindowSize
+	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
 }
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
-func (p *QueryParams) Validate(meter models.Meter) error {
+func (p *QueryParams) Validate(meter meter.Meter) error {
 	if p.From != nil && p.To != nil {
 		if !p.To.After(*p.From) {
 			return errors.New("to must be after from")
@@ -40,23 +40,23 @@ func (p *QueryParams) Validate(meter models.Meter) error {
 }
 
 // Checks if `from` and `to` are rounded to window size
-func isRoundedToWindowSize(windowSize models.WindowSize, from *time.Time, to *time.Time) error {
+func isRoundedToWindowSize(windowSize meter.WindowSize, from *time.Time, to *time.Time) error {
 	switch windowSize {
-	case models.WindowSizeMinute:
+	case meter.WindowSizeMinute:
 		if from != nil && !isMinuteRounded(from.UTC()) {
 			return fmt.Errorf("from must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00")
 		}
 		if to != nil && !isMinuteRounded(to.UTC()) {
 			return fmt.Errorf("to must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00")
 		}
-	case models.WindowSizeHour:
+	case meter.WindowSizeHour:
 		if from != nil && !isHourRounded(from.UTC()) {
 			return fmt.Errorf("from must be rounded to HOUR like YYYY-MM-DDTHH:00:00")
 		}
 		if to != nil && !isHourRounded(to.UTC()) {
 			return fmt.Errorf("to must be rounded to HOUR like YYYY-MM-DDTHH:00:00")
 		}
-	case models.WindowSizeDay:
+	case meter.WindowSizeDay:
 		if from != nil && !isDayRounded(from.UTC()) {
 			return fmt.Errorf("from must be rounded to DAY like YYYY-MM-DDT00:00:00")
 		}

@@ -10,14 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestParseEvent(t *testing.T) {
 	meterSum := meter.Meter{
 		Namespace:     "default",
 		Slug:          "m1",
-		Aggregation:   models.MeterAggregationSum,
+		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "api-calls",
 		ValueProperty: "$.duration_ms",
 		GroupBy: map[string]string{
@@ -30,7 +29,7 @@ func TestParseEvent(t *testing.T) {
 	meterCount := meter.Meter{
 		Namespace:   "default",
 		Slug:        "m2",
-		Aggregation: models.MeterAggregationCount,
+		Aggregation: meter.MeterAggregationCount,
 		EventType:   "api-calls",
 		WindowSize:  meter.WindowSizeMinute,
 	}
@@ -38,7 +37,7 @@ func TestParseEvent(t *testing.T) {
 	meterUniqueCount := meter.Meter{
 		Namespace:     "default",
 		Slug:          "m3",
-		Aggregation:   models.MeterAggregationUniqueCount,
+		Aggregation:   meter.MeterAggregationUniqueCount,
 		EventType:     "spans",
 		ValueProperty: "$.trace_id",
 		WindowSize:    meter.WindowSizeMinute,

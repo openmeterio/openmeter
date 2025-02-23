@@ -10,6 +10,7 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -39,18 +40,18 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
-	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
+	meterAdapter := meteradapter.New([]meter.Meter{{
 		Slug:        ExampleFeatureMeterSlug,
 		Namespace:   ExampleNamespace,
-		Aggregation: models.MeterAggregationSum,
-		WindowSize:  models.WindowSizeMinute,
+		Aggregation: meter.MeterAggregationSum,
+		WindowSize:  meter.WindowSizeMinute,
 	}})
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
 		Logger:             testutils.NewLogger(t),
-		MeterRepository:    meterRepo,
+		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 	})
 

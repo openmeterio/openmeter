@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -112,7 +112,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	}
 
 	// Let's define a simple helper that validates the returned meter rows
-	getValueFromRows := func(rows []models.MeterQueryRow) (float64, error) {
+	getValueFromRows := func(rows []meter.MeterQueryRow) (float64, error) {
 		// We expect only one row
 		if len(rows) > 1 {
 			return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
@@ -136,7 +136,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 
 			// Let's query the meter based on the aggregation
 			switch ownerMeter.Meter.Aggregation {
-			case models.MeterAggregationUniqueCount:
+			case meter.MeterAggregationUniqueCount:
 				periodStartAtFrom, err := getUsagePeriodStartAtFromCache(from)
 				if err != nil {
 					return 0.0, err
@@ -188,7 +188,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				return vTo.Sub(vFrom).InexactFloat64(), nil
 
 			// For SUM and COUNT we can simply query the meter
-			case models.MeterAggregationSum, models.MeterAggregationCount:
+			case meter.MeterAggregationSum, meter.MeterAggregationCount:
 				params.From = &from
 				params.To = &to
 

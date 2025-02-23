@@ -28,7 +28,7 @@ type Service struct {
 type Config struct {
 	BillingAdapter     billing.Adapter
 	FeatureService     feature.FeatureConnector
-	MeterRepo          meter.Repository
+	MeterService       meter.Service
 	StreamingConnector streaming.Connector
 }
 
@@ -41,7 +41,7 @@ func (c Config) Validate() error {
 		return fmt.Errorf("feature service is required")
 	}
 
-	if c.MeterRepo == nil {
+	if c.MeterService == nil {
 		return fmt.Errorf("meter repo is required")
 	}
 
@@ -120,7 +120,7 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 	}
 
 	// let's resolve the underlying meter
-	meter, err := s.MeterRepo.GetMeterByIDOrSlug(ctx, ns, *feat.MeterSlug)
+	meter, err := s.MeterService.GetMeterByIDOrSlug(ctx, ns, *feat.MeterSlug)
 	if err != nil {
 		return nil, fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err)
 	}

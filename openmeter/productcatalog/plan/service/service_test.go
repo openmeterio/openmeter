@@ -17,6 +17,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -25,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestPlanService(t *testing.T) {
@@ -44,7 +46,11 @@ func TestPlanService(t *testing.T) {
 	// Setup meter repository
 	env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
 
-	meters, err := env.Meter.ListMeters(ctx, namespace)
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Namespace: namespace,
+		Page:      pagination.NewPage(1, 100),
+	})
+	meters := result.Items
 	require.NoErrorf(t, err, "listing Meters must not fail")
 	require.NotEmptyf(t, meters, "list of Meters must not be empty")
 
@@ -769,15 +775,15 @@ func NewTestULID(t *testing.T) string {
 
 var NewTestNamespace = NewTestULID
 
-func NewTestMeters(t *testing.T, namespace string) []models.Meter {
+func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 	t.Helper()
 
-	return []models.Meter{
+	return []meter.Meter{
 		{
 			Namespace:   namespace,
 			ID:          NewTestULID(t),
 			Slug:        "api_requests_total",
-			Aggregation: models.MeterAggregationCount,
+			Aggregation: meter.MeterAggregationCount,
 			EventType:   "request",
 			GroupBy: map[string]string{
 				"method": "$.method",
@@ -789,7 +795,7 @@ func NewTestMeters(t *testing.T, namespace string) []models.Meter {
 			Namespace:     namespace,
 			ID:            NewTestULID(t),
 			Slug:          "tokens_total",
-			Aggregation:   models.MeterAggregationSum,
+			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "prompt",
 			ValueProperty: "$.tokens",
 			GroupBy: map[string]string{
@@ -802,7 +808,7 @@ func NewTestMeters(t *testing.T, namespace string) []models.Meter {
 			Namespace:     namespace,
 			ID:            NewTestULID(t),
 			Slug:          "workload_runtime_duration_seconds",
-			Aggregation:   models.MeterAggregationSum,
+			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "workload",
 			ValueProperty: "$.duration_seconds",
 			GroupBy: map[string]string{
@@ -816,7 +822,7 @@ func NewTestMeters(t *testing.T, namespace string) []models.Meter {
 }
 
 type testEnv struct {
-	Meter   *meter.InMemoryRepository
+	Meter   *meteradapter.TestAdapter
 	Feature feature.FeatureConnector
 	Plan    plan.Service
 
@@ -863,10 +869,10 @@ func newTestEnv(t *testing.T) *testEnv {
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
 
-	meterRepository := meter.NewInMemoryRepository(nil)
+	meterAdapter := meteradapter.New(nil)
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterRepository)
+	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter)
 
 	planAdapter, err := adapter.New(adapter.Config{
 		Client: client,
@@ -886,7 +892,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	require.NotNilf(t, planService, "Plan service must not be nil")
 
 	return &testEnv{
-		Meter:   meterRepository,
+		Meter:   meterAdapter,
 		Feature: featureService,
 		Plan:    planService,
 		db:      db,

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/openmeterio/openmeter/api"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -88,24 +89,28 @@ func (c *Connector) ListEvents(ctx context.Context, namespace string, params str
 	return events, nil
 }
 
-func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	// Do nothing
 	return nil
 }
 
-func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	// Do nothing
 	return nil
 }
 
-func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
 
+	if err := params.Validate(meter); err != nil {
+		return nil, fmt.Errorf("validate params: %w", err)
+	}
+
 	values, err := c.queryMeter(ctx, namespace, meter, params)
 	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
+		if meterpkg.IsMeterNotFoundError(err) {
 			return nil, err
 		}
 
@@ -129,7 +134,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mode
 	return values, nil
 }
 
-func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -137,9 +142,13 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 		return nil, fmt.Errorf("meter is required")
 	}
 
+	if err := params.Validate(); err != nil {
+		return nil, fmt.Errorf("validate params: %w", err)
+	}
+
 	subjects, err := c.listMeterViewSubjects(ctx, namespace, meter, params.From, params.To)
 	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
+		if meterpkg.IsMeterNotFoundError(err) {
 			return nil, err
 		}
 
@@ -348,7 +357,7 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	return results, nil
 }
 
-func (c *Connector) queryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *Connector) queryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
 	groupBy := params.GroupBy
@@ -368,7 +377,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 		WindowTimeZone:  params.WindowTimeZone,
 	}
 
-	values := []models.MeterQueryRow{}
+	values := []meterpkg.MeterQueryRow{}
 
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {
@@ -379,7 +388,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, &meterpkg.MeterNotFoundError{MeterSlug: meter.Slug}
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
@@ -391,7 +400,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	for rows.Next() {
-		row := models.MeterQueryRow{
+		row := meterpkg.MeterQueryRow{
 			GroupBy: map[string]*string{},
 		}
 
@@ -450,7 +459,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mode
 	return values, nil
 }
 
-func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter models.Meter, from *time.Time, to *time.Time) ([]string, error) {
+func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string, meter meterpkg.Meter, from *time.Time, to *time.Time) ([]string, error) {
 	query := listMeterSubjectsQuery{
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
@@ -465,7 +474,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, &meterpkg.MeterNotFoundError{MeterSlug: meter.Slug}
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

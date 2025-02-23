@@ -25,7 +25,7 @@ type EntitlementOptions struct {
 	DatabaseClient     *db.Client
 	StreamingConnector streaming.Connector
 	Logger             *slog.Logger
-	MeterRepository    meter.Repository
+	MeterService       meter.Service
 	Publisher          eventbus.Publisher
 }
 
@@ -38,12 +38,12 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotRepo(opts.DatabaseClient)
 
 	// Initialize connectors
-	featureConnector := feature.NewFeatureConnector(featureDBAdapter, opts.MeterRepository)
+	featureConnector := feature.NewFeatureConnector(featureDBAdapter, opts.MeterService)
 	entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureDBAdapter,
 		entitlementDBAdapter,
 		usageResetDBAdapter,
-		opts.MeterRepository,
+		opts.MeterService,
 		opts.Logger,
 	)
 	transactionManager := enttx.NewCreator(opts.DatabaseClient)
@@ -72,7 +72,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	entitlementConnector := entitlement.NewEntitlementConnector(
 		entitlementDBAdapter,
 		featureConnector,
-		opts.MeterRepository,
+		opts.MeterService,
 		meteredEntitlementConnector,
 		staticentitlement.NewStaticEntitlementConnector(),
 		booleanentitlement.NewBooleanEntitlementConnector(),

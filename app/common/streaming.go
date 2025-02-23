@@ -23,7 +23,7 @@ func NewStreamingConnector(
 	ctx context.Context,
 	conf config.AggregationConfiguration,
 	clickHouse clickhouse.Conn,
-	meterRepository meter.Repository,
+	meterService meter.Service,
 	logger *slog.Logger,
 ) (streaming.Connector, error) {
 	var (
@@ -48,15 +48,14 @@ func NewStreamingConnector(
 
 	case config.AggregationEngineClickHouseMV:
 		connector, err = materialized_view.NewConnector(ctx, materialized_view.ConnectorConfig{
-			ClickHouse:          clickHouse,
-			Database:            conf.ClickHouse.Database,
-			EventsTableName:     conf.EventsTableName,
-			Logger:              logger,
-			AsyncInsert:         conf.AsyncInsert,
-			AsyncInsertWait:     conf.AsyncInsertWait,
-			InsertQuerySettings: conf.InsertQuerySettings,
-
-			Meters:               meterRepository,
+			ClickHouse:           clickHouse,
+			Database:             conf.ClickHouse.Database,
+			EventsTableName:      conf.EventsTableName,
+			Logger:               logger,
+			AsyncInsert:          conf.AsyncInsert,
+			AsyncInsertWait:      conf.AsyncInsertWait,
+			InsertQuerySettings:  conf.InsertQuerySettings,
+			Meters:               meterService,
 			PopulateMeter:        conf.PopulateMeter,
 			CreateOrReplaceMeter: conf.CreateOrReplaceMeter,
 			QueryRawEvents:       conf.QueryRawEvents,

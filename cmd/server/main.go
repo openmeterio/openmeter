@@ -148,7 +148,7 @@ func main() {
 			NamespaceManager:   app.NamespaceManager,
 			StreamingConnector: app.StreamingConnector,
 			IngestHandler:      ingestHandler,
-			Meters:             app.MeterRepository,
+			MeterService:       app.MeterService,
 			Portal:             app.Portal,
 			PortalCORSEnabled:  conf.Portal.CORS.Enabled,
 			ErrorHandler:       errorsx.NewSlogHandler(logger),

@@ -49,13 +49,13 @@ type Sink struct {
 }
 
 type SinkConfig struct {
-	Logger          *slog.Logger
-	Tracer          trace.Tracer
-	MetricMeter     metric.Meter
-	MeterRepository meter.Repository
-	Storage         Storage
-	Deduplicator    dedupe.Deduplicator
-	Consumer        *kafka.Consumer
+	Logger       *slog.Logger
+	Tracer       trace.Tracer
+	MetricMeter  metric.Meter
+	MeterService meter.Service
+	Storage      Storage
+	Deduplicator dedupe.Deduplicator
+	Consumer     *kafka.Consumer
 	// MinCommitCount is the minimum number of messages to wait before flushing the buffer.
 	// Whichever happens earlier MinCommitCount or MaxCommitWait will trigger a flush.
 	MinCommitCount int
@@ -103,7 +103,7 @@ func (s *SinkConfig) Validate() error {
 		return errors.New("metric meter is required")
 	}
 
-	if s.MeterRepository == nil {
+	if s.MeterService == nil {
 		return errors.New("meter repository is required")
 	}
 
@@ -442,7 +442,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 }
 
 func (s *Sink) updateNamespaceStore(ctx context.Context) error {
-	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
+	meters, err := meter.ListMetersForAllNamespaces(ctx, s.config.MeterService)
 	if err != nil {
 		return fmt.Errorf("failed to get meters: %s", err)
 	}

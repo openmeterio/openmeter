@@ -26,7 +26,7 @@ type Application struct {
 	AppStripe             appstripe.Service
 	AppSandboxProvisioner common.AppSandboxProvisioner
 	Logger                *slog.Logger
-	Meter                 meter.Repository
+	Meter                 meter.Service
 	Streaming             streaming.Connector
 }
 

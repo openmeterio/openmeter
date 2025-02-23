@@ -6,7 +6,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 type SinkMessage struct {
@@ -15,7 +15,7 @@ type SinkMessage struct {
 	Serialized   *serializer.CloudEventsKafkaPayload
 	Status       ProcessingStatus
 	// Meters contains the list of meters this message affects
-	Meters []models.Meter
+	Meters []meter.Meter
 }
 
 type ProcessingState int8
