@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -55,6 +56,7 @@ type Application struct {
 	Notification            notification.Service
 	Meter                   metric.Meter
 	Plan                    plan.Service
+	Portal                  portal.Service
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service
 	Subscription            common.SubscriptionServiceWithWorkflow
@@ -86,6 +88,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewTelemetryRouterHook,
 		common.Notification,
 		common.Streaming,
+		common.Portal,
 		common.ProductCatalog,
 		common.Subscription,
 		common.Secret,

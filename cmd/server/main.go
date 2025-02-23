@@ -24,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/server"
-	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/log"
@@ -118,16 +117,6 @@ func main() {
 		errorsx.NewSlogHandler(logger),
 	)
 
-	// Initialize portal
-	var portalTokenStrategy *authenticator.PortalTokenStrategy
-	if conf.Portal.Enabled {
-		portalTokenStrategy, err = authenticator.NewPortalTokenStrategy(conf.Portal.TokenSecret, conf.Portal.TokenExpiration)
-		if err != nil {
-			logger.Error("failed to initialize portal token strategy", "error", err)
-			os.Exit(1)
-		}
-	}
-
 	// Initialize debug connector
 	debugConnector := debug.NewDebugConnector(app.StreamingConnector)
 
@@ -156,13 +145,13 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
-			NamespaceManager:    app.NamespaceManager,
-			StreamingConnector:  app.StreamingConnector,
-			IngestHandler:       ingestHandler,
-			Meters:              app.MeterRepository,
-			PortalTokenStrategy: portalTokenStrategy,
-			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
-			ErrorHandler:        errorsx.NewSlogHandler(logger),
+			NamespaceManager:   app.NamespaceManager,
+			StreamingConnector: app.StreamingConnector,
+			IngestHandler:      ingestHandler,
+			Meters:             app.MeterRepository,
+			Portal:             app.Portal,
+			PortalCORSEnabled:  conf.Portal.CORS.Enabled,
+			ErrorHandler:       errorsx.NewSlogHandler(logger),
 			// deps
 			App:                         app.App,
 			AppStripe:                   app.AppStripe,

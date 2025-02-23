@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -327,6 +328,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	portalConfiguration := conf.Portal
+	portalService, err := common.NewPortalService(portalConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	validator, err := common.BillingSubscriptionValidator(billingService, billingConfiguration)
 	if err != nil {
@@ -399,6 +412,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Notification:            notificationService,
 		Meter:                   meter,
 		Plan:                    planService,
+		Portal:                  portalService,
 		RouterHook:              v6,
 		Secret:                  secretserviceService,
 		Subscription:            subscriptionServiceWithWorkflow,
@@ -444,6 +458,7 @@ type Application struct {
 	Notification            notification.Service
 	Meter                   metric.Meter
 	Plan                    plan.Service
+	Portal                  portal.Service
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service
 	Subscription            common.SubscriptionServiceWithWorkflow

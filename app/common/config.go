@@ -33,6 +33,8 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Namespace"),
 	// Notification
 	wire.FieldsOf(new(config.Configuration), "Notification"),
+	// Portal
+	wire.FieldsOf(new(config.Configuration), "Portal"),
 	// ProductCatalog
 	wire.FieldsOf(new(config.Configuration), "ProductCatalog"),
 	// Svix

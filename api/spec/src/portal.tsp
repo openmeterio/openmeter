@@ -36,6 +36,25 @@ interface Tokens {
     @maxValue(100)
     limit?: integer = 25,
   ): Token[] | CommonErrors;
+
+  /**
+   * Invalidates consumer portal tokens by ID or subject.
+   */
+  @route("/invalidate")
+  @post
+  @operationId("invalidatePortalTokens")
+  @summary("Invalidate portal tokens")
+  invalidate(
+    /**
+     * Invalidate a portal token by ID.
+     */
+    id?: string,
+
+    /**
+     * Invalidate all portal tokens for a subject.
+     */
+    subject?: string,
+  ): void | OpenMeter.CommonErrors;
 }
 
 /**

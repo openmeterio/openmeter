@@ -34,9 +34,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
-	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -146,7 +146,10 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 		return nil, err
 	}
 
-	portalTokenStrategy, err := authenticator.NewPortalTokenStrategy("12345", time.Hour)
+	portal, err := portaladapter.New(portaladapter.Config{
+		Secret: "12345",
+		Expire: time.Hour,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -163,13 +166,13 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
-			NamespaceManager:    namespaceManager,
-			PortalTokenStrategy: portalTokenStrategy,
-			ErrorHandler:        errorsx.NopHandler{},
-			Notification:        &NoopNotificationService{},
-			App:                 &NoopAppService{},
-			AppStripe:           &NoopAppStripeService{},
-			Customer:            &NoopCustomerService{},
+			NamespaceManager: namespaceManager,
+			Portal:           portal,
+			ErrorHandler:     errorsx.NopHandler{},
+			Notification:     &NoopNotificationService{},
+			App:              &NoopAppService{},
+			AppStripe:        &NoopAppStripeService{},
+			Customer:         &NoopCustomerService{},
 		},
 		RouterHook: func(r chi.Router) {},
 	})

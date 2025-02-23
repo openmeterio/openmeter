@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -23,23 +24,28 @@ const (
 	AuthenticatorSubjectSessionKey AuthenticatorContextKey = "openmeter_subject"
 )
 
-func GetAuthenticatedSubject(ctx context.Context) string {
+// GetAuthenticatedSubject returns the authenticated subject from the context.
+func GetAuthenticatedSubject(ctx context.Context) (string, bool) {
 	if c, ok := ctx.Value(AuthenticatorSubjectSessionKey).(string); ok {
-		return c
+		if c == "" {
+			return c, false
+		}
+
+		return c, true
 	}
 
-	return ""
+	return "", false
 }
 
 type Authenticator struct {
-	portalTokenStrategy *PortalTokenStrategy
-	errorHandler        errorsx.Handler
+	portal       portal.Service
+	errorHandler errorsx.Handler
 }
 
-func NewAuthenticator(portalTokenStrategy *PortalTokenStrategy, errorHandler errorsx.Handler) Authenticator {
+func NewAuthenticator(portal portal.Service, errorHandler errorsx.Handler) Authenticator {
 	return Authenticator{
-		portalTokenStrategy: portalTokenStrategy,
-		errorHandler:        errorHandler,
+		portal:       portal,
+		errorHandler: errorHandler,
 	}
 }
 
@@ -75,24 +81,27 @@ func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(
 }
 
 func (a Authenticator) verifyPortalToken(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
-	if a.portalTokenStrategy == nil {
-		return r, errors.New("portal is not enabled")
-	}
+	meterSlug := chi.URLParam(r, "meterSlug")
 
-	ah := strings.TrimSpace(r.Header.Get("Authorization"))
-	if ah == "" {
+	authorizationHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authorizationHeader == "" {
 		return r, errors.New("missing authorization header")
 	}
 
-	meterSlug := chi.URLParam(r, "meterSlug")
-	h := strings.Split(ah, " ")
+	h := strings.Split(authorizationHeader, " ")
 	if len(h) != 2 || h[0] != "Bearer" {
 		return r, errors.New("invalid authorization header")
 	}
 
-	claims, err := a.portalTokenStrategy.Validate(h[1])
+	bearerToken := h[1]
+
+	if bearerToken == "" {
+		return r, errors.New("bearer token cannot be empty")
+	}
+
+	claims, err := a.portal.Validate(r.Context(), bearerToken)
 	if err != nil {
-		return r, err
+		return r, fmt.Errorf("invalid token: %w", err)
 	}
 
 	if claims.Subject == "" {

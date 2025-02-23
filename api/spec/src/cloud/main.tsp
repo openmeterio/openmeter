@@ -137,26 +137,7 @@ interface Meters extends OpenMeter.Meters {
 namespace OpenMeterCloud.Portal {
   @route("/api/v1/portal/tokens")
   @tag("Portal")
-  interface Tokens extends OpenMeter.Portal.Tokens {
-    /**
-     * Invalidates consumer portal tokens by ID or subject.
-     */
-    @route("/invalidate")
-    @post
-    @operationId("invalidatePortalTokens")
-    @summary("Invalidate portal tokens")
-    invalidate(
-      /**
-       * Invalidate a portal token by ID.
-       */
-      id?: string,
-
-      /**
-       * Invalidate all portal tokens for a subject.
-       */
-      subject?: string,
-    ): void | OpenMeter.CommonErrors;
-  }
+  interface Tokens extends OpenMeter.Portal.Tokens {}
 
   @route("/api/v1/portal/meters")
   @tag("Portal")
