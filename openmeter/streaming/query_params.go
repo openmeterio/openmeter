@@ -44,7 +44,7 @@ func (p *QueryParams) Validate(meter meter.Meter) error {
 	}
 
 	if len(errs) > 0 {
-		return models.NewValidationError(errors.Join(errs...))
+		return models.NewGenericValidationError(errors.Join(errs...))
 	}
 
 	return nil
