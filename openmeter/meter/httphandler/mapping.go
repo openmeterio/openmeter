@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ToAPIMeter converts a meter.Meter to an api.Meter.
@@ -87,7 +88,7 @@ func toQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (stre
 			// Validate group by, `subject` is a special group by
 			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
-				return params, meterpkg.NewBadRequestError(err)
+				return params, models.NewValidationError(err)
 			}
 
 			params.GroupBy = append(params.GroupBy, groupBy)
@@ -108,7 +109,7 @@ func toQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (stre
 		tz, err := time.LoadLocation(*apiParams.WindowTimeZone)
 		if err != nil {
 			err := fmt.Errorf("invalid time zone: %w", err)
-			return params, meterpkg.NewBadRequestError(err)
+			return params, models.NewValidationError(err)
 		}
 		params.WindowTimeZone = tz
 	}
@@ -125,7 +126,7 @@ func toQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (stre
 				continue
 			} else {
 				err := fmt.Errorf("invalid group by filter: %s", k)
-				return params, meterpkg.NewBadRequestError(err)
+				return params, models.NewValidationError(err)
 			}
 		}
 	}

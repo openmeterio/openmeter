@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -47,4 +48,32 @@ func (e *GenericForbiddenError) Error() string {
 
 func (e *GenericForbiddenError) Unwrap() error {
 	return e.Inner
+}
+
+// NewValidationError returns a new BadRequestError.
+func NewValidationError(err error) error {
+	return &ValidationError{err: err}
+}
+
+var _ error = &ValidationError{}
+
+// ValidationError is returned when a meter is not found.
+type ValidationError struct {
+	err error
+}
+
+// Error returns the error message.
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("validation error: %s", e.err)
+}
+
+// IsValidationError returns true if the error is a BadRequestError.
+func IsValidationError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *ValidationError
+
+	return errors.As(err, &e)
 }

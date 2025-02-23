@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ListEventsParams struct {
@@ -69,8 +70,18 @@ type ListMeterSubjectsParams struct {
 func (p ListMeterSubjectsParams) Validate() error {
 	var errs []error
 
-	if p.From != nil && p.To != nil && p.From.After(*p.To) {
-		errs = append(errs, errors.New("from time must be before to time"))
+	if p.From != nil && p.To != nil {
+		if p.From.Equal(*p.To) {
+			errs = append(errs, errors.New("from and to cannot be equal"))
+		}
+
+		if p.From.After(*p.To) {
+			errs = append(errs, errors.New("from time must be before to time"))
+		}
+	}
+
+	if len(errs) > 0 {
+		return models.NewValidationError(errors.Join(errs...))
 	}
 
 	return errors.Join(errs...)

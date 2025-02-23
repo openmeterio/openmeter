@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type QueryParams struct {
@@ -20,18 +21,30 @@ type QueryParams struct {
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
 func (p *QueryParams) Validate(meter meter.Meter) error {
-	if p.From != nil && p.To != nil && p.From.After(*p.To) {
-		return errors.New("from must be before to")
+	var errs []error
+
+	if p.From != nil && p.To != nil {
+		if p.From.Equal(*p.To) {
+			errs = append(errs, errors.New("from and to cannot be equal"))
+		}
+
+		if p.From.After(*p.To) {
+			errs = append(errs, errors.New("from must be before to"))
+		}
 	}
 
 	if err := meter.SupportsWindowSize(p.WindowSize); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	// Ensure `from` and `to` aligns with meter aggregation window size
 	err := isRoundedToWindowSize(meter.WindowSize, p.From, p.To)
 	if err != nil {
-		return fmt.Errorf("cannot query meter aggregating on %s window size: %w", meter.WindowSize, err)
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return models.NewValidationError(errors.Join(errs...))
 	}
 
 	return nil
