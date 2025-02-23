@@ -171,14 +171,19 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 
 				params.To = &from
 
-				rows, err = m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
-				if err != nil {
-					return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
-				}
+				var valueFrom float64 = 0.0
 
-				valueFrom, err := getValueFromRows(rows)
-				if err != nil {
-					return 0.0, err
+				// If the two times are different we need to query the value at `from`
+				if !params.From.Equal(*params.To) {
+					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+					if err != nil {
+						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
+					}
+
+					valueFrom, err = getValueFromRows(rows)
+					if err != nil {
+						return 0.0, err
+					}
 				}
 
 				// Let's do an accurate subsctraction
