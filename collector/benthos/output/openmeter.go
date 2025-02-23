@@ -203,41 +203,41 @@ func (o *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageB
 		return err
 	}
 
-	var data any
-	var contentType string
-	if len(events) == 1 {
-		contentType = "application/cloudevents+json"
-		data = events[0]
-	} else {
-		contentType = "application/cloudevents-batch+json"
-		data = events
-	}
-
 	var body bytes.Buffer
-	err = json.NewEncoder(&body).Encode(data)
+	err = json.NewEncoder(&body).Encode(events)
 	if err != nil {
 		return err
 	}
 
-	resp, err := o.client.IngestEventsWithBodyWithResponse(ctx, contentType, &body)
+	resp, err := o.client.IngestEventsWithBodyWithResponse(ctx, "application/json", &body)
 	if err != nil {
 		return err
 	}
 
 	span.SetAttributes(attribute.Int("openmeter.http.status_code", resp.StatusCode()))
 
-	// TODO: improve error handling
-	// NOTE: setting `err` value to the actual error prior returning allows us to properly set the status of `span`
-	if resp.StatusCode() != http.StatusNoContent {
+	if resp.StatusCode() >= 400 {
 		if resp.ApplicationproblemJSON400 != nil {
-			err = resp.ApplicationproblemJSON400
-		} else if resp.ApplicationproblemJSONDefault != nil {
-			err = resp.ApplicationproblemJSON400
-		} else {
-			err = errors.New("unknown error")
+			return resp.ApplicationproblemJSON400
 		}
 
-		return err
+		if resp.ApplicationproblemJSON401 != nil {
+			return resp.ApplicationproblemJSON401
+		}
+
+		if resp.ApplicationproblemJSON403 != nil {
+			return resp.ApplicationproblemJSON403
+		}
+
+		if resp.ApplicationproblemJSON500 != nil {
+			return resp.ApplicationproblemJSON500
+		}
+
+		if resp.ApplicationproblemJSONDefault != nil {
+			return resp.ApplicationproblemJSONDefault
+		}
+
+		return errors.New(http.StatusText(resp.StatusCode()))
 	}
 
 	return nil
