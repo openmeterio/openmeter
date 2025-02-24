@@ -27,7 +27,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 
 	times = append(times, params.Until)
 
-	timeline := timeutil.NewTimeline(times)
+	timeline := timeutil.NewSimpleTimeline(times)
 
 	boundingPeriod := timeline.GetBoundingPeriod()
 

@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type usageResetDBAdapter struct {
@@ -50,11 +52,12 @@ func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime metereden
 	return err
 }
 
-func (a *usageResetDBAdapter) GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*meteredentitlement.UsageResetTime, error) {
+func (a *usageResetDBAdapter) GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (meteredentitlement.UsageResetTime, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
-		func(ctx context.Context, repo *usageResetDBAdapter) (*meteredentitlement.UsageResetTime, error) {
+		func(ctx context.Context, repo *usageResetDBAdapter) (meteredentitlement.UsageResetTime, error) {
+			var def meteredentitlement.UsageResetTime
 			res, err := repo.db.UsageReset.Query().
 				Where(
 					db_usagereset.EntitlementID(entitlementID.ID),
@@ -65,17 +68,17 @@ func (a *usageResetDBAdapter) GetLastAt(ctx context.Context, entitlementID model
 				First(ctx)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return nil, &meteredentitlement.UsageResetNotFoundError{EntitlementID: entitlementID}
+					return def, &meteredentitlement.UsageResetNotFoundError{EntitlementID: entitlementID}
 				}
-				return nil, err
+				return def, err
 			}
 
-			return mapUsageResetTime(res), nil
+			return mapUsageResetTime(res)
 		},
 	)
 }
 
-func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID models.NamespacedID, from time.Time, to time.Time) ([]meteredentitlement.UsageResetTime, error) {
+func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID models.NamespacedID, period timeutil.Period) ([]meteredentitlement.UsageResetTime, error) {
 	res, err := entutils.TransactingRepo(
 		ctx,
 		a,
@@ -84,9 +87,10 @@ func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID mode
 				Where(
 					db_usagereset.EntitlementID(entitlementID.ID),
 					db_usagereset.Namespace(entitlementID.Namespace),
-					db_usagereset.ResetTimeGTE(from),
-					db_usagereset.ResetTimeLTE(to),
+					db_usagereset.ResetTimeGTE(period.From),
+					db_usagereset.ResetTimeLTE(period.To),
 				).
+				Order(db_usagereset.ByResetTime(sql.OrderAsc())).
 				All(ctx)
 			if err != nil {
 				return nil, err
@@ -94,7 +98,11 @@ func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID mode
 
 			usageResetTimes := make([]meteredentitlement.UsageResetTime, 0, len(res))
 			for _, r := range res {
-				usageResetTimes = append(usageResetTimes, *mapUsageResetTime(r))
+				usageResetTime, err := mapUsageResetTime(r)
+				if err != nil {
+					return nil, err
+				}
+				usageResetTimes = append(usageResetTimes, usageResetTime)
 			}
 
 			return &usageResetTimes, nil
@@ -103,10 +111,14 @@ func (a *usageResetDBAdapter) GetBetween(ctx context.Context, entitlementID mode
 	return defaultx.WithDefault(res, nil), err
 }
 
-func mapUsageResetTime(res *db.UsageReset) *meteredentitlement.UsageResetTime {
-	return &meteredentitlement.UsageResetTime{
+func mapUsageResetTime(res *db.UsageReset) (meteredentitlement.UsageResetTime, error) {
+	if res == nil {
+		return meteredentitlement.UsageResetTime{}, errors.New("usage reset is nil")
+	}
+
+	return meteredentitlement.UsageResetTime{
 		EntitlementID: res.EntitlementID,
 		ResetTime:     res.ResetTime,
 		Anchor:        res.Anchor,
-	}
+	}, nil
 }

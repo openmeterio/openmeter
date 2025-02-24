@@ -119,10 +119,10 @@ func TestGrantExpiringAtReset(t *testing.T) {
 			Namespace: "namespace-1",
 			ID:        entitlement.ID,
 		},
-		testutils.GetRFC3339Time(t, "2024-06-30T14:30:41Z"))
+		testutils.GetRFC3339Time(t, "2024-06-30T15:30:41Z"))
 	assert.NoError(err)
 	assert.NotNil(currentBalance)
-	assert.Equal(10.0, currentBalance.Balance)
+	assert.Equal(0.0, currentBalance.Balance) // This test was previously faulty, grant2 has expired by this point while grant1 loses its balance on resets, two of which has already happened by this point
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-30T15:35:54Z"))
 	grant3, err := deps.GrantConnector.CreateGrant(ctx,

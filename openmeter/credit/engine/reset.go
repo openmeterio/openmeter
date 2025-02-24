@@ -9,13 +9,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 )
 
-type ResetBehavior struct {
-	PreserveOverage bool
-}
-
 // reset rolls over the grants and burns down the overage if needed.
 // It returns the new snapshot of the balances at the start of the next period.
-func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior ResetBehavior, at time.Time) (balance.Snapshot, error) {
+func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior grant.ResetBehavior, at time.Time) (balance.Snapshot, error) {
 	// Let's build a grantMap from our grants for easier lookup
 	grantMap := make(map[string]grant.Grant)
 	for _, g := range grants {

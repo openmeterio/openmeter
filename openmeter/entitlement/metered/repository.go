@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type UsageResetRepo interface {
 	Save(ctx context.Context, usageResetTime UsageResetTime) error
-	GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*UsageResetTime, error)
-	GetBetween(ctx context.Context, entitlementID models.NamespacedID, from time.Time, to time.Time) ([]UsageResetTime, error)
+	GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (UsageResetTime, error)
+	GetBetween(ctx context.Context, entitlementID models.NamespacedID, period timeutil.Period) ([]UsageResetTime, error)
 }
 
 type UsageResetNotFoundError struct {

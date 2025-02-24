@@ -37,17 +37,6 @@ func TestReset(t *testing.T) {
 		},
 	})
 
-	// grant2 := makeGrant(grant.Grant{
-	// 	ID:          "grant-2",
-	// 	Amount:      100.0,
-	// 	Priority:    1,
-	// 	EffectiveAt: t1,
-	// 	Expiration: grant.ExpirationPeriod{
-	// 		Duration: grant.ExpirationPeriodDurationDay,
-	// 		Count:    30,
-	// 	},
-	// })
-
 	setup := func(t *testing.T) (engine.Engine, addUsageFunc) {
 		streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 
@@ -96,10 +85,10 @@ func TestReset(t *testing.T) {
 					At:      t1,
 				},
 				Until: t1.AddDate(0, 0, 1),
-				ResetBehavior: engine.ResetBehavior{
+				ResetBehavior: grant.ResetBehavior{
 					PreserveOverage: false,
 				},
-				Resets: timeutil.NewTimeline([]time.Time{t1.Add(time.Hour * 5)}),
+				Resets: timeutil.NewSimpleTimeline([]time.Time{t1.Add(time.Hour * 5)}),
 			},
 		)
 		assert.NoError(t, err)
@@ -148,10 +137,10 @@ func TestReset(t *testing.T) {
 					At:      t1,
 				},
 				Until: t1.AddDate(0, 0, 1),
-				ResetBehavior: engine.ResetBehavior{
+				ResetBehavior: grant.ResetBehavior{
 					PreserveOverage: true,
 				},
-				Resets: timeutil.NewTimeline([]time.Time{t1.Add(time.Hour * 5)}),
+				Resets: timeutil.NewSimpleTimeline([]time.Time{t1.Add(time.Hour * 5)}),
 			},
 		)
 		assert.NoError(t, err)
@@ -229,7 +218,7 @@ func TestReset(t *testing.T) {
 					At:      t1,
 				},
 				Until:  resetTime,
-				Resets: timeutil.NewTimeline([]time.Time{resetTime}),
+				Resets: timeutil.NewSimpleTimeline([]time.Time{resetTime}),
 			},
 		)
 		assert.NoError(t, err)
@@ -258,7 +247,7 @@ func TestReset(t *testing.T) {
 					At:       t1,
 				},
 				Until:  t1.AddDate(0, 0, 1),
-				Resets: timeutil.NewTimeline([]time.Time{t1}),
+				Resets: timeutil.NewSimpleTimeline([]time.Time{t1}),
 			},
 		)
 		assert.EqualError(t, err, "provided reset times must occur after the starting snapshot, got 2024-01-01 00:00:00 +0000 UTC")
