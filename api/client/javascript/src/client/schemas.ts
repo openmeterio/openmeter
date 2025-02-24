@@ -5177,10 +5177,20 @@ export interface components {
        * @example AI Token Usage
        */
       description?: string
-      /** @example SUM */
+      /**
+       * @description The aggregation type to use for the meter.
+       * @example SUM
+       */
       aggregation: components['schemas']['MeterAggregation']
-      /** @example MINUTE */
-      windowSize: components['schemas']['WindowSize']
+      /**
+       * @description The window size that the usage is stored in.
+       *     This controls the query granularity of the usage data.
+       *     The larger the window size, the less space is used to store the data.
+       *     By default, the window size is a minute.
+       * @default MINUTE
+       * @example MINUTE
+       */
+      windowSize?: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
        * @example prompt
@@ -5241,10 +5251,20 @@ export interface components {
        * @example AI Token Usage
        */
       description?: string
-      /** @example SUM */
+      /**
+       * @description The aggregation type to use for the meter.
+       * @example SUM
+       */
       aggregation: components['schemas']['MeterAggregation']
-      /** @example MINUTE */
-      windowSize: components['schemas']['WindowSize']
+      /**
+       * @description The window size that the usage is stored in.
+       *     This controls the query granularity of the usage data.
+       *     The larger the window size, the less space is used to store the data.
+       *     By default, the window size is a minute.
+       * @default MINUTE
+       * @example MINUTE
+       */
+      windowSize?: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
        * @example prompt
@@ -5296,17 +5316,23 @@ export interface components {
     MeterQueryResult: {
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @description The start of the period the usage is queried from.
+       *     If not specified, the usage is queried from the beginning of time.
        * @example 2023-01-01T01:01:01.001Z
        */
       from?: Date
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @description The end of the period the usage is queried to.
+       *     If not specified, the usage is queried up to the current time.
        * @example 2023-01-01T01:01:01.001Z
        */
       to?: Date
+      /** @description The window size that the usage is aggregated.
+       *     If not specified, the usage is aggregated over the entire period. */
       windowSize?: components['schemas']['WindowSize']
+      /** @description The usage data.
+       *     If no data is available, an empty array is returned. */
       data: components['schemas']['MeterQueryRow'][]
     }
     /**
@@ -5323,22 +5349,29 @@ export interface components {
      *     }
      */
     MeterQueryRow: {
+      /**
+       * Format: double
+       * @description The aggregated value.
+       */
       value: number
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @description The start of the window the value is aggregated over.
        * @example 2023-01-01T01:01:01.001Z
        */
       windowStart: Date
       /**
        * Format: date-time
-       * @description [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+       * @description The end of the window the value is aggregated over.
        * @example 2023-01-01T01:01:01.001Z
        */
       windowEnd: Date
-      subject?: string
-      groupBy?: {
-        [key: string]: string
+      /** @description The subject the value is aggregated over.
+       *     If not specified, the value is aggregated over all subjects. */
+      subject: string | null
+      /** @description The group by values the value is aggregated over. */
+      groupBy: {
+        [key: string]: string | null
       }
     }
     /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
