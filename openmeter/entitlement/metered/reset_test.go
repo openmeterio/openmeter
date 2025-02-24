@@ -862,6 +862,59 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, ent.UsagePeriod)
 			},
 		},
+		{
+			name: "Should be able to reset at a programmatic reset time",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				// Programmatic reset happens at midnight (DAILY recurrence)
+				// Now its 12:01 am
+				// And we reset for midnight
+				ctx := context.Background()
+
+				startTime := testutils.GetRFC3339Time(t, "2025-02-03T00:01:00Z")
+				entitlementTime := testutils.GetRFC3339Time(t, "2025-02-01T00:00:00Z")
+				resetTime := testutils.GetRFC3339Time(t, "2025-02-03T00:00:00Z")
+
+				// Let's add usage so the meter is found
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, entitlementTime.Add(time.Minute))
+
+				// Let's time-travel to the start time so resources have existed for a while
+				clock.SetTime(entitlementTime)
+
+				// create featute in db
+				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &entitlementTime
+				anchor := entitlementTime
+				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily // Daily recurrence
+				inp.UsagePeriod.Anchor = anchor
+
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// Let's time travel back to the current time
+				clock.SetTime(startTime)
+
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At:           resetTime,
+						RetainAnchor: false,
+					})
+
+				assert.NoError(t, err)
+
+				ent, err = deps.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+
+				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
+					Interval: timeutil.RecurrencePeriodDaily,
+					Anchor:   resetTime,
+				}, ent.UsagePeriod)
+			},
+		},
 	}
 
 	for _, tc := range tt {
