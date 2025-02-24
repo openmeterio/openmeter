@@ -8,10 +8,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// Meter is an interface to the meter store.
+// Meter is an interface for the meter service.
 type Service interface {
 	ListMeters(ctx context.Context, params ListMetersParams) (pagination.PagedResponse[Meter], error)
 	GetMeterByIDOrSlug(ctx context.Context, input GetMeterInput) (Meter, error)
+}
+
+// ManageService is an interface to manage meter service.
+type ManageService interface {
+	Service
+
 	CreateMeter(ctx context.Context, input CreateMeterInput) (Meter, error)
 	DeleteMeter(ctx context.Context, input DeleteMeterInput) error
 }

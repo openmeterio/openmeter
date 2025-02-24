@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -51,20 +50,6 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 	}
 
 	return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
-}
-
-// CreateMeter creates a new meter.
-func (c *adapter) CreateMeter(_ context.Context, input meter.CreateMeterInput) (meter.Meter, error) {
-	return meter.Meter{}, models.NewGenericNotImplementedError(fmt.Errorf("not implemented in static adapter"))
-}
-
-// DeleteMeter deletes a meter.
-func (c *adapter) DeleteMeter(_ context.Context, input meter.DeleteMeterInput) error {
-	if err := input.Validate(); err != nil {
-		return models.NewGenericValidationError(err)
-	}
-
-	return models.NewGenericNotImplementedError(fmt.Errorf("not implemented in static adapter"))
 }
 
 // ReplaceMeters can be used to replace all meters in the repository.
