@@ -106,7 +106,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := toQueryMeterParams(meter, request.params)
+			params, err := ToQueryMeterParams(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
@@ -116,7 +116,7 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
 			}
 
-			response := toAPIMeterQueryResult(request.params, rows)
+			response := ToAPIMeterQueryResult(request.params, rows)
 
 			return &response, nil
 		},
@@ -160,7 +160,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
 
-			params, err := toQueryMeterParams(meter, request.params)
+			params, err := ToQueryMeterParams(meter, request.params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}

@@ -39,18 +39,18 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 	return apiMeter
 }
 
-// toAPIMeterQueryResult constructs an api.MeterQueryResult
-func toAPIMeterQueryResult(apiParams api.QueryMeterParams, rows []meterpkg.MeterQueryRow) api.MeterQueryResult {
+// ToAPIMeterQueryResult constructs an api.MeterQueryResult
+func ToAPIMeterQueryResult(apiParams api.QueryMeterParams, rows []meterpkg.MeterQueryRow) api.MeterQueryResult {
 	return api.MeterQueryResult{
 		From:       apiParams.From,
 		To:         apiParams.To,
 		WindowSize: apiParams.WindowSize,
-		Data:       toAPIMeterQueryRowList(rows),
+		Data:       ToAPIMeterQueryRowList(rows),
 	}
 }
 
-// toAPIMeterQueryRow converts a meterpkg.MeterQueryRow to an api.MeterQueryRow.
-func toAPIMeterQueryRow(row meterpkg.MeterQueryRow) api.MeterQueryRow {
+// ToAPIMeterQueryRow converts a meterpkg.MeterQueryRow to an api.MeterQueryRow.
+func ToAPIMeterQueryRow(row meterpkg.MeterQueryRow) api.MeterQueryRow {
 	apiRow := api.MeterQueryRow{
 		Subject:     row.Subject,
 		GroupBy:     row.GroupBy,
@@ -62,18 +62,18 @@ func toAPIMeterQueryRow(row meterpkg.MeterQueryRow) api.MeterQueryRow {
 	return apiRow
 }
 
-// toAPIMeterQueryRowList converts a list of meterpkg.MeterQueryRow to a list of api.MeterQueryRow.
-func toAPIMeterQueryRowList(rows []meterpkg.MeterQueryRow) []api.MeterQueryRow {
+// ToAPIMeterQueryRowList converts a list of meterpkg.MeterQueryRow to a list of api.MeterQueryRow.
+func ToAPIMeterQueryRowList(rows []meterpkg.MeterQueryRow) []api.MeterQueryRow {
 	apiRows := make([]api.MeterQueryRow, len(rows))
 	for i, row := range rows {
-		apiRows[i] = toAPIMeterQueryRow(row)
+		apiRows[i] = ToAPIMeterQueryRow(row)
 	}
 
 	return apiRows
 }
 
-// toQueryMeterParams converts a api.QueryMeterParams to a streaming.QueryParams.
-func toQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
+// ToQueryMeterParams converts a api.QueryMeterParams to a streaming.QueryParams.
+func ToQueryMeterParams(meter meter.Meter, apiParams api.QueryMeterParams) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
 		From: apiParams.From,
 		To:   apiParams.To,
