@@ -12,6 +12,10 @@ import (
 
 // ListMeters implements the [Repository] interface.
 func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+	if err := params.Validate(); err != nil {
+		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
+	}
+
 	meters := c.getMeters()
 
 	// In memory pagination
@@ -35,14 +39,18 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 }
 
 // GetMeterByIDOrSlug implements the [Repository] interface.
-func (c *adapter) GetMeterByIDOrSlug(_ context.Context, namespace string, idOrSlug string) (meter.Meter, error) {
+func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInput) (meter.Meter, error) {
+	if err := input.Validate(); err != nil {
+		return meter.Meter{}, models.NewGenericValidationError(err)
+	}
+
 	for _, meter := range c.getMeters() {
-		if meter.ID == idOrSlug || meter.Slug == idOrSlug {
+		if meter.ID == input.IDOrSlug || meter.Slug == input.IDOrSlug {
 			return meter, nil
 		}
 	}
 
-	return meter.Meter{}, meter.NewMeterNotFoundError(idOrSlug)
+	return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
 }
 
 // CreateMeter creates a new meter.
@@ -51,7 +59,11 @@ func (c *adapter) CreateMeter(_ context.Context, input meter.CreateMeterInput) (
 }
 
 // DeleteMeter deletes a meter.
-func (c *adapter) DeleteMeter(_ context.Context, namespace string, id string) error {
+func (c *adapter) DeleteMeter(_ context.Context, input meter.DeleteMeterInput) error {
+	if err := input.Validate(); err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
 	return models.NewGenericNotImplementedError(fmt.Errorf("not implemented in static adapter"))
 }
 

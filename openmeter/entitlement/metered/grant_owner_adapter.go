@@ -62,7 +62,10 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 	}
 
 	// meterrepo is not transactional
-	meter, err := e.meterService.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
+	meter, err := e.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: owner.Namespace,
+		IDOrSlug:  *feature.MeterSlug,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meter: %w", err)
 	}

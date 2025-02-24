@@ -42,7 +42,10 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			}, nil
 		},
 		func(ctx context.Context, request ListSubjectsRequest) (ListSubjectsResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, request.namespace, request.idOrSlug)
+			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrSlug,
+			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
@@ -95,7 +98,10 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 			}, nil
 		},
 		func(ctx context.Context, request QueryMeterRequest) (QueryMeterResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, request.namespace, request.idOrSlug)
+			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrSlug,
+			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}
@@ -146,7 +152,10 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 			}, nil
 		},
 		func(ctx context.Context, request QueryMeterCSVRequest) (QueryMeterCSVResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, request.namespace, request.idOrSlug)
+			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrSlug,
+			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get meter: %w", err)
 			}

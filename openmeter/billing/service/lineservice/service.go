@@ -120,7 +120,10 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 	}
 
 	// let's resolve the underlying meter
-	meter, err := s.MeterService.GetMeterByIDOrSlug(ctx, ns, *feat.MeterSlug)
+	meter, err := s.MeterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: ns,
+		IDOrSlug:  *feat.MeterSlug,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err)
 	}

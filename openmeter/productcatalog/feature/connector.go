@@ -100,7 +100,10 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	// validate meter configuration
 	if feature.MeterSlug != nil {
 		slug := *feature.MeterSlug
-		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, feature.Namespace, slug)
+		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+			Namespace: feature.Namespace,
+			IDOrSlug:  slug,
+		})
 		if err != nil {
 			return Feature{}, meterpkg.NewMeterNotFoundError(slug)
 		}

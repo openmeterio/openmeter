@@ -90,7 +90,10 @@ func (h *handler) GetMeter() GetMeterHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetMeterRequest) (GetMeterResponse, error) {
-			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, request.namespace, request.idOrSlug)
+			meter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrSlug,
+			})
 			if err != nil {
 				return GetMeterResponse{}, fmt.Errorf("failed to get meter: %w", err)
 			}
