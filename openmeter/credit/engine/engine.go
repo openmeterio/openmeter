@@ -18,10 +18,10 @@ type RunParams struct {
 	// Starting snapshot of the balances at the START OF THE PERIOD.
 	StartingSnapshot balance.Snapshot
 	// ResetBehavior defines the behavior of the engine when a reset is encountered.
-	ResetBehavior ResetBehavior
+	ResetBehavior grant.ResetBehavior
 	// Timeline of the resets that occurred in the period.
 	// The resets must occur AFTER the starting snapshot and NOT AFTER the until time. (exclusive - inclusive)
-	Resets timeutil.Timeline
+	Resets timeutil.SimpleTimeline
 }
 
 type RunResult struct {

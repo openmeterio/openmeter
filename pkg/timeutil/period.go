@@ -22,6 +22,11 @@ func (p Period) ContainsInclusive(t time.Time) bool {
 	return t.After(p.From) && t.Before(p.To)
 }
 
+// Exclusive at both start and end
+func (p Period) ContainsExclusive(t time.Time) bool {
+	return p.Contains(t) && !t.Equal(p.From)
+}
+
 // Inclusive at start, exclusive at end
 func (p Period) Contains(t time.Time) bool {
 	return (t.After(p.From) || t.Equal(p.From)) && t.Before(p.To)

@@ -454,6 +454,8 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			Interval: timeutil.RecurrenceInterval{Period: parsed},
 		}
 
+		ent.OriginalUsagePeriodAnchor = convert.SafeToUTC(e.UsagePeriodAnchor)
+
 		// We no longer override the anchor at each reset as we need to preserve the original
 		// This edge with the last reset should be populated for each query
 		if len(e.Edges.UsageReset) > 0 && e.Edges.UsageReset[0] != nil {

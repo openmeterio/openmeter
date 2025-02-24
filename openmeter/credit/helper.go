@@ -76,12 +76,13 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", owner.ID, queryBounds.From, err)
 	}
 
-	inbetweenPeriodStarts, err := m.ownerConnector.GetPeriodStartTimesBetween(ctx, owner, queryBounds.From, queryBounds.To)
+	inbetweenPeriodStarts, err := m.ownerConnector.GetResetTimelineInclusive(ctx, owner, queryBounds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get period start times for owner %s between %s and %s: %w", owner.ID, queryBounds.From, queryBounds.To, err)
 	}
 
-	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts...)
+	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts.GetTimes()...)
+	times = append(times, queryBounds.To)
 
 	periodCache := SortedPeriodsFromDedupedTimes(times)
 
@@ -93,11 +94,12 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	// Let's write a function that replaces GetUsagePeriodStartAt with a cache lookup
 	getUsagePeriodStartAtFromCache := func(at time.Time) (time.Time, error) {
 		for _, period := range periodCache {
+			// We run with ContainsInclusive in Time-ASC order so we can match the end of the last period
 			if period.ContainsInclusive(at) {
 				return period.From, nil
 			}
 		}
-		return time.Time{}, fmt.Errorf("no period start time found for %s", at)
+		return time.Time{}, fmt.Errorf("no period start time found for %s, known periods: %+v", at, periodCache)
 	}
 
 	// Let's define a simple helper that validates the returned meter rows
@@ -126,26 +128,16 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 			// Let's query the meter based on the aggregation
 			switch ownerMeter.Meter.Aggregation {
 			case meter.MeterAggregationUniqueCount:
-				periodStartAtFrom, err := getUsagePeriodStartAtFromCache(from)
+				periodStart, err := getUsagePeriodStartAtFromCache(from)
 				if err != nil {
 					return 0.0, err
-				}
-
-				periodStartAtTo, err := getUsagePeriodStartAtFromCache(to)
-				if err != nil {
-					return 0.0, err
-				}
-
-				// The engine cannot query across periods so if the two times don't match we got a problem
-				if !periodStartAtFrom.Equal(periodStartAtTo) {
-					return 0.0, fmt.Errorf("cannot query across periods: %s and %s", periodStartAtFrom, periodStartAtTo)
 				}
 
 				// To get the UNIQUE_COUNT value between `from` and `to` we need to:
 				// 1. Query between the period start and `to` to get the unique count at `to`
 				// 2. Query between the period start and `from` to get the unique count at `from`
 				// 3. Subtract the two values
-				params.From = &periodStartAtFrom
+				params.From = &periodStart
 				params.To = &to
 
 				rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
