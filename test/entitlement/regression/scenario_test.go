@@ -124,7 +124,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	assert.NotNil(currentBalance)
 	assert.Equal(0.0, currentBalance.Balance) // This test was previously faulty, grant2 has expired by this point while grant1 loses its balance on resets, two of which has already happened by this point
 
-	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-30T15:35:54Z"))
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T15:39:00Z"))
 	grant3, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
@@ -143,14 +143,14 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	assert.NotNil(grant3)
 
 	// There should be a snapshot created
-	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-30T15:37:18Z"))
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-29T15:37:18Z"))
 	reset, err := deps.MeteredEntitlementConnector.ResetEntitlementUsage(ctx,
 		models.NamespacedID{
 			Namespace: "namespace-1",
 			ID:        entitlement.ID,
 		},
 		meteredentitlement.ResetEntitlementUsageParams{
-			At:           testutils.GetRFC3339Time(t, "2024-06-29T14:36:00Z"),
+			At:           testutils.GetRFC3339Time(t, "2024-06-29T14:48:00Z"),
 			RetainAnchor: false,
 		},
 	)

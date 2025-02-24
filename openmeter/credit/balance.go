@@ -93,38 +93,15 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		return nil, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", owner.ID, at, err)
 	}
 
-	// TODO: add back saving snapshots
-
-	// history, err := engine.NewGrantBurnDownHistory(result.History)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create grant burn down history: %w", err)
-	// }
-
-	// FIXME: It can be the case that we never actually save anything if the history has a single segment.
-	// In practice what we can save is the balance at the last activation or recurrence event
-	// as those demark segments.
-	//
-	// If we want to we can cheat that by artificially introducing a segment through the engine at the end
-	// just so it can be saved...
-	//
-	// FIXME: we should do this comparison not with the queried time but the current time...
-	// if snap, err := m.getLastSaveableSnapshotAt(history, bal, at); err == nil {
-	// 	grantMap := make(map[string]grant.Grant, len(grants))
-	// 	for _, grant := range grants {
-	// 		grantMap[grant.ID] = grant
-	// 	}
-	// 	activeBalance, err := m.excludeInactiveGrantsFromBalance(snap.Balances, grantMap, at)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	snap.Balances = *activeBalance
-	// 	err = m.balanceSnapshotRepo.Save(ctx, owner, []balance.Snapshot{
-	// 		*snap,
-	// 	})
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
-	// 	}
-	// }
+	// Let's see if a snapshot should be saved
+	if err := m.snapshotEngineResult(ctx, snapshotParams{
+		grants: grants,
+		owner:  owner,
+		runRes: result,
+		before: clock.Now().AddDate(0, 0, -7), // 7 days ago
+	}); err != nil {
+		return nil, fmt.Errorf("failed to snapshot engine result: %w", err)
+	}
 
 	// return balance
 	return &result.Snapshot, nil
@@ -224,14 +201,6 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	bal, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
 		return nil, err
-	}
-
-	if bal.At.Before(periodStart) {
-		// This is an inconsistency check. It can only happen if we lost our snapshot for the last reset.
-		//
-		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
-		// FIXME: this is theoretically possible, we need to handle it, add capability to ledger.
-		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", bal.At, periodStart)
 	}
 
 	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, bal.At, at)
