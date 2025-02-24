@@ -60,12 +60,16 @@ func (m *Openmeter) Etoe(
 		WithServiceBinding("api", api).
 		WithServiceBinding("sink-worker", sinkWorker)
 
+	// FIXME(galexi): Log exceeds max size limits on GH so we can't print it
+
 	// Create a wrapper command that runs the tests and prints logs on failure
-	cmdArgs := append([]string{"sh", "-c"}, fmt.Sprintf(`%s || {
-		echo "Tests failed. Printing openmeter.log:";
-		cat /var/log/openmeter/openmeter.log;
-		exit 1;
-	}`, strings.Join(args, " ")))
+	// cmdArgs := append([]string{"sh", "-c"}, fmt.Sprintf(`%s || {
+	// 	echo "Tests failed. Printing openmeter.log:";
+	// 	cat /var/log/openmeter/openmeter.log;
+	// 	exit 1;
+	// }`, strings.Join(args, " ")))
+
+	cmdArgs := []string{"sh", "-c", strings.Join(args, " ")}
 
 	return testContainer.Container().
 		WithMountedCache("/var/log/openmeter", sharedLogs).
