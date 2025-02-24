@@ -209,7 +209,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 
 	at := params.At.Truncate(ownerMeter.Meter.WindowSize.Duration())
 
-	// check if reset is possible (after last reset)
+	// check if reset is possible (not before current period)
 	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, clock.Now())
 	if err != nil {
 		if _, ok := err.(*grant.OwnerNotFoundError); ok {
