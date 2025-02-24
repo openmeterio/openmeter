@@ -15,3 +15,5 @@ go.work
 go.work.sum
 
 __debug_bin*
+
+openmeter.log

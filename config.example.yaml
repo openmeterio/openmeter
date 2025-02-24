@@ -3,6 +3,12 @@ address: 127.0.0.1:8888
 telemetry:
   log:
     level: debug
+    # For writing to a file
+    exporters:
+      # file:
+      #   enabled: true
+      #   filepath: "./openmeter.log"
+      #   prettyprint: true  # optional
 
 termination:
   # checkInterval defines the time period used for updating the readiness check based on the termination status.

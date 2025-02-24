@@ -2,14 +2,20 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 func (m *Openmeter) Etoe(
-// +optional
+	// +optional
 	test string,
 ) *dagger.Container {
+	// We need to use a cache volume as otherwise the files couldn't be shared between the test container and the service
+	// Add timestamp to make the volume unique across runs
+	sharedLogs := cacheVolume(fmt.Sprintf("openmeter-logs-%d", time.Now().UnixNano()))
+
 	image := m.Build().ContainerImage("").
 		WithExposedPort(10000).
 		WithMountedFile("/etc/openmeter/config.yaml", m.Source.File("e2e/config.yaml")).
@@ -24,6 +30,7 @@ func (m *Openmeter) Etoe(
 		WithExposedPort(8080).
 		WithServiceBinding("postgres", postgres.Service()).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
+		WithMountedCache("/var/log/openmeter", sharedLogs).
 		AsService(dagger.ContainerAsServiceOpts{
 			Args: []string{"openmeter", "--config", "/etc/openmeter/config.yaml"},
 		})
@@ -31,6 +38,7 @@ func (m *Openmeter) Etoe(
 	sinkWorker := image.
 		WithServiceBinding("redis", redis()).
 		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
+		WithMountedCache("/var/log/openmeter", sharedLogs).
 		AsService(dagger.ContainerAsServiceOpts{
 			Args: []string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"},
 		})
@@ -43,15 +51,25 @@ func (m *Openmeter) Etoe(
 
 	args = append(args, "./e2e/...")
 
-	return goModuleCross("").
+	testContainer := goModuleCross("").
 		WithModuleCache(cacheVolume("go-mod-e2e")).
 		WithBuildCache(cacheVolume("go-build-e2e")).
 		WithSource(m.Source).
 		WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080").
 		WithEnvVariable("TEST_WAIT_ON_START", "true").
 		WithServiceBinding("api", api).
-		WithServiceBinding("sink-worker", sinkWorker).
-		Exec(args)
+		WithServiceBinding("sink-worker", sinkWorker)
+
+	// Create a wrapper command that runs the tests and prints logs on failure
+	cmdArgs := append([]string{"sh", "-c"}, fmt.Sprintf(`%s || {
+		echo "Tests failed. Printing openmeter.log:";
+		cat /var/log/openmeter/openmeter.log;
+		exit 1;
+	}`, strings.Join(args, " ")))
+
+	return testContainer.Container().
+		WithMountedCache("/var/log/openmeter", sharedLogs).
+		WithExec(cmdArgs)
 }
 
 func clickhouse() *dagger.Service {

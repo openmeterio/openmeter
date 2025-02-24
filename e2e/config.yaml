@@ -2,8 +2,13 @@ address: 0.0.0.0:8080
 
 telemetry:
   address: 0.0.0.0:10000
-  # log:
-  #   level: debug
+  log:
+    level: debug
+    exporters:
+      file:
+        enabled: true
+        filepath: "/var/log/openmeter/openmeter.log"
+        prettyprint: true
 
 ingest:
   kafka:

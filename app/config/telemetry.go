@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
+	"go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -374,35 +375,10 @@ func (c LogTelemetryConfig) NewHandler(w io.Writer) slog.Handler {
 	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
 }
 
-func (c LogTelemetryConfig) NewLoggerProvider(ctx context.Context, res *resource.Resource) (*sdklog.LoggerProvider, error) {
-	options := []sdklog.LoggerProviderOption{
-		sdklog.WithResource(res),
-	}
-
-	if c.Exporters.OTLP.Enabled {
-		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("exporter: otlp: %w", err)
-		}
-
-		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
-	}
-
-	if c.Exporters.Stdout.Enabled {
-		exporter, err := c.Exporters.Stdout.NewExporter()
-		if err != nil {
-			return nil, fmt.Errorf("exporter: stdout: %w", err)
-		}
-
-		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
-	}
-
-	return sdklog.NewLoggerProvider(options...), nil
-}
-
 type ExportersLogTelemetryConfig struct {
 	OTLP   OTLPExportersLogTelemetryConfig
 	Stdout StdoutExportersLogTelemetryConfig
+	File   FileExportersLogTelemetryConfig
 }
 
 // Validate validates the configuration.
@@ -411,6 +387,10 @@ func (c ExportersLogTelemetryConfig) Validate() error {
 
 	if err := c.OTLP.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "otlp"))
+	}
+
+	if err := c.File.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "file"))
 	}
 
 	return errors.Join(errs...)
@@ -485,6 +465,133 @@ func (c StdoutExportersLogTelemetryConfig) NewExporter() (sdklog.Exporter, error
 	return stdoutlog.New(opts...)
 }
 
+// FileExportersLogTelemetryConfig represents the configuration for the file log exporter.
+type FileExportersLogTelemetryConfig struct {
+	Enabled     bool
+	FilePath    string
+	PrettyPrint bool
+}
+
+// Validate validates the configuration.
+func (c FileExportersLogTelemetryConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.FilePath == "" {
+		return errors.New("file path is required")
+	}
+
+	return nil
+}
+
+// fileExporter wraps an slog.Handler as an OpenTelemetry exporter
+type fileExporter struct {
+	handler slog.Handler
+	file    *os.File
+}
+
+func (e *fileExporter) Export(ctx context.Context, logs []sdklog.Record) error {
+	for _, record := range logs {
+		// Convert OTel severity to slog level
+		level := slog.LevelInfo
+		switch record.Severity() {
+		case log.SeverityTrace, log.SeverityDebug:
+			level = slog.LevelDebug
+		case log.SeverityInfo:
+			level = slog.LevelInfo
+		case log.SeverityWarn:
+			level = slog.LevelWarn
+		case log.SeverityError, log.SeverityFatal:
+			level = slog.LevelError
+		}
+
+		attrs := make([]any, 0, record.AttributesLen()*2)
+		record.WalkAttributes(func(attr log.KeyValue) bool {
+			attrs = append(attrs, attr.Key, attr.Value.AsString())
+			return true
+		})
+
+		rec := slog.NewRecord(
+			record.Timestamp(),
+			level,
+			record.Body().AsString(),
+			0,
+		)
+
+		rec.Add(attrs...)
+
+		// Let's add retries eventually
+		_ = e.handler.Handle(ctx, rec)
+	}
+	return nil
+}
+
+func (e *fileExporter) ForceFlush(ctx context.Context) error {
+	return e.file.Sync()
+}
+
+func (e *fileExporter) Shutdown(ctx context.Context) error {
+	return e.file.Close()
+}
+
+// NewExporter creates a new [sdklog.Exporter].
+func (c FileExportersLogTelemetryConfig) NewExporter() (sdklog.Exporter, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: log: exporter: file: disabled")
+	}
+
+	f, err := os.OpenFile(c.FilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: log: exporter: file: opening file: %w", err)
+	}
+
+	handler := slog.NewTextHandler(f, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
+
+	return &fileExporter{
+		handler: handler,
+		file:    f,
+	}, nil
+}
+
+func (c LogTelemetryConfig) NewLoggerProvider(ctx context.Context, res *resource.Resource) (*sdklog.LoggerProvider, error) {
+	options := []sdklog.LoggerProviderOption{
+		sdklog.WithResource(res),
+	}
+
+	if c.Exporters.OTLP.Enabled {
+		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("exporter: otlp: %w", err)
+		}
+
+		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
+	}
+
+	if c.Exporters.Stdout.Enabled {
+		exporter, err := c.Exporters.Stdout.NewExporter()
+		if err != nil {
+			return nil, fmt.Errorf("exporter: stdout: %w", err)
+		}
+
+		options = append(options, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
+	}
+
+	if c.Exporters.File.Enabled {
+		exporter, err := c.Exporters.File.NewExporter()
+		if err != nil {
+			return nil, fmt.Errorf("exporter: file: %w", err)
+		}
+
+		// Use simple processor for immediate writes to file
+		options = append(options, sdklog.WithProcessor(sdklog.NewSimpleProcessor(exporter)))
+	}
+
+	return sdklog.NewLoggerProvider(options...), nil
+}
+
 // ConfigureTelemetry configures some defaults in the Viper instance.
 func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
@@ -504,6 +611,9 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.log.exporters.otlp.enabled", false)
 	v.SetDefault("telemetry.log.exporters.otlp.address", "")
 	v.SetDefault("telemetry.log.exporters.stdout.enabled", false)
+	v.SetDefault("telemetry.log.exporters.file.enabled", false)
+	v.SetDefault("telemetry.log.exporters.file.filepath", "")
+	v.SetDefault("telemetry.log.exporters.file.prettyprint", false)
 
 	v.SetDefault("telemetry.readiness.interval", 3*time.Second)
 }
