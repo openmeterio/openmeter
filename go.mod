@@ -56,7 +56,7 @@ require (
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/redpanda-data/benthos/v4 v4.44.1
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.46.0
-	github.com/rickb777/period v1.0.8
+	github.com/rickb777/period v1.0.9
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.49.1
 	github.com/samber/mo v1.13.0
@@ -321,7 +321,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/gosimple/slug v1.14.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
-	github.com/govalues/decimal v0.1.33 // indirect
+	github.com/govalues/decimal v0.1.36 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
