@@ -56,7 +56,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 		}
 
 		if input.EffectiveAt.Before(periodStart) {
-			return nil, models.NewGenericValidationError(fmt.Errorf("grant effective date is before the current usage period"))
+			return nil, models.NewGenericValidationError(fmt.Errorf("grant effective date %s is before the current usage period %s", input.EffectiveAt, periodStart))
 		}
 
 		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
