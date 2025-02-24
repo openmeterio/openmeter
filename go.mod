@@ -53,7 +53,7 @@ require (
 	github.com/qmuntal/stateless v1.7.1
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/redis/go-redis/extra/redisotel/v9 v9.7.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.1
 	github.com/redpanda-data/benthos/v4 v4.44.1
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.46.0
 	github.com/rickb777/period v1.0.8
