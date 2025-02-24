@@ -109,18 +109,18 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 }
 
 func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (time.Time, error) {
-	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
-	// To know if this is the first period check if usage has been reset.
-
-	lastUsageReset, err := e.usageResetRepo.GetLastAt(ctx, owner.NamespacedID(), at)
-	if _, ok := lo.ErrorsAs[*UsageResetNotFoundError](err); ok {
-		return e.GetStartOfMeasurement(ctx, owner)
-	}
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	return lastUsageReset.ResetTime, nil
+	metered, err := ParseFromGenericEntitlement(entitlement)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	cp, err := metered.UsagePeriod.GetCurrentPeriodAt(at)
+	return cp.From, err
 }
 
 func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner grant.NamespacedOwner) (string, error) {
@@ -322,8 +322,8 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
 		}
-		if !params.At.After(currentStartAt) {
-			return nil, models.NewGenericValidationError(fmt.Errorf("can only end usage period after current period start time"))
+		if params.At.Before(currentStartAt) {
+			return nil, models.NewGenericValidationError(fmt.Errorf("cannot end usage period before current period start time"))
 		}
 
 		if err := e.updateEntitlementUsagePeriod(txCtx, owner, params); err != nil {

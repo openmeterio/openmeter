@@ -27,8 +27,7 @@ type connector struct {
 	streamingConnector streaming.Connector
 	logger             *slog.Logger
 	// configuration
-	snapshotGracePeriod time.Duration
-	granularity         time.Duration
+	granularity time.Duration
 }
 
 func NewCreditConnector(
@@ -53,7 +52,6 @@ func NewCreditConnector(
 		publisher: publisher,
 
 		// TODO: make configurable
-		granularity:         granularity,
-		snapshotGracePeriod: time.Hour,
+		granularity: granularity,
 	}
 }
