@@ -108,19 +108,52 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 	return metered.MeasureUsageFrom, nil
 }
 
+// The current usage period start time is either the current period start time, or if this is the first period then the start of measurement
 func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (time.Time, error) {
-	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	metered, err := ParseFromGenericEntitlement(entitlement)
+	metered, err := ParseFromGenericEntitlement(ent)
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	cp, err := metered.UsagePeriod.GetCurrentPeriodAt(at)
-	return cp.From, err
+	usagePeriod := metered.UsagePeriod
+
+	lastReset, err := e.usageResetRepo.GetLastAt(ctx, owner.NamespacedID(), at)
+	if err != nil {
+		// If it's a not found error thats ok, it means there are no manual resets yet. Otherwise we return an error
+		if _, ok := lo.ErrorsAs[*UsageResetNotFoundError](err); !ok {
+			return time.Time{}, err
+		}
+	} else {
+		usagePeriod.Anchor = lastReset.Anchor
+	}
+
+	// If this is the first period, it needs to start with the start of measurement, otherwise we just use the period
+	// We use the original definition for this
+	originalUsagePeriod := entitlement.UsagePeriod{
+		Anchor:   metered.OriginalUsagePeriodAnchor,
+		Interval: metered.UsagePeriod.Interval,
+	}
+
+	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(metered.CreatedAt)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	currentPeriod, err := usagePeriod.GetCurrentPeriodAt(at)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if firstPeriod.From.Equal(currentPeriod.From) {
+		return metered.MeasureUsageFrom, nil
+	}
+
+	return currentPeriod.From, nil
 }
 
 func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner grant.NamespacedOwner) (string, error) {
