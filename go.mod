@@ -120,7 +120,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.13.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/gofrs/uuid/v5 v5.3.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
