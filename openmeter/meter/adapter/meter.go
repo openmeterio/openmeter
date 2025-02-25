@@ -19,7 +19,7 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 
 	// In memory filtering
 	for _, meter := range c.getMeters() {
-		if params.Namespace != "" && meter.Namespace != params.Namespace {
+		if !params.WithoutNamespace && meter.Namespace != params.Namespace {
 			continue
 		}
 

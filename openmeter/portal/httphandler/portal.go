@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/portal"
@@ -12,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/samber/lo"
 )
 
 type (
