@@ -10,7 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
-	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/subscription"
+	billingcustomer "github.com/openmeterio/openmeter/openmeter/billing/validators/customer"
+	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -53,7 +54,7 @@ func BillingService(
 		return nil, nil
 	}
 
-	return billingservice.New(billingservice.Config{
+	service, err := billingservice.New(billingservice.Config{
 		Adapter:             billingAdapter,
 		AppService:          appService,
 		CustomerService:     customerService,
@@ -64,6 +65,18 @@ func BillingService(
 		Publisher:           eventPublisher,
 		AdvancementStrategy: advancementStrategy,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	validator, err := billingcustomer.NewValidator(service)
+	if err != nil {
+		return nil, err
+	}
+
+	customerService.RegisterRequestValidator(validator)
+
+	return service, nil
 }
 
 func BillingSubscriptionValidator(

@@ -10,8 +10,9 @@ import (
 var _ customer.Service = (*Service)(nil)
 
 type Service struct {
-	adapter              customer.Adapter
-	entitlementConnector entitlement.Connector
+	adapter                  customer.Adapter
+	entitlementConnector     entitlement.Connector
+	requestValidatorRegistry customer.RequestValidatorRegistry
 }
 
 type Config struct {
@@ -33,7 +34,8 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter:              config.Adapter,
-		entitlementConnector: config.EntitlementConnector,
+		adapter:                  config.Adapter,
+		entitlementConnector:     config.EntitlementConnector,
+		requestValidatorRegistry: customer.NewRequestValidatorRegistry(),
 	}, nil
 }

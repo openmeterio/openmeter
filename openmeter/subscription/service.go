@@ -21,6 +21,8 @@ type Service interface {
 	Get(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
 	// GetView returns a full view of the subscription with the given ID
 	GetView(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
+	// List lists the subscriptions matching the set criteria
+	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
 }
 
 type WorkflowService interface {

@@ -861,3 +861,6 @@ func (n NoopCustomerService) GetEntitlementValue(ctx context.Context, input cust
 func (n NoopCustomerService) FindCustomer(ctx context.Context, namespace string, customerRef ref.IDOrKey) (*customer.Customer, error) {
 	return nil, nil
 }
+
+func (n NoopCustomerService) RegisterRequestValidator(validator customer.RequestValidator) {
+}

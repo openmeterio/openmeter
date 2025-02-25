@@ -6,7 +6,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
-	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/subscription"
+	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -18,6 +18,7 @@ import (
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
+	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -90,6 +91,13 @@ func NewSubscriptionServices(
 		CustomerService:     customerService,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
 	})
+
+	validator, err := subscriptioncustomer.NewValidator(subscriptionService)
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
+
+	customerService.RegisterRequestValidator(validator)
 
 	return SubscriptionServiceWithWorkflow{
 		Service:                 subscriptionService,

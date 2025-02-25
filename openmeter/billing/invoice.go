@@ -185,6 +185,17 @@ func (s InvoiceStatus) IsFailed() bool {
 	return lo.Contains(failedStatuses, s)
 }
 
+var finalStatuses = []InvoiceStatus{
+	InvoiceStatusDeleted,
+	InvoiceStatusPaid,
+	InvoiceStatusUncollectible,
+	InvoiceStatusVoided,
+}
+
+func (s InvoiceStatus) IsFinal() bool {
+	return lo.Contains(finalStatuses, s)
+}
+
 func (s InvoiceStatus) Validate() error {
 	if !lo.Contains(validStatuses, s) {
 		return fmt.Errorf("invalid invoice status: %s", s)

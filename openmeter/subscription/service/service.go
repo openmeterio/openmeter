@@ -452,3 +452,11 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 
 	return *view, nil
 }
+
+func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	if err := input.Validate(); err != nil {
+		return subscription.SubscriptionList{}, fmt.Errorf("input is invalid: %w", err)
+	}
+
+	return s.SubscriptionRepo.List(ctx, input)
+}
