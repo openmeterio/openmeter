@@ -57,6 +57,10 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 	}
 
 	for _, meter := range c.getMeters() {
+		if meter.Namespace != input.Namespace {
+			continue
+		}
+
 		if meter.ID == input.IDOrSlug || meter.Slug == input.IDOrSlug {
 			return meter, nil
 		}
