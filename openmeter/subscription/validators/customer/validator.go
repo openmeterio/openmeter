@@ -2,7 +2,6 @@ package customer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -48,7 +47,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	}
 
 	if len(subscriptions.Items) > 0 {
-		return errors.New("customer has active subscriptions")
+		return fmt.Errorf("customer %s still have active subscriptions, please cancel them before deleting the customer", input.ID)
 	}
 
 	return nil
