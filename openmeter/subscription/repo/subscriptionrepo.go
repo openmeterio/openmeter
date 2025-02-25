@@ -182,6 +182,9 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		}
 
 		items, err := slicesx.MapWithErr(paged.Items, MapDBSubscription)
+		if err != nil {
+			return subscription.SubscriptionList{}, err
+		}
 
 		return subscription.SubscriptionList{
 			Items:      items,
