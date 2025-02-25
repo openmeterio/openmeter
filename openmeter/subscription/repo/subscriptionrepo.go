@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type subscriptionRepo struct {
@@ -154,5 +155,38 @@ func (r *subscriptionRepo) Delete(ctx context.Context, id models.NamespacedID) e
 		}
 
 		return nil
+	})
+}
+
+func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.SubscriptionList, error) {
+		query := repo.db.Subscription.Query().
+			Where(dbsubscription.NamespaceIn(in.Namespaces...))
+
+		if len(in.Customers) > 0 {
+			query = query.Where(dbsubscription.CustomerIDIn(in.Customers...))
+		}
+
+		if in.ActiveAt != nil {
+			query = query.Where(
+				dbsubscription.Or(
+					dbsubscription.ActiveToIsNil(),
+					dbsubscription.ActiveToGT(*in.ActiveAt),
+				),
+			)
+		}
+
+		paged, err := query.Paginate(ctx, in.Page)
+		if err != nil {
+			return subscription.SubscriptionList{}, err
+		}
+
+		items, err := slicesx.MapWithErr(paged.Items, MapDBSubscription)
+
+		return subscription.SubscriptionList{
+			Items:      items,
+			Page:       paged.Page,
+			TotalCount: paged.TotalCount,
+		}, nil
 	})
 }

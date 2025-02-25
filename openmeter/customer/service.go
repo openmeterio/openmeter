@@ -9,6 +9,11 @@ import (
 
 type Service interface {
 	CustomerService
+	RequestValidatorService
+}
+
+type RequestValidatorService interface {
+	RegisterRequestValidator(RequestValidator)
 }
 
 type CustomerService interface {

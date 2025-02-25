@@ -44,6 +44,9 @@ type SubscriptionRepository interface {
 
 	// Delete a subscription
 	Delete(ctx context.Context, id models.NamespacedID) error
+
+	// List subscriptions
+	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

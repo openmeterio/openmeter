@@ -22,7 +22,7 @@ var _ billing.Service = (*Service)(nil)
 
 type Service struct {
 	adapter            billing.Adapter
-	customerService    customer.CustomerService
+	customerService    customer.Service
 	appService         app.Service
 	logger             *slog.Logger
 	invoiceCalculator  invoicecalc.Calculator
@@ -38,7 +38,7 @@ type Service struct {
 
 type Config struct {
 	Adapter             billing.Adapter
-	CustomerService     customer.CustomerService
+	CustomerService     customer.Service
 	AppService          app.Service
 	Logger              *slog.Logger
 	FeatureService      feature.FeatureConnector

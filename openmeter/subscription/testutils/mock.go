@@ -15,6 +15,7 @@ type MockService struct {
 	ContinueFn func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetFn      func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetViewFn  func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
+	ListFn     func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
 }
 
 var _ subscription.Service = &MockService{}
@@ -45,6 +46,10 @@ func (s *MockService) Get(ctx context.Context, subscriptionID models.NamespacedI
 
 func (s *MockService) GetView(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error) {
 	return s.GetViewFn(ctx, subscriptionID)
+}
+
+func (s *MockService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	return s.ListFn(ctx, params)
 }
 
 type MockWorkflowService struct {
