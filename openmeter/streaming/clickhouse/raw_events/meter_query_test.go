@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 func TestQueryMeter(t *testing.T) {
@@ -14,7 +14,7 @@ func TestQueryMeter(t *testing.T) {
 	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
 	tz, _ := time.LoadLocation("Asia/Shanghai")
-	windowSize := models.WindowSizeHour
+	windowSize := meter.WindowSizeHour
 
 	tests := []struct {
 		query    queryMeter
@@ -26,10 +26,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -50,10 +50,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -69,10 +69,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",
-					Aggregation: models.MeterAggregationCount,
+					Aggregation: meter.MeterAggregationCount,
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -87,10 +87,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -107,10 +107,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -128,10 +128,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -150,10 +150,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -173,10 +173,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -194,10 +194,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -215,10 +215,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"group1": "$.group1",
@@ -236,10 +236,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"g1": "$.group1",
@@ -256,10 +256,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"g1": "$.group1",
@@ -276,10 +276,10 @@ func TestQueryMeter(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:          "meter1",
 					EventType:     "event1",
-					Aggregation:   models.MeterAggregationSum,
+					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: "$.value",
 					GroupBy: map[string]string{
 						"g1": "$.group1",
@@ -322,10 +322,10 @@ func TestListMeterSubjects(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",
-					Aggregation: models.MeterAggregationSum,
+					Aggregation: meter.MeterAggregationSum,
 				},
 			},
 			wantSQL:  "SELECT DISTINCT subject FROM openmeter.om_events WHERE namespace = ? AND type = ? ORDER BY subject",
@@ -336,10 +336,10 @@ func TestListMeterSubjects(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",
-					Aggregation: models.MeterAggregationSum,
+					Aggregation: meter.MeterAggregationSum,
 				},
 				From: &from,
 			},
@@ -351,10 +351,10 @@ func TestListMeterSubjects(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
-				Meter: models.Meter{
+				Meter: meter.Meter{
 					Slug:        "meter1",
 					EventType:   "event1",
-					Aggregation: models.MeterAggregationSum,
+					Aggregation: meter.MeterAggregationSum,
 				},
 				From: &from,
 				To:   &to,

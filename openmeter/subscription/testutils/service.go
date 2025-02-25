@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -18,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ExposedServiceDeps struct {
@@ -44,18 +44,18 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subRepo := NewSubscriptionRepo(t, dbDeps)
 	subPhaseRepo := NewSubscriptionPhaseRepo(t, dbDeps)
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
-	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
+	meterAdapter := meteradapter.New([]meter.Meter{{
 		Slug:        ExampleFeatureMeterSlug,
 		Namespace:   ExampleNamespace,
-		Aggregation: models.MeterAggregationSum,
-		WindowSize:  models.WindowSizeMinute,
+		Aggregation: meter.MeterAggregationSum,
+		WindowSize:  meter.WindowSizeMinute,
 	}})
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
 		Logger:             logger,
-		MeterRepository:    meterRepo,
+		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 	})
 

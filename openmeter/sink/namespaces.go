@@ -6,13 +6,12 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	ommeter "github.com/openmeterio/openmeter/openmeter/meter"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type MeterStore struct {
-	Meters []models.Meter
+	Meters []meterpkg.Meter
 }
 
 type NamespaceStore struct {
@@ -25,10 +24,10 @@ func NewNamespaceStore() *NamespaceStore {
 	}
 }
 
-func (n *NamespaceStore) AddMeter(meter models.Meter) {
+func (n *NamespaceStore) AddMeter(meter meterpkg.Meter) {
 	if n.namespaces[meter.Namespace] == nil {
 		n.namespaces[meter.Namespace] = &MeterStore{
-			Meters: []models.Meter{meter},
+			Meters: []meterpkg.Meter{meter},
 		}
 	} else {
 		n.namespaces[meter.Namespace].Meters = append(n.namespaces[meter.Namespace].Meters, meter)
@@ -73,7 +72,7 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 			}
 
 			// Parse event with meter
-			_, _, _, err = ommeter.ParseEvent(meter, event)
+			_, _, _, err = meterpkg.ParseEvent(meter, event)
 			if err != nil {
 				m.Status = sinkmodels.ProcessingStatus{
 					State: sinkmodels.INVALID,

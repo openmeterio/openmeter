@@ -12,11 +12,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type InvoicingTaxTestSuite struct {
@@ -159,15 +159,15 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	meterSlug := "flat-per-unit"
 
-	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
+	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:   namespace,
 			Slug:        meterSlug,
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 	})
-	defer s.MeterRepo.ReplaceMeters(ctx, []models.Meter{})
+	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
 
 	flatPerUnitFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Namespace: namespace,

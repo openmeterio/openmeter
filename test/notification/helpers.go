@@ -10,7 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/pkg/models"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 )
 
 func NewSvixAuthToken(signingSecret string) (string, error) {
@@ -42,13 +42,13 @@ func NewClickhouseClient(addr string) (clickhousedriver.Conn, error) {
 	})
 }
 
-func NewMeterRepository() meter.Repository {
-	return meter.NewInMemoryRepository([]models.Meter{
+func NewMeterService() meter.Service {
+	return meteradapter.New([]meter.Meter{
 		{
 			Namespace:     TestNamespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
 			Slug:          TestMeterSlug,
-			Aggregation:   models.MeterAggregationSum,
+			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: "$.duration_ms",
 			GroupBy: map[string]string{

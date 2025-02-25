@@ -110,7 +110,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	inMemoryRepository := common.NewInMemoryRepository(v2)
+	service := common.NewMeterService(v2)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
@@ -121,7 +121,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, inMemoryRepository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, service, logger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -156,7 +156,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger:            logger,
 		Metadata:          commonMetadata,
 		Meter:             meter,
-		MeterRepository:   inMemoryRepository,
+		MeterService:      service,
 		Streaming:         connector,
 		TelemetryServer:   v4,
 		TopicProvisioner:  topicProvisioner,
@@ -181,7 +181,7 @@ type Application struct {
 	Logger           *slog.Logger
 	Metadata         common.Metadata
 	Meter            metric.Meter
-	MeterRepository  meter.Repository
+	MeterService     meter.Service
 	Streaming        streaming.Connector
 	TelemetryServer  common.TelemetryServer
 	TopicProvisioner kafka2.TopicProvisioner

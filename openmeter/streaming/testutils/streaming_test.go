@@ -8,24 +8,24 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestMockStreamingConnector(t *testing.T) {
 	defaultMeterSlug := "default-meter"
 
-	defaultMeter := models.Meter{
+	defaultMeter := meter.Meter{
 		Slug: defaultMeterSlug,
 	}
 
 	type tc struct {
 		Name          string
 		Events        []SimpleEvent
-		Rows          []models.MeterQueryRow
+		Rows          []meter.MeterQueryRow
 		Query         streaming.QueryParams
-		Expected      []models.MeterQueryRow
+		Expected      []meter.MeterQueryRow
 		ExpectedError error
 	}
 
@@ -39,7 +39,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
-			ExpectedError: &models.MeterNotFoundError{MeterSlug: defaultMeterSlug},
+			ExpectedError: meter.NewMeterNotFoundError(defaultMeterSlug),
 		},
 		{
 			Name: "Should error if meter exists but doesnt match",
@@ -47,7 +47,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
-			ExpectedError: &models.MeterNotFoundError{MeterSlug: defaultMeterSlug},
+			ExpectedError: meter.NewMeterNotFoundError(defaultMeterSlug),
 			Events:        []SimpleEvent{{MeterSlug: ulid.Make().String(), Value: 0, Time: now}},
 		},
 		{
@@ -56,13 +56,13 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
-			Expected: []models.MeterQueryRow{{
+			Expected: []meter.MeterQueryRow{{
 				Value:       0,
 				WindowStart: now.Add(-time.Hour),
 				WindowEnd:   now,
 				GroupBy:     map[string]*string{},
 			}},
-			Rows: []models.MeterQueryRow{},
+			Rows: []meter.MeterQueryRow{},
 			// meter has to exist
 			Events: []SimpleEvent{{MeterSlug: defaultMeterSlug, Value: 0, Time: now}},
 		},
@@ -72,13 +72,13 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
-			Expected: []models.MeterQueryRow{{
+			Expected: []meter.MeterQueryRow{{
 				Value:       1,
 				WindowStart: now.Add(-time.Hour),
 				WindowEnd:   now,
 				GroupBy:     map[string]*string{},
 			}},
-			Rows: []models.MeterQueryRow{{
+			Rows: []meter.MeterQueryRow{{
 				Value:       1,
 				WindowStart: now.Add(-time.Hour),
 				WindowEnd:   now,
@@ -91,7 +91,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
-			Expected: []models.MeterQueryRow{{
+			Expected: []meter.MeterQueryRow{{
 				Value:       5,
 				WindowStart: now.Add(-time.Hour),
 				WindowEnd:   now,
@@ -108,7 +108,7 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Truncate(time.Minute).Add(time.Second * 30).Add(-time.Minute * 2)),
 				To:   convert.ToPointer(now.Truncate(time.Minute).Add(time.Second * 30)),
 			},
-			Expected: []models.MeterQueryRow{{
+			Expected: []meter.MeterQueryRow{{
 				Value:       2,
 				WindowStart: now.Truncate(time.Minute).Add(time.Second * 30).Add(-time.Minute * 2),
 				WindowEnd:   now.Truncate(time.Minute).Add(time.Second * 30),
@@ -140,10 +140,10 @@ func TestMockStreamingConnector(t *testing.T) {
 			Query: streaming.QueryParams{
 				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
 				To:             convert.ToPointer(now),
-				WindowSize:     convert.ToPointer(models.WindowSizeMinute),
+				WindowSize:     convert.ToPointer(meter.WindowSizeMinute),
 				WindowTimeZone: time.UTC,
 			},
-			Expected: []models.MeterQueryRow{
+			Expected: []meter.MeterQueryRow{
 				{
 					Value:       1,
 					WindowStart: now.Add(-time.Minute * 3),
@@ -175,10 +175,10 @@ func TestMockStreamingConnector(t *testing.T) {
 			Query: streaming.QueryParams{
 				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
 				To:             convert.ToPointer(now),
-				WindowSize:     convert.ToPointer(models.WindowSizeHour),
+				WindowSize:     convert.ToPointer(meter.WindowSizeHour),
 				WindowTimeZone: time.UTC,
 			},
-			Expected: []models.MeterQueryRow{
+			Expected: []meter.MeterQueryRow{
 				{
 					Value:       8,
 					WindowStart: now.Add(-time.Minute * 3),

@@ -29,9 +29,9 @@ var Plan = wire.NewSet(
 	NewPlanService,
 )
 
-func NewFeatureConnector(logger *slog.Logger, db *entdb.Client, meterRepo meter.Repository) feature.FeatureConnector {
+func NewFeatureConnector(logger *slog.Logger, db *entdb.Client, meterService meter.Service) feature.FeatureConnector {
 	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger)
-	return feature.NewFeatureConnector(featureRepo, meterRepo)
+	return feature.NewFeatureConnector(featureRepo, meterService)
 }
 
 func NewPlanService(

@@ -18,6 +18,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	productcatalogrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -25,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Dependencies struct {
@@ -70,27 +70,26 @@ func setupDependencies(t *testing.T) Dependencies {
 	// Init product catalog
 	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log)
 
-	meters := []models.Meter{
+	meters := []meter.Meter{
 		{
 			Namespace:   "namespace-1",
 			ID:          "meter-1",
 			Slug:        "meter-1",
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationCount,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationCount,
 		},
 	}
 
-	meterRepo := meter.NewInMemoryRepository(meters)
+	streaming := streamingtestutils.NewMockStreamingConnector(t)
+	meterAdapter := meteradapter.New(meters)
 
-	featureConnector := feature.NewFeatureConnector(featureRepo, meterRepo) // TODO: meter repo is needed
+	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter) // TODO: meter repo is needed
 
 	// Init grants/credit
 	grantRepo := grantrepo.NewPostgresGrantRepo(dbClient)
 	balanceSnapshotRepo := grantrepo.NewPostgresBalanceSnapshotRepo(dbClient)
 
 	// Init entitlements
-	streaming := streamingtestutils.NewMockStreamingConnector(t)
-
 	entitlementRepo := entitlementrepo.NewPostgresEntitlementRepo(dbClient)
 	usageResetRepo := entitlementrepo.NewPostgresUsageResetRepo(dbClient)
 
@@ -100,7 +99,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,
-		meterRepo,
+		meterAdapter,
 		log,
 	)
 
@@ -133,7 +132,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	entitlementConnector := entitlement.NewEntitlementConnector(
 		entitlementRepo,
 		featureConnector,
-		meterRepo,
+		meterAdapter,
 		meteredEntitlementConnector,
 		staticEntitlementConnector,
 		booleanEntitlementConnector,

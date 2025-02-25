@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -56,7 +57,10 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 	service := s.Env.Notification()
 
-	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, TestNamespace, TestMeterSlug)
+	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: TestNamespace,
+		IDOrSlug:  TestMeterSlug,
+	})
 	require.NoError(t, err, "Getting meter must not return error")
 
 	feat, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)

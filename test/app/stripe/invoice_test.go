@@ -20,6 +20,7 @@ import (
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/secret"
@@ -110,39 +111,39 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	s.MeterRepo.ReplaceMeters(ctx, []models.Meter{
+	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:   namespace,
 			Slug:        "flat-per-unit",
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 		{
 			Namespace:   namespace,
 			Slug:        "flat-per-usage",
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 		{
 			Namespace:   namespace,
 			Slug:        "tiered-graduated",
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 		{
 			Namespace:   namespace,
 			Slug:        "tiered-volume",
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 		{
 			Namespace:   namespace,
 			Slug:        "ai-flat-per-unit",
-			WindowSize:  models.WindowSizeMinute,
-			Aggregation: models.MeterAggregationSum,
+			WindowSize:  meter.WindowSizeMinute,
+			Aggregation: meter.MeterAggregationSum,
 		},
 	})
-	defer s.MeterRepo.ReplaceMeters(ctx, []models.Meter{})
+	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values

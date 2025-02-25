@@ -1,60 +1,55 @@
 package router
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 
-	"github.com/go-chi/render"
-
-	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/api"
+	httpdriver "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
+// GET /api/v1/meters
 func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "listMeters")
+	// TODO: update when meter pagination is implemented
+	params := struct{}{}
 
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-
-	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
-	if err != nil {
-		err := fmt.Errorf("list meters: %w", err)
-
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
-
-		return
-	}
-
-	// TODO: remove once meter model pointer is removed
-	list := slicesx.Map[models.Meter, render.Renderer](meters, func(meter models.Meter) render.Renderer {
-		return &meter
-	})
-
-	_ = render.RenderList(w, r, list)
+	a.meterHandler.ListMeters().With(params).ServeHTTP(w, r)
 }
 
+// GET /api/v1/meters/{meterIdOrSlug}
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "getMeter")
-	ctx = contextx.WithAttr(ctx, "id", meterIdOrSlug)
+	a.meterHandler.GetMeter().With(meterIdOrSlug).ServeHTTP(w, r)
+}
 
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+// GET /api/v1/meters/{meterIdOrSlug}/query
+func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterParams) {
+	// Construct handler params
+	handlerParams := httpdriver.QueryMeterParams{
+		IdOrSlug:         meterIDOrSlug,
+		QueryMeterParams: params,
+	}
 
-	meter, err := a.config.Meters.GetMeterByIDOrSlug(ctx, namespace, meterIdOrSlug)
+	// Get media type
+	mediatype, err := commonhttp.GetMediaType(r)
+	if err != nil {
+		a.config.Logger.DebugContext(r.Context(), "invalid media type", "error", err)
+	}
 
-	// TODO: remove once meter model pointer is removed
-	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
-		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
-
-		return
-	} else if err != nil {
-		err := fmt.Errorf("get meter: %w", err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
-
+	// CSV
+	if mediatype == "text/csv" {
+		a.meterHandler.QueryMeterCSV().With(handlerParams).ServeHTTP(w, r)
 		return
 	}
 
-	// TODO: remove once meter model pointer is removed
-	_ = render.Render(w, r, &meter)
+	// JSON is the default
+	a.meterHandler.QueryMeter().With(handlerParams).ServeHTTP(w, r)
+}
+
+// GET /api/v1/meters/{meterIdOrSlug}/subjects
+func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
+	params := httpdriver.ListSubjectsParams{
+		IdOrSlug: meterIDOrSlug,
+	}
+
+	a.meterHandler.ListSubjects().With(params).ServeHTTP(w, r)
 }

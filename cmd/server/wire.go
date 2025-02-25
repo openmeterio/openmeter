@@ -50,7 +50,7 @@ type Application struct {
 	KafkaProducer           *kafka.Producer
 	KafkaMetrics            *kafkametrics.Metrics
 	Logger                  *slog.Logger
-	MeterRepository         meter.Repository
+	MeterService            meter.Service
 	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service

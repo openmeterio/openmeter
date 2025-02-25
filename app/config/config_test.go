@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
@@ -253,7 +253,7 @@ func TestComplete(t *testing.T) {
 			},
 			TokenExpiration: time.Hour,
 		},
-		Meters: []*models.Meter{
+		Meters: []*meter.Meter{
 			{
 				Namespace:     "default",
 				Slug:          "m1",
@@ -265,7 +265,7 @@ func TestComplete(t *testing.T) {
 					"method": "$.method",
 					"path":   "$.path",
 				},
-				WindowSize: models.WindowSizeMinute,
+				WindowSize: meter.WindowSizeMinute,
 			},
 		},
 		Events: EventsConfiguration{

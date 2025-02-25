@@ -8,11 +8,12 @@ import (
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 func initClient(t *testing.T) *api.ClientWithResponses {
@@ -94,10 +95,10 @@ func TestQuickstart(t *testing.T) {
 	}
 
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
-		windowSize := models.WindowSizeHour
+		windowSize := meter.WindowSizeHour
 
 		resp, err := client.QueryMeterWithResponse(context.Background(), "api_requests_total", &api.QueryMeterParams{
-			WindowSize: &windowSize,
+			WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())

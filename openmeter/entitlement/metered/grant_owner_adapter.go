@@ -22,7 +22,7 @@ type entitlementGrantOwner struct {
 	featureRepo     feature.FeatureRepo
 	entitlementRepo entitlement.EntitlementRepo
 	usageResetRepo  UsageResetRepo
-	meterRepo       meter.Repository
+	meterService    meter.Service
 	logger          *slog.Logger
 }
 
@@ -30,14 +30,14 @@ func NewEntitlementGrantOwnerAdapter(
 	featureRepo feature.FeatureRepo,
 	entitlementRepo entitlement.EntitlementRepo,
 	usageResetRepo UsageResetRepo,
-	meterRepo meter.Repository,
+	meterService meter.Service,
 	logger *slog.Logger,
 ) grant.OwnerConnector {
 	return &entitlementGrantOwner{
 		featureRepo:     featureRepo,
 		entitlementRepo: entitlementRepo,
 		usageResetRepo:  usageResetRepo,
-		meterRepo:       meterRepo,
+		meterService:    meterService,
 		logger:          logger,
 	}
 }
@@ -62,7 +62,10 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 	}
 
 	// meterrepo is not transactional
-	meter, err := e.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
+	meter, err := e.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: owner.Namespace,
+		IDOrSlug:  *feature.MeterSlug,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meter: %w", err)
 	}

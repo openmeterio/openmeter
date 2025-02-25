@@ -18,9 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestMain(m *testing.M) {
@@ -463,7 +463,7 @@ func TestQuery(t *testing.T) {
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 
 			expected := &api.MeterQueryResult{
-				Data: []models.MeterQueryRow{
+				Data: []api.MeterQueryRow{
 					{
 						Value:       customerCount * 4 * 100,
 						WindowStart: timestamp.Truncate(time.Minute),
@@ -483,18 +483,18 @@ func TestQuery(t *testing.T) {
 		t.Run("Minute", func(t *testing.T) {
 			t.Parallel()
 
-			windowSize := models.WindowSizeMinute
+			windowSize := meter.WindowSizeMinute
 
 			// Wait for events to be processed
 			assert.EventuallyWithT(t, func(t *assert.CollectT) {
 				resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-					WindowSize: &windowSize,
+					WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 				})
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode())
 
 				expected := &api.MeterQueryResult{
-					Data: []models.MeterQueryRow{
+					Data: []api.MeterQueryRow{
 						{
 							Value:       customerCount * 100,
 							WindowStart: timestamp.Truncate(time.Minute),
@@ -520,7 +520,7 @@ func TestQuery(t *testing.T) {
 							GroupBy:     map[string]*string{},
 						},
 					},
-					WindowSize: &windowSize,
+					WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 				}
 
 				assert.Equal(t, expected, resp.JSON200)
@@ -530,18 +530,18 @@ func TestQuery(t *testing.T) {
 		t.Run("Hour", func(t *testing.T) {
 			t.Parallel()
 
-			windowSize := models.WindowSizeHour
+			windowSize := meter.WindowSizeHour
 
 			// Wait for events to be processed
 			assert.EventuallyWithT(t, func(t *assert.CollectT) {
 				resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-					WindowSize: &windowSize,
+					WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 				})
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode())
 
 				expected := &api.MeterQueryResult{
-					Data: []models.MeterQueryRow{
+					Data: []api.MeterQueryRow{
 						{
 							Value:       customerCount * 2 * 100,
 							WindowStart: timestamp.Truncate(time.Hour),
@@ -561,7 +561,7 @@ func TestQuery(t *testing.T) {
 							GroupBy:     map[string]*string{},
 						},
 					},
-					WindowSize: &windowSize,
+					WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 				}
 
 				assert.Equal(t, expected, resp.JSON200)
@@ -571,18 +571,18 @@ func TestQuery(t *testing.T) {
 		t.Run("Day", func(t *testing.T) {
 			t.Parallel()
 
-			windowSize := models.WindowSizeDay
+			windowSize := meter.WindowSizeDay
 
 			// Wait for events to be processed
 			assert.EventuallyWithT(t, func(t *assert.CollectT) {
 				resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-					WindowSize: &windowSize,
+					WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 				})
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode())
 
 				expected := &api.MeterQueryResult{
-					Data: []models.MeterQueryRow{
+					Data: []api.MeterQueryRow{
 						{
 							Value:       customerCount * 3 * 100,
 							WindowStart: timestamp.Truncate(24 * time.Hour),
@@ -596,7 +596,7 @@ func TestQuery(t *testing.T) {
 							GroupBy:     map[string]*string{},
 						},
 					},
-					WindowSize: &windowSize,
+					WindowSize: lo.ToPtr(api.WindowSize(windowSize)),
 				}
 
 				assert.Equal(t, expected, resp.JSON200)
@@ -620,7 +620,7 @@ func TestQuery(t *testing.T) {
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 
 			expected := &api.MeterQueryResult{
-				Data: []models.MeterQueryRow{
+				Data: []api.MeterQueryRow{
 					{
 						Value:       4 * 100,
 						WindowStart: timestamp.Truncate(time.Minute),

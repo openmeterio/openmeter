@@ -8,15 +8,15 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type getFeatureUsageInput struct {
 	Line       *billing.Line
 	ParentLine *billing.Line
-	Meter      models.Meter
+	Meter      meter.Meter
 	Feature    feature.Feature
 	Subjects   []string
 }
@@ -40,9 +40,9 @@ func (i getFeatureUsageInput) Validate() error {
 		}
 	}
 
-	if slices.Contains([]models.MeterAggregation{
-		models.MeterAggregationAvg,
-		models.MeterAggregationMin,
+	if slices.Contains([]meter.MeterAggregation{
+		meter.MeterAggregationAvg,
+		meter.MeterAggregationMin,
 	}, i.Meter.Aggregation) {
 		if i.ParentLine != nil {
 			return fmt.Errorf("aggregation %s is not supported for split lines", i.Meter.Aggregation)
@@ -139,7 +139,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	}, nil
 }
 
-func summarizeMeterQueryRow(in []models.MeterQueryRow) alpacadecimal.Decimal {
+func summarizeMeterQueryRow(in []meter.MeterQueryRow) alpacadecimal.Decimal {
 	sum := alpacadecimal.Decimal{}
 	for _, row := range in {
 		sum = sum.Add(alpacadecimal.NewFromFloat(row.Value))

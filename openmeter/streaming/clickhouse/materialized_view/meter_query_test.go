@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 func TestCreateMeterView(t *testing.T) {
@@ -21,7 +21,7 @@ func TestCreateMeterView(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				MeterSlug:       "meter1",
-				Aggregation:     models.MeterAggregationSum,
+				Aggregation:     meter.MeterAggregationSum,
 				EventType:       "myevent",
 				ValueProperty:   "$.duration_ms",
 				GroupBy:         map[string]string{"group1": "$.group1", "group2": "$.group2"},
@@ -35,7 +35,7 @@ func TestCreateMeterView(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				MeterSlug:       "meter1",
-				Aggregation:     models.MeterAggregationAvg,
+				Aggregation:     meter.MeterAggregationAvg,
 				EventType:       "myevent",
 				ValueProperty:   "$.token_count",
 				GroupBy:         map[string]string{},
@@ -49,7 +49,7 @@ func TestCreateMeterView(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				MeterSlug:       "meter1",
-				Aggregation:     models.MeterAggregationCount,
+				Aggregation:     meter.MeterAggregationCount,
 				EventType:       "myevent",
 				ValueProperty:   "",
 				GroupBy:         map[string]string{},
@@ -63,7 +63,7 @@ func TestCreateMeterView(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				MeterSlug:       "meter1",
-				Aggregation:     models.MeterAggregationCount,
+				Aggregation:     meter.MeterAggregationCount,
 				EventType:       "myevent",
 				ValueProperty:   "",
 				GroupBy:         map[string]string{},
@@ -77,7 +77,7 @@ func TestCreateMeterView(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				MeterSlug:       "meter1",
-				Aggregation:     models.MeterAggregationUniqueCount,
+				Aggregation:     meter.MeterAggregationUniqueCount,
 				EventType:       "myevent",
 				ValueProperty:   "$.trace_id",
 				GroupBy:         map[string]string{},
@@ -133,7 +133,7 @@ func TestQueryMeterView(t *testing.T) {
 	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
 	tz, _ := time.LoadLocation("Asia/Shanghai")
-	windowSize := models.WindowSizeHour
+	windowSize := meter.WindowSizeHour
 
 	tests := []struct {
 		query    queryMeterView
@@ -145,7 +145,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				Subject:     []string{subject},
 				From:        &from,
 				To:          &to,
@@ -160,7 +160,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter",
 			wantArgs: nil,
@@ -170,7 +170,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationCount,
+				Aggregation: meter.MeterAggregationCount,
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), toFloat64(countMerge(value)) AS value FROM openmeter.om_my_namespace_meter1 meter",
 			wantArgs: nil,
@@ -180,7 +180,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				From:        &from,
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE meter.windowstart >= ?",
@@ -191,7 +191,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				From:        &from,
 				To:          &to,
 			},
@@ -203,7 +203,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				From:        &from,
 				To:          &to,
 				WindowSize:  &windowSize,
@@ -216,7 +216,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:       "openmeter",
 				Namespace:      "my_namespace",
 				MeterSlug:      "meter1",
-				Aggregation:    models.MeterAggregationSum,
+				Aggregation:    meter.MeterAggregationSum,
 				From:           &from,
 				To:             &to,
 				WindowSize:     &windowSize,
@@ -230,7 +230,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				Subject:     []string{subject},
 				GroupBy:     []string{"subject"},
 			},
@@ -242,7 +242,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				Subject:     []string{subject},
 				GroupBy:     []string{"subject", "group1", "group2"},
 			},
@@ -254,7 +254,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
+				Aggregation: meter.MeterAggregationSum,
 				Subject:     []string{subject, "subject2"},
 				GroupBy:     []string{"subject"},
 			},
@@ -266,7 +266,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:      "openmeter",
 				Namespace:     "my_namespace",
 				MeterSlug:     "meter1",
-				Aggregation:   models.MeterAggregationSum,
+				Aggregation:   meter.MeterAggregationSum,
 				FilterGroupBy: map[string][]string{"g1": {"g1v1"}},
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.g1 = ?)",
@@ -277,7 +277,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:      "openmeter",
 				Namespace:     "my_namespace",
 				MeterSlug:     "meter1",
-				Aggregation:   models.MeterAggregationSum,
+				Aggregation:   meter.MeterAggregationSum,
 				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}},
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.g1 = ? OR meter.g1 = ?)",
@@ -288,7 +288,7 @@ func TestQueryMeterView(t *testing.T) {
 				Database:      "openmeter",
 				Namespace:     "my_namespace",
 				MeterSlug:     "meter1",
-				Aggregation:   models.MeterAggregationSum,
+				Aggregation:   meter.MeterAggregationSum,
 				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}, "g2": {"g2v1", "g2v2"}},
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 meter WHERE (meter.g1 = ? OR meter.g1 = ?) AND (meter.g2 = ? OR meter.g2 = ?)",

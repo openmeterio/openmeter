@@ -27,7 +27,7 @@ type Service struct {
 	logger             *slog.Logger
 	invoiceCalculator  invoicecalc.Calculator
 	featureService     feature.FeatureConnector
-	meterRepo          meter.Repository
+	meterService       meter.Service
 	streamingConnector streaming.Connector
 
 	lineService *lineservice.Service
@@ -42,7 +42,7 @@ type Config struct {
 	AppService          app.Service
 	Logger              *slog.Logger
 	FeatureService      feature.FeatureConnector
-	MeterRepo           meter.Repository
+	MeterService        meter.Service
 	StreamingConnector  streaming.Connector
 	Publisher           eventbus.Publisher
 	AdvancementStrategy billing.AdvancementStrategy
@@ -69,7 +69,7 @@ func (c Config) Validate() error {
 		return errors.New("feature connector cannot be null")
 	}
 
-	if c.MeterRepo == nil {
+	if c.MeterService == nil {
 		return errors.New("meter repo cannot be null")
 	}
 
@@ -99,7 +99,7 @@ func New(config Config) (*Service, error) {
 		appService:          config.AppService,
 		logger:              config.Logger,
 		featureService:      config.FeatureService,
-		meterRepo:           config.MeterRepo,
+		meterService:        config.MeterService,
 		streamingConnector:  config.StreamingConnector,
 		publisher:           config.Publisher,
 		advancementStrategy: config.AdvancementStrategy,
@@ -108,7 +108,7 @@ func New(config Config) (*Service, error) {
 	lineSvc, err := lineservice.New(lineservice.Config{
 		BillingAdapter:     config.Adapter,
 		FeatureService:     config.FeatureService,
-		MeterRepo:          config.MeterRepo,
+		MeterService:       config.MeterService,
 		StreamingConnector: config.StreamingConnector,
 	})
 	if err != nil {

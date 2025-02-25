@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Configuration holds any kind of Configuration that comes from the outside world and
@@ -27,7 +27,7 @@ type Configuration struct {
 	Dedupe         DedupeConfiguration
 	Events         EventsConfiguration
 	Ingest         IngestConfiguration
-	Meters         []*models.Meter
+	Meters         []*meter.Meter
 	Namespace      NamespaceConfiguration
 	Portal         PortalConfiguration
 	Postgres       PostgresConfig
@@ -90,7 +90,7 @@ func (c Configuration) Validate() error {
 
 		// set default window size
 		if m.WindowSize == "" {
-			m.WindowSize = models.WindowSizeMinute
+			m.WindowSize = meter.WindowSizeMinute
 		}
 
 		if err := m.Validate(); err != nil {

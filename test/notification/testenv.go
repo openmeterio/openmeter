@@ -44,7 +44,7 @@ type TestEnv interface {
 	NotificationWebhook() notificationwebhook.Handler
 
 	Feature() feature.FeatureConnector
-	Meter() meter.Repository
+	Meter() meter.Service
 
 	Close() error
 }
@@ -57,7 +57,7 @@ type testEnv struct {
 	webhook          notificationwebhook.Handler
 
 	feature feature.FeatureConnector
-	meter   meter.Repository
+	meter   meter.Service
 
 	closerFunc func() error
 }
@@ -82,7 +82,7 @@ func (n testEnv) Feature() feature.FeatureConnector {
 	return n.feature
 }
 
-func (n testEnv) Meter() meter.Repository {
+func (n testEnv) Meter() meter.Service {
 	return n.meter
 }
 
@@ -103,10 +103,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	meterRepository := NewMeterRepository()
+	meterService := NewMeterService()
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
-	featureConnector := feature.NewFeatureConnector(featureAdapter, meterRepository)
+	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService)
 
 	repo, err := notificationrepository.New(notificationrepository.Config{
 		Client: entClient,
@@ -173,7 +173,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		notification:     service,
 		webhook:          webhook,
 		feature:          featureConnector,
-		meter:            meterRepository,
+		meter:            meterService,
 		closerFunc:       closerFunc,
 	}, nil
 }

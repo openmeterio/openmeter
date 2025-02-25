@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -158,7 +159,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		base.FilterSubject = []string{ownerMeter.SubjectKey}
 		base.From = params.From
 		base.To = params.To
-		base.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
+		base.WindowSize = convert.ToPointer(meter.WindowSize(params.WindowSize))
 		base.WindowTimeZone = &params.WindowTimeZone
 
 		return base

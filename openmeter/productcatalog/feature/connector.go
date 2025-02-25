@@ -7,7 +7,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -74,24 +74,24 @@ type ListFeaturesParams struct {
 }
 
 type featureConnector struct {
-	featureRepo FeatureRepo
-	meterRepo   meter.Repository
+	featureRepo  FeatureRepo
+	meterService meterpkg.Service
 
-	validMeterAggregations []models.MeterAggregation
+	validMeterAggregations []meterpkg.MeterAggregation
 }
 
 func NewFeatureConnector(
 	featureRepo FeatureRepo,
-	meterRepo meter.Repository,
+	meterService meterpkg.Service,
 ) FeatureConnector {
 	return &featureConnector{
-		featureRepo: featureRepo,
-		meterRepo:   meterRepo,
+		featureRepo:  featureRepo,
+		meterService: meterService,
 
-		validMeterAggregations: []models.MeterAggregation{
-			models.MeterAggregationSum,
-			models.MeterAggregationCount,
-			models.MeterAggregationUniqueCount,
+		validMeterAggregations: []meterpkg.MeterAggregation{
+			meterpkg.MeterAggregationSum,
+			meterpkg.MeterAggregationCount,
+			meterpkg.MeterAggregationUniqueCount,
 		},
 	}
 }
@@ -100,9 +100,12 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	// validate meter configuration
 	if feature.MeterSlug != nil {
 		slug := *feature.MeterSlug
-		meter, err := c.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, slug)
+		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+			Namespace: feature.Namespace,
+			IDOrSlug:  slug,
+		})
 		if err != nil {
-			return Feature{}, &models.MeterNotFoundError{MeterSlug: slug}
+			return Feature{}, meterpkg.NewMeterNotFoundError(slug)
 		}
 
 		if !slices.Contains(c.validMeterAggregations, meter.Aggregation) {

@@ -31,6 +31,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -47,12 +49,12 @@ import (
 
 var mockEvent = event.New()
 
-var mockMeters = []models.Meter{
+var mockMeters = []meter.Meter{
 	{
 		ID:            ulid.Make().String(),
 		Slug:          "meter1",
-		WindowSize:    models.WindowSizeMinute,
-		Aggregation:   models.MeterAggregationSum,
+		WindowSize:    meter.WindowSizeMinute,
+		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
 		ValueProperty: "$.value",
 		GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
@@ -60,8 +62,8 @@ var mockMeters = []models.Meter{
 	{
 		ID:            ulid.Make().String(),
 		Slug:          "meter2",
-		WindowSize:    models.WindowSizeMinute,
-		Aggregation:   models.MeterAggregationSum,
+		WindowSize:    meter.WindowSizeMinute,
+		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
 		ValueProperty: "$.value",
 	},
@@ -69,7 +71,7 @@ var mockMeters = []models.Meter{
 
 var (
 	mockSubject    = "s1"
-	mockQueryValue = models.MeterQueryRow{
+	mockQueryValue = meter.MeterQueryRow{
 		Subject:     &mockSubject,
 		WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 		WindowEnd:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -100,25 +102,25 @@ func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return events, nil
 }
 
-func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }
 
-func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter models.Meter) error {
+func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }
 
-func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meter models.Meter, params streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	value := mockQueryValue
 
 	if params.FilterSubject == nil {
 		value.Subject = nil
 	}
 
-	return []models.MeterQueryRow{value}, nil
+	return []meter.MeterQueryRow{value}, nil
 }
 
-func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter models.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
 	return []string{"s1"}, nil
 }
 
@@ -154,14 +156,16 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 		return nil, err
 	}
 
+	mockStreamingConnector := &MockStreamingConnector{}
+
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
 			EntitlementConnector:        &NoopEntitlementConnector{},
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			FeatureConnector:            &NoopFeatureConnector{},
 			GrantConnector:              &NoopGrantConnector{},
-			Meters:                      meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector:          &MockStreamingConnector{},
+			MeterService:                meteradapter.New(mockMeters),
+			StreamingConnector:          mockStreamingConnector,
 			DebugConnector:              MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
@@ -243,7 +247,10 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body:   mockMeters,
+				body: []api.Meter{
+					meterhttphandler.ToAPIMeter(mockMeters[0]),
+					meterhttphandler.ToAPIMeter(mockMeters[1]),
+				},
 			},
 		},
 		{
@@ -254,7 +261,7 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body:   mockMeters[0],
+				body:   meterhttphandler.ToAPIMeter(mockMeters[0]),
 			},
 		},
 		{
@@ -267,10 +274,10 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					Data []models.MeterQueryRow `json:"data"`
+					Data []api.MeterQueryRow `json:"data"`
 				}{
-					Data: []models.MeterQueryRow{
-						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					Data: []api.MeterQueryRow{
+						{WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
 			},
@@ -318,9 +325,9 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					Data []models.MeterQueryRow `json:"data"`
+					Data []api.MeterQueryRow `json:"data"`
 				}{
-					Data: []models.MeterQueryRow{
+					Data: []api.MeterQueryRow{
 						{Subject: mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
@@ -336,10 +343,10 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					Data []models.MeterQueryRow `json:"data"`
+					Data []api.MeterQueryRow `json:"data"`
 				}{
-					Data: []models.MeterQueryRow{
-						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					Data: []api.MeterQueryRow{
+						{WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
 			},

@@ -123,10 +123,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	inMemoryRepository := common.NewInMemoryRepository(v2)
-	featureConnector := common.NewFeatureConnector(logger, client, inMemoryRepository)
+	service := common.NewMeterService(v2)
+	featureConnector := common.NewFeatureConnector(logger, client, service)
 	v3 := conf.Svix
-	service, err := common.NewNotificationService(logger, client, notificationConfiguration, v3, featureConnector)
+	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v3, featureConnector)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -148,7 +148,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, inMemoryRepository, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, service, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -182,8 +182,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		MessagePublisher:   publisher,
 		Meter:              meter,
 		Metadata:           commonMetadata,
-		MeterRepository:    inMemoryRepository,
-		Notification:       service,
+		MeterService:       service,
+		Notification:       notificationService,
 		StreamingConnector: connector,
 		TelemetryServer:    v5,
 	}
@@ -212,7 +212,7 @@ type Application struct {
 	MessagePublisher   message.Publisher
 	Meter              metric.Meter
 	Metadata           common.Metadata
-	MeterRepository    meter.Repository
+	MeterService       meter.Service
 	Notification       notification.Service
 	StreamingConnector streaming.Connector
 	TelemetryServer    common.TelemetryServer

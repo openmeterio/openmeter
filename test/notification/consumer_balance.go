@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -93,7 +94,10 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 
 	service := s.Env.Notification()
 
-	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, s.namespace, TestMeterSlug)
+	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: s.namespace,
+		IDOrSlug:  TestMeterSlug,
+	})
 	require.NoError(t, err, "Getting meter must not return error")
 
 	s.feature, err = s.Env.Feature().CreateFeature(ctx, feature.CreateFeatureInputs{
@@ -390,7 +394,10 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 
 	service := s.Env.Notification()
 
-	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, s.namespace, TestMeterSlug)
+	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: s.namespace,
+		IDOrSlug:  TestMeterSlug,
+	})
 	require.NoError(t, err, "Getting meter must not return error")
 
 	// let's setup two more features (we should use different meters but for the sake of simplicity we are using the same one)

@@ -3,11 +3,36 @@ package commonhttp
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
+	"mime"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
+
+// GetMediaType returns the media type of the request.
+// If the media type is invalid, it defaults to JSON.
+func GetMediaType(r *http.Request) (string, error) {
+	var err error
+
+	// Parse media type
+	accept := r.Header.Get("Accept")
+	if accept == "" {
+		accept = "application/json"
+	}
+
+	mediatype, _, err := mime.ParseMediaType(accept)
+	// Browser can send back media type Go marks as invalid
+	// If that happens, default to JSON
+	if err != nil {
+		err = fmt.Errorf("invalid media type, default to json: %w", err)
+		mediatype = "application/json"
+	}
+
+	return mediatype, err
+}
 
 // JSONResponseEncoder encodes a response as JSON.
 func JSONResponseEncoder[Response any](_ context.Context, w http.ResponseWriter, response Response) error {
@@ -54,6 +79,37 @@ func plainTextResponseEncoder[Response string](w http.ResponseWriter, statusCode
 	_, err := w.Write([]byte(response))
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// CSVResponse is a response that can be encoded as CSV.
+type CSVResponse interface {
+	FileName() string
+	Records() [][]string
+}
+
+// CSVResponseEncoder encodes a response as CSV.
+func CSVResponseEncoder[Response CSVResponse](_ context.Context, w http.ResponseWriter, response Response) error {
+	return csvResponseEncoder(w, http.StatusOK, response)
+}
+
+// CSVResponseEncoder encodes a response as CSV.
+func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode int, response Response) error {
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", response.FileName()))
+	w.WriteHeader(statusCode)
+
+	// Write response
+	writer := csv.NewWriter(w)
+	err := writer.WriteAll(response.Records())
+	if err != nil {
+		return fmt.Errorf("writing record to csv: %w", err)
+	}
+
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("writing csv: %w", err)
 	}
 
 	return nil

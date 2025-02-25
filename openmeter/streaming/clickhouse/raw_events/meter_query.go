@@ -8,7 +8,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -16,13 +16,13 @@ type queryMeter struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           models.Meter
+	Meter           meter.Meter
 	Subject         []string
 	FilterGroupBy   map[string][]string
 	From            *time.Time
 	To              *time.Time
 	GroupBy         []string
-	WindowSize      *models.WindowSize
+	WindowSize      *meter.WindowSize
 	WindowTimeZone  *time.Location
 }
 
@@ -43,21 +43,21 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 
 	if groupByWindowSize {
 		switch *d.WindowSize {
-		case models.WindowSizeMinute:
+		case meter.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalMinute(1), '%s') AS windowstart", timeColumn, tz),
 				fmt.Sprintf("tumbleEnd(%s, toIntervalMinute(1), '%s') AS windowend", timeColumn, tz),
 			)
 
-		case models.WindowSizeHour:
+		case meter.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalHour(1), '%s') AS windowstart", timeColumn, tz),
 				fmt.Sprintf("tumbleEnd(%s, toIntervalHour(1), '%s') AS windowend", timeColumn, tz),
 			)
 
-		case models.WindowSizeDay:
+		case meter.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
 				fmt.Sprintf("tumbleStart(%s, toIntervalDay(1), '%s') AS windowstart", timeColumn, tz),
@@ -80,25 +80,25 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 	// Select Value
 	sqlAggregation := ""
 	switch d.Meter.Aggregation {
-	case models.MeterAggregationSum:
+	case meter.MeterAggregationSum:
 		sqlAggregation = "sum"
-	case models.MeterAggregationAvg:
+	case meter.MeterAggregationAvg:
 		sqlAggregation = "avg"
-	case models.MeterAggregationMin:
+	case meter.MeterAggregationMin:
 		sqlAggregation = "min"
-	case models.MeterAggregationMax:
+	case meter.MeterAggregationMax:
 		sqlAggregation = "max"
-	case models.MeterAggregationUniqueCount:
+	case meter.MeterAggregationUniqueCount:
 		sqlAggregation = "uniq"
-	case models.MeterAggregationCount:
+	case meter.MeterAggregationCount:
 		sqlAggregation = "count"
 	default:
 		return "", []interface{}{}, fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation)
 	}
 
-	if d.Meter.Aggregation == models.MeterAggregationCount {
+	if d.Meter.Aggregation == meter.MeterAggregationCount {
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
-	} else if d.Meter.Aggregation == models.MeterAggregationUniqueCount {
+	} else if d.Meter.Aggregation == meter.MeterAggregationUniqueCount {
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(d.Meter.ValueProperty)))
 	} else {
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
@@ -196,7 +196,7 @@ type listMeterSubjectsQuery struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	Meter           models.Meter
+	Meter           meter.Meter
 	From            *time.Time
 	To              *time.Time
 }

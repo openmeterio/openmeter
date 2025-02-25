@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -110,7 +111,10 @@ type EventTestSuite struct {
 func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	t.Helper()
 
-	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, TestNamespace, TestMeterSlug)
+	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: TestNamespace,
+		IDOrSlug:  TestMeterSlug,
+	})
 	require.NoError(t, err, "Getting meter must not return error")
 
 	feat, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)

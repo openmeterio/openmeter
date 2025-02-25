@@ -7,21 +7,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestQueryParamsValidate(t *testing.T) {
-	queryWindowSizeMinute := models.WindowSizeMinute
-	queryWindowSizeHour := models.WindowSizeHour
-	queryWindowSizeDay := models.WindowSizeDay
+	queryWindowSizeMinute := meter.WindowSizeMinute
+	queryWindowSizeHour := meter.WindowSizeHour
+	queryWindowSizeDay := meter.WindowSizeDay
 
 	tests := []struct {
 		name                string
 		paramFrom           string
 		paramTo             string
 		paramWindowTimeZone string
-		paramWindowSize     *models.WindowSize
-		meterWindowSize     models.WindowSize
+		paramWindowSize     *meter.WindowSize
+		meterWindowSize     meter.WindowSize
 		want                error
 	}{
 		{
@@ -29,47 +30,47 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-01T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("to must be after from"),
+			meterWindowSize: meter.WindowSizeMinute,
+			want:            models.NewGenericValidationError(fmt.Errorf("from and to cannot be equal")),
 		},
 		{
 			name:            "should fail when from is before to",
 			paramFrom:       "2023-01-02T00:00:00Z",
 			paramTo:         "2023-01-01T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("to must be after from"),
+			meterWindowSize: meter.WindowSizeMinute,
+			want:            models.NewGenericValidationError(fmt.Errorf("from must be before to")),
 		},
 		{
 			name:            "should fail when querying on minute but meter is hour",
 			paramFrom:       "2023-01-01T00:00:00Z",
-			paramTo:         "2023-01-01T00:01:00Z",
+			paramTo:         "2023-01-02T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeHour,
-			want:            fmt.Errorf("cannot query meter with window size HOUR on window size MINUTE"),
+			meterWindowSize: meter.WindowSizeHour,
+			want:            models.NewGenericValidationError(fmt.Errorf("cannot query meter with window size HOUR on window size MINUTE")),
 		},
 		{
 			name:            "should fail when querying on minute but meter is day",
 			paramFrom:       "2023-01-01T00:00:00Z",
-			paramTo:         "2023-01-01T00:01:00Z",
+			paramTo:         "2023-01-02T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeDay,
-			want:            fmt.Errorf("cannot query meter with window size DAY on window size MINUTE"),
+			meterWindowSize: meter.WindowSizeDay,
+			want:            models.NewGenericValidationError(fmt.Errorf("cannot query meter with window size DAY on window size MINUTE")),
 		},
 		{
 			name:            "should fail when querying on hour but meter is day",
 			paramFrom:       "2023-01-01T00:00:00Z",
-			paramTo:         "2023-01-01T01:00:00Z",
+			paramTo:         "2023-01-02T00:00:00Z",
 			paramWindowSize: &queryWindowSizeHour,
-			meterWindowSize: models.WindowSizeDay,
-			want:            fmt.Errorf("cannot query meter with window size DAY on window size HOUR"),
+			meterWindowSize: meter.WindowSizeDay,
+			want:            models.NewGenericValidationError(fmt.Errorf("cannot query meter with window size DAY on window size HOUR")),
 		},
 		{
 			name:            "should be ok to query per hour on minute meter",
 			paramFrom:       "2023-01-01T00:00:00Z",
-			paramTo:         "2023-01-01T01:00:00Z",
+			paramTo:         "2023-01-02T00:00:00Z",
 			paramWindowSize: &queryWindowSizeHour,
-			meterWindowSize: models.WindowSizeMinute,
+			meterWindowSize: meter.WindowSizeMinute,
 			want:            nil,
 		},
 		{
@@ -77,7 +78,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-02T00:00:00Z",
 			paramWindowSize: &queryWindowSizeDay,
-			meterWindowSize: models.WindowSizeMinute,
+			meterWindowSize: meter.WindowSizeMinute,
 			want:            nil,
 		},
 		{
@@ -85,7 +86,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-02T00:00:00Z",
 			paramWindowSize: &queryWindowSizeDay,
-			meterWindowSize: models.WindowSizeMinute,
+			meterWindowSize: meter.WindowSizeMinute,
 			want:            nil,
 		},
 		{
@@ -93,7 +94,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-01T00:01:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeMinute,
+			meterWindowSize: meter.WindowSizeMinute,
 			want:            nil,
 		},
 		{
@@ -101,7 +102,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-01T01:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeMinute,
+			meterWindowSize: meter.WindowSizeMinute,
 			want:            nil,
 		},
 		{
@@ -109,7 +110,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-02T00:01:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
-			meterWindowSize: models.WindowSizeMinute,
+			meterWindowSize: meter.WindowSizeMinute,
 			want:            nil,
 		},
 		{
@@ -117,24 +118,24 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramFrom:       "2023-01-01T00:00:01Z",
 			paramTo:         "2023-01-01T00:01:00Z",
 			paramWindowSize: nil,
-			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("cannot query meter aggregating on MINUTE window size: from must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00"),
+			meterWindowSize: meter.WindowSizeMinute,
+			want:            models.NewGenericValidationError(fmt.Errorf("from must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00")),
 		},
 		{
 			name:            "should fail with not rounded to hour",
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-01T01:01:00Z",
 			paramWindowSize: nil,
-			meterWindowSize: models.WindowSizeHour,
-			want:            fmt.Errorf("cannot query meter aggregating on HOUR window size: to must be rounded to HOUR like YYYY-MM-DDTHH:00:00"),
+			meterWindowSize: meter.WindowSizeHour,
+			want:            models.NewGenericValidationError(fmt.Errorf("to must be rounded to HOUR like YYYY-MM-DDTHH:00:00")),
 		},
 		{
 			name:            "should fail with not rounded to day",
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-01T01:00:00Z",
 			paramWindowSize: nil,
-			meterWindowSize: models.WindowSizeDay,
-			want:            fmt.Errorf("cannot query meter aggregating on DAY window size: to must be rounded to DAY like YYYY-MM-DDT00:00:00"),
+			meterWindowSize: meter.WindowSizeDay,
+			want:            models.NewGenericValidationError(fmt.Errorf("to must be rounded to DAY like YYYY-MM-DDT00:00:00")),
 		},
 	}
 
@@ -163,7 +164,7 @@ func TestQueryParamsValidate(t *testing.T) {
 				WindowSize: tt.paramWindowSize,
 			}
 
-			got := p.Validate(models.Meter{WindowSize: tt.meterWindowSize})
+			got := p.Validate(meter.Meter{WindowSize: tt.meterWindowSize})
 			if tt.want == nil {
 				assert.NoError(t, got)
 			} else {

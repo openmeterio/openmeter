@@ -34,7 +34,7 @@ type Application struct {
 	MessagePublisher   message.Publisher
 	Meter              metric.Meter
 	Metadata           common.Metadata
-	MeterRepository    meter.Repository
+	MeterService       meter.Service
 	Notification       notification.Service
 	StreamingConnector streaming.Connector
 	TelemetryServer    common.TelemetryServer

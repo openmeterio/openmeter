@@ -245,13 +245,6 @@ namespace OpenMeterCloud.Info {
 /**
  * A meter is a configuration that defines how to match and aggregate events.
  */
-@extension("x-go-type", "models.Meter")
-@extension(
-  "x-go-type-import",
-  {
-    path: "github.com/openmeterio/openmeter/pkg/models",
-  }
-)
 @friendlyName("MeterCreate")
 @example(#{
   slug: "tokens_total",

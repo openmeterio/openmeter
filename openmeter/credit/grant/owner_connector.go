@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type EndCurrentUsagePeriodParams struct {
@@ -15,7 +15,7 @@ type EndCurrentUsagePeriodParams struct {
 }
 
 type OwnerMeter struct {
-	Meter         models.Meter
+	Meter         meter.Meter
 	DefaultParams streaming.QueryParams
 	SubjectKey    string
 }
