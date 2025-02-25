@@ -1,16 +1,11 @@
 package notification
 
 import (
-	"crypto/rand"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	clickhousedriver "github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/oklog/ulid/v2"
-
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 )
 
 func NewSvixAuthToken(signingSecret string) (string, error) {
@@ -39,23 +34,5 @@ func NewClickhouseClient(addr string) (clickhousedriver.Conn, error) {
 		ConnMaxLifetime:  time.Duration(10) * time.Minute,
 		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
 		BlockBufferSize:  10,
-	})
-}
-
-func NewMeterService() meter.Service {
-	return meteradapter.New([]meter.Meter{
-		{
-			Namespace:     TestNamespace,
-			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
-			Slug:          TestMeterSlug,
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "request",
-			ValueProperty: "$.duration_ms",
-			GroupBy: map[string]string{
-				"method": "$.method",
-				"path":   "$.path",
-			},
-			WindowSize: "MINUTE",
-		},
 	})
 }

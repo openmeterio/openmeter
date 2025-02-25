@@ -25,7 +25,8 @@ import (
 
 func TestEditingAndCanceling(t *testing.T) {
 	// Let's declare our variables
-	namespace := "example"
+	// note: this namespace is hardcoded in the test framework
+	namespace := "test-namespace"
 
 	currentTime := testutils.GetRFC3339Time(t, "2025-01-20T13:11:07Z")
 	ctx, cancel := context.WithCancel(context.Background())

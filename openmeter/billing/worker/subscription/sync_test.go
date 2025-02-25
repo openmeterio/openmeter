@@ -144,10 +144,12 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   s.Namespace,
-			Slug:        apiRequestsTotalMeterSlug,
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     s.Namespace,
+			Slug:          apiRequestsTotalMeterSlug,
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 

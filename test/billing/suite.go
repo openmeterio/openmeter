@@ -88,7 +88,11 @@ func (s *BaseSuite) SetupSuite() {
 	// Meter repo
 
 	s.MockStreamingConnector = streamingtestutils.NewMockStreamingConnector(t)
-	s.MeterAdapter = meteradapter.New(nil)
+
+	meterAdapter, err := meteradapter.New(nil)
+	require.NoError(t, err)
+
+	s.MeterAdapter = meterAdapter
 
 	// Entitlement
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{

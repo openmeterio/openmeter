@@ -27,7 +27,10 @@ func TestEngine(t *testing.T) {
 	meterSlug := "meter-1"
 
 	meter := meterpkg.Meter{
-		Slug: meterSlug,
+		Namespace:   "default",
+		Slug:        meterSlug,
+		EventType:   "requests",
+		Aggregation: meterpkg.MeterAggregationCount,
 	}
 
 	grant1 := makeGrant(grant.Grant{

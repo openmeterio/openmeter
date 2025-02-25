@@ -161,10 +161,12 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        meterSlug,
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          meterSlug,
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})

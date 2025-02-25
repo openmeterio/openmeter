@@ -79,10 +79,12 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        "test",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "test",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
@@ -1447,28 +1449,36 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        "flat-per-unit",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "flat-per-unit",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "flat-per-usage",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "flat-per-usage",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-graduated",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-graduated",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-volume",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-volume",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
@@ -2332,10 +2342,12 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-graduated",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-graduated",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
@@ -2561,28 +2573,36 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        "flat-per-unit",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "flat-per-unit",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "flat-per-usage",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "flat-per-usage",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-graduated",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-graduated",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-volume",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-volume",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
@@ -3133,10 +3153,12 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        meterSlug,
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          meterSlug,
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
 	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})

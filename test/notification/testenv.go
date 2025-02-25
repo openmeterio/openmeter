@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
@@ -44,7 +45,7 @@ type TestEnv interface {
 	NotificationWebhook() notificationwebhook.Handler
 
 	Feature() feature.FeatureConnector
-	Meter() meter.Service
+	Meter() *meteradapter.TestAdapter
 
 	Close() error
 }
@@ -57,7 +58,7 @@ type testEnv struct {
 	webhook          notificationwebhook.Handler
 
 	feature feature.FeatureConnector
-	meter   meter.Service
+	meter   *meteradapter.TestAdapter
 
 	closerFunc func() error
 }
@@ -82,7 +83,7 @@ func (n testEnv) Feature() feature.FeatureConnector {
 	return n.feature
 }
 
-func (n testEnv) Meter() meter.Service {
+func (n testEnv) Meter() *meteradapter.TestAdapter {
 	return n.meter
 }
 
@@ -91,7 +92,7 @@ const (
 	DefaultSvixJWTSigningSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
 )
 
-func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
+func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, error) {
 	t.Helper()
 	logger := slog.Default().WithGroup("notification")
 
@@ -103,7 +104,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	meterService := NewMeterService()
+	meterService, err := meteradapter.New([]meter.Meter{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create meter service: %w", err)
+	}
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService)

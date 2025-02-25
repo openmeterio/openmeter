@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"crypto/rand"
 	"log/slog"
 	"testing"
 	"time"
@@ -90,8 +91,26 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context, t *testing.T) {
 	t.Helper()
 
+	// Set a new namespace
 	s.namespace = ulid.Make().String()
 
+	s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
+		{
+			Namespace:     s.namespace,
+			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+			Slug:          TestMeterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "request",
+			ValueProperty: "$.duration_ms",
+			GroupBy: map[string]string{
+				"method": "$.method",
+				"path":   "$.path",
+			},
+			WindowSize: "MINUTE",
+		},
+	})
+
+	// Setup dependencies
 	service := s.Env.Notification()
 
 	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{

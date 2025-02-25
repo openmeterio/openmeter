@@ -110,7 +110,14 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	service := common.NewMeterService(v2)
+	service, err := common.NewMeterService(v2)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)

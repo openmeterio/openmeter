@@ -71,12 +71,17 @@ var m sync.Mutex
 func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
-	meterAdapter := meteradapter.New([]meter.Meter{{
-		Slug:        "meter1",
-		Namespace:   "ns1",
-		Aggregation: meter.MeterAggregationMax,
-		WindowSize:  meter.WindowSizeMinute,
+	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		Slug:          "meter1",
+		Namespace:     "ns1",
+		Aggregation:   meter.MeterAggregationMax,
+		WindowSize:    meter.WindowSizeMinute,
+		EventType:     "test",
+		ValueProperty: "$.value",
 	}})
+	if err != nil {
+		t.Fatalf("failed to create meter adapter: %v", err)
+	}
 
 	// create isolated pg db for tests
 	testdb := testutils.InitPostgresDB(t)

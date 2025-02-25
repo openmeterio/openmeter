@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -70,10 +71,20 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 }
 
 // ReplaceMeters can be used to replace all meters in the repository.
-func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) {
+func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
 	c.init()
 
+	for _, m := range meters {
+		if err := m.Validate(); err != nil {
+			return models.NewGenericValidationError(
+				fmt.Errorf("failed to validate meter: %w", err),
+			)
+		}
+	}
+
 	c.meters = slices.Clone(meters)
+
+	return nil
 }
 
 // getMeters returns all meters in the memory store.
