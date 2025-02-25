@@ -15,7 +15,20 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
-	meters := c.getMeters()
+	meters := []meter.Meter{}
+
+	// In memory filtering
+	for _, meter := range c.getMeters() {
+		if params.Namespace != "" && meter.Namespace != params.Namespace {
+			continue
+		}
+
+		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Slug) {
+			continue
+		}
+
+		meters = append(meters, meter)
+	}
 
 	// In memory pagination
 	pageNumberIndex := params.PageNumber - 1

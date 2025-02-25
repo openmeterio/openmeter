@@ -6,10 +6,13 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/samber/lo"
 )
 
 type (
@@ -86,6 +89,12 @@ func (h *handler) CreateToken() CreateTokenHandler {
 				return CreateTokenRequest{}, err
 			}
 
+			if body.AllowedMeterSlugs != nil && len(*body.AllowedMeterSlugs) == 0 {
+				return CreateTokenRequest{}, models.NewGenericValidationError(
+					fmt.Errorf("slug filter cannot be an empty array when provided"),
+				)
+			}
+
 			req := CreateTokenRequest{
 				Namespace:         ns,
 				Subject:           body.Subject,
@@ -96,6 +105,28 @@ func (h *handler) CreateToken() CreateTokenHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreateTokenRequest) (CreateTokenResponse, error) {
+			// If allowed meter slugs are provided, validate them.
+			if request.AllowedMeterSlugs != nil {
+				meters, err := meter.ListAll(ctx, h.meterService, meter.ListMetersParams{
+					Namespace:  request.Namespace,
+					SlugFilter: request.AllowedMeterSlugs,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to list meters by slug: %w", err)
+				}
+
+				metersBySlug := lo.KeyBy(meters, func(m meter.Meter) string {
+					return m.Slug
+				})
+
+				for _, slug := range *request.AllowedMeterSlugs {
+					if _, ok := metersBySlug[slug]; !ok {
+						return nil, meter.NewMeterNotFoundError(slug)
+					}
+				}
+			}
+
+			// Create token
 			token, err := h.portalService.CreateToken(ctx, request)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create token: %w", err)

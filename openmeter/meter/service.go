@@ -48,6 +48,8 @@ type ListMetersParams struct {
 	pagination.Page
 	Namespace string
 
+	SlugFilter *[]string
+
 	// WithoutNamespace is a flag to list meters without a namespace.
 	// We do this instead of letting the namespace be empty to avoid
 	// accidental listing of all meters across all namespaces.
@@ -64,6 +66,15 @@ func (p ListMetersParams) Validate() error {
 
 	if err := p.Page.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid pagination: %w", err))
+	}
+
+	if p.SlugFilter != nil {
+		for _, slug := range *p.SlugFilter {
+			if slug == "" {
+				errs = append(errs, errors.New("slug filter must not contain empty string"))
+				break
+			}
+		}
 	}
 
 	return errors.Join(errs...)
