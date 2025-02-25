@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -58,8 +59,6 @@ func (s *Service) SetToken(token string) {
 
 // NewToken gets an access token for the application.
 func (s *Service) NewToken(ctx context.Context) (string, error) {
-	s.logger.Trace("refreshing token")
-
 	resp, err := s.client.R().
 		SetContext(ctx).
 		SetHeader("Accept", "application/json").
@@ -87,9 +86,20 @@ func (s *Service) NewToken(ctx context.Context) (string, error) {
 func (s *Service) verifyToken() error {
 	// Parse the token without verifying its signature.
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation(), jwt.WithExpirationRequired())
-	_, _, err := parser.ParseUnverified(s.token, jwt.MapClaims{})
+	t, _, err := parser.ParseUnverified(s.token, jwt.MapClaims{})
 	if err != nil {
 		return fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	// Get the expiration time from the token.
+	expirationTime, err := t.Claims.GetExpirationTime()
+	if err != nil || expirationTime == nil {
+		return fmt.Errorf("failed to get expiration time: %w", err)
+	}
+
+	// Check if the token has expired.
+	if expirationTime.Before(time.Now()) {
+		return fmt.Errorf("token has expired")
 	}
 
 	return nil

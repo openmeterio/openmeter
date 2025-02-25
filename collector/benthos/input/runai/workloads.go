@@ -2,6 +2,7 @@ package runai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -93,8 +94,13 @@ func (s *Service) ListWorkloads(ctx context.Context, params ListWorkloadParams) 
 		return nil, fmt.Errorf("failed to list workloads, status code: %d", resp.StatusCode())
 	}
 
-	s.logger.Tracef("list workloads response: %+v", resp.Result())
 	result := resp.Result().(*ListWorkloadsResponse)
+
+	j, err := json.Marshal(result)
+	if err == nil {
+		s.logger.Tracef("list workloads response: %s", string(j))
+	}
+
 	return result, nil
 }
 
