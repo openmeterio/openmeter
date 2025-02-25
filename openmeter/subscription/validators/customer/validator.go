@@ -7,7 +7,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -36,9 +35,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	// A customer can only be deleted if all of his invocies are in final state
 
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
+		return err
 	}
 
 	subscriptions, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
@@ -51,9 +48,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	}
 
 	if len(subscriptions.Items) > 0 {
-		return customer.ValidationError{
-			Err: errors.New("customer has active subscriptions"),
-		}
+		return errors.New("customer has active subscriptions")
 	}
 
 	return nil

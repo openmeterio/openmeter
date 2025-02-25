@@ -21,7 +21,9 @@ func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 func (s *Service) CreateCustomer(ctx context.Context, input customer.CreateCustomerInput) (*customer.Customer, error) {
 	if err := s.requestValidatorRegistry.ValidateCreateCustomer(ctx, input); err != nil {
-		return nil, err
+		return nil, customer.ValidationError{
+			Err: err,
+		}
 	}
 
 	return s.adapter.CreateCustomer(ctx, input)
@@ -43,7 +45,9 @@ func (s *Service) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 
 func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	if err := s.requestValidatorRegistry.ValidateUpdateCustomer(ctx, input); err != nil {
-		return nil, err
+		return nil, customer.ValidationError{
+			Err: err,
+		}
 	}
 
 	return s.adapter.UpdateCustomer(ctx, input)

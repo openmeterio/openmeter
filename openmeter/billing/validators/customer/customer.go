@@ -30,9 +30,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	// A customer can only be deleted if all of his invocies are in final state
 
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
+		return err
 	}
 
 	gatheringInvoices, err := v.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
@@ -46,17 +44,13 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	errs := make([]error, 0, len(gatheringInvoices.Items))
 	for _, inv := range gatheringInvoices.Items {
 		if inv.Status == billing.InvoiceStatusGathering {
-			errs = append(errs, customer.ValidationError{
-				Err: fmt.Errorf("invoice %s is still in gathering state", inv.ID),
-			})
+			errs = append(errs, fmt.Errorf("invoice %s is still in gathering state", inv.ID))
 
 			continue
 		}
 
 		if !inv.Status.IsFinal() {
-			errs = append(errs, customer.ValidationError{
-				Err: fmt.Errorf("invoice %s is not in final state, please either delete the invoice or mark it uncollectible", inv.ID),
-			})
+			errs = append(errs, fmt.Errorf("invoice %s is not in final state, please either delete the invoice or mark it uncollectible", inv.ID))
 		}
 	}
 
