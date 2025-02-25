@@ -52,7 +52,8 @@ func (Entitlement) Fields() []ent.Field {
 			dialect.Postgres: "jsonb",
 		}).Optional(),
 		field.String("usage_period_interval").GoType(isodate.String("")).Optional().Nillable().Immutable(),
-		field.Time("usage_period_anchor").Optional().Nillable(),
+		field.Time("usage_period_anchor").Optional().Nillable().Comment("Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically"),
+		// TODO: get rid of current_usage_period in the db and make it calculated
 		field.Time("current_usage_period_start").Optional().Nillable(),
 		field.Time("current_usage_period_end").Optional().Nillable(),
 		field.Bool("subscription_managed").Optional().Immutable(),

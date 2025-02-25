@@ -95,6 +95,11 @@ func ResetTime(v time.Time) predicate.UsageReset {
 	return predicate.UsageReset(sql.FieldEQ(FieldResetTime, v))
 }
 
+// Anchor applies equality check predicate on the "anchor" field. It's identical to AnchorEQ.
+func Anchor(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldEQ(FieldAnchor, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.UsageReset {
 	return predicate.UsageReset(sql.FieldEQ(FieldNamespace, v))
@@ -393,6 +398,46 @@ func ResetTimeLT(v time.Time) predicate.UsageReset {
 // ResetTimeLTE applies the LTE predicate on the "reset_time" field.
 func ResetTimeLTE(v time.Time) predicate.UsageReset {
 	return predicate.UsageReset(sql.FieldLTE(FieldResetTime, v))
+}
+
+// AnchorEQ applies the EQ predicate on the "anchor" field.
+func AnchorEQ(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldEQ(FieldAnchor, v))
+}
+
+// AnchorNEQ applies the NEQ predicate on the "anchor" field.
+func AnchorNEQ(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldNEQ(FieldAnchor, v))
+}
+
+// AnchorIn applies the In predicate on the "anchor" field.
+func AnchorIn(vs ...time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldIn(FieldAnchor, vs...))
+}
+
+// AnchorNotIn applies the NotIn predicate on the "anchor" field.
+func AnchorNotIn(vs ...time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldNotIn(FieldAnchor, vs...))
+}
+
+// AnchorGT applies the GT predicate on the "anchor" field.
+func AnchorGT(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldGT(FieldAnchor, v))
+}
+
+// AnchorGTE applies the GTE predicate on the "anchor" field.
+func AnchorGTE(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldGTE(FieldAnchor, v))
+}
+
+// AnchorLT applies the LT predicate on the "anchor" field.
+func AnchorLT(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldLT(FieldAnchor, v))
+}
+
+// AnchorLTE applies the LTE predicate on the "anchor" field.
+func AnchorLTE(v time.Time) predicate.UsageReset {
+	return predicate.UsageReset(sql.FieldLTE(FieldAnchor, v))
 }
 
 // HasEntitlement applies the HasEdge predicate on the "entitlement" edge.

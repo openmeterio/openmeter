@@ -76,18 +76,34 @@ func (g Grant) GetExpiration() time.Time {
 	return g.Expiration.GetExpiration(g.EffectiveAt)
 }
 
-func (g Grant) ActiveAt(t time.Time) bool {
+func (g Grant) GetEffectivePeriod() timeutil.Period {
+	p := timeutil.Period{
+		From: g.EffectiveAt,
+		To:   g.ExpiresAt,
+	}
+
+	// Let's bound by deletion time
 	if g.DeletedAt != nil {
-		if g.DeletedAt.Before(t) || g.DeletedAt.Equal(t) {
-			return false
+		if g.DeletedAt.Before(p.To) {
+			p.To = *g.DeletedAt
 		}
 	}
+
 	if g.VoidedAt != nil {
-		if g.VoidedAt.Before(t) || g.VoidedAt.Equal(t) {
-			return false
+		if g.VoidedAt.Before(p.To) {
+			p.To = *g.VoidedAt
 		}
 	}
-	return (g.EffectiveAt.Before(t) || g.EffectiveAt.Equal(t)) && g.ExpiresAt.After(t)
+
+	if p.To.Before(p.From) {
+		p.To = p.From
+	}
+
+	return p
+}
+
+func (g Grant) ActiveAt(t time.Time) bool {
+	return g.GetEffectivePeriod().Contains(t)
 }
 
 // Calculates the new balance after a recurrence from the current balance

@@ -176,6 +176,36 @@ func TestEngine(t *testing.T) {
 			},
 		},
 		{
+			name: "Should do nothing for 0 length period",
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
+				// We have report usage so the meter is found
+				use(100.0, t1.Add(time.Hour))
+
+				res, err := eng.Run(
+					context.Background(),
+					engine.RunParams{
+						Grants: []grant.Grant{grant1},
+						StartingSnapshot: balance.Snapshot{
+							Balances: balance.Map{
+								grant1.ID: 100.0,
+							},
+							Overage: 0,
+							At:      t1,
+						},
+						Until: t1,
+					},
+				)
+				assert.NoError(t, err)
+				assert.Equal(t, balance.Snapshot{
+					Balances: balance.Map{
+						grant1.ID: 100.0,
+					},
+					Overage: 0,
+					At:      t1,
+				}, res.Snapshot)
+			},
+		},
+		{
 			name: "Able to burn down single active grant",
 			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
