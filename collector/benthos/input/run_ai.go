@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/collector/benthos/input/runai"
 )
 
-var resourceTypes = []string{"workload"}
+var resourceTypes = []string{"workload", "pod"}
 
 const (
 	fieldURL                  = "url"
@@ -47,17 +47,18 @@ func runAIInputConfig() *service.ConfigSpec {
 			service.NewStringListField(fieldMetrics).
 				Description("Run AI metrics to collect.").
 				Default(lo.Map([]runai.MetricType{
-					runai.MetricTypeCPULimitCores,
-					runai.MetricTypeCPUMemoryLimit,
-					runai.MetricTypeCPUMemoryRequest,
-					runai.MetricTypeCPUMemoryUsage,
-					runai.MetricTypeCPURequestCores,
-					runai.MetricTypeCPUUsageCores,
-					runai.MetricTypeGPUAllocation,
-					runai.MetricTypeGPUMemoryRequest,
-					runai.MetricTypeGPUMemoryUsage,
-					runai.MetricTypeGPUUtilization,
-					runai.MetricTypeRunningPodCount,
+					runai.WorkloadMetricTypeCPULimitCores,
+					runai.WorkloadMetricTypeCPUMemoryLimit,
+					runai.WorkloadMetricTypeCPUMemoryRequest,
+					runai.WorkloadMetricTypeCPUMemoryUsage,
+					runai.WorkloadMetricTypeCPURequestCores,
+					runai.WorkloadMetricTypeCPUUsageCores,
+					runai.WorkloadMetricTypeGPUAllocation,
+					runai.WorkloadMetricTypeGPUMemoryRequest,
+					runai.WorkloadMetricTypeGPUMemoryUsage,
+					runai.WorkloadMetricTypeGPUUtilization,
+					runai.WorkloadMetricTypePodCount,
+					runai.WorkloadMetricTypeRunningPodCount,
 				}, func(metric runai.MetricType, _ int) string {
 					return string(metric)
 				})),
@@ -81,12 +82,13 @@ func runAIInputConfig() *service.ConfigSpec {
 			).Description("HTTP client configuration"),
 		).Example("Workload metrics", "Collect workload metrics from Run AI with a scrape interval of 30 seconds.", `
 input:
-	run_ai:
-		url: "${RUNAI_URL:}"
-		app_id: "${RUNAI_APP_ID:}"
-		app_secret: "${RUNAI_APP_SECRET:}"
-		schedule: "${RUNAI_SCRAPE_SCHEDULE:*/30 * * * * *}"
-		metrics:
+  run_ai:
+    url: "${RUNAI_URL:}"
+    app_id: "${RUNAI_APP_ID:}"
+    app_secret: "${RUNAI_APP_SECRET:}"
+    schedule: "${RUNAI_SCRAPE_SCHEDULE:*/30 * * * * *}"
+    resource_type: "${RUNAI_RESOURCE_TYPE:workload}"
+    metrics:
       - CPU_LIMIT_CORES
       - CPU_MEMORY_LIMIT_BYTES
       - CPU_MEMORY_REQUEST_BYTES
@@ -96,11 +98,14 @@ input:
       - GPU_ALLOCATION
       - GPU_MEMORY_REQUEST_BYTES
       - GPU_MEMORY_USAGE_BYTES
-		http:
-			timeout: "${RUNAI_HTTP_TIMEOUT:30s}"
-			retry_count: "${RUNAI_HTTP_RETRY_COUNT:1}"
-			retry_wait_time: "${RUNAI_HTTP_RETRY_WAIT_TIME:100ms}"
-			retry_max_wait_time: "${RUNAI_HTTP_RETRY_MAX_WAIT_TIME:1s}"
+      - GPU_UTILIZATION
+      - POD_COUNT
+      - RUNNING_POD_COUNT
+    http:
+      timeout: "${RUNAI_HTTP_TIMEOUT:30s}"
+      retry_count: "${RUNAI_HTTP_RETRY_COUNT:1}"
+      retry_wait_time: "${RUNAI_HTTP_RETRY_WAIT_TIME:100ms}"
+      retry_max_wait_time: "${RUNAI_HTTP_RETRY_MAX_WAIT_TIME:1s}"
 `)
 }
 
@@ -127,7 +132,7 @@ type runAIInput struct {
 	interval     time.Duration
 	schedule     string
 	scheduler    gocron.Scheduler
-	store        map[time.Time][]runai.WorkloadWithMetrics
+	store        map[time.Time][]runai.ResourceWithMetrics
 	mu           sync.Mutex
 }
 
@@ -227,26 +232,47 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 		metrics: lo.Map(metrics, func(metric string, _ int) runai.MetricType {
 			return runai.MetricType(metric)
 		}),
-		store: make(map[time.Time][]runai.WorkloadWithMetrics),
+		store: make(map[time.Time][]runai.ResourceWithMetrics),
 		mu:    sync.Mutex{},
 	}, nil
 }
 
 // scrape scrapes the metrics for the given time and adds them to the store.
 func (in *runAIInput) scrape(ctx context.Context, t time.Time) error {
-	in.logger.Debugf("scraping metrics between %s and %s", t.Add(-in.interval).Format(time.RFC3339), t.Format(time.RFC3339))
-	workloadsWithMetrics, err := in.service.GetAllWorkloadWithMetrics(ctx, runai.MeasurementParams{
-		MetricType: in.metrics,
-		StartTime:  t.Add(-in.interval),
-		EndTime:    t,
-	})
-	if err != nil {
-		return err
-	}
+	in.logger.Debugf("scraping %s metrics between %s and %s", in.resourceType, t.Add(-in.interval).Format(time.RFC3339), t.Format(time.RFC3339))
 
-	in.mu.Lock()
-	in.store[t] = workloadsWithMetrics
-	in.mu.Unlock()
+	switch in.resourceType {
+	case "workload":
+		workloadsWithMetrics, err := in.service.GetAllWorkloadWithMetrics(ctx, runai.MeasurementParams{
+			MetricType: in.metrics,
+			StartTime:  t.Add(-in.interval),
+			EndTime:    t,
+		})
+		if err != nil {
+			return err
+		}
+
+		in.mu.Lock()
+		in.store[t] = lo.Map(workloadsWithMetrics, func(workloadWithMetrics runai.WorkloadWithMetrics, _ int) runai.ResourceWithMetrics {
+			return runai.ResourceWithMetricsFromWorkload(&workloadWithMetrics)
+		})
+		in.mu.Unlock()
+	case "pod":
+		podsWithMetrics, err := in.service.GetAllPodWithMetrics(ctx, runai.MeasurementParams{
+			MetricType: in.metrics,
+			StartTime:  t.Add(-in.interval),
+			EndTime:    t,
+		})
+		if err != nil {
+			return err
+		}
+
+		in.mu.Lock()
+		in.store[t] = lo.Map(podsWithMetrics, func(podWithMetrics runai.PodWithMetrics, _ int) runai.ResourceWithMetrics {
+			return runai.ResourceWithMetricsFromPod(&podWithMetrics)
+		})
+		in.mu.Unlock()
+	}
 
 	return nil
 }
@@ -287,14 +313,14 @@ func (in *runAIInput) ReadBatch(ctx context.Context) (service.MessageBatch, serv
 	in.mu.Lock()
 	defer in.mu.Unlock()
 
-	processing := make(map[time.Time][]runai.WorkloadWithMetrics)
+	processing := make(map[time.Time][]runai.ResourceWithMetrics)
 	batch := make([]*service.Message, 0)
 
-	for t, workloadsWithMetrics := range in.store {
+	for t, resourceWithMetrics := range in.store {
 		in.logger.Tracef("reading metrics of %s", t.Format(time.RFC3339))
 
-		for _, workloadWithMetrics := range workloadsWithMetrics {
-			encoded, err := json.Marshal(workloadWithMetrics)
+		for _, resourceWithMetrics := range resourceWithMetrics {
+			encoded, err := json.Marshal(resourceWithMetrics)
 			if err != nil {
 				return nil, func(context.Context, error) error { return nil }, err
 			}
@@ -305,7 +331,7 @@ func (in *runAIInput) ReadBatch(ctx context.Context) (service.MessageBatch, serv
 			batch = append(batch, msg)
 		}
 
-		processing[t] = workloadsWithMetrics
+		processing[t] = resourceWithMetrics
 		delete(in.store, t)
 	}
 
