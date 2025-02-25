@@ -18,7 +18,7 @@ var MeterInMemory = wire.NewSet(
 
 func NewMeterService(
 	meters []*meter.Meter,
-) meter.Service {
+) (meter.Service, error) {
 	staticMeters := slicesx.Map(meters, lo.FromPtr[meter.Meter])
 	return adapter.New(staticMeters)
 }

@@ -1,16 +1,26 @@
 package adapter
 
 import (
+	"fmt"
 	"slices"
 	"sync"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func New(meters []meter.Meter) *adapter {
+func New(meters []meter.Meter) (*adapter, error) {
 	a := &adapter{}
 
 	a.init()
+
+	for _, m := range meters {
+		if err := m.Validate(); err != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("failed to validate meter: %w", err),
+			)
+		}
+	}
 
 	a.meters = slices.Clone(meters)
 
@@ -21,7 +31,7 @@ func New(meters []meter.Meter) *adapter {
 		}
 	}
 
-	return a
+	return a, nil
 }
 
 var _ meter.Service = (*adapter)(nil)

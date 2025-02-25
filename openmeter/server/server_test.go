@@ -47,10 +47,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
+var DefaultNamespace = "test"
+
 var mockEvent = event.New()
 
 var mockMeters = []meter.Meter{
 	{
+		Namespace:     DefaultNamespace,
 		ID:            ulid.Make().String(),
 		Slug:          "meter1",
 		WindowSize:    meter.WindowSizeMinute,
@@ -60,6 +63,7 @@ var mockMeters = []meter.Meter{
 		GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
 	},
 	{
+		Namespace:     DefaultNamespace,
 		ID:            ulid.Make().String(),
 		Slug:          "meter2",
 		WindowSize:    meter.WindowSizeMinute,
@@ -142,7 +146,7 @@ func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace
 
 func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
-		DefaultNamespace: "test",
+		DefaultNamespace: DefaultNamespace,
 	})
 	if err != nil {
 		return nil, err
@@ -158,13 +162,18 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	mockStreamingConnector := &MockStreamingConnector{}
 
+	meterService, err := meteradapter.New(mockMeters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create meter service: %w", err)
+	}
+
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
 			EntitlementConnector:        &NoopEntitlementConnector{},
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			FeatureConnector:            &NoopFeatureConnector{},
 			GrantConnector:              &NoopGrantConnector{},
-			MeterService:                meteradapter.New(mockMeters),
+			MeterService:                meterService,
 			StreamingConnector:          mockStreamingConnector,
 			DebugConnector:              MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {

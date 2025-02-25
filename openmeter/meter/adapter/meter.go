@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -15,7 +16,20 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
-	meters := c.getMeters()
+	meters := []meter.Meter{}
+
+	// In memory filtering
+	for _, meter := range c.getMeters() {
+		if !params.WithoutNamespace && meter.Namespace != params.Namespace {
+			continue
+		}
+
+		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Slug) {
+			continue
+		}
+
+		meters = append(meters, meter)
+	}
 
 	// In memory pagination
 	pageNumberIndex := params.PageNumber - 1
@@ -44,6 +58,10 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 	}
 
 	for _, meter := range c.getMeters() {
+		if meter.Namespace != input.Namespace {
+			continue
+		}
+
 		if meter.ID == input.IDOrSlug || meter.Slug == input.IDOrSlug {
 			return meter, nil
 		}
@@ -53,10 +71,20 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 }
 
 // ReplaceMeters can be used to replace all meters in the repository.
-func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) {
+func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
 	c.init()
 
+	for _, m := range meters {
+		if err := m.Validate(); err != nil {
+			return models.NewGenericValidationError(
+				fmt.Errorf("failed to validate meter: %w", err),
+			)
+		}
+	}
+
 	c.meters = slices.Clone(meters)
+
+	return nil
 }
 
 // getMeters returns all meters in the memory store.

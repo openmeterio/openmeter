@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -27,6 +28,7 @@ type handler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	portalService    portal.Service
+	meterService     meter.Service
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -41,11 +43,13 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	portalService portal.Service,
+	meterService meter.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		portalService:    portalService,
 		namespaceDecoder: namespaceDecoder,
+		portalService:    portalService,
+		meterService:     meterService,
 		options:          options,
 	}
 }

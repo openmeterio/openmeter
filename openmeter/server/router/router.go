@@ -323,6 +323,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.portalHandler = portalhttphandler.New(
 		staticNamespaceDecoder,
 		config.Portal,
+		config.MeterService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

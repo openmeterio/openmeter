@@ -22,10 +22,12 @@ import (
 func TestCreateFeature(t *testing.T) {
 	namespace := "default"
 	meter := meter.Meter{
-		Namespace: namespace,
-		ID:        "meter-1",
-		Slug:      "meter-1",
-		GroupBy:   map[string]string{"key": "$.path"},
+		Namespace:   namespace,
+		ID:          "meter-1",
+		Slug:        "meter-1",
+		GroupBy:     map[string]string{"key": "$.path"},
+		Aggregation: meter.MeterAggregationCount,
+		EventType:   "test",
 	}
 
 	testFeature := feature.CreateFeatureInputs{
@@ -261,10 +263,12 @@ func TestCreateFeature(t *testing.T) {
 func TestArchiveFeature(t *testing.T) {
 	namespace := "default"
 	meter := meter.Meter{
-		Namespace: namespace,
-		ID:        "meter-1",
-		Slug:      "meter-1",
-		GroupBy:   map[string]string{"key": "$.path"},
+		Namespace:   namespace,
+		ID:          "meter-1",
+		Slug:        "meter-1",
+		GroupBy:     map[string]string{"key": "$.path"},
+		Aggregation: meter.MeterAggregationCount,
+		EventType:   "test",
 	}
 
 	testFeature := feature.CreateFeatureInputs{
@@ -335,10 +339,12 @@ func TestArchiveFeature(t *testing.T) {
 func TestFetchingArchivedFeature(t *testing.T) {
 	namespace := "default"
 	meter := meter.Meter{
-		Namespace: namespace,
-		ID:        "meter-1",
-		Slug:      "meter-1",
-		GroupBy:   map[string]string{"key": "$.path"},
+		Namespace:   namespace,
+		ID:          "meter-1",
+		Slug:        "meter-1",
+		GroupBy:     map[string]string{"key": "$.path"},
+		Aggregation: meter.MeterAggregationCount,
+		EventType:   "test",
 	}
 
 	testFeature := feature.CreateFeatureInputs{

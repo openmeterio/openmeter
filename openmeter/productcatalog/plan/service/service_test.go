@@ -44,7 +44,8 @@ func TestPlanService(t *testing.T) {
 	namespace := NewTestNamespace(t)
 
 	// Setup meter repository
-	env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
+	err := env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
+	require.NoError(t, err, "replacing Meters must not fail")
 
 	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
 		Namespace: namespace,
@@ -869,7 +870,9 @@ func newTestEnv(t *testing.T) *testEnv {
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
 
-	meterAdapter := meteradapter.New(nil)
+	meterAdapter, err := meteradapter.New(nil)
+	require.NoErrorf(t, err, "initializing Meter adapter must not fail")
+	require.NotNilf(t, meterAdapter, "Meter adapter must not be nil")
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
 	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter)

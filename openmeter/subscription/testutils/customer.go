@@ -40,12 +40,17 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
-	meterAdapter := meteradapter.New([]meter.Meter{{
-		Slug:        ExampleFeatureMeterSlug,
-		Namespace:   ExampleNamespace,
-		Aggregation: meter.MeterAggregationSum,
-		WindowSize:  meter.WindowSizeMinute,
+	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		Slug:          ExampleFeatureMeterSlug,
+		Namespace:     ExampleNamespace,
+		Aggregation:   meter.MeterAggregationSum,
+		WindowSize:    meter.WindowSizeMinute,
+		EventType:     "test",
+		ValueProperty: "$.value",
 	}})
+	if err != nil {
+		t.Fatalf("failed to create meter adapter: %v", err)
+	}
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,

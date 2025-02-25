@@ -70,7 +70,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
-	meterAdapter := meteradapter.New([]meter.Meter{})
+
+	meterAdapter, err := meteradapter.New([]meter.Meter{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create meter adapter: %w", err)
+	}
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,

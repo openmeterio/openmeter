@@ -123,7 +123,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v2 := conf.Meters
-	service := common.NewMeterService(v2)
+	service, err := common.NewMeterService(v2)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	featureConnector := common.NewFeatureConnector(logger, client, service)
 	v3 := conf.Svix
 	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v3, featureConnector)

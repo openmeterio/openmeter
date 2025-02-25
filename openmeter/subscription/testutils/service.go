@@ -44,12 +44,17 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subRepo := NewSubscriptionRepo(t, dbDeps)
 	subPhaseRepo := NewSubscriptionPhaseRepo(t, dbDeps)
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
-	meterAdapter := meteradapter.New([]meter.Meter{{
-		Slug:        ExampleFeatureMeterSlug,
-		Namespace:   ExampleNamespace,
-		Aggregation: meter.MeterAggregationSum,
-		WindowSize:  meter.WindowSizeMinute,
+
+	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		Slug:          ExampleFeatureMeterSlug,
+		Namespace:     ExampleNamespace,
+		Aggregation:   meter.MeterAggregationSum,
+		WindowSize:    meter.WindowSizeMinute,
+		ValueProperty: "$.value",
+		EventType:     "test",
 	}})
+	require.NoError(t, err)
+	require.NotNil(t, meterAdapter)
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,

@@ -142,14 +142,17 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 
 	apiRequestsTotalMeterSlug := "api-requests-total"
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   s.Namespace,
-			Slug:        apiRequestsTotalMeterSlug,
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     s.Namespace,
+			Slug:          apiRequestsTotalMeterSlug,
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
+	s.NoError(err, "Replacing meters must not return error")
 
 	apiRequestsTotalFeatureKey := "api-requests-total"
 
@@ -172,7 +175,10 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
 	clock.UnFreeze()
 	clock.ResetTime()
-	s.MeterAdapter.ReplaceMeters(s.Context, []meter.Meter{})
+
+	err := s.MeterAdapter.ReplaceMeters(s.Context, []meter.Meter{})
+	s.NoError(err, "Replacing meters must not return error")
+
 	s.MockStreamingConnector.Reset()
 	s.Handler.featureFlags = FeatureFlags{}
 }

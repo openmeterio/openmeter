@@ -146,7 +146,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	v3 := conf.Meters
-	service := common.NewMeterService(v3)
+	service, err := common.NewMeterService(v3)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, service, logger)
 	if err != nil {
 		cleanup6()

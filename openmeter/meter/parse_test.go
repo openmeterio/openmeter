@@ -39,8 +39,8 @@ func TestParseEvent(t *testing.T) {
 		Slug:          "m3",
 		Aggregation:   meter.MeterAggregationUniqueCount,
 		EventType:     "spans",
-		ValueProperty: "$.trace_id",
 		WindowSize:    meter.WindowSizeMinute,
+		ValueProperty: "$.trace_id",
 	}
 
 	tests := []struct {

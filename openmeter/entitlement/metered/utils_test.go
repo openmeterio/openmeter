@@ -56,12 +56,17 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	testLogger := testutils.NewLogger(t)
 
 	streamingConnector := streaming_testutils.NewMockStreamingConnector(t)
-	meterAdapter := meteradapter.New([]meter.Meter{{
-		Slug:        "meter1",
-		Namespace:   "ns1",
-		Aggregation: meter.MeterAggregationSum,
-		WindowSize:  meter.WindowSizeMinute,
+	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		Slug:          "meter1",
+		Namespace:     "ns1",
+		Aggregation:   meter.MeterAggregationSum,
+		WindowSize:    meter.WindowSizeMinute,
+		EventType:     "test",
+		ValueProperty: "$.value",
 	}})
+	if err != nil {
+		t.Fatalf("failed to create meter adapter: %v", err)
+	}
 
 	// create isolated pg db for tests
 	testdb := testutils.InitPostgresDB(t)

@@ -111,39 +111,54 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:   namespace,
-			Slug:        "flat-per-unit",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "flat-per-unit",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "flat-per-usage",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "flat-per-usage",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-graduated",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-graduated",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "tiered-volume",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "tiered-volume",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 		{
-			Namespace:   namespace,
-			Slug:        "ai-flat-per-unit",
-			WindowSize:  meter.WindowSizeMinute,
-			Aggregation: meter.MeterAggregationSum,
+			Namespace:     namespace,
+			Slug:          "ai-flat-per-unit",
+			WindowSize:    meter.WindowSizeMinute,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	s.Require().NoError(err)
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.Require().NoError(err)
+	}()
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values

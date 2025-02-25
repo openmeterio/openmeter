@@ -73,15 +73,19 @@ func setupDependencies(t *testing.T) Dependencies {
 	meters := []meter.Meter{
 		{
 			Namespace:   "namespace-1",
-			ID:          "meter-1",
 			Slug:        "meter-1",
 			WindowSize:  meter.WindowSizeMinute,
 			Aggregation: meter.MeterAggregationCount,
+			EventType:   "test",
 		},
 	}
 
 	streaming := streamingtestutils.NewMockStreamingConnector(t)
-	meterAdapter := meteradapter.New(meters)
+
+	meterAdapter, err := meteradapter.New(meters)
+	if err != nil {
+		t.Fatalf("failed to create meter adapter: %v", err)
+	}
 
 	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter) // TODO: meter repo is needed
 
