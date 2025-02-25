@@ -6,10 +6,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 )
 
+func NewStartingMap(grants []grant.Grant, at time.Time) Map {
+	balances := make(Map)
+	for _, grant := range grants {
+		if grant.ActiveAt(at) {
+			balances.Set(grant.ID, grant.Amount)
+		} else {
+			balances.Set(grant.ID, 0.0)
+		}
+	}
+	return balances
+}
+
 // Represents a point in time balance of grants
 type Map map[string]float64
 
-func (g Map) Copy() Map {
+func (g Map) Clone() Map {
 	r := make(Map, len(g))
 	for k, v := range g {
 		r[k] = v
@@ -54,12 +66,6 @@ func (g Map) ExactlyForGrants(grants []grant.Grant) bool {
 		}
 	}
 	return true
-}
-
-func (g Map) OverrideWith(gbm Map) {
-	for k, v := range gbm {
-		g[k] = v
-	}
 }
 
 type Snapshot struct {

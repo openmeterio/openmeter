@@ -59,7 +59,7 @@ type GrantBurnDownHistorySegment struct {
 
 // Returns GrantBalanceMap at the end of the segment
 func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
-	balance := s.BalanceAtStart.Copy()
+	balance := s.BalanceAtStart.Clone()
 	for _, u := range s.GrantUsages {
 		balance.Burn(u.GrantID, u.Usage)
 	}
