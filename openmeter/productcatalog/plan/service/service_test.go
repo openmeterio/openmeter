@@ -44,7 +44,8 @@ func TestPlanService(t *testing.T) {
 	namespace := NewTestNamespace(t)
 
 	// Setup meter repository
-	env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
+	err := env.Meter.ReplaceMeters(ctx, NewTestMeters(t, namespace))
+	require.NoError(t, err, "replacing Meters must not fail")
 
 	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
 		Namespace: namespace,

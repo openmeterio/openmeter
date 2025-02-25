@@ -77,7 +77,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
 			Slug:          "test",
@@ -87,7 +87,12 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	require.NoError(s.T(), err, "meter adapter should be able to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		require.NoError(s.T(), err, "meter adapter should be able to replace meters")
+	}()
 
 	_, err = s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Namespace: namespace,
@@ -1447,7 +1452,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
 			Slug:          "flat-per-unit",
@@ -1481,7 +1486,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	require.NoError(s.T(), err, "meter adapter replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		require.NoError(s.T(), err, "meter adapter replace meters")
+	}()
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
@@ -2340,7 +2350,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
 			Slug:          "tiered-graduated",
@@ -2350,7 +2360,12 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	require.NoError(s.T(), err, "failed to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		require.NoError(s.T(), err, "failed to replace meters")
+	}()
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
@@ -2571,7 +2586,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
 			Slug:          "flat-per-unit",
@@ -2605,7 +2620,12 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	require.NoError(s.T(), err, "failed to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		require.NoError(s.T(), err, "failed to replace meters")
+	}()
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values
@@ -3151,7 +3171,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	meterSlug := "flat-per-unit"
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
 			Slug:          meterSlug,
@@ -3161,7 +3181,12 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	require.NoError(s.T(), err, "failed to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		require.NoError(s.T(), err, "failed to replace meters")
+	}()
 
 	// Let's initialize the mock streaming connector with data that is out of the period so that we
 	// can start with empty values

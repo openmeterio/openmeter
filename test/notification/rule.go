@@ -60,7 +60,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 	service := s.Env.Notification()
 
-	s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
+	err := s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     TestNamespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
@@ -75,6 +75,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			WindowSize: "MINUTE",
 		},
 	})
+	require.NoError(t, err, "Replacing meters must not return error")
 
 	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 		Namespace: TestNamespace,

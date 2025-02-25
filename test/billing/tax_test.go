@@ -159,7 +159,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	meterSlug := "flat-per-unit"
 
-	s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
 			Slug:          meterSlug,
@@ -169,7 +169,12 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 			ValueProperty: "$.value",
 		},
 	})
-	defer s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	s.NoError(err, "meter replacement must not return error")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.NoError(err, "meter replacement must not return error")
+	}()
 
 	flatPerUnitFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 		Namespace: namespace,

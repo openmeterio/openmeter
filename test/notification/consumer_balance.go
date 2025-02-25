@@ -94,7 +94,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 	// Set a new namespace
 	s.namespace = ulid.Make().String()
 
-	s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
+	err := s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     s.namespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
@@ -109,6 +109,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 			WindowSize: "MINUTE",
 		},
 	})
+	require.NoError(t, err, "Replacing meters must not return error")
 
 	// Setup dependencies
 	service := s.Env.Notification()
