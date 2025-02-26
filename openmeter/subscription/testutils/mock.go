@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type MockService struct {
@@ -15,7 +16,7 @@ type MockService struct {
 	ContinueFn func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetFn      func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 	GetViewFn  func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
-	ListFn     func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
+	ListFn     func(ctx context.Context, params subscription.ListSubscriptionsInput) (pagination.PagedResponse[subscription.Subscription], error)
 }
 
 var _ subscription.Service = &MockService{}
@@ -48,7 +49,7 @@ func (s *MockService) GetView(ctx context.Context, subscriptionID models.Namespa
 	return s.GetViewFn(ctx, subscriptionID)
 }
 
-func (s *MockService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+func (s *MockService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (pagination.PagedResponse[subscription.Subscription], error) {
 	return s.ListFn(ctx, params)
 }
 

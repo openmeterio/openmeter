@@ -2,8 +2,11 @@ package subscription
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
@@ -22,13 +25,29 @@ type Service interface {
 	// GetView returns a full view of the subscription with the given ID
 	GetView(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
 	// List lists the subscriptions matching the set criteria
-	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+	List(ctx context.Context, params ListSubscriptionsInput) (pagination.PagedResponse[Subscription], error)
 }
 
 type WorkflowService interface {
 	CreateFromPlan(ctx context.Context, inp CreateSubscriptionWorkflowInput, plan Plan) (SubscriptionView, error)
 	EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []Patch, timing Timing) (SubscriptionView, error)
 	ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp ChangeSubscriptionWorkflowInput, plan Plan) (current Subscription, new SubscriptionView, err error)
+}
+
+type ListSubscriptionsInput struct {
+	pagination.Page
+
+	Namespaces []string
+	Customers  []string
+	ActiveAt   *time.Time
+}
+
+func (i ListSubscriptionsInput) Validate() error {
+	if len(i.Namespaces) == 0 {
+		return models.NewGenericValidationError(errors.New("namespace is required"))
+	}
+
+	return nil
 }
 
 type CreateSubscriptionWorkflowInput struct {
