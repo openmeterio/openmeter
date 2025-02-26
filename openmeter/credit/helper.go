@@ -194,6 +194,11 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 
 			// For SUM and COUNT we can simply query the meter
 			case meter.MeterAggregationSum, meter.MeterAggregationCount:
+				// If the two times are the same we can return 0.0 as there's no usage
+				if from.Equal(to) {
+					return 0.0, nil
+				}
+
 				params.From = &from
 				params.To = &to
 
