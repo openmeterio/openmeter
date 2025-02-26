@@ -2,6 +2,7 @@ package customer
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -535,8 +536,9 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	// Delete the customer
 	err = cService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
 
-	require.EqualError(t, err, "cannot delete customer with active subscription", "Deleting customer with active subscription must return error")
+	require.EqualError(t, err, fmt.Sprintf("customer %s still have active subscriptions, please cancel them before deleting the customer", customerId.ID), "Deleting customer with active subscription must return error")
 
+	// Now let's delete the subscription
 	// Now let's delete the subscription
 	_, err = sService.Cancel(ctx, sub.NamespacedID, subscription.Timing{
 		Enum: lo.ToPtr(subscription.TimingImmediate),

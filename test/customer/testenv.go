@@ -15,6 +15,7 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -93,6 +94,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	subsServices, _ := subscriptiontestutils.NewService(t, dbDeps)
+
+	subsCustValidator, err := subscriptioncustomer.NewValidator(subsServices.Service)
+	if err != nil {
+		return nil, err
+	}
+
+	customerService.RegisterRequestValidator(subsCustValidator)
 
 	closerFunc := func() error {
 		dbDeps.Cleanup(t)

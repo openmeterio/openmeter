@@ -12,13 +12,10 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
-	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -231,46 +228,13 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				}
 			}
 
-			deletedAt := clock.Now().UTC()
-
-			// Let's see if the customer has an active subscription
-			cust, err := a.GetCustomer(ctx, customer.GetCustomerInput(input))
-			if err != nil {
-				return nil, err
-			}
-
-			if cust.CurrentSubscriptionID != nil {
-				return nil, &models.GenericConflictError{
-					Inner: fmt.Errorf("cannot delete customer with active subscription"),
-				}
-			}
-
-			// Let's see if the customer has any active entitlements
-			for _, subject := range cust.UsageAttribution.SubjectKeys {
-				entCount, err := repo.db.Entitlement.Query().Where(
-					entitlementdb.SubjectKey(subject),
-					entitlementdb.Namespace(cust.Namespace),
-				).Where(
-					entitlementrepo.EntitlementActiveAt(deletedAt)...,
-				).Count(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("failed to count customer entitlements: %w", err)
-				}
-
-				if entCount > 0 {
-					return nil, &models.GenericConflictError{
-						Inner: fmt.Errorf("cannot delete customer with active entitlements"),
-					}
-				}
-			}
-
 			// Soft delete the customer
 			rows, err := repo.db.Customer.Update().
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace)).
 				Where(customerdb.IsDeleted(false)).
 				SetIsDeleted(true).
-				SetDeletedAt(deletedAt).
+				SetDeletedAt(clock.Now().UTC()).
 				Save(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete customer: %w", err)
@@ -289,7 +253,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				Where(customersubjectsdb.Namespace(input.Namespace)).
 				Where(customersubjectsdb.IsDeletedEQ(false)).
 				SetIsDeleted(true).
-				SetDeletedAt(deletedAt).
+				SetDeletedAt(clock.Now().UTC()).
 				Exec(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete customer subjects: %w", err)

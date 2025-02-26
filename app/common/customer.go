@@ -10,6 +10,7 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	entitlementvalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 )
 
@@ -26,8 +27,21 @@ func NewCustomerService(logger *slog.Logger, db *entdb.Client, entRegistry *regi
 		return nil, fmt.Errorf("failed to create customer adapter: %w", err)
 	}
 
-	return customerservice.New(customerservice.Config{
+	service, err := customerservice.New(customerservice.Config{
 		Adapter:              customerAdapter,
 		EntitlementConnector: entRegistry.Entitlement,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create customer service: %w", err)
+	}
+
+	// Create and register the entitlement validator
+	validator, err := entitlementvalidator.NewValidator(service, entRegistry.EntitlementRepo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create entitlement validator: %w", err)
+	}
+
+	service.RegisterRequestValidator(validator)
+
+	return service, nil
 }
