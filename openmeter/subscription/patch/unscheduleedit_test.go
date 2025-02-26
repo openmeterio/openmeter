@@ -17,6 +17,11 @@ func TestUnscheduleEdit(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:01Z")
 	clock.SetTime(now)
 
+	t.Run("Patch should be valid", func(t *testing.T) {
+		patch := patch.PatchUnscheduleEdit{}
+		require.NoError(t, patch.Validate())
+	})
+
 	getSpec := func(t *testing.T) *subscription.SubscriptionSpec {
 		s, _ := getDefaultSpec(t, now)
 		return s

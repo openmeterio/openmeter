@@ -15,10 +15,6 @@ func (p PatchUnscheduleEdit) Path() subscription.PatchPath {
 }
 
 func (p PatchUnscheduleEdit) Validate() error {
-	if err := p.Path().Validate(); err != nil {
-		return err
-	}
-
 	if err := p.Op().Validate(); err != nil {
 		return err
 	}
