@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/google/wire"
+
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
