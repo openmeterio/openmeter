@@ -142,7 +142,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 			}
 
 			if ent.SubscriptionManaged {
-				return nil, &models.GenericForbiddenError{Inner: fmt.Errorf("entitlement is managed by subscription")}
+				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 
 			res, err := h.connector.OverrideEntitlement(ctx, request.SubjectIdOrKey, request.EntitlementIdOrFeatureKey, request.Inputs)
@@ -489,7 +489,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 			}
 
 			if ent.SubscriptionManaged {
-				return nil, &models.GenericForbiddenError{Inner: fmt.Errorf("entitlement is managed by subscription")}
+				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 
 			err = h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId, clock.Now())

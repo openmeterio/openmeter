@@ -546,7 +546,7 @@ func TestEditingWithTiming(t *testing.T) {
 				})
 				require.Error(t, err)
 
-				require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}), "expected error to be of type models.GenericUserError")
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "expected error to be of type models.GenericUserError")
 				require.ErrorContains(t, err, "next_billing_cycle is not supported for non-aligned subscriptions", "expected error to be about non-aligned subscriptions, while it was: %v", err)
 			},
 		},
@@ -590,7 +590,7 @@ func TestEditingWithTiming(t *testing.T) {
 				})
 				require.Error(t, err)
 
-				require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}), "expected error to be of type models.GenericUserError")
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "expected error to be of type models.GenericUserError")
 				require.ErrorContains(t, err, "cannot edit to the next billing cycle as it falls into a different phase", "expected error to be about next billing cycle, while it was: %v", err)
 			},
 		},
@@ -634,7 +634,7 @@ func TestEditingWithTiming(t *testing.T) {
 				})
 				require.Error(t, err)
 
-				require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}), "expected error to be of type models.GenericUserError")
+				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "expected error to be of type models.GenericUserError")
 				require.ErrorContains(t, err, "cannot edit running subscription with custom timing", "expected error to be about custom timing, while it was: %v", err)
 			},
 		},

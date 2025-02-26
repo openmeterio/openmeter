@@ -248,7 +248,7 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+			return nil, models.NewNamespaceNotFoundError(namespace)
 		}
 
 		return nil, fmt.Errorf("query events table query: %w", err)
@@ -330,7 +330,7 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+			return nil, models.NewNamespaceNotFoundError(namespace)
 		}
 
 		return nil, fmt.Errorf("query events count query: %w", err)
@@ -388,7 +388,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &meterpkg.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
@@ -474,7 +474,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &meterpkg.MeterNotFoundError{MeterSlug: meter.Slug}
+			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

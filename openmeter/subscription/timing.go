@@ -48,7 +48,7 @@ func (c Timing) Resolve() (time.Time, error) {
 		case TimingImmediate:
 			return clock.Now(), nil
 		default:
-			return def, &models.GenericUserError{Inner: fmt.Errorf("unsupported enum value: %s", *c.Enum)}
+			return def, models.NewGenericValidationError(fmt.Errorf("unsupported enum value: %s", *c.Enum))
 		}
 	}
 
@@ -72,24 +72,24 @@ func (c Timing) ResolveForSpec(spec SubscriptionSpec) (time.Time, error) {
 			return clock.Now(), nil
 		case TimingNextBillingCycle:
 			if !spec.Alignment.BillablesMustAlign {
-				return def, &models.GenericUserError{Inner: fmt.Errorf("next_billing_cycle is not supported for non-aligned subscriptions")}
+				return def, models.NewGenericValidationError(fmt.Errorf("next_billing_cycle is not supported for non-aligned subscriptions"))
 			}
 
 			currentPhase, exists := spec.GetCurrentPhaseAt(clock.Now())
 			if !exists {
 				// If there isn't a current phase, the subscription hasn't started or has already ended
-				return def, &models.GenericUserError{Inner: fmt.Errorf("billing isn't active for the subscription, there isn't a next_billing_cycle")}
+				return def, models.NewGenericValidationError(fmt.Errorf("billing isn't active for the subscription, there isn't a next_billing_cycle"))
 			}
 
 			if !currentPhase.HasBillables() {
-				return def, &models.GenericUserError{Inner: fmt.Errorf("current phase has no billables, there isn't a next_billing_cycle")}
+				return def, models.NewGenericValidationError(fmt.Errorf("current phase has no billables, there isn't a next_billing_cycle"))
 			}
 
 			period, err := spec.GetAlignedBillingPeriodAt(currentPhase.PhaseKey, clock.Now())
 
 			return period.To, err
 		default:
-			return def, &models.GenericUserError{Inner: fmt.Errorf("unsupported enum value: %s", *c.Enum)}
+			return def, models.NewGenericValidationError(fmt.Errorf("unsupported enum value: %s", *c.Enum))
 		}
 	}
 
@@ -110,7 +110,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 		}
 
 		if c.Custom != nil {
-			return &models.GenericUserError{Inner: fmt.Errorf("cannot edit running subscription with custom timing")}
+			return models.NewGenericValidationError(fmt.Errorf("cannot edit running subscription with custom timing"))
 		}
 
 		currentTime := clock.Now()
@@ -121,7 +121,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 
 		// As we're possibly time-traveling, we need to set some constraints on what times we can travel to, otherwise, well, we know from sci-fi movies what happens
 		if editTime.Before(currentTime) {
-			return &models.GenericUserError{Inner: fmt.Errorf("cannot execute edits in the past")}
+			return models.NewGenericValidationError(fmt.Errorf("cannot execute edits in the past"))
 		}
 
 		currentPhase, currentPhaseExists := subView.Spec.GetCurrentPhaseAt(currentTime)
@@ -130,11 +130,11 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 		if currentPhaseExists && editPhaseExists && currentPhase.PhaseKey != editPhase.PhaseKey {
 			// Let's check if this happens due to a known cause. If so, we can return a more user-friendly error
 			if c.Enum != nil && *c.Enum == TimingNextBillingCycle {
-				return &models.GenericUserError{Inner: fmt.Errorf("cannot edit to the next billing cycle as it falls into a different phase")}
+				return models.NewGenericValidationError(fmt.Errorf("cannot edit to the next billing cycle as it falls into a different phase"))
 			}
 
 			// If not, we return a generic error
-			return &models.GenericUserError{Inner: fmt.Errorf("cannot time-travel to edit a different phase")}
+			return models.NewGenericValidationError(fmt.Errorf("cannot time-travel to edit a different phase"))
 		}
 
 	case SubscriptionActionCreate:
@@ -146,7 +146,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 
 		if c.Custom != nil {
 			if c.Custom.Before(clock.Now().Add(-tolerance)) {
-				return &models.GenericUserError{Inner: fmt.Errorf("cannot create subscription in the past")}
+				return models.NewGenericValidationError(fmt.Errorf("cannot create subscription in the past"))
 			}
 
 			return nil
@@ -159,7 +159,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 
 		if subView.Subscription.Alignment.BillablesMustAlign {
 			if c.Custom != nil {
-				return &models.GenericUserError{Inner: fmt.Errorf("cannot cancel aligned subscription with custom timing")}
+				return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription with custom timing"))
 			}
 
 			if c.Enum != nil && *c.Enum == TimingImmediate {
@@ -169,7 +169,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 				if currentPhaseExists {
 					_, err := subView.Spec.GetAlignedBillingPeriodAt(currentPhase.PhaseKey, clock.Now())
 					if err == nil {
-						return &models.GenericUserError{Inner: fmt.Errorf("cannot cancel aligned subscription immediately that has a billing period")}
+						return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription immediately that has a billing period"))
 					}
 				}
 			}
@@ -177,7 +177,7 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 
 		// We don't allow to cancel misaligned subscriptions with next_billing_cycle timing as it makes no sense
 		if !subView.Subscription.Alignment.BillablesMustAlign && c.Enum != nil && *c.Enum == TimingNextBillingCycle {
-			return &models.GenericUserError{Inner: fmt.Errorf("cannot cancel misaligned subscription with next_billing_cycle timing")}
+			return models.NewGenericValidationError(fmt.Errorf("cannot cancel misaligned subscription with next_billing_cycle timing"))
 		}
 
 	default:

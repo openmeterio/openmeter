@@ -1,6 +1,10 @@
 package httptransport
 
-import "context"
+import (
+	"context"
+
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
+)
 
 func (h *handler[Request, Response]) apply(options []HandlerOption) {
 	var opts handlerOptions
@@ -28,7 +32,7 @@ func WithErrorHandler(errorHandler ErrorHandler) HandlerOption {
 	})
 }
 
-func WithErrorEncoder(errorEncoder ErrorEncoder) HandlerOption {
+func WithErrorEncoder(errorEncoder encoder.ErrorEncoder) HandlerOption {
 	return optionFunc(func(o *handlerOptions) {
 		o.errorEncoders = append(o.errorEncoders, errorEncoder)
 	})
@@ -51,7 +55,7 @@ func WithOperationNameFunc(fn func(ctx context.Context) string) HandlerOption {
 type handlerOptions struct {
 	errorHandler ErrorHandler
 	// errorEncoder is responible for outputting the resulting error
-	errorEncoders []ErrorEncoder
+	errorEncoders []encoder.ErrorEncoder
 
 	operationNameFunc func(ctx context.Context) string
 }

@@ -61,7 +61,6 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("queryMeter"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -124,7 +123,6 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("queryMeter"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -178,7 +176,6 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("queryMeterCSV"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

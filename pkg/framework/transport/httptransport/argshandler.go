@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 )
 
 type HandlerWithArgs[Request any, Response any, ArgType any] interface {
@@ -17,7 +18,7 @@ type RequestDecoderWithArgs[Request any, ArgType any] func(ctx context.Context, 
 func NewHandlerWithArgs[Request any, Response any, ArgType any](
 	requestDecoder RequestDecoderWithArgs[Request, ArgType],
 	op operation.Operation[Request, Response],
-	responseEncoder ResponseEncoder[Response],
+	responseEncoder encoder.ResponseEncoder[Response],
 
 	options ...HandlerOption,
 ) HandlerWithArgs[Request, Response, ArgType] {

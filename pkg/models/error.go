@@ -5,44 +5,83 @@ import (
 	"fmt"
 )
 
+// GenericError is an interface that all generic errors must implement.
+type GenericError interface {
+	error
+	Unwrap() error
+}
+
+// NewNamespaceNotFoundError returns a new NamespaceNotFoundError.
+func NewNamespaceNotFoundError(namespace string) error {
+	return &NamespaceNotFoundError{
+		err: NewGenericNotFoundError(fmt.Errorf("namespace not found: %s", namespace)),
+	}
+}
+
+var _ GenericError = &NamespaceNotFoundError{}
+
+// IsNamespaceNotFoundError returns true if the error is a NamespaceNotFoundError.
 type NamespaceNotFoundError struct {
-	Namespace string
+	err       error
+	namespace string
 }
 
 func (e *NamespaceNotFoundError) Error() string {
-	return fmt.Sprintf("namespace not found: %s", e.Namespace)
+	return e.err.Error()
 }
 
-// TODO: these should be picked up in a general server error handler
-type GenericUserError struct {
-	Inner error
+// Unwrap returns the wrapped error.
+func (e *NamespaceNotFoundError) Unwrap() error {
+	return e.err
 }
 
-func (e *GenericUserError) Error() string {
-	return e.Inner.Error()
+// NewGenericNotFoundError returns a new GenericNotFoundError.
+func NewGenericNotFoundError(err error) error {
+	return &GenericNotFoundError{err: err}
 }
 
-func (e *GenericUserError) Unwrap() error {
-	return e.Inner
+var _ GenericError = &GenericNotFoundError{}
+
+type GenericNotFoundError struct {
+	err error
+}
+
+func (e *GenericNotFoundError) Error() string {
+	return fmt.Sprintf("not found error: %s", e.err)
+}
+
+func (e *GenericNotFoundError) Unwrap() error {
+	return e.err
+}
+
+// IsGenericNotFoundError returns true if the error is a GenericNotFoundError.
+func IsGenericNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *GenericNotFoundError
+
+	return errors.As(err, &e)
 }
 
 // NewGenericConflictError returns a new GenericConflictError.
 func NewGenericConflictError(err error) error {
-	return &GenericConflictError{Inner: err}
+	return &GenericConflictError{err: err}
 }
 
-var _ error = &GenericConflictError{}
+var _ GenericError = &GenericConflictError{}
 
 type GenericConflictError struct {
-	Inner error
+	err error
 }
 
 func (e *GenericConflictError) Error() string {
-	return e.Inner.Error()
+	return fmt.Sprintf("conflict error: %s", e.err)
 }
 
 func (e *GenericConflictError) Unwrap() error {
-	return e.Inner
+	return e.err
 }
 
 // IsGenericConflictError returns true if the error is a GenericConflictError.
@@ -58,21 +97,21 @@ func IsGenericConflictError(err error) bool {
 
 // NewGenericValidationError returns a new GenericForbiddenError.
 func NewGenericForbiddenError(err error) error {
-	return &GenericForbiddenError{Inner: err}
+	return &GenericForbiddenError{err: err}
 }
 
-var _ error = &GenericForbiddenError{}
+var _ GenericError = &GenericForbiddenError{}
 
 type GenericForbiddenError struct {
-	Inner error
+	err error
 }
 
 func (e *GenericForbiddenError) Error() string {
-	return e.Inner.Error()
+	return fmt.Sprintf("forbidden error: %s", e.err)
 }
 
 func (e *GenericForbiddenError) Unwrap() error {
-	return e.Inner
+	return e.err
 }
 
 // IsGenericForbiddenError returns true if the error is a GenericForbiddenError.
@@ -91,7 +130,7 @@ func NewGenericValidationError(err error) error {
 	return &GenericValidationError{err: err}
 }
 
-var _ error = &GenericValidationError{}
+var _ GenericError = &GenericValidationError{}
 
 // GenericValidationError is returned when a meter is not found.
 type GenericValidationError struct {
@@ -101,6 +140,11 @@ type GenericValidationError struct {
 // Error returns the error message.
 func (e *GenericValidationError) Error() string {
 	return fmt.Sprintf("validation error: %s", e.err)
+}
+
+// Unwrap returns the wrapped error.
+func (e *GenericValidationError) Unwrap() error {
+	return e.err
 }
 
 // IsGenericValidationError returns true if the error is a GenericValidationError.
@@ -119,7 +163,7 @@ func NewGenericNotImplementedError(err error) error {
 	return &GenericNotImplementedError{err: err}
 }
 
-var _ error = &GenericNotImplementedError{}
+var _ GenericError = &GenericNotImplementedError{}
 
 // GenericNotImplementedError is returned when a meter is not found.
 type GenericNotImplementedError struct {
@@ -128,7 +172,12 @@ type GenericNotImplementedError struct {
 
 // Error returns the error message.
 func (e *GenericNotImplementedError) Error() string {
-	return fmt.Sprintf("validation error: %s", e.err)
+	return fmt.Sprintf("not implemented error: %s", e.err)
+}
+
+// Unwrap returns the wrapped error.
+func (e *GenericNotImplementedError) Unwrap() error {
+	return e.err
 }
 
 // IsGenericNotImplementedError returns true if the error is a BadRequestError.

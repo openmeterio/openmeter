@@ -253,7 +253,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.NamespacedOwner, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
 	// Cannot reset for the future
 	if params.At.After(clock.Now()) {
-		return nil, &models.GenericUserError{Inner: fmt.Errorf("cannot reset at %s in the future", params.At)}
+		return nil, models.NewGenericValidationError(fmt.Errorf("cannot reset at %s in the future", params.At))
 	}
 
 	ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
@@ -272,7 +272,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
 	if at.Before(periodStart) {
-		return nil, &models.GenericUserError{Inner: fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart)}
+		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart))
 	}
 
 	bal, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)

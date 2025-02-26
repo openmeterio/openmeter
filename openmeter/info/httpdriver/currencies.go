@@ -45,7 +45,6 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listCurrencies"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

@@ -3,21 +3,34 @@ package meter
 import (
 	"errors"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NewMeterNotFoundError returns a new MeterNotFoundError.
 func NewMeterNotFoundError(meterSlug string) error {
-	return &MeterNotFoundError{MeterSlug: meterSlug}
+	return &MeterNotFoundError{
+		err: models.NewGenericNotFoundError(
+			fmt.Errorf("meter not found: %s", meterSlug),
+		),
+	}
 }
+
+var _ models.GenericError = &MeterNotFoundError{}
 
 // MeterNotFoundError is returned when a meter is not found.
 type MeterNotFoundError struct {
-	MeterSlug string
+	err error
 }
 
 // Error returns the error message.
 func (e *MeterNotFoundError) Error() string {
-	return fmt.Sprintf("meter not found: %s", e.MeterSlug)
+	return e.err.Error()
+}
+
+// Unwrap returns the wrapped error.
+func (e *MeterNotFoundError) Unwrap() error {
+	return e.err
 }
 
 // IsMeterNotFoundError returns true if the error is a MeterNotFoundError.

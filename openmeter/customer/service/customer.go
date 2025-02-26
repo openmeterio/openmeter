@@ -63,9 +63,9 @@ func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEnt
 	}
 
 	if len(cust.UsageAttribution.SubjectKeys) != 1 {
-		return nil, &models.GenericConflictError{
-			Inner: fmt.Errorf("customer %s has multiple subject keys", input.ID.ID),
-		}
+		return nil, models.NewGenericConflictError(
+			fmt.Errorf("customer %s has multiple subject keys", input.ID.ID),
+		)
 	}
 
 	subjectKey := cust.UsageAttribution.SubjectKeys[0]
