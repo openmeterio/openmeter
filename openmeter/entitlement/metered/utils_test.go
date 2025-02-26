@@ -67,6 +67,9 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		Namespace:   namespace,
 		Aggregation: meter.MeterAggregationSum,
 		WindowSize:  meter.WindowSizeMinute,
+		// These will be ignored in tests
+		EventType:     "test",
+		ValueProperty: "$.value",
 	}})
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)
