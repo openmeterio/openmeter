@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
+	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -167,6 +168,8 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
 
+	meterEventService := metereventadapter.New(mockStreamingConnector)
+
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
 			EntitlementConnector:        &NoopEntitlementConnector{},
@@ -174,6 +177,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			FeatureConnector:            &NoopFeatureConnector{},
 			GrantConnector:              &NoopGrantConnector{},
 			MeterService:                meterService,
+			MeterEventService:           meterEventService,
 			StreamingConnector:          mockStreamingConnector,
 			DebugConnector:              MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {

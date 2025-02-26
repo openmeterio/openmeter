@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/portal"
@@ -50,11 +51,12 @@ type Application struct {
 	KafkaProducer           *kafka.Producer
 	KafkaMetrics            *kafkametrics.Metrics
 	Logger                  *slog.Logger
+	MetricMeter             metric.Meter
 	MeterService            meter.Service
+	MeterEventService       meterevent.Service
 	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service
-	Meter                   metric.Meter
 	Plan                    plan.Service
 	Portal                  portal.Service
 	RouterHook              func(chi.Router)
@@ -80,6 +82,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Kafka,
 		common.KafkaNamespaceResolver,
 		common.MeterInMemory,
+		common.MeterEvent,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,
 		common.NewKafkaIngestCollector,

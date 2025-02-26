@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/portal"
@@ -311,6 +312,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	metereventService := common.NewMeterEventService(connector)
 	notificationConfiguration := conf.Notification
 	v5 := conf.Svix
 	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v5, featureConnector)
@@ -414,11 +416,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaProducer:           producer,
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
+		MetricMeter:             meter,
 		MeterService:            meterService,
+		MeterEventService:       metereventService,
 		NamespaceHandlers:       v4,
 		NamespaceManager:        manager,
 		Notification:            notificationService,
-		Meter:                   meter,
 		Plan:                    planService,
 		Portal:                  portalService,
 		RouterHook:              v6,
@@ -460,11 +463,12 @@ type Application struct {
 	KafkaProducer           *kafka2.Producer
 	KafkaMetrics            *metrics.Metrics
 	Logger                  *slog.Logger
+	MetricMeter             metric.Meter
 	MeterService            meter.Service
+	MeterEventService       meterevent.Service
 	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
 	Notification            notification.Service
-	Meter                   metric.Meter
 	Plan                    plan.Service
 	Portal                  portal.Service
 	RouterHook              func(chi.Router)
