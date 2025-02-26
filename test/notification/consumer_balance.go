@@ -65,8 +65,9 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 				SubjectKey:      TestSubjectKey,
 				EntitlementType: entitlement.EntitlementTypeMetered,
 
-				UsagePeriod:        &TestEntitlementUsagePeriod,
-				CurrentUsagePeriod: &TestEntitlementCurrentUsagePeriod,
+				UsagePeriod:               &TestEntitlementUsagePeriod,
+				OriginalUsagePeriodAnchor: &TestEntitlementUsagePeriod.Anchor,
+				CurrentUsagePeriod:        &TestEntitlementCurrentUsagePeriod,
 			},
 			MeasureUsageFrom: &TestEntitlementCurrentUsagePeriod.From,
 			IsSoftLimit:      convert.ToPointer(true),

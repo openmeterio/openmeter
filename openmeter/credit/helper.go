@@ -76,12 +76,13 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", owner.ID, queryBounds.From, err)
 	}
 
-	inbetweenPeriodStarts, err := m.ownerConnector.GetPeriodStartTimesBetween(ctx, owner, queryBounds.From, queryBounds.To)
+	inbetweenPeriodStarts, err := m.ownerConnector.GetResetTimelineInclusive(ctx, owner, queryBounds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get period start times for owner %s between %s and %s: %w", owner.ID, queryBounds.From, queryBounds.To, err)
 	}
 
-	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts...)
+	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts.GetTimes()...)
+	times = append(times, queryBounds.To)
 
 	periodCache := SortedPeriodsFromDedupedTimes(times)
 
@@ -93,11 +94,12 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	// Let's write a function that replaces GetUsagePeriodStartAt with a cache lookup
 	getUsagePeriodStartAtFromCache := func(at time.Time) (time.Time, error) {
 		for _, period := range periodCache {
+			// We run with ContainsInclusive in Time-ASC order so we can match the end of the last period
 			if period.ContainsInclusive(at) {
 				return period.From, nil
 			}
 		}
-		return time.Time{}, fmt.Errorf("no period start time found for %s", at)
+		return time.Time{}, fmt.Errorf("no period start time found for %s, known periods: %+v", at, periodCache)
 	}
 
 	// Let's define a simple helper that validates the returned meter rows
@@ -126,26 +128,16 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 			// Let's query the meter based on the aggregation
 			switch ownerMeter.Meter.Aggregation {
 			case meter.MeterAggregationUniqueCount:
-				periodStartAtFrom, err := getUsagePeriodStartAtFromCache(from)
+				periodStart, err := getUsagePeriodStartAtFromCache(from)
 				if err != nil {
 					return 0.0, err
-				}
-
-				periodStartAtTo, err := getUsagePeriodStartAtFromCache(to)
-				if err != nil {
-					return 0.0, err
-				}
-
-				// The engine cannot query across periods so if the two times don't match we got a problem
-				if !periodStartAtFrom.Equal(periodStartAtTo) {
-					return 0.0, fmt.Errorf("cannot query across periods: %s and %s", periodStartAtFrom, periodStartAtTo)
 				}
 
 				// To get the UNIQUE_COUNT value between `from` and `to` we need to:
 				// 1. Query between the period start and `to` to get the unique count at `to`
 				// 2. Query between the period start and `from` to get the unique count at `from`
 				// 3. Subtract the two values
-				params.From = &periodStartAtFrom
+				params.From = &periodStart
 				params.To = &to
 
 				rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
@@ -206,46 +198,54 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	return eng, nil
 }
 
-// Returns a snapshot from the last segment that can be saved, taking the following into account:
-//
-//  1. We can save a segment if it is older than graceperiod.
-//  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
-//     starting values can be saved credibly.
-func (m *connector) getLastSaveableSnapshotAt(history *engine.GrantBurnDownHistory, lastValidBalance balance.Snapshot, at time.Time) (*balance.Snapshot, error) {
-	segments := history.Segments()
-
-	for i := len(segments) - 1; i >= 0; i-- {
-		segment := segments[i]
-		if segment.From.Add(m.snapshotGracePeriod).Before(at) {
-			s := segment.ToSnapshot()
-			if s.At.After(lastValidBalance.At) {
-				return &s, nil
-			} else {
-				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At)
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
+type snapshotParams struct {
+	// All grants used at engine.Run
+	grants []grant.Grant
+	// Owner of the snapshot
+	owner grant.NamespacedOwner
+	// Result of the engine.Run
+	runRes engine.RunResult
+	// Snapshot is saved if the segment is before this time & the start of the current usage period (at time of snapshot)
+	before time.Time
 }
 
-func (m *connector) excludeInactiveGrantsFromBalance(balances balance.Map, grants map[string]grant.Grant, at time.Time) (*balance.Map, error) {
-	filtered := &balance.Map{}
-	for grantID, grantBalance := range balances {
-		grant, ok := grants[grantID]
-		// inconsistency check, shouldn't happen
-		if !ok {
-			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
-		}
-
-		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
-		if !grant.ActiveAt(at) {
-			continue
-		}
-
-		filtered.Set(grantID, grantBalance)
+// It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
+func (m *connector) snapshotEngineResult(ctx context.Context, params snapshotParams) error {
+	history, err := engine.NewGrantBurnDownHistory(params.runRes.History)
+	if err != nil {
+		return fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
-	return filtered, nil
+
+	currentPeriodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, params.owner, params.runRes.Snapshot.At)
+	if err != nil {
+		return fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", params.owner.ID, params.runRes.Snapshot.At, err)
+	}
+
+	segs := history.Segments()
+
+	// i >= 1 because:
+	// The first segment starts with the last valid snapshot and we don't want to create another snapshot for that same time
+	for i := len(segs) - 1; i >= 1; i-- {
+		seg := segs[i]
+
+		// We can save a segment if its not after the current period start (this way backfilling, granting, resetting, etc... will work for the current UsagePeriod)
+		if !seg.From.After(currentPeriodStart) && !seg.From.After(params.before) {
+			snap := seg.ToSnapshot()
+			if err := m.removeInactiveGrantsFromSnapshotAt(&snap, params.grants, currentPeriodStart); err != nil {
+				return fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
+			}
+
+			if err := m.balanceSnapshotRepo.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
+				return fmt.Errorf("failed to save snapshot: %w", err)
+			}
+
+			m.logger.DebugContext(ctx, "saved snapshot", "snapshot", snap, "owner", params.owner)
+
+			break
+		}
+	}
+
+	return nil
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
@@ -259,6 +259,30 @@ func (m *connector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *b
 			}
 		}
 	}
+}
+
+// Removes grants that are not active at the given time from the snapshot.
+func (m *connector) removeInactiveGrantsFromSnapshotAt(snapshot *balance.Snapshot, grants []grant.Grant, at time.Time) error {
+	grantMap := make(map[string]grant.Grant)
+	for _, grant := range grants {
+		grantMap[grant.ID] = grant
+	}
+
+	filtered := balance.Map{}
+	for grantID, grantBalance := range snapshot.Balances {
+		grant, ok := grantMap[grantID]
+		if !ok {
+			return fmt.Errorf("grant %s not found when removing inactive grants", grantID)
+		}
+
+		if grant.ActiveAt(at) {
+			filtered.Set(grantID, grantBalance)
+		}
+	}
+
+	snapshot.Balances = filtered
+
+	return nil
 }
 
 // Returns a list of non-overlapping periods between the sorted times.

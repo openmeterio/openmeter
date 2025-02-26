@@ -15,6 +15,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -211,6 +212,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				clock.SetTime(startTime)
+				defer clock.ResetTime()
+
+				// register usage so meter is found
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, startTime.AddDate(5, 0, 0))
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -219,10 +225,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
+				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily // we need a faster recurrence as we wont save snapshots in the current usage period
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
-				queryTime := startTime.Add(3 * time.Hour) // longer than grace period for saving snapshots
+				queryTime := startTime.AddDate(0, 0, 9) // longer than grace period for saving snapshots
 
 				// issue grants
 				owner := grant.NamespacedOwner{
@@ -231,28 +238,18 @@ func TestGetEntitlementBalance(t *testing.T) {
 				}
 
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     owner.ID,
-					Namespace:   namespace,
-					Amount:      1000,
-					Priority:    2,
-					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
-				})
-				assert.NoError(t, err)
-
-				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     owner.ID,
-					Namespace:   namespace,
-					Amount:      1000,
-					Priority:    1,
-					EffectiveAt: startTime.Add(time.Hour),
-					ExpiresAt:   startTime.Add(time.Hour).AddDate(0, 0, 3),
+					OwnerID:          owner.ID,
+					Namespace:        namespace,
+					Amount:           1000,
+					ResetMaxRollover: 1000,
+					Priority:         2,
+					EffectiveAt:      startTime,
+					ExpiresAt:        startTime.AddDate(0, 0, 10),
 				})
 				assert.NoError(t, err)
 
 				// register usage for meter & feature
-				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, g1.EffectiveAt.Add(time.Minute*5))
-				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, g2.EffectiveAt.Add(time.Minute))
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
 
 				// add a balance snapshot
 				err = deps.balanceSnapshotRepo.Save(
@@ -260,13 +257,15 @@ func TestGetEntitlementBalance(t *testing.T) {
 					owner, []balance.Snapshot{
 						{
 							Balances: balance.Map{
-								g1.ID: 750,
+								g1.ID: 1000,
 							},
 							Overage: 0,
-							At:      g1.EffectiveAt.Add(time.Minute),
+							At:      g1.EffectiveAt,
 						},
 					})
 				assert.NoError(t, err)
+
+				clock.SetTime(queryTime)
 
 				// get last vaild snapshot
 				snap1, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
@@ -276,8 +275,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.NoError(t, err)
 
 				// validate balance calc for good measure
-				assert.Equal(t, 200.0, entBalance.UsageInPeriod) // in total we had 200 usage
-				assert.Equal(t, 1550.0, entBalance.Balance)      // 750 + 1000 (g2 amount) - 200 = 1550
+				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 800.0, entBalance.Balance)
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				snap2, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
@@ -287,10 +286,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, 0.0, snap2.Overage)
 				assert.Equal(t, balance.Map{
-					g1.ID: 650,  // the grant that existed so far
-					g2.ID: 1000, // the grant that was added at this instant
+					g1.ID: 800,
 				}, snap2.Balances)
-				assert.Equal(t, g2.EffectiveAt, snap2.At)
 			},
 		},
 		{
@@ -298,6 +295,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				clock.SetTime(startTime)
+				defer clock.ResetTime()
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -306,10 +305,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
+				inp.UsagePeriod.Interval = timeutil.RecurrencePeriodDaily // we need a faster recurrence as we wont save snapshots in the current usage period
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
-				queryTime := startTime.Add(3 * time.Hour) // longer than grace period for saving snapshots
+				queryTime := startTime.AddDate(0, 0, 10) // longer than grace period for saving snapshots
 
 				// issue grants
 				owner := grant.NamespacedOwner{
@@ -318,28 +318,18 @@ func TestGetEntitlementBalance(t *testing.T) {
 				}
 
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     owner.ID,
-					Namespace:   namespace,
-					Amount:      1000,
-					Priority:    2,
-					EffectiveAt: startTime,
-					ExpiresAt:   startTime.AddDate(0, 0, 3),
-				})
-				assert.NoError(t, err)
-
-				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     owner.ID,
-					Namespace:   namespace,
-					Amount:      1000,
-					Priority:    1,
-					EffectiveAt: startTime.Add(time.Hour),
-					ExpiresAt:   startTime.Add(time.Hour).AddDate(0, 0, 3),
+					OwnerID:          owner.ID,
+					Namespace:        namespace,
+					Amount:           1000,
+					ResetMaxRollover: 1000,
+					Priority:         2,
+					EffectiveAt:      startTime,
+					ExpiresAt:        startTime.AddDate(0, 5, 0),
 				})
 				assert.NoError(t, err)
 
 				// register usage for meter & feature
-				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, g1.EffectiveAt.Add(time.Minute*5))
-				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, g2.EffectiveAt.Add(time.Minute))
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute*5))
 
 				// add a balance snapshot
 				err = deps.balanceSnapshotRepo.Save(
@@ -347,10 +337,10 @@ func TestGetEntitlementBalance(t *testing.T) {
 					owner, []balance.Snapshot{
 						{
 							Balances: balance.Map{
-								g1.ID: 750,
+								g1.ID: 1000,
 							},
 							Overage: 0,
-							At:      g1.EffectiveAt.Add(time.Minute),
+							At:      g1.EffectiveAt,
 						},
 					})
 				assert.NoError(t, err)
@@ -359,12 +349,14 @@ func TestGetEntitlementBalance(t *testing.T) {
 				snap1, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
 
+				clock.SetTime(queryTime)
+
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
 				assert.NoError(t, err)
 
 				// validate balance calc for good measure
-				assert.Equal(t, 200.0, entBalance.UsageInPeriod) // in total we had 200 usage
-				assert.Equal(t, 1550.0, entBalance.Balance)      // 750 + 1000 (g2 amount) - 200 = 1550
+				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 800.0, entBalance.Balance)
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				snap2, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
@@ -374,18 +366,16 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, 0.0, snap2.Overage)
 				assert.Equal(t, balance.Map{
-					g1.ID: 650,  // the grant that existed so far
-					g2.ID: 1000, // the grant that was added at this instant
+					g1.ID: 800,
 				}, snap2.Balances)
-				assert.Equal(t, g2.EffectiveAt, snap2.At)
 
 				// run the calc again
 				entBalance, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
 				assert.NoError(t, err)
 
 				// validate balance calc for good measure
-				assert.Equal(t, 200.0, entBalance.UsageInPeriod) // in total we had 200 usage
-				assert.Equal(t, 1550.0, entBalance.Balance)      // 750 + 1000 (g2 amount) - 200 = 1550
+				assert.Equal(t, 0.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 800.0, entBalance.Balance)
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				// FIXME: we shouldn't check things that the contract is unable to tell us

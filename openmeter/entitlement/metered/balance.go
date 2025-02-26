@@ -51,6 +51,8 @@ type BalanceHistoryParams struct {
 }
 
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+	e.logger.DebugContext(ctx, "Getting entitlement balance", "entitlement", entitlementID, "at", at)
+
 	nsOwner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        grant.Owner(entitlementID.ID),
@@ -72,6 +74,8 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
+
+	// TODO: move usage calculation some place else
 
 	meterQuery := ownerMeter.DefaultParams
 	meterQuery.FilterSubject = []string{ownerMeter.SubjectKey}

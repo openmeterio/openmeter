@@ -223,6 +223,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		grantRepo,
 		entitlementRepo,
 		mockPublisher,
+		slog.Default(),
 	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()

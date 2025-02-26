@@ -334,8 +334,9 @@ type GenericProperties struct {
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 
-	UsagePeriod        *UsagePeriod     `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod *timeutil.Period `json:"currentUsagePeriod,omitempty"`
+	UsagePeriod               *UsagePeriod     `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod        *timeutil.Period `json:"currentUsagePeriod,omitempty"`
+	OriginalUsagePeriodAnchor *time.Time       `json:"originalUsagePeriodAnchor,omitempty"`
 
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }
@@ -362,6 +363,13 @@ func (u UsagePeriod) Validate() error {
 	}
 
 	return nil
+}
+
+func (u UsagePeriod) AsRecurrence() timeutil.Recurrence {
+	return timeutil.Recurrence{
+		Anchor:   u.Anchor,
+		Interval: u.Interval,
+	}
 }
 
 func (u UsagePeriod) Equal(other UsagePeriod) bool {

@@ -39719,6 +39719,7 @@ type UsageResetMutation struct {
 	updated_at         *time.Time
 	deleted_at         *time.Time
 	reset_time         *time.Time
+	anchor             *time.Time
 	clearedFields      map[string]struct{}
 	entitlement        *string
 	clearedentitlement bool
@@ -40060,6 +40061,42 @@ func (m *UsageResetMutation) ResetResetTime() {
 	m.reset_time = nil
 }
 
+// SetAnchor sets the "anchor" field.
+func (m *UsageResetMutation) SetAnchor(t time.Time) {
+	m.anchor = &t
+}
+
+// Anchor returns the value of the "anchor" field in the mutation.
+func (m *UsageResetMutation) Anchor() (r time.Time, exists bool) {
+	v := m.anchor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnchor returns the old "anchor" field's value of the UsageReset entity.
+// If the UsageReset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsageResetMutation) OldAnchor(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnchor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnchor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnchor: %w", err)
+	}
+	return oldValue.Anchor, nil
+}
+
+// ResetAnchor resets all changes to the "anchor" field.
+func (m *UsageResetMutation) ResetAnchor() {
+	m.anchor = nil
+}
+
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (m *UsageResetMutation) ClearEntitlement() {
 	m.clearedentitlement = true
@@ -40121,7 +40158,7 @@ func (m *UsageResetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UsageResetMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, usagereset.FieldNamespace)
 	}
@@ -40139,6 +40176,9 @@ func (m *UsageResetMutation) Fields() []string {
 	}
 	if m.reset_time != nil {
 		fields = append(fields, usagereset.FieldResetTime)
+	}
+	if m.anchor != nil {
+		fields = append(fields, usagereset.FieldAnchor)
 	}
 	return fields
 }
@@ -40160,6 +40200,8 @@ func (m *UsageResetMutation) Field(name string) (ent.Value, bool) {
 		return m.EntitlementID()
 	case usagereset.FieldResetTime:
 		return m.ResetTime()
+	case usagereset.FieldAnchor:
+		return m.Anchor()
 	}
 	return nil, false
 }
@@ -40181,6 +40223,8 @@ func (m *UsageResetMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldEntitlementID(ctx)
 	case usagereset.FieldResetTime:
 		return m.OldResetTime(ctx)
+	case usagereset.FieldAnchor:
+		return m.OldAnchor(ctx)
 	}
 	return nil, fmt.Errorf("unknown UsageReset field %s", name)
 }
@@ -40231,6 +40275,13 @@ func (m *UsageResetMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetResetTime(v)
+		return nil
+	case usagereset.FieldAnchor:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnchor(v)
 		return nil
 	}
 	return fmt.Errorf("unknown UsageReset field %s", name)
@@ -40307,6 +40358,9 @@ func (m *UsageResetMutation) ResetField(name string) error {
 		return nil
 	case usagereset.FieldResetTime:
 		m.ResetResetTime()
+		return nil
+	case usagereset.FieldAnchor:
+		m.ResetAnchor()
 		return nil
 	}
 	return fmt.Errorf("unknown UsageReset field %s", name)
