@@ -68,7 +68,6 @@ func (h *handler) ListApps() ListAppsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listApps"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -107,7 +106,6 @@ func (h *handler) GetApp() GetAppHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getApp"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -157,7 +155,6 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("updateApp"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -207,7 +204,6 @@ func (h *handler) UninstallApp() UninstallAppHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("uninstallApp"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

@@ -51,7 +51,6 @@ func (h *handler) UpdateStripeAPIKey() UpdateStripeAPIKeyHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("replaceStripeAPIKey"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

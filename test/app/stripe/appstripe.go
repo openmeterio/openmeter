@@ -2,7 +2,6 @@ package appstripe
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/oklog/ulid/v2"
@@ -391,11 +390,6 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.NoError(t, err, "Update customer data must not return error")
 
 	// Update customer data with non existing stripe customer should return error
-	stripeAppData, err := s.Env.AppStripe().GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
-		AppID: testApp.GetID(),
-	})
-	require.NoError(t, err, "Get stripe app data must not return error")
-
 	nonExistingStripeCustomerID := "cus_789"
 
 	s.Env.StripeAppClient().
@@ -413,12 +407,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		},
 	})
 
-	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
-		AppID:      testApp.GetID(),
-		AppType:    app.AppTypeStripe,
-		CustomerID: customer.GetID(),
-		Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", nonExistingStripeCustomerID, stripeAppData.StripeAccountID),
-	})
+	require.True(t, app.IsAppCustomerPreConditionError(err), "Update customer data must return app customer pre condition error")
 
 	// Updated customer data with non existing payment method should return error
 	nonExistingStripePaymentMethodID := "pm_789"
@@ -447,10 +436,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		},
 	})
 
-	require.ErrorIs(t, err, app.AppProviderPreConditionError{
-		AppID:     testApp.GetID(),
-		Condition: fmt.Sprintf("stripe payment method %s not found in stripe account: %s", nonExistingStripePaymentMethodID, stripeAppData.StripeAccountID),
-	})
+	require.True(t, app.IsAppProviderPreConditionError(err), "Update customer data must return app provider pre condition error")
 
 	// Updated customer data with payment method that does not belong to the customer should return errors
 	s.Env.StripeAppClient().Restore()
@@ -479,15 +465,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		},
 	})
 
-	require.ErrorIs(t, err, app.AppProviderPreConditionError{
-		AppID: testApp.GetID(),
-		Condition: fmt.Sprintf(
-			"stripe payment method %s does not belong to stripe customer %s in stripe account: %s",
-			newStripePaymentMethodID,
-			newStripeCustomerID,
-			stripeAppData.StripeAccountID,
-		),
-	})
+	require.True(t, app.IsAppProviderPreConditionError(err), "Update customer data must return app provider pre condition error")
 
 	// Updated customer data must match
 	getCustomerData, err = testApp.GetCustomerData(ctx, app.GetAppInstanceCustomerDataInput{
@@ -523,12 +501,7 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 		CustomerID: customer.GetID(),
 	})
 
-	require.ErrorIs(t, err, app.AppCustomerPreConditionError{
-		AppID:      testApp.GetID(),
-		AppType:    app.AppTypeStripe,
-		CustomerID: customer.GetID(),
-		Condition:  "customer has no data for stripe app",
-	})
+	require.True(t, app.IsAppCustomerPreConditionError(err), "Get customer data must return app customer pre condition error")
 
 	// Restore customer data
 	s.Env.StripeAppClient().

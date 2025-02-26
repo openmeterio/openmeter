@@ -299,11 +299,12 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.AppCustomerPreConditionError{
-					AppID:     input.AppID,
-					AppType:   app.AppTypeStripe,
-					Condition: fmt.Sprintf("stripe customer has no data for stripe app: %s", input.StripeCustomerID),
-				}
+				return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.NewAppCustomerPreConditionError(
+					input.AppID,
+					app.AppTypeStripe,
+					nil,
+					fmt.Sprintf("stripe customer has no data for stripe app: %s", input.StripeCustomerID),
+				)
 			}
 		}
 
@@ -314,11 +315,12 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 
 		// Check if the stripe customer id matches with the input
 		if appCustomer.StripeCustomerID != input.StripeCustomerID {
-			return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.AppCustomerPreConditionError{
-				AppID:      input.AppID,
-				CustomerID: customerID,
-				Condition:  "customer stripe customer id mismatch",
-			}
+			return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, app.NewAppCustomerPreConditionError(
+				input.AppID,
+				app.AppTypeStripe,
+				&customerID,
+				"customer stripe customer id mismatch",
+			)
 		}
 
 		_, err = repo.db.AppStripeCustomer.
@@ -574,17 +576,17 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripeentity.G
 	}
 
 	if stripeAccount.BusinessProfile == nil || stripeAccount.BusinessProfile.Name == "" {
-		return billing.SupplierContact{}, app.AppProviderPreConditionError{
-			AppID:     input.AppID,
-			Condition: fmt.Sprintf("stripe account is missing business profile name: %s", stripeAccount.StripeAccountID),
-		}
+		return billing.SupplierContact{}, app.NewAppProviderPreConditionError(
+			input.AppID,
+			fmt.Sprintf("stripe account is missing business profile name: %s", stripeAccount.StripeAccountID),
+		)
 	}
 
 	if stripeAccount.Country == "" {
-		return billing.SupplierContact{}, app.AppProviderPreConditionError{
-			AppID:     input.AppID,
-			Condition: fmt.Sprintf("stripe account country is empty: %s", stripeAccount.StripeAccountID),
-		}
+		return billing.SupplierContact{}, app.NewAppProviderPreConditionError(
+			input.AppID,
+			fmt.Sprintf("stripe account country is empty: %s", stripeAccount.StripeAccountID),
+		)
 	}
 
 	supplierContact := billing.SupplierContact{

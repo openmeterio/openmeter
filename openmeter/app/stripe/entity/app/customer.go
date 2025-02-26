@@ -46,12 +46,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 	stripeCustomer, err := stripeClient.GetCustomer(ctx, stripeCustomerData.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
-			return app.AppCustomerPreConditionError{
-				AppID:      a.GetID(),
-				AppType:    a.GetType(),
-				CustomerID: customerID,
-				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
-			}
+			return app.NewAppCustomerPreConditionError(
+				a.GetID(),
+				a.GetType(),
+				&customerID,
+				fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
+			)
 		}
 
 		return err
@@ -68,12 +68,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
 			if err != nil {
 				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
-					return app.AppCustomerPreConditionError{
-						AppID:      a.GetID(),
-						AppType:    a.GetType(),
-						CustomerID: customerID,
-						Condition:  fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
-					}
+					return app.NewAppCustomerPreConditionError(
+						a.GetID(),
+						a.GetType(),
+						&customerID,
+						fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+					)
 				}
 
 				return fmt.Errorf("failed to get default payment method: %w", err)
@@ -81,12 +81,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		} else {
 			// Check if the customer has a default payment method
 			if stripeCustomer.DefaultPaymentMethod == nil {
-				return app.AppCustomerPreConditionError{
-					AppID:      a.GetID(),
-					AppType:    a.GetType(),
-					CustomerID: customerID,
-					Condition:  "stripe customer must have a default payment method",
-				}
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					"stripe customer must have a default payment method",
+				)
 			}
 
 			paymentMethod = *stripeCustomer.DefaultPaymentMethod
@@ -95,12 +95,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		// Payment method must have a billing address
 		// Billing address is required for tax calculation and invoice creation
 		if paymentMethod.BillingAddress == nil {
-			return app.AppCustomerPreConditionError{
-				AppID:      a.GetID(),
-				AppType:    a.GetType(),
-				CustomerID: customerID,
-				Condition:  "stripe customer default payment method must have a billing address",
-			}
+			return app.NewAppCustomerPreConditionError(
+				a.GetID(),
+				a.GetType(),
+				&customerID,
+				"stripe customer default payment method must have a billing address",
+			)
 		}
 
 		// TODO: should we have currency as an input to validation?

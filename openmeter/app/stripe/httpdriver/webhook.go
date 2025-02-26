@@ -429,7 +429,6 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("appStripeWebhook"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

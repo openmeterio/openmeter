@@ -76,97 +76,151 @@ func IsAppDefaultNotFoundError(err error) bool {
 }
 
 // AppProviderAuthenticationError
-var _ error = (*AppProviderAuthenticationError)(nil)
+func NewAppProviderAuthenticationError(appID *AppID, namespace string, providerError error) *AppProviderAuthenticationError {
+	var err error
+
+	if appID == nil {
+		err = fmt.Errorf("provider authentication error for app in %s namespace: %w", namespace, providerError)
+	} else {
+		err = fmt.Errorf("provider authentication error for app %s: %w", appID.ID, providerError)
+	}
+
+	return &AppProviderAuthenticationError{
+		err: models.NewGenericUnauthorizedError(err),
+	}
+}
+
+var _ models.GenericError = (*AppProviderAuthenticationError)(nil)
 
 type AppProviderAuthenticationError struct {
-	AppID         *AppID
-	Namespace     string
-	ProviderError error
+	err error
 }
 
 func (e AppProviderAuthenticationError) Error() string {
-	if e.AppID == nil {
-		return fmt.Sprintf("provider authentication error for app in %s namespace: %s", e.Namespace, e.ProviderError)
+	return e.err.Error()
+}
+
+func (e AppProviderAuthenticationError) Unwrap() error {
+	return e.err
+}
+
+func IsAppProviderAuthenticationError(err error) bool {
+	if err == nil {
+		return false
 	}
 
-	return fmt.Sprintf("provider authentication error for app %s: %s", e.AppID.ID, e.ProviderError)
+	var e *AppProviderAuthenticationError
+
+	return errors.As(err, &e)
 }
 
 // AppProviderError
-var _ error = (*AppProviderError)(nil)
+func NewAppProviderError(appID *AppID, namespace string, providerError error) *AppProviderError {
+	var err error
+
+	if appID == nil {
+		err = fmt.Errorf("provider error for app in %s namespace: %w", namespace, providerError)
+	} else {
+		err = fmt.Errorf("provider error for app %s: %w", appID.ID, providerError)
+	}
+
+	return &AppProviderError{
+		err: models.NewGenericPreConditionFailedError(err),
+	}
+}
+
+var _ models.GenericError = (*AppProviderError)(nil)
 
 type AppProviderError struct {
-	AppID         *AppID
-	Namespace     string
-	ProviderError error
+	err error
 }
 
 func (e AppProviderError) Error() string {
-	if e.AppID == nil {
-		return fmt.Sprintf("provider error for app in %s namespace: %s", e.Namespace, e.ProviderError)
+	return e.err.Error()
+}
+
+func (e AppProviderError) Unwrap() error {
+	return e.err
+}
+
+func IsAppProviderError(err error) bool {
+	if err == nil {
+		return false
 	}
 
-	return fmt.Sprintf("provider error for app %s: %s", e.AppID.ID, e.ProviderError)
+	var e *AppProviderError
+
+	return errors.As(err, &e)
 }
 
 // AppProviderPreConditionError
-var _ error = (*AppProviderPreConditionError)(nil)
+var _ models.GenericError = (*AppProviderPreConditionError)(nil)
 
-type AppProviderPreConditionError struct {
-	AppID     AppID
-	Condition string
+func NewAppProviderPreConditionError(appID AppID, condition string) *AppProviderPreConditionError {
+	return &AppProviderPreConditionError{
+		err: models.NewGenericPreConditionFailedError(
+			fmt.Errorf("app does not meet condition for %s: %s", appID.ID, condition),
+		),
+	}
 }
 
-func (e AppProviderPreConditionError) Validate() error {
-	if err := e.AppID.Validate(); err != nil {
-		return fmt.Errorf("error validating app id: %w", err)
-	}
-
-	if e.Condition == "" {
-		return errors.New("condition is required")
-	}
-
-	return nil
+type AppProviderPreConditionError struct {
+	err error
 }
 
 func (e AppProviderPreConditionError) Error() string {
-	return fmt.Sprintf("app does not meet condition for %s: %s", e.AppID.ID, e.Condition)
+	return e.err.Error()
 }
 
-// CustomerPreConditionError
-var _ error = (*AppCustomerPreConditionError)(nil)
+func (e AppProviderPreConditionError) Unwrap() error {
+	return e.err
+}
+
+func IsAppProviderPreConditionError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *AppProviderPreConditionError
+
+	return errors.As(err, &e)
+}
+
+// AppCustomerPreConditionError
+func NewAppCustomerPreConditionError(appID AppID, appType AppType, customerID *customer.CustomerID, condition string) *AppCustomerPreConditionError {
+	var err error
+
+	if customerID == nil {
+		err = fmt.Errorf("customer does not meet condition for %s app type with id %s in namespace %s: %s", appType, appID.ID, appID.Namespace, condition)
+	} else {
+		err = fmt.Errorf("customer with id %s does not meet condition %s for %s app type with id %s in namespace %s", customerID.ID, condition, appType, appID.ID, appID.Namespace)
+	}
+
+	return &AppCustomerPreConditionError{
+		err: models.NewGenericPreConditionFailedError(err),
+	}
+}
+
+var _ models.GenericError = (*AppCustomerPreConditionError)(nil)
 
 type AppCustomerPreConditionError struct {
-	AppID
-	AppType    AppType
-	CustomerID customer.CustomerID
-	Condition  string
-}
-
-func (e AppCustomerPreConditionError) Validate() error {
-	if e.AppID.ID == "" {
-		return errors.New("app id is required")
-	}
-
-	if e.AppID.Namespace == "" {
-		return errors.New("app namespace is required")
-	}
-
-	if e.AppType == "" {
-		return errors.New("app type is required")
-	}
-
-	if e.CustomerID.ID == "" {
-		return errors.New("customer id is required")
-	}
-
-	if e.Condition == "" {
-		return errors.New("condition is required")
-	}
-
-	return nil
+	err error
 }
 
 func (e AppCustomerPreConditionError) Error() string {
-	return fmt.Sprintf("customer with id %s does not meet condition %s for %s app type with id %s in namespace %s", e.CustomerID.ID, e.Condition, e.AppType, e.AppID.ID, e.AppID.Namespace)
+	return e.err.Error()
+}
+
+func (e AppCustomerPreConditionError) Unwrap() error {
+	return e.err
+}
+
+func IsAppCustomerPreConditionError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *AppCustomerPreConditionError
+
+	return errors.As(err, &e)
 }

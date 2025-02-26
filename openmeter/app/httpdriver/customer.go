@@ -85,7 +85,6 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listCustomerData"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -150,7 +149,6 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("upsertCustomerData"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -211,7 +209,6 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteCustomerData"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

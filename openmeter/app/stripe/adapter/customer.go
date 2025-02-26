@@ -29,12 +29,12 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return appstripeentity.CustomerData{}, app.AppCustomerPreConditionError{
-				AppID:      input.AppID,
-				AppType:    app.AppTypeStripe,
-				CustomerID: input.CustomerID,
-				Condition:  "customer has no data for stripe app",
-			}
+			return appstripeentity.CustomerData{}, app.NewAppCustomerPreConditionError(
+				input.AppID,
+				app.AppTypeStripe,
+				&input.CustomerID,
+				"customer has no data for stripe app",
+			)
 		}
 
 		return appstripeentity.CustomerData{}, fmt.Errorf("error getting stripe customer data: %w", err)
@@ -70,12 +70,12 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 	_, err = stripeAppClient.GetCustomer(ctx, input.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
-			return app.AppCustomerPreConditionError{
-				AppID:      input.AppID,
-				AppType:    app.AppTypeStripe,
-				CustomerID: input.CustomerID,
-				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", input.StripeCustomerID, stripeAppData.StripeAccountID),
-			}
+			return app.NewAppCustomerPreConditionError(
+				input.AppID,
+				app.AppTypeStripe,
+				&input.CustomerID,
+				fmt.Sprintf("stripe customer %s not found in stripe account: %s", input.StripeCustomerID, stripeAppData.StripeAccountID),
+			)
 		}
 
 		return fmt.Errorf("failed to get stripe customer: %w", err)
@@ -86,10 +86,10 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		paymentMethod, err := stripeAppClient.GetPaymentMethod(ctx, *input.StripeDefaultPaymentMethodID)
 		if err != nil {
 			if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
-				return app.AppProviderPreConditionError{
-					AppID:     input.AppID,
-					Condition: fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
-				}
+				return app.NewAppProviderPreConditionError(
+					input.AppID,
+					fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+				)
 			}
 
 			return fmt.Errorf("failed to get stripe payment method: %w", err)
@@ -97,15 +97,15 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 
 		// Check if the payment method belongs to the customer
 		if paymentMethod.StripeCustomerID == nil || *paymentMethod.StripeCustomerID != input.StripeCustomerID {
-			return app.AppProviderPreConditionError{
-				AppID: input.AppID,
-				Condition: fmt.Sprintf(
+			return app.NewAppProviderPreConditionError(
+				input.AppID,
+				fmt.Sprintf(
 					"stripe payment method %s does not belong to stripe customer %s in stripe account: %s",
 					*input.StripeDefaultPaymentMethodID,
 					input.StripeCustomerID,
 					stripeAppData.StripeAccountID,
 				),
-			}
+			)
 		}
 	}
 
@@ -134,12 +134,12 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 			Exec(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
-				return nil, app.AppCustomerPreConditionError{
-					AppID:      input.AppID,
-					AppType:    app.AppTypeStripe,
-					CustomerID: input.CustomerID,
-					Condition:  "unique stripe customer id",
-				}
+				return nil, app.NewAppCustomerPreConditionError(
+					input.AppID,
+					app.AppTypeStripe,
+					&input.CustomerID,
+					"unique stripe customer id",
+				)
 			}
 
 			return nil, fmt.Errorf("failed to upsert app stripe customer data: %w", err)

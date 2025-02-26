@@ -158,10 +158,10 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 			customerEntity, err := query.Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.KeyConflictError{
-						Namespace: input.Namespace,
-						Key:       *lo.CoalesceOrEmpty(input.Key),
-					}
+					return nil, customer.NewKeyConflictError(
+						input.Namespace,
+						*lo.CoalesceOrEmpty(input.Key),
+					)
 				}
 
 				return nil, fmt.Errorf("failed to create customer: %w", err)
@@ -185,10 +185,10 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 				Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.SubjectKeyConflictError{
-						Namespace:   input.Namespace,
-						SubjectKeys: input.UsageAttribution.SubjectKeys,
-					}
+					return nil, customer.NewSubjectKeyConflictError(
+						input.Namespace,
+						input.UsageAttribution.SubjectKeys,
+					)
 				}
 
 				return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
@@ -366,10 +366,10 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				}
 
 				if entdb.IsConstraintError(err) {
-					return nil, customer.KeyConflictError{
-						Namespace: input.CustomerID.Namespace,
-						Key:       *lo.CoalesceOrEmpty(input.Key),
-					}
+					return nil, customer.NewKeyConflictError(
+						input.CustomerID.Namespace,
+						*lo.CoalesceOrEmpty(input.Key),
+					)
 				}
 
 				return nil, fmt.Errorf("failed to update customer: %w", err)
@@ -408,10 +408,10 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.SubjectKeyConflictError{
-						Namespace:   input.CustomerID.Namespace,
-						SubjectKeys: subjectsKeysToAdd,
-					}
+					return nil, customer.NewSubjectKeyConflictError(
+						input.CustomerID.Namespace,
+						subjectsKeysToAdd,
+					)
 				}
 
 				return nil, fmt.Errorf("failed to add customer subjects: %w", err)
@@ -446,10 +446,10 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.SubjectKeyConflictError{
-						Namespace:   input.CustomerID.Namespace,
-						SubjectKeys: subjectKeysToRemove,
-					}
+					return nil, customer.NewSubjectKeyConflictError(
+						input.CustomerID.Namespace,
+						subjectKeysToRemove,
+					)
 				}
 
 				return nil, fmt.Errorf("failed to remove customer subjects: %w", err)

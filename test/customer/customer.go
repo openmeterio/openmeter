@@ -109,10 +109,9 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 		},
 	})
 
-	require.ErrorAs(
+	require.True(
 		t,
-		err,
-		&customer.SubjectKeyConflictError{Namespace: s.namespace, SubjectKeys: TestSubjectKeys},
+		customer.IsSubjectKeyConflictError(err),
 		"Creating a customer with same subject keys must return conflict error",
 	)
 }

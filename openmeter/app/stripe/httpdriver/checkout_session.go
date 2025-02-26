@@ -110,7 +110,6 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createAppStripeCheckoutSession"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

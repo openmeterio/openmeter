@@ -150,16 +150,18 @@ func (c *stripeClient) GetAccount(ctx context.Context) (StripeAccount, error) {
 func (c *stripeClient) providerError(err error) error {
 	if stripeErr, ok := err.(*stripe.Error); ok {
 		if stripeErr.HTTPStatusCode == http.StatusUnauthorized {
-			return app.AppProviderAuthenticationError{
-				Namespace:     c.namespace,
-				ProviderError: errors.New(stripeErr.Msg),
-			}
+			return app.NewAppProviderAuthenticationError(
+				nil,
+				c.namespace,
+				errors.New(stripeErr.Msg),
+			)
 		}
 
-		return app.AppProviderError{
-			Namespace:     c.namespace,
-			ProviderError: errors.New(stripeErr.Msg),
-		}
+		return app.NewAppProviderError(
+			nil,
+			c.namespace,
+			errors.New(stripeErr.Msg),
+		)
 	}
 
 	return err
