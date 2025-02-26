@@ -159,7 +159,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
 		}
 		if !params.At.After(currentStartAt) {
-			return nil, &models.GenericUserError{Inner: fmt.Errorf("can only end usage period after current period start time")}
+			return nil, models.NewGenericValidationError(fmt.Errorf("can only end usage period after current period start time"))
 		}
 
 		if err := e.updateEntitlementUsagePeriod(txCtx, owner, params); err != nil {

@@ -46,7 +46,7 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 			} else {
 				timing, err = MapAPITimingToTiming(*body.Timing)
 				if err != nil {
-					return CancelSubscriptionRequest{}, &models.GenericUserError{Inner: err}
+					return CancelSubscriptionRequest{}, models.NewGenericValidationError(err)
 				}
 			}
 

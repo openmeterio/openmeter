@@ -88,13 +88,13 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	// Let's validate the patches
 	for i, patch := range customizations {
 		if err := patch.Validate(); err != nil {
-			return subscription.SubscriptionView{}, &models.GenericUserError{Inner: fmt.Errorf("invalid patch at index %d: %s", i, err.Error())}
+			return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("invalid patch at index %d: %s", i, err.Error()))
 		}
 	}
 
 	// Let's try to decode when the subscription should be patched
 	if err := timing.ValidateForAction(subscription.SubscriptionActionUpdate, &curr); err != nil {
-		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: fmt.Errorf("invalid timing: %w", err)}
+		return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("invalid timing: %w", err))
 	}
 
 	editTime, err := timing.ResolveForSpec(curr.Spec)
@@ -109,11 +109,11 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		CurrentTime: editTime,
 	})
 	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
-		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
+		return subscription.SubscriptionView{}, models.NewGenericValidationError(sErr)
 	} else if sErr, ok := lo.ErrorsAs[*subscription.AlignmentError](err); ok {
-		return subscription.SubscriptionView{}, &models.GenericConflictError{Inner: sErr}
+		return subscription.SubscriptionView{}, models.NewGenericConflictError(sErr)
 	} else if sErr, ok := lo.ErrorsAs[*subscription.NoBillingPeriodError](err); ok {
-		return subscription.SubscriptionView{}, &models.GenericUserError{Inner: sErr}
+		return subscription.SubscriptionView{}, models.NewGenericValidationError(sErr)
 	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}

@@ -72,7 +72,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 
 	if cust.Currency != nil {
 		if string(*cust.Currency) != string(spec.Currency) {
-			return def, &models.GenericUserError{Inner: fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency)}
+			return def, models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency))
 		}
 	}
 
@@ -101,7 +101,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
 
 	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return def, &models.GenericConflictError{Inner: fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps)}
+		return def, models.NewGenericConflictError(fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps))
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {

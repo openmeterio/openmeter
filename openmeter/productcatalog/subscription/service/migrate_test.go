@@ -194,7 +194,7 @@ func TestMigrate(t *testing.T) {
 				TargetVersion: lo.ToPtr(plan1.ToCreateSubscriptionPlanInput().Plan.Version),
 			})
 			require.NotNil(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}))
+			require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 		})
 	})
 

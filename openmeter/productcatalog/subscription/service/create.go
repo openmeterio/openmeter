@@ -30,9 +30,9 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		}
 
 		if cust.TotalCount != 1 {
-			return def, &models.GenericConflictError{
-				Inner: fmt.Errorf("%d customers found with key %s", cust.TotalCount, request.CustomerRef.Key),
-			}
+			return def, models.NewGenericConflictError(
+				fmt.Errorf("%d customers found with key %s", cust.TotalCount, request.CustomerRef.Key),
+			)
 		}
 
 		customerID = cust.Items[0].ID
@@ -44,7 +44,7 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 	var plan subscription.Plan
 
 	if err := request.PlanInput.Validate(); err != nil {
-		return def, &models.GenericUserError{Inner: err}
+		return def, models.NewGenericValidationError(err)
 	}
 
 	if request.PlanInput.AsInput() != nil {

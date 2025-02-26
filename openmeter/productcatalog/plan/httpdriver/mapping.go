@@ -842,9 +842,9 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *isodate.Pe
 
 		if usagePeriod.IsZero() {
 			if billingCadence == nil || billingCadence.IsZero() {
-				return nil, &models.GenericUserError{
-					Inner: fmt.Errorf("missing UsagePeriod for Metered EntitlementTemplate where cannot infer from BillingCadence"),
-				}
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("missing UsagePeriod for Metered EntitlementTemplate where cannot infer from BillingCadence"),
+				)
 			}
 
 			usagePeriod = *billingCadence

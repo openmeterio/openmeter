@@ -124,7 +124,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	}
 
 	if _, err := ulid.Parse(feature.Key); err == nil {
-		return Feature{}, &models.GenericUserError{Inner: fmt.Errorf("Feature key cannot be a valid ULID")}
+		return Feature{}, models.NewGenericValidationError(fmt.Errorf("Feature key cannot be a valid ULID"))
 	}
 
 	// check key is not taken

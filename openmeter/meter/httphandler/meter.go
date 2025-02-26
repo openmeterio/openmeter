@@ -59,7 +59,6 @@ func (h *handler) ListMeters() ListMetersHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listMeters"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -104,7 +103,6 @@ func (h *handler) GetMeter() GetMeterHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getMeter"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

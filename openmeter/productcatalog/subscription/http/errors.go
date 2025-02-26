@@ -12,18 +12,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionentitlement "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
-	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func errorEncoder() httptransport.ErrorEncoder {
+func errorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		// Generic errors
-		return commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*models.GenericForbiddenError](ctx, http.StatusForbidden, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*models.GenericConflictError](ctx, http.StatusConflict, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) ||
+		return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) ||
 			// Subscription errors
 			commonhttp.HandleErrorIfTypeMatches[*subscription.ForbiddenError](ctx, http.StatusForbidden, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*subscription.ItemNotFoundError](ctx, http.StatusNotFound, err, w) ||

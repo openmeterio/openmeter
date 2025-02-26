@@ -80,7 +80,7 @@ func TestScheduling(t *testing.T) {
 						ActiveTo:   lo.ToPtr(activeTo),
 					},
 				)
-				assert.EqualError(t, err, "ActiveTo cannot be before ActiveFrom")
+				assert.EqualError(t, err, "validation error: ActiveTo cannot be before ActiveFrom")
 
 				// Same value
 				_, err = conn.ScheduleEntitlement(
@@ -110,7 +110,7 @@ func TestScheduling(t *testing.T) {
 						ActiveTo: lo.ToPtr(activeTo),
 					},
 				)
-				assert.EqualError(t, err, "ActiveFrom must be set if ActiveTo is set")
+				assert.EqualError(t, err, "validation error: ActiveFrom must be set if ActiveTo is set")
 			},
 		},
 		{
@@ -464,7 +464,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveFrom: lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
-				assert.EqualError(t, err, "Old and new entitlements belong to different features")
+				assert.EqualError(t, err, "validation error: Old and new entitlements belong to different features")
 			},
 		},
 		{
@@ -511,7 +511,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveFrom:      lo.ToPtr(activeFrom1.Add(time.Hour)),
 					},
 				)
-				assert.EqualError(t, err, "Old and new entitlements belong to different subjects")
+				assert.EqualError(t, err, "validation error: Old and new entitlements belong to different subjects")
 			},
 		},
 		{
@@ -614,7 +614,7 @@ func TestSuperseding(t *testing.T) {
 						ActiveTo:        lo.ToPtr(activeFrom1.Add(time.Hour * 3)),
 					},
 				)
-				assert.EqualError(t, err, "New entitlement must be active before the old one ends")
+				assert.EqualError(t, err, "validation error: New entitlement must be active before the old one ends")
 			},
 		},
 		{

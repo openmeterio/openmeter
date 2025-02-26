@@ -8,9 +8,15 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+var defaultHandlerOptions = []HandlerOption{
+	WithErrorEncoder(commonhttp.GenericErrorEncoder()),
+}
 
 type Handler[Request any, Response any] interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
@@ -21,7 +27,7 @@ type Handler[Request any, Response any] interface {
 func NewHandler[Request any, Response any](
 	requestDecoder RequestDecoder[Request],
 	op operation.Operation[Request, Response],
-	responseEncoder ResponseEncoder[Response],
+	responseEncoder encoder.ResponseEncoder[Response],
 
 	options ...HandlerOption,
 ) Handler[Request, Response] {
@@ -31,7 +37,7 @@ func NewHandler[Request any, Response any](
 func newHandler[Request any, Response any](
 	requestDecoder RequestDecoder[Request],
 	op operation.Operation[Request, Response],
-	responseEncoder ResponseEncoder[Response],
+	responseEncoder encoder.ResponseEncoder[Response],
 
 	options ...HandlerOption,
 ) handler[Request, Response] {
@@ -41,6 +47,8 @@ func newHandler[Request any, Response any](
 		decodeRequest:  requestDecoder,
 		encodeResponse: responseEncoder,
 	}
+
+	options = append(defaultHandlerOptions, options...)
 
 	h.apply(options)
 
@@ -52,21 +60,13 @@ type handler[Request any, Response any] struct {
 	operationNameFunc func(ctx context.Context) string
 
 	decodeRequest  RequestDecoder[Request]
-	encodeResponse ResponseEncoder[Response]
-	errorEncoders  []ErrorEncoder
+	encodeResponse encoder.ResponseEncoder[Response]
+	errorEncoders  []encoder.ErrorEncoder
 
 	errorHandler ErrorHandler
 }
 
 type RequestDecoder[Request any] func(ctx context.Context, r *http.Request) (Request, error)
-
-type ResponseEncoder[Response any] func(ctx context.Context, w http.ResponseWriter, response Response) error
-
-// ErrorEncoder is responsible for encoding an error to the ResponseWriter.
-// Users are encouraged to use custom ErrorEncoders to encode HTTP errors to
-// their clients, and will likely want to pass and check for their own error
-// types. See the example shipping/handling service.
-type ErrorEncoder func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool
 
 // ErrorHandler receives a transport error to be processed for diagnostic purposes.
 // Usually this means logging the error.

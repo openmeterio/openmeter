@@ -124,7 +124,7 @@ func TestCreation(t *testing.T) {
 		_, err = service.Create(ctx, subscriptiontestutils.ExampleNamespace, defaultSpecFromPlan)
 
 		require.Error(t, err)
-		require.ErrorAs(t, err, lo.ToPtr(&models.GenericUserError{}))
+		require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 	})
 
 	t.Run("Should set customer currency based on subscription", func(t *testing.T) {

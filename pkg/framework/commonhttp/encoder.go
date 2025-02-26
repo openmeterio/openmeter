@@ -9,7 +9,8 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // GetMediaType returns the media type of the request.
@@ -60,7 +61,7 @@ func jsonResponseEncoder[Response any](w http.ResponseWriter, statusCode int, re
 	return nil
 }
 
-func JSONResponseEncoderWithStatus[Response any](statusCode int) httptransport.ResponseEncoder[Response] {
+func JSONResponseEncoderWithStatus[Response any](statusCode int) encoder.ResponseEncoder[Response] {
 	return func(ctx context.Context, w http.ResponseWriter, r Response) error {
 		return jsonResponseEncoder(w, statusCode, r)
 	}
@@ -115,7 +116,7 @@ func csvResponseEncoder[Response CSVResponse](w http.ResponseWriter, statusCode 
 	return nil
 }
 
-func EmptyResponseEncoder[Response any](statusCode int) httptransport.ResponseEncoder[Response] {
+func EmptyResponseEncoder[Response any](statusCode int) encoder.ResponseEncoder[Response] {
 	return func(ctx context.Context, w http.ResponseWriter, r Response) error {
 		w.WriteHeader(statusCode)
 		return nil
@@ -123,9 +124,20 @@ func EmptyResponseEncoder[Response any](statusCode int) httptransport.ResponseEn
 }
 
 // DummyErrorEncoder is a dummy error encoder that always returns a 400 status code with the received error.
-func DummyErrorEncoder() httptransport.ErrorEncoder {
+func DummyErrorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		NewHTTPError(http.StatusBadRequest, err).EncodeError(ctx, w)
 		return true
+	}
+}
+
+// GenericErrorEncoder is an error encoder that encodes the error as a generic error.
+func GenericErrorEncoder() encoder.ErrorEncoder {
+	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
+		return HandleErrorIfTypeMatches[*models.GenericConflictError](ctx, http.StatusConflict, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericForbiddenError](ctx, http.StatusForbidden, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericNotImplementedError](ctx, http.StatusNotImplemented, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericValidationError](ctx, http.StatusBadRequest, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericNotFoundError](ctx, http.StatusNotFound, err, w)
 	}
 }

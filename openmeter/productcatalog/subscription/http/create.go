@@ -153,9 +153,9 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			// Let's resolve the customer
 			// We resolve it in the handler as we don't want to introduce the IdOrKey abstraction to the package internal code
 			if err := request.CustomerRef.Validate(); err != nil {
-				return CreateSubscriptionResponse{}, &models.GenericUserError{
-					Inner: fmt.Errorf("invalid customer ref: %w", err),
-				}
+				return CreateSubscriptionResponse{}, models.NewGenericValidationError(
+					fmt.Errorf("invalid customer ref: %w", err),
+				)
 			}
 
 			res, err := h.PlanSubscriptionService.Create(ctx, request)

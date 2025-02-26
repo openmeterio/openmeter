@@ -29,7 +29,7 @@ func NewValidator(billingService billing.Service) (*Validator, error) {
 func (v Validator) ValidateCreate(ctx context.Context, view subscription.SubscriptionView) error {
 	err := v.validateBillingSetup(ctx, view)
 	if err != nil {
-		return &models.GenericConflictError{Inner: fmt.Errorf("invalid billing setup: %w", err)}
+		return models.NewGenericConflictError(fmt.Errorf("invalid billing setup: %w", err))
 	}
 
 	return nil
@@ -38,7 +38,7 @@ func (v Validator) ValidateCreate(ctx context.Context, view subscription.Subscri
 func (v Validator) ValidateUpdate(ctx context.Context, view subscription.SubscriptionView) error {
 	err := v.validateBillingSetup(ctx, view)
 	if err != nil {
-		return &models.GenericConflictError{Inner: fmt.Errorf("invalid billing setup: %w", err)}
+		return models.NewGenericConflictError(fmt.Errorf("invalid billing setup: %w", err))
 	}
 
 	return nil
