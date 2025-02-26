@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/portal"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -15,17 +16,17 @@ func NewNoop() portal.Service {
 }
 
 func (a *noopAdapter) CreateToken(ctx context.Context, input portal.CreateTokenInput) (*portal.PortalToken, error) {
-	return nil, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
+	return nil, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
 }
 
 func (a *noopAdapter) Validate(ctx context.Context, tokenString string) (*portal.PortalTokenClaims, error) {
-	return nil, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
+	return nil, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
 }
 
 func (a *noopAdapter) ListTokens(ctx context.Context, input portal.ListTokensInput) (pagination.PagedResponse[*portal.PortalToken], error) {
-	return pagination.PagedResponse[*portal.PortalToken]{}, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
+	return pagination.PagedResponse[*portal.PortalToken]{}, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
 }
 
 func (a *noopAdapter) InvalidateToken(ctx context.Context, input portal.InvalidateTokenInput) error {
-	return portal.NewNotImplementedError(fmt.Errorf("not implemented"))
+	return models.NewGenericNotImplementedError(fmt.Errorf("noop adapter"))
 }

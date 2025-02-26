@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -19,14 +18,9 @@ func errorEncoder() encoder.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[billing.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w, billing.EncodeValidationIssues) ||
 			commonhttp.HandleErrorIfTypeMatches[billing.ValidationIssue](ctx, http.StatusBadRequest, err, w, billing.EncodeValidationIssues) ||
 			// dependency: customer
-			commonhttp.HandleErrorIfTypeMatches[customer.NotFoundError](ctx, http.StatusNotFound, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[customer.ValidationError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customer.UpdateAfterDeleteError](ctx, http.StatusConflict, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customer.SubjectKeyConflictError](ctx, http.StatusConflict, err, w) ||
 			// dependency: apps
-			commonhttp.HandleErrorIfTypeMatches[billing.AppError](ctx, http.StatusBadRequest, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[app.AppNotFoundError](ctx, http.StatusNotFound, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[app.AppDefaultNotFoundError](ctx, http.StatusNotFound, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[app.ValidationError](ctx, http.StatusBadRequest, err, w)
+			commonhttp.HandleErrorIfTypeMatches[billing.AppError](ctx, http.StatusBadRequest, err, w)
 	}
 }

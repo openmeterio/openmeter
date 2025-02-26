@@ -5,53 +5,74 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // AppNotFoundError
-var _ error = (*AppNotFoundError)(nil)
+func NewAppNotFoundError(appID AppID) *AppNotFoundError {
+	return &AppNotFoundError{
+		err: models.NewGenericNotFoundError(
+			fmt.Errorf("app with id %s not found in %s namespace", appID.ID, appID.Namespace),
+		),
+	}
+}
+
+var _ models.GenericError = AppNotFoundError{}
 
 type AppNotFoundError struct {
-	AppID
+	err error
 }
 
 func (e AppNotFoundError) Error() string {
-	return fmt.Sprintf("app with id %s not found in %s namespace", e.ID, e.Namespace)
+	return e.err.Error()
+}
+
+func (e AppNotFoundError) Unwrap() error {
+	return e.err
+}
+
+// IsAppNotFoundError returns true if the error is a AppNotFoundError.
+func IsAppNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *AppNotFoundError
+
+	return errors.As(err, &e)
 }
 
 // AppDefaultNotFoundError
-var _ error = (*AppDefaultNotFoundError)(nil)
+func NewAppDefaultNotFoundError(appType AppType, namespace string) *AppDefaultNotFoundError {
+	return &AppDefaultNotFoundError{
+		err: models.NewGenericNotFoundError(
+			fmt.Errorf("there is no default app for %s type in %s namespace", appType, namespace),
+		),
+	}
+}
+
+var _ models.GenericError = AppDefaultNotFoundError{}
 
 type AppDefaultNotFoundError struct {
-	Namespace string
-	Type      AppType
+	err error
 }
 
 func (e AppDefaultNotFoundError) Error() string {
-	return fmt.Sprintf("there is no default app for %s type in %s namespace", e.Type, e.Namespace)
+	return e.err.Error()
 }
 
-// AppConflictError
-var _ error = (*AppConflictError)(nil)
-
-type AppConflictError struct {
-	Namespace string
-	Conflict  string
+func (e AppDefaultNotFoundError) Unwrap() error {
+	return e.err
 }
 
-func (e AppConflictError) Validate() error {
-	if e.Namespace == "" {
-		return errors.New("namespace is required")
+func IsAppDefaultNotFoundError(err error) bool {
+	if err == nil {
+		return false
 	}
 
-	if e.Conflict == "" {
-		return errors.New("conflict reason is required")
-	}
+	var e *AppDefaultNotFoundError
 
-	return nil
-}
-
-func (e AppConflictError) Error() string {
-	return fmt.Sprintf("app conflict: %s in namespace %s", e.Conflict, e.Namespace)
+	return errors.As(err, &e)
 }
 
 // AppProviderAuthenticationError
@@ -148,31 +169,4 @@ func (e AppCustomerPreConditionError) Validate() error {
 
 func (e AppCustomerPreConditionError) Error() string {
 	return fmt.Sprintf("customer with id %s does not meet condition %s for %s app type with id %s in namespace %s", e.CustomerID.ID, e.Condition, e.AppType, e.AppID.ID, e.AppID.Namespace)
-}
-
-// MarketplaceListingNotFoundError
-var _ error = (*MarketplaceListingNotFoundError)(nil)
-
-type MarketplaceListingNotFoundError struct {
-	MarketplaceListingID
-}
-
-func (e MarketplaceListingNotFoundError) Error() string {
-	return fmt.Sprintf("listing with type %s not found", e.Type)
-}
-
-type genericError struct {
-	Err error
-}
-
-var _ error = (*ValidationError)(nil)
-
-type ValidationError genericError
-
-func (e ValidationError) Error() string {
-	return e.Err.Error()
-}
-
-func (e ValidationError) Unwrap() error {
-	return e.Err
 }

@@ -12,6 +12,7 @@ import (
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -61,9 +62,9 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				// If err try to parse customer field as customer input
 				customerCreate, err := body.Customer.AsCustomerCreate()
 				if err != nil {
-					return CreateAppStripeCheckoutSessionRequest{}, app.ValidationError{
-						Err: fmt.Errorf("failed to decode customer: %w", err),
-					}
+					return CreateAppStripeCheckoutSessionRequest{}, models.NewGenericValidationError(
+						fmt.Errorf("failed to decode customer: %w", err),
+					)
 				}
 
 				createCustomerInput = &customer.CreateCustomerInput{

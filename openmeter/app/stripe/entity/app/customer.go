@@ -10,6 +10,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ customerapp.App = (*App)(nil)
@@ -111,9 +112,9 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 // GetCustomerData gets the customer data for the app
 func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return nil, app.ValidationError{
-			Err: err,
-		}
+		return nil, models.NewGenericValidationError(
+			err,
+		)
 	}
 
 	customerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
@@ -130,9 +131,9 @@ func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustom
 // UpsertCustomerData upserts the customer data for the app
 func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: err,
-		}
+		return models.NewGenericValidationError(
+			err,
+		)
 	}
 
 	stripeCustomerData, ok := input.Data.(appstripeentity.CustomerData)
@@ -156,9 +157,9 @@ func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstance
 // DeleteCustomerData deletes the customer data for the app
 func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: err,
-		}
+		return models.NewGenericValidationError(
+			err,
+		)
 	}
 
 	appId := a.GetID()

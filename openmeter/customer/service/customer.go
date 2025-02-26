@@ -21,9 +21,7 @@ func (s *Service) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 func (s *Service) CreateCustomer(ctx context.Context, input customer.CreateCustomerInput) (*customer.Customer, error) {
 	if err := s.requestValidatorRegistry.ValidateCreateCustomer(ctx, input); err != nil {
-		return nil, customer.ValidationError{
-			Err: err,
-		}
+		return nil, models.NewGenericValidationError(err)
 	}
 
 	return s.adapter.CreateCustomer(ctx, input)
@@ -31,9 +29,7 @@ func (s *Service) CreateCustomer(ctx context.Context, input customer.CreateCusto
 
 func (s *Service) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	if err := s.requestValidatorRegistry.ValidateDeleteCustomer(ctx, input); err != nil {
-		return customer.ValidationError{
-			Err: err,
-		}
+		return models.NewGenericValidationError(err)
 	}
 
 	return s.adapter.DeleteCustomer(ctx, input)
@@ -45,9 +41,7 @@ func (s *Service) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 
 func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	if err := s.requestValidatorRegistry.ValidateUpdateCustomer(ctx, input); err != nil {
-		return nil, customer.ValidationError{
-			Err: err,
-		}
+		return nil, models.NewGenericValidationError(err)
 	}
 
 	return s.adapter.UpdateCustomer(ctx, input)

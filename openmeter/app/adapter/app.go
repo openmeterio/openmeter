@@ -150,9 +150,7 @@ func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, er
 				First(ctx)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return nil, app.AppNotFoundError{
-						AppID: input,
-					}
+					return nil, app.NewAppNotFoundError(input)
 				}
 
 				return nil, err
@@ -191,7 +189,7 @@ func (a adapter) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput
 				First(ctx)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return nil, app.AppDefaultNotFoundError(input)
+					return nil, app.NewAppDefaultNotFoundError(input.Type, input.Namespace)
 				}
 
 				return nil, err
@@ -229,9 +227,7 @@ func (a adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.A
 				First(ctx)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return nil, app.AppNotFoundError{
-						AppID: input.AppID,
-					}
+					return nil, app.NewAppNotFoundError(input.AppID)
 				}
 
 				return nil, fmt.Errorf("failed to get app: %s: %w", input.AppID.ID, err)

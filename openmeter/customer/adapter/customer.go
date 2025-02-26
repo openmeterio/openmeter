@@ -16,6 +16,7 @@ import (
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -27,9 +28,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		a,
 		func(ctx context.Context, repo *adapter) (pagination.PagedResponse[customer.Customer], error) {
 			if err := input.Validate(); err != nil {
-				return pagination.PagedResponse[customer.Customer]{}, customer.ValidationError{
-					Err: err,
-				}
+				return pagination.PagedResponse[customer.Customer]{}, models.NewGenericValidationError(err)
 			}
 
 			// Build the database query
@@ -128,9 +127,9 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 		a,
 		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customer.ValidationError{
-					Err: fmt.Errorf("error creating customer: %w", err),
-				}
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("error creating customer: %w", err),
+				)
 			}
 
 			// Create the customer in the database
@@ -223,9 +222,9 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 		a,
 		func(ctx context.Context, repo *adapter) (any, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customer.ValidationError{
-					Err: fmt.Errorf("error deleting customer: %w", err),
-				}
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("error deleting customer: %w", err),
+				)
 			}
 
 			deletedAt := clock.Now().UTC()
@@ -243,9 +242,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			}
 
 			if rows == 0 {
-				return nil, customer.NotFoundError{
-					CustomerID: customer.CustomerID(input),
-				}
+				return nil, customer.NewNotFoundError(customer.CustomerID(input))
 			}
 
 			// Soft delete the customer subjects
@@ -275,9 +272,9 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 		a,
 		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customer.ValidationError{
-					Err: fmt.Errorf("error getting customer: %w", err),
-				}
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("error getting customer: %w", err),
+				)
 			}
 
 			query := repo.db.Customer.Query().
@@ -294,9 +291,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 			entity, err := query.First(ctx)
 			if err != nil {
 				if entdb.IsNotFound(err) {
-					return nil, customer.NotFoundError{
-						CustomerID: customer.CustomerID(input),
-					}
+					return nil, customer.NewNotFoundError(customer.CustomerID(input))
 				}
 
 				return nil, fmt.Errorf("failed to fetch customer: %w", err)
@@ -318,9 +313,9 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 		a,
 		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
 			if err := input.Validate(); err != nil {
-				return nil, customer.ValidationError{
-					Err: fmt.Errorf("error updating customer: %w", err),
-				}
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("error updating customer: %w", err),
+				)
 			}
 
 			// Get the customer to diff the subjects
@@ -367,9 +362,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			entity, err := query.Save(ctx)
 			if err != nil {
 				if entdb.IsNotFound(err) {
-					return nil, customer.NotFoundError{
-						CustomerID: input.CustomerID,
-					}
+					return nil, customer.NewNotFoundError(input.CustomerID)
 				}
 
 				if entdb.IsConstraintError(err) {
@@ -481,9 +474,9 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 
 			// Let's error if the UsageAttributions were to change with a Subscription present
 			if subsEnt != nil && (len(subjectsKeysToAdd) > 0 || len(subjectKeysToRemove) > 0) {
-				return nil, customer.ForbiddenError{
-					Err: fmt.Errorf("cannot update customer UsageAttribution with active subscription"),
-				}
+				return nil, models.NewGenericForbiddenError(
+					fmt.Errorf("cannot update customer UsageAttribution with active subscription"),
+				)
 			}
 
 			// Final subject keys

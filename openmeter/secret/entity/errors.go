@@ -1,31 +1,41 @@
 package secretentity
 
 import (
+	"errors"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ error = (*SecretNotFoundError)(nil)
+var _ models.GenericError = (*SecretNotFoundError)(nil)
+
+func NewSecretNotFoundError(id SecretID) *SecretNotFoundError {
+	return &SecretNotFoundError{
+		err: models.NewGenericNotFoundError(
+			fmt.Errorf("app with id %s not found in %s namespace", id.ID, id.Namespace),
+		),
+	}
+}
 
 type SecretNotFoundError struct {
-	SecretID
+	err error
 }
 
 func (e *SecretNotFoundError) Error() string {
-	return fmt.Sprintf("app with id %s not found in %s namespace", e.ID, e.ID)
+	return e.err.Error()
 }
 
-type genericError struct {
-	Err error
+func (e *SecretNotFoundError) Unwrap() error {
+	return e.err
 }
 
-var _ error = (*ValidationError)(nil)
+// IsSecretNotFoundError returns true if the error is a SecretNotFoundError.
+func IsSecretNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
 
-type ValidationError genericError
+	var e *SecretNotFoundError
 
-func (e *ValidationError) Error() string {
-	return e.Err.Error()
-}
-
-func (e *ValidationError) Unwrap() error {
-	return e.Err
+	return errors.As(err, &e)
 }

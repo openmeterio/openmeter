@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/openmeterio/openmeter/openmeter/portal"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -112,10 +113,10 @@ func (a *adapter) Validate(ctx context.Context, tokenString string) (*portal.Por
 func (a *adapter) ListTokens(context.Context, portal.ListTokensInput) (pagination.PagedResponse[*portal.PortalToken], error) {
 	var resp pagination.PagedResponse[*portal.PortalToken]
 
-	return resp, portal.NewNotImplementedError(fmt.Errorf("not implemented"))
+	return resp, models.NewGenericNotImplementedError(fmt.Errorf("listing tokens"))
 }
 
 // InvalidateToken invalidates a portal token.
 func (a *adapter) InvalidateToken(ctx context.Context, input portal.InvalidateTokenInput) error {
-	return portal.NewNotImplementedError(fmt.Errorf("not implemented"))
+	return models.NewGenericNotImplementedError(fmt.Errorf("invalidate tokens"))
 }

@@ -1,45 +1,67 @@
 package customer
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+func NewNotFoundError(id CustomerID) *NotFoundError {
+	return &NotFoundError{
+		err: models.NewGenericNotFoundError(
+			fmt.Errorf("customer with id %s not found in %s namespace", id.ID, id.Namespace),
+		),
+	}
+}
+
 // NotFoundError represents an error when a resource is not found
-var _ error = (*NotFoundError)(nil)
+var _ models.GenericError = &NotFoundError{}
 
 type NotFoundError struct {
-	CustomerID
+	err error
 }
 
 func (e NotFoundError) Error() string {
-	return fmt.Sprintf("customer with id %s not found in %s namespace", e.ID, e.Namespace)
+	return e.err.Error()
 }
 
-// ValidationError represents an error when a validation fails
-var _ error = (*ValidationError)(nil)
-
-type ValidationError genericError
-
-func (e ValidationError) Error() string {
-	return e.Err.Error()
+func (e NotFoundError) Unwrap() error {
+	return e.err
 }
 
-func (e ValidationError) Unwrap() error {
-	return e.Err
+func IsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *NotFoundError
+
+	return errors.As(err, &e)
 }
 
 // UpdateAfterDeleteError represents an error when an update is attempted after a delete
 var _ error = (*UpdateAfterDeleteError)(nil)
 
-type UpdateAfterDeleteError genericError
+func NewUpdateAfterDeleteError() *UpdateAfterDeleteError {
+	return &UpdateAfterDeleteError{
+		err: models.NewGenericConflictError(fmt.Errorf("update after delete")),
+	}
+}
+
+var _ models.GenericError = &UpdateAfterDeleteError{}
+
+type UpdateAfterDeleteError struct {
+	err error
+}
 
 func (e UpdateAfterDeleteError) Error() string {
-	return e.Err.Error()
+	return e.err.Error()
 }
 
 func (e UpdateAfterDeleteError) Unwrap() error {
-	return e.Err
+	return e.err
 }
 
 // KeyConflictError represents an error when a subject key is already associated with a customer
@@ -60,19 +82,4 @@ type SubjectKeyConflictError struct {
 
 func (e SubjectKeyConflictError) Error() string {
 	return fmt.Sprintf("one or multiple subject keys of [%s] are already associated with an different customer in the namespace %s", strings.Join(e.SubjectKeys, ", "), e.Namespace)
-}
-
-type ForbiddenError genericError
-
-func (e ForbiddenError) Error() string {
-	return e.Err.Error()
-}
-
-func (e ForbiddenError) Unwrap() error {
-	return e.Err
-}
-
-// genericError represents a generic error
-type genericError struct {
-	Err error
 }

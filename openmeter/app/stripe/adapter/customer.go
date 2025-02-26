@@ -10,14 +10,15 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // GetStripeCustomerData gets stripe customer data
 func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.CustomerData{}, app.ValidationError{
-			Err: fmt.Errorf("error getting stripe customer data: %w", err),
-		}
+		return appstripeentity.CustomerData{}, models.NewGenericValidationError(
+			fmt.Errorf("error getting stripe customer data: %w", err),
+		)
 	}
 
 	stripeCustomerDBEntity, err := a.db.AppStripeCustomer.
@@ -54,9 +55,9 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: fmt.Errorf("error upsert stripe customer data: %w", err),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error upsert stripe customer data: %w", err),
+		)
 	}
 
 	// Get the stripe app client
@@ -153,9 +154,9 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: fmt.Errorf("error delete stripe customer data: %w", err),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error delete stripe customer data: %w", err),
+		)
 	}
 
 	// Determine namespace
@@ -170,9 +171,9 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 	}
 
 	if namespace == "" {
-		return app.ValidationError{
-			Err: fmt.Errorf("error delete stripe customer data: namespace is empty"),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error delete stripe customer data: namespace is empty"),
+		)
 	}
 
 	// Start transaction

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type AppStripeWebhookParams struct {
@@ -54,9 +55,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			// Validate the webhook event
 			event, err := webhook.ConstructEventWithTolerance(params.Payload, r.Header.Get("Stripe-Signature"), secret.Value, time.Hour*10000)
 			if err != nil {
-				return AppStripeWebhookRequest{}, app.ValidationError{
-					Err: fmt.Errorf("failed to construct webhook event: %w", err),
-				}
+				return AppStripeWebhookRequest{}, models.NewGenericValidationError(
+					fmt.Errorf("failed to construct webhook event: %w", err),
+				)
 			}
 
 			appID := app.AppID{
@@ -84,9 +85,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 				err := json.Unmarshal(request.Event.Data.Raw, &paymentIntent)
 				if err != nil {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("failed to unmarshal payment intent for app: %s in event: %s: %w", request.AppID.ID, request.Event.ID, err),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("failed to unmarshal payment intent for app: %s in event: %s: %w", request.AppID.ID, request.Event.ID, err),
+					)
 				}
 
 				// Validate the payment intent metadata
@@ -102,9 +103,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 
 				// When the OpenMeter app id is set it cannot be empty
 				if metadataAppId == "" {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("appid metadata cannot be empty if provided for app: %s in event: %s", request.AppID.ID, request.Event.ID),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("appid metadata cannot be empty if provided for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					)
 				}
 
 				// If someone installs the same Stripe account in multiple apps, we need to ignore the event from other apps
@@ -119,36 +120,36 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				// At this point we know that the event is for this specific app so require the namespace.
 				metadataNamespace, hasMetadataNamespace := paymentIntent.Metadata[stripeclient.SetupIntentDataMetadataNamespace]
 				if !hasMetadataNamespace {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("namespace metadata is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("namespace metadata is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					)
 				}
 
 				// When the namespace is set it cannot be empty
 				if metadataNamespace == "" {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("namespace metadata cannot be empty if provided for app: %s in event: %s", request.AppID.ID, request.Event.ID),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("namespace metadata cannot be empty if provided for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					)
 				}
 
 				// As we already checked that this event is for this specific app we validate the namespace
 				if metadataNamespace != request.AppID.Namespace {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("namespace mismatch: in request %s, in payment intent metadata %s in event: %s", request.AppID.Namespace, metadataNamespace, request.Event.ID),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("namespace mismatch: in request %s, in payment intent metadata %s in event: %s", request.AppID.Namespace, metadataNamespace, request.Event.ID),
+					)
 				}
 
 				// Validate the payment intent object
 				if paymentIntent.Customer == nil {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("payment intent customer is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("payment intent customer is required for app: %s in event: %s", request.AppID.ID, request.Event.ID),
+					)
 				}
 
 				if paymentIntent.PaymentMethod == nil {
-					return AppStripeWebhookResponse{}, app.ValidationError{
-						Err: fmt.Errorf("payment intent payment method is required for app %s in event: %s", request.AppID.ID, request.Event.ID),
-					}
+					return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+						fmt.Errorf("payment intent payment method is required for app %s in event: %s", request.AppID.ID, request.Event.ID),
+					)
 				}
 
 				// Set the default payment method for the customer
@@ -420,9 +421,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				}, nil
 			}
 
-			return AppStripeWebhookResponse{}, app.ValidationError{
-				Err: fmt.Errorf("unsupported event type: %s", request.Event.Type),
-			}
+			return AppStripeWebhookResponse{}, models.NewGenericValidationError(
+				fmt.Errorf("unsupported event type: %s", request.Event.Type),
+			)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[AppStripeWebhookResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -436,9 +437,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 func unmarshalInvoiceEvent(data []byte) (stripe.Invoice, error) {
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(data, &invoice); err != nil {
-		return stripe.Invoice{}, app.ValidationError{
-			Err: fmt.Errorf("failed to unmarshal invoice: %w", err),
-		}
+		return stripe.Invoice{}, models.NewGenericValidationError(
+			fmt.Errorf("failed to unmarshal invoice: %w", err),
+		)
 	}
 	return invoice, nil
 }

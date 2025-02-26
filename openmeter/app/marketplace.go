@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -97,9 +98,9 @@ type InstallAppWithAPIKeyInput struct {
 
 func (i InstallAppWithAPIKeyInput) Validate() error {
 	if err := i.MarketplaceListingID.Validate(); err != nil {
-		return ValidationError{
-			Err: fmt.Errorf("error validating marketplace listing id: %w", err),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error validating marketplace listing id: %w", err),
+		)
 	}
 
 	if i.Namespace == "" {
@@ -133,9 +134,9 @@ type AuthorizeOauth2InstallInput struct {
 
 func (i AuthorizeOauth2InstallInput) Validate() error {
 	if err := i.MarketplaceListingID.Validate(); err != nil {
-		return ValidationError{
-			Err: fmt.Errorf("error validating marketplace listing id: %w", err),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error validating marketplace listing id: %w", err),
+		)
 	}
 
 	if i.State == "" {

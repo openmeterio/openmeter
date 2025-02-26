@@ -34,7 +34,7 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	})
 
 	// Then we get a customer not found error
-	require.ErrorAs(s.T(), err, &customer.NotFoundError{})
+	require.True(s.T(), customer.IsNotFoundError(err), "expect a customer not found error")
 	require.Nil(s.T(), customerEntity)
 }
 

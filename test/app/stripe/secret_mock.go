@@ -10,6 +10,7 @@ import (
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ secret.SecretService = (*MockSecretService)(nil)
@@ -49,9 +50,9 @@ func (s *MockSecretService) CreateAppSecret(ctx context.Context, input secretent
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return secretentity.SecretID{}, &secretentity.ValidationError{
-				Err: fmt.Errorf("error create app secret: %w", err),
-			}
+			return secretentity.SecretID{}, models.NewGenericValidationError(
+				fmt.Errorf("error create app secret: %w", err),
+			)
 		}
 
 		return args.Get(0).(secretentity.SecretID), args.Error(1)
@@ -64,9 +65,9 @@ func (s *MockSecretService) UpdateAppSecret(ctx context.Context, input secretent
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return input.SecretID, &secretentity.ValidationError{
-				Err: fmt.Errorf("error update app secret: %w", err),
-			}
+			return input.SecretID, models.NewGenericValidationError(
+				fmt.Errorf("error update app secret: %w", err),
+			)
 		}
 
 		return input.SecretID, args.Error(0)
@@ -79,9 +80,9 @@ func (s *MockSecretService) GetAppSecret(ctx context.Context, input secretentity
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return secretentity.Secret{}, &secretentity.ValidationError{
-				Err: fmt.Errorf("error get app secret: %w", err),
-			}
+			return secretentity.Secret{}, models.NewGenericValidationError(
+				fmt.Errorf("error get app secret: %w", err),
+			)
 		}
 
 		return args.Get(0).(secretentity.Secret), args.Error(1)
@@ -94,9 +95,9 @@ func (s *MockSecretService) DeleteAppSecret(ctx context.Context, input secretent
 	if s.mockEnabled {
 		args := s.Called(input)
 		if err := input.Validate(); err != nil {
-			return &secretentity.ValidationError{
-				Err: fmt.Errorf("error delete app secret: %w", err),
-			}
+			return models.NewGenericValidationError(
+				fmt.Errorf("error delete app secret: %w", err),
+			)
 		}
 
 		return args.Error(0)
