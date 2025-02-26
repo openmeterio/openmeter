@@ -57,11 +57,11 @@ type CustomerMutate struct {
 
 func (c CustomerMutate) Validate() error {
 	if c.Key != nil && *c.Key == "" {
-		models.NewGenericValidationError(errors.New("key cannot be empty"))
+		return models.NewGenericValidationError(errors.New("key cannot be empty"))
 	}
 
 	if c.Name == "" {
-		models.NewGenericValidationError(errors.New("name is required"))
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	if c.Currency != nil {
@@ -76,11 +76,11 @@ type CustomerID models.NamespacedID
 
 func (i CustomerID) Validate() error {
 	if i.Namespace == "" {
-		models.NewGenericValidationError(errors.New("namespace is required"))
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		models.NewGenericValidationError(errors.New("customer id is required"))
+		return models.NewGenericValidationError(errors.New("customer id is required"))
 	}
 
 	return nil
@@ -127,11 +127,11 @@ type CreateCustomerInput struct {
 
 func (i CreateCustomerInput) Validate() error {
 	if i.Namespace == "" {
-		models.NewGenericValidationError(errors.New("namespace is required"))
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if err := i.CustomerMutate.Validate(); err != nil {
-		models.NewGenericValidationError(err)
+		return models.NewGenericValidationError(err)
 	}
 
 	return nil
@@ -145,11 +145,11 @@ type UpdateCustomerInput struct {
 
 func (i UpdateCustomerInput) Validate() error {
 	if err := i.CustomerID.Validate(); err != nil {
-		models.NewGenericValidationError(err)
+		return models.NewGenericValidationError(err)
 	}
 
 	if err := i.CustomerMutate.Validate(); err != nil {
-		models.NewGenericValidationError(err)
+		return models.NewGenericValidationError(err)
 	}
 
 	return nil
@@ -176,11 +176,11 @@ type GetEntitlementValueInput struct {
 
 func (i GetEntitlementValueInput) Validate() error {
 	if err := i.ID.Validate(); err != nil {
-		models.NewGenericValidationError(err)
+		return models.NewGenericValidationError(err)
 	}
 
 	if i.FeatureKey == "" {
-		models.NewGenericValidationError(errors.New("feature key is required"))
+		return models.NewGenericValidationError(errors.New("feature key is required"))
 	}
 
 	return nil
