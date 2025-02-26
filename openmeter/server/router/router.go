@@ -31,6 +31,8 @@ import (
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
+	metereventhttphandler "github.com/openmeterio/openmeter/openmeter/meterevent/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -68,36 +70,33 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager   *namespace.Manager
-	StreamingConnector streaming.Connector
-	IngestHandler      http.Handler
-	PortalCORSEnabled  bool
-	Portal             portal.Service
-	ErrorHandler       errorsx.Handler
-	Logger             *slog.Logger
-
-	// deps
 	App                         app.Service
+	AppsEnabled                 bool
 	AppStripe                   appstripe.Service
-	Customer                    customer.Service
 	Billing                     billing.Service
-	MeterService                meter.Service
-	Plan                        plan.Service
-	SubscriptionService         subscription.Service
-	SubscriptionWorkflowService subscription.WorkflowService
-	PlanSubscriptionService     plansubscription.PlanSubscriptionService
+	BillingEnabled              bool
+	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
-	FeatureConnector            feature.FeatureConnector
 	EntitlementConnector        entitlement.Connector
 	EntitlementBalanceConnector meteredentitlement.Connector
+	ErrorHandler                errorsx.Handler
+	FeatureConnector            feature.FeatureConnector
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
+	IngestHandler               http.Handler
+	Logger                      *slog.Logger
+	MeterService                meter.Service
+	MeterEventService           meterevent.Service
+	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
-
-	// FIXME: implement generic module management, loading, etc...
-	BillingEnabled        bool
-	ProductCatalogEnabled bool
-	AppsEnabled           bool
+	Plan                        plan.Service
+	ProductCatalogEnabled       bool
+	PlanSubscriptionService     plansubscription.PlanSubscriptionService
+	PortalCORSEnabled           bool
+	Portal                      portal.Service
+	StreamingConnector          streaming.Connector
+	SubscriptionService         subscription.Service
+	SubscriptionWorkflowService subscription.WorkflowService
 }
 
 func (c Config) Validate() error {
@@ -184,6 +183,7 @@ type Router struct {
 	customerHandler           customerhttpdriver.CustomerHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	meterHandler              meterhttphandler.Handler
+	meterEventHandler         metereventhttphandler.Handler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 	portalHandler             portalhttphandler.Handler
 	notificationHandler       notificationhttpdriver.Handler
@@ -226,6 +226,12 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.MeterService,
 		config.StreamingConnector,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.meterEventHandler = metereventhttphandler.New(
+		staticNamespaceDecoder,
+		config.MeterEventService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
