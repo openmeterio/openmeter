@@ -22,8 +22,7 @@ var _ GenericError = &NamespaceNotFoundError{}
 
 // IsNamespaceNotFoundError returns true if the error is a NamespaceNotFoundError.
 type NamespaceNotFoundError struct {
-	err       error
-	namespace string
+	err error
 }
 
 func (e *NamespaceNotFoundError) Error() string {
