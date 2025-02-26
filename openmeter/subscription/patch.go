@@ -43,7 +43,7 @@ const (
 
 func (o PatchOperation) Validate() error {
 	switch o {
-	case PatchOperationAdd, PatchOperationRemove, PatchOperationStretch:
+	case PatchOperationAdd, PatchOperationRemove, PatchOperationStretch, PatchOperationUnschedule:
 		return nil
 	default:
 		return fmt.Errorf("invalid patch operation: %s", o)
