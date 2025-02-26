@@ -37,9 +37,9 @@ type WorkflowService interface {
 type ListSubscriptionsInput struct {
 	pagination.Page
 
-	Namespaces []string
-	Customers  []string
-	ActiveAt   *time.Time
+	Namespaces  []string
+	CustomerIDs []string
+	ActiveAt    *time.Time
 }
 
 func (i ListSubscriptionsInput) Validate() error {

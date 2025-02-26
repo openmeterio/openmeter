@@ -38,9 +38,9 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	}
 
 	subscriptions, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{input.Namespace},
-		Customers:  []string{input.ID},
-		ActiveAt:   lo.ToPtr(clock.Now()),
+		Namespaces:  []string{input.Namespace},
+		CustomerIDs: []string{input.ID},
+		ActiveAt:    lo.ToPtr(clock.Now()),
 	})
 	if err != nil {
 		return err
