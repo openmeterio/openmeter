@@ -20,6 +20,7 @@ func errorEncoder() httptransport.ErrorEncoder {
 			commonhttp.HandleErrorIfTypeMatches[customer.SubjectKeyConflictError](ctx, http.StatusConflict, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[customer.ForbiddenError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*models.GenericValidationError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericConflictError](ctx, http.StatusConflict, err, w) ||
 			// TODO: we have to add app errors as it can happen when cutomer app data is created or updated
 			commonhttp.HandleErrorIfTypeMatches[app.AppCustomerPreConditionError](ctx, http.StatusConflict, err, w) ||
