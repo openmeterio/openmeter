@@ -183,10 +183,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
 		}
-		balancesAtPhaseStart, segment.GrantUsages, overage, err = BurnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
-		if err != nil {
-			return RunResult{}, fmt.Errorf("failed to burn down grants in period %s - %s: %w", period.From, period.To, err)
-		}
+		balancesAtPhaseStart, segment.GrantUsages, overage = e.burnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
 
 		segment.TotalUsage = usage
 		segment.Overage = overage
@@ -214,7 +211,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 // Burns down the grants of the priority sorted list. Manages overage.
 //
 // FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
-func BurnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, []GrantUsage, float64, error) {
+func (m *engine) burnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, []GrantUsage, float64) {
 	balances := startingBalances.Clone()
 	uses := make([]GrantUsage, 0, len(prioritized))
 	exactUsage := alpacadecimal.NewFromFloat(usage)
@@ -251,5 +248,5 @@ func BurnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usa
 		}
 	}
 
-	return balances, uses, getFloat(exactUsage), nil
+	return balances, uses, getFloat(exactUsage)
 }

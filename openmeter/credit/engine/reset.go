@@ -47,10 +47,7 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 		return balance.Snapshot{}, fmt.Errorf("failed to prioritize grants: %w", err)
 	}
 
-	rolledOver, _, startingOverage, err := BurnDownGrants(rolledOver, prioritizedGrants, startingOverage)
-	if err != nil {
-		return balance.Snapshot{}, fmt.Errorf("failed to burn down overage: %w", err)
-	}
+	rolledOver, _, startingOverage = e.burnDownGrants(rolledOver, prioritizedGrants, startingOverage)
 
 	return balance.Snapshot{
 		At:       at,

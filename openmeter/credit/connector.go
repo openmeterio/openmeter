@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
 type CreditConnector interface {
@@ -27,7 +28,8 @@ type connector struct {
 	streamingConnector streaming.Connector
 	logger             *slog.Logger
 	// configuration
-	granularity time.Duration
+	granularity         time.Duration
+	snapshotGracePeriod isodate.Period
 }
 
 func NewCreditConnector(
@@ -52,6 +54,12 @@ func NewCreditConnector(
 		publisher: publisher,
 
 		// TODO: make configurable
-		granularity: granularity,
+		granularity:         granularity,
+		snapshotGracePeriod: isodate.NewPeriod(0, 0, 1, 0, 0, 0, 0),
 	}
+}
+
+func (c *connector) getSnapshotBefore(at time.Time) time.Time {
+	t, _ := c.snapshotGracePeriod.Negate().AddTo(at)
+	return t
 }

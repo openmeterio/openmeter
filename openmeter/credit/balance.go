@@ -98,7 +98,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 		grants: grants,
 		owner:  owner,
 		runRes: result,
-		before: clock.Now().AddDate(0, 0, -7), // 7 days ago
+		before: m.getSnapshotBefore(clock.Now()),
 	}); err != nil {
 		return nil, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
@@ -203,6 +203,29 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, err
 	}
 
+	period := timeutil.Period{
+		From: bal.At,
+		To:   at,
+	}
+
+	// get all usage resets between queryied period
+	resetTimesInclusive, err := m.ownerConnector.GetResetTimelineInclusive(ctx, owner, period)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, owner.ID, err)
+	}
+
+	// Let's also add the at time to the resets
+	resetTimes := append(resetTimesInclusive.GetTimes(), at)
+	resetTimeline := timeutil.NewSimpleTimeline(resetTimes)
+
+	resetBehavior, err := m.ownerConnector.GetResetBehavior(ctx, owner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reset behavior for owner %s: %w", owner.ID, err)
+	}
+
+	// This gets overwritten by the inputs
+	resetBehavior.PreserveOverage = params.PreserveOverage
+
 	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, bal.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
@@ -226,56 +249,19 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 			Grants:           grants,
 			StartingSnapshot: bal,
 			Until:            queriedPeriod.To,
+			ResetBehavior:    resetBehavior,
+			Resets:           resetTimeline.After(bal.At),
 		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}
 
-	grantMap := make(map[string]grant.Grant, len(grants))
-	for _, grant := range grants {
-		grantMap[grant.ID] = grant
-	}
-
-	// We have to roll over the grants and save the starting balance for the next period at the reset time.
-	// Engine treates the output balance as a period end (exclusive), but we need to treat it as a period start (inclusive).
-	startingBalance := balance.Map{}
-	for grantID, grantBalance := range res.Snapshot.Balances {
-		grant, ok := grantMap[grantID]
-		// inconsistency check, shouldn't happen
-		if !ok {
-			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
-		}
-
-		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
-		if !grant.ActiveAt(at) {
-			continue
-		}
-
-		startingBalance.Set(grantID, grant.RolloverBalance(grantBalance))
-	}
-
-	startingOverage := 0.0
-	if params.PreserveOverage {
-		startingOverage = res.Snapshot.Overage
-	}
-
-	gCopy := make([]grant.Grant, len(grants))
-	copy(gCopy, grants)
-	err = engine.PrioritizeGrants(gCopy)
+	// Some grants in the snapshot might have been terminated at the reset time, in which case they're irrelevant for the next period
+	startingSnap := res.Snapshot
+	err = m.removeInactiveGrantsFromSnapshotAt(&startingSnap, grants, at)
 	if err != nil {
-		return nil, fmt.Errorf("failed to burn down overage from previous period: failed to prioritize grants: %w", err)
-	}
-
-	startingBalance, _, startingOverage, err = engine.BurnDownGrants(startingBalance, grants, startingOverage)
-	if err != nil {
-		return nil, fmt.Errorf("failed to burn down overage from previous period: %w", err)
-	}
-
-	startingSnapshot := balance.Snapshot{
-		At:       at,
-		Balances: startingBalance,
-		Overage:  startingOverage,
+		return nil, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
 	}
 
 	_, err = transaction.Run(ctx, m.transactionManager, func(ctx context.Context) (*balance.Snapshot, error) {
@@ -290,7 +276,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
 		}
 
-		err = m.balanceSnapshotRepo.WithTx(ctx, tx).Save(ctx, owner, []balance.Snapshot{startingSnapshot})
+		err = m.balanceSnapshotRepo.WithTx(ctx, tx).Save(ctx, owner, []balance.Snapshot{startingSnap})
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
@@ -309,5 +295,5 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, err
 	}
 
-	return &startingSnapshot, nil
+	return &startingSnap, nil
 }
