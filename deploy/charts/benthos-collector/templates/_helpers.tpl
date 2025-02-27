@@ -75,6 +75,23 @@ Usage: {{ include "benthos-collector.componentName" (list . "component") }}
 {{- end -}}
 
 {{/*
+Return the storage class
+*/}}
+{{- define "benthos-collector.storageClass" -}}
+{{- include "common.storage.class" (dict "persistence" .Values.storage "global" $) }}
+{{- end -}}
+{{- define "common.storage.class" -}}
+{{- $storageClass := (.global).storageClass | default .persistence.storageClass | default (.global).defaultStorageClass | default "" -}}
+{{- if $storageClass -}}
+  {{- if (eq "-" $storageClass) -}}
+      {{- printf "storageClassName: \"\"" -}}
+  {{- else -}}
+      {{- printf "storageClassName: %s" $storageClass -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Create args for the deployment
 */}}
 {{- define "benthos-collector.args" -}}

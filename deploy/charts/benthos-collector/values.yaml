@@ -95,14 +95,34 @@ resources:
   #   cpu: 100m
   #   memory: 128Mi
 
-# -- Additional volumes on the output Deployment definition.
+# -- Configuration for the PersistentVolumeClaim, which controls the storage for the Collector.
+storage:
+  # -- Enable a PersistentVolumeClaim for the StatefulSet.
+  enabled: false
+  # -- Annotations to add to the PersistentVolumeClaim.
+  annotations: {}
+  # -- Labels to add to the PersistentVolumeClaim.
+  labels: {}
+  # -- Selector for the PersistentVolumeClaim.
+  selector: {}
+  # -- Access modes for the PersistentVolumeClaim.
+  accessModes:
+    - ReadWriteOnce
+  # -- Size of the PersistentVolumeClaim.
+  size: 1Gi
+  # -- Mount path for the PersistentVolumeClaim.
+  mountPath: /data
+  # -- Storage class for the PersistentVolumeClaim.
+  storageClass: ""
+
+# -- Additional volumes on the output State definition.
 volumes: []
 # - name: foo
 #   secret:
 #     secretName: mysecret
 #     optional: false
 
-# -- Additional volumeMounts on the output Deployment definition.
+# -- Additional volumeMounts on the output State definition.
 volumeMounts: []
 # - name: foo
 #   mountPath: "/etc/foo"
