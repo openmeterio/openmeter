@@ -201,10 +201,10 @@ func (a *adapter) DeletePlan(ctx context.Context, params plan.DeletePlanInput) e
 		})
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return nil, &plan.NotFoundError{
+				return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{
 					Namespace: params.Namespace,
 					ID:        params.ID,
-				}
+				})
 			}
 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
@@ -217,10 +217,10 @@ func (a *adapter) DeletePlan(ctx context.Context, params plan.DeletePlanInput) e
 			Exec(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return nil, &plan.NotFoundError{
+				return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{
 					Namespace: params.Namespace,
 					ID:        params.ID,
-				}
+				})
 			}
 
 			return nil, fmt.Errorf("failed to delete Plan: %w", err)
@@ -325,12 +325,12 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		planRow, err := query.First(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return nil, &plan.NotFoundError{
+				return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{
 					Namespace: params.Namespace,
 					ID:        params.ID,
 					Key:       params.Key,
 					Version:   params.Version,
-				}
+				})
 			}
 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
@@ -394,10 +394,10 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			})
 			if err != nil {
 				if entdb.IsNotFound(err) {
-					return nil, &plan.NotFoundError{
+					return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{
 						Namespace: params.Namespace,
 						ID:        params.ID,
-					}
+					})
 				}
 
 				return nil, fmt.Errorf("failed to get updated Plan: %w", err)

@@ -4,8 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
@@ -53,7 +51,7 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubs
 		Version: version,
 	})
 
-	if _, ok := lo.ErrorsAs[*plan.NotFoundError](err); ok {
+	if plan.IsNotFound(err) {
 		return nil, subscription.PlanNotFoundError{
 			Key:     planKey,
 			Version: version,

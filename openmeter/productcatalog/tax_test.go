@@ -30,7 +30,7 @@ func TestTaxConfigValidation(t *testing.T) {
 					Code: "invalid_tax_code",
 				},
 			},
-			ExpectedError: errors.New("invalid stripe config: invalid product tax code: invalid_tax_code"),
+			ExpectedError: errors.New("validation error: invalid stripe config: validation error: invalid product tax code: invalid_tax_code"),
 		},
 		{
 			Name: "behavior valid",
@@ -44,7 +44,7 @@ func TestTaxConfigValidation(t *testing.T) {
 			TaxConfig: TaxConfig{
 				Behavior: (*TaxBehavior)(lo.ToPtr("invalid_behavior")),
 			},
-			ExpectedError: errors.New("invalid tax behavior: invalid_behavior"),
+			ExpectedError: errors.New("validation error: invalid tax behavior: invalid_behavior"),
 		},
 	}
 

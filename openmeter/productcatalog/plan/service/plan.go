@@ -71,7 +71,7 @@ func (s service) expandFeatures(ctx context.Context, namespace string, rateCards
 		missing, r := lo.Difference(rateCardFeatureKeys, visited)
 		missing = append(missing, r...)
 
-		return productcatalog.NewValidationError(fmt.Errorf("non-existing Features: %+v", missing))
+		return models.NewGenericValidationError(fmt.Errorf("non-existing Features: %+v", missing))
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		if len(allVersions.Items) >= 0 {
 			for _, p := range allVersions.Items {
 				if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
-					return nil, productcatalog.NewValidationError(
+					return nil, models.NewGenericValidationError(
 						fmt.Errorf("only a single draft version is allowed for Plan"),
 					)
 				}
@@ -177,7 +177,7 @@ func (s service) DeletePlan(ctx context.Context, params plan.DeletePlanInput) er
 		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
-			return nil, productcatalog.NewValidationError(
+			return nil, models.NewGenericValidationError(
 				fmt.Errorf("only Plans in %+v can be deleted, but it has %s state", allowedPlanStatuses, planStatus),
 			)
 		}
@@ -263,7 +263,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		}
 		planStatus := p.Status()
 		if !lo.Contains(allowedPlanStatuses, p.Status()) {
-			return nil, productcatalog.NewValidationError(
+			return nil, models.NewGenericValidationError(
 				fmt.Errorf("only Plans in %+v can be updated, but it has %s state", allowedPlanStatuses, planStatus),
 			)
 		}
@@ -328,7 +328,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		// First, let's validate that the Subscription can successfully be created from this Plan
 
 		if err := pp.ValidForCreatingSubscriptions(); err != nil {
-			return nil, productcatalog.NewValidationError(fmt.Errorf("invalid Plan for creating subscriptions: %w", err))
+			return nil, models.NewGenericValidationError(fmt.Errorf("invalid Plan for creating subscriptions: %w", err))
 		}
 
 		// Second, let's validate that the plan status and the version history is correct
@@ -338,7 +338,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 		planStatus := pp.Status()
 		if !lo.Contains(allowedPlanStatuses, pp.Status()) {
-			return nil, productcatalog.NewValidationError(
+			return nil, models.NewGenericValidationError(
 				fmt.Errorf("invalid Plan: only Plans in %+v can be published/rescheduled, but it has %s state", allowedPlanStatuses, planStatus),
 			)
 		}
@@ -427,7 +427,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		activeStatuses := []productcatalog.PlanStatus{productcatalog.ActiveStatus}
 		status := p.Status()
 		if !lo.Contains(activeStatuses, status) {
-			return nil, productcatalog.NewValidationError(
+			return nil, models.NewGenericValidationError(
 				fmt.Errorf("only Plans in %+v can be archived, but it is in %s state", activeStatuses, status),
 			)
 		}
@@ -491,7 +491,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		}
 
 		if len(allVersions.Items) == 0 {
-			return nil, productcatalog.NewValidationError(
+			return nil, models.NewGenericValidationError(
 				fmt.Errorf("no versions available for this plan"),
 			)
 		}
@@ -533,7 +533,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		var match, stop bool
 		for _, p := range allVersions.Items {
 			if p.DeletedAt == nil && p.Status() == productcatalog.DraftStatus {
-				return nil, productcatalog.NewValidationError(
+				return nil, models.NewGenericValidationError(
 					fmt.Errorf("only a single draft version is allowed for Plan"),
 				)
 			}
@@ -551,7 +551,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		}
 
 		if sourcePlan == nil {
-			return nil, productcatalog.NewValidationError(
+			return nil, models.NewGenericValidationError(
 				fmt.Errorf("no versions available for plan to use as source for next draft version"),
 			)
 		}

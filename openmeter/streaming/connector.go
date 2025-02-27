@@ -81,7 +81,7 @@ func (p ListMeterSubjectsParams) Validate() error {
 	}
 
 	if len(errs) > 0 {
-		return models.NewGenericValidationError(errors.Join(errs...))
+		return models.NewNillableGenericValidationError(errors.Join(errs...))
 	}
 
 	return errors.Join(errs...)

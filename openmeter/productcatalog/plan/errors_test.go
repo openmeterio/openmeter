@@ -16,19 +16,19 @@ func TestIsNotFoundError(t *testing.T) {
 	}{
 		{
 			Name: "Valid",
-			Error: &NotFoundError{
+			Error: NewNotFoundError(NotFoundErrorParams{
 				Namespace: "test",
 				ID:        "test",
-			},
+			}),
 			ExpectedError: true,
 		},
 		{
 			Name: "Wrapped",
 			Error: errors.Join(
-				fmt.Errorf("wrapped: %w", &NotFoundError{
+				fmt.Errorf("wrapped: %w", NewNotFoundError(NotFoundErrorParams{
 					Namespace: "test",
 					ID:        "test",
-				}),
+				})),
 			),
 			ExpectedError: true,
 		},
@@ -54,33 +54,33 @@ func TestIsNotFoundError_String(t *testing.T) {
 	}{
 		{
 			Name: "ID",
-			Error: &NotFoundError{
+			Error: NewNotFoundError(NotFoundErrorParams{
 				Namespace: "namespace",
 				ID:        "id",
-			},
-			ExpectedError: "plan not found. [namespace=namespace id=id]",
+			}),
+			ExpectedError: "not found error: plan not found. [namespace=namespace id=id]",
 		},
 		{
 			Name: "Key",
-			Error: &NotFoundError{
+			Error: NewNotFoundError(NotFoundErrorParams{
 				Namespace: "namespace",
 				Key:       "key",
-			},
-			ExpectedError: "plan not found. [namespace=namespace key=key]",
+			}),
+			ExpectedError: "not found error: plan not found. [namespace=namespace key=key]",
 		},
 		{
 			Name: "KeyVersion",
-			Error: &NotFoundError{
+			Error: NewNotFoundError(NotFoundErrorParams{
 				Namespace: "namespace",
 				Key:       "key",
 				Version:   1,
-			},
-			ExpectedError: "plan not found. [namespace=namespace key=key version=1]",
+			}),
+			ExpectedError: "not found error: plan not found. [namespace=namespace key=key version=1]",
 		},
 		{
 			Name:          "Default",
-			Error:         &NotFoundError{},
-			ExpectedError: "plan not found",
+			Error:         NewNotFoundError(NotFoundErrorParams{}),
+			ExpectedError: "not found error: plan not found",
 		},
 	}
 

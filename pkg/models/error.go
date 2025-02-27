@@ -124,6 +124,16 @@ func IsGenericForbiddenError(err error) bool {
 	return errors.As(err, &e)
 }
 
+// NewNillableGenericValidationError returns a new GenericValidationError or nil if the error is nil.
+// This is useful when someone passes in an errors.Join to the error.
+func NewNillableGenericValidationError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return NewGenericValidationError(err)
+}
+
 // NewGenericValidationError returns a new GenericValidationError.
 func NewGenericValidationError(err error) error {
 	return &GenericValidationError{err: err}

@@ -140,7 +140,7 @@ func (r RateCardMeta) Validate() error {
 		}
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ RateCard = (*FlatFeeRateCard)(nil)
@@ -229,7 +229,7 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ RateCard = (*UsageBasedRateCard)(nil)
@@ -315,7 +315,7 @@ func (r *UsageBasedRateCard) Validate() error {
 		errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ models.Equaler[RateCards] = (*RateCards)(nil)

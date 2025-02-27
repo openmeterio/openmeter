@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 )
 
@@ -71,7 +72,7 @@ func (c *TaxConfig) Validate() error {
 		}
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
@@ -112,7 +113,7 @@ func (s *StripeTaxConfig) Equal(v *StripeTaxConfig) bool {
 
 func (s *StripeTaxConfig) Validate() error {
 	if s.Code != "" && !StripeProductTaxCodeRegexp.MatchString(s.Code) {
-		return NewValidationError(fmt.Errorf("invalid product tax code: %s", s.Code))
+		return models.NewGenericValidationError(fmt.Errorf("invalid product tax code: %s", s.Code))
 	}
 
 	return nil
