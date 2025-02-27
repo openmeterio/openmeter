@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type ServiceConfig struct {
@@ -453,9 +454,9 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 	return *view, nil
 }
 
-func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (pagination.PagedResponse[subscription.Subscription], error) {
 	if err := input.Validate(); err != nil {
-		return subscription.SubscriptionList{}, fmt.Errorf("input is invalid: %w", err)
+		return pagination.PagedResponse[subscription.Subscription]{}, fmt.Errorf("input is invalid: %w", err)
 	}
 
 	return s.SubscriptionRepo.List(ctx, input)

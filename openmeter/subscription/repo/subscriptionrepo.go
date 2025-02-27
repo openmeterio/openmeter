@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -80,7 +81,13 @@ func (r *subscriptionRepo) GetAllForCustomerSince(ctx context.Context, customerI
 
 func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
-		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).First(ctx)
+		res, err := repo.db.Subscription.Query().WithPlan().
+			Where(
+				dbsubscription.ID(subscriptionID.ID),
+				dbsubscription.Namespace(subscriptionID.Namespace),
+			).Where(
+			SubscriptionNotDeletedAt(clock.Now())...,
+		).First(ctx)
 
 		if db.IsNotFound(err) {
 			return subscription.Subscription{}, &subscription.NotFoundError{
@@ -158,35 +165,36 @@ func (r *subscriptionRepo) Delete(ctx context.Context, id models.NamespacedID) e
 	})
 }
 
-func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
-	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.SubscriptionList, error) {
+func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscriptionsInput) (pagination.PagedResponse[subscription.Subscription], error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (pagination.PagedResponse[subscription.Subscription], error) {
 		query := repo.db.Subscription.Query().
-			Where(dbsubscription.NamespaceIn(in.Namespaces...))
+			Where(
+				dbsubscription.NamespaceIn(in.Namespaces...),
+			).Where(
+			SubscriptionNotDeletedAt(clock.Now())...,
+		)
 
-		if len(in.Customers) > 0 {
-			query = query.Where(dbsubscription.CustomerIDIn(in.Customers...))
+		if len(in.CustomerIDs) > 0 {
+			query = query.Where(dbsubscription.CustomerIDIn(in.CustomerIDs...))
 		}
 
 		if in.ActiveAt != nil {
 			query = query.Where(
-				dbsubscription.Or(
-					dbsubscription.ActiveToIsNil(),
-					dbsubscription.ActiveToGT(*in.ActiveAt),
-				),
+				SubscriptionActiveAt(*in.ActiveAt)...,
 			)
 		}
 
 		paged, err := query.Paginate(ctx, in.Page)
 		if err != nil {
-			return subscription.SubscriptionList{}, err
+			return pagination.PagedResponse[subscription.Subscription]{}, err
 		}
 
 		items, err := slicesx.MapWithErr(paged.Items, MapDBSubscription)
 		if err != nil {
-			return subscription.SubscriptionList{}, err
+			return pagination.PagedResponse[subscription.Subscription]{}, err
 		}
 
-		return subscription.SubscriptionList{
+		return pagination.PagedResponse[subscription.Subscription]{
 			Items:      items,
 			Page:       paged.Page,
 			TotalCount: paged.TotalCount,
