@@ -64,7 +64,6 @@ func (h *handler) ListEvents() ListEventsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listEvents"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
