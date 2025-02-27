@@ -254,7 +254,7 @@ func (in *runAIInput) scrape(ctx context.Context, t time.Time) error {
 
 		in.mu.Lock()
 		in.store[t] = lo.Map(workloadsWithMetrics, func(workloadWithMetrics runai.WorkloadWithMetrics, _ int) runai.ResourceWithMetrics {
-			return runai.ResourceWithMetricsFromWorkload(&workloadWithMetrics)
+			return &workloadWithMetrics
 		})
 		in.mu.Unlock()
 	case "pod":
@@ -269,7 +269,7 @@ func (in *runAIInput) scrape(ctx context.Context, t time.Time) error {
 
 		in.mu.Lock()
 		in.store[t] = lo.Map(podsWithMetrics, func(podWithMetrics runai.PodWithMetrics, _ int) runai.ResourceWithMetrics {
-			return runai.ResourceWithMetricsFromPod(&podWithMetrics)
+			return &podWithMetrics
 		})
 		in.mu.Unlock()
 	}
