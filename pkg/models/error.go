@@ -124,6 +124,16 @@ func IsGenericForbiddenError(err error) bool {
 	return errors.As(err, &e)
 }
 
+// NewNillableGenericValidationError returns a new GenericValidationError or nil if the error is nil.
+// This is useful when someone passes in an errors.Join to the error.
+func NewNillableGenericValidationError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return NewGenericValidationError(err)
+}
+
 // NewGenericValidationError returns a new GenericValidationError.
 func NewGenericValidationError(err error) error {
 	return &GenericValidationError{err: err}
@@ -186,6 +196,93 @@ func IsGenericNotImplementedError(err error) bool {
 	}
 
 	var e *GenericNotImplementedError
+
+	return errors.As(err, &e)
+}
+
+// GenericStatusFailedDependencyError
+func NewGenericStatusFailedDependencyError(err error) error {
+	return &GenericStatusFailedDependencyError{err: err}
+}
+
+var _ GenericError = &GenericStatusFailedDependencyError{}
+
+type GenericStatusFailedDependencyError struct {
+	err error
+}
+
+func (e *GenericStatusFailedDependencyError) Error() string {
+	return fmt.Sprintf("status failed dependency error: %s", e.err)
+}
+
+func (e *GenericStatusFailedDependencyError) Unwrap() error {
+	return e.err
+}
+
+func IsGenericStatusFailedDependencyError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *GenericStatusFailedDependencyError
+
+	return errors.As(err, &e)
+}
+
+// GenericPreConditionFailedError
+func NewGenericPreConditionFailedError(err error) error {
+	return &GenericPreConditionFailedError{err: err}
+}
+
+var _ GenericError = &GenericPreConditionFailedError{}
+
+type GenericPreConditionFailedError struct {
+	err error
+}
+
+func (e *GenericPreConditionFailedError) Error() string {
+	return fmt.Sprintf("precondition failed error: %s", e.err)
+}
+
+func (e *GenericPreConditionFailedError) Unwrap() error {
+	return e.err
+}
+
+func IsGenericPreConditionFailedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *GenericPreConditionFailedError
+
+	return errors.As(err, &e)
+}
+
+// GenericUnauthorizedError
+func NewGenericUnauthorizedError(err error) error {
+	return &GenericUnauthorizedError{err: err}
+}
+
+var _ GenericError = &GenericUnauthorizedError{}
+
+type GenericUnauthorizedError struct {
+	err error
+}
+
+func (e *GenericUnauthorizedError) Error() string {
+	return fmt.Sprintf("unauthorized error: %s", e.err)
+}
+
+func (e *GenericUnauthorizedError) Unwrap() error {
+	return e.err
+}
+
+func IsGenericUnauthorizedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *GenericUnauthorizedError
 
 	return errors.As(err, &e)
 }

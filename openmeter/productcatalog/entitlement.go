@@ -308,16 +308,16 @@ func (t *MeteredEntitlementTemplate) Equal(v *MeteredEntitlementTemplate) bool {
 
 func (t *MeteredEntitlementTemplate) Validate() error {
 	if t.IssueAfterResetPriority != nil && t.IssueAfterReset == nil {
-		return NewValidationError(errors.New("IssueAfterReset is required for IssueAfterResetPriority"))
+		return models.NewGenericValidationError(errors.New("IssueAfterReset is required for IssueAfterResetPriority"))
 	}
 
 	if t.UsagePeriod.Sign() != 1 {
-		return NewValidationError(errors.New("UsagePeriod must be positive"))
+		return models.NewGenericValidationError(errors.New("UsagePeriod must be positive"))
 	}
 
 	hour := isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)
 	if diff, err := t.UsagePeriod.Subtract(hour); err == nil && diff.Sign() == -1 {
-		return NewValidationError(errors.New("UsagePeriod must be at least 1 hour"))
+		return models.NewGenericValidationError(errors.New("UsagePeriod must be at least 1 hour"))
 	}
 
 	return nil
@@ -357,7 +357,7 @@ func (t *StaticEntitlementTemplate) Equal(v *StaticEntitlementTemplate) bool {
 func (t *StaticEntitlementTemplate) Validate() error {
 	if len(t.Config) > 0 {
 		if ok := json.Valid(t.Config); !ok {
-			return NewValidationError(errors.New("invalid JSON in config"))
+			return models.NewGenericValidationError(errors.New("invalid JSON in config"))
 		}
 	}
 

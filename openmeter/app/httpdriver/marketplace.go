@@ -55,7 +55,6 @@ func (h *handler) ListMarketplaceListings() ListMarketplaceListingsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listMarketplaceListings"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -87,7 +86,6 @@ func (h *handler) GetMarketplaceListing() GetMarketplaceListingHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getMarketplaceListing"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -162,7 +160,6 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("marketplaceAppAPIKeyInstall"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

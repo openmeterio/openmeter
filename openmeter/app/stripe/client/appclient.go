@@ -290,16 +290,18 @@ func (c *stripeAppClient) providerError(err error) error {
 				return fmt.Errorf("failed to update app status to %s for app %s: %w", c.appID.ID, status, err)
 			}
 
-			return app.AppProviderAuthenticationError{
-				AppID:         &c.appID,
-				ProviderError: errors.New(stripeErr.Msg),
-			}
+			return app.NewAppProviderAuthenticationError(
+				&c.appID,
+				c.appID.Namespace,
+				errors.New(stripeErr.Msg),
+			)
 		}
 
-		return app.AppProviderError{
-			AppID:         &c.appID,
-			ProviderError: errors.New(stripeErr.Msg),
-		}
+		return app.NewAppProviderError(
+			&c.appID,
+			c.appID.Namespace,
+			errors.New(stripeErr.Msg),
+		)
 	}
 
 	return err

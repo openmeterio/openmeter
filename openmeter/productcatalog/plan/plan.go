@@ -36,7 +36,7 @@ func (p Plan) Validate() error {
 		}
 	}
 
-	return productcatalog.NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (p Plan) AsProductCatalogPlan(at time.Time) (productcatalog.Plan, error) {

@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type AutoProvisionInput struct {
@@ -33,9 +32,7 @@ func (a AutoProvisionInput) Validate() error {
 // right away.
 func AutoProvision(ctx context.Context, input AutoProvisionInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
-		return nil, app.ValidationError{
-			Err: err,
-		}
+		return nil, models.NewGenericValidationError(err)
 	}
 
 	// Let's try to resolve the default app
@@ -44,7 +41,7 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (app.App, erro
 		Type:      app.AppTypeSandbox,
 	})
 	if err != nil {
-		if _, ok := lo.ErrorsAs[app.AppDefaultNotFoundError](err); ok {
+		if app.IsAppDefaultNotFoundError(err) {
 			// Let's provision the new app
 			_, err := input.AppService.CreateApp(ctx, app.CreateAppInput{
 				Namespace:   input.Namespace,

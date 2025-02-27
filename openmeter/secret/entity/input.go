@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CreateAppSecretInput struct {
@@ -14,21 +15,21 @@ type CreateAppSecretInput struct {
 
 func (i CreateAppSecretInput) Validate() error {
 	if err := i.AppID.Validate(); err != nil {
-		return &ValidationError{
-			Err: errors.New("app id is invalid"),
-		}
+		return models.NewGenericValidationError(
+			errors.New("app id is invalid"),
+		)
 	}
 
 	if i.Key == "" {
-		return &ValidationError{
-			Err: errors.New("key is required"),
-		}
+		return models.NewGenericValidationError(
+			errors.New("key is required"),
+		)
 	}
 
 	if i.Value == "" {
-		return &ValidationError{
-			Err: errors.New("value is required"),
-		}
+		return models.NewGenericValidationError(
+			errors.New("value is required"),
+		)
 	}
 
 	return nil
@@ -51,15 +52,15 @@ func (i UpdateAppSecretInput) Validate() error {
 	}
 
 	if i.Key == "" {
-		return &ValidationError{
-			Err: errors.New("key is required"),
-		}
+		return models.NewGenericValidationError(
+			errors.New("key is required"),
+		)
 	}
 
 	if i.Value == "" {
-		return &ValidationError{
-			Err: errors.New("value is required"),
-		}
+		return models.NewGenericValidationError(
+			errors.New("value is required"),
+		)
 	}
 
 	return nil

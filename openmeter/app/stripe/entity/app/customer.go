@@ -10,6 +10,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ customerapp.App = (*App)(nil)
@@ -45,12 +46,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 	stripeCustomer, err := stripeClient.GetCustomer(ctx, stripeCustomerData.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
-			return app.AppCustomerPreConditionError{
-				AppID:      a.GetID(),
-				AppType:    a.GetType(),
-				CustomerID: customerID,
-				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
-			}
+			return app.NewAppCustomerPreConditionError(
+				a.GetID(),
+				a.GetType(),
+				&customerID,
+				fmt.Sprintf("stripe customer %s not found in stripe account %s", stripeCustomerData.StripeCustomerID, stripeAppData.StripeAccountID),
+			)
 		}
 
 		return err
@@ -67,12 +68,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 			paymentMethod, err = stripeClient.GetPaymentMethod(ctx, *stripeCustomerData.StripeDefaultPaymentMethodID)
 			if err != nil {
 				if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
-					return app.AppCustomerPreConditionError{
-						AppID:      a.GetID(),
-						AppType:    a.GetType(),
-						CustomerID: customerID,
-						Condition:  fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
-					}
+					return app.NewAppCustomerPreConditionError(
+						a.GetID(),
+						a.GetType(),
+						&customerID,
+						fmt.Sprintf("default payment method %s not found in stripe account %s", *stripeCustomerData.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+					)
 				}
 
 				return fmt.Errorf("failed to get default payment method: %w", err)
@@ -80,12 +81,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		} else {
 			// Check if the customer has a default payment method
 			if stripeCustomer.DefaultPaymentMethod == nil {
-				return app.AppCustomerPreConditionError{
-					AppID:      a.GetID(),
-					AppType:    a.GetType(),
-					CustomerID: customerID,
-					Condition:  "stripe customer must have a default payment method",
-				}
+				return app.NewAppCustomerPreConditionError(
+					a.GetID(),
+					a.GetType(),
+					&customerID,
+					"stripe customer must have a default payment method",
+				)
 			}
 
 			paymentMethod = *stripeCustomer.DefaultPaymentMethod
@@ -94,12 +95,12 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 		// Payment method must have a billing address
 		// Billing address is required for tax calculation and invoice creation
 		if paymentMethod.BillingAddress == nil {
-			return app.AppCustomerPreConditionError{
-				AppID:      a.GetID(),
-				AppType:    a.GetType(),
-				CustomerID: customerID,
-				Condition:  "stripe customer default payment method must have a billing address",
-			}
+			return app.NewAppCustomerPreConditionError(
+				a.GetID(),
+				a.GetType(),
+				&customerID,
+				"stripe customer default payment method must have a billing address",
+			)
 		}
 
 		// TODO: should we have currency as an input to validation?
@@ -111,9 +112,9 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 // GetCustomerData gets the customer data for the app
 func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return nil, app.ValidationError{
-			Err: err,
-		}
+		return nil, models.NewGenericValidationError(
+			err,
+		)
 	}
 
 	customerData, err := a.StripeAppService.GetStripeCustomerData(ctx, appstripeentity.GetStripeCustomerDataInput{
@@ -130,9 +131,9 @@ func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustom
 // UpsertCustomerData upserts the customer data for the app
 func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: err,
-		}
+		return models.NewGenericValidationError(
+			err,
+		)
 	}
 
 	stripeCustomerData, ok := input.Data.(appstripeentity.CustomerData)
@@ -156,9 +157,9 @@ func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstance
 // DeleteCustomerData deletes the customer data for the app
 func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: err,
-		}
+		return models.NewGenericValidationError(
+			err,
+		)
 	}
 
 	appId := a.GetID()

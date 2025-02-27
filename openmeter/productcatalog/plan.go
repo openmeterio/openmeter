@@ -56,7 +56,7 @@ func (p Plan) Validate() error {
 		}
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ValidForCreatingSubscriptions checks if the Plan is valid for creating Subscriptions, a stricter version of Validate
@@ -68,25 +68,25 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 	}
 
 	if len(p.Phases) == 0 {
-		return NewValidationError(errors.New("invalid Plan: at least one PlanPhase is required"))
+		return models.NewGenericValidationError(errors.New("invalid Plan: at least one PlanPhase is required"))
 	}
 
 	// Check if only the last phase has no duration
 	for i, phase := range p.Phases {
 		if phase.Duration == nil && i != len(p.Phases)-1 {
-			errs = append(errs, NewValidationError(
+			errs = append(errs, models.NewGenericValidationError(
 				fmt.Errorf("invalid Plan: the duration must be set for the phase %s (index %d)", phase.Name, i),
 			))
 		}
 
 		if phase.Duration != nil && i == len(p.Phases)-1 {
-			errs = append(errs, NewValidationError(
+			errs = append(errs, models.NewGenericValidationError(
 				fmt.Errorf("invalid Plan: the duration must not be set for the last phase (index %d)", i),
 			))
 		}
 
 		if len(phase.RateCards) < 1 {
-			errs = append(errs, NewValidationError(
+			errs = append(errs, models.NewGenericValidationError(
 				fmt.Errorf("invalid Plan: at least one RateCards in PlanPhase is required [phase_key=%s]", phase.Key),
 			))
 		}
@@ -106,7 +106,7 @@ func (p Plan) ValidForCreatingSubscriptions() error {
 			}
 
 			if len(periods) > 1 {
-				errs = append(errs, NewValidationError(
+				errs = append(errs, models.NewGenericValidationError(
 					fmt.Errorf("invalid Plan: all RateCards with prices in the phase %s (index %d) must have the same billing cadence, found: %v", phase.Name, i, lo.Keys(periods)),
 				))
 			}
@@ -183,7 +183,7 @@ func (p PlanMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid Name: must not be empty"))
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // Equal returns true if the two PlanMetas are equal.
@@ -234,7 +234,7 @@ type EffectivePeriod struct {
 
 func (p EffectivePeriod) Validate() error {
 	if p.Status() == InvalidStatus {
-		return NewValidationError(fmt.Errorf("invalid effective time range: to is before from"))
+		return models.NewGenericValidationError(fmt.Errorf("invalid effective time range: to is before from"))
 	}
 
 	return nil

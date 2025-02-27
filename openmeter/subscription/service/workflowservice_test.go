@@ -56,7 +56,7 @@ func TestCreateFromPlan(t *testing.T) {
 					Namespace:  subscriptiontestutils.ExampleNamespace,
 				}, deps.Plan)
 
-				assert.ErrorAs(t, err, &customer.NotFoundError{}, "expected customer not found error, got %T", err)
+				assert.True(t, customer.IsNotFoundError(err), "expected customer not found error, got %T", err)
 			},
 		},
 	}

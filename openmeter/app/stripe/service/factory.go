@@ -192,7 +192,7 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 		})
 
 		// If the error is not an authentication error, we return it
-		if err != nil && !errors.Is(err, app.AppProviderAuthenticationError{}) {
+		if app.IsAppProviderAuthenticationError(err) {
 			return fmt.Errorf("failed to delete stripe webhook")
 		}
 	}

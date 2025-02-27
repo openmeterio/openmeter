@@ -3,18 +3,20 @@ package plan
 import (
 	"errors"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ error = (*NotFoundError)(nil)
 
-type NotFoundError struct {
+type NotFoundErrorParams struct {
 	Namespace string
 	ID        string
 	Key       string
 	Version   int
 }
 
-func (e *NotFoundError) Error() string {
+func NewNotFoundError(e NotFoundErrorParams) *NotFoundError {
 	var m string
 
 	if e.Namespace != "" {
@@ -34,10 +36,30 @@ func (e *NotFoundError) Error() string {
 	}
 
 	if len(m) > 0 {
-		return fmt.Sprintf("plan not found. [%s]", m[1:])
+		m = fmt.Sprintf("plan not found. [%s]", m[1:])
+	} else {
+		m = "plan not found"
 	}
 
-	return "plan not found"
+	return &NotFoundError{
+		err: models.NewGenericNotFoundError(
+			errors.New(m),
+		),
+	}
+}
+
+var _ models.GenericError = &NotFoundError{}
+
+type NotFoundError struct {
+	err error
+}
+
+func (e *NotFoundError) Error() string {
+	return e.err.Error()
+}
+
+func (e *NotFoundError) Unwrap() error {
+	return e.err
 }
 
 func IsNotFound(err error) bool {

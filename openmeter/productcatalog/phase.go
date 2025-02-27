@@ -80,7 +80,7 @@ func (p PhaseMeta) Validate() error {
 		}
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var (
@@ -148,5 +148,5 @@ func (p Phase) Validate() error {
 		}
 	}
 
-	return NewValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

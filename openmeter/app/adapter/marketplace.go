@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -27,9 +28,9 @@ func (a adapter) ListMarketplaceListings(ctx context.Context, input app.Marketpl
 // GetMarketplaceListing gets a marketplace listing
 func (a adapter) GetMarketplaceListing(ctx context.Context, input app.MarketplaceGetInput) (app.RegistryItem, error) {
 	if _, ok := a.registry[input.Type]; !ok {
-		return app.RegistryItem{}, app.MarketplaceListingNotFoundError{
-			MarketplaceListingID: input,
-		}
+		return app.RegistryItem{}, models.NewGenericNotFoundError(
+			fmt.Errorf("listing with type not found: %s", input.Type),
+		)
 	}
 
 	return a.registry[input.Type], nil

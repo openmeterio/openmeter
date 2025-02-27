@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -58,11 +59,7 @@ func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *
 		Type: app.AppType("unknown"),
 	})
 
-	require.ErrorIs(t, err, app.MarketplaceListingNotFoundError{
-		MarketplaceListingID: app.MarketplaceListingID{
-			Type: app.AppType("unknown"),
-		},
-	}, "Fetching listing must return not found error")
+	require.True(t, models.IsGenericNotFoundError(err), "Fetching listing must return not found error")
 }
 
 // TestList tests the listing of apps

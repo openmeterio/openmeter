@@ -109,10 +109,9 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 		},
 	})
 
-	require.ErrorAs(
+	require.True(
 		t,
-		err,
-		&customer.SubjectKeyConflictError{Namespace: s.namespace, SubjectKeys: TestSubjectKeys},
+		customer.IsSubjectKeyConflictError(err),
 		"Creating a customer with same subject keys must return conflict error",
 	)
 }
@@ -263,7 +262,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 		},
 	})
 
-	require.ErrorAs(t, err, &customer.ForbiddenError{}, "Updating customer UsageAttribution with subscription must return forbidden error")
+	require.True(t, models.IsGenericForbiddenError(err), "Updating customer UsageAttribution with subscription must return forbidden error")
 
 	// Update the customer but not the UsageAttribution
 	updatedCustomer, err := cService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -499,10 +498,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 
 	// Delete the customer again should return not found error
 	err = service.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
-
-	// TODO: it is a wrapped error, we need to unwrap it, instead we are checking the error message for now
-	// require.ErrorAs(t, err, customer.NotFoundError{CustomerID: customerId}, "Deleting customer again must return not found error")
-	require.ErrorContains(t, err, "not found", "Deleting customer again must return not found error")
+	require.True(t, customer.IsNotFoundError(err), "Deleting customer again must return not found error")
 
 	// Should allow to create a customer with the same subject keys
 	_, err = service.CreateCustomer(ctx, input)

@@ -65,7 +65,6 @@ func (h *handler) ListTokens() ListTokensHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listPortalTokens"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -147,7 +146,6 @@ func (h *handler) CreateToken() CreateTokenHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createPortalToken"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -192,7 +190,6 @@ func (h *handler) InvalidateToken() InvalidateTokenHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("invalidatePortalTokens"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

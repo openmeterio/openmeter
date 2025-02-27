@@ -10,14 +10,15 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // GetStripeCustomerData gets stripe customer data
 func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
 	if err := input.Validate(); err != nil {
-		return appstripeentity.CustomerData{}, app.ValidationError{
-			Err: fmt.Errorf("error getting stripe customer data: %w", err),
-		}
+		return appstripeentity.CustomerData{}, models.NewGenericValidationError(
+			fmt.Errorf("error getting stripe customer data: %w", err),
+		)
 	}
 
 	stripeCustomerDBEntity, err := a.db.AppStripeCustomer.
@@ -28,12 +29,12 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 		Only(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return appstripeentity.CustomerData{}, app.AppCustomerPreConditionError{
-				AppID:      input.AppID,
-				AppType:    app.AppTypeStripe,
-				CustomerID: input.CustomerID,
-				Condition:  "customer has no data for stripe app",
-			}
+			return appstripeentity.CustomerData{}, app.NewAppCustomerPreConditionError(
+				input.AppID,
+				app.AppTypeStripe,
+				&input.CustomerID,
+				"customer has no data for stripe app",
+			)
 		}
 
 		return appstripeentity.CustomerData{}, fmt.Errorf("error getting stripe customer data: %w", err)
@@ -54,9 +55,9 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 // UpsertStripeCustomerData upserts stripe customer data
 func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: fmt.Errorf("error upsert stripe customer data: %w", err),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error upsert stripe customer data: %w", err),
+		)
 	}
 
 	// Get the stripe app client
@@ -69,12 +70,12 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 	_, err = stripeAppClient.GetCustomer(ctx, input.StripeCustomerID)
 	if err != nil {
 		if _, ok := err.(stripeclient.StripeCustomerNotFoundError); ok {
-			return app.AppCustomerPreConditionError{
-				AppID:      input.AppID,
-				AppType:    app.AppTypeStripe,
-				CustomerID: input.CustomerID,
-				Condition:  fmt.Sprintf("stripe customer %s not found in stripe account: %s", input.StripeCustomerID, stripeAppData.StripeAccountID),
-			}
+			return app.NewAppCustomerPreConditionError(
+				input.AppID,
+				app.AppTypeStripe,
+				&input.CustomerID,
+				fmt.Sprintf("stripe customer %s not found in stripe account: %s", input.StripeCustomerID, stripeAppData.StripeAccountID),
+			)
 		}
 
 		return fmt.Errorf("failed to get stripe customer: %w", err)
@@ -85,10 +86,10 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 		paymentMethod, err := stripeAppClient.GetPaymentMethod(ctx, *input.StripeDefaultPaymentMethodID)
 		if err != nil {
 			if _, ok := err.(stripeclient.StripePaymentMethodNotFoundError); ok {
-				return app.AppProviderPreConditionError{
-					AppID:     input.AppID,
-					Condition: fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
-				}
+				return app.NewAppProviderPreConditionError(
+					input.AppID,
+					fmt.Sprintf("stripe payment method %s not found in stripe account: %s", *input.StripeDefaultPaymentMethodID, stripeAppData.StripeAccountID),
+				)
 			}
 
 			return fmt.Errorf("failed to get stripe payment method: %w", err)
@@ -96,15 +97,15 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 
 		// Check if the payment method belongs to the customer
 		if paymentMethod.StripeCustomerID == nil || *paymentMethod.StripeCustomerID != input.StripeCustomerID {
-			return app.AppProviderPreConditionError{
-				AppID: input.AppID,
-				Condition: fmt.Sprintf(
+			return app.NewAppProviderPreConditionError(
+				input.AppID,
+				fmt.Sprintf(
 					"stripe payment method %s does not belong to stripe customer %s in stripe account: %s",
 					*input.StripeDefaultPaymentMethodID,
 					input.StripeCustomerID,
 					stripeAppData.StripeAccountID,
 				),
-			}
+			)
 		}
 	}
 
@@ -133,12 +134,12 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 			Exec(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
-				return nil, app.AppCustomerPreConditionError{
-					AppID:      input.AppID,
-					AppType:    app.AppTypeStripe,
-					CustomerID: input.CustomerID,
-					Condition:  "unique stripe customer id",
-				}
+				return nil, app.NewAppCustomerPreConditionError(
+					input.AppID,
+					app.AppTypeStripe,
+					&input.CustomerID,
+					"unique stripe customer id",
+				)
 			}
 
 			return nil, fmt.Errorf("failed to upsert app stripe customer data: %w", err)
@@ -153,9 +154,9 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 // DeleteStripeCustomerData deletes stripe customer data
 func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
-		return app.ValidationError{
-			Err: fmt.Errorf("error delete stripe customer data: %w", err),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error delete stripe customer data: %w", err),
+		)
 	}
 
 	// Determine namespace
@@ -170,9 +171,9 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 	}
 
 	if namespace == "" {
-		return app.ValidationError{
-			Err: fmt.Errorf("error delete stripe customer data: namespace is empty"),
-		}
+		return models.NewGenericValidationError(
+			fmt.Errorf("error delete stripe customer data: namespace is empty"),
+		)
 	}
 
 	// Start transaction

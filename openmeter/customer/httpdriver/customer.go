@@ -90,7 +90,6 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listCustomers"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -146,7 +145,6 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createCustomer"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -205,7 +203,6 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("updateCustomer"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -242,7 +239,6 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteCustomer"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -283,7 +279,6 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomer"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
@@ -327,7 +322,6 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomer"),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

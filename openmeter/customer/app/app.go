@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type App interface {
@@ -17,9 +18,9 @@ type App interface {
 func AsCustomerApp(customerAppCandidate app.App) (App, error) {
 	customerApp, ok := customerAppCandidate.(App)
 	if !ok {
-		return nil, app.ValidationError{
-			Err: fmt.Errorf("is not a customer app [id=%s, type=%s]", customerAppCandidate.GetID(), customerAppCandidate.GetType()),
-		}
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("is not a customer app [id=%s, type=%s]", customerAppCandidate.GetID(), customerAppCandidate.GetType()),
+		)
 	}
 
 	return customerApp, nil
