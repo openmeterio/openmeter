@@ -286,6 +286,46 @@ func (e Entitlement) IsActive(at time.Time) bool {
 	return true
 }
 
+// TODO: get rid of this calculation once it's not needed anymore
+func (e Entitlement) CalculateCurrentUsagePeriodAt(anchor, at time.Time) (timeutil.Period, bool) {
+	if e.UsagePeriod == nil {
+		return timeutil.Period{}, false
+	}
+
+	if e.OriginalUsagePeriodAnchor == nil {
+		return timeutil.Period{}, false
+	}
+
+	usagePeriod := *e.UsagePeriod
+
+	if !anchor.IsZero() {
+		usagePeriod.Anchor = anchor
+	}
+
+	// If this is the first period, it needs to start with the start of measurement, otherwise we just use the period
+	// We use the original definition for this
+	originalUsagePeriod := UsagePeriod{
+		Anchor:   *e.OriginalUsagePeriodAnchor,
+		Interval: usagePeriod.Interval,
+	}
+
+	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(e.CreatedAt)
+	if err != nil {
+		return timeutil.Period{}, false
+	}
+
+	currentPeriod, err := usagePeriod.GetCurrentPeriodAt(at)
+	if err != nil {
+		return timeutil.Period{}, false
+	}
+
+	if firstPeriod.From.Equal(currentPeriod.From) {
+		return firstPeriod, true
+	}
+
+	return currentPeriod, true
+}
+
 func (e Entitlement) GetType() EntitlementType {
 	return e.EntitlementType
 }

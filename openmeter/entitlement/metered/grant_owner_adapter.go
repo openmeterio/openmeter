@@ -115,45 +115,20 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 		return time.Time{}, err
 	}
 
-	metered, err := ParseFromGenericEntitlement(ent)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	usagePeriod := metered.UsagePeriod
-
 	lastReset, err := e.usageResetRepo.GetLastAt(ctx, owner.NamespacedID(), at)
 	if err != nil {
 		// If it's a not found error thats ok, it means there are no manual resets yet. Otherwise we return an error
 		if _, ok := lo.ErrorsAs[*UsageResetNotFoundError](err); !ok {
 			return time.Time{}, err
 		}
-	} else {
-		usagePeriod.Anchor = lastReset.Anchor
 	}
 
-	// If this is the first period, it needs to start with the start of measurement, otherwise we just use the period
-	// We use the original definition for this
-	originalUsagePeriod := entitlement.UsagePeriod{
-		Anchor:   metered.OriginalUsagePeriodAnchor,
-		Interval: metered.UsagePeriod.Interval,
+	cp, ok := ent.CalculateCurrentUsagePeriodAt(lastReset.Anchor, at)
+	if !ok {
+		return time.Time{}, fmt.Errorf("failed to calculate current usage period")
 	}
 
-	firstPeriod, err := originalUsagePeriod.GetCurrentPeriodAt(metered.CreatedAt)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	currentPeriod, err := usagePeriod.GetCurrentPeriodAt(at)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	if firstPeriod.From.Equal(currentPeriod.From) {
-		return metered.MeasureUsageFrom, nil
-	}
-
-	return currentPeriod.From, nil
+	return cp.From, nil
 }
 
 func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner grant.NamespacedOwner) (string, error) {
