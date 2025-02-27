@@ -43,8 +43,17 @@ helm install --generate-name --wait oci://ghcr.io/openmeterio/helm-charts/bentho
 | podSecurityContext | object | `{}` | Pod [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context) for details. |
 | securityContext | object | `{}` | Container [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#security-context-1) for details. |
 | resources | object | No requests or limits. | Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#resources) for details. |
-| volumes | list | `[]` | Additional volumes on the output Deployment definition. |
-| volumeMounts | list | `[]` | Additional volumeMounts on the output Deployment definition. |
+| storage | object | `{"accessModes":["ReadWriteOnce"],"annotations":{},"enabled":false,"labels":{},"mountPath":"/data","selector":{},"size":"1Gi","storageClass":""}` | Configuration for the PersistentVolumeClaim, which controls the storage for the Collector. |
+| storage.enabled | bool | `false` | Enable a PersistentVolumeClaim for the StatefulSet. |
+| storage.annotations | object | `{}` | Annotations to add to the PersistentVolumeClaim. |
+| storage.labels | object | `{}` | Labels to add to the PersistentVolumeClaim. |
+| storage.selector | object | `{}` | Selector for the PersistentVolumeClaim. |
+| storage.accessModes | list | `["ReadWriteOnce"]` | Access modes for the PersistentVolumeClaim. |
+| storage.size | string | `"1Gi"` | Size of the PersistentVolumeClaim. |
+| storage.mountPath | string | `"/data"` | Mount path for the PersistentVolumeClaim. |
+| storage.storageClass | string | `""` | Storage class for the PersistentVolumeClaim. |
+| volumes | list | `[]` | Additional volumes on the output State definition. |
+| volumeMounts | list | `[]` | Additional volumeMounts on the output State definition. |
 | envFrom | list | `[]` | Additional environment variables mounted from [secrets](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables) or [config maps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#configure-all-key-value-pairs-in-a-configmap-as-container-environment-variables). See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables) for details. |
 | env | object | `{}` | Additional environment variables passed directly to containers. See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables) for details. |
 | nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) configuration. |

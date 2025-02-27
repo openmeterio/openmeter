@@ -1,18 +1,21 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "benthos-collector.fullname" . }}
   labels:
     {{- include "benthos-collector.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  serviceName: {{ include "benthos-collector.fullname" . }}
   selector:
     matchLabels:
       {{- include "benthos-collector.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ .Values.config | toYaml | sha256sum }}
+        checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -57,6 +60,10 @@ spec:
               mountPath: /etc/benthos/config.yaml
               readOnly: true
               subPath: config.yaml
+          {{- if .Values.storage.enabled }}
+            - name: data
+              mountPath: {{ .Values.storage.mountPath }}
+          {{- end }}
           {{- if ne (len .Values.caRootCertificates) 0 }}
             - name: ca-certificates
               mountPath: /usr/local/share/ca-certificates
@@ -89,3 +96,31 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if .Values.storage.enabled }}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: data
+        {{- with .Values.storage.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.storage.labels }}
+        labels:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.storage.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.size | quote }}
+        {{- with .Values.storage.selector }}
+        selector:
+          {{- toYaml . | nindent 6 }}
+        {{- end }}
+        {{ include "benthos-collector.storageClass" . }}
+  {{- end }}
