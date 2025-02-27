@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type TaxBehavior string
