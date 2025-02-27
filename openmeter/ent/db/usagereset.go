@@ -30,6 +30,8 @@ type UsageReset struct {
 	EntitlementID string `json:"entitlement_id,omitempty"`
 	// ResetTime holds the value of the "reset_time" field.
 	ResetTime time.Time `json:"reset_time,omitempty"`
+	// Anchor holds the value of the "anchor" field.
+	Anchor time.Time `json:"anchor,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UsageResetQuery when eager-loading is set.
 	Edges        UsageResetEdges `json:"edges"`
@@ -63,7 +65,7 @@ func (*UsageReset) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case usagereset.FieldID, usagereset.FieldNamespace, usagereset.FieldEntitlementID:
 			values[i] = new(sql.NullString)
-		case usagereset.FieldCreatedAt, usagereset.FieldUpdatedAt, usagereset.FieldDeletedAt, usagereset.FieldResetTime:
+		case usagereset.FieldCreatedAt, usagereset.FieldUpdatedAt, usagereset.FieldDeletedAt, usagereset.FieldResetTime, usagereset.FieldAnchor:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -122,6 +124,12 @@ func (ur *UsageReset) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field reset_time", values[i])
 			} else if value.Valid {
 				ur.ResetTime = value.Time
+			}
+		case usagereset.FieldAnchor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field anchor", values[i])
+			} else if value.Valid {
+				ur.Anchor = value.Time
 			}
 		default:
 			ur.selectValues.Set(columns[i], values[i])
@@ -183,6 +191,9 @@ func (ur *UsageReset) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("reset_time=")
 	builder.WriteString(ur.ResetTime.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("anchor=")
+	builder.WriteString(ur.Anchor.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

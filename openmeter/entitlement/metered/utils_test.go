@@ -21,7 +21,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	streaming_testutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
@@ -38,7 +38,8 @@ type dependencies struct {
 	grantRepo           grant.Repo
 	balanceSnapshotRepo balance.SnapshotRepo
 	balanceConnector    credit.BalanceConnector
-	streamingConnector  *streaming_testutils.MockStreamingConnector
+	ownerConnector      grant.OwnerConnector
+	streamingConnector  *streamingtestutils.MockStreamingConnector
 }
 
 // Teardown cleans up the dependencies
@@ -48,6 +49,11 @@ func (d *dependencies) Teardown() {
 	d.pgDriver.Close()
 }
 
+var (
+	namespace = "ns1"
+	meterSlug = "meter1"
+)
+
 // When migrating in parallel with entgo it causes concurrent writes error
 var m sync.Mutex
 
@@ -55,12 +61,13 @@ var m sync.Mutex
 func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
-	streamingConnector := streaming_testutils.NewMockStreamingConnector(t)
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:          "meter1",
-		Namespace:     "ns1",
-		Aggregation:   meter.MeterAggregationSum,
-		WindowSize:    meter.WindowSizeMinute,
+		Slug:        meterSlug,
+		Namespace:   namespace,
+		Aggregation: meter.MeterAggregationSum,
+		WindowSize:  meter.WindowSizeMinute,
+		// These will be ignored in tests
 		EventType:     "test",
 		ValueProperty: "$.value",
 	}})
@@ -90,7 +97,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	mockPublisher := eventbus.NewMock(t)
 
 	// build adapters
-	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
+	ownerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,
@@ -103,7 +110,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	creditConnector := credit.NewCreditConnector(
 		grantRepo,
 		balanceSnapshotRepo,
-		owner,
+		ownerConnector,
 		streamingConnector,
 		testLogger,
 		time.Minute,
@@ -113,12 +120,13 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(
 		streamingConnector,
-		owner,
+		ownerConnector,
 		creditConnector,
 		creditConnector,
 		grantRepo,
 		entitlementRepo,
 		mockPublisher,
+		testLogger,
 	)
 
 	return connector, &dependencies{
@@ -131,6 +139,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		grantRepo,
 		balanceSnapshotRepo,
 		creditConnector,
+		ownerConnector,
 		streamingConnector,
 	}
 }

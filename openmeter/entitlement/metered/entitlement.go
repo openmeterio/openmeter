@@ -39,6 +39,9 @@ type Entitlement struct {
 	// CurrentPeriod defines the current period for usage calculations.
 	CurrentUsagePeriod timeutil.Period `json:"currentUsagePeriod,omitempty"`
 
+	// OriginalUsagePeriodAnchor defines the original anchor of the current usage period.
+	OriginalUsagePeriodAnchor time.Time `json:"originalUsagePeriodAnchor,omitempty"`
+
 	// PreserveOverageAtReset defines if overage should be preserved when the entitlement is reset.
 	PreserveOverageAtReset bool `json:"preserveOverageAtReset,omitempty"`
 
@@ -77,6 +80,10 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 		return nil, &entitlement.InvalidValueError{Message: "CurrentUsagePeriod is required", Type: model.EntitlementType}
 	}
 
+	if model.OriginalUsagePeriodAnchor == nil {
+		return nil, &entitlement.InvalidValueError{Message: "OriginalUsagePeriodAnchor is required", Type: model.EntitlementType}
+	}
+
 	if model.IssueAfterResetPriority != nil && model.IssueAfterReset == nil {
 		return nil, &entitlement.InvalidValueError{Message: "IssueAfterReset is required for IssueAfterResetPriority", Type: model.EntitlementType}
 	}
@@ -84,12 +91,13 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 	ent := Entitlement{
 		GenericProperties: model.GenericProperties,
 
-		MeasureUsageFrom:       *model.MeasureUsageFrom,
-		IsSoftLimit:            *model.IsSoftLimit,
-		UsagePeriod:            *model.UsagePeriod,
-		LastReset:              *model.LastReset,
-		CurrentUsagePeriod:     *model.CurrentUsagePeriod,
-		PreserveOverageAtReset: defaultx.WithDefault(model.PreserveOverageAtReset, false),
+		MeasureUsageFrom:          *model.MeasureUsageFrom,
+		IsSoftLimit:               *model.IsSoftLimit,
+		UsagePeriod:               *model.UsagePeriod,
+		LastReset:                 *model.LastReset,
+		CurrentUsagePeriod:        *model.CurrentUsagePeriod,
+		OriginalUsagePeriodAnchor: *model.OriginalUsagePeriodAnchor,
+		PreserveOverageAtReset:    defaultx.WithDefault(model.PreserveOverageAtReset, false),
 	}
 
 	if model.IssueAfterReset != nil {

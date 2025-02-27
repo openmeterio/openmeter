@@ -84,6 +84,12 @@ func (urc *UsageResetCreate) SetResetTime(t time.Time) *UsageResetCreate {
 	return urc
 }
 
+// SetAnchor sets the "anchor" field.
+func (urc *UsageResetCreate) SetAnchor(t time.Time) *UsageResetCreate {
+	urc.mutation.SetAnchor(t)
+	return urc
+}
+
 // SetID sets the "id" field.
 func (urc *UsageResetCreate) SetID(s string) *UsageResetCreate {
 	urc.mutation.SetID(s)
@@ -174,6 +180,9 @@ func (urc *UsageResetCreate) check() error {
 	if _, ok := urc.mutation.ResetTime(); !ok {
 		return &ValidationError{Name: "reset_time", err: errors.New(`db: missing required field "UsageReset.reset_time"`)}
 	}
+	if _, ok := urc.mutation.Anchor(); !ok {
+		return &ValidationError{Name: "anchor", err: errors.New(`db: missing required field "UsageReset.anchor"`)}
+	}
 	if len(urc.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "UsageReset.entitlement"`)}
 	}
@@ -232,6 +241,10 @@ func (urc *UsageResetCreate) createSpec() (*UsageReset, *sqlgraph.CreateSpec) {
 	if value, ok := urc.mutation.ResetTime(); ok {
 		_spec.SetField(usagereset.FieldResetTime, field.TypeTime, value)
 		_node.ResetTime = value
+	}
+	if value, ok := urc.mutation.Anchor(); ok {
+		_spec.SetField(usagereset.FieldAnchor, field.TypeTime, value)
+		_node.Anchor = value
 	}
 	if nodes := urc.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -360,6 +373,9 @@ func (u *UsageResetUpsertOne) UpdateNewValues() *UsageResetUpsertOne {
 		}
 		if _, exists := u.create.mutation.ResetTime(); exists {
 			s.SetIgnore(usagereset.FieldResetTime)
+		}
+		if _, exists := u.create.mutation.Anchor(); exists {
+			s.SetIgnore(usagereset.FieldAnchor)
 		}
 	}))
 	return u
@@ -621,6 +637,9 @@ func (u *UsageResetUpsertBulk) UpdateNewValues() *UsageResetUpsertBulk {
 			}
 			if _, exists := b.mutation.ResetTime(); exists {
 				s.SetIgnore(usagereset.FieldResetTime)
+			}
+			if _, exists := b.mutation.Anchor(); exists {
+				s.SetIgnore(usagereset.FieldAnchor)
 			}
 		}
 	}))

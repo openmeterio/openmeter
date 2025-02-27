@@ -68,6 +68,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		grantDBAdapter,
 		entitlementDBAdapter,
 		opts.Publisher,
+		opts.Logger,
 	)
 	entitlementConnector := entitlement.NewEntitlementConnector(
 		entitlementDBAdapter,
