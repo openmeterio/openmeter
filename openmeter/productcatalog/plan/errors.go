@@ -43,7 +43,7 @@ func NewNotFoundError(e NotFoundErrorParams) *NotFoundError {
 
 	return &NotFoundError{
 		err: models.NewGenericNotFoundError(
-			errors.New("%s", m),
+			errors.New(m),
 		),
 	}
 }
