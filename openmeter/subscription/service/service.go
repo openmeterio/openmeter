@@ -52,7 +52,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, err
 	}
 
-	// Valiate the spec
+	// Validate the spec
 	if err := spec.Validate(); err != nil {
 		return def, fmt.Errorf("spec is invalid: %w", err)
 	}
@@ -76,32 +76,9 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		}
 	}
 
-	// Let's build a timeline of every already schedueld subscription along with the new one
-	// so we can validate the timeline
-	scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
-		ID:        spec.CustomerId,
-		Namespace: namespace,
-	}, clock.Now())
-	if err != nil {
-		return def, fmt.Errorf("failed to get scheduled subscriptions: %w", err)
-	}
-
-	scheduledInps := lo.Map(scheduled, func(i subscription.Subscription, _ int) subscription.CreateSubscriptionEntityInput {
-		return i.AsEntityInput()
-	})
-
-	subscriptionTimeline := models.NewSortedCadenceList(scheduledInps)
-
-	// Sanity check, lets validate that the scheduled timeline is consistent (without the new spec)
-	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return def, fmt.Errorf("inconsistency error: already scheduled subscriptions are overlapping: %v", overlaps)
-	}
-
-	// Now let's check that the new Spec also fits into the timeline
-	subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
-
-	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return def, models.NewGenericConflictError(fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps))
+	// Validate the timeline
+	if err := s.validateTimelineWithSpec(ctx, namespace, spec.CustomerId, spec, nil); err != nil {
+		return def, fmt.Errorf("failed to validate timeline: %w", err)
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
@@ -156,71 +133,79 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		// Let's fetch the view for event generation
 		view, err := s.GetView(ctx, sub.NamespacedID)
 		if err != nil {
-			return sub, err
+			return def, err
 		}
 
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateCreate(ctx, view)
 		})...)
 		if err != nil {
-			return sub, fmt.Errorf("failed to validate subscription: %w", err)
+			return def, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
 		err = s.Publisher.Publish(ctx, subscription.CreatedEvent{
 			SubscriptionView: view,
 		})
 		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
+			return def, fmt.Errorf("failed to publish event: %w", err)
 		}
 
-		// Return sub reference
 		return sub, nil
 	})
 }
 
 func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
-	var def subscription.Subscription
-
-	// Get the full view
+	// First, let's get the subscription
 	view, err := s.GetView(ctx, subscriptionID)
 	if err != nil {
-		return def, fmt.Errorf("failed to get view: %w", err)
+		return subscription.Subscription{}, err
 	}
 
-	// Let's make sure edit is possible based on the transition rules
+	// Let's make sure Update is possible based on the transition rules
 	if err := subscription.NewStateMachine(
 		view.Subscription.GetStatusAt(clock.Now()),
 	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
-		return def, err
+		return subscription.Subscription{}, err
 	}
 
+	// Validate the spec
+	if err := newSpec.Validate(); err != nil {
+		return subscription.Subscription{}, fmt.Errorf("spec is invalid: %w", err)
+	}
+
+	// Validate the timeline
+	if err := s.validateTimelineWithSpec(ctx, view.Subscription.Namespace, view.Customer.ID, newSpec, &view.Subscription.ID); err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to validate timeline: %w", err)
+	}
+
+	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
-		subs, err := s.sync(ctx, view, newSpec)
+		sub, err := s.sync(ctx, view, newSpec)
 		if err != nil {
-			return subs, err
+			return sub, err
 		}
 
 		// Let's fetch the view for event generation
-		updatedView, err := s.GetView(ctx, subs.NamespacedID)
+		view, err := s.GetView(ctx, sub.NamespacedID)
 		if err != nil {
-			return subs, err
+			return sub, err
 		}
 
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateUpdate(ctx, view)
 		})...)
 		if err != nil {
-			return subs, fmt.Errorf("failed to validate subscription: %w", err)
+			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
 		err = s.Publisher.Publish(ctx, subscription.UpdatedEvent{
-			UpdatedView: updatedView,
+			UpdatedView: view,
 		})
 		if err != nil {
-			return subs, fmt.Errorf("failed to publish event: %w", err)
+			return sub, fmt.Errorf("failed to publish event: %w", err)
 		}
 
-		return subs, nil
+		return sub, nil
 	})
 }
 
@@ -286,24 +271,28 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 		return subscription.Subscription{}, err
 	}
 
-	spec := view.AsSpec()
-
 	// Let's try to decode when the subscription should be canceled
 	if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &view); err != nil {
-		return subscription.Subscription{}, fmt.Errorf("invalid cancelation timing: %w", err)
+		return subscription.Subscription{}, models.NewGenericValidationError(fmt.Errorf("invalid timing: %w", err))
 	}
 
 	cancelTime, err := timing.ResolveForSpec(view.Spec)
 	if err != nil {
-		return subscription.Subscription{}, fmt.Errorf("failed to get cancelation time: %w", err)
+		return subscription.Subscription{}, fmt.Errorf("failed to resolve timing: %w", err)
 	}
 
-	// Cancellation means that we deactivate everything by that deadline (set ActiveTo)
-	// The different Cadences of the Spec are derived from the Subscription Cadence
-	spec.ActiveTo = lo.ToPtr(cancelTime)
+	// Cancellation means, that we set the deactivation deadline
+	// This is handled by the SubscriptionSpec as all Cadences are derived from the Subscription Cadence
+	spec := view.AsSpec()
+	spec.ActiveTo = &cancelTime
 
 	if err := spec.Validate(); err != nil {
 		return subscription.Subscription{}, fmt.Errorf("spec is invalid after setting cancelation time: %w", err)
+	}
+
+	// Validate the timeline
+	if err := s.validateTimelineWithSpec(ctx, view.Subscription.Namespace, view.Customer.ID, spec, &view.Subscription.ID); err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to validate timeline: %w", err)
 	}
 
 	// We can use sync to do this
@@ -359,6 +348,10 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 	if err := spec.Validate(); err != nil {
 		return subscription.Subscription{}, fmt.Errorf("spec is invalid after unsetting cancelation time: %w", err)
+	}
+
+	if err := s.validateCanContinue(ctx, view); err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to validate timeline: %w", err)
 	}
 
 	// We can use sync to do this
