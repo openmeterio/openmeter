@@ -12,6 +12,21 @@ import (
 	"github.com/samber/lo"
 )
 
+// Define a type and constants for resource types.
+type ResourceType string
+
+const (
+	ResourceTypePod      ResourceType = "pod"
+	ResourceTypeWorkload ResourceType = "workload"
+)
+
+// Define an interface for types that include metrics.
+type ResourceWithMetrics interface {
+	GetType() ResourceType
+	GetMetrics() Metrics
+	json.Marshaler
+}
+
 type MetricType string
 
 // Workload metrics
@@ -105,6 +120,26 @@ func (s *Service) GetWorkloadMetrics(ctx context.Context, workloadID string, par
 type WorkloadWithMetrics struct {
 	Workload
 	Metrics Metrics `json:"metrics"`
+}
+
+var _ ResourceWithMetrics = (*WorkloadWithMetrics)(nil)
+
+func (w *WorkloadWithMetrics) GetType() ResourceType {
+	return ResourceTypeWorkload
+}
+
+func (w *WorkloadWithMetrics) GetMetrics() Metrics {
+	return w.Metrics
+}
+
+func (p *WorkloadWithMetrics) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ResourceType ResourceType `json:"resourceType"`
+		WorkloadWithMetrics
+	}{
+		ResourceType:        p.GetType(),
+		WorkloadWithMetrics: *p,
+	})
 }
 
 // GetAllWorkloadWithMetrics gets metrics of all workloads.
@@ -224,6 +259,26 @@ type PodWithMetrics struct {
 	Metrics Metrics `json:"metrics"`
 }
 
+var _ ResourceWithMetrics = (*PodWithMetrics)(nil)
+
+func (p *PodWithMetrics) GetType() ResourceType {
+	return ResourceTypePod
+}
+
+func (p *PodWithMetrics) GetMetrics() Metrics {
+	return p.Metrics
+}
+
+func (p *PodWithMetrics) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ResourceType ResourceType `json:"resourceType"`
+		PodWithMetrics
+	}{
+		ResourceType:   p.GetType(),
+		PodWithMetrics: *p,
+	})
+}
+
 // GetAllPodWithMetrics gets metrics of all pods.
 func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementParams) ([]PodWithMetrics, error) {
 	pods, err := s.ListAllPods(ctx)
@@ -262,60 +317,4 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 	}
 
 	return podsWithMetrics, nil
-}
-
-type ResourceWithMetrics struct {
-	resourceType string
-	Pod          *Pod
-	Workload     *Workload
-	Metrics      Metrics
-}
-
-func ResourceWithMetricsFromWorkload(workload *WorkloadWithMetrics) ResourceWithMetrics {
-	return ResourceWithMetrics{
-		resourceType: "workload",
-		Workload:     &workload.Workload,
-		Metrics:      workload.Metrics,
-	}
-}
-
-func ResourceWithMetricsFromPod(pod *PodWithMetrics) ResourceWithMetrics {
-	return ResourceWithMetrics{
-		resourceType: "pod",
-		Pod:          &pod.Pod,
-		Metrics:      pod.Metrics,
-	}
-}
-
-func (r *ResourceWithMetrics) AsWorkloadWithMetrics() *WorkloadWithMetrics {
-	if r.resourceType == "workload" && r.Workload != nil {
-		return &WorkloadWithMetrics{
-			Workload: *r.Workload,
-			Metrics:  r.Metrics,
-		}
-	}
-
-	return nil
-}
-
-func (r *ResourceWithMetrics) AsPodWithMetrics() *PodWithMetrics {
-	if r.resourceType == "pod" && r.Pod != nil {
-		return &PodWithMetrics{
-			Pod:     *r.Pod,
-			Metrics: r.Metrics,
-		}
-	}
-
-	return nil
-}
-
-func (r ResourceWithMetrics) MarshalJSON() ([]byte, error) {
-	switch r.resourceType {
-	case "workload":
-		return json.Marshal(r.AsWorkloadWithMetrics())
-	case "pod":
-		return json.Marshal(r.AsPodWithMetrics())
-	}
-
-	return nil, fmt.Errorf("unknown resource type: %s", r.resourceType)
 }
