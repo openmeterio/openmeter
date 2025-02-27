@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -467,6 +468,14 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		ent.CurrentUsagePeriod = &timeutil.Period{
 			From: e.CurrentUsagePeriodStart.In(time.UTC),
 			To:   e.CurrentUsagePeriodEnd.In(time.UTC),
+		}
+	}
+
+	// Let's update the current usage period
+	if ent.UsagePeriod != nil {
+		cp, ok := ent.CalculateCurrentUsagePeriodAt(lo.FromPtrOr(ent.LastReset, time.Time{}), clock.Now())
+		if ok {
+			ent.CurrentUsagePeriod = &cp
 		}
 	}
 
