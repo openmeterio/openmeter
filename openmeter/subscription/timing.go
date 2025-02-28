@@ -162,17 +162,8 @@ func (c Timing) ValidateForAction(action SubscriptionAction, subView *Subscripti
 				return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription with custom timing"))
 			}
 
-			if c.Enum != nil && *c.Enum == TimingImmediate {
-				// We only allow immediate cancels if the current phase has no billing period
-				currentPhase, currentPhaseExists := subView.Spec.GetCurrentPhaseAt(clock.Now())
-
-				if currentPhaseExists {
-					_, err := subView.Spec.GetAlignedBillingPeriodAt(currentPhase.PhaseKey, clock.Now())
-					if err == nil {
-						return models.NewGenericValidationError(fmt.Errorf("cannot cancel aligned subscription immediately that has a billing period"))
-					}
-				}
-			}
+			// We allow IMMEDIATE cancels (result in no prorating)
+			// as well as NEXT_BILLING_CYCLE cancels (where prorating isn't needed)
 		}
 
 		// We don't allow to cancel misaligned subscriptions with next_billing_cycle timing as it makes no sense
