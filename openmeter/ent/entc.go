@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/entc/gen"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entscan"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
 )
 
@@ -30,6 +31,7 @@ func main() {
 			entexpose.New(),
 			entpaginate.New(),
 			entsetorclear.New(),
+			entscan.New(),
 		),
 	)
 	if err != nil {
