@@ -6,6 +6,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/samber/lo"
 )
 
 var _ billing.CustomerOverrideService = (*Service)(nil)
@@ -184,6 +186,62 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input billing.GetProfileWithCustomerOverrideInput) (*billing.ProfileWithCustomerDetails, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.ProfileWithCustomerDetails, error) {
 		return s.getProfileWithCustomerOverride(ctx, s.adapter, input)
+	})
+}
+
+func (s *Service) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
+	if err := input.Validate(); err != nil {
+		return billing.ListCustomerOverridesResult{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	res, err := s.adapter.ListCustomerOverrides(ctx, input)
+	if err != nil {
+		return billing.ListCustomerOverridesResult{}, err
+	}
+
+	customersByID := make(map[string]customer.Customer, len(res.Items))
+	if input.Expand.Customers {
+		customers, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+			Namespace: input.Namespace,
+			CustomerIDs: lo.Map(res.Items, func(override billing.CustomerOverrideWithAdapterProfile, _ int) string {
+				return override.CustomerID
+			}),
+		})
+		if err != nil {
+			return billing.ListCustomerOverridesResult{}, err
+		}
+
+		for _, c := range customers.Items {
+			customersByID[c.ID] = c
+		}
+
+	}
+
+	return pagination.MapPagedResponseError(res, func(aOverride billing.CustomerOverrideWithAdapterProfile) (billing.CustomerOverrideWithMergedProfile, error) {
+		out := billing.CustomerOverrideWithMergedProfile{
+			CustomerOverride: aOverride.CustomerOverride,
+		}
+
+		if input.Expand.Customers {
+			customer, ok := customersByID[aOverride.CustomerID]
+			if !ok {
+				return billing.CustomerOverrideWithMergedProfile{}, billing.NotFoundError{
+					ID:     aOverride.CustomerID,
+					Entity: billing.EntityCustomer,
+					Err:    billing.ErrCustomerNotFound,
+				}
+			}
+
+			out.Customer = &customer
+		}
+
+		if input.Expand.ProfileWithOverrides {
+			// TODO
+		}
+
+		return out, nil
 	})
 }
 

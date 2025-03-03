@@ -419,22 +419,15 @@ paths:
       summary: List customer overrides
       description: List customer overrides
       parameters:
-        - name: billingProfile
-          in: query
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.billingProfile'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.includeDefaultProfile'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.expand'
+        - $ref: '#/components/parameters/BillingProfileCustomerOverrideOrderByOrdering.order'
+        - $ref: '#/components/parameters/BillingProfileCustomerOverrideOrderByOrdering.orderBy'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
         - $ref: '#/components/parameters/LimitOffset.limit'
-        - $ref: '#/components/parameters/BillingProfileCustomerOverrideOrderByOrdering.order'
-        - $ref: '#/components/parameters/BillingProfileCustomerOverrideOrderByOrdering.orderBy'
       responses:
         '200':
           description: The request has succeeded.
@@ -570,6 +563,13 @@ paths:
             type: string
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - name: expand
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingProfileCustomerOverrideExpand'
       responses:
         '200':
           description: The request has succeeded.
@@ -7371,6 +7371,38 @@ components:
       schema:
         $ref: '#/components/schemas/BillingProfileCustomerOverrideOrderBy'
       explode: false
+    BillingProfileListCustomerOverridesParams.billingProfile:
+      name: billingProfile
+      in: query
+      required: false
+      description: Filter by billing profile.
+      schema:
+        type: array
+        items:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+    BillingProfileListCustomerOverridesParams.expand:
+      name: expand
+      in: query
+      required: false
+      description: Expand the response with additional details.
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/BillingProfileCustomerOverrideExpand'
+    BillingProfileListCustomerOverridesParams.includeDefaultProfile:
+      name: includeDefaultProfile
+      in: query
+      required: false
+      description: |-
+        Include the default profile in the results.
+
+        If set to false only the customers specifically associated with a billing profile will be returned.
+      schema:
+        type: boolean
+        default: true
     BillingProfileOrderByOrdering.order:
       name: order
       in: query
@@ -8535,6 +8567,14 @@ components:
 
             If not provided, the default billing profile is chosen if available.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+        billingProfileWithOverrides:
+          allOf:
+            - $ref: '#/components/schemas/BillingProfile'
+          description: Merged billing profile with the customer specific overrides.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          description: The customer this override belongs to.
       description: Customer specific workflow overrides.
     BillingProfileCustomerOverrideCreate:
       type: object
@@ -8552,6 +8592,17 @@ components:
             If not provided, the default billing profile is chosen if available.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Payload for creating a new or updating an existing customer override.
+    BillingProfileCustomerOverrideExpand:
+      type: string
+      enum:
+        - '*'
+        - profileWithOverrides
+        - customer
+      description: CustomerOverrideExpand specifies the parts of the profile to expand.
+      x-enum-varnames:
+        - all
+        - profileWithOverrides
+        - customer
     BillingProfileCustomerOverrideOrderBy:
       type: string
       enum:

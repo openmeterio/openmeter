@@ -13,12 +13,9 @@ interface CustomerOverrides {
   @summary("List customer overrides")
   @operationId("listBillingProfileCustomerOverrides")
   list(
-    @query(#{ explode: true })
-    billingProfile?: ULID[],
-
+    ...ListCustomerOverridesParams,
     ...OpenMeter.QueryPagination,
     ...OpenMeter.QueryLimitOffset,
-    ...OpenMeter.QueryOrdering<BillingProfileCustomerOverrideOrderBy>,
   ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverride> | OpenMeter.CommonErrors;
 
   /**
@@ -61,6 +58,9 @@ interface CustomerOverrides {
   get(
     @path
     customerId: ULID,
+
+    @query(#{ explode: true })
+    expand?: BillingProfileCustomerOverrideExpand[],
   ): BillingProfileCustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
@@ -87,6 +87,17 @@ enum BillingProfileCustomerOverrideOrderBy {
 }
 
 /**
+ * CustomerOverrideExpand specifies the parts of the profile to expand.
+ */
+@friendlyName("BillingProfileCustomerOverrideExpand")
+@extension("x-enum-varnames", ["all", "profileWithOverrides", "customer"])
+enum BillingProfileCustomerOverrideExpand {
+  all: "*",
+  profileWithOverrides: "profileWithOverrides",
+  customer: "customer",
+}
+
+/**
  * Customer specific workflow overrides.
  */
 @friendlyName("BillingProfileCustomerOverride")
@@ -104,8 +115,48 @@ model BillingProfileCustomerOverride {
    * If not provided, the default billing profile is chosen if available.
    */
   billingProfile?: ULID;
+
+  /**
+   * Merged billing profile with the customer specific overrides.
+   */
+  billingProfileWithOverrides?: BillingProfile;
+
+  /**
+   * The customer this override belongs to.
+   */
+  customer?: Customer;
 }
 
+/**
+ * List customer overrides query parameters.
+ */
+@friendlyName("BillingProfileListCustomerOverridesParams")
+model ListCustomerOverridesParams {
+  /**
+   * Filter by billing profile.
+   */
+  @query(#{ explode: true })
+  billingProfile?: ULID[];
+
+  /**
+   * Include the default profile in the results.
+   *
+   * If set to false only the customers specifically associated with a billing profile will be returned.
+   */
+  @query(#{ explode: true })
+  includeDefaultProfile?: boolean = true;
+
+  /**
+   * Expand the response with additional details.
+   */
+  @query(#{ explode: true })
+  expand?: BillingProfileCustomerOverrideExpand[];
+
+  /**
+   * Order the response by.
+   */
+  ...OpenMeter.QueryOrdering<BillingProfileCustomerOverrideOrderBy>;
+}
 /**
  * Payload for creating a new or updating an existing customer override.
  */

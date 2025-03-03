@@ -70,6 +70,10 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				query = query.Where(customerdb.HasSubscriptionWith(subscriptiondb.HasPlanWith(plandb.Key(*input.PlanKey))))
 			}
 
+			if len(input.CustomerIDs) > 0 {
+				query = query.Where(customerdb.IDIn(input.CustomerIDs...))
+			}
+
 			// Order
 			order := entutils.GetOrdering(sortx.OrderDefault)
 			if !input.Order.IsDefaultValue() {

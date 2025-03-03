@@ -117,6 +117,7 @@ type ListCustomersInput struct {
 	PrimaryEmail *string
 	Subject      *string
 	PlanKey      *string
+	CustomerIDs  []string
 }
 
 // CreateCustomerInput represents the input for the CreateCustomer method
