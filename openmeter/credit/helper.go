@@ -140,22 +140,25 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				params.From = &periodStart
 				params.To = &to
 
-				rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
-				if err != nil {
-					return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
-				}
+				var valueTo float64 = 0.0
+				var valueFrom float64 = 0.0
 
-				valueTo, err := getValueFromRows(rows)
-				if err != nil {
-					return 0.0, err
+				if !periodStart.Equal(to) {
+					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+					if err != nil {
+						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
+					}
+
+					valueTo, err = getValueFromRows(rows)
+					if err != nil {
+						return 0.0, err
+					}
 				}
 
 				params.To = &from
 
-				var valueFrom float64 = 0.0
-
 				// If the two times are different we need to query the value at `from`
-				if !params.From.Equal(*params.To) {
+				if !params.From.Equal(*params.To) && !periodStart.Equal(from) {
 					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
 					if err != nil {
 						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
