@@ -110,10 +110,6 @@ input:
 }
 
 func init() {
-	// Set the global timezone to UTC.
-	loc, _ := time.LoadLocation("UTC")
-	time.Local = loc
-
 	err := service.RegisterBatchInput("run_ai", runAIInputConfig(), func(conf *service.ParsedConfig, mgr *service.Resources) (service.BatchInput, error) {
 		return newRunAIInput(conf, mgr.Logger())
 	})
