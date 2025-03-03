@@ -198,6 +198,16 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart))
 	}
 
+	resetsSinceTime, err := m.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{From: at, To: clock.Now()})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reset times since %s for owner %s: %w", at, owner.ID, err)
+	}
+
+	if rts := resetsSinceTime.After(at).GetTimes(); len(rts) > 0 {
+		lastReset := rts[len(rts)-1]
+		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before last reset at %s", at, lastReset))
+	}
+
 	bal, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
 		return nil, err

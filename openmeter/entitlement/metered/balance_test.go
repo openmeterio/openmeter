@@ -21,6 +21,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+// We need to find a start time for our tests that is recent enough in our past
+func getAnchor(t *testing.T) time.Time {
+	t.Helper()
+	now := clock.Now().UTC()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
+}
+
 func TestGetEntitlementBalance(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
@@ -45,8 +52,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
 			UsagePeriod: &entitlement.UsagePeriod{
-				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-				// TODO: properly test these anchors
+				Anchor: getAnchor(t),
+				// Yearly interval is used which helps adjust to the correct period
 				Interval: timeutil.RecurrencePeriodYear,
 			},
 		}
@@ -65,7 +72,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			name: "Should ignore usage before start of measurement",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -91,7 +98,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			name: "Should return overage if there's no active grant",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -118,7 +125,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 			name: "Should return overage until very first grant after reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -160,7 +168,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			name: "Should return correct usage and balance",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -211,7 +219,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			name: "Should save new snapshot",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 				clock.SetTime(startTime)
 				defer clock.ResetTime()
 
@@ -294,7 +302,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			name: "Should not save the same snapshot over and over again",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 				clock.SetTime(startTime)
 				defer clock.ResetTime()
 
@@ -421,7 +429,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
 			UsagePeriod: &entitlement.UsagePeriod{
-				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				Anchor: getAnchor(t),
 				// TODO: properly test these anchors
 				Interval: timeutil.RecurrencePeriodYear,
 			},
@@ -441,7 +449,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			name: "Should return windowed history",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -585,7 +593,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			name: "If start time is not specified we are defaulting to the last reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -680,7 +688,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			name: "Should return history if WINDOWSIZE and entitlements events dont align",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
