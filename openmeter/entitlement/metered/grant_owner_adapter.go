@@ -71,7 +71,9 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 		return nil, fmt.Errorf("failed to get meter: %w", err)
 	}
 
-	queryParams := streaming.QueryParams{}
+	queryParams := streaming.QueryParams{
+		FilterSubject: []string{entitlement.SubjectKey},
+	}
 
 	if feature.MeterGroupByFilters != nil {
 		queryParams.FilterGroupBy = map[string][]string{}
@@ -83,7 +85,6 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 	return &grant.OwnerMeter{
 		Meter:         meter,
 		DefaultParams: queryParams,
-		SubjectKey:    entitlement.SubjectKey,
 	}, nil
 }
 
