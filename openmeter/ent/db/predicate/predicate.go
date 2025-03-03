@@ -21,6 +21,9 @@ type AppStripeCustomer func(*sql.Selector)
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
+// BillingCustomerLock is the predicate function for billingcustomerlock builders.
+type BillingCustomerLock func(*sql.Selector)
+
 // BillingCustomerOverride is the predicate function for billingcustomeroverride builders.
 type BillingCustomerOverride func(*sql.Selector)
 

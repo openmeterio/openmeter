@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
@@ -66,6 +67,8 @@ type Client struct {
 	AppStripeCustomer *AppStripeCustomerClient
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
+	// BillingCustomerLock is the client for interacting with the BillingCustomerLock builders.
+	BillingCustomerLock *BillingCustomerLockClient
 	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
@@ -136,6 +139,7 @@ func (c *Client) init() {
 	c.AppStripe = NewAppStripeClient(c.config)
 	c.AppStripeCustomer = NewAppStripeCustomerClient(c.config)
 	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
+	c.BillingCustomerLock = NewBillingCustomerLockClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
 	c.BillingInvoiceDiscount = NewBillingInvoiceDiscountClient(c.config)
@@ -260,6 +264,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
+		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
 		BillingInvoiceDiscount:             NewBillingInvoiceDiscountClient(cfg),
@@ -311,6 +316,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
+		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
 		BillingInvoiceDiscount:             NewBillingInvoiceDiscountClient(cfg),
@@ -368,15 +374,15 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.App, c.AppCustomer, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
-		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceDiscount,
-		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
-		c.BillingInvoiceLineDiscount, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
-		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
-		c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
-		c.PlanRateCard, c.Subscription, c.SubscriptionItem, c.SubscriptionPhase,
-		c.UsageReset,
+		c.BillingCustomerLock, c.BillingCustomerOverride, c.BillingInvoice,
+		c.BillingInvoiceDiscount, c.BillingInvoiceFlatFeeLineConfig,
+		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
+		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.Subscription,
+		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -387,15 +393,15 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.App, c.AppCustomer, c.AppStripe, c.AppStripeCustomer, c.BalanceSnapshot,
-		c.BillingCustomerOverride, c.BillingInvoice, c.BillingInvoiceDiscount,
-		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
-		c.BillingInvoiceLineDiscount, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingProfile, c.BillingSequenceNumbers,
-		c.BillingWorkflowConfig, c.Customer, c.CustomerSubjects, c.Entitlement,
-		c.Feature, c.Grant, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanPhase,
-		c.PlanRateCard, c.Subscription, c.SubscriptionItem, c.SubscriptionPhase,
-		c.UsageReset,
+		c.BillingCustomerLock, c.BillingCustomerOverride, c.BillingInvoice,
+		c.BillingInvoiceDiscount, c.BillingInvoiceFlatFeeLineConfig,
+		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
+		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.Subscription,
+		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -414,6 +420,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AppStripeCustomer.mutate(ctx, m)
 	case *BalanceSnapshotMutation:
 		return c.BalanceSnapshot.mutate(ctx, m)
+	case *BillingCustomerLockMutation:
+		return c.BillingCustomerLock.mutate(ctx, m)
 	case *BillingCustomerOverrideMutation:
 		return c.BillingCustomerOverride.mutate(ctx, m)
 	case *BillingInvoiceMutation:
@@ -1359,6 +1367,139 @@ func (c *BalanceSnapshotClient) mutate(ctx context.Context, m *BalanceSnapshotMu
 		return (&BalanceSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BalanceSnapshot mutation op: %q", m.Op())
+	}
+}
+
+// BillingCustomerLockClient is a client for the BillingCustomerLock schema.
+type BillingCustomerLockClient struct {
+	config
+}
+
+// NewBillingCustomerLockClient returns a client for the BillingCustomerLock from the given config.
+func NewBillingCustomerLockClient(c config) *BillingCustomerLockClient {
+	return &BillingCustomerLockClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingcustomerlock.Hooks(f(g(h())))`.
+func (c *BillingCustomerLockClient) Use(hooks ...Hook) {
+	c.hooks.BillingCustomerLock = append(c.hooks.BillingCustomerLock, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingcustomerlock.Intercept(f(g(h())))`.
+func (c *BillingCustomerLockClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingCustomerLock = append(c.inters.BillingCustomerLock, interceptors...)
+}
+
+// Create returns a builder for creating a BillingCustomerLock entity.
+func (c *BillingCustomerLockClient) Create() *BillingCustomerLockCreate {
+	mutation := newBillingCustomerLockMutation(c.config, OpCreate)
+	return &BillingCustomerLockCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingCustomerLock entities.
+func (c *BillingCustomerLockClient) CreateBulk(builders ...*BillingCustomerLockCreate) *BillingCustomerLockCreateBulk {
+	return &BillingCustomerLockCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingCustomerLockClient) MapCreateBulk(slice any, setFunc func(*BillingCustomerLockCreate, int)) *BillingCustomerLockCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingCustomerLockCreateBulk{err: fmt.Errorf("calling to BillingCustomerLockClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingCustomerLockCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingCustomerLockCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingCustomerLock.
+func (c *BillingCustomerLockClient) Update() *BillingCustomerLockUpdate {
+	mutation := newBillingCustomerLockMutation(c.config, OpUpdate)
+	return &BillingCustomerLockUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingCustomerLockClient) UpdateOne(bcl *BillingCustomerLock) *BillingCustomerLockUpdateOne {
+	mutation := newBillingCustomerLockMutation(c.config, OpUpdateOne, withBillingCustomerLock(bcl))
+	return &BillingCustomerLockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingCustomerLockClient) UpdateOneID(id string) *BillingCustomerLockUpdateOne {
+	mutation := newBillingCustomerLockMutation(c.config, OpUpdateOne, withBillingCustomerLockID(id))
+	return &BillingCustomerLockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingCustomerLock.
+func (c *BillingCustomerLockClient) Delete() *BillingCustomerLockDelete {
+	mutation := newBillingCustomerLockMutation(c.config, OpDelete)
+	return &BillingCustomerLockDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingCustomerLockClient) DeleteOne(bcl *BillingCustomerLock) *BillingCustomerLockDeleteOne {
+	return c.DeleteOneID(bcl.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingCustomerLockClient) DeleteOneID(id string) *BillingCustomerLockDeleteOne {
+	builder := c.Delete().Where(billingcustomerlock.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingCustomerLockDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingCustomerLock.
+func (c *BillingCustomerLockClient) Query() *BillingCustomerLockQuery {
+	return &BillingCustomerLockQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingCustomerLock},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingCustomerLock entity by its id.
+func (c *BillingCustomerLockClient) Get(ctx context.Context, id string) (*BillingCustomerLock, error) {
+	return c.Query().Where(billingcustomerlock.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingCustomerLockClient) GetX(ctx context.Context, id string) *BillingCustomerLock {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BillingCustomerLockClient) Hooks() []Hook {
+	return c.hooks.BillingCustomerLock
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingCustomerLockClient) Interceptors() []Interceptor {
+	return c.inters.BillingCustomerLock
+}
+
+func (c *BillingCustomerLockClient) mutate(ctx context.Context, m *BillingCustomerLockMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingCustomerLockCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingCustomerLockUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingCustomerLockUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingCustomerLockDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingCustomerLock mutation op: %q", m.Op())
 	}
 }
 
@@ -6077,8 +6218,8 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 type (
 	hooks struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerOverride, BillingInvoice, BillingInvoiceDiscount,
-		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
+		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
+		BillingInvoiceDiscount, BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceUsageBasedLineConfig,
 		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
@@ -6088,8 +6229,8 @@ type (
 	}
 	inters struct {
 		App, AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerOverride, BillingInvoice, BillingInvoiceDiscount,
-		BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
+		BillingCustomerLock, BillingCustomerOverride, BillingInvoice,
+		BillingInvoiceDiscount, BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
 		BillingInvoiceLineDiscount, BillingInvoiceUsageBasedLineConfig,
 		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,

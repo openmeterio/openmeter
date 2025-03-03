@@ -246,6 +246,35 @@ var (
 			},
 		},
 	}
+	// BillingCustomerLocksColumns holds the columns for the "billing_customer_locks" table.
+	BillingCustomerLocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingCustomerLocksTable holds the schema information for the "billing_customer_locks" table.
+	BillingCustomerLocksTable = &schema.Table{
+		Name:       "billing_customer_locks",
+		Columns:    BillingCustomerLocksColumns,
+		PrimaryKey: []*schema.Column{BillingCustomerLocksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingcustomerlock_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingCustomerLocksColumns[1]},
+			},
+			{
+				Name:    "billingcustomerlock_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingCustomerLocksColumns[0]},
+			},
+			{
+				Name:    "billingcustomerlock_namespace_customer_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingCustomerLocksColumns[1], BillingCustomerLocksColumns[2]},
+			},
+		},
+	}
 	// BillingCustomerOverridesColumns holds the columns for the "billing_customer_overrides" table.
 	BillingCustomerOverridesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1885,6 +1914,7 @@ var (
 		AppStripesTable,
 		AppStripeCustomersTable,
 		BalanceSnapshotsTable,
+		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
 		BillingInvoicesTable,
 		BillingInvoiceDiscountsTable,

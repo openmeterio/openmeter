@@ -887,3 +887,29 @@ func (BillingSequenceNumbers) Indexes() []ent.Index {
 		index.Fields("namespace", "scope").Unique(),
 	}
 }
+
+type BillingCustomerLock struct {
+	ent.Schema
+}
+
+func (BillingCustomerLock) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+	}
+}
+
+func (BillingCustomerLock) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("customer_id").
+			SchemaType(map[string]string{
+				"postgres": "char(26)",
+			}),
+	}
+}
+
+func (BillingCustomerLock) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "customer_id").Unique(),
+	}
+}

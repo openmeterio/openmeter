@@ -18,6 +18,7 @@ type Adapter interface {
 	InvoiceAdapter
 	SequenceAdapter
 	InvoiceAppAdapter
+	CustomerSyncronizationAdapter
 
 	entutils.TxCreator
 }
@@ -39,12 +40,14 @@ type CustomerOverrideAdapter interface {
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 
+	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
+}
+
+type CustomerSyncronizationAdapter interface {
 	// UpsertCustomerOverride upserts a customer override ignoring the transactional context, the override
 	// will be empty.
 	UpsertCustomerOverride(ctx context.Context, input UpsertCustomerOverrideAdapterInput) error
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
-
-	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
 }
 
 type InvoiceLineAdapter interface {

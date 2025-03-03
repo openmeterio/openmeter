@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
@@ -70,6 +71,7 @@ const (
 	TypeAppStripe                          = "AppStripe"
 	TypeAppStripeCustomer                  = "AppStripeCustomer"
 	TypeBalanceSnapshot                    = "BalanceSnapshot"
+	TypeBillingCustomerLock                = "BillingCustomerLock"
 	TypeBillingCustomerOverride            = "BillingCustomerOverride"
 	TypeBillingInvoice                     = "BillingInvoice"
 	TypeBillingInvoiceDiscount             = "BillingInvoiceDiscount"
@@ -4996,6 +4998,392 @@ func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot edge %s", name)
+}
+
+// BillingCustomerLockMutation represents an operation that mutates the BillingCustomerLock nodes in the graph.
+type BillingCustomerLockMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	namespace     *string
+	customer_id   *string
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*BillingCustomerLock, error)
+	predicates    []predicate.BillingCustomerLock
+}
+
+var _ ent.Mutation = (*BillingCustomerLockMutation)(nil)
+
+// billingcustomerlockOption allows management of the mutation configuration using functional options.
+type billingcustomerlockOption func(*BillingCustomerLockMutation)
+
+// newBillingCustomerLockMutation creates new mutation for the BillingCustomerLock entity.
+func newBillingCustomerLockMutation(c config, op Op, opts ...billingcustomerlockOption) *BillingCustomerLockMutation {
+	m := &BillingCustomerLockMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingCustomerLock,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingCustomerLockID sets the ID field of the mutation.
+func withBillingCustomerLockID(id string) billingcustomerlockOption {
+	return func(m *BillingCustomerLockMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingCustomerLock
+		)
+		m.oldValue = func(ctx context.Context) (*BillingCustomerLock, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingCustomerLock.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingCustomerLock sets the old BillingCustomerLock of the mutation.
+func withBillingCustomerLock(node *BillingCustomerLock) billingcustomerlockOption {
+	return func(m *BillingCustomerLockMutation) {
+		m.oldValue = func(context.Context) (*BillingCustomerLock, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingCustomerLockMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingCustomerLockMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingCustomerLock entities.
+func (m *BillingCustomerLockMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingCustomerLockMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingCustomerLockMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingCustomerLock.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingCustomerLockMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingCustomerLockMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingCustomerLock entity.
+// If the BillingCustomerLock object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerLockMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingCustomerLockMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *BillingCustomerLockMutation) SetCustomerID(s string) {
+	m.customer_id = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *BillingCustomerLockMutation) CustomerID() (r string, exists bool) {
+	v := m.customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the BillingCustomerLock entity.
+// If the BillingCustomerLock object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerLockMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *BillingCustomerLockMutation) ResetCustomerID() {
+	m.customer_id = nil
+}
+
+// Where appends a list predicates to the BillingCustomerLockMutation builder.
+func (m *BillingCustomerLockMutation) Where(ps ...predicate.BillingCustomerLock) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingCustomerLockMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingCustomerLockMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingCustomerLock, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingCustomerLockMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingCustomerLockMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingCustomerLock).
+func (m *BillingCustomerLockMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingCustomerLockMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.namespace != nil {
+		fields = append(fields, billingcustomerlock.FieldNamespace)
+	}
+	if m.customer_id != nil {
+		fields = append(fields, billingcustomerlock.FieldCustomerID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingCustomerLockMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingcustomerlock.FieldNamespace:
+		return m.Namespace()
+	case billingcustomerlock.FieldCustomerID:
+		return m.CustomerID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingCustomerLockMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingcustomerlock.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingcustomerlock.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingCustomerLock field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingCustomerLockMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingcustomerlock.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingcustomerlock.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingCustomerLock field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingCustomerLockMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingCustomerLockMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingCustomerLockMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BillingCustomerLock numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingCustomerLockMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingCustomerLockMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingCustomerLockMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown BillingCustomerLock nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingCustomerLockMutation) ResetField(name string) error {
+	switch name {
+	case billingcustomerlock.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingcustomerlock.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingCustomerLock field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingCustomerLockMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingCustomerLockMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingCustomerLockMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingCustomerLockMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingCustomerLockMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingCustomerLockMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingCustomerLockMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown BillingCustomerLock unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingCustomerLockMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown BillingCustomerLock edge %s", name)
 }
 
 // BillingCustomerOverrideMutation represents an operation that mutates the BillingCustomerOverride nodes in the graph.

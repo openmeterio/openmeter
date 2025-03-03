@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
@@ -197,6 +198,21 @@ func init() {
 	balancesnapshot.DefaultUpdatedAt = balancesnapshotDescUpdatedAt.Default.(func() time.Time)
 	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
+	billingcustomerlockMixin := schema.BillingCustomerLock{}.Mixin()
+	billingcustomerlockMixinFields0 := billingcustomerlockMixin[0].Fields()
+	_ = billingcustomerlockMixinFields0
+	billingcustomerlockMixinFields1 := billingcustomerlockMixin[1].Fields()
+	_ = billingcustomerlockMixinFields1
+	billingcustomerlockFields := schema.BillingCustomerLock{}.Fields()
+	_ = billingcustomerlockFields
+	// billingcustomerlockDescNamespace is the schema descriptor for namespace field.
+	billingcustomerlockDescNamespace := billingcustomerlockMixinFields0[0].Descriptor()
+	// billingcustomerlock.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingcustomerlock.NamespaceValidator = billingcustomerlockDescNamespace.Validators[0].(func(string) error)
+	// billingcustomerlockDescID is the schema descriptor for id field.
+	billingcustomerlockDescID := billingcustomerlockMixinFields1[0].Descriptor()
+	// billingcustomerlock.DefaultID holds the default value on creation for the id field.
+	billingcustomerlock.DefaultID = billingcustomerlockDescID.Default.(func() string)
 	billingcustomeroverrideMixin := schema.BillingCustomerOverride{}.Mixin()
 	billingcustomeroverrideMixinFields0 := billingcustomeroverrideMixin[0].Fields()
 	_ = billingcustomeroverrideMixinFields0
