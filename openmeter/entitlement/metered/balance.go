@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type EntitlementBalance struct {
@@ -148,10 +149,20 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
 	}
 
-	// 1. we get the burndown history
-	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
+	fullPeriodTruncated := timeutil.Period{
 		From: params.From.Truncate(ownerMeter.Meter.WindowSize.Duration()),
 		To:   params.To.Truncate(ownerMeter.Meter.WindowSize.Duration()),
+	}
+
+	// If `to` time is not truncated to minute we assume to query until the next minute so fresh usage data shows up
+	if !params.To.Truncate(time.Minute).Equal(*params.To) {
+		fullPeriodTruncated.To = fullPeriodTruncated.To.Add(ownerMeter.Meter.WindowSize.Duration())
+	}
+
+	// 1. we get the burndown history
+	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
+		From: fullPeriodTruncated.From,
+		To:   fullPeriodTruncated.To,
 	})
 	if err != nil {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
@@ -161,8 +172,8 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		base := ownerMeter.DefaultParams
 
 		base.FilterSubject = []string{ownerMeter.SubjectKey}
-		base.From = params.From
-		base.To = params.To
+		base.From = convert.ToPointer(fullPeriodTruncated.From)
+		base.To = convert.ToPointer(fullPeriodTruncated.To)
 		base.WindowSize = convert.ToPointer(meter.WindowSize(params.WindowSize))
 		base.WindowTimeZone = &params.WindowTimeZone
 
@@ -170,7 +181,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	}
 
 	// 2. and we get the windowed usage data
-	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, getBaseQuery())
+	meterRows, err := e.queryMeter(ctx, owner.Namespace, ownerMeter.Meter, getBaseQuery())
 	if err != nil {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -181,7 +192,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		nonWindowedParams := getBaseQuery()
 		nonWindowedParams.WindowSize = nil
 		nonWindowedParams.WindowTimeZone = nil
-		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, nonWindowedParams)
+		meterRows, err = e.queryMeter(ctx, owner.Namespace, ownerMeter.Meter, nonWindowedParams)
 		if err != nil {
 			return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 		}
@@ -241,7 +252,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 			params.WindowSize = nil
 			params.WindowTimeZone = nil
 
-			rows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+			rows, err := e.queryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
 			if err != nil {
 				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 			}
@@ -289,4 +300,19 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	}
 
 	return windows, burndownHistory, nil
+}
+
+// queryMeter is a wrapper around streamingConnector.QueryMeter that accepts a 0 length period and returns 0 for it
+func (e *connector) queryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	if params.From != nil && params.To != nil && params.From.Equal(*params.To) {
+		return []meter.MeterQueryRow{
+			{
+				Value:       0,
+				WindowStart: *params.From,
+				WindowEnd:   *params.To,
+			},
+		}, nil
+	}
+
+	return e.streamingConnector.QueryMeter(ctx, namespace, m, params)
 }
