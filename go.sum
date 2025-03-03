@@ -775,6 +775,8 @@ github.com/Jeffail/shutdown v1.0.0 h1:afYjnY4pksqP/012m3NGJVccDI+WATdSzIMVHZKU8/
 github.com/Jeffail/shutdown v1.0.0/go.mod h1:5dT4Y1oe60SJELCkmAB1pr9uQyHBhh6cwDLQTfmuO5U=
 github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c h1:RGWPOewvKIROun94nF7v2cua9qP+thov/7M50KEoeSU=
 github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c/go.mod h1:X0CRv0ky0k6m906ixxpzmDRLvX58TFUKS2eePweuyxk=
+github.com/LastPossum/kamino v0.0.2 h1:Zry5lS7x7TTU1hzzk3Utnp+rX8kk/wWhuW52Ha9As+U=
+github.com/LastPossum/kamino v0.0.2/go.mod h1:H8Qm+6DGeNOoXk9hHIOEAQWS9nbo0YwK32pC/7REsOE=
 github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+hmvYS0=
@@ -1611,8 +1613,8 @@ github.com/influxdata/go-syslog/v3 v3.0.0 h1:jichmjSZlYK0VMmlz+k4WeOQd7z745YLsvG
 github.com/influxdata/go-syslog/v3 v3.0.0/go.mod h1:tulsOp+CecTAYC27u9miMgq21GqXRW6VdKbOG+QSP4Q=
 github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c h1:qSHzRbhzK8RdXOsAdfDgO49TtqC1oZ+acxPrkfTxcCs=
 github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
-github.com/invopop/gobl v0.210.0 h1:K1IZvGcD3/oiu8cxNZjnUtu456+5pOr1nDtZ2KuxsgY=
-github.com/invopop/gobl v0.210.0/go.mod h1:5du1FQ0HNLSyiGNKG99WOd+o9+MC7lcvOEvG6JjjpRc=
+github.com/invopop/gobl v0.211.1 h1:ML7g10RQH0OzsMKGRuiLfRzFAngKp1TtdzbnIHmGRpA=
+github.com/invopop/gobl v0.211.1/go.mod h1:nmdXqByFw1fOqs8kp4OpFTiLEwtNOrIKvbnmJB0PZvQ=
 github.com/invopop/jsonschema v0.12.0 h1:6ovsNSuvn9wEQVOyc72aycBMVQFKz7cPdMJn10CvzRI=
 github.com/invopop/jsonschema v0.12.0/go.mod h1:ffZ5Km5SWWRAIN6wbDXItl95euhFz2uON45H2qjYt+0=
 github.com/invopop/validation v0.8.0 h1:e5hXHGnONHImgJdonIpNbctg1hlWy1ncaHoVIQ0JWuw=
