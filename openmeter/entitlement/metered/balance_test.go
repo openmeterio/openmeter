@@ -743,7 +743,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// grant at start
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -754,7 +754,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// grant again later
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -833,7 +833,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// grant at start
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -844,7 +844,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// grant again later
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,

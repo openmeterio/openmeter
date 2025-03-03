@@ -43,36 +43,44 @@ func NewEntitlementGrantOwnerAdapter(
 	}
 }
 
-func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner models.NamespacedID) (*grant.OwnerMeter, error) {
-	// get feature of entitlement
-	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner)
+func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
+	var def grant.Owner
+
+	// get feature of ent
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, id)
 	if err != nil {
-		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", owner.ID, owner.Namespace, err))
-		return nil, &grant.OwnerNotFoundError{
-			Owner:          owner,
+		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", id.ID, id.Namespace, err))
+		return def, &grant.OwnerNotFoundError{
+			Owner:          id,
 			AttemptedOwner: "entitlement",
 		}
 	}
-	feature, err := getRepoMaybeInTx(ctx, e.featureRepo, e.featureRepo).GetByIdOrKey(ctx, owner.Namespace, entitlement.FeatureID, true)
+
+	mEnt, err := ParseFromGenericEntitlement(ent)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
+		return def, err
+	}
+
+	feature, err := getRepoMaybeInTx(ctx, e.featureRepo, e.featureRepo).GetByIdOrKey(ctx, id.Namespace, ent.FeatureID, true)
+	if err != nil {
+		return def, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
 
 	if feature.MeterSlug == nil {
-		return nil, fmt.Errorf("feature does not have a meter")
+		return def, fmt.Errorf("feature does not have a meter")
 	}
 
 	// meterrepo is not transactional
-	meter, err := e.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: owner.Namespace,
+	met, err := e.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+		Namespace: id.Namespace,
 		IDOrSlug:  *feature.MeterSlug,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get meter: %w", err)
+		return def, fmt.Errorf("failed to get meter: %w", err)
 	}
 
 	queryParams := streaming.QueryParams{
-		FilterSubject: []string{entitlement.SubjectKey},
+		FilterSubject: []string{ent.SubjectKey},
 	}
 
 	if feature.MeterGroupByFilters != nil {
@@ -82,9 +90,13 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner models.Names
 		}
 	}
 
-	return &grant.OwnerMeter{
-		Meter:         meter,
-		DefaultParams: queryParams,
+	return grant.Owner{
+		NamespacedID:       id,
+		Meter:              met,
+		DefaultQueryParams: queryParams,
+		ResetBehavior: grant.ResetBehavior{
+			PreserveOverage: mEnt.PreserveOverageAtReset,
+		},
 	}, nil
 }
 
@@ -130,33 +142,6 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	}
 
 	return cp.From, nil
-}
-
-func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner models.NamespacedID) (string, error) {
-	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner)
-	if err != nil {
-		return "", &grant.OwnerNotFoundError{
-			Owner:          owner,
-			AttemptedOwner: "entitlement",
-		}
-	}
-	return entitlement.SubjectKey, nil
-}
-
-func (e *entitlementGrantOwner) GetResetBehavior(ctx context.Context, owner models.NamespacedID) (grant.ResetBehavior, error) {
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, owner)
-	if err != nil {
-		return grant.ResetBehavior{}, err
-	}
-
-	mEnt, err := ParseFromGenericEntitlement(ent)
-	if err != nil {
-		return grant.ResetBehavior{}, err
-	}
-
-	return grant.ResetBehavior{
-		PreserveOverage: mEnt.PreserveOverageAtReset,
-	}, nil
 }
 
 func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, owner models.NamespacedID, period timeutil.Period) (timeutil.SimpleTimeline, error) {

@@ -5,11 +5,28 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+type Owner struct {
+	models.NamespacedID
+	Meter              meter.Meter
+	DefaultQueryParams streaming.QueryParams
+	ResetBehavior      ResetBehavior
+}
+
+func (o Owner) GetSubjectKey() (string, error) {
+	subjectKey, ok := lo.First(o.DefaultQueryParams.FilterSubject)
+	if !ok {
+		return "", fmt.Errorf("no subject key found for owner %s", o.ID)
+	}
+	return subjectKey, nil
+}
 
 type EndCurrentUsagePeriodParams struct {
 	At           time.Time
@@ -26,17 +43,15 @@ type ResetBehavior struct {
 }
 
 type OwnerConnector interface {
-	GetMeter(ctx context.Context, id models.NamespacedID) (*OwnerMeter, error)
-	GetStartOfMeasurement(ctx context.Context, id models.NamespacedID) (time.Time, error)
+	DescribeOwner(ctx context.Context, id models.NamespacedID) (Owner, error)
 	// Returns all manual and programmatic reset times effective for any time in the period (start and end inclusive)
 	// "reset times effective" means that:
 	// let LR(t Time) be the last reset time before t
 	// GetResetTimelineInclusive(period) = for t in [period.From, period.To]: LR(t)
 	// This means, the first time can be before the input period (except if the start of the period is a reset itself)
 	GetResetTimelineInclusive(ctx context.Context, id models.NamespacedID, period timeutil.Period) (timeutil.SimpleTimeline, error)
-	GetResetBehavior(ctx context.Context, id models.NamespacedID) (ResetBehavior, error)
 	GetUsagePeriodStartAt(ctx context.Context, id models.NamespacedID, at time.Time) (time.Time, error)
-	GetOwnerSubjectKey(ctx context.Context, id models.NamespacedID) (string, error)
+	GetStartOfMeasurement(ctx context.Context, id models.NamespacedID) (time.Time, error)
 
 	EndCurrentUsagePeriod(ctx context.Context, id models.NamespacedID, params EndCurrentUsagePeriodParams) error
 	LockOwnerForTx(ctx context.Context, id models.NamespacedID) error
