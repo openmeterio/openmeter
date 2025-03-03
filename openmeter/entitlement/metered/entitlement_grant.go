@@ -30,9 +30,9 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
-	g, err := e.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
+	g, err := e.grantConnector.CreateGrant(ctx, models.NamespacedID{
 		Namespace: ent.Namespace,
-		ID:        grant.Owner(ent.ID),
+		ID:        ent.ID,
 	}, credit.CreateGrantInput{
 		Amount:           inputGrant.Amount,
 		Priority:         inputGrant.Priority,
@@ -71,7 +71,7 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 	// check that we own the grant
 	grants, err := e.grantRepo.ListGrants(ctx, grant.ListParams{
 		Namespace:      ent.Namespace,
-		OwnerID:        convert.ToPointer(grant.Owner(ent.ID)),
+		OwnerID:        convert.ToPointer(ent.ID),
 		IncludeDeleted: false,
 		OrderBy:        grant.OrderByCreatedAt,
 	})
@@ -116,7 +116,7 @@ func GrantFromCreditGrant(grant grant.Grant) (*EntitlementGrant, error) {
 		g.NextRecurrence = &next
 	}
 	g.Grant = grant
-	g.EntitlementID = string(grant.OwnerID)
+	g.EntitlementID = grant.OwnerID
 	g.MaxRolloverAmount = grant.ResetMaxRollover
 	g.MinRolloverAmount = grant.ResetMinRollover
 	return g, nil
