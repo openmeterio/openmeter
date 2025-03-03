@@ -26,7 +26,7 @@ func NewPostgresBalanceSnapshotRepo(db *db.Client) balance.SnapshotRepo {
 
 func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner grant.NamespacedOwner, at time.Time) error {
 	return b.db.BalanceSnapshot.Update().
-		Where(db_balancesnapshot.OwnerID(string(owner.ID)), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
+		Where(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
 		SetDeletedAt(clock.Now()).
 		Exec(ctx)
 }
@@ -34,7 +34,7 @@ func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner grant.N
 func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (balance.Snapshot, error) {
 	res, err := b.db.BalanceSnapshot.Query().
 		Where(
-			db_balancesnapshot.OwnerID(string(owner.ID)),
+			db_balancesnapshot.OwnerID(owner.ID),
 			db_balancesnapshot.Namespace(owner.Namespace),
 			db_balancesnapshot.AtLTE(at),
 			db_balancesnapshot.DeletedAtIsNil(),
@@ -56,8 +56,8 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner grant.NamespacedOw
 	commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 	for _, balance := range balances {
 		command := b.db.BalanceSnapshot.Create().
-			SetOwnerID(string(owner.ID)).
 			SetNamespace(owner.Namespace).
+			SetOwnerID(owner.ID).
 			SetBalance(balance.Balance()).
 			SetAt(balance.At).
 			SetGrantBalances(balance.Balances).

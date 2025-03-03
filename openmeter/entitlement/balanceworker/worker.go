@@ -168,8 +168,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
+					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
 				))
 		}),
 
@@ -179,8 +179,8 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				WithContext(ctx).
 				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
-					NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
-					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
+					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
 				))
 		}),
 

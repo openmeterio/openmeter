@@ -58,7 +58,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 
 	nsOwner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
-		ID:        grant.Owner(entitlementID.ID),
+		ID:        entitlementID.ID,
 	}
 	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
@@ -143,7 +143,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	owner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
-		ID:        grant.Owner(entitlementID.ID),
+		ID:        entitlementID.ID,
 	}
 
 	ownerMeter, err := e.ownerConnector.GetMeter(ctx, owner)

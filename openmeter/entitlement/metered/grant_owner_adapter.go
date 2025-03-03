@@ -47,7 +47,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 	// get feature of entitlement
 	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
-		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", string(owner.ID), owner.Namespace, err))
+		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", owner.ID, owner.Namespace, err))
 		return nil, &grant.OwnerNotFoundError{
 			Owner:          owner,
 			AttemptedOwner: "entitlement",

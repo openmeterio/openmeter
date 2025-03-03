@@ -43,7 +43,7 @@ func (g grantEvent) Validate() error {
 
 func (e grantEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
-		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, string(e.OwnerID), metadata.EntityGrant, e.ID),
+		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.OwnerID, metadata.EntityGrant, e.ID),
 		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
 	}
 }

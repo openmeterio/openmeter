@@ -19,7 +19,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 	return transaction.Run(ctx, e.grantRepo, func(ctx context.Context) (*EntitlementBalance, error) {
 		owner := grant.NamespacedOwner{
 			Namespace: entitlementID.Namespace,
-			ID:        grant.Owner(entitlementID.ID),
+			ID:        entitlementID.ID,
 		}
 
 		ent, err := e.entitlementRepo.GetEntitlement(ctx, entitlementID)

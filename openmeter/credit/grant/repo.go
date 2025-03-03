@@ -40,7 +40,7 @@ func (f OrderBy) StrValues() []string {
 
 type ListParams struct {
 	Namespace        string
-	OwnerID          *Owner
+	OwnerID          *string
 	IncludeDeleted   bool
 	SubjectKeys      []string
 	FeatureIdsOrKeys []string
@@ -54,7 +54,7 @@ type ListParams struct {
 }
 
 type RepoCreateInput struct {
-	OwnerID          Owner
+	OwnerID          string
 	Namespace        string
 	Amount           float64
 	Priority         uint8

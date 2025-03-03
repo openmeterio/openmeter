@@ -211,7 +211,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grant
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      1000,
 					Priority:    1,
@@ -230,12 +230,12 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				owner := grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}
 
 				err = deps.balanceSnapshotRepo.Save(ctx, grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}, []balance.Snapshot{
 					{
 						At:      g1.EffectiveAt,
@@ -283,7 +283,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -294,7 +294,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         3,
@@ -324,7 +324,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// get detailed balance from credit connector to check individual grant balances
 				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}, resetTime)
 				assert.NoError(t, err)
 
@@ -352,7 +352,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -363,7 +363,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      1000,
 					Priority:    3,
@@ -396,7 +396,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// get detailed balance from credit connector to check individual grant balances
 				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}, resetTime)
 				assert.NoError(t, err)
 
@@ -424,7 +424,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -435,7 +435,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:     grant.Owner(ent.ID),
+					OwnerID:     ent.ID,
 					Namespace:   namespace,
 					Amount:      1000,
 					Priority:    3,
@@ -468,7 +468,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// get detailed balance from credit connector to check individual grant balances
 				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}, resetTime)
 				assert.NoError(t, err)
 
@@ -533,7 +533,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -544,7 +544,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         3,
@@ -574,7 +574,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// get detailed balance from credit connector to check individual grant balances
 				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}, resetTime1)
 				assert.NoError(t, err)
 
@@ -585,7 +585,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants taking effect after first reset
 				g3, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -615,7 +615,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// get detailed balance from credit connector to check individual grant balances
 				creditBalance, err = deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.Owner(ent.ID),
+					ID:        ent.ID,
 				}, resetTime2)
 				assert.NoError(t, err)
 
@@ -647,7 +647,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -672,7 +672,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
@@ -719,7 +719,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// issue grants
 				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
-					OwnerID:          grant.Owner(ent.ID),
+					OwnerID:          ent.ID,
 					Namespace:        namespace,
 					Amount:           1000,
 					Priority:         1,
