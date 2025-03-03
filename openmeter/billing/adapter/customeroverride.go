@@ -2,10 +2,8 @@ package billingadapter
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
-	entsql "entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -184,39 +182,6 @@ func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 	}
 
 	return customerIDs, nil
-}
-
-func (a *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
-	err := a.db.BillingCustomerOverride.Create().
-		SetNamespace(input.Namespace).
-		SetCustomerID(input.ID).
-		OnConflict(
-			entsql.DoNothing(),
-		).
-		Exec(ctx)
-	if err != nil {
-		// The do nothing returns no lines, so we have the record ready
-		if err == sql.ErrNoRows {
-			return nil
-		}
-	}
-	return nil
-}
-
-func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		if err := tx.UpsertCustomerOverride(ctx, input); err != nil {
-			return err
-		}
-
-		_, err := tx.db.BillingCustomerOverride.Query().
-			Where(billingcustomeroverride.CustomerID(input.ID)).
-			Where(billingcustomeroverride.Namespace(input.Namespace)).
-			ForUpdate().
-			First(ctx)
-
-		return err
-	})
 }
 
 func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing.CustomerOverride, error) {

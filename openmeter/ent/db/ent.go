@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicediscount"
@@ -111,6 +112,7 @@ func checkColumn(table, column string) error {
 			appstripe.Table:                          appstripe.ValidColumn,
 			appstripecustomer.Table:                  appstripecustomer.ValidColumn,
 			balancesnapshot.Table:                    balancesnapshot.ValidColumn,
+			billingcustomerlock.Table:                billingcustomerlock.ValidColumn,
 			billingcustomeroverride.Table:            billingcustomeroverride.ValidColumn,
 			billinginvoice.Table:                     billinginvoice.ValidColumn,
 			billinginvoicediscount.Table:             billinginvoicediscount.ValidColumn,

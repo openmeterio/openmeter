@@ -24,6 +24,8 @@ type Tx struct {
 	AppStripeCustomer *AppStripeCustomerClient
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
+	// BillingCustomerLock is the client for interacting with the BillingCustomerLock builders.
+	BillingCustomerLock *BillingCustomerLockClient
 	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
 	BillingCustomerOverride *BillingCustomerOverrideClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
@@ -214,6 +216,7 @@ func (tx *Tx) init() {
 	tx.AppStripe = NewAppStripeClient(tx.config)
 	tx.AppStripeCustomer = NewAppStripeCustomerClient(tx.config)
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
+	tx.BillingCustomerLock = NewBillingCustomerLockClient(tx.config)
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
 	tx.BillingInvoiceDiscount = NewBillingInvoiceDiscountClient(tx.config)
