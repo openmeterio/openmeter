@@ -208,7 +208,7 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 		amountToIssue := metered.IssueAfterReset.Amount
 		_, err := c.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
 			Namespace: metered.Namespace,
-			ID:        grant.Owner(metered.ID),
+			ID:        metered.ID,
 		}, credit.CreateGrantInput{
 			Amount:      amountToIssue,
 			Priority:    defaultx.WithDefault(metered.IssueAfterReset.Priority, DefaultIssueAfterResetPriority),
