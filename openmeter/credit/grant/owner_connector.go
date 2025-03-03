@@ -18,7 +18,6 @@ type EndCurrentUsagePeriodParams struct {
 type OwnerMeter struct {
 	Meter         meter.Meter
 	DefaultParams streaming.QueryParams
-	SubjectKey    string
 }
 
 type ResetBehavior struct {
