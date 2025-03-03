@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -20,7 +21,7 @@ import (
 //
 // If no snapshot exists returns a default snapshot for measurement start to recalculate the entire history
 // in case no usable snapshot was found.
-func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (balance.Snapshot, error) {
+func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
 	bal, err := m.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
@@ -52,7 +53,7 @@ func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, o
 
 // Builds the engine for a given owner caching the period boundaries for the given range (queryBounds).
 // As QueryUsageFn is frequently called, getting the CurrentUsagePeriodStartTime during it's execution would impact performance, so we cache all possible values during engine building.
-func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.NamespacedOwner, queryBounds timeutil.Period) (engine.Engine, error) {
+func (m *connector) buildEngineForOwner(ctx context.Context, owner models.NamespacedID, queryBounds timeutil.Period) (engine.Engine, error) {
 	// Let's validate the parameters
 	if queryBounds.From.IsZero() || queryBounds.To.IsZero() {
 		return nil, fmt.Errorf("query bounds must have both from and to set")
@@ -205,7 +206,7 @@ type snapshotParams struct {
 	// All grants used at engine.Run
 	grants []grant.Grant
 	// Owner of the snapshot
-	owner grant.NamespacedOwner
+	owner models.NamespacedID
 	// Result of the engine.Run
 	runRes engine.RunResult
 	// Snapshot is saved if the segment is before this time & the start of the current usage period (at time of snapshot)

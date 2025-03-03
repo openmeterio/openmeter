@@ -15,7 +15,7 @@ import (
 )
 
 type GrantConnector interface {
-	CreateGrant(ctx context.Context, owner grant.NamespacedOwner, grant CreateGrantInput) (*grant.Grant, error)
+	CreateGrant(ctx context.Context, owner models.NamespacedID, grant CreateGrantInput) (*grant.Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 }
 
@@ -32,7 +32,7 @@ type CreateGrantInput struct {
 	Recurrence       *timeutil.Recurrence
 }
 
-func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input CreateGrantInput) (*grant.Grant, error) {
+func (m *connector) CreateGrant(ctx context.Context, owner models.NamespacedID, input CreateGrantInput) (*grant.Grant, error) {
 	return transaction.Run(ctx, m.grantRepo, func(ctx context.Context) (*grant.Grant, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
 		if err != nil {
@@ -117,7 +117,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return models.NewGenericValidationError(fmt.Errorf("grant already voided"))
 	}
 
-	owner := grant.NamespacedOwner{Namespace: grantID.Namespace, ID: g.OwnerID}
+	owner := models.NamespacedID{Namespace: grantID.Namespace, ID: g.OwnerID}
 
 	_, err = transaction.Run(ctx, m.grantRepo, func(ctx context.Context) (*interface{}, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
