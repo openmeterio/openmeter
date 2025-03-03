@@ -32,7 +32,7 @@ type CreateGrantInput struct {
 	Recurrence       *timeutil.Recurrence
 }
 
-func (m *connector) CreateGrant(ctx context.Context, owner models.NamespacedID, input CreateGrantInput) (*grant.Grant, error) {
+func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID, input CreateGrantInput) (*grant.Grant, error) {
 	return transaction.Run(ctx, m.grantRepo, func(ctx context.Context) (*grant.Grant, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
 		if err != nil {
@@ -41,16 +41,16 @@ func (m *connector) CreateGrant(ctx context.Context, owner models.NamespacedID, 
 
 		// All metering information is stored in windowSize chunks,
 		// so we cannot do accurate calculations unless we follow that same windowing.
-		ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
+		owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
 		if err != nil {
 			return nil, err
 		}
-		granularity := ownerMeter.Meter.WindowSize.Duration()
+		granularity := owner.Meter.WindowSize.Duration()
 		input.EffectiveAt = input.EffectiveAt.Truncate(granularity)
 		if input.Recurrence != nil {
 			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)
 		}
-		periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, clock.Now())
+		periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -59,13 +59,13 @@ func (m *connector) CreateGrant(ctx context.Context, owner models.NamespacedID, 
 			return nil, models.NewGenericValidationError(fmt.Errorf("grant effective date %s is before the current usage period %s", input.EffectiveAt, periodStart))
 		}
 
-		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
+		err = m.ownerConnector.LockOwnerForTx(ctx, ownerID)
 		if err != nil {
 			return nil, err
 		}
 		g, err := m.grantRepo.WithTx(ctx, tx).CreateGrant(ctx, grant.RepoCreateInput{
-			OwnerID:          owner.ID,
-			Namespace:        owner.Namespace,
+			OwnerID:          ownerID.ID,
+			Namespace:        ownerID.Namespace,
 			Amount:           input.Amount,
 			Priority:         input.Priority,
 			EffectiveAt:      input.EffectiveAt,
@@ -81,20 +81,20 @@ func (m *connector) CreateGrant(ctx context.Context, owner models.NamespacedID, 
 		}
 
 		// invalidate snapshots
-		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, owner, g.EffectiveAt)
+		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, ownerID, g.EffectiveAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
-		// publish event
-		subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+		subjectKey, err := owner.GetSubjectKey()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get subject key for owner %s: %w", ownerID.ID, err)
 		}
 
+		// publish event
 		event := grant.CreatedEvent{
 			Grant:     *g,
-			Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
 			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
 		}
 
@@ -117,7 +117,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return models.NewGenericValidationError(fmt.Errorf("grant already voided"))
 	}
 
-	owner := models.NamespacedID{Namespace: grantID.Namespace, ID: g.OwnerID}
+	ownerID := models.NamespacedID{Namespace: grantID.Namespace, ID: g.OwnerID}
 
 	_, err = transaction.Run(ctx, m.grantRepo, func(ctx context.Context) (*interface{}, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
@@ -125,7 +125,12 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, err
 		}
 
-		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
+		owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
+		if err != nil {
+			return nil, err
+		}
+
+		err = m.ownerConnector.LockOwnerForTx(ctx, ownerID)
 		if err != nil {
 			return nil, err
 		}
@@ -137,20 +142,20 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		}
 
 		// invalidate snapshots
-		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
+		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, ownerID, now)
 		if err != nil {
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
 		// publish an event
-		subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+		subjectKey, err := owner.GetSubjectKey()
 		if err != nil {
 			return nil, err
 		}
 
 		return nil, m.publisher.Publish(ctx, grant.VoidedEvent{
 			Grant:     g,
-			Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+			Namespace: eventmodels.NamespaceID{ID: ownerID.Namespace},
 			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
 		})
 	})
