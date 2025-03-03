@@ -209,17 +209,12 @@ type snapshotParams struct {
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
 func (m *connector) snapshotEngineResult(ctx context.Context, params snapshotParams) error {
-	history, err := engine.NewGrantBurnDownHistory(params.runRes.History)
-	if err != nil {
-		return fmt.Errorf("failed to create grant burn down history: %w", err)
-	}
-
 	currentPeriodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, params.owner, params.runRes.Snapshot.At)
 	if err != nil {
 		return fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", params.owner.ID, params.runRes.Snapshot.At, err)
 	}
 
-	segs := history.Segments()
+	segs := params.runRes.History.Segments()
 
 	// i >= 1 because:
 	// The first segment starts with the last valid snapshot and we don't want to create another snapshot for that same time

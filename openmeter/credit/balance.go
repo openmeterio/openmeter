@@ -165,12 +165,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, ownerID models
 		return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, period.From, err)
 	}
 
-	// return history
-	history, err := engine.NewGrantBurnDownHistory(result.History)
-	if err != nil || history == nil {
-		return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to create grant burn down history: %w", err)
-	}
-	return *history, err
+	return result.History, nil
 }
 
 func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
