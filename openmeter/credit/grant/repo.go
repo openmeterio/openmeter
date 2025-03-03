@@ -73,7 +73,7 @@ type Repo interface {
 	// For bw compatibility, if pagination is not provided we return a simple array
 	ListGrants(ctx context.Context, params ListParams) (pagination.PagedResponse[Grant], error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
-	ListActiveGrantsBetween(ctx context.Context, owner NamespacedOwner, from, to time.Time) ([]Grant, error)
+	ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 
 	entutils.TxCreator

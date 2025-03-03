@@ -23,9 +23,9 @@ type ResetUsageForOwnerParams struct {
 
 // Generic connector for balance related operations.
 type BalanceConnector interface {
-	GetBalanceOfOwner(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (*balance.Snapshot, error)
-	GetBalanceHistoryOfOwner(ctx context.Context, owner grant.NamespacedOwner, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error)
-	ResetUsageForOwner(ctx context.Context, owner grant.NamespacedOwner, params ResetUsageForOwnerParams) (balanceAfterReset *balance.Snapshot, err error)
+	GetBalanceOfOwner(ctx context.Context, owner models.NamespacedID, at time.Time) (*balance.Snapshot, error)
+	GetBalanceHistoryOfOwner(ctx context.Context, owner models.NamespacedID, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error)
+	ResetUsageForOwner(ctx context.Context, owner models.NamespacedID, params ResetUsageForOwnerParams) (balanceAfterReset *balance.Snapshot, err error)
 }
 
 type BalanceHistoryParams struct {
@@ -35,7 +35,7 @@ type BalanceHistoryParams struct {
 
 var _ BalanceConnector = &connector{}
 
-func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (*balance.Snapshot, error) {
+func (m *connector) GetBalanceOfOwner(ctx context.Context, owner models.NamespacedID, at time.Time) (*balance.Snapshot, error) {
 	m.logger.Debug("getting balance of owner", "owner", owner.ID, "at", at)
 
 	// To include the current last minute lets round it trunc to the next minute
@@ -108,7 +108,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 }
 
 // Returns the joined GrantBurnDownHistory across usage periods.
-func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.NamespacedOwner, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error) {
+func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner models.NamespacedID, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error) {
 	// To include the current last minute lets round it trunc to the next minute
 	if trunc := params.To.Truncate(time.Minute); trunc.Before(params.To) {
 		params.To = trunc.Add(time.Minute)
@@ -173,7 +173,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 	return *history, err
 }
 
-func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.NamespacedOwner, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
+func (m *connector) ResetUsageForOwner(ctx context.Context, owner models.NamespacedID, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
 	// Cannot reset for the future
 	if params.At.After(clock.Now()) {
 		return nil, models.NewGenericValidationError(fmt.Errorf("cannot reset at %s in the future", params.At))

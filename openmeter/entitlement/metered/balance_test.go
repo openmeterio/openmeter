@@ -240,7 +240,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				queryTime := startTime.AddDate(0, 0, 9) // longer than grace period for saving snapshots
 
 				// issue grants
-				owner := grant.NamespacedOwner{
+				owner := models.NamespacedID{
 					Namespace: namespace,
 					ID:        entitlement.ID,
 				}
@@ -320,7 +320,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				queryTime := startTime.AddDate(0, 0, 10) // longer than grace period for saving snapshots
 
 				// issue grants
-				owner := grant.NamespacedOwner{
+				owner := models.NamespacedID{
 					Namespace: namespace,
 					ID:        entitlement.ID,
 				}

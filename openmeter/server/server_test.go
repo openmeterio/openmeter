@@ -645,7 +645,7 @@ var _ credit.GrantConnector = (*NoopGrantConnector)(nil)
 
 type NoopGrantConnector struct{}
 
-func (n NoopGrantConnector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input credit.CreateGrantInput) (*grant.Grant, error) {
+func (n NoopGrantConnector) CreateGrant(ctx context.Context, owner models.NamespacedID, input credit.CreateGrantInput) (*grant.Grant, error) {
 	return &grant.Grant{}, nil
 }
 
