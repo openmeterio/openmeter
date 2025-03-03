@@ -116,7 +116,7 @@ func GrantFromCreditGrant(grant grant.Grant) (*EntitlementGrant, error) {
 		g.NextRecurrence = &next
 	}
 	g.Grant = grant
-	g.EntitlementID = g.OwnerID
+	g.EntitlementID = grant.OwnerID
 	g.MaxRolloverAmount = grant.ResetMaxRollover
 	g.MinRolloverAmount = grant.ResetMinRollover
 	return g, nil
