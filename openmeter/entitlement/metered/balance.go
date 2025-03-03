@@ -6,6 +6,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -159,15 +161,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		fullPeriodTruncated.To = fullPeriodTruncated.To.Add(ownerMeter.Meter.WindowSize.Duration())
 	}
 
-	// 1. we get the burndown history
-	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
-		From: fullPeriodTruncated.From,
-		To:   fullPeriodTruncated.To,
-	})
-	if err != nil {
-		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
-	}
-
+	// 1. Let's query the windowed usage data
 	getBaseQuery := func() streaming.QueryParams {
 		base := ownerMeter.DefaultParams
 
@@ -180,7 +174,6 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return base
 	}
 
-	// 2. and we get the windowed usage data
 	meterRows, err := e.queryMeter(ctx, owner.Namespace, ownerMeter.Meter, getBaseQuery())
 	if err != nil {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
@@ -198,7 +191,74 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		}
 	}
 
-	// 3. and then we merge the two
+	// Clickhouse only returns rows where there is usage data. The history response needs to contain each window even if there is no usage data, so we need to fill in the missing windows with 0 usage
+
+	// We need to truncate to the window size
+	startOfFirstWindowThatShouldBePresent, err := meter.WindowSize(params.WindowSize).Truncate(fullPeriodTruncated.From)
+	if err != nil {
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to truncate to window size: %w", err)
+	}
+
+	endOfLastWindowThatShouldBePresent, err := meter.WindowSize(params.WindowSize).Truncate(fullPeriodTruncated.To)
+	if err != nil {
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to truncate to window size: %w", err)
+	}
+
+	// If we did truncate we need to advance one window size to the right so the original period.To is included
+	if !endOfLastWindowThatShouldBePresent.Equal(fullPeriodTruncated.To) {
+		endOfLastWindowThatShouldBePresent, err = meter.WindowSize(params.WindowSize).AddTo(endOfLastWindowThatShouldBePresent)
+		if err != nil {
+			return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to add window size: %w", err)
+		}
+	}
+
+	// Now, let's fill the missing windows
+	allRows := make([]meter.MeterQueryRow, 0)
+
+	// by this point we know we can add params.WindowSize
+	for current := startOfFirstWindowThatShouldBePresent; current.Before(endOfLastWindowThatShouldBePresent); current, _ = meter.WindowSize(params.WindowSize).AddTo(current) {
+		wEnd, _ := meter.WindowSize(params.WindowSize).AddTo(current)
+		row := meter.MeterQueryRow{
+			WindowStart: current,
+			WindowEnd:   wEnd,
+		}
+
+		// Let's see if there's a matching row in meterRows
+		matchingRow, ok := lo.Find(meterRows, func(row meter.MeterQueryRow) bool {
+			return row.WindowStart.Equal(current) && row.WindowEnd.Equal(wEnd)
+		})
+
+		if ok {
+			row.Value = matchingRow.Value
+			row.Subject = matchingRow.Subject
+			row.GroupBy = matchingRow.GroupBy
+		}
+
+		allRows = append(allRows, row)
+	}
+
+	// Due to windowing, it is possible that a window is before the entitlement's startOfMeasurement, we need to filter these out
+	allRows = lo.Filter(allRows, func(row meter.MeterQueryRow, _ int) bool {
+		return !row.WindowStart.Before(ent.MeasureUsageFrom)
+	})
+
+	// 2. Let's get the history for the period
+	periodToQueryEngine := fullPeriodTruncated
+
+	if len(allRows) > 0 {
+		// If the window starts earlier than our period, we need to query the engine starting from the window start
+		if allRows[0].WindowStart.Before(fullPeriodTruncated.From) {
+			periodToQueryEngine.From = allRows[0].WindowStart
+		}
+	}
+
+	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
+		From: periodToQueryEngine.From,
+		To:   periodToQueryEngine.To,
+	})
+	if err != nil {
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
+	}
 
 	// convert history segments to list of point-in-time balances
 	segments := burndownHistory.Segments()
@@ -225,11 +285,13 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		})
 	}
 
-	visited := make(map[int]bool)
+	// 3. and then we merge the two
 
 	// we'll create a window for each row (same windowsize)
-	windows := make([]EntitlementBalanceHistoryWindow, 0, len(meterRows))
-	for _, row := range meterRows {
+	windows := make([]EntitlementBalanceHistoryWindow, 0, len(allRows))
+	visited := make(map[int]bool)
+
+	for _, row := range allRows {
 		// Lets find the last timestamped balance that was no later than the row
 		tsBalance, idx, ok := slicesx.Last(timestampedBalances, func(tsb struct {
 			balance   float64
@@ -257,13 +319,16 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 			}
 
-			// We should have 1 row
-			if len(rows) != 1 {
-				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("expected 1 row, got %d", len(rows))
+			var usage float64
+
+			// We should have 1 row if there is usage data
+			if len(rows) == 1 {
+				usage = rows[0].Value
+			} else if len(rows) > 1 {
+				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("expected at most 1 row, got %d", len(rows))
 			}
 
 			// deduct balance and increase overage if needed
-			usage := rows[0].Value
 
 			balanceAtEnd := math.Max(0, tsBalance.balance-usage)
 			deductedUsage := tsBalance.balance - balanceAtEnd

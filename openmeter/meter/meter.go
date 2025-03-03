@@ -73,7 +73,34 @@ func (WindowSize) Values() (kinds []string) {
 	return
 }
 
+func (w WindowSize) AddTo(t time.Time) (time.Time, error) {
+	switch w {
+	case WindowSizeMinute:
+		return t.Add(time.Minute), nil
+	case WindowSizeHour:
+		return t.Add(time.Hour), nil
+	case WindowSizeDay:
+		return t.AddDate(0, 0, 1), nil
+	default:
+		return time.Time{}, fmt.Errorf("invalid window size: %s", w)
+	}
+}
+
+func (w WindowSize) Truncate(t time.Time) (time.Time, error) {
+	switch w {
+	case WindowSizeMinute:
+		return t.Truncate(time.Minute), nil
+	case WindowSizeHour:
+		return t.Truncate(time.Hour), nil
+	case WindowSizeDay:
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()), nil
+	default:
+		return time.Time{}, fmt.Errorf("invalid window size: %s", w)
+	}
+}
+
 // Duration returns the duration of the window size
+// BEWARE: a day is NOT 24 hours
 func (w WindowSize) Duration() time.Duration {
 	var windowDuration time.Duration
 	switch w {
