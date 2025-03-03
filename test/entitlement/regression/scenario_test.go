@@ -63,9 +63,9 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:35:24Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      10,
@@ -81,9 +81,9 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:36:33Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      20,
@@ -126,9 +126,9 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T15:39:00Z"))
 	grant3, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      100,
@@ -212,9 +212,9 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-02T09:43:04Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:           20,
@@ -329,9 +329,9 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	// Let's create another grant
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:09:40Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      10000,
@@ -347,9 +347,9 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 
 	// Lets create a snapshot
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:09:05Z"))
-	err = deps.BalanceSnapshotRepo.Save(ctx, grant.NamespacedOwner{
+	err = deps.BalanceSnapshotRepo.Save(ctx, models.NamespacedID{
 		Namespace: "namespace-1",
-		ID:        grant.Owner(entitlement.ID),
+		ID:        entitlement.ID,
 	}, []balance.Snapshot{
 		{
 			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
@@ -495,9 +495,9 @@ func TestGrantingAfterOverage(t *testing.T) {
 	// Lets grant some credit for 500
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:27:18Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      500,
@@ -531,9 +531,9 @@ func TestGrantingAfterOverage(t *testing.T) {
 	// Lets grant more credits
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T12:31:30Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedOwner{
+		models.NamespacedID{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      8000,

@@ -33,8 +33,8 @@ func NewPostgresGrantRepo(db *db.Client) grant.Repo {
 func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.RepoCreateInput) (*grant.Grant, error) {
 	// TODO: transaction and locking
 	command := g.db.Grant.Create().
-		SetOwnerID(string(grant.OwnerID)).
 		SetNamespace(grant.Namespace).
+		SetOwnerID(grant.OwnerID).
 		SetAmount(grant.Amount).
 		SetPriority(grant.Priority).
 		SetEffectiveAt(grant.EffectiveAt).
@@ -73,7 +73,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
 	if params.OwnerID != nil {
-		query = query.Where(db_grant.OwnerID(string(*params.OwnerID)))
+		query = query.Where(db_grant.OwnerID(*params.OwnerID))
 	}
 
 	if !params.IncludeDeleted {
@@ -165,9 +165,9 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	return response, nil
 }
 
-func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner grant.NamespacedOwner, from, to time.Time) ([]grant.Grant, error) {
+func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {
 	query := g.db.Grant.Query().
-		Where(db_grant.And(db_grant.OwnerID(string(owner.ID)), db_grant.Namespace(owner.Namespace))).
+		Where(db_grant.And(db_grant.OwnerID(owner.ID), db_grant.Namespace(owner.Namespace))).
 		Where(db_grant.AmountGTE(0.0)). // For a time we allowed negative grant amounts with an undefined behavior, for continuity we just silently ignore them.
 		Where(
 			db_grant.Or(
@@ -216,7 +216,7 @@ func mapGrantEntity(entity *db.Grant) grant.Grant {
 			Namespace: entity.Namespace,
 		},
 		ID:       entity.ID,
-		OwnerID:  grant.Owner(entity.OwnerID),
+		OwnerID:  entity.OwnerID,
 		Amount:   entity.Amount,
 		Priority: entity.Priority,
 		VoidedAt: convert.SafeDeRef(entity.VoidedAt, func(t time.Time) *time.Time {
