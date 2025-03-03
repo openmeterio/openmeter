@@ -855,8 +855,8 @@ github.com/authzed/authzed-go v1.2.0 h1:Ep1sRJMxcArB++kYqHbYKQCb/GgdGZI0cW4gZrJ1
 github.com/authzed/authzed-go v1.2.0/go.mod h1:4lkFxvaCISG1roRdnUt35/Sk1StVuMD1QCwTd/BcWcM=
 github.com/authzed/grpcutil v0.0.0-20240123194739-2ea1e3d2d98b h1:wbh8IK+aMLTCey9sZasO7b6BWLAJnHHvb79fvWCXwxw=
 github.com/authzed/grpcutil v0.0.0-20240123194739-2ea1e3d2d98b/go.mod h1:s3qC7V7XIbiNWERv7Lfljy/Lx25/V1Qlexb0WJuA8uQ=
-github.com/avast/retry-go/v4 v4.6.0 h1:K9xNA+KeB8HHc2aWFuLb25Offp+0iVRXEvFx8IinRJA=
-github.com/avast/retry-go/v4 v4.6.0/go.mod h1:gvWlPhBVsvBbLkVGDg/KwvBv0bEkCOLRRSHKIr2PyOE=
+github.com/avast/retry-go/v4 v4.6.1 h1:VkOLRubHdisGrHnTu89g08aQEWEgRU7LVEop3GbIcMk=
+github.com/avast/retry-go/v4 v4.6.1/go.mod h1:V6oF8njAwxJ5gRo1Q7Cxab24xs5NCWZBeaHHBklR8mA=
 github.com/aws/aws-lambda-go v1.47.0 h1:0H8s0vumYx/YKs4sE7YM0ktwL2eWse+kfopsRI1sXVI=
 github.com/aws/aws-lambda-go v1.47.0/go.mod h1:dpMpZgvWx5vuQJfBt0zqBha60q7Dd7RfgJv23DymV8A=
 github.com/aws/aws-sdk-go v1.15.27/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
