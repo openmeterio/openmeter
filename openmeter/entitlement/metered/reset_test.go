@@ -44,7 +44,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
 			UsagePeriod: &entitlement.UsagePeriod{
-				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				Anchor: getAnchor(t),
 				// TODO: properly test these anchors
 				Interval: timeutil.RecurrencePeriodYear,
 			},
@@ -64,7 +64,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should allow resetting usage for the first time with no grants",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -97,7 +97,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should error if requested reset time is before start of measurement",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -126,7 +126,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should error if requested reset time is before current period start",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -146,6 +146,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				err = deps.usageResetRepo.Save(ctx, meteredentitlement.UsageResetTime{
 					NamespacedModel: models.NamespacedModel{Namespace: namespace},
 					ResetTime:       priorResetTime,
+					Anchor:          ent.UsagePeriod.Anchor,
 					EntitlementID:   ent.ID,
 				})
 				assert.NoError(t, err)
@@ -157,7 +158,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					meteredentitlement.ResetEntitlementUsageParams{
 						At: resetTime,
 					})
-				assert.ErrorContains(t, err, "before current usage period start")
+				assert.ErrorContains(t, err, "before last reset at")
 			},
 		},
 		{
@@ -194,7 +195,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should invalidate snapshots after the reset time",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -268,7 +269,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should return starting balance after reset with rolled over grant values",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -337,7 +338,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should preserve overage after reset and deduct it from new balance",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -409,7 +410,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should preserve overage after reset and deduct it from new balance resulting in overage at start of period",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -481,7 +482,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should return proper last reset time after reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -518,7 +519,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should calculate balance for grants taking effect after last saved snapshot",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -629,7 +630,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should properly handle grants issued for the same time as reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 
 				// create featute in db
 				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
@@ -700,7 +701,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			name: "Should properly handle grants expiring the same time as reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				startTime := getAnchor(t)
 				resetTime := startTime.AddDate(0, 0, 3)
 
 				// create featute in db
@@ -870,9 +871,15 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// And we reset for midnight
 				ctx := context.Background()
 
-				startTime := testutils.GetRFC3339Time(t, "2025-02-03T00:01:00Z")
-				entitlementTime := testutils.GetRFC3339Time(t, "2025-02-01T00:00:00Z")
-				resetTime := testutils.GetRFC3339Time(t, "2025-02-03T00:00:00Z")
+				yesterdayMidnight := func() time.Time {
+					t.Helper()
+					now := clock.Now().UTC()
+					return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -1)
+				}()
+
+				startTime := yesterdayMidnight.Add(time.Minute)
+				entitlementTime := yesterdayMidnight.AddDate(0, 0, -2)
+				resetTime := yesterdayMidnight
 
 				// Let's add usage so the meter is found
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 1, entitlementTime.Add(time.Minute))
