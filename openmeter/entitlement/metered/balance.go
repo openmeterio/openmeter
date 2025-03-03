@@ -79,7 +79,6 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	// TODO: move usage calculation some place else
 
 	meterQuery := ownerMeter.DefaultParams
-	meterQuery.FilterSubject = []string{ownerMeter.SubjectKey}
 	meterQuery.From = &startOfPeriod
 	meterQuery.To = &at
 
@@ -171,7 +170,6 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	getBaseQuery := func() streaming.QueryParams {
 		base := ownerMeter.DefaultParams
 
-		base.FilterSubject = []string{ownerMeter.SubjectKey}
 		base.From = convert.ToPointer(fullPeriodTruncated.From)
 		base.To = convert.ToPointer(fullPeriodTruncated.To)
 		base.WindowSize = convert.ToPointer(meter.WindowSize(params.WindowSize))
