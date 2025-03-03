@@ -65,7 +65,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      10,
@@ -83,7 +83,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      20,
@@ -128,7 +128,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	grant3, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      100,
@@ -214,7 +214,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:           20,
@@ -331,7 +331,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(entitlement.ID),
+			ID:        entitlement.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      10000,
@@ -349,7 +349,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:09:05Z"))
 	err = deps.BalanceSnapshotRepo.Save(ctx, grant.NamespacedOwner{
 		Namespace: "namespace-1",
-		ID:        grant.Owner(entitlement.ID),
+		ID:        entitlement.ID,
 	}, []balance.Snapshot{
 		{
 			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
@@ -497,7 +497,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      500,
@@ -533,7 +533,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
 		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		},
 		credit.CreateGrantInput{
 			Amount:      8000,

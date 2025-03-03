@@ -62,7 +62,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		t.Run("Should return reset for period start if before the period", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		// We query for 4 days without the reset included
@@ -186,7 +186,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		// We query for 4 days without the reset included
@@ -254,7 +254,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		// We query for 4 days without the reset included
@@ -313,7 +313,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
@@ -357,7 +357,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
@@ -413,7 +413,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
@@ -469,7 +469,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		owner := grant.NamespacedOwner{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{

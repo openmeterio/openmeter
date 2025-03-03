@@ -9,10 +9,9 @@ import (
 )
 
 type (
-	Owner           string
 	NamespacedOwner struct {
 		Namespace string
-		ID        Owner
+		ID        string
 	}
 )
 
@@ -20,7 +19,7 @@ type (
 func (n NamespacedOwner) NamespacedID() models.NamespacedID {
 	return models.NamespacedID{
 		Namespace: n.Namespace,
-		ID:        string(n.ID),
+		ID:        n.ID,
 	}
 }
 
@@ -33,7 +32,7 @@ type Grant struct {
 	ID string `json:"id,omitempty"`
 
 	// Generic Owner reference
-	OwnerID Owner `json:"owner"`
+	OwnerID string `json:"owner"`
 
 	// Amount The amount to grant. Must be positive.
 	Amount float64 `json:"amount"`
