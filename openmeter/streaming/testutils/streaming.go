@@ -2,13 +2,15 @@ package testutils
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 )
 
 var _ streaming.Connector = &MockStreamingConnector{}
@@ -106,40 +108,42 @@ func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []strea
 	return nil
 }
 
-func windowSizeToDuration(windowSize meter.WindowSize) time.Duration {
-	return windowSize.Duration()
-}
-
 // We approximate the actual logic by a simple filter + aggregation for most cases
 func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
-	from := defaultx.WithDefault(params.From, time.Now().AddDate(-10, 0, 0))
-	to := defaultx.WithDefault(params.To, time.Now())
 	if !ok {
 		return []meter.MeterQueryRow{}, meter.NewMeterNotFoundError(meterSlug)
 	}
 
+	if params.From == nil || params.To == nil {
+		return nil, fmt.Errorf("streaming mock connector does not support filtering without from and to")
+	}
+
+	from := *params.From
+	to := *params.To
+
 	rows := make([]meter.MeterQueryRow, 0)
 
 	if params.WindowSize != nil && params.WindowTimeZone != nil {
-		// prepopulate windows based on windowsize, from and to (TODO: windowtimezone will be ignored)
-		numOfSecondsBetweenToAndFrom := int(to.Sub(from).Seconds())
-		numOfWindows := numOfSecondsBetweenToAndFrom / int(windowSizeToDuration(*params.WindowSize).Seconds())
+		// TODO: windowtimezone will be ignored
+
+		windowingStart := from.Truncate(params.WindowSize.Duration()) // The first truncated time that from query falls into
+		windowingEnd := to.Truncate(params.WindowSize.Duration())     // The last truncated time that to query falls into
+		if !to.Equal(windowingEnd) {
+			windowingEnd = windowingEnd.Add(params.WindowSize.Duration())
+		}
+
+		numOfWindows := int(windowingEnd.Sub(windowingStart).Seconds()) / int(params.WindowSize.Duration().Seconds())
+
+		if numOfWindows == 0 {
+			return nil, fmt.Errorf("couldnt calculate windows")
+		}
 
 		for i := 0; i < numOfWindows; i++ {
 			rows = append(rows, meter.MeterQueryRow{
 				Value:       0,
-				WindowStart: from.Add(time.Duration(time.Duration(i*int(windowSizeToDuration(*params.WindowSize))).Seconds()) * time.Second),
-				WindowEnd:   from.Add(time.Duration(time.Duration((i+1)*int(windowSizeToDuration(*params.WindowSize))).Seconds()) * time.Second),
-				GroupBy:     map[string]*string{},
-			})
-		}
-
-		if numOfWindows == 0 {
-			rows = append(rows, meter.MeterQueryRow{
-				Value:       0,
-				WindowStart: from,
-				WindowEnd:   to,
+				WindowStart: windowingStart.Add(params.WindowSize.Duration() * time.Duration(i)),
+				WindowEnd:   windowingStart.Add(params.WindowSize.Duration() * time.Duration(i+1)),
 				GroupBy:     map[string]*string{},
 			})
 		}
@@ -168,6 +172,12 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params stream
 		}
 		rows[i].Value = value
 	}
+
+	// Clickhouse doesn't return tumpled result rows if there are no rows (events) in the tumpled period
+	// To simulate this for the SUM behavior, we simply filter out rows that have 0 value
+	rows = lo.Filter(rows, func(row meter.MeterQueryRow, _ int) bool {
+		return row.Value != 0
+	})
 
 	return rows, nil
 }

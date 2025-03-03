@@ -56,13 +56,8 @@ func TestMockStreamingConnector(t *testing.T) {
 				From: convert.ToPointer(now.Add(-time.Hour)),
 				To:   convert.ToPointer(now),
 			},
-			Expected: []meter.MeterQueryRow{{
-				Value:       0,
-				WindowStart: now.Add(-time.Hour),
-				WindowEnd:   now,
-				GroupBy:     map[string]*string{},
-			}},
-			Rows: []meter.MeterQueryRow{},
+			Expected: []meter.MeterQueryRow{},
+			Rows:     []meter.MeterQueryRow{},
 			// meter has to exist
 			Events: []SimpleEvent{{MeterSlug: defaultMeterSlug, Value: 0, Time: now}},
 		},
@@ -171,7 +166,70 @@ func TestMockStreamingConnector(t *testing.T) {
 			},
 		},
 		{
-			Name: "Should return row for queried period if window is larger than period",
+			Name: "Should return events windowed even if query from and to don't align with window boundaries",
+			Query: streaming.QueryParams{
+				From:           convert.ToPointer(now.Add(-time.Minute * 3).Add(time.Second)),
+				To:             convert.ToPointer(now.Add(-time.Second)),
+				WindowSize:     convert.ToPointer(meter.WindowSizeMinute),
+				WindowTimeZone: time.UTC,
+			},
+			Expected: []meter.MeterQueryRow{
+				{
+					Value:       1,
+					WindowStart: now.Add(-time.Minute * 3),
+					WindowEnd:   now.Add(-time.Minute * 2),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       2,
+					WindowStart: now.Add(-time.Minute * 2),
+					WindowEnd:   now.Add(-time.Minute),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       5,
+					WindowStart: now.Add(-time.Minute),
+					WindowEnd:   now,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			Events: []SimpleEvent{
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Add(-time.Minute * 2).Add(-time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute * 2).Add(time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute)},
+				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Second)},
+			},
+		},
+		{
+			Name: "Should not return rows for periods in which there are no events",
+			Query: streaming.QueryParams{
+				From:           convert.ToPointer(now.Add(-time.Minute * 3).Add(time.Second)),
+				To:             convert.ToPointer(now.Add(-time.Second)),
+				WindowSize:     convert.ToPointer(meter.WindowSizeMinute),
+				WindowTimeZone: time.UTC,
+			},
+			Expected: []meter.MeterQueryRow{
+				{
+					Value:       1,
+					WindowStart: now.Add(-time.Minute * 3),
+					WindowEnd:   now.Add(-time.Minute * 2),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       5,
+					WindowStart: now.Add(-time.Minute),
+					WindowEnd:   now,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			Events: []SimpleEvent{
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Add(-time.Minute * 2).Add(-time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute)},
+				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Second)},
+			},
+		},
+		{
+			Name: "Should return row for queried period if window is larger than period if there are events in the period",
 			Query: streaming.QueryParams{
 				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
 				To:             convert.ToPointer(now),
@@ -181,7 +239,7 @@ func TestMockStreamingConnector(t *testing.T) {
 			Expected: []meter.MeterQueryRow{
 				{
 					Value:       8,
-					WindowStart: now.Add(-time.Minute * 3),
+					WindowStart: now.Add(-time.Hour),
 					WindowEnd:   now,
 					GroupBy:     map[string]*string{},
 				},
