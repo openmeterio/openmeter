@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type CustomerOverride struct {
@@ -267,3 +270,49 @@ type (
 	UpsertCustomerOverrideAdapterInput = customer.CustomerID
 	LockCustomerForUpdateAdapterInput  = customer.CustomerID
 )
+
+type CustomerOverrideWithMergedProfile struct {
+	CustomerOverride `json:",inline"`
+
+	Customer                    *customer.Customer `json:"customer,omitempty"`
+	BillingProfileWithOverrides *Profile           `json:"billingProfileWithOverrides,omitempty"`
+}
+
+type CustomerOverrideWithAdapterProfile struct {
+	CustomerOverride `json:",inline"`
+
+	BillingProfile *AdapterGetProfileResponse `json:"billingProfile,omitempty"`
+}
+
+type ListCustomerOverridesInput struct {
+	pagination.Page
+
+	// Warning: We only support a single namespace for now as the default profile handling
+	// complicates things. If we need multiple namespace support, I would recommend a different
+	// endpoint that doesn't take default namespace into account.
+	Namespace       string                 `json:"namespace"`
+	BillingProfiles []string               `json:"billingProfile,omitempty"`
+	Expand          CustomerOverrideExpand `json:"expand,omitempty"`
+	// TODO: OrderBy
+
+	// TODO: type!
+	OrderBy api.CustomerOrderBy
+	Order   sortx.Order
+}
+
+func (l ListCustomerOverridesInput) Validate() error {
+	if l.Namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+
+	return nil
+}
+
+type CustomerOverrideExpand struct {
+	ProfileWithOverrides bool `json:"profileWithOverrides,omitempty"`
+	Customers            bool `json:"customers,omitempty"`
+}
+
+type ListCustomerOverridesResult = pagination.PagedResponse[CustomerOverrideWithMergedProfile]
+
+type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverrideWithAdapterProfile]

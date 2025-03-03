@@ -42,6 +42,13 @@ type InvoiceHandler interface {
 	SimulateInvoice() SimulateInvoiceHandler
 }
 
+type CustomerOverrideHandler interface {
+	ListCustomerOverrides() ListCustomerOverridesHandler
+	UpsertCustomerOverride() UpsertCustomerOverrideHandler
+	GetCustomerOverride() GetCustomerOverrideHandler
+	DeleteCustomerOverride() DeleteCustomerOverrideHandler
+}
+
 type handler struct {
 	appMapper        *appshttpdriver.AppMapper
 	service          billing.Service

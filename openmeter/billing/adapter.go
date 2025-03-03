@@ -38,6 +38,7 @@ type CustomerOverrideAdapter interface {
 	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideAdapterInput) (*CustomerOverride, error)
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
+	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesAdapterResult, error)
 
 	// UpsertCustomerOverride upserts a customer override ignoring the transactional context, the override
 	// will be empty.
