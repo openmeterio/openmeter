@@ -3,6 +3,7 @@ package billingadapter
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -10,8 +11,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
@@ -130,6 +133,83 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	}
 
 	return mapCustomerOverrideFromDB(dbCustomerOverride)
+}
+
+func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesAdapterResult, error) {
+	// We need to check the ID of the default profile
+	dbDefaultProfile, err := a.db.BillingProfile.Query().
+		Where(billingprofile.Namespace(input.Namespace)).
+		Where(billingprofile.Default(true)).
+		Where(billingprofile.DeletedAtIsNil()).
+		WithWorkflowConfig().
+		Only(ctx)
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return billing.ListCustomerOverridesAdapterResult{}, err
+		}
+	}
+
+	defaultProfile, err := mapProfileFromDB(dbDefaultProfile)
+	if err != nil {
+		return billing.ListCustomerOverridesAdapterResult{}, err
+	}
+
+	query := a.db.BillingCustomerOverride.Query().
+		Where(billingcustomeroverride.NamespaceEQ(input.Namespace)).
+		Where(billingcustomeroverride.DeletedAtIsNil()).
+		WithBillingProfile(func(q *db.BillingProfileQuery) {
+			q.Where(billingprofile.DeletedAtIsNil()).
+				WithWorkflowConfig()
+		})
+
+	// Let's see if we need to resolve references to the default profile
+	// Logic:
+	// - if we are filtering by profile ID, then include the default profile customer overrides too if the
+	//   default profile was queried for
+	// - if we are not filtering by profile ID, then include the default profile customer overrides too
+
+	shouldIncludeDefaultProfile := false
+	if len(input.BillingProfiles) > 0 {
+		if defaultProfile != nil && slices.Contains(input.BillingProfiles, defaultProfile.ID) {
+			shouldIncludeDefaultProfile = true
+		}
+	} else {
+		shouldIncludeDefaultProfile = true
+	}
+
+	if !shouldIncludeDefaultProfile {
+		query = query.Where(billingcustomeroverride.BillingProfileIDNotNil())
+	}
+
+	// TODO: order by
+
+	res, err := query.Paginate(ctx, input.Page)
+	if err != nil {
+		return billing.ListCustomerOverridesAdapterResult{}, err
+	}
+
+	return pagination.MapPagedResponseError(res, func(dbOverride *db.BillingCustomerOverride) (billing.CustomerOverrideWithAdapterProfile, error) {
+		override, err := mapCustomerOverrideFromDB(dbOverride)
+		if err != nil {
+			return billing.CustomerOverrideWithAdapterProfile{}, err
+		}
+
+		var billingProfile *billing.AdapterGetProfileResponse
+		// let's see if we have explicit profile pinning
+		if dbOverride.Edges.BillingProfile != nil {
+			billingProfile, err = mapProfileFromDB(dbOverride.Edges.BillingProfile)
+			if err != nil {
+				return billing.CustomerOverrideWithAdapterProfile{}, err
+			}
+		} else {
+			billingProfile = defaultProfile
+		}
+
+		return billing.CustomerOverrideWithAdapterProfile{
+			CustomerOverride: *override,
+			BillingProfile:   billingProfile,
+		}, nil
+	})
 }
 
 func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
