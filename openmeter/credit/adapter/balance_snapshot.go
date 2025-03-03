@@ -7,10 +7,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
-	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_balancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // naive implementation of the BalanceSnapshotConnector
@@ -24,14 +24,14 @@ func NewPostgresBalanceSnapshotRepo(db *db.Client) balance.SnapshotRepo {
 	}
 }
 
-func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner grant.NamespacedOwner, at time.Time) error {
+func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error {
 	return b.db.BalanceSnapshot.Update().
 		Where(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
 		SetDeletedAt(clock.Now()).
 		Exec(ctx)
 }
 
-func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (balance.Snapshot, error) {
+func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
 	res, err := b.db.BalanceSnapshot.Query().
 		Where(
 			db_balancesnapshot.OwnerID(owner.ID),
@@ -52,7 +52,7 @@ func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner grant.
 	return mapBalanceSnapshotEntity(res), nil
 }
 
-func (b *balanceSnapshotRepo) Save(ctx context.Context, owner grant.NamespacedOwner, balances []balance.Snapshot) error {
+func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedID, balances []balance.Snapshot) error {
 	commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 	for _, balance := range balances {
 		command := b.db.BalanceSnapshot.Create().

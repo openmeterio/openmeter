@@ -30,7 +30,7 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
-	g, err := e.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
+	g, err := e.grantConnector.CreateGrant(ctx, models.NamespacedID{
 		Namespace: ent.Namespace,
 		ID:        ent.ID,
 	}, credit.CreateGrantInput{

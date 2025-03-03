@@ -228,12 +228,12 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// We create a snapshot at the time of the grant
 				clock.SetTime(g1.EffectiveAt)
 
-				owner := grant.NamespacedOwner{
+				owner := models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}
 
-				err = deps.balanceSnapshotRepo.Save(ctx, grant.NamespacedOwner{
+				err = deps.balanceSnapshotRepo.Save(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, []balance.Snapshot{
@@ -322,7 +322,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
@@ -394,7 +394,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
@@ -466,7 +466,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
@@ -572,7 +572,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime1, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime1)
@@ -613,7 +613,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime2, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err = deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+				creditBalance, err = deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime2)
