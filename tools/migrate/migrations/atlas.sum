@@ -1,4 +1,4 @@
-h1:SC+16ZORq3xhVI0EYDn/OWaAGp6J3DcrwnluNEIVbLE=
+h1:5UtbQPEWknR8l7WpQalj5sZxV5Rkp8bIgR5eQgiVqlg=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -121,5 +121,5 @@ h1:SC+16ZORq3xhVI0EYDn/OWaAGp6J3DcrwnluNEIVbLE=
 20250220150245_usage-reset-anchor-times.up.sql h1:rUTLhEYpN7YUfqyUS+PhPnioFk3Uj7vMNLoe0r0voDM=
 20250303141439_billing-dedicated-customer-sync-table.down.sql h1:ISrqYwsdQNK1Qy70zNiRjgelHGaiJAADTu2cU7NF1uc=
 20250303141439_billing-dedicated-customer-sync-table.up.sql h1:qFZkjpqZpl/lgNTRXawawyZGE5yQvMrIhvYXvB4FAes=
-20250304063202_customer-same-key-delete.down.sql h1:oHDSftBWwh1VHxmhuPFkt272tpywJmQnnztcvL+TAC0=
-20250304063202_customer-same-key-delete.up.sql h1:bL65hM9iS1bd4mQuSfZU+PZeFxi16GKVwxuhp156CWk=
+20250304071554_customer-remove-is-deleted.down.sql h1:pbIqZN+jjYOgqoaQyGDTjnpUOl5Ft2LlHWsrjcmCJsE=
+20250304071554_customer-remove-is-deleted.up.sql h1:gUJEEF2TWMcnff2VAiZS1LUg8s7Kk4iDnTDwaBUtg8o=
