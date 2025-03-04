@@ -48,20 +48,6 @@ func (csu *CustomerSubjectsUpdate) ClearDeletedAt() *CustomerSubjectsUpdate {
 	return csu
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (csu *CustomerSubjectsUpdate) SetIsDeleted(b bool) *CustomerSubjectsUpdate {
-	csu.mutation.SetIsDeleted(b)
-	return csu
-}
-
-// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
-func (csu *CustomerSubjectsUpdate) SetNillableIsDeleted(b *bool) *CustomerSubjectsUpdate {
-	if b != nil {
-		csu.SetIsDeleted(*b)
-	}
-	return csu
-}
-
 // Mutation returns the CustomerSubjectsMutation object of the builder.
 func (csu *CustomerSubjectsUpdate) Mutation() *CustomerSubjectsMutation {
 	return csu.mutation
@@ -120,9 +106,6 @@ func (csu *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if csu.mutation.DeletedAtCleared() {
 		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := csu.mutation.IsDeleted(); ok {
-		_spec.SetField(customersubjects.FieldIsDeleted, field.TypeBool, value)
-	}
 	if n, err = sqlgraph.UpdateNodes(ctx, csu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customersubjects.Label}
@@ -160,20 +143,6 @@ func (csuo *CustomerSubjectsUpdateOne) SetNillableDeletedAt(t *time.Time) *Custo
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (csuo *CustomerSubjectsUpdateOne) ClearDeletedAt() *CustomerSubjectsUpdateOne {
 	csuo.mutation.ClearDeletedAt()
-	return csuo
-}
-
-// SetIsDeleted sets the "is_deleted" field.
-func (csuo *CustomerSubjectsUpdateOne) SetIsDeleted(b bool) *CustomerSubjectsUpdateOne {
-	csuo.mutation.SetIsDeleted(b)
-	return csuo
-}
-
-// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
-func (csuo *CustomerSubjectsUpdateOne) SetNillableIsDeleted(b *bool) *CustomerSubjectsUpdateOne {
-	if b != nil {
-		csuo.SetIsDeleted(*b)
-	}
 	return csuo
 }
 
@@ -264,9 +233,6 @@ func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *Cust
 	}
 	if csuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := csuo.mutation.IsDeleted(); ok {
-		_spec.SetField(customersubjects.FieldIsDeleted, field.TypeBool, value)
 	}
 	_node = &CustomerSubjects{config: csuo.config}
 	_spec.Assign = _node.assignValues

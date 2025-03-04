@@ -307,20 +307,6 @@ func (cu *CustomerUpdate) ClearCurrency() *CustomerUpdate {
 	return cu
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (cu *CustomerUpdate) SetIsDeleted(b bool) *CustomerUpdate {
-	cu.mutation.SetIsDeleted(b)
-	return cu
-}
-
-// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
-func (cu *CustomerUpdate) SetNillableIsDeleted(b *bool) *CustomerUpdate {
-	if b != nil {
-		cu.SetIsDeleted(*b)
-	}
-	return cu
-}
-
 // AddAppIDs adds the "apps" edge to the AppCustomer entity by IDs.
 func (cu *CustomerUpdate) AddAppIDs(ids ...int) *CustomerUpdate {
 	cu.mutation.AddAppIDs(ids...)
@@ -641,9 +627,6 @@ func (cu *CustomerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
-	}
-	if value, ok := cu.mutation.IsDeleted(); ok {
-		_spec.SetField(customer.FieldIsDeleted, field.TypeBool, value)
 	}
 	if cu.mutation.AppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1146,20 +1129,6 @@ func (cuo *CustomerUpdateOne) ClearCurrency() *CustomerUpdateOne {
 	return cuo
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (cuo *CustomerUpdateOne) SetIsDeleted(b bool) *CustomerUpdateOne {
-	cuo.mutation.SetIsDeleted(b)
-	return cuo
-}
-
-// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
-func (cuo *CustomerUpdateOne) SetNillableIsDeleted(b *bool) *CustomerUpdateOne {
-	if b != nil {
-		cuo.SetIsDeleted(*b)
-	}
-	return cuo
-}
-
 // AddAppIDs adds the "apps" edge to the AppCustomer entity by IDs.
 func (cuo *CustomerUpdateOne) AddAppIDs(ids ...int) *CustomerUpdateOne {
 	cuo.mutation.AddAppIDs(ids...)
@@ -1510,9 +1479,6 @@ func (cuo *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err
 	}
 	if cuo.mutation.CurrencyCleared() {
 		_spec.ClearField(customer.FieldCurrency, field.TypeString)
-	}
-	if value, ok := cuo.mutation.IsDeleted(); ok {
-		_spec.SetField(customer.FieldIsDeleted, field.TypeBool, value)
 	}
 	if cuo.mutation.AppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

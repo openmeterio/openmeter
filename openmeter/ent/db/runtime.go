@@ -646,10 +646,6 @@ func init() {
 			return nil
 		}
 	}()
-	// customerDescIsDeleted is the schema descriptor for is_deleted field.
-	customerDescIsDeleted := customerFields[3].Descriptor()
-	// customer.DefaultIsDeleted holds the default value on creation for the is_deleted field.
-	customer.DefaultIsDeleted = customerDescIsDeleted.Default.(bool)
 	// customerDescID is the schema descriptor for id field.
 	customerDescID := customerMixinFields0[0].Descriptor()
 	// customer.DefaultID holds the default value on creation for the id field.
@@ -675,10 +671,6 @@ func init() {
 	customersubjectsDescCreatedAt := customersubjectsFields[2].Descriptor()
 	// customersubjects.DefaultCreatedAt holds the default value on creation for the created_at field.
 	customersubjects.DefaultCreatedAt = customersubjectsDescCreatedAt.Default.(func() time.Time)
-	// customersubjectsDescIsDeleted is the schema descriptor for is_deleted field.
-	customersubjectsDescIsDeleted := customersubjectsFields[4].Descriptor()
-	// customersubjects.DefaultIsDeleted holds the default value on creation for the is_deleted field.
-	customersubjects.DefaultIsDeleted = customersubjectsDescIsDeleted.Default.(bool)
 	entitlementMixin := schema.Entitlement{}.Mixin()
 	entitlementMixinFields0 := entitlementMixin[0].Fields()
 	_ = entitlementMixinFields0

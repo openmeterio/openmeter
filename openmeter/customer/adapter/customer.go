@@ -35,7 +35,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 			query := repo.db.Customer.
 				Query().
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-					query.Where(customersubjectsdb.IsDeletedEQ(false))
+					query.Where(customersubjectsdb.DeletedAtIsNil())
 				}).
 				WithSubscription(func(sq *entdb.SubscriptionQuery) {
 					applyActiveSubscriptionFilter(sq, clock.Now().UTC())
@@ -45,7 +45,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 			// Do not return deleted customers by default
 			if !input.IncludeDeleted {
-				query = query.Where(customerdb.IsDeleted(false))
+				query = query.Where(customerdb.DeletedAtIsNil())
 			}
 
 			// Filters
@@ -233,8 +233,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			rows, err := repo.db.Customer.Update().
 				Where(customerdb.ID(input.ID)).
 				Where(customerdb.Namespace(input.Namespace)).
-				Where(customerdb.IsDeleted(false)).
-				SetIsDeleted(true).
+				Where(customerdb.DeletedAtIsNil()).
 				SetDeletedAt(deletedAt).
 				Save(ctx)
 			if err != nil {
@@ -250,8 +249,7 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				Update().
 				Where(customersubjectsdb.CustomerID(input.ID)).
 				Where(customersubjectsdb.Namespace(input.Namespace)).
-				Where(customersubjectsdb.IsDeletedEQ(false)).
-				SetIsDeleted(true).
+				Where(customersubjectsdb.DeletedAtIsNil()).
 				SetDeletedAt(deletedAt).
 				Exec(ctx)
 			if err != nil {
@@ -279,7 +277,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 
 			query := repo.db.Customer.Query().
 				WithSubjects(func(query *entdb.CustomerSubjectsQuery) {
-					query.Where(customersubjectsdb.IsDeletedEQ(false))
+					query.Where(customersubjectsdb.DeletedAtIsNil())
 				}).
 				WithSubscription(func(query *entdb.SubscriptionQuery) {
 					applyActiveSubscriptionFilter(query, clock.Now().UTC())
@@ -440,8 +438,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
 				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
 				Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
-				Where(customersubjectsdb.IsDeletedEQ(false)).
-				SetIsDeleted(true).
+				Where(customersubjectsdb.DeletedAtIsNil()).
 				SetDeletedAt(clock.Now().UTC()).
 				Exec(ctx)
 			if err != nil {

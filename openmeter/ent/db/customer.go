@@ -55,8 +55,6 @@ type Customer struct {
 	PrimaryEmail *string `json:"primary_email,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency *currencyx.Code `json:"currency,omitempty"`
-	// IsDeleted holds the value of the "is_deleted" field.
-	IsDeleted bool `json:"is_deleted,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges        CustomerEdges `json:"edges"`
@@ -134,8 +132,6 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldIsDeleted:
-			values[i] = new(sql.NullBool)
 		case customer.FieldID, customer.FieldNamespace, customer.FieldName, customer.FieldDescription, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber, customer.FieldKey, customer.FieldPrimaryEmail, customer.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
@@ -276,12 +272,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.Currency = new(currencyx.Code)
 				*c.Currency = currencyx.Code(value.String)
 			}
-		case customer.FieldIsDeleted:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_deleted", values[i])
-			} else if value.Valid {
-				c.IsDeleted = value.Bool
-			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
 		}
@@ -415,9 +405,6 @@ func (c *Customer) String() string {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("is_deleted=")
-	builder.WriteString(fmt.Sprintf("%v", c.IsDeleted))
 	builder.WriteByte(')')
 	return builder.String()
 }
