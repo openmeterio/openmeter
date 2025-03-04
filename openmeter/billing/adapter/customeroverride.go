@@ -132,6 +132,23 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 		}
 	}
 
+	if dbCustomerOverride.BillingProfileID == nil {
+		// Let's fetch the default billing profile
+		dbDefaultProfile, err := a.db.BillingProfile.Query().
+			Where(billingprofile.Namespace(input.Customer.Namespace)).
+			Where(billingprofile.Default(true)).
+			Where(billingprofile.DeletedAtIsNil()).
+			WithWorkflowConfig().
+			Only(ctx)
+		if err != nil {
+			if !db.IsNotFound(err) {
+				return nil, err
+			}
+		}
+
+		dbCustomerOverride.Edges.BillingProfile = dbDefaultProfile
+	}
+
 	return mapCustomerOverrideFromDB(dbCustomerOverride)
 }
 
@@ -141,17 +158,11 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 		Where(billingprofile.Namespace(input.Namespace)).
 		Where(billingprofile.Default(true)).
 		Where(billingprofile.DeletedAtIsNil()).
-		WithWorkflowConfig().
 		Only(ctx)
 	if err != nil {
 		if !db.IsNotFound(err) {
 			return billing.ListCustomerOverridesAdapterResult{}, err
 		}
-	}
-
-	defaultProfile, err := mapProfileFromDB(dbDefaultProfile)
-	if err != nil {
-		return billing.ListCustomerOverridesAdapterResult{}, err
 	}
 
 	query := a.db.BillingCustomerOverride.Query().
@@ -170,7 +181,7 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 
 	shouldIncludeDefaultProfile := false
 	if len(input.BillingProfiles) > 0 {
-		if defaultProfile != nil && slices.Contains(input.BillingProfiles, defaultProfile.ID) {
+		if dbDefaultProfile != nil && slices.Contains(input.BillingProfiles, dbDefaultProfile.ID) {
 			shouldIncludeDefaultProfile = true
 		}
 	} else {
@@ -188,41 +199,27 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 		return billing.ListCustomerOverridesAdapterResult{}, err
 	}
 
-	return pagination.MapPagedResponseError(res, func(dbOverride *db.BillingCustomerOverride) (billing.CustomerOverrideWithAdapterProfile, error) {
+	return pagination.MapPagedResponseError(res, func(dbOverride *db.BillingCustomerOverride) (billing.CustomerOverride, error) {
 		override, err := mapCustomerOverrideFromDB(dbOverride)
 		if err != nil {
-			return billing.CustomerOverrideWithAdapterProfile{}, err
+			return billing.CustomerOverride{}, err
 		}
 
-		var billingProfile *billing.AdapterGetProfileResponse
-		// let's see if we have explicit profile pinning
-		if dbOverride.Edges.BillingProfile != nil {
-			billingProfile, err = mapProfileFromDB(dbOverride.Edges.BillingProfile)
-			if err != nil {
-				return billing.CustomerOverrideWithAdapterProfile{}, err
-			}
-		} else {
-			billingProfile = defaultProfile
-		}
-
-		return billing.CustomerOverrideWithAdapterProfile{
-			CustomerOverride: *override,
-			BillingProfile:   billingProfile,
-		}, nil
+		return *override, nil
 	})
 }
 
 func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
 	rowsAffected, err := a.db.BillingCustomerOverride.Update().
-		Where(billingcustomeroverride.CustomerID(input.CustomerID)).
-		Where(billingcustomeroverride.Namespace(input.Namespace)).
+		Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
+		Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 		Where(billingcustomeroverride.DeletedAtIsNil()).
 		SetDeletedAt(clock.Now()).
 		Save(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return billing.NotFoundError{
-				ID:     input.CustomerID,
+				ID:     input.Customer.ID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideNotFound,
 			}
@@ -233,7 +230,7 @@ func (a *adapter) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 	if rowsAffected == 0 {
 		return billing.NotFoundError{
-			ID:     input.CustomerID,
+			ID:     input.Customer.ID,
 			Entity: billing.EntityCustomerOverride,
 			Err:    billing.ErrCustomerOverrideNotFound,
 		}
