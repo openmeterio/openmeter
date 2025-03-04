@@ -103,7 +103,7 @@ func (CustomerSubjects) Indexes() []ent.Index {
 		index.Fields("namespace", "subject_key").
 			Annotations(
 				// Partial index: We skip the index on active non deleted customer subjects.
-				entsql.IndexWhere("deleted_at is not null"),
+				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
 	}

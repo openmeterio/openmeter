@@ -1059,7 +1059,7 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[2]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at is not null",
+					Where: "deleted_at IS NULL",
 				},
 			},
 		},
