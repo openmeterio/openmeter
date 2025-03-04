@@ -126,8 +126,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 	now := clock.Now()
 
 	billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  invoice.Namespace,
-		CustomerID: invoice.Customer.CustomerID,
+		Customer: invoice.CustomerID(),
 	})
 	if err != nil {
 		return invoice, fmt.Errorf("fetching profile: %w", err)
@@ -241,8 +240,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		func(ctx context.Context) ([]billing.Invoice, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-				Namespace:  input.Customer.Namespace,
-				CustomerID: input.Customer.ID,
+				Customer: input.Customer,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("fetching customer profile: %w", err)
@@ -832,8 +830,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 	if invoice.Status == billing.InvoiceStatusGathering {
 		billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  input.Invoice.Namespace,
-			CustomerID: invoice.Customer.CustomerID,
+			Customer: invoice.CustomerID(),
 		})
 		if err != nil {
 			return billing.Invoice{}, fmt.Errorf("fetching profile: %w", err)
@@ -975,8 +972,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	billingProfile, err := s.getProfileWithCustomerOverride(ctx, s.adapter, billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  input.CustomerID.Namespace,
-		CustomerID: input.CustomerID.ID,
+		Customer: input.CustomerID,
 	})
 	if err != nil {
 		return billing.Invoice{}, fmt.Errorf("getting profile with customer override: %w", err)
