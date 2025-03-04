@@ -72,8 +72,10 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 				func(ctx context.Context) ([]*billing.Line, error) {
 					// let's resolve the customer's settings
 					customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-						Namespace:  input.Namespace,
-						CustomerID: customerID,
+						Customer: customer.CustomerID{
+							Namespace: input.Namespace,
+							ID:        customerID,
+						},
 					})
 					if err != nil {
 						return nil, fmt.Errorf("fetching customer profile: %w", err)
