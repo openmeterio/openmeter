@@ -1,6 +1,7 @@
 package timeutil_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -243,4 +244,193 @@ func TestGetPeriodAt(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestPeriodGeneration(t *testing.T) {
+	bpTz, err := time.LoadLocation("Europe/Budapest")
+	assert.NoError(t, err)
+
+	tc := []struct {
+		name       string
+		recurrence timeutil.Recurrence
+		from       time.Time
+		expected   []timeutil.Period
+
+		outputTz *time.Location
+	}{
+		{
+			name: "Should return periods for monthly recurrence",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2024-12-31T00:00:00Z"),
+			},
+			from: testutils.GetRFC3339Time(t, "2024-12-31T00:00:00Z"),
+			expected: []timeutil.Period{
+				{
+					From: testutils.GetRFC3339Time(t, "2024-12-31T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-01-31T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-01-31T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-02-28T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-02-28T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-03-31T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-03-31T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-04-30T00:00:00Z"),
+				},
+			},
+		},
+		{
+			// Last leap second was happening at  The most recent leap second was on December 31, 2016.
+			name: "Leap year handling",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodYear,
+				Anchor:   testutils.GetRFC3339Time(t, "2024-02-29T00:00:00Z"),
+			},
+			from: testutils.GetRFC3339Time(t, "2024-02-29T00:00:00Z"),
+			expected: []timeutil.Period{
+				{
+					From: testutils.GetRFC3339Time(t, "2024-02-29T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-02-28T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-02-28T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2026-02-28T00:00:00Z"),
+				},
+			},
+		},
+		{
+			name: "Daylight savings changes - anchor has timezone information",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2025-02-01T12:00:00Z").In(bpTz),
+			},
+			outputTz: bpTz,
+			from:     testutils.GetRFC3339Time(t, "2025-02-01T12:00:00Z").In(bpTz),
+			expected: []timeutil.Period{
+				{
+					From: testutils.GetRFC3339Time(t, "2025-02-01T13:00:00+01:00"),
+					To:   testutils.GetRFC3339Time(t, "2025-03-01T13:00:00+01:00"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-03-01T13:00:00+01:00"),
+					To:   testutils.GetRFC3339Time(t, "2025-04-01T13:00:00+02:00"), // Daylight savings keeps the anchor at 13:00
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-04-01T14:00:00+02:00"),
+					To:   testutils.GetRFC3339Time(t, "2025-05-01T14:00:00+02:00"),
+				},
+			},
+		},
+		{
+			name: "Daylight savings changes - anchor in UTC",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2025-02-01T12:00:00Z"),
+			},
+			from:     testutils.GetRFC3339Time(t, "2025-02-01T12:00:00Z").In(bpTz),
+			outputTz: bpTz,
+			expected: []timeutil.Period{
+				{
+					From: testutils.GetRFC3339Time(t, "2025-02-01T12:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-03-01T12:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-03-01T12:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-04-01T12:00:00Z"), // Daylight savings keeps the anchor at 13:00
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2025-04-01T12:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2025-05-01T12:00:00Z"),
+				},
+			},
+		},
+		{
+			// Last leap second was happening at  The most recent leap second was on December 31, 2016.
+			name: "Leap second handling",
+			recurrence: timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2016-11-30T00:00:00Z"),
+			},
+			from: testutils.GetRFC3339Time(t, "2016-11-30T00:00:00Z"),
+			expected: []timeutil.Period{
+				{
+					From: testutils.GetRFC3339Time(t, "2016-11-30T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2016-12-30T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2016-12-30T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2017-01-30T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2017-01-30T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2017-02-28T00:00:00Z"),
+				},
+				{
+					From: testutils.GetRFC3339Time(t, "2017-02-28T00:00:00Z"),
+					To:   testutils.GetRFC3339Time(t, "2017-03-30T00:00:00Z"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tc {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// v1
+			firstPeriod, err := tt.recurrence.GetPeriodAt(tt.from)
+			assert.NoError(err)
+
+			tz := time.UTC
+			if tt.outputTz != nil {
+				tz = tt.outputTz
+			}
+
+			periods := []timeutil.Period{firstPeriod}
+
+			for i := 1; i < len(tt.expected); i++ {
+				next, err := tt.recurrence.GetPeriodAt(periods[i-1].To)
+				assert.NoError(err)
+				periods = append(periods, next)
+			}
+
+			// v2
+			v2recurrence := timeutil.RecurrenceV2{
+				Anchor: tt.recurrence.Anchor,
+				Interval: timeutil.RecurrenceIntervalV2{
+					Period: tt.recurrence.Interval.Period,
+				},
+			}
+
+			firstPeriodV2, err := v2recurrence.GetPeriodAt(tt.from)
+			assert.NoError(err)
+
+			periodsV2 := []timeutil.Period{firstPeriodV2}
+
+			for i := 1; i < len(tt.expected); i++ {
+				next, err := v2recurrence.GetPeriodAt(periodsV2[i-1].To)
+				assert.NoError(err)
+				periodsV2 = append(periodsV2, next)
+			}
+
+			fmt.Printf("\n\n%s\n---------\n\n", tt.name)
+
+			for i := range tt.expected {
+				// TODO: log
+				fmt.Printf("iteration[%d]:\n\texp: [%s..%s]\n\tgot: [%s..%s]\n\tv2:  [%s..%s]\n",
+					i,
+					tt.expected[i].From.In(tz).Format(time.RFC3339), tt.expected[i].To.In(tz).Format(time.RFC3339),
+					periods[i].From.In(tz).Format(time.RFC3339), periods[i].To.In(tz).Format(time.RFC3339),
+					periodsV2[i].From.In(tz).Format(time.RFC3339), periodsV2[i].To.In(tz).Format(time.RFC3339),
+				)
+			}
+		})
+	}
+
+	assert.True(t, false)
 }
