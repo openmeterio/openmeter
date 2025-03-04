@@ -974,7 +974,6 @@ var (
 		{Name: "key", Type: field.TypeString, Nullable: true},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
-		{Name: "is_deleted", Type: field.TypeBool, Default: false},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -998,9 +997,12 @@ var (
 				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[0]},
 			},
 			{
-				Name:    "customer_namespace_key_is_deleted",
+				Name:    "customer_namespace_key",
 				Unique:  true,
-				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[15], CustomersColumns[18]},
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[15]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
 				Name:    "customer_name",
@@ -1011,11 +1013,6 @@ var (
 				Name:    "customer_primary_email",
 				Unique:  false,
 				Columns: []*schema.Column{CustomersColumns[16]},
-			},
-			{
-				Name:    "customer_is_deleted",
-				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[18]},
 			},
 			{
 				Name:    "customer_created_at",
@@ -1031,7 +1028,6 @@ var (
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "is_deleted", Type: field.TypeBool, Default: false},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CustomerSubjectsTable holds the schema information for the "customer_subjects" table.
@@ -1042,7 +1038,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "customer_subjects_customers_subjects",
-				Columns:    []*schema.Column{CustomerSubjectsColumns[6]},
+				Columns:    []*schema.Column{CustomerSubjectsColumns[5]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1054,16 +1050,16 @@ var (
 				Columns: []*schema.Column{CustomerSubjectsColumns[1]},
 			},
 			{
-				Name:    "customersubjects_namespace_customer_id_is_deleted",
+				Name:    "customersubjects_namespace_customer_id_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[6], CustomerSubjectsColumns[5]},
+				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[5], CustomerSubjectsColumns[4]},
 			},
 			{
-				Name:    "customersubjects_namespace_subject_key_is_deleted",
+				Name:    "customersubjects_namespace_subject_key",
 				Unique:  true,
-				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[2], CustomerSubjectsColumns[5]},
+				Columns: []*schema.Column{CustomerSubjectsColumns[1], CustomerSubjectsColumns[2]},
 				Annotation: &entsql.IndexAnnotation{
-					Where: "is_deleted = false",
+					Where: "deleted_at IS NULL",
 				},
 			},
 		},

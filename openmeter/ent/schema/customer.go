@@ -34,17 +34,19 @@ func (Customer) Fields() []ent.Field {
 		field.String("key").Optional(),
 		field.String("primary_email").Optional().Nillable(),
 		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).Optional().Nillable(),
-		field.Bool("is_deleted").Default(false),
 	}
 }
 
 func (Customer) Indexes() []ent.Index {
 	return []ent.Index{
 		// Indexes because of API filters
-		index.Fields("namespace", "key", "is_deleted").Unique(),
+		index.Fields("namespace", "key").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
+			Unique(),
 		index.Fields("name"),
 		index.Fields("primary_email"),
-		index.Fields("is_deleted"),
 		// Indexes because of API OrderBy
 		index.Fields("created_at"),
 	}
@@ -92,19 +94,16 @@ func (CustomerSubjects) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
-		// We use boolean for soft delete instead of time.Time
-		// because we can only add unique indexes on fields that are not nullable.
-		field.Bool("is_deleted").Default(false),
 	}
 }
 
 func (CustomerSubjects) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "customer_id", "is_deleted"),
-		index.Fields("namespace", "subject_key", "is_deleted").
+		index.Fields("namespace", "customer_id", "deleted_at"),
+		index.Fields("namespace", "subject_key").
 			Annotations(
 				// Partial index: We skip the index on active non deleted customer subjects.
-				entsql.IndexWhere("is_deleted = false"),
+				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
 	}

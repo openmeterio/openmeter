@@ -69,20 +69,6 @@ func (csc *CustomerSubjectsCreate) SetNillableDeletedAt(t *time.Time) *CustomerS
 	return csc
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (csc *CustomerSubjectsCreate) SetIsDeleted(b bool) *CustomerSubjectsCreate {
-	csc.mutation.SetIsDeleted(b)
-	return csc
-}
-
-// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableIsDeleted(b *bool) *CustomerSubjectsCreate {
-	if b != nil {
-		csc.SetIsDeleted(*b)
-	}
-	return csc
-}
-
 // SetCustomer sets the "customer" edge to the Customer entity.
 func (csc *CustomerSubjectsCreate) SetCustomer(c *Customer) *CustomerSubjectsCreate {
 	return csc.SetCustomerID(c.ID)
@@ -127,10 +113,6 @@ func (csc *CustomerSubjectsCreate) defaults() {
 		v := customersubjects.DefaultCreatedAt()
 		csc.mutation.SetCreatedAt(v)
 	}
-	if _, ok := csc.mutation.IsDeleted(); !ok {
-		v := customersubjects.DefaultIsDeleted
-		csc.mutation.SetIsDeleted(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -161,9 +143,6 @@ func (csc *CustomerSubjectsCreate) check() error {
 	}
 	if _, ok := csc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "CustomerSubjects.created_at"`)}
-	}
-	if _, ok := csc.mutation.IsDeleted(); !ok {
-		return &ValidationError{Name: "is_deleted", err: errors.New(`db: missing required field "CustomerSubjects.is_deleted"`)}
 	}
 	if len(csc.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "CustomerSubjects.customer"`)}
@@ -210,10 +189,6 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 	if value, ok := csc.mutation.DeletedAt(); ok {
 		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
-	}
-	if value, ok := csc.mutation.IsDeleted(); ok {
-		_spec.SetField(customersubjects.FieldIsDeleted, field.TypeBool, value)
-		_node.IsDeleted = value
 	}
 	if nodes := csc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -302,18 +277,6 @@ func (u *CustomerSubjectsUpsert) ClearDeletedAt() *CustomerSubjectsUpsert {
 	return u
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (u *CustomerSubjectsUpsert) SetIsDeleted(v bool) *CustomerSubjectsUpsert {
-	u.Set(customersubjects.FieldIsDeleted, v)
-	return u
-}
-
-// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsert) UpdateIsDeleted() *CustomerSubjectsUpsert {
-	u.SetExcluded(customersubjects.FieldIsDeleted)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -386,20 +349,6 @@ func (u *CustomerSubjectsUpsertOne) UpdateDeletedAt() *CustomerSubjectsUpsertOne
 func (u *CustomerSubjectsUpsertOne) ClearDeletedAt() *CustomerSubjectsUpsertOne {
 	return u.Update(func(s *CustomerSubjectsUpsert) {
 		s.ClearDeletedAt()
-	})
-}
-
-// SetIsDeleted sets the "is_deleted" field.
-func (u *CustomerSubjectsUpsertOne) SetIsDeleted(v bool) *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.SetIsDeleted(v)
-	})
-}
-
-// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsertOne) UpdateIsDeleted() *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.UpdateIsDeleted()
 	})
 }
 
@@ -641,20 +590,6 @@ func (u *CustomerSubjectsUpsertBulk) UpdateDeletedAt() *CustomerSubjectsUpsertBu
 func (u *CustomerSubjectsUpsertBulk) ClearDeletedAt() *CustomerSubjectsUpsertBulk {
 	return u.Update(func(s *CustomerSubjectsUpsert) {
 		s.ClearDeletedAt()
-	})
-}
-
-// SetIsDeleted sets the "is_deleted" field.
-func (u *CustomerSubjectsUpsertBulk) SetIsDeleted(v bool) *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.SetIsDeleted(v)
-	})
-}
-
-// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsertBulk) UpdateIsDeleted() *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.UpdateIsDeleted()
 	})
 }
 

@@ -48,8 +48,6 @@ const (
 	FieldPrimaryEmail = "primary_email"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldIsDeleted holds the string denoting the is_deleted field in the database.
-	FieldIsDeleted = "is_deleted"
 	// EdgeApps holds the string denoting the apps edge name in mutations.
 	EdgeApps = "apps"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
@@ -119,7 +117,6 @@ var Columns = []string{
 	FieldKey,
 	FieldPrimaryEmail,
 	FieldCurrency,
-	FieldIsDeleted,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -145,8 +142,6 @@ var (
 	BillingAddressCountryValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
-	// DefaultIsDeleted holds the default value on creation for the "is_deleted" field.
-	DefaultIsDeleted bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -237,11 +232,6 @@ func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByIsDeleted orders the results by the is_deleted field.
-func ByIsDeleted(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsDeleted, opts...).ToFunc()
 }
 
 // ByAppsCount orders the results by apps count.

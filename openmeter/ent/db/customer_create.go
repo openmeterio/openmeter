@@ -244,20 +244,6 @@ func (cc *CustomerCreate) SetNillableCurrency(c *currencyx.Code) *CustomerCreate
 	return cc
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (cc *CustomerCreate) SetIsDeleted(b bool) *CustomerCreate {
-	cc.mutation.SetIsDeleted(b)
-	return cc
-}
-
-// SetNillableIsDeleted sets the "is_deleted" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableIsDeleted(b *bool) *CustomerCreate {
-	if b != nil {
-		cc.SetIsDeleted(*b)
-	}
-	return cc
-}
-
 // SetID sets the "id" field.
 func (cc *CustomerCreate) SetID(s string) *CustomerCreate {
 	cc.mutation.SetID(s)
@@ -394,10 +380,6 @@ func (cc *CustomerCreate) defaults() {
 		v := customer.DefaultUpdatedAt()
 		cc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := cc.mutation.IsDeleted(); !ok {
-		v := customer.DefaultIsDeleted
-		cc.mutation.SetIsDeleted(v)
-	}
 	if _, ok := cc.mutation.ID(); !ok {
 		v := customer.DefaultID()
 		cc.mutation.SetID(v)
@@ -432,9 +414,6 @@ func (cc *CustomerCreate) check() error {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
 		}
-	}
-	if _, ok := cc.mutation.IsDeleted(); !ok {
-		return &ValidationError{Name: "is_deleted", err: errors.New(`db: missing required field "Customer.is_deleted"`)}
 	}
 	return nil
 }
@@ -539,10 +518,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
 		_node.Currency = &value
-	}
-	if value, ok := cc.mutation.IsDeleted(); ok {
-		_spec.SetField(customer.FieldIsDeleted, field.TypeBool, value)
-		_node.IsDeleted = value
 	}
 	if nodes := cc.mutation.AppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -934,18 +909,6 @@ func (u *CustomerUpsert) ClearCurrency() *CustomerUpsert {
 	return u
 }
 
-// SetIsDeleted sets the "is_deleted" field.
-func (u *CustomerUpsert) SetIsDeleted(v bool) *CustomerUpsert {
-	u.Set(customer.FieldIsDeleted, v)
-	return u
-}
-
-// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateIsDeleted() *CustomerUpsert {
-	u.SetExcluded(customer.FieldIsDeleted)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1298,20 +1261,6 @@ func (u *CustomerUpsertOne) UpdateCurrency() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearCurrency() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
-	})
-}
-
-// SetIsDeleted sets the "is_deleted" field.
-func (u *CustomerUpsertOne) SetIsDeleted(v bool) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetIsDeleted(v)
-	})
-}
-
-// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateIsDeleted() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateIsDeleted()
 	})
 }
 
@@ -1834,20 +1783,6 @@ func (u *CustomerUpsertBulk) UpdateCurrency() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearCurrency() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearCurrency()
-	})
-}
-
-// SetIsDeleted sets the "is_deleted" field.
-func (u *CustomerUpsertBulk) SetIsDeleted(v bool) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetIsDeleted(v)
-	})
-}
-
-// UpdateIsDeleted sets the "is_deleted" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateIsDeleted() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateIsDeleted()
 	})
 }
 

@@ -149,11 +149,6 @@ func Currency(v currencyx.Code) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
 }
 
-// IsDeleted applies equality check predicate on the "is_deleted" field. It's identical to IsDeletedEQ.
-func IsDeleted(v bool) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldIsDeleted, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldNamespace, v))
@@ -1285,16 +1280,6 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Customer {
 func CurrencyContainsFold(v currencyx.Code) predicate.Customer {
 	vc := string(v)
 	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
-}
-
-// IsDeletedEQ applies the EQ predicate on the "is_deleted" field.
-func IsDeletedEQ(v bool) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldIsDeleted, v))
-}
-
-// IsDeletedNEQ applies the NEQ predicate on the "is_deleted" field.
-func IsDeletedNEQ(v bool) predicate.Customer {
-	return predicate.Customer(sql.FieldNEQ(FieldIsDeleted, v))
 }
 
 // HasApps applies the HasEdge predicate on the "apps" edge.
