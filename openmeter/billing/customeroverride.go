@@ -201,39 +201,29 @@ func (u UpdateCustomerOverrideInput) Validate() error {
 	return nil
 }
 
-type namespacedCustomerID struct {
-	Namespace  string `json:"namespace"`
-	CustomerID string `json:"customerID"`
+type GetCustomerOverrideInput struct {
+	Customer customer.CustomerID    `json:"customerID"`
+	Expand   CustomerOverrideExpand `json:"expand,omitempty"`
 }
-
-func (g namespacedCustomerID) Validate() error {
-	if g.Namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-
-	if g.CustomerID == "" {
-		return fmt.Errorf("customer id is required")
-	}
-
-	return nil
-}
-
-type GetCustomerOverrideInput namespacedCustomerID
 
 func (g GetCustomerOverrideInput) Validate() error {
-	return namespacedCustomerID(g).Validate()
+	return g.Customer.Validate()
 }
 
-type DeleteCustomerOverrideInput namespacedCustomerID
+type DeleteCustomerOverrideInput struct {
+	Customer customer.CustomerID
+}
 
 func (d DeleteCustomerOverrideInput) Validate() error {
-	return namespacedCustomerID(d).Validate()
+	return d.Customer.Validate()
 }
 
-type GetProfileWithCustomerOverrideInput namespacedCustomerID
+type GetProfileWithCustomerOverrideInput struct {
+	Customer customer.CustomerID
+}
 
 func (g GetProfileWithCustomerOverrideInput) Validate() error {
-	return namespacedCustomerID(g).Validate()
+	return g.Customer.Validate()
 }
 
 type GetCustomerOverrideAdapterInput struct {
@@ -281,7 +271,7 @@ type CustomerOverrideWithMergedProfile struct {
 type CustomerOverrideWithAdapterProfile struct {
 	CustomerOverride `json:",inline"`
 
-	BillingProfile *AdapterGetProfileResponse `json:"billingProfile,omitempty"`
+	DefaultProfile *AdapterGetProfileResponse `json:"billingProfile,omitempty"`
 }
 
 type ListCustomerOverridesInput struct {
@@ -315,4 +305,4 @@ type CustomerOverrideExpand struct {
 
 type ListCustomerOverridesResult = pagination.PagedResponse[CustomerOverrideWithMergedProfile]
 
-type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverrideWithAdapterProfile]
+type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverride]
