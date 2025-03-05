@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -170,8 +171,13 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		}
 	}
 
-	if d.From != nil {
-		where = append(where, query.GreaterEqualThan(getColumn("time"), d.From.Unix()))
+	if d.From != nil || d.Meter.EventFrom != nil {
+		from, ok := lo.Coalesce(d.From, d.Meter.EventFrom)
+		if !ok {
+			return "", nil, fmt.Errorf("missing from time")
+		}
+
+		where = append(where, query.GreaterEqualThan(getColumn("time"), from.Unix()))
 	}
 
 	if d.To != nil {

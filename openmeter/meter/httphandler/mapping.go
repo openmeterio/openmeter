@@ -22,6 +22,7 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 		Description:   m.Description,
 		Slug:          m.Key,
 		EventType:     m.EventType,
+		EventFrom:     m.EventFrom,
 		Aggregation:   api.MeterAggregation(m.Aggregation),
 		ValueProperty: m.ValueProperty,
 		CreatedAt:     m.CreatedAt,

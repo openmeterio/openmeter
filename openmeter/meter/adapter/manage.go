@@ -28,6 +28,7 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 				SetNillableDescription(input.Description).
 				SetAggregation(input.Aggregation).
 				SetEventType(input.EventType).
+				SetNillableEventFrom(input.EventFrom).
 				SetNillableValueProperty(input.ValueProperty).
 				SetGroupBy(input.GroupBy).
 				Save(ctx)

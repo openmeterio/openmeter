@@ -114,6 +114,12 @@ func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter met
 		return fmt.Errorf("meter is required")
 	}
 
+	if meter.EventFrom != nil {
+		return models.NewGenericValidationError(
+			fmt.Errorf("event from is not supported with materialized view engine"),
+		)
+	}
+
 	err := c.createMeterView(ctx, namespace, meter)
 	if err != nil {
 		return fmt.Errorf("init: %w", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -88,6 +89,7 @@ type CreateMeterInput struct {
 	Description   *string
 	Aggregation   MeterAggregation
 	EventType     string
+	EventFrom     *time.Time
 	ValueProperty *string
 	GroupBy       map[string]string
 }
@@ -102,6 +104,7 @@ func (i CreateMeterInput) Validate() error {
 		i.Description,
 		i.Aggregation,
 		i.EventType,
+		i.EventFrom,
 		i.ValueProperty,
 		i.GroupBy,
 	)

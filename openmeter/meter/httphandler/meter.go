@@ -170,6 +170,7 @@ func (h handler) CreateMeter() CreateMeterHandler {
 				Key:           request.MeterCreate.Slug,
 				Name:          request.MeterCreate.Name,
 				EventType:     request.MeterCreate.EventType,
+				EventFrom:     request.MeterCreate.EventFrom,
 				Aggregation:   meter.MeterAggregation(request.MeterCreate.Aggregation),
 				Description:   request.MeterCreate.Description,
 				ValueProperty: request.MeterCreate.ValueProperty,

@@ -147,7 +147,7 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 			ManagedResource: models.ManagedResource{
 				ID: ulid.Make().String(),
 				NamespacedModel: models.NamespacedModel{
-					Namespace: "default",
+					Namespace: s.Namespace,
 				},
 				ManagedModel: models.ManagedModel{
 					CreatedAt: time.Now(),

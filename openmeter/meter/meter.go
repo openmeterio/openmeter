@@ -133,6 +133,7 @@ type Meter struct {
 	Key           string `mapstructure:"slug"`
 	Aggregation   MeterAggregation
 	EventType     string
+	EventFrom     *time.Time
 	ValueProperty *string
 	GroupBy       map[string]string
 
@@ -241,6 +242,7 @@ func (m *Meter) Validate() error {
 		m.Description,
 		m.Aggregation,
 		m.EventType,
+		m.EventFrom,
 		m.ValueProperty,
 		m.GroupBy,
 	)
@@ -252,6 +254,7 @@ func ValidateMeter(
 	description *string,
 	aggregation MeterAggregation,
 	eventType string,
+	eventFrom *time.Time,
 	valueProperty *string,
 	groupBy map[string]string,
 ) error {
@@ -263,6 +266,9 @@ func ValidateMeter(
 	}
 	if eventType == "" {
 		return errors.New("meter event type is required")
+	}
+	if eventFrom != nil && eventFrom.IsZero() {
+		return errors.New("meter event from cannot be zero if provided")
 	}
 	if aggregation == "" {
 		return errors.New("meter aggregation is required")

@@ -5222,6 +5222,14 @@ export interface components {
        */
       eventType: string
       /**
+       * Format: date-time
+       * @description The date since the meter should include events.
+       *     Useful to skip old events.
+       *     If not specified, all historical events are included.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      eventFrom?: Date
+      /**
        * @description JSONPath expression to extract the value from the ingested event's data property.
        *
        *     The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
@@ -5296,6 +5304,14 @@ export interface components {
        * @example prompt
        */
       eventType: string
+      /**
+       * Format: date-time
+       * @description The date since the meter should include events.
+       *     Useful to skip old events.
+       *     If not specified, all historical events are included.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      eventFrom?: Date
       /**
        * @description JSONPath expression to extract the value from the ingested event's data property.
        *

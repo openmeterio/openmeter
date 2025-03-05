@@ -94,6 +94,7 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 		Key:           entity.Key,
 		Aggregation:   entity.Aggregation,
 		EventType:     entity.EventType,
+		EventFrom:     entity.EventFrom,
 		ValueProperty: entity.ValueProperty,
 		GroupBy:       entity.GroupBy,
 		WindowSize:    meter.WindowSizeMinute,

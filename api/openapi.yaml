@@ -12886,6 +12886,14 @@ components:
           minLength: 1
           description: The event type to aggregate.
           example: prompt
+        eventFrom:
+          type: string
+          format: date-time
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+          example: '2023-01-01T01:01:01.001Z'
         valueProperty:
           type: string
           minLength: 1
@@ -12984,6 +12992,14 @@ components:
           minLength: 1
           description: The event type to aggregate.
           example: prompt
+        eventFrom:
+          type: string
+          format: date-time
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+          example: '2023-01-01T01:01:01.001Z'
         valueProperty:
           type: string
           minLength: 1

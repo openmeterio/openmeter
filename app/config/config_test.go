@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -259,15 +258,15 @@ func TestComplete(t *testing.T) {
 		Meters: []*meter.Meter{
 			{
 				ManagedResource: models.ManagedResource{
-					ID: ulid.Make().String(),
+					ID: "m1",
 					NamespacedModel: models.NamespacedModel{
 						Namespace: "default",
 					},
 					ManagedModel: models.ManagedModel{
-						CreatedAt: time.Now(),
-						UpdatedAt: time.Now(),
+						CreatedAt: actual.Meters[0].ManagedResource.CreatedAt,
+						UpdatedAt: actual.Meters[0].ManagedResource.UpdatedAt,
 					},
-					Name: "Meter 1",
+					Name: "m1",
 				},
 				Key:           "m1",
 				Aggregation:   "SUM",
@@ -277,6 +276,7 @@ func TestComplete(t *testing.T) {
 					"method": "$.method",
 					"path":   "$.path",
 				},
+				WindowSize: meter.WindowSizeMinute,
 			},
 		},
 		Events: EventsConfiguration{

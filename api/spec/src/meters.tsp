@@ -158,6 +158,13 @@ model Meter {
   eventType: string;
 
   /**
+   * The date since the meter should include events.
+   * Useful to skip old events.
+   * If not specified, all historical events are included.
+   */
+  eventFrom?: DateTime;
+
+  /**
    * JSONPath expression to extract the value from the ingested event's data property.
    *
    * The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
