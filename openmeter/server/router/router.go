@@ -85,7 +85,7 @@ type Config struct {
 	GrantRepo                   grant.Repo
 	IngestHandler               http.Handler
 	Logger                      *slog.Logger
-	MeterService                meter.Service
+	MeterManageService          meter.ManageService
 	MeterEventService           meterevent.Service
 	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
@@ -112,14 +112,25 @@ func (c Config) Validate() error {
 		return errors.New("ingest handler is required")
 	}
 
-	// Validate repositories
-	if c.MeterService == nil {
-		return errors.New("meters repository is required")
+	// Validate connectors
+	if c.AppsEnabled {
+		if c.App == nil {
+			return errors.New("app service is required")
+		}
+
+		if c.AppStripe == nil {
+			return errors.New("app stripe service is required")
+		}
 	}
 
-	// Validate connectors
-	if c.StreamingConnector == nil {
-		return errors.New("streaming connector is required")
+	if c.BillingEnabled || c.AppsEnabled {
+		if c.Customer == nil {
+			return errors.New("customer service is required")
+		}
+	}
+
+	if c.BillingEnabled && c.Billing == nil {
+		return errors.New("billing service is required")
 	}
 
 	if c.DebugConnector == nil {
@@ -142,28 +153,16 @@ func (c Config) Validate() error {
 		return errors.New("grant connector is required")
 	}
 
+	if c.MeterManageService == nil {
+		return errors.New("meter manage service is required")
+	}
+
 	if c.Notification == nil {
 		return errors.New("notification service is required")
 	}
 
-	if c.AppsEnabled {
-		if c.App == nil {
-			return errors.New("app service is required")
-		}
-
-		if c.AppStripe == nil {
-			return errors.New("app stripe service is required")
-		}
-	}
-
-	if c.BillingEnabled || c.AppsEnabled {
-		if c.Customer == nil {
-			return errors.New("customer service is required")
-		}
-	}
-
-	if c.BillingEnabled && c.Billing == nil {
-		return errors.New("billing service is required")
+	if c.StreamingConnector == nil {
+		return errors.New("streaming connector is required")
 	}
 
 	return nil
@@ -224,7 +223,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	router.meterHandler = meterhttphandler.New(
 		staticNamespaceDecoder,
-		config.MeterService,
+		config.MeterManageService,
 		config.StreamingConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
@@ -329,7 +328,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.portalHandler = portalhttphandler.New(
 		staticNamespaceDecoder,
 		config.Portal,
-		config.MeterService,
+		config.MeterManageService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

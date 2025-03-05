@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/golang-migrate/migrate/v4/database/clickhouse"
 	"github.com/google/wire"
 	"github.com/samber/lo"
 
@@ -18,10 +17,23 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-var MeterInMemory = wire.NewSet(
+type MeterConfigInitializer = func(ctx context.Context) error
+
+var Meter = wire.NewSet(
+	NewMeterService,
+)
+
+var MeterManage = wire.NewSet(
+	Meter,
+	NewMeterManageService,
+)
+
+var MeterManageWithConfigMeters = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Meters"),
 
-	NewMeterService,
+	Meter,
+	NewMeterManageService,
+	NewMeterConfigInitializer,
 )
 
 func NewMeterService(
@@ -44,10 +56,8 @@ func NewMeterManageService(
 	db *entdb.Client,
 	logger *slog.Logger,
 	entitlementRegistry *registry.Entitlement,
-	clickHouse clickhouse.ClickHouse,
 	namespaceManager *namespace.Manager,
 	streamingConnector streaming.Connector,
-	configMeters []*meter.Meter,
 ) (meter.ManageService, error) {
 	meterManageService, err := adapter.NewManage(adapter.ManageConfig{
 		Config: adapter.Config{
@@ -63,15 +73,26 @@ func NewMeterManageService(
 		return nil, fmt.Errorf("failed to create meter manage service: %w", err)
 	}
 
-	// Create config meters if they don't exist in the database
-	if len(configMeters) > 0 {
-		err = createConfigMetersInDatabase(ctx, logger, configMeters, namespaceManager, meterManageService)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create config meters in database: %w", err)
-		}
-	}
-
 	return meterManageService, nil
+}
+
+func NewMeterConfigInitializer(
+	logger *slog.Logger,
+	configMeters []*meter.Meter,
+	meterManagerService meter.ManageService,
+	namespaceManager *namespace.Manager,
+) MeterConfigInitializer {
+	return func(ctx context.Context) error {
+		// Create config meters if they don't exist in the database
+		if len(configMeters) > 0 {
+			err := createConfigMetersInDatabase(ctx, logger, configMeters, namespaceManager, meterManagerService)
+			if err != nil {
+				return fmt.Errorf("failed to create config meters in database: %w", err)
+			}
+		}
+
+		return nil
+	}
 }
 
 // createConfigMetersInDatabase creates meters in the database if they don't exist

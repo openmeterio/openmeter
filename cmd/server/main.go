@@ -143,6 +143,13 @@ func main() {
 		}
 	}
 
+	// Create meters from config
+	err = app.MeterConfigInitializer(ctx)
+	if err != nil {
+		logger.Error("failed to initialize meters from config", "error", err)
+		os.Exit(1)
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			App:                         app.App,
@@ -160,7 +167,7 @@ func main() {
 			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
 			IngestHandler:               ingestHandler,
 			Logger:                      logger,
-			MeterService:                app.MeterService,
+			MeterManageService:          app.MeterManageService,
 			MeterEventService:           app.MeterEventService,
 			NamespaceManager:            app.NamespaceManager,
 			Notification:                app.Notification,

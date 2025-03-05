@@ -84,22 +84,22 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errors.New("no meters configured: add meter to configuration file"))
 	}
 
-	for _, m := range c.Meters {
+	for idx, m := range c.Meters {
 		// Namespace is not configurable on per meter level
-		m.Namespace = c.Namespace.Default
+		c.Meters[idx].Namespace = c.Namespace.Default
 
 		// Fallback ID to slug if ID is not set
-		m.ID = m.Key
+		c.Meters[idx].ID = m.Key
 
 		// Fallback to slug if name is not set
 		if m.Name == "" {
-			m.Name = m.Key
+			c.Meters[idx].Name = m.Key
 		}
 
 		// Window size is deprecated, always set to MINUTE
-		m.WindowSize = meter.WindowSizeMinute
+		c.Meters[idx].WindowSize = meter.WindowSizeMinute
 
-		if err := m.Validate(); err != nil {
+		if err := c.Meters[idx].Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}

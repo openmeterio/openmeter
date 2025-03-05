@@ -49,7 +49,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Feature,
 		common.Framework,
 		common.KafkaTopic,
-		common.MeterInMemory,
+		common.Meter,
 		common.NewDefaultTextMapPropagator,
 		common.Notification,
 		common.NotificationServiceProvisionTopics,

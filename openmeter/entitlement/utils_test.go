@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -75,7 +76,7 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
 		Namespace:     "ns1",
-		ID:            "01JNHVAJCF26WV0NWAZ7HDFAW7",
+		ID:            ulid.Make().String(),
 		Key:           "meter1",
 		Name:          "Meter 1",
 		Aggregation:   meter.MeterAggregationMax,

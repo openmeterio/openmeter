@@ -20,7 +20,9 @@ func (a *adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 	query := a.db.Meter.Query()
 
 	if !params.WithoutNamespace {
-		query = query.Where(meterdb.NamespaceEQ(params.Namespace))
+		query = query.
+			Where(meterdb.NamespaceEQ(params.Namespace)).
+			Where(meterdb.DeletedAtIsNil())
 	}
 
 	if params.SlugFilter != nil {

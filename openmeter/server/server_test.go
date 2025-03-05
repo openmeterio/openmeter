@@ -164,7 +164,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	mockStreamingConnector := &MockStreamingConnector{}
 
-	meterService, err := meteradapter.New(mockMeters)
+	meterManageService, err := meteradapter.NewManage(mockMeters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
@@ -177,7 +177,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			FeatureConnector:            &NoopFeatureConnector{},
 			GrantConnector:              &NoopGrantConnector{},
-			MeterService:                meterService,
+			MeterManageService:          meterManageService,
 			MeterEventService:           meterEventService,
 			StreamingConnector:          mockStreamingConnector,
 			DebugConnector:              MockDebugHandler{},

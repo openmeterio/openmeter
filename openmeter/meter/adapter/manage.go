@@ -24,6 +24,7 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 			entity, err := repo.db.Meter.Create().
 				SetNamespace(input.Namespace).
 				SetKey(input.Key).
+				SetName(input.Name).
 				SetNillableDescription(input.Description).
 				SetAggregation(input.Aggregation).
 				SetEventType(input.EventType).

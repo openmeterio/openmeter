@@ -35,7 +35,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Database,
 		common.Framework,
 		common.KafkaTopic,
-		common.MeterInMemory,
+		common.Meter,
 		common.NewDefaultTextMapPropagator,
 		common.Streaming,
 		common.Telemetry,

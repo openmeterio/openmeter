@@ -50,7 +50,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Framework,
 		common.KafkaTopic,
 		common.KafkaNamespaceResolver,
-		common.MeterInMemory,
+		common.Meter,
 		common.NewDefaultTextMapPropagator,
 		common.NewFlushHandler,
 		common.NewSinkWorkerPublisher,

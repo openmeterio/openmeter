@@ -42,4 +42,24 @@ func (c *adapter) init() {
 	})
 }
 
+func NewManage(meters []meter.Meter) (meter.ManageService, error) {
+	adapter, err := New(meters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &manageAdapter{
+		adapter: adapter,
+		Service: adapter,
+	}, nil
+}
+
+var _ meter.ManageService = (*manageAdapter)(nil)
+
+type manageAdapter struct {
+	adapter *adapter
+
+	meter.Service
+}
+
 type TestAdapter = adapter

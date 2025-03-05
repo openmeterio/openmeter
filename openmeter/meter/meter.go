@@ -128,7 +128,7 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 type Meter struct {
 	Namespace     string
 	ID            string
-	Key           string
+	Key           string `mapstructure:"slug"`
 	Name          string
 	Description   *string
 	Aggregation   MeterAggregation
