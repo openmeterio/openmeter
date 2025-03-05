@@ -14,7 +14,10 @@ func New(meters []meter.Meter) (*adapter, error) {
 
 	a.init()
 
-	for _, m := range meters {
+	for idx, m := range meters {
+		// Window size is deprecated, it's always minute
+		meters[idx].WindowSize = meter.WindowSizeMinute
+
 		if err := m.Validate(); err != nil {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("failed to validate meter: %w", err),
