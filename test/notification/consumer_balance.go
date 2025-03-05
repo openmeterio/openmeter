@@ -101,6 +101,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 			Namespace:     s.namespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
 			Key:           TestMeterSlug,
+			Name:          "Meter 1",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: lo.ToPtr("$.duration_ms"),

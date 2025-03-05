@@ -74,8 +74,10 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Key:           "meter1",
 		Namespace:     "ns1",
+		ID:            "01JNHVAJCF26WV0NWAZ7HDFAW7",
+		Key:           "meter1",
+		Name:          "Meter 1",
 		Aggregation:   meter.MeterAggregationMax,
 		EventType:     "test",
 		ValueProperty: lo.ToPtr("$.value"),

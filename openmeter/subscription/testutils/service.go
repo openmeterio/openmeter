@@ -3,6 +3,7 @@ package subscriptiontestutils
 import (
 	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -47,7 +48,9 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		ID:            ulid.Make().String(),
 		Key:           ExampleFeatureMeterSlug,
+		Name:          "Meter 1",
 		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
 		ValueProperty: lo.ToPtr("$.value"),

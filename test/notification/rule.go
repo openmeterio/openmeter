@@ -65,6 +65,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Namespace:     TestNamespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
 			Key:           TestMeterSlug,
+			Name:          "Test Meter",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: lo.ToPtr("$.duration_ms"),

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -73,6 +74,8 @@ func setupDependencies(t *testing.T) Dependencies {
 	meters := []meter.Meter{
 		{
 			Namespace:   "namespace-1",
+			ID:          ulid.Make().String(),
+			Name:        "Meter 1",
 			Key:         "meter-1",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "test",

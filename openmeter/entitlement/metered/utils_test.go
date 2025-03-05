@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
@@ -64,6 +65,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		ID:          ulid.Make().String(),
 		Key:         meterSlug,
 		Name:        "Meter 1",
 		Namespace:   namespace,

@@ -10,6 +10,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
@@ -114,6 +115,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
+			ID:            ulid.Make().String(),
+			Name:          "Meter 1",
 			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
@@ -121,6 +124,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			Namespace:     namespace,
+			ID:            ulid.Make().String(),
+			Name:          "Meter 1",
 			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
@@ -128,6 +133,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			Namespace:     namespace,
+			ID:            ulid.Make().String(),
+			Name:          "Meter 1",
 			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
@@ -135,6 +142,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			Namespace:     namespace,
+			ID:            ulid.Make().String(),
+			Name:          "Meter 1",
 			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
@@ -142,6 +151,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			Namespace:     namespace,
+			ID:            ulid.Make().String(),
+			Name:          "Meter 1",
 			Key:           "ai-flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",

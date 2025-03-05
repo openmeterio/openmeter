@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +64,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "valid meter",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -74,7 +78,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "valid without group by",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -84,7 +91,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "count is valid without value property",
 			meter: Meter{
+				Namespace:   ulid.Make().String(),
+				ID:          ulid.Make().String(),
 				Key:         "slug-test",
+				Name:        "Test meter",
 				Aggregation: MeterAggregationCount,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -94,7 +104,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "count is invalid with value property",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationCount,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -105,7 +118,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "slug is empty",
 			meter: Meter{
+				Namespace:   ulid.Make().String(),
+				ID:          ulid.Make().String(),
 				Aggregation: MeterAggregationCount,
+				Name:        "Test meter",
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
@@ -114,7 +130,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "aggregation is empty",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
@@ -124,7 +143,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "window size is empty",
 			meter: Meter{
+				Namespace:   ulid.Make().String(),
+				ID:          ulid.Make().String(),
 				Key:         "slug-test",
+				Name:        "Test meter",
 				Aggregation: MeterAggregationCount,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -134,7 +156,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "event type is empty",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
@@ -144,7 +169,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "missing value property",
 			meter: Meter{
+				Namespace:   ulid.Make().String(),
+				ID:          ulid.Make().String(),
 				Key:         "slug-test",
+				Name:        "Test meter",
 				Aggregation: MeterAggregationSum,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -154,7 +182,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid value property",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("invalid"),
@@ -165,7 +196,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by key",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -176,7 +210,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by key",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -187,7 +224,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by property",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -198,7 +238,10 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "value property cannot be in the group by",
 			meter: Meter{
+				Namespace:     ulid.Make().String(),
+				ID:            ulid.Make().String(),
 				Key:           "slug-test",
+				Name:          "Test meter",
 				Aggregation:   MeterAggregationUniqueCount,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),

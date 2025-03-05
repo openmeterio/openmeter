@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
@@ -20,7 +21,9 @@ func TestNamespaceStore(t *testing.T) {
 
 	meter1 := meter.Meter{
 		Namespace:     "default",
+		ID:            ulid.Make().String(),
 		Key:           "m1",
+		Name:          "Meter 1",
 		Aggregation:   "SUM",
 		EventType:     "api-calls",
 		ValueProperty: lo.ToPtr("$.duration_ms"),

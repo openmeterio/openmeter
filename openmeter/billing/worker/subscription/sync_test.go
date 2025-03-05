@@ -145,6 +145,8 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     s.Namespace,
+			ID:            ulid.Make().String(),
+			Name:          "API Requests Total",
 			Key:           apiRequestsTotalMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",

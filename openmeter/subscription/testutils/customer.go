@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -41,7 +42,9 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
+		ID:            ulid.Make().String(),
 		Key:           ExampleFeatureMeterSlug,
+		Name:          "Meter 1",
 		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "test",

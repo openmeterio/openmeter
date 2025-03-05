@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
@@ -162,7 +163,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
+			ID:            ulid.Make().String(),
 			Key:           meterSlug,
+			Name:          "Meter 1",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
