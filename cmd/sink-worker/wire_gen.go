@@ -57,16 +57,34 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TracerProvider:    tracerProvider,
 		TextMapPropagator: textMapPropagator,
 	}
+	postgresConfig := conf.Postgres
+	meter := common.NewMeter(meterProvider, commonMetadata)
+	driver, cleanup4, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	db := common.NewDB(driver)
+	entPostgresDriver, cleanup5 := common.NewEntPostgresDriver(db, logger)
+	client := common.NewEntClient(entPostgresDriver)
+	migrator := common.Migrator{
+		Config: postgresConfig,
+		Client: client,
+		Logger: logger,
+	}
 	eventsConfiguration := conf.Events
 	sinkConfiguration := conf.Sink
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
-	meter := common.NewMeter(meterProvider, commonMetadata)
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	v := common.SinkWorkerProvisionTopics(eventsConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
+		cleanup5()
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -76,6 +94,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaTopicProvisionerConfig := common.NewKafkaTopicProvisionerConfig(adminClient, logger, meter, topicProvisionerConfig)
 	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaTopicProvisionerConfig)
 	if err != nil {
+		cleanup5()
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -86,8 +106,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		ProvisionTopics:  v,
 		TopicProvisioner: topicProvisioner,
 	}
-	publisher, cleanup4, err := common.NewSinkWorkerPublisher(ctx, publisherOptions, logger)
+	publisher, cleanup6, err := common.NewSinkWorkerPublisher(ctx, publisherOptions, logger)
 	if err != nil {
+		cleanup5()
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -95,6 +117,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -103,24 +127,14 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	flushEventHandler, err := common.NewFlushHandler(eventsConfiguration, sinkConfiguration, publisher, eventbusPublisher, logger, meter)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return Application{}, nil, err
 	}
-	postgresConfig := conf.Postgres
-	driver, cleanup5, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
-	if err != nil {
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	db := common.NewDB(driver)
-	entPostgresDriver, cleanup6 := common.NewEntPostgresDriver(db, logger)
-	client := common.NewEntClient(entPostgresDriver)
 	service, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup6()
@@ -180,6 +194,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	application := Application{
 		GlobalInitializer: globalInitializer,
+		Migrator:          migrator,
 		FlushHandler:      flushEventHandler,
 		Logger:            logger,
 		Metadata:          commonMetadata,
@@ -206,6 +221,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 
 type Application struct {
 	common.GlobalInitializer
+	common.Migrator
 
 	FlushHandler     flushhandler.FlushEventHandler
 	Logger           *slog.Logger

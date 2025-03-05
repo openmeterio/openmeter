@@ -26,6 +26,7 @@ import (
 
 type Application struct {
 	common.GlobalInitializer
+	common.Migrator
 
 	FlushHandler     flushhandler.FlushEventHandler
 	Logger           *slog.Logger
