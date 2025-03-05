@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
@@ -96,8 +97,10 @@ func (c Configuration) Validate() error {
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			},
-			ID:          m.Key,
-			Name:        m.Key,
+			ID: m.Key,
+			// Meter used to not have a name,
+			// so we need to coalesce it with the key when it comes from the config
+			Name:        lo.CoalesceOrEmpty(m.Name, m.Key),
 			Description: m.Description,
 		}
 

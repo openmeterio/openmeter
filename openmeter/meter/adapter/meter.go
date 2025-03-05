@@ -52,7 +52,7 @@ func (a *adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterIn
 		Where(meterdb.NamespaceEQ(input.Namespace)).
 		Where(meterdb.Or(
 			meterdb.ID(input.IDOrSlug),
-			meterdb.Key(input.IDOrSlug),
+			meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
 		)).
 		First(ctx)
 	if err != nil {

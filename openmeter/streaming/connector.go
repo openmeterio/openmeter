@@ -57,7 +57,7 @@ type Connector interface {
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
 	ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params ListMeterSubjectsParams) ([]string, error)
 	BatchInsert(ctx context.Context, events []RawEvent) error
-	// Add more methods as needed ...
+	ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)
 }
 
 // ListMeterSubjectsParams is a parameter object for listing subjects.

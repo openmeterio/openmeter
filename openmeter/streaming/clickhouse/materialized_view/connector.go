@@ -214,6 +214,10 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 	return subjects, nil
 }
 
+func (c *Connector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return c.rawEventConnector.ValidateJSONPath(ctx, jsonPath)
+}
+
 func (c *Connector) createMeterView(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	// CreateOrReplace is used to force the recreation of the materialized view
 	// This is not safe to use in production as it will drop the existing views

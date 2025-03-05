@@ -108,31 +108,7 @@ interface Events extends OpenMeter.Events {}
 
 @route("/api/v1/meters")
 @tag("Meters")
-interface Meters extends OpenMeter.Meters {
-  /**
-   * Create a meter.
-   */
-  @post
-  @operationId("createMeter")
-  @summary("Create meter")
-  create(
-    @body
-    meter: MeterCreate,
-  ): {
-    @statusCode _: 201;
-    @body body: OpenMeter.Meter;
-  } | OpenMeter.CommonErrors;
-
-  /**
-   * Delete a meter.
-   */
-  @delete
-  @operationId("deleteMeter")
-  @summary("Delete meter")
-  delete(
-    @path meterIdOrSlug: OpenMeter.MeterIdentifier,
-  ): void | OpenMeter.CommonErrors;
-}
+interface Meters extends OpenMeter.Meters {}
 
 namespace OpenMeterCloud.Portal {
   @route("/api/v1/portal/tokens")
@@ -241,18 +217,3 @@ namespace OpenMeterCloud.Info {
   @tag("Lookup Information")
   interface Currencies extends OpenMeter.Info.Currencies {}
 }
-
-/**
- * A meter is a configuration that defines how to match and aggregate events.
- */
-@friendlyName("MeterCreate")
-@example(#{
-  slug: "tokens_total",
-  name: "Tokens Total",
-  description: "AI Token Usage",
-  aggregation: OpenMeter.MeterAggregation.SUM,
-  eventType: "prompt",
-  valueProperty: "$.tokens",
-  groupBy: #{ `model`: "$.model", type: "$.type" },
-})
-model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;

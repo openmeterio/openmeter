@@ -228,6 +228,31 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 	return nil
 }
 
+// ValidateJSONPath checks if the given JSON path is valid by executing a simple query with it.
+func (c *Connector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	query := validateJsonPathQuery{
+		jsonPath: jsonPath,
+	}
+
+	sql, args, err := query.toSQL()
+	if err != nil {
+		return false, fmt.Errorf("validate jsonpath query: %w", err)
+	}
+
+	err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	if err != nil {
+		// Code 36 means bad arguments
+		// See: https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp
+		if strings.Contains(err.Error(), "code: 36") {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	table := queryEventsTable{
 		Database:        c.config.Database,

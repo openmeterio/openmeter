@@ -3,6 +3,7 @@ package testutils
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -106,6 +107,10 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 
 func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
 	return nil
+}
+
+func (m *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return strings.HasPrefix(jsonPath, "$."), nil
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases

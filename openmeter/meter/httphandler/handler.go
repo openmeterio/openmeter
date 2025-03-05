@@ -19,6 +19,8 @@ type Handler interface {
 type MeterHandler interface {
 	ListMeters() ListMetersHandler
 	GetMeter() GetMeterHandler
+	CreateMeter() CreateMeterHandler
+	DeleteMeter() DeleteMeterHandler
 	QueryMeter() QueryMeterHandler
 	QueryMeterCSV() QueryMeterCSVHandler
 	ListSubjects() ListSubjectsHandler
@@ -29,7 +31,7 @@ var _ Handler = (*handler)(nil)
 type handler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	meterService     meter.Service
+	meterService     meter.ManageService
 	streaming        streaming.Connector
 }
 
@@ -44,7 +46,7 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 
 func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
-	meterService meter.Service,
+	meterService meter.ManageService,
 	streaming streaming.Connector,
 	options ...httptransport.HandlerOption,
 ) Handler {

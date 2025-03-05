@@ -150,6 +150,10 @@ func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []strea
 	return nil
 }
 
+func (c *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return true, nil
+}
+
 type MockDebugHandler struct{}
 
 func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {

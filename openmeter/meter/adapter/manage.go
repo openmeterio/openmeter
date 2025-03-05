@@ -3,9 +3,9 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -106,16 +106,12 @@ func (a manageAdapter) DeleteMeter(ctx context.Context, input meterpkg.DeleteMet
 		ctx,
 		a,
 		func(ctx context.Context, repo *manageAdapter) error {
-			_, err := repo.db.Meter.Delete().
-				Where(meterdb.NamespaceEQ(input.Namespace)).
-				Where(meterdb.Or(
-					meterdb.ID(input.IDOrSlug),
-					meterdb.Key(input.IDOrSlug),
-				)).
-				Exec(ctx)
+			_, err := repo.db.Meter.UpdateOneID(meter.ID).
+				SetDeletedAt(time.Now()).
+				Save(ctx)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return meterpkg.NewMeterNotFoundError(input.IDOrSlug)
+					return meterpkg.NewMeterNotFoundError(meter.Key)
 				}
 
 				if db.IsConstraintError(err) {
