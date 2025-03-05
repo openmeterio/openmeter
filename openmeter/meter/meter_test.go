@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestWindowSizeFromDuration(t *testing.T) {
