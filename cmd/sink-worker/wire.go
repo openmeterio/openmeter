@@ -46,6 +46,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		metadata,
 		common.ClickHouse,
 		common.Config,
+		common.Database,
 		common.Framework,
 		common.KafkaTopic,
 		common.KafkaNamespaceResolver,

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -257,15 +258,13 @@ func TestComplete(t *testing.T) {
 			{
 				Namespace:     "default",
 				Slug:          "m1",
-				Description:   "",
 				Aggregation:   "SUM",
 				EventType:     "api-calls",
-				ValueProperty: "$.duration_ms",
+				ValueProperty: lo.ToPtr("$.duration_ms"),
 				GroupBy: map[string]string{
 					"method": "$.method",
 					"path":   "$.path",
 				},
-				WindowSize: meter.WindowSizeMinute,
 			},
 		},
 		Events: EventsConfiguration{

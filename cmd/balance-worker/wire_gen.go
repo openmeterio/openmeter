@@ -145,8 +145,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3 := conf.Meters
-	service, err := common.NewMeterService(v3)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -156,7 +155,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, service, logger)
+	service, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -199,8 +198,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BalanceWorkerGroup(ctx, worker, v4)
+	v3, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BalanceWorkerGroup(ctx, worker, v3)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,

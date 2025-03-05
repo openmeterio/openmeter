@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -30,7 +31,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -54,7 +55,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -91,7 +92,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -111,7 +112,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -132,7 +133,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -154,7 +155,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -177,7 +178,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -198,7 +199,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -219,7 +220,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"group1": "$.group1",
 						"group2": "$.group2",
@@ -240,7 +241,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"g1": "$.group1",
 						"g2": "$.group2",
@@ -260,7 +261,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"g1": "$.group1",
 						"g2": "$.group2",
@@ -280,7 +281,7 @@ func TestQueryMeter(t *testing.T) {
 					Slug:          "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
-					ValueProperty: "$.value",
+					ValueProperty: lo.ToPtr("$.value"),
 					GroupBy: map[string]string{
 						"g1": "$.group1",
 						"g2": "$.group2",

@@ -248,9 +248,9 @@ namespace OpenMeterCloud.Info {
 @friendlyName("MeterCreate")
 @example(#{
   slug: "tokens_total",
+  name: "Tokens Total",
   description: "AI Token Usage",
   aggregation: OpenMeter.MeterAggregation.SUM,
-  windowSize: OpenMeter.WindowSize.MINUTE,
   eventType: "prompt",
   valueProperty: "$.tokens",
   groupBy: #{ `model`: "$.model", type: "$.type" },

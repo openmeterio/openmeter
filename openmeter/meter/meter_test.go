@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,9 +65,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: nil,
@@ -76,9 +76,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 			},
 			error: nil,
 		},
@@ -87,7 +86,6 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:        "slug-test",
 				Aggregation: MeterAggregationCount,
-				WindowSize:  WindowSizeMinute,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
@@ -98,9 +96,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationCount,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter value property is not allowed when the aggregation is count"),
@@ -109,7 +106,6 @@ func TestMeterValidation(t *testing.T) {
 			description: "slug is empty",
 			meter: Meter{
 				Aggregation: MeterAggregationCount,
-				WindowSize:  WindowSizeMinute,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
@@ -119,9 +115,8 @@ func TestMeterValidation(t *testing.T) {
 			description: "aggregation is empty",
 			meter: Meter{
 				Slug:          "slug-test",
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter aggregation is required"),
@@ -141,20 +136,28 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter event type is required"),
+		},
+		{
+			description: "missing value property",
+			meter: Meter{
+				Slug:        "slug-test",
+				Aggregation: MeterAggregationSum,
+				EventType:   "event-type-test",
+				GroupBy:     map[string]string{"test_group": "$.test_group"},
+			},
+			error: fmt.Errorf("meter value property is required"),
 		},
 		{
 			description: "invalid value property",
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "invalid",
+				ValueProperty: lo.ToPtr("invalid"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter value property must start with $"),
@@ -164,9 +167,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"in-valid": "$.test_group"},
 			},
 			error: fmt.Errorf("meter group by key in-valid is invalid, only alphanumeric and underscore characters are allowed"),
@@ -176,9 +178,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"": "$.test_group"},
 			},
 			error: fmt.Errorf("meter group by key cannot be empty"),
@@ -188,9 +189,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "invalid"},
 			},
 			error: fmt.Errorf("meter group by value must start with $ for key test_group"),
@@ -200,9 +200,8 @@ func TestMeterValidation(t *testing.T) {
 			meter: Meter{
 				Slug:          "slug-test",
 				Aggregation:   MeterAggregationUniqueCount,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.my_property"},
 			},
 			error: fmt.Errorf("meter group by value test_group cannot be the same as value property"),

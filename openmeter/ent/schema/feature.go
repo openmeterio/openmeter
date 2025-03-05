@@ -48,5 +48,11 @@ func (Feature) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("entitlement", Entitlement.Type),
 		edge.To("ratecard", PlanRateCard.Type),
+		// FIXME: enable foreign key constraints
+		// edge.From("meter", Meter.Type).
+		// 	Ref("feature").
+		// 	Field("meter_slug").
+		// 	Required().
+		// 	Immutable(),
 	}
 }

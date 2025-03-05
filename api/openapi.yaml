@@ -12704,6 +12704,7 @@ components:
       type: object
       required:
         - id
+        - name
         - slug
         - aggregation
         - eventType
@@ -12714,6 +12715,11 @@ components:
           description: A unique identifier for the meter.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           readOnly: true
+        name:
+          type: string
+          minLength: 1
+          description: A human-readable name for the meter.
+          example: Tokens Total
         slug:
           type: string
           minLength: 1
@@ -12733,16 +12739,6 @@ components:
             - $ref: '#/components/schemas/MeterAggregation'
           description: The aggregation type to use for the meter.
           example: SUM
-        windowSize:
-          allOf:
-            - $ref: '#/components/schemas/WindowSize'
-          description: |-
-            The window size that the usage is stored in.
-            This controls the query granularity of the usage data.
-            The larger the window size, the less space is used to store the data.
-            By default, the window size is a minute.
-          example: MINUTE
-          default: MINUTE
         eventType:
           type: string
           minLength: 1
@@ -12774,9 +12770,9 @@ components:
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         slug: tokens_total
+        name: Tokens Total
         description: AI Token Usage
         aggregation: SUM
-        windowSize: MINUTE
         eventType: prompt
         valueProperty: $.tokens
         groupBy:

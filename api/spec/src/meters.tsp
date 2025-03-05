@@ -84,9 +84,9 @@ interface Meters {
 @example(#{
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   slug: "tokens_total",
+  name: "Tokens Total",
   description: "AI Token Usage",
   aggregation: MeterAggregation.SUM,
-  windowSize: WindowSize.MINUTE,
   eventType: "prompt",
   valueProperty: "$.tokens",
   groupBy: #{ `model`: "$.model", type: "$.type" },
@@ -98,6 +98,13 @@ model Meter {
   @visibility(Lifecycle.Read)
   @example("01G65Z755AFWAKHE12NY0CQ9FH")
   id: ULID;
+
+  /**
+   * A human-readable name for the meter.
+   */
+  @minLength(1)
+  @example("Tokens Total")
+  name: string;
 
   /**
    * A unique, human-readable identifier for the meter.
@@ -118,15 +125,6 @@ model Meter {
    */
   @example(MeterAggregation.SUM)
   aggregation: MeterAggregation;
-
-  /**
-   * The window size that the usage is stored in.
-   * This controls the query granularity of the usage data.
-   * The larger the window size, the less space is used to store the data.
-   * By default, the window size is a minute.
-   */
-  @example(WindowSize.MINUTE)
-  windowSize?: WindowSize = WindowSize.MINUTE;
 
   /**
    * The event type to aggregate.

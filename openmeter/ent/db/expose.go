@@ -133,6 +133,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Grant: NewGrantClient(config),
 
+		Meter: NewMeterClient(config),
+
 		NotificationChannel: NewNotificationChannelClient(config),
 
 		NotificationEvent: NewNotificationEventClient(config),

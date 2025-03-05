@@ -1581,6 +1581,90 @@ func (u *GrantUpdateOne) SetOrClearVoidedAt(value *time.Time) *GrantUpdateOne {
 	return u.SetVoidedAt(*value)
 }
 
+func (u *MeterUpdate) SetOrClearMetadata(value *map[string]string) *MeterUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearMetadata(value *map[string]string) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *MeterUpdate) SetOrClearDeletedAt(value *time.Time) *MeterUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearDeletedAt(value *time.Time) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *MeterUpdate) SetOrClearDescription(value *string) *MeterUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearDescription(value *string) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *MeterUpdate) SetOrClearValueProperty(value *string) *MeterUpdate {
+	if value == nil {
+		return u.ClearValueProperty()
+	}
+	return u.SetValueProperty(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearValueProperty(value *string) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearValueProperty()
+	}
+	return u.SetValueProperty(*value)
+}
+
+func (u *MeterUpdate) SetOrClearGroupBy(value *map[string]string) *MeterUpdate {
+	if value == nil {
+		return u.ClearGroupBy()
+	}
+	return u.SetGroupBy(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearGroupBy(value *map[string]string) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearGroupBy()
+	}
+	return u.SetGroupBy(*value)
+}
+
+func (u *MeterUpdate) SetOrClearEventFrom(value *time.Time) *MeterUpdate {
+	if value == nil {
+		return u.ClearEventFrom()
+	}
+	return u.SetEventFrom(*value)
+}
+
+func (u *MeterUpdateOne) SetOrClearEventFrom(value *time.Time) *MeterUpdateOne {
+	if value == nil {
+		return u.ClearEventFrom()
+	}
+	return u.SetEventFrom(*value)
+}
+
 func (u *NotificationChannelUpdate) SetOrClearDeletedAt(value *time.Time) *NotificationChannelUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

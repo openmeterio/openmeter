@@ -81,10 +81,9 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		{
 			Namespace:     namespace,
 			Slug:          "test",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "meter adapter should be able to replace meters")
@@ -1456,34 +1455,30 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		{
 			Namespace:     namespace,
 			Slug:          "flat-per-unit",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
 			Slug:          "flat-per-usage",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
 			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
 			Slug:          "tiered-volume",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "meter adapter replace meters")
@@ -2354,10 +2349,9 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		{
 			Namespace:     namespace,
 			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "failed to replace meters")
@@ -2590,34 +2584,30 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		{
 			Namespace:     namespace,
 			Slug:          "flat-per-unit",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
 			Slug:          "flat-per-usage",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
 			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
 			Slug:          "tiered-volume",
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "failed to replace meters")
@@ -3175,10 +3165,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		{
 			Namespace:     namespace,
 			Slug:          meterSlug,
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "failed to replace meters")

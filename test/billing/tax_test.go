@@ -163,10 +163,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		{
 			Namespace:     namespace,
 			Slug:          meterSlug,
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	s.NoError(err, "meter replacement must not return error")

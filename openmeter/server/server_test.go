@@ -14,6 +14,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
@@ -31,8 +32,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -57,20 +58,18 @@ var mockMeters = []meter.Meter{
 		Namespace:     DefaultNamespace,
 		ID:            ulid.Make().String(),
 		Slug:          "meter1",
-		WindowSize:    meter.WindowSizeMinute,
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 		GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
 	},
 	{
 		Namespace:     DefaultNamespace,
 		ID:            ulid.Make().String(),
 		Slug:          "meter2",
-		WindowSize:    meter.WindowSizeMinute,
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 	},
 }
 

@@ -88,10 +88,16 @@ func (c Configuration) Validate() error {
 		// Namespace is not configurable on per meter level
 		m.Namespace = c.Namespace.Default
 
-		// set default window size
-		if m.WindowSize == "" {
-			m.WindowSize = meter.WindowSizeMinute
+		// Fallback ID to slug if ID is not set
+		m.ID = m.Slug
+
+		// Fallback to slug if name is not set
+		if m.Name == "" {
+			m.Name = m.Slug
 		}
+
+		// Window size is deprecated, always set to MINUTE
+		m.WindowSize = meter.WindowSizeMinute
 
 		if err := m.Validate(); err != nil {
 			errs = append(errs, err)

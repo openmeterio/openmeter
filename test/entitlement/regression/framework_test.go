@@ -18,7 +18,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalogrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -74,7 +74,6 @@ func setupDependencies(t *testing.T) Dependencies {
 		{
 			Namespace:   "namespace-1",
 			Slug:        "meter-1",
-			WindowSize:  meter.WindowSizeMinute,
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "test",
 		},

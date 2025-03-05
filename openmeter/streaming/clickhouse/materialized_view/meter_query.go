@@ -25,7 +25,7 @@ type createMeterView struct {
 	Namespace       string
 	MeterSlug       string
 	EventType       string
-	ValueProperty   string
+	ValueProperty   *string
 	GroupBy         map[string]string
 	// Populate creates the materialized view with data from the events table
 	// This is not safe to use in production as requires to stop ingestion
@@ -132,9 +132,9 @@ func (d createMeterView) toSelectSQL() (string, error) {
 	if d.Aggregation == meter.MeterAggregationCount {
 		selects = append(selects, fmt.Sprintf("%s(*) AS value", aggStateFn))
 	} else if d.Aggregation == meter.MeterAggregationUniqueCount {
-		selects = append(selects, fmt.Sprintf("%s(JSON_VALUE(data, '%s')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+		selects = append(selects, fmt.Sprintf("%s(JSON_VALUE(data, '%s')) AS value", aggStateFn, sqlbuilder.Escape(*d.ValueProperty)))
 	} else {
-		selects = append(selects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+		selects = append(selects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(*d.ValueProperty)))
 	}
 
 	// Group by

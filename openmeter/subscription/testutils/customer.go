@@ -10,7 +10,7 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -44,9 +44,8 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 		Slug:          ExampleFeatureMeterSlug,
 		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
-		WindowSize:    meter.WindowSizeMinute,
 		EventType:     "test",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 	}})
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)

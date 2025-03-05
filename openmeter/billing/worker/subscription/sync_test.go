@@ -146,10 +146,9 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 		{
 			Namespace:     s.Namespace,
 			Slug:          apiRequestsTotalMeterSlug,
-			WindowSize:    meter.WindowSizeMinute,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	s.NoError(err, "Replacing meters must not return error")

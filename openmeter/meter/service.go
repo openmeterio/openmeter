@@ -83,11 +83,12 @@ func (p ListMetersParams) Validate() error {
 // CreateMeterInput is a parameter object for creating a meter.
 type CreateMeterInput struct {
 	Namespace     string
-	Slug          string
-	Description   string
+	Name          string
+	Key           string
+	Description   *string
 	Aggregation   MeterAggregation
 	EventType     string
-	ValueProperty string
+	ValueProperty *string
 	GroupBy       map[string]string
 }
 
@@ -95,10 +96,15 @@ type CreateMeterInput struct {
 func (i CreateMeterInput) Validate() error {
 	var errs []error
 
-	_, err := NewMeter(i.Slug, i.Aggregation, i.EventType, i.ValueProperty, &MeterOptions{
-		Description: i.Description,
-		GroupBy:     i.GroupBy,
-	})
+	err := ValidateMeter(
+		i.Key,
+		i.Name,
+		i.Description,
+		i.Aggregation,
+		i.EventType,
+		i.ValueProperty,
+		i.GroupBy,
+	)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("invalid meter create: %w", err))
 	}

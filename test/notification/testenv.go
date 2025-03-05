@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"

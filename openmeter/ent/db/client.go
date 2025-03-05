@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -101,6 +102,8 @@ type Client struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// Meter is the client for interacting with the Meter builders.
+	Meter *MeterClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
 	NotificationChannel *NotificationChannelClient
 	// NotificationEvent is the client for interacting with the NotificationEvent builders.
@@ -156,6 +159,7 @@ func (c *Client) init() {
 	c.Entitlement = NewEntitlementClient(c.config)
 	c.Feature = NewFeatureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
+	c.Meter = NewMeterClient(c.config)
 	c.NotificationChannel = NewNotificationChannelClient(c.config)
 	c.NotificationEvent = NewNotificationEventClient(c.config)
 	c.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(c.config)
@@ -281,6 +285,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Entitlement:                        NewEntitlementClient(cfg),
 		Feature:                            NewFeatureClient(cfg),
 		Grant:                              NewGrantClient(cfg),
+		Meter:                              NewMeterClient(cfg),
 		NotificationChannel:                NewNotificationChannelClient(cfg),
 		NotificationEvent:                  NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus:    NewNotificationEventDeliveryStatusClient(cfg),
@@ -333,6 +338,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Entitlement:                        NewEntitlementClient(cfg),
 		Feature:                            NewFeatureClient(cfg),
 		Grant:                              NewGrantClient(cfg),
+		Meter:                              NewMeterClient(cfg),
 		NotificationChannel:                NewNotificationChannelClient(cfg),
 		NotificationEvent:                  NewNotificationEventClient(cfg),
 		NotificationEventDeliveryStatus:    NewNotificationEventDeliveryStatusClient(cfg),
@@ -379,7 +385,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
 		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
 		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.Subscription,
 		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
@@ -398,7 +404,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingInvoiceLine, c.BillingInvoiceLineDiscount,
 		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
 		c.BillingProfile, c.BillingSequenceNumbers, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanPhase, c.PlanRateCard, c.Subscription,
 		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
@@ -454,6 +460,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Feature.mutate(ctx, m)
 	case *GrantMutation:
 		return c.Grant.mutate(ctx, m)
+	case *MeterMutation:
+		return c.Meter.mutate(ctx, m)
 	case *NotificationChannelMutation:
 		return c.NotificationChannel.mutate(ctx, m)
 	case *NotificationEventMutation:
@@ -4383,6 +4391,139 @@ func (c *GrantClient) mutate(ctx context.Context, m *GrantMutation) (Value, erro
 	}
 }
 
+// MeterClient is a client for the Meter schema.
+type MeterClient struct {
+	config
+}
+
+// NewMeterClient returns a client for the Meter from the given config.
+func NewMeterClient(c config) *MeterClient {
+	return &MeterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `dbmeter.Hooks(f(g(h())))`.
+func (c *MeterClient) Use(hooks ...Hook) {
+	c.hooks.Meter = append(c.hooks.Meter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `dbmeter.Intercept(f(g(h())))`.
+func (c *MeterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Meter = append(c.inters.Meter, interceptors...)
+}
+
+// Create returns a builder for creating a Meter entity.
+func (c *MeterClient) Create() *MeterCreate {
+	mutation := newMeterMutation(c.config, OpCreate)
+	return &MeterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Meter entities.
+func (c *MeterClient) CreateBulk(builders ...*MeterCreate) *MeterCreateBulk {
+	return &MeterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MeterClient) MapCreateBulk(slice any, setFunc func(*MeterCreate, int)) *MeterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MeterCreateBulk{err: fmt.Errorf("calling to MeterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MeterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MeterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Meter.
+func (c *MeterClient) Update() *MeterUpdate {
+	mutation := newMeterMutation(c.config, OpUpdate)
+	return &MeterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MeterClient) UpdateOne(m *Meter) *MeterUpdateOne {
+	mutation := newMeterMutation(c.config, OpUpdateOne, withMeter(m))
+	return &MeterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MeterClient) UpdateOneID(id string) *MeterUpdateOne {
+	mutation := newMeterMutation(c.config, OpUpdateOne, withMeterID(id))
+	return &MeterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Meter.
+func (c *MeterClient) Delete() *MeterDelete {
+	mutation := newMeterMutation(c.config, OpDelete)
+	return &MeterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MeterClient) DeleteOne(m *Meter) *MeterDeleteOne {
+	return c.DeleteOneID(m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MeterClient) DeleteOneID(id string) *MeterDeleteOne {
+	builder := c.Delete().Where(dbmeter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MeterDeleteOne{builder}
+}
+
+// Query returns a query builder for Meter.
+func (c *MeterClient) Query() *MeterQuery {
+	return &MeterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMeter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Meter entity by its id.
+func (c *MeterClient) Get(ctx context.Context, id string) (*Meter, error) {
+	return c.Query().Where(dbmeter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MeterClient) GetX(ctx context.Context, id string) *Meter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MeterClient) Hooks() []Hook {
+	return c.hooks.Meter
+}
+
+// Interceptors returns the client interceptors.
+func (c *MeterClient) Interceptors() []Interceptor {
+	return c.inters.Meter
+}
+
+func (c *MeterClient) mutate(ctx context.Context, m *MeterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MeterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MeterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MeterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MeterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown Meter mutation op: %q", m.Op())
+	}
+}
+
 // NotificationChannelClient is a client for the NotificationChannel schema.
 type NotificationChannelClient struct {
 	config
@@ -6223,7 +6364,7 @@ type (
 		BillingInvoiceLineDiscount, BillingInvoiceUsageBasedLineConfig,
 		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		Meter, NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, Plan, PlanPhase, PlanRateCard, Subscription,
 		SubscriptionItem, SubscriptionPhase, UsageReset []ent.Hook
 	}
@@ -6234,7 +6375,7 @@ type (
 		BillingInvoiceLineDiscount, BillingInvoiceUsageBasedLineConfig,
 		BillingInvoiceValidationIssue, BillingProfile, BillingSequenceNumbers,
 		BillingWorkflowConfig, Customer, CustomerSubjects, Entitlement, Feature, Grant,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		Meter, NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, Plan, PlanPhase, PlanRateCard, Subscription,
 		SubscriptionItem, SubscriptionPhase, UsageReset []ent.Interceptor
 	}

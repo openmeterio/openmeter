@@ -17,19 +17,13 @@ import (
 // ToAPIMeter converts a meter.Meter to an api.Meter.
 func ToAPIMeter(m meter.Meter) api.Meter {
 	apiMeter := api.Meter{
-		Id:          m.ID,
-		Slug:        m.Slug,
-		EventType:   m.EventType,
-		WindowSize:  lo.ToPtr(api.WindowSize(m.WindowSize)),
-		Aggregation: api.MeterAggregation(m.Aggregation),
-	}
-
-	if m.Description != "" {
-		apiMeter.Description = &m.Description
-	}
-
-	if m.ValueProperty != "" {
-		apiMeter.ValueProperty = &m.ValueProperty
+		Id:            m.ID,
+		Name:          m.Name,
+		Description:   m.Description,
+		Slug:          m.Slug,
+		EventType:     m.EventType,
+		Aggregation:   api.MeterAggregation(m.Aggregation),
+		ValueProperty: m.ValueProperty,
 	}
 
 	if len(m.GroupBy) > 0 {

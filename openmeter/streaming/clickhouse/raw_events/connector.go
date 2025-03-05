@@ -104,7 +104,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	if err := params.Validate(meter); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 

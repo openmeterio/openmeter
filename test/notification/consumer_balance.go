@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
@@ -102,12 +103,11 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 			Slug:          TestMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
-			ValueProperty: "$.duration_ms",
+			ValueProperty: lo.ToPtr("$.duration_ms"),
 			GroupBy: map[string]string{
 				"method": "$.method",
 				"path":   "$.path",
 			},
-			WindowSize: "MINUTE",
 		},
 	})
 	require.NoError(t, err, "Replacing meters must not return error")

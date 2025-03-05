@@ -10,11 +10,10 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	raw_events "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
-	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ streaming.Connector = (*Connector)(nil)
@@ -30,7 +29,6 @@ type ConnectorConfig struct {
 	ClickHouse      clickhouse.Conn
 	Database        string
 	EventsTableName string
-	Meters          meter.Service
 
 	CreateOrReplaceMeter bool
 	PopulateMeter        bool
@@ -55,10 +53,6 @@ func (c ConnectorConfig) Validate() error {
 
 	if c.EventsTableName == "" {
 		return fmt.Errorf("events table name is required")
-	}
-
-	if c.Meters == nil {
-		return fmt.Errorf("meters repository is required")
 	}
 
 	return nil
@@ -95,11 +89,9 @@ func (c *Connector) CreateNamespace(ctx context.Context, namespace string) error
 }
 
 func (c *Connector) DeleteNamespace(ctx context.Context, namespace string) error {
-	err := c.deleteNamespace(ctx, namespace)
-	if err != nil {
-		return fmt.Errorf("delete namespace in clickhouse: %w", err)
-	}
-	return nil
+	return models.NewGenericNotImplementedError(
+		fmt.Errorf("delete namespace is not implemented with materialized view engine"),
+	)
 }
 
 func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent) error {
@@ -158,7 +150,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("meter is required")
 	}
 
-	if err := params.Validate(meter); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
@@ -220,33 +212,6 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 	}
 
 	return subjects, nil
-}
-
-// DeleteNamespace deletes the namespace related resources from Clickhouse
-// We don't delete the events table as it it reused between namespaces
-// We only delete the materialized views for the meters
-func (c *Connector) deleteNamespace(ctx context.Context, namespace string) error {
-	// Retrieve meters belonging to the namespace
-	result, err := c.config.Meters.ListMeters(ctx, meterpkg.ListMetersParams{
-		Namespace: namespace,
-		Page:      pagination.NewPage(1, 100),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list meters: %w", err)
-	}
-
-	for _, meter := range result.Items {
-		err := c.deleteMeterView(ctx, namespace, meter)
-		if err != nil {
-			// If the meter view does not exist, we ignore the error
-			if meterpkg.IsMeterNotFoundError(err) {
-				return nil
-			}
-			return fmt.Errorf("delete meter view: %w", err)
-		}
-	}
-
-	return nil
 }
 
 func (c *Connector) createMeterView(ctx context.Context, namespace string, meter meterpkg.Meter) error {

@@ -36,6 +36,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -129,6 +131,7 @@ func checkColumn(table, column string) error {
 			entitlement.Table:                        entitlement.ValidColumn,
 			feature.Table:                            feature.ValidColumn,
 			dbgrant.Table:                            dbgrant.ValidColumn,
+			dbmeter.Table:                            dbmeter.ValidColumn,
 			notificationchannel.Table:                notificationchannel.ValidColumn,
 			notificationevent.Table:                  notificationevent.ValidColumn,
 			notificationeventdeliverystatus.Table:    notificationeventdeliverystatus.ValidColumn,

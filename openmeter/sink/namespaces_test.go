@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
@@ -20,15 +21,13 @@ func TestNamespaceStore(t *testing.T) {
 	meter1 := meter.Meter{
 		Namespace:     "default",
 		Slug:          "m1",
-		Description:   "",
 		Aggregation:   "SUM",
 		EventType:     "api-calls",
-		ValueProperty: "$.duration_ms",
+		ValueProperty: lo.ToPtr("$.duration_ms"),
 		GroupBy: map[string]string{
 			"method": "$.method",
 			"path":   "$.path",
 		},
-		WindowSize: meter.WindowSizeMinute,
 	}
 
 	namespaces.AddMeter(meter1)

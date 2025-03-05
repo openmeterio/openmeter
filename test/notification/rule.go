@@ -67,12 +67,11 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Slug:          TestMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
-			ValueProperty: "$.duration_ms",
+			ValueProperty: lo.ToPtr("$.duration_ms"),
 			GroupBy: map[string]string{
 				"method": "$.method",
 				"path":   "$.path",
 			},
-			WindowSize: "MINUTE",
 		},
 	})
 	require.NoError(t, err, "Replacing meters must not return error")

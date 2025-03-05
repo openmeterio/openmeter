@@ -18,12 +18,11 @@ func TestParseEvent(t *testing.T) {
 		Slug:          "m1",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "api-calls",
-		ValueProperty: "$.duration_ms",
+		ValueProperty: lo.ToPtr("$.duration_ms"),
 		GroupBy: map[string]string{
 			"method": "$.method",
 			"path":   "$.path",
 		},
-		WindowSize: meter.WindowSizeMinute,
 	}
 
 	meterCount := meter.Meter{
@@ -31,7 +30,6 @@ func TestParseEvent(t *testing.T) {
 		Slug:        "m2",
 		Aggregation: meter.MeterAggregationCount,
 		EventType:   "api-calls",
-		WindowSize:  meter.WindowSizeMinute,
 	}
 
 	meterUniqueCount := meter.Meter{
@@ -39,8 +37,7 @@ func TestParseEvent(t *testing.T) {
 		Slug:          "m3",
 		Aggregation:   meter.MeterAggregationUniqueCount,
 		EventType:     "spans",
-		WindowSize:    meter.WindowSizeMinute,
-		ValueProperty: "$.trace_id",
+		ValueProperty: lo.ToPtr("$.trace_id"),
 	}
 
 	tests := []struct {
