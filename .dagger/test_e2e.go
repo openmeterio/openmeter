@@ -36,6 +36,8 @@ func (m *Openmeter) Etoe(
 		})
 
 	sinkWorker := image.
+		WithServiceBinding("postgres", postgres.Service()).
+		WithEnvVariable("POSTGRES_HOST", "postgres").
 		WithServiceBinding("redis", redis()).
 		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
 		WithMountedCache("/var/log/openmeter", sharedLogs).
