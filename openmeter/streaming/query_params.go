@@ -38,18 +38,3 @@ func (p *QueryParams) Validate() error {
 
 	return nil
 }
-
-// Is rounded to minute like YYYY-MM-DDTHH:mm:00
-func isMinuteRounded(t time.Time) bool {
-	return t.Second() == 0
-}
-
-// Is rounded to hour like YYYY-MM-DDTHH:00:00
-func isHourRounded(t time.Time) bool {
-	return t.Second() == 0 && t.Minute() == 0
-}
-
-// Is rounded to day like YYYY-MM-DDT00:00:00
-func isDayRounded(t time.Time) bool {
-	return t.Second() == 0 && t.Minute() == 0 && t.Hour() == 0
-}

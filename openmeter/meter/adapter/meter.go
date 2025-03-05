@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 )
 
 // ListMeters returns a list of meters.
@@ -82,7 +81,7 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 		Slug:          entity.Key,
 		Name:          entity.Name,
 		Description:   entity.Description,
-		Aggregation:   meter.MeterAggregation(entity.Aggregation),
+		Aggregation:   entity.Aggregation,
 		EventType:     entity.EventType,
 		ValueProperty: entity.ValueProperty,
 		GroupBy:       entity.GroupBy,

@@ -44,7 +44,7 @@ func TestQueryParamsValidate(t *testing.T) {
 		if tt.paramWindowSize != nil {
 			paramWindowSize = string(*tt.paramWindowSize)
 		}
-		name := fmt.Sprintf("%s/%s/%s", paramWindowSize, tt.name)
+		name := fmt.Sprintf("%s/%s", paramWindowSize, tt.name)
 		t.Run(name, func(t *testing.T) {
 			from, err := time.Parse(time.RFC3339, tt.paramFrom)
 			if err != nil {

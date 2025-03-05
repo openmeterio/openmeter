@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 )
 
 // CreateMeter creates a new meter.
@@ -67,10 +66,7 @@ func (a manageAdapter) DeleteMeter(ctx context.Context, input meterpkg.DeleteMet
 	}
 
 	// Get the meter
-	meter, err := a.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
-		Namespace: input.Namespace,
-		IDOrSlug:  input.IDOrSlug,
-	})
+	meter, err := a.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput(input))
 	if err != nil {
 		return err
 	}

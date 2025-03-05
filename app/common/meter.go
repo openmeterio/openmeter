@@ -65,7 +65,10 @@ func NewMeterManageService(
 
 	// Create config meters if they don't exist in the database
 	if len(configMeters) > 0 {
-		createConfigMetersInDatabase(ctx, logger, configMeters, namespaceManager, meterManageService)
+		err = createConfigMetersInDatabase(ctx, logger, configMeters, namespaceManager, meterManageService)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create config meters in database: %w", err)
+		}
 	}
 
 	return meterManageService, nil
