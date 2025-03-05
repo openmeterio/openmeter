@@ -234,12 +234,9 @@ func (c *Connector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool
 		jsonPath: jsonPath,
 	}
 
-	sql, args, err := query.toSQL()
-	if err != nil {
-		return false, fmt.Errorf("validate jsonpath query: %w", err)
-	}
+	sql, args := query.toSQL()
 
-	err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	err := c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
 		// Code 36 means bad arguments
 		// See: https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp
