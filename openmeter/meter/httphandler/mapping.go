@@ -18,7 +18,7 @@ import (
 func ToAPIMeter(m meter.Meter) api.Meter {
 	apiMeter := api.Meter{
 		Id:            m.ID,
-		Name:          m.Name,
+		Name:          &m.Name,
 		Description:   m.Description,
 		Slug:          m.Key,
 		EventType:     m.EventType,

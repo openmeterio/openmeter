@@ -12814,7 +12814,6 @@ components:
       type: object
       required:
         - id
-        - name
         - createdAt
         - updatedAt
         - slug
@@ -12828,12 +12827,6 @@ components:
           example: 01G65Z755AFWAKHE12NY0CQ9FH
           title: ID
           readOnly: true
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
         description:
           type: string
           maxLength: 1024
@@ -12867,6 +12860,14 @@ components:
           example: '2024-01-01T01:01:01.001Z'
           title: Deletion Time
           readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
         slug:
           type: string
           minLength: 1
@@ -12950,17 +12951,10 @@ components:
     MeterCreate:
       type: object
       required:
-        - name
         - slug
         - aggregation
         - eventType
       properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Human-readable name for the resource. Between 1 and 256 characters.
-          title: Display name
         description:
           type: string
           maxLength: 1024
@@ -12973,6 +12967,14 @@ components:
           nullable: true
           description: Additional metadata for the resource.
           title: Metadata
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
         slug:
           type: string
           minLength: 1

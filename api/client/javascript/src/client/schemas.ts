@@ -5170,11 +5170,6 @@ export interface components {
        */
       readonly id: string
       /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
        * Description
        * @description Optional description of the resource. Maximum 1024 characters.
        */
@@ -5205,6 +5200,12 @@ export interface components {
        * @example 2024-01-01T01:01:01.001Z
        */
       readonly deletedAt?: Date
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       *     Defaults to the slug if not specified.
+       */
+      name?: string
       /**
        * @description A unique, human-readable identifier for the meter.
        *     Must consist only alphanumeric and underscore characters.
@@ -5274,11 +5275,6 @@ export interface components {
      */
     MeterCreate: {
       /**
-       * Display name
-       * @description Human-readable name for the resource. Between 1 and 256 characters.
-       */
-      name: string
-      /**
        * Description
        * @description Optional description of the resource. Maximum 1024 characters.
        */
@@ -5288,6 +5284,12 @@ export interface components {
        * @description Additional metadata for the resource.
        */
       metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       *     Defaults to the slug if not specified.
+       */
+      name?: string
       /**
        * @description A unique, human-readable identifier for the meter.
        *     Must consist only alphanumeric and underscore characters.

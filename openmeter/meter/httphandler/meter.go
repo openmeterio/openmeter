@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -166,9 +168,10 @@ func (h handler) CreateMeter() CreateMeterHandler {
 
 			// Create meter
 			input := meter.CreateMeterInput{
-				Namespace:     request.Namespace,
-				Key:           request.MeterCreate.Slug,
-				Name:          request.MeterCreate.Name,
+				Namespace: request.Namespace,
+				Key:       request.MeterCreate.Slug,
+				// Default the name to slug if not provided
+				Name:          lo.FromPtrOr(request.MeterCreate.Name, request.MeterCreate.Slug),
 				EventType:     request.MeterCreate.EventType,
 				EventFrom:     request.MeterCreate.EventFrom,
 				Aggregation:   meter.MeterAggregation(request.MeterCreate.Aggregation),

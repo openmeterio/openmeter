@@ -135,7 +135,17 @@ model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
   updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
 })
 model Meter {
-  ...global.Resource;
+  // We omit name from the global.Resource as name is optional in the Meter model to avoiud breaking changes for now.
+  ...OmitProperties<global.Resource, "name">;
+
+  /**
+   * Human-readable name for the resource. Between 1 and 256 characters.
+   * Defaults to the slug if not specified.
+   */
+  @summary("Display name")
+  @minLength(1)
+  @maxLength(256)
+  name?: string;
 
   /**
    * A unique, human-readable identifier for the meter.
