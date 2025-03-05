@@ -1,4 +1,4 @@
-h1:LVpk67p03Fvu323z07UIMWdGyEeuix+NgbcpiJIP2Q8=
+h1:LlpyvbtxfL3H/IuduwyeJoUMRQst2cW3D2fYs9gzavg=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -123,3 +123,5 @@ h1:LVpk67p03Fvu323z07UIMWdGyEeuix+NgbcpiJIP2Q8=
 20250303141439_billing-dedicated-customer-sync-table.up.sql h1:qFZkjpqZpl/lgNTRXawawyZGE5yQvMrIhvYXvB4FAes=
 20250304071554_customer-remove-is-deleted.down.sql h1:pbIqZN+jjYOgqoaQyGDTjnpUOl5Ft2LlHWsrjcmCJsE=
 20250304071554_customer-remove-is-deleted.up.sql h1:tc8GLyEHrPh/v6ZEG1WDl8F+vbM2JFCK/UXX/2TPFXk=
+20250305025807_add_meter_table.down.sql h1:a+Z2AdEgUpCzn2ec8BBdoB+2b05RNoydMyzYFRJyhw8=
+20250305025807_add_meter_table.up.sql h1:20gxQLpTSn1mnWiZjtULgqOTF/PQNLD0WnOv1rDSUm8=
