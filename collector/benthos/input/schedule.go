@@ -78,7 +78,7 @@ func (in *scheduleInput) ReadBatch(ctx context.Context) (service.MessageBatch, s
 
 	// This should never error
 	_ = batch.WalkWithBatchedErrors(func(_ int, msg *service.Message) error {
-		msg.MetaSet("schedule_time", t.Format(time.RFC3339))
+		msg.MetaSet("schedule_time", t.UTC().Format(time.RFC3339))
 		msg.MetaSet("schedule_interval", in.interval.String())
 
 		return nil

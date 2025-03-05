@@ -322,7 +322,7 @@ func (in *runAIInput) ReadBatch(ctx context.Context) (service.MessageBatch, serv
 			}
 
 			msg := service.NewMessage(encoded)
-			msg.MetaSet("scrape_time", t.Format(time.RFC3339))
+			msg.MetaSet("scrape_time", t.UTC().Format(time.RFC3339))
 			msg.MetaSet("scrape_interval", in.interval.String())
 			batch = append(batch, msg)
 		}
