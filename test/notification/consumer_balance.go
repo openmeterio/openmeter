@@ -98,10 +98,18 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 
 	err := s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     s.namespace,
-			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: s.namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
 			Key:           TestMeterSlug,
-			Name:          "Meter 1",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: lo.ToPtr("$.duration_ms"),

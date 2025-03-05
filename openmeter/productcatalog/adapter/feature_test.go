@@ -22,8 +22,17 @@ import (
 func TestCreateFeature(t *testing.T) {
 	namespace := "default"
 	meter := meter.Meter{
-		Namespace:   namespace,
-		ID:          "meter-1",
+		ManagedResource: models.ManagedResource{
+			ID: "meter-1",
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
 		Key:         "meter-1",
 		GroupBy:     map[string]string{"key": "$.path"},
 		Aggregation: meter.MeterAggregationCount,
@@ -263,8 +272,17 @@ func TestCreateFeature(t *testing.T) {
 func TestArchiveFeature(t *testing.T) {
 	namespace := "default"
 	meter := meter.Meter{
-		Namespace:   namespace,
-		ID:          "meter-1",
+		ManagedResource: models.ManagedResource{
+			ID: "meter-1",
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
 		Key:         "meter-1",
 		GroupBy:     map[string]string{"key": "$.path"},
 		Aggregation: meter.MeterAggregationCount,
@@ -339,8 +357,17 @@ func TestArchiveFeature(t *testing.T) {
 func TestFetchingArchivedFeature(t *testing.T) {
 	namespace := "default"
 	meter := meter.Meter{
-		Namespace:   namespace,
-		ID:          "meter-1",
+		ManagedResource: models.ManagedResource{
+			ID: "meter-1",
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
 		Key:         "meter-1",
 		GroupBy:     map[string]string{"key": "$.path"},
 		Aggregation: meter.MeterAggregationCount,

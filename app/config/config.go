@@ -4,12 +4,14 @@ package config
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Configuration holds any kind of Configuration that comes from the outside world and
@@ -85,15 +87,18 @@ func (c Configuration) Validate() error {
 	}
 
 	for idx, m := range c.Meters {
-		// Namespace is not configurable on per meter level
-		c.Meters[idx].Namespace = c.Namespace.Default
-
-		// Fallback ID to slug if ID is not set
-		c.Meters[idx].ID = m.Key
-
-		// Fallback to slug if name is not set
-		if m.Name == "" {
-			c.Meters[idx].Name = m.Key
+		// Set managed resource
+		c.Meters[idx].ManagedResource = models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: c.Namespace.Default,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			ID:          m.Key,
+			Name:        m.Key,
+			Description: m.Description,
 		}
 
 		// Window size is deprecated, always set to MINUTE

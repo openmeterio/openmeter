@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
@@ -256,7 +258,17 @@ func TestComplete(t *testing.T) {
 		},
 		Meters: []*meter.Meter{
 			{
-				Namespace:     "default",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: "default",
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Meter 1",
+				},
 				Key:           "m1",
 				Aggregation:   "SUM",
 				EventType:     "api-calls",

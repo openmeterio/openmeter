@@ -2,17 +2,29 @@ package adapter
 
 import (
 	"context"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreateMeter creates a new meter.
 func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {
 	meter := meterpkg.Meter{
-		ID:            ulid.Make().String(),
-		Name:          input.Name,
-		Description:   input.Description,
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: input.Namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name:        input.Name,
+			Description: input.Description,
+		},
+
 		Key:           input.Key,
 		Aggregation:   input.Aggregation,
 		EventType:     input.EventType,

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Meant to work for boolean entitlements
@@ -75,10 +76,18 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Namespace:     "ns1",
-		ID:            ulid.Make().String(),
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "ns1",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
 		Key:           "meter1",
-		Name:          "Meter 1",
 		Aggregation:   meter.MeterAggregationMax,
 		EventType:     "test",
 		ValueProperty: lo.ToPtr("$.value"),

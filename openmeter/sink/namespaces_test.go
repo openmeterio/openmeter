@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestNamespaceStore(t *testing.T) {
@@ -20,10 +22,18 @@ func TestNamespaceStore(t *testing.T) {
 	namespaces := sink.NewNamespaceStore()
 
 	meter1 := meter.Meter{
-		Namespace:     "default",
-		ID:            ulid.Make().String(),
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
 		Key:           "m1",
-		Name:          "Meter 1",
 		Aggregation:   "SUM",
 		EventType:     "api-calls",
 		ValueProperty: lo.ToPtr("$.duration_ms"),

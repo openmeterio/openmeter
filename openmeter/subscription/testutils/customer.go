@@ -3,6 +3,7 @@ package subscriptiontestutils
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -42,10 +43,18 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		ID:            ulid.Make().String(),
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: ExampleNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
 		Key:           ExampleFeatureMeterSlug,
-		Name:          "Meter 1",
-		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "test",
 		ValueProperty: lo.ToPtr("$.value"),

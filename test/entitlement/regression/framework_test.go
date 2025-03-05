@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Dependencies struct {
@@ -74,9 +75,17 @@ func setupDependencies(t *testing.T) Dependencies {
 
 	meters := []meter.Meter{
 		{
-			Namespace:   "namespace-1",
-			ID:          ulid.Make().String(),
-			Name:        "Meter 1",
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "namespace-1",
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
 			Key:         "meter-1",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "test",

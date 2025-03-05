@@ -145,8 +145,8 @@ func createConfigMetersInDatabase(
 
 			logger.InfoContext(ctx, "created meter in database", "meter", configMeter.Key)
 		} else {
-			if !dbMeter.Equal(*configMeter) {
-				return fmt.Errorf("meter %s in database is not equal to the meter in config", dbMeter.Key)
+			if err := dbMeter.Equal(*configMeter); err != nil {
+				return fmt.Errorf("meter %s in database is not equal to the meter in config: %w", dbMeter.Key, err)
 			}
 
 			logger.InfoContext(ctx, "meter in config already exists in database", "meter", configMeter.Key)

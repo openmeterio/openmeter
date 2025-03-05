@@ -55,20 +55,36 @@ var mockEvent = event.New()
 
 var mockMeters = []meter.Meter{
 	{
-		Namespace:     DefaultNamespace,
-		ID:            ulid.Make().String(),
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: DefaultNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
 		Key:           "meter1",
-		Name:          "Meter 1",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
 		ValueProperty: lo.ToPtr("$.value"),
 		GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
 	},
 	{
-		Namespace:     DefaultNamespace,
-		ID:            ulid.Make().String(),
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: DefaultNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 2",
+		},
 		Key:           "meter2",
-		Name:          "Meter 2",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
 		ValueProperty: lo.ToPtr("$.value"),

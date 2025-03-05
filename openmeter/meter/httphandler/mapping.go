@@ -24,6 +24,9 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 		EventType:     m.EventType,
 		Aggregation:   api.MeterAggregation(m.Aggregation),
 		ValueProperty: m.ValueProperty,
+		CreatedAt:     m.CreatedAt,
+		UpdatedAt:     m.UpdatedAt,
+		DeletedAt:     m.DeletedAt,
 	}
 
 	if len(m.GroupBy) > 0 {

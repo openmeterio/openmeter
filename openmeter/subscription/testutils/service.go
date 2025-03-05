@@ -2,6 +2,7 @@ package subscriptiontestutils
 
 import (
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -21,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ExposedServiceDeps struct {
@@ -48,10 +50,18 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		ID:            ulid.Make().String(),
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: ExampleNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
 		Key:           ExampleFeatureMeterSlug,
-		Name:          "Meter 1",
-		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
 		ValueProperty: lo.ToPtr("$.value"),
 		EventType:     "test",

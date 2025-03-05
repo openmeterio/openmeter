@@ -80,10 +80,18 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			ID:            ulid.Make().String(),
-			Namespace:     namespace,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test Meter",
+			},
 			Key:           "test",
-			Name:          "Test Meter",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -1456,37 +1464,69 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
 			Key:           "flat-per-unit",
-			Name:          "Flat per unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per usage",
+			},
 			Key:           "flat-per-usage",
-			Name:          "Flat per usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered graduated",
+			},
 			Key:           "tiered-graduated",
-			Name:          "Tiered graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered volume",
+			},
 			Key:           "tiered-volume",
-			Name:          "Tiered volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -2358,10 +2398,18 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered graduated",
+			},
 			Key:           "tiered-graduated",
-			Name:          "Tiered graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -2595,36 +2643,68 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
-			Name:          "Flat per unit",
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
 			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
-			Name:          "Flat per usage",
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per usage",
+			},
 			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
-			Name:          "Tiered graduated",
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered graduated",
+			},
 			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
-			Name:          "Tiered volume",
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered volume",
+			},
 			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
@@ -3184,10 +3264,18 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			ID:            ulid.Make().String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
 			Key:           meterSlug,
-			Name:          "Flat per unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),

@@ -3,18 +3,31 @@ package meter_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestParseEvent(t *testing.T) {
 	meterSum := meter.Meter{
-		Namespace:     "default",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
 		Key:           "m1",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "api-calls",
@@ -26,14 +39,34 @@ func TestParseEvent(t *testing.T) {
 	}
 
 	meterCount := meter.Meter{
-		Namespace:   "default",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
 		Key:         "m2",
 		Aggregation: meter.MeterAggregationCount,
 		EventType:   "api-calls",
 	}
 
 	meterUniqueCount := meter.Meter{
-		Namespace:     "default",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
 		Key:           "m3",
 		Aggregation:   meter.MeterAggregationUniqueCount,
 		EventType:     "spans",

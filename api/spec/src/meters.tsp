@@ -2,6 +2,8 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
+import "./types.tsp";
+
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
@@ -90,21 +92,11 @@ interface Meters {
   eventType: "prompt",
   valueProperty: "$.tokens",
   groupBy: #{ `model`: "$.model", type: "$.type" },
+  createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+  updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
 })
 model Meter {
-  /**
-   * A unique identifier for the meter.
-   */
-  @visibility(Lifecycle.Read)
-  @example("01G65Z755AFWAKHE12NY0CQ9FH")
-  id: ULID;
-
-  /**
-   * A human-readable name for the meter.
-   */
-  @minLength(1)
-  @example("Tokens Total")
-  name: string;
+  ...global.Resource;
 
   /**
    * A unique, human-readable identifier for the meter.
@@ -112,13 +104,6 @@ model Meter {
    */
   @example("tokens_total")
   slug: Key;
-
-  /**
-   * A description of the meter.
-   */
-  @minLength(1)
-  @example("AI Token Usage")
-  description?: string;
 
   /**
    * The aggregation type to use for the meter.

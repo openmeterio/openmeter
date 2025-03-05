@@ -78,11 +78,20 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 	}
 
 	return meter.Meter{
-		Namespace:     entity.Namespace,
-		ID:            entity.ID,
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: entity.Namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: entity.CreatedAt,
+				UpdatedAt: entity.UpdatedAt,
+				DeletedAt: entity.DeletedAt,
+			},
+			ID:          entity.ID,
+			Name:        entity.Name,
+			Description: entity.Description,
+		},
 		Key:           entity.Key,
-		Name:          entity.Name,
-		Description:   entity.Description,
 		Aggregation:   entity.Aggregation,
 		EventType:     entity.EventType,
 		ValueProperty: entity.ValueProperty,

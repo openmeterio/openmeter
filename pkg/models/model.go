@@ -9,8 +9,8 @@ import (
 )
 
 type ManagedUniqueResource struct {
-	NamespacedModel
-	ManagedModel
+	NamespacedModel `json:",inline" mapstructure:",squash"`
+	ManagedModel    `json:",inline" mapstructure:",squash"`
 
 	// ID is the unique identifier for Resource.
 	ID string `json:"id"`
@@ -20,8 +20,8 @@ type ManagedUniqueResource struct {
 }
 
 type ManagedResource struct {
-	NamespacedModel `json:",inline"`
-	ManagedModel    `json:",inline"`
+	NamespacedModel `json:",inline" mapstructure:",squash"`
+	ManagedModel    `json:",inline" mapstructure:",squash"`
 
 	// ID is the unique identifier for Resource.
 	ID          string  `json:"id"`

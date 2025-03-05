@@ -781,8 +781,17 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 
 	return []meter.Meter{
 		{
-			Namespace:   namespace,
-			ID:          NewTestULID(t),
+			ManagedResource: models.ManagedResource{
+				ID: NewTestULID(t),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test meter",
+			},
 			Key:         "api_requests_total",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "request",
@@ -792,8 +801,17 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 			},
 		},
 		{
-			Namespace:     namespace,
-			ID:            NewTestULID(t),
+			ManagedResource: models.ManagedResource{
+				ID: NewTestULID(t),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test meter",
+			},
 			Key:           "tokens_total",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "prompt",
@@ -804,8 +822,17 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 			},
 		},
 		{
-			Namespace:     namespace,
-			ID:            NewTestULID(t),
+			ManagedResource: models.ManagedResource{
+				ID: NewTestULID(t),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test meter",
+			},
 			Key:           "workload_runtime_duration_seconds",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "workload",

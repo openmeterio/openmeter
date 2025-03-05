@@ -5149,23 +5149,62 @@ export interface components {
      * @example {
      *       "id": "01G65Z755AFWAKHE12NY0CQ9FH",
      *       "slug": "tokens_total",
+     *       "name": "Tokens Total",
      *       "description": "AI Token Usage",
      *       "aggregation": "SUM",
-     *       "windowSize": "MINUTE",
      *       "eventType": "prompt",
      *       "valueProperty": "$.tokens",
      *       "groupBy": {
      *         "model": "$.model",
      *         "type": "$.type"
-     *       }
+     *       },
+     *       "createdAt": "2024-01-01T01:01:01.001Z",
+     *       "updatedAt": "2024-01-01T01:01:01.001Z"
      *     }
      */
     Meter: {
       /**
-       * @description A unique identifier for the meter.
+       * ID
+       * @description A unique identifier for the resource.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       readonly id: string
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Creation Time
+       * Format: date-time
+       * @description Timestamp of when the resource was created.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly createdAt: Date
+      /**
+       * Last Update Time
+       * Format: date-time
+       * @description Timestamp of when the resource was last updated.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly updatedAt: Date
+      /**
+       * Deletion Time
+       * Format: date-time
+       * @description Timestamp of when the resource was permanently deleted.
+       * @example 2024-01-01T01:01:01.001Z
+       */
+      readonly deletedAt?: Date
       /**
        * @description A unique, human-readable identifier for the meter.
        *     Must consist only alphanumeric and underscore characters.
@@ -5173,24 +5212,10 @@ export interface components {
        */
       slug: string
       /**
-       * @description A description of the meter.
-       * @example AI Token Usage
-       */
-      description?: string
-      /**
        * @description The aggregation type to use for the meter.
        * @example SUM
        */
       aggregation: components['schemas']['MeterAggregation']
-      /**
-       * @description The window size that the usage is stored in.
-       *     This controls the query granularity of the usage data.
-       *     The larger the window size, the less space is used to store the data.
-       *     By default, the window size is a minute.
-       * @default MINUTE
-       * @example MINUTE
-       */
-      windowSize?: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
        * @example prompt
@@ -5228,9 +5253,9 @@ export interface components {
      * @description A meter is a configuration that defines how to match and aggregate events.
      * @example {
      *       "slug": "tokens_total",
+     *       "name": "Tokens Total",
      *       "description": "AI Token Usage",
      *       "aggregation": "SUM",
-     *       "windowSize": "MINUTE",
      *       "eventType": "prompt",
      *       "valueProperty": "$.tokens",
      *       "groupBy": {
@@ -5241,30 +5266,31 @@ export interface components {
      */
     MeterCreate: {
       /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       */
+      name: string
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
        * @description A unique, human-readable identifier for the meter.
        *     Must consist only alphanumeric and underscore characters.
        * @example tokens_total
        */
       slug: string
       /**
-       * @description A description of the meter.
-       * @example AI Token Usage
-       */
-      description?: string
-      /**
        * @description The aggregation type to use for the meter.
        * @example SUM
        */
       aggregation: components['schemas']['MeterAggregation']
-      /**
-       * @description The window size that the usage is stored in.
-       *     This controls the query granularity of the usage data.
-       *     The larger the window size, the less space is used to store the data.
-       *     By default, the window size is a minute.
-       * @default MINUTE
-       * @example MINUTE
-       */
-      windowSize?: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
        * @example prompt

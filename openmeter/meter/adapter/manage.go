@@ -72,6 +72,11 @@ func (a manageAdapter) DeleteMeter(ctx context.Context, input meterpkg.DeleteMet
 		return err
 	}
 
+	// Check if the meter is already deleted
+	if meter.DeletedAt != nil {
+		return meterpkg.NewMeterNotFoundError(meter.Key)
+	}
+
 	// Check if the meter has active features
 	hasFeatures, err := a.featureRepository.HasActiveFeatureForMeter(ctx, input.Namespace, meter.Key)
 	if err != nil {

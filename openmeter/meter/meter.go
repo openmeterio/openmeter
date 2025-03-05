@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
@@ -126,11 +128,9 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 }
 
 type Meter struct {
-	Namespace     string
-	ID            string
+	models.ManagedResource `mapstructure:",squash"`
+
 	Key           string `mapstructure:"slug"`
-	Name          string
-	Description   *string
 	Aggregation   MeterAggregation
 	EventType     string
 	ValueProperty *string
@@ -158,66 +158,66 @@ func (m *Meter) SupportsWindowSize(w *WindowSize) error {
 	return nil
 }
 
-func (m1 Meter) Equal(m2 Meter) bool {
+func (m1 Meter) Equal(m2 Meter) error {
 	if m1.Namespace != m2.Namespace {
-		return false
+		return errors.New("namespace mismatch")
 	}
 
 	if m1.Key != m2.Key {
-		return false
+		return errors.New("key mismatch")
 	}
 
 	if m1.Name != m2.Name {
-		return false
+		return errors.New("name mismatch")
 	}
 
 	if m1.Description != nil && m2.Description != nil {
 		if *m1.Description != *m2.Description {
-			return false
+			return errors.New("description mismatch")
 		}
 	}
 
 	if m1.Description == nil && m2.Description != nil {
-		return false
+		return errors.New("description mismatch")
 	}
 
 	if m1.Description != nil && m2.Description == nil {
-		return false
+		return errors.New("description mismatch")
 	}
 
 	if m1.Aggregation != m2.Aggregation {
-		return false
+		return errors.New("aggregation mismatch")
 	}
 
 	if m1.EventType != m2.EventType {
-		return false
+		return errors.New("event type mismatch")
 	}
 
 	if m1.ValueProperty != nil && m2.ValueProperty != nil {
 		if *m1.ValueProperty != *m2.ValueProperty {
-			return false
+			return errors.New("value property mismatch")
 		}
 	}
 
 	if m1.ValueProperty == nil && m2.ValueProperty != nil {
-		return false
+		return errors.New("value property mismatch")
 	}
 
 	if m1.ValueProperty != nil && m2.ValueProperty == nil {
-		return false
+		return errors.New("value property mismatch")
 	}
 
 	if len(m1.GroupBy) != len(m2.GroupBy) {
-		return false
+		return errors.New("group by mismatch")
 	}
 
 	for key, value := range m1.GroupBy {
 		if m2Value, ok := m2.GroupBy[key]; !ok || value != m2Value {
-			return false
+			return errors.New("group by mismatch")
 		}
 	}
 
-	return true
+	return nil
 }
 
 type MeterOptions struct {

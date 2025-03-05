@@ -62,10 +62,19 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 	err := s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     TestNamespace,
-			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+			ManagedResource: models.ManagedResource{
+				ID: ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: TestNamespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test Meter",
+			},
+
 			Key:           TestMeterSlug,
-			Name:          "Test Meter",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: lo.ToPtr("$.duration_ms"),
