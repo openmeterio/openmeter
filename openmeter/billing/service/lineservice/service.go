@@ -21,8 +21,6 @@ type featureCacheItem struct {
 
 type Service struct {
 	Config
-
-	featureCache map[string]*featureCacheItem
 }
 
 type Config struct {
@@ -59,8 +57,6 @@ func New(in Config) (*Service, error) {
 
 	return &Service{
 		Config: in,
-
-		featureCache: make(map[string]*featureCacheItem),
 	}, nil
 }
 
@@ -97,12 +93,6 @@ func (s *Service) FromEntities(line []*billing.Line) (Lines, error) {
 }
 
 func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey string) (*featureCacheItem, error) {
-	cacheKey := fmt.Sprintf("%s/%s", ns, featureKey)
-	// Let's cache the results as we might need to resolve the same feature/meter multiple times (Validate, CanBeInvoicedAsOf, UpdateQty)
-	if entry, found := s.featureCache[cacheKey]; found {
-		return entry, nil
-	}
-
 	feat, err := s.FeatureService.GetFeature(
 		ctx,
 		ns,
@@ -128,13 +118,10 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 		return nil, fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err)
 	}
 
-	ent := &featureCacheItem{
+	return &featureCacheItem{
 		feature: *feat,
 		meter:   meter,
-	}
-
-	s.featureCache[cacheKey] = ent
-	return ent, nil
+	}, nil
 }
 
 func (s *Service) UpsertLines(ctx context.Context, ns string, lines ...Line) (Lines, error) {
