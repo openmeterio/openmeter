@@ -128,7 +128,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
 			Namespace:           TestNamespace,
-			MeterSlug:           convert.ToPointer(meter.Slug),
+			MeterSlug:           convert.ToPointer(meter.Key),
 			MeterGroupByFilters: meter.GroupBy,
 		})
 	}

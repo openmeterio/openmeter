@@ -41,7 +41,7 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	t.Helper()
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:          ExampleFeatureMeterSlug,
+		Key:           ExampleFeatureMeterSlug,
 		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "test",

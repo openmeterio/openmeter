@@ -91,7 +91,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 			meterQueryParams,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("querying line[%s] meter[%s]: %w", in.Line.ID, in.Meter.Slug, err)
+			return nil, fmt.Errorf("querying line[%s] meter[%s]: %w", in.Line.ID, in.Meter.Key, err)
 		}
 
 		return &featureUsageResponse{
@@ -111,7 +111,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		preLineQuery,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
+		return nil, fmt.Errorf("querying pre line[%s] period meter[%s]: %w", in.ParentLine.ID, in.Meter.Key, err)
 	}
 
 	preLineQty := summarizeMeterQueryRow(preLineResult)
@@ -128,7 +128,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 		upToLineEnd,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("querying up to line[%s] end meter[%s]: %w", in.ParentLine.ID, in.Meter.Slug, err)
+		return nil, fmt.Errorf("querying up to line[%s] end meter[%s]: %w", in.ParentLine.ID, in.Meter.Key, err)
 	}
 
 	upToLineQty := summarizeMeterQueryRow(upToLineEndResult)

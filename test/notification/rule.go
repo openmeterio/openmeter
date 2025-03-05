@@ -64,7 +64,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 		{
 			Namespace:     TestNamespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
-			Slug:          TestMeterSlug,
+			Key:           TestMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: lo.ToPtr("$.duration_ms"),
@@ -93,7 +93,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
 			Namespace:           TestNamespace,
-			MeterSlug:           convert.ToPointer(meter.Slug),
+			MeterSlug:           convert.ToPointer(meter.Key),
 			MeterGroupByFilters: meter.GroupBy,
 		})
 	}

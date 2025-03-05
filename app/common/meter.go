@@ -83,7 +83,7 @@ func createConfigMetersInDatabase(
 	meterService meter.ManageService,
 ) error {
 	configMeterSlugs := lo.Map(configMeters, func(meter *meter.Meter, _ int) string {
-		return meter.Slug
+		return meter.Key
 	})
 
 	meters, err := meter.ListAll(ctx, meterService, meter.ListMetersParams{
@@ -95,7 +95,7 @@ func createConfigMetersInDatabase(
 	}
 
 	metersBySlug := lo.KeyBy(meters, func(meter meter.Meter) string {
-		return meter.Slug
+		return meter.Key
 	})
 
 	for _, configMeter := range configMeters {
@@ -103,14 +103,14 @@ func createConfigMetersInDatabase(
 
 		// Backfill the name if it's missing
 		if configMeter.Name == "" {
-			configMeter.Name = configMeter.Slug
+			configMeter.Name = configMeter.Key
 		}
 
 		// Create the meter if it doesn't exist
-		if dbMeter, ok := metersBySlug[configMeter.Slug]; !ok {
+		if dbMeter, ok := metersBySlug[configMeter.Key]; !ok {
 			_, err := meterService.CreateMeter(ctx, meter.CreateMeterInput{
 				Namespace:     configMeter.Namespace,
-				Key:           configMeter.Slug,
+				Key:           configMeter.Key,
 				Name:          configMeter.Name,
 				Description:   configMeter.Description,
 				Aggregation:   configMeter.Aggregation,
@@ -122,13 +122,13 @@ func createConfigMetersInDatabase(
 				return fmt.Errorf("failed to create meter: %w", err)
 			}
 
-			logger.InfoContext(ctx, "created meter in database", "meter", configMeter.Slug)
+			logger.InfoContext(ctx, "created meter in database", "meter", configMeter.Key)
 		} else {
 			if !dbMeter.Equal(*configMeter) {
-				return fmt.Errorf("meter %s in database is not equal to the meter in config", dbMeter.Slug)
+				return fmt.Errorf("meter %s in database is not equal to the meter in config", dbMeter.Key)
 			}
 
-			logger.InfoContext(ctx, "meter in config already exists in database", "meter", configMeter.Slug)
+			logger.InfoContext(ctx, "meter in config already exists in database", "meter", configMeter.Key)
 		}
 	}
 

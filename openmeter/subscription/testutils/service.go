@@ -47,7 +47,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:          ExampleFeatureMeterSlug,
+		Key:           ExampleFeatureMeterSlug,
 		Namespace:     ExampleNamespace,
 		Aggregation:   meter.MeterAggregationSum,
 		ValueProperty: lo.ToPtr("$.value"),

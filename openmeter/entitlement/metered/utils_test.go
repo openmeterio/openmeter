@@ -64,7 +64,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:        meterSlug,
+		Key:         meterSlug,
 		Name:        "Meter 1",
 		Namespace:   namespace,
 		Aggregation: meter.MeterAggregationSum,

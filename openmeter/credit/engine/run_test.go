@@ -25,7 +25,7 @@ func TestEngine(t *testing.T) {
 	meterSlug := "meter-1"
 
 	meter := meterpkg.Meter{
-		Slug: meterSlug,
+		Key: meterSlug,
 	}
 
 	grant1 := makeGrant(grant.Grant{

@@ -128,7 +128,7 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 type Meter struct {
 	Namespace     string
 	ID            string
-	Slug          string
+	Key           string
 	Name          string
 	Description   *string
 	Aggregation   MeterAggregation
@@ -163,7 +163,7 @@ func (m1 Meter) Equal(m2 Meter) bool {
 		return false
 	}
 
-	if m1.Slug != m2.Slug {
+	if m1.Key != m2.Key {
 		return false
 	}
 
@@ -236,7 +236,7 @@ func (m *Meter) Validate() error {
 	}
 
 	return ValidateMeter(
-		m.Slug,
+		m.Key,
 		m.Name,
 		m.Description,
 		m.Aggregation,

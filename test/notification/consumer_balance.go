@@ -100,7 +100,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 		{
 			Namespace:     s.namespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
-			Slug:          TestMeterSlug,
+			Key:           TestMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: lo.ToPtr("$.duration_ms"),
@@ -125,7 +125,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 		Name:                TestFeatureName,
 		Key:                 TestFeatureKey,
 		Namespace:           s.namespace,
-		MeterSlug:           convert.ToPointer(meter.Slug),
+		MeterSlug:           convert.ToPointer(meter.Key),
 		MeterGroupByFilters: meter.GroupBy,
 	})
 	require.NoError(t, err, "Creating feature must not return error")
@@ -429,7 +429,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 		Name:                TestFeature2Name,
 		Key:                 TestFeature2Key,
 		Namespace:           s.namespace,
-		MeterSlug:           convert.ToPointer(meter.Slug),
+		MeterSlug:           convert.ToPointer(meter.Key),
 		MeterGroupByFilters: meter.GroupBy,
 	})
 	require.NoError(t, err, "Creating feature must not return error")
@@ -438,7 +438,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 		Name:                TestFeature3Name,
 		Key:                 TestFeature3Key,
 		Namespace:           s.namespace,
-		MeterSlug:           convert.ToPointer(meter.Slug),
+		MeterSlug:           convert.ToPointer(meter.Key),
 		MeterGroupByFilters: meter.GroupBy,
 	})
 	require.NoError(t, err, "Creating feature must not return error")

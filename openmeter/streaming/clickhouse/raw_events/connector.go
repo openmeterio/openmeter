@@ -138,7 +138,7 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
+	if meter.Key == "" {
 		return nil, fmt.Errorf("meter is required")
 	}
 
@@ -388,7 +388,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
@@ -474,7 +474,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

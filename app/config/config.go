@@ -89,11 +89,11 @@ func (c Configuration) Validate() error {
 		m.Namespace = c.Namespace.Default
 
 		// Fallback ID to slug if ID is not set
-		m.ID = m.Slug
+		m.ID = m.Key
 
 		// Fallback to slug if name is not set
 		if m.Name == "" {
-			m.Name = m.Slug
+			m.Name = m.Key
 		}
 
 		// Window size is deprecated, always set to MINUTE

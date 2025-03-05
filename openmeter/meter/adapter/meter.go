@@ -78,7 +78,7 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 	return meter.Meter{
 		Namespace:     entity.Namespace,
 		ID:            entity.ID,
-		Slug:          entity.Key,
+		Key:           entity.Key,
 		Name:          entity.Name,
 		Description:   entity.Description,
 		Aggregation:   entity.Aggregation,

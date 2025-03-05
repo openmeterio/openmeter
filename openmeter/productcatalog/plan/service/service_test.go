@@ -59,10 +59,10 @@ func TestPlanService(t *testing.T) {
 	features := make(map[string]feature.Feature, len(meters))
 	for _, m := range meters {
 		input := feature.CreateFeatureInputs{
-			Name:                m.Slug,
-			Key:                 m.Slug,
+			Name:                m.Key,
+			Key:                 m.Key,
 			Namespace:           namespace,
-			MeterSlug:           lo.ToPtr(m.Slug),
+			MeterSlug:           lo.ToPtr(m.Key),
 			MeterGroupByFilters: m.GroupBy,
 			Metadata:            map[string]string{},
 		}
@@ -783,7 +783,7 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 		{
 			Namespace:   namespace,
 			ID:          NewTestULID(t),
-			Slug:        "api_requests_total",
+			Key:         "api_requests_total",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "request",
 			GroupBy: map[string]string{
@@ -794,7 +794,7 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 		{
 			Namespace:     namespace,
 			ID:            NewTestULID(t),
-			Slug:          "tokens_total",
+			Key:           "tokens_total",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "prompt",
 			ValueProperty: lo.ToPtr("$.tokens"),
@@ -806,7 +806,7 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 		{
 			Namespace:     namespace,
 			ID:            NewTestULID(t),
-			Slug:          "workload_runtime_duration_seconds",
+			Key:           "workload_runtime_duration_seconds",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "workload",
 			ValueProperty: lo.ToPtr("$.duration_seconds"),

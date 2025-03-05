@@ -116,7 +116,7 @@ func (h *handler) CreateToken() CreateTokenHandler {
 				}
 
 				metersBySlug := lo.KeyBy(meters, func(m meter.Meter) string {
-					return m.Slug
+					return m.Key
 				})
 
 				for _, slug := range *request.AllowedMeterSlugs {

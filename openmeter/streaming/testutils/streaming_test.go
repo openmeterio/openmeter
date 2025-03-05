@@ -17,7 +17,7 @@ func TestMockStreamingConnector(t *testing.T) {
 	defaultMeterSlug := "default-meter"
 
 	defaultMeter := meter.Meter{
-		Slug: defaultMeterSlug,
+		Key: defaultMeterSlug,
 	}
 
 	type tc struct {

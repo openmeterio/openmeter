@@ -110,7 +110,7 @@ func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter met
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
+	if meter.Key == "" {
 		return fmt.Errorf("meter is required")
 	}
 
@@ -126,7 +126,7 @@ func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter met
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
+	if meter.Key == "" {
 		return fmt.Errorf("meter is required")
 	}
 
@@ -146,7 +146,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
+	if meter.Key == "" {
 		return nil, fmt.Errorf("meter is required")
 	}
 
@@ -189,7 +189,7 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
+	if meter.Key == "" {
 		return nil, fmt.Errorf("meter is required")
 	}
 
@@ -229,7 +229,7 @@ func (c *Connector) createMeterView(ctx context.Context, namespace string, meter
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
 		Namespace:       namespace,
-		MeterSlug:       meter.Slug,
+		MeterSlug:       meter.Key,
 		Aggregation:     meter.Aggregation,
 		EventType:       meter.EventType,
 		ValueProperty:   meter.ValueProperty,
@@ -251,7 +251,7 @@ func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter
 	query := deleteMeterView{
 		Database:  c.config.Database,
 		Namespace: namespace,
-		MeterSlug: meter.Slug,
+		MeterSlug: meter.Key,
 	}
 
 	sql := query.toSQL()
@@ -259,7 +259,7 @@ func (c *Connector) deleteMeterView(ctx context.Context, namespace string, meter
 	err := c.config.ClickHouse.Exec(ctx, sql)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return meterpkg.NewMeterNotFoundError(meter.Slug)
+			return meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return fmt.Errorf("delete meter view: %w", err)
@@ -272,7 +272,7 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		Namespace:      namespace,
-		MeterSlug:      meter.Slug,
+		MeterSlug:      meter.Key,
 		Aggregation:    meter.Aggregation,
 		From:           params.From,
 		To:             params.To,
@@ -294,7 +294,7 @@ func (c *Connector) queryMeterView(ctx context.Context, namespace string, meter 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
@@ -358,7 +358,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	query := listMeterViewSubjects{
 		Database:  c.config.Database,
 		Namespace: namespace,
-		MeterSlug: meter.Slug,
+		MeterSlug: meter.Key,
 		From:      params.From,
 		To:        params.To,
 	}
@@ -368,7 +368,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

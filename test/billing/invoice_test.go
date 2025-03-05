@@ -80,7 +80,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
-			Slug:          "test",
+			Key:           "test",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -1454,28 +1454,28 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
-			Slug:          "flat-per-unit",
+			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
-			Slug:          "flat-per-usage",
+			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
-			Slug:          "tiered-graduated",
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
-			Slug:          "tiered-volume",
+			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -2348,7 +2348,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
-			Slug:          "tiered-graduated",
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -2583,28 +2583,28 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
-			Slug:          "flat-per-unit",
+			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
-			Slug:          "flat-per-usage",
+			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
-			Slug:          "tiered-graduated",
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
 			Namespace:     namespace,
-			Slug:          "tiered-volume",
+			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
@@ -3164,7 +3164,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
-			Slug:          meterSlug,
+			Key:           meterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),

@@ -24,7 +24,7 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 			continue
 		}
 
-		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Slug) {
+		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Key) {
 			continue
 		}
 
@@ -62,7 +62,7 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 			continue
 		}
 
-		if meter.ID == input.IDOrSlug || meter.Slug == input.IDOrSlug {
+		if meter.ID == input.IDOrSlug || meter.Key == input.IDOrSlug {
 			return meter, nil
 		}
 	}

@@ -72,7 +72,7 @@ func (a manageAdapter) DeleteMeter(ctx context.Context, input meterpkg.DeleteMet
 	}
 
 	// Check if the meter has active features
-	hasFeatures, err := a.featureRepository.HasActiveFeatureForMeter(ctx, input.Namespace, meter.Slug)
+	hasFeatures, err := a.featureRepository.HasActiveFeatureForMeter(ctx, input.Namespace, meter.Key)
 	if err != nil {
 		return fmt.Errorf("failed to check if meter has features: %w", err)
 	}
@@ -84,7 +84,7 @@ func (a manageAdapter) DeleteMeter(ctx context.Context, input meterpkg.DeleteMet
 	}
 
 	// Check if the meter has active entitlements
-	hasEntitlements, err := a.entitlementRepository.HasEntitlementForMeter(ctx, meter.Namespace, meter.Slug)
+	hasEntitlements, err := a.entitlementRepository.HasEntitlementForMeter(ctx, meter.Namespace, meter.Key)
 	if err != nil {
 		return fmt.Errorf("failed to check if meter has entitlements: %w", err)
 	}

@@ -27,7 +27,7 @@ func Test_Fuzzing(t *testing.T) {
 
 	meter := meterpkg.Meter{
 		Namespace:   "default",
-		Slug:        meterSlug,
+		Key:         meterSlug,
 		EventType:   "requests",
 		Aggregation: meterpkg.MeterAggregationCount,
 	}

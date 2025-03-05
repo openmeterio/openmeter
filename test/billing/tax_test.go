@@ -162,7 +162,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			Namespace:     namespace,
-			Slug:          meterSlug,
+			Key:           meterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),

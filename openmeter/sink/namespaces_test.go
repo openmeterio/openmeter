@@ -20,7 +20,7 @@ func TestNamespaceStore(t *testing.T) {
 
 	meter1 := meter.Meter{
 		Namespace:     "default",
-		Slug:          "m1",
+		Key:           "m1",
 		Aggregation:   "SUM",
 		EventType:     "api-calls",
 		ValueProperty: lo.ToPtr("$.duration_ms"),

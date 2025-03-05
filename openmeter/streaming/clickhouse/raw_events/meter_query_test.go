@@ -28,7 +28,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -52,7 +52,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -71,7 +71,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:        "meter1",
+					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationCount,
 					GroupBy: map[string]string{
@@ -89,7 +89,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -109,7 +109,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -130,7 +130,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -152,7 +152,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -175,7 +175,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -196,7 +196,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -217,7 +217,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -238,7 +238,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -258,7 +258,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -278,7 +278,7 @@ func TestQueryMeter(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:          "meter1",
+					Key:           "meter1",
 					EventType:     "event1",
 					Aggregation:   meter.MeterAggregationSum,
 					ValueProperty: lo.ToPtr("$.value"),
@@ -324,7 +324,7 @@ func TestListMeterSubjects(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:        "meter1",
+					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationSum,
 				},
@@ -338,7 +338,7 @@ func TestListMeterSubjects(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:        "meter1",
+					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationSum,
 				},
@@ -353,7 +353,7 @@ func TestListMeterSubjects(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Meter: meter.Meter{
-					Slug:        "meter1",
+					Key:         "meter1",
 					EventType:   "event1",
 					Aggregation: meter.MeterAggregationSum,
 				},

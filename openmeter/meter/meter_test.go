@@ -63,7 +63,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "valid meter",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -74,7 +74,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "valid without group by",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -84,7 +84,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "count is valid without value property",
 			meter: Meter{
-				Slug:        "slug-test",
+				Key:         "slug-test",
 				Aggregation: MeterAggregationCount,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -94,7 +94,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "count is invalid with value property",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationCount,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -114,7 +114,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "aggregation is empty",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
@@ -124,7 +124,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "window size is empty",
 			meter: Meter{
-				Slug:        "slug-test",
+				Key:         "slug-test",
 				Aggregation: MeterAggregationCount,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -134,7 +134,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "event type is empty",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
@@ -144,7 +144,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "missing value property",
 			meter: Meter{
-				Slug:        "slug-test",
+				Key:         "slug-test",
 				Aggregation: MeterAggregationSum,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -154,7 +154,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid value property",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("invalid"),
@@ -165,7 +165,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by key",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -176,7 +176,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by key",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -187,7 +187,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by property",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),
@@ -198,7 +198,7 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "value property cannot be in the group by",
 			meter: Meter{
-				Slug:          "slug-test",
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationUniqueCount,
 				EventType:     "event-type-test",
 				ValueProperty: lo.ToPtr("$.my_property"),

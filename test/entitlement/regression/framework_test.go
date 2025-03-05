@@ -73,7 +73,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	meters := []meter.Meter{
 		{
 			Namespace:   "namespace-1",
-			Slug:        "meter-1",
+			Key:         "meter-1",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "test",
 		},

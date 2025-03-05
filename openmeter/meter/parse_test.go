@@ -15,7 +15,7 @@ import (
 func TestParseEvent(t *testing.T) {
 	meterSum := meter.Meter{
 		Namespace:     "default",
-		Slug:          "m1",
+		Key:           "m1",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "api-calls",
 		ValueProperty: lo.ToPtr("$.duration_ms"),
@@ -27,14 +27,14 @@ func TestParseEvent(t *testing.T) {
 
 	meterCount := meter.Meter{
 		Namespace:   "default",
-		Slug:        "m2",
+		Key:         "m2",
 		Aggregation: meter.MeterAggregationCount,
 		EventType:   "api-calls",
 	}
 
 	meterUniqueCount := meter.Meter{
 		Namespace:     "default",
-		Slug:          "m3",
+		Key:           "m3",
 		Aggregation:   meter.MeterAggregationUniqueCount,
 		EventType:     "spans",
 		ValueProperty: lo.ToPtr("$.trace_id"),
