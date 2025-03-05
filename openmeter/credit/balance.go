@@ -23,20 +23,22 @@ type ResetUsageForOwnerParams struct {
 
 // Generic connector for balance related operations.
 type BalanceConnector interface {
-	GetBalanceOfOwner(ctx context.Context, owner models.NamespacedID, at time.Time) (*balance.Snapshot, error)
-	GetBalanceHistoryOfOwner(ctx context.Context, owner models.NamespacedID, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error)
-	ResetUsageForOwner(ctx context.Context, owner models.NamespacedID, params ResetUsageForOwnerParams) (balanceAfterReset *balance.Snapshot, err error)
-}
-
-type BalanceHistoryParams struct {
-	From time.Time
-	To   time.Time
+	// GetResultAt returns the result of the engine.Run at a given time.
+	// It tries to minimize execution cost by calculating from the lastest valid snapshot, thus the length of the returned history WILL NOT be deterministic.
+	GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
+	// GetResultBetween returns the result of the engine.Run between for the provided period.
+	// The returned history will exactly match the provided period.
+	GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error)
+	// ResetUsageForOwner resets the usage for an owner at a given time.
+	ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (balanceAfterReset *balance.Snapshot, err error)
 }
 
 var _ BalanceConnector = &connector{}
 
-func (m *connector) GetBalanceOfOwner(ctx context.Context, ownerID models.NamespacedID, at time.Time) (*balance.Snapshot, error) {
+func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
 	m.logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
+
+	var def engine.RunResult
 
 	// To include the current last minute lets round it trunc to the next minute
 	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
@@ -46,7 +48,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, ownerID models.Namesp
 	// get last valid grantbalances
 	snap, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, ownerID, at)
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
 	period := timeutil.Period{
@@ -57,18 +59,18 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, ownerID models.Namesp
 	// get all usage resets between queryied period
 	resetTimesInclusive, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, ownerID.ID, err)
+		return def, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, ownerID.ID, err)
 	}
 
 	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to describe owner %s: %w", owner.ID, err)
+		return def, fmt.Errorf("failed to describe owner %s: %w", owner.ID, err)
 	}
 
 	// get all relevant grants
 	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, snap.At, at)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
+		return def, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}
 	// These grants might not be present in the starting balance so lets fill them
 	// This is only possible in case the grant becomes active exactly at the start of the current period
@@ -76,7 +78,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, ownerID models.Namesp
 
 	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
 	result, err := eng.Run(
@@ -90,7 +92,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, ownerID models.Namesp
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, at, err)
+		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, at, err)
 	}
 
 	// Let's see if a snapshot should be saved
@@ -100,72 +102,73 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, ownerID models.Namesp
 		runRes: result,
 		before: m.getSnapshotBefore(clock.Now()),
 	}); err != nil {
-		return nil, fmt.Errorf("failed to snapshot engine result: %w", err)
+		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
 
 	// return balance
-	return &result.Snapshot, nil
+	return result, nil
 }
 
 // Returns the joined GrantBurnDownHistory across usage periods.
-func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, ownerID models.NamespacedID, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error) {
-	// To include the current last minute lets round it trunc to the next minute
-	if trunc := params.To.Truncate(time.Minute); trunc.Before(params.To) {
-		params.To = trunc.Add(time.Minute)
-	}
+func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
+	m.logger.Debug("calculating history for owner", "owner", ownerID.ID, "period", period)
 
-	period := timeutil.Period{
-		From: params.From,
-		To:   params.To,
+	var def engine.RunResult
+
+	// To include the current last minute lets round it trunc to the next minute
+	if trunc := period.To.Truncate(time.Minute); trunc.Before(period.To) {
+		period.To = trunc.Add(time.Minute)
 	}
 
 	// get all usage resets between queryied period
 	resetTimesInclusive, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
 	if err != nil {
-		return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", params.From, params.To, ownerID.ID, err)
+		return def, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, ownerID.ID, err)
 	}
 
 	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
-		return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
+		return def, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
 
 	// For the history result to start from the correct period start we need to start from a synthetic snapshot by calculating the balance at the period start
-	snap, err := m.GetBalanceOfOwner(ctx, ownerID, period.From)
+	res, err := m.GetBalanceAt(ctx, ownerID, period.From)
 	if err != nil {
-		return engine.GrantBurnDownHistory{}, err
+		return def, err
 	}
 
 	// get all relevant grants
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, snap.At, period.To)
+	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, res.Snapshot.At, period.To)
 	if err != nil {
-		return engine.GrantBurnDownHistory{}, err
+		return def, err
 	}
+
+	snap := res.Snapshot
 
 	// These grants might not be present in the starting balance so lets fill them
 	// This is only possible in case the grant becomes active exactly at the start of the first period
-	m.populateBalanceSnapshotWithMissingGrantsActiveAt(snap, grants, snap.At)
+	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, snap.At)
 
 	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
 	if err != nil {
-		return engine.GrantBurnDownHistory{}, err
+		return def, err
 	}
 
 	result, err := eng.Run(
 		ctx,
 		engine.RunParams{
 			Grants:           grants,
-			StartingSnapshot: *snap,
+			StartingSnapshot: snap,
 			Until:            period.To,
 			ResetBehavior:    owner.ResetBehavior,
 			Resets:           resetTimesInclusive.After(snap.At),
 		},
 	)
 	if err != nil {
-		return engine.GrantBurnDownHistory{}, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, period.From, err)
+		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, period.From, err)
 	}
 
-	return result.History, nil
+	return result, nil
 }
 
 func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
