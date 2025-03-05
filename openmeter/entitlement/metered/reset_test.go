@@ -322,7 +322,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
+				creditBalance, err := deps.balanceConnector.GetBalanceAt(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
@@ -331,7 +331,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, balance.Map{
 					g1.ID: 400,
 					g2.ID: 100,
-				}, creditBalance.Balances)
+				}, creditBalance.Snapshot.Balances)
 			},
 		},
 		{
@@ -394,7 +394,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
+				creditBalance, err := deps.balanceConnector.GetBalanceAt(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
@@ -403,7 +403,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, balance.Map{
 					g1.ID: 0,
 					g2.ID: 400,
-				}, creditBalance.Balances)
+				}, creditBalance.Snapshot.Balances)
 			},
 		},
 		{
@@ -466,7 +466,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
+				creditBalance, err := deps.balanceConnector.GetBalanceAt(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime)
@@ -475,7 +475,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, balance.Map{
 					g1.ID: 0,
 					g2.ID: 0,
-				}, creditBalance.Balances)
+				}, creditBalance.Snapshot.Balances)
 			},
 		},
 		{
@@ -572,7 +572,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime1, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
+				creditBalance, err := deps.balanceConnector.GetBalanceAt(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime1)
@@ -581,7 +581,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, balance.Map{
 					g1.ID: 400,
 					g2.ID: 100,
-				}, creditBalance.Balances)
+				}, creditBalance.Snapshot.Balances)
 
 				// issue grants taking effect after first reset
 				g3, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
@@ -613,7 +613,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.Equal(t, resetTime2, balanceAfterReset.StartOfPeriod)
 
 				// get detailed balance from credit connector to check individual grant balances
-				creditBalance, err = deps.balanceConnector.GetBalanceOfOwner(ctx, models.NamespacedID{
+				creditBalance, err = deps.balanceConnector.GetBalanceAt(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, resetTime2)
@@ -623,7 +623,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					g1.ID: 100,
 					g2.ID: 100,
 					g3.ID: 1000,
-				}, creditBalance.Balances)
+				}, creditBalance.Snapshot.Balances)
 			},
 		},
 		{

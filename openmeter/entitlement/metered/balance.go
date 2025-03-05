@@ -8,7 +8,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -60,7 +59,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		Namespace: entitlementID.Namespace,
 		ID:        entitlementID.ID,
 	}
-	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
+	res, err := e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
 	if err != nil {
 		if _, ok := err.(*grant.OwnerNotFoundError); ok {
 			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
@@ -102,9 +101,9 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 
 	return &EntitlementBalance{
 		EntitlementID: entitlementID.ID,
-		Balance:       res.Balance(),
+		Balance:       res.Snapshot.Balance(),
 		UsageInPeriod: usage,
-		Overage:       res.Overage,
+		Overage:       res.Snapshot.Overage,
 		StartOfPeriod: startOfPeriod,
 	}, nil
 }
@@ -249,7 +248,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		}
 	}
 
-	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner.NamespacedID, credit.BalanceHistoryParams{
+	historyRes, err := e.balanceConnector.GetBalanceForPeriod(ctx, owner.NamespacedID, timeutil.Period{
 		From: periodToQueryEngine.From,
 		To:   periodToQueryEngine.To,
 	})
@@ -258,7 +257,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	}
 
 	// convert history segments to list of point-in-time balances
-	segments := burndownHistory.Segments()
+	segments := historyRes.History.Segments()
 
 	if len(segments) == 0 {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("returned history is empty")
@@ -361,7 +360,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		tsBalance.overage = overage
 	}
 
-	return windows, burndownHistory, nil
+	return windows, historyRes.History, nil
 }
 
 // queryMeter is a wrapper around streamingConnector.QueryMeter that accepts a 0 length period and returns 0 for it
