@@ -32,8 +32,10 @@ DROP INDEX IF EXISTS "meter_slug_organization_meters";
 -- create index "meter_namespace" to table: "meters"
 CREATE INDEX IF NOT EXISTS "meter_namespace" ON "meters" ("namespace");
 -- create index "meter_namespace_id" to table: "meters"
+-- atlas:nolint MF101s
 CREATE UNIQUE INDEX IF NOT EXISTS "meter_namespace_id" ON "meters" ("namespace", "id");
 -- create index "meter_namespace_key_deleted_at" to table: "meters"
+-- atlas:nolint MF101
 CREATE UNIQUE INDEX IF NOT EXISTS "meter_namespace_key_deleted_at" ON "meters" ("namespace", "key", "deleted_at");
 
 -- Update event_from column with the parsed timestamp from the id
