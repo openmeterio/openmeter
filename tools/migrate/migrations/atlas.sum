@@ -1,4 +1,4 @@
-h1:d6QJUDqld8s9E/+KGFPSAgxnX3W8a8Jo9LxAcClMF6I=
+h1:dM0Kr0ikkGQJM4Arl/qCLuQ1HvWzllz6hesNrUorNQ8=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -123,5 +123,7 @@ h1:d6QJUDqld8s9E/+KGFPSAgxnX3W8a8Jo9LxAcClMF6I=
 20250303141439_billing-dedicated-customer-sync-table.up.sql h1:qFZkjpqZpl/lgNTRXawawyZGE5yQvMrIhvYXvB4FAes=
 20250304071554_customer-remove-is-deleted.down.sql h1:pbIqZN+jjYOgqoaQyGDTjnpUOl5Ft2LlHWsrjcmCJsE=
 20250304071554_customer-remove-is-deleted.up.sql h1:tc8GLyEHrPh/v6ZEG1WDl8F+vbM2JFCK/UXX/2TPFXk=
-20250305025807_add_meter_table.down.sql h1:OwEVTBEkHzMsT+3t0LDvEaFfaY6Uw+zJBEZebMCLM+o=
-20250305025807_add_meter_table.up.sql h1:WNgTmdZ3LxoB+MQAMD9uUBRlA5ODCnfykUmV7y3YioY=
+20250305025807_add_meter_table.down.sql h1:rqPiJC++BMTNolPq/USQAP+Y9y0vex2FfAXDWqhFlOQ=
+20250305025807_add_meter_table.up.sql h1:ZdafaENqMGJLgP8ela+wtuWKBb4T6R2OSU/wHpaDZhc=
+20250306040407_resource_meter.down.sql h1:Y348oWRvZ7BQoGwY8dLcVzzq4NZoI09HV1G081ABLeg=
+20250306040407_resource_meter.up.sql h1:GEKwtPAk/vJLz6iwgPyQA18jVK3aBahnk8y880GBS48=
