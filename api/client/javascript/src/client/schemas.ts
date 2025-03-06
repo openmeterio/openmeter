@@ -2044,6 +2044,8 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       billingProfile?: string
+      /** @description Merged billing profile with the customer specific overrides. */
+      billingProfileWithOverrides?: components['schemas']['BillingProfile']
     }
     /** @description Payload for creating a new or updating an existing customer override. */
     BillingProfileCustomerOverrideCreate: {
@@ -2057,6 +2059,11 @@ export interface components {
        */
       billingProfile?: string
     }
+    /**
+     * @description CustomerOverrideExpand specifies the parts of the profile to expand.
+     * @enum {string}
+     */
+    BillingProfileCustomerOverrideExpand: '*' | 'profileWithOverrides'
     /**
      * @description Order by options for customers.
      * @enum {string}
@@ -7633,6 +7640,14 @@ export interface components {
     'BillingProfileCustomerOverrideOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'BillingProfileCustomerOverrideOrderByOrdering.orderBy': components['schemas']['BillingProfileCustomerOverrideOrderBy']
+    /** @description Filter by billing profile. */
+    'BillingProfileListCustomerOverridesParams.billingProfile': string[]
+    /** @description Expand the response with additional details. */
+    'BillingProfileListCustomerOverridesParams.expand': components['schemas']['BillingProfileCustomerOverrideExpand'][]
+    /** @description Include the default profile in the results.
+     *
+     *     If set to false only the customers specifically associated with a billing profile will be returned. */
+    'BillingProfileListCustomerOverridesParams.includeDefaultProfile': boolean
     /** @description The order direction. */
     'BillingProfileOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
@@ -7808,6 +7823,8 @@ export type BillingProfileCustomerOverride =
   components['schemas']['BillingProfileCustomerOverride']
 export type BillingProfileCustomerOverrideCreate =
   components['schemas']['BillingProfileCustomerOverrideCreate']
+export type BillingProfileCustomerOverrideExpand =
+  components['schemas']['BillingProfileCustomerOverrideExpand']
 export type BillingProfileCustomerOverrideOrderBy =
   components['schemas']['BillingProfileCustomerOverrideOrderBy']
 export type BillingProfileCustomerOverridePaginatedResponse =
@@ -8237,6 +8254,12 @@ export type ParameterBillingProfileCustomerOverrideOrderByOrderingOrder =
   components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.order']
 export type ParameterBillingProfileCustomerOverrideOrderByOrderingOrderBy =
   components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.orderBy']
+export type ParameterBillingProfileListCustomerOverridesParamsBillingProfile =
+  components['parameters']['BillingProfileListCustomerOverridesParams.billingProfile']
+export type ParameterBillingProfileListCustomerOverridesParamsExpand =
+  components['parameters']['BillingProfileListCustomerOverridesParams.expand']
+export type ParameterBillingProfileListCustomerOverridesParamsIncludeDefaultProfile =
+  components['parameters']['BillingProfileListCustomerOverridesParams.includeDefaultProfile']
 export type ParameterBillingProfileOrderByOrderingOrder =
   components['parameters']['BillingProfileOrderByOrdering.order']
 export type ParameterBillingProfileOrderByOrderingOrderBy =
@@ -8852,7 +8875,14 @@ export interface operations {
   listBillingProfileCustomerOverrides: {
     parameters: {
       query?: {
-        billingProfile?: string[]
+        /** @description Filter by billing profile. */
+        billingProfile?: components['parameters']['BillingProfileListCustomerOverridesParams.billingProfile']
+        /** @description Include the default profile in the results.
+         *
+         *     If set to false only the customers specifically associated with a billing profile will be returned. */
+        includeDefaultProfile?: components['parameters']['BillingProfileListCustomerOverridesParams.includeDefaultProfile']
+        /** @description Expand the response with additional details. */
+        expand?: components['parameters']['BillingProfileListCustomerOverridesParams.expand']
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */
@@ -8947,7 +8977,9 @@ export interface operations {
   }
   getBillingProfileCustomerOverride: {
     parameters: {
-      query?: never
+      query?: {
+        expand?: components['schemas']['BillingProfileCustomerOverrideExpand'][]
+      }
       header?: never
       path: {
         customerId: string

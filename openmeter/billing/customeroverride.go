@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type CustomerOverride struct {
@@ -198,39 +201,29 @@ func (u UpdateCustomerOverrideInput) Validate() error {
 	return nil
 }
 
-type namespacedCustomerID struct {
-	Namespace  string `json:"namespace"`
-	CustomerID string `json:"customerID"`
+type GetCustomerOverrideInput struct {
+	Customer customer.CustomerID    `json:"customerID"`
+	Expand   CustomerOverrideExpand `json:"expand,omitempty"`
 }
-
-func (g namespacedCustomerID) Validate() error {
-	if g.Namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-
-	if g.CustomerID == "" {
-		return fmt.Errorf("customer id is required")
-	}
-
-	return nil
-}
-
-type GetCustomerOverrideInput namespacedCustomerID
 
 func (g GetCustomerOverrideInput) Validate() error {
-	return namespacedCustomerID(g).Validate()
+	return g.Customer.Validate()
 }
 
-type DeleteCustomerOverrideInput namespacedCustomerID
+type DeleteCustomerOverrideInput struct {
+	Customer customer.CustomerID
+}
 
 func (d DeleteCustomerOverrideInput) Validate() error {
-	return namespacedCustomerID(d).Validate()
+	return d.Customer.Validate()
 }
 
-type GetProfileWithCustomerOverrideInput namespacedCustomerID
+type GetProfileWithCustomerOverrideInput struct {
+	Customer customer.CustomerID
+}
 
 func (g GetProfileWithCustomerOverrideInput) Validate() error {
-	return namespacedCustomerID(g).Validate()
+	return g.Customer.Validate()
 }
 
 type GetCustomerOverrideAdapterInput struct {
@@ -267,3 +260,49 @@ type (
 	UpsertCustomerOverrideAdapterInput = customer.CustomerID
 	LockCustomerForUpdateAdapterInput  = customer.CustomerID
 )
+
+type CustomerOverrideWithMergedProfile struct {
+	CustomerOverride `json:",inline"`
+
+	Customer                    *customer.Customer `json:"customer,omitempty"`
+	BillingProfileWithOverrides *Profile           `json:"billingProfileWithOverrides,omitempty"`
+}
+
+type CustomerOverrideWithAdapterProfile struct {
+	CustomerOverride `json:",inline"`
+
+	DefaultProfile *AdapterGetProfileResponse `json:"billingProfile,omitempty"`
+}
+
+type ListCustomerOverridesInput struct {
+	pagination.Page
+
+	// Warning: We only support a single namespace for now as the default profile handling
+	// complicates things. If we need multiple namespace support, I would recommend a different
+	// endpoint that doesn't take default namespace into account.
+	Namespace       string                 `json:"namespace"`
+	BillingProfiles []string               `json:"billingProfile,omitempty"`
+	Expand          CustomerOverrideExpand `json:"expand,omitempty"`
+	// TODO: OrderBy
+
+	// TODO: type!
+	OrderBy api.CustomerOrderBy
+	Order   sortx.Order
+}
+
+func (l ListCustomerOverridesInput) Validate() error {
+	if l.Namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+
+	return nil
+}
+
+type CustomerOverrideExpand struct {
+	ProfileWithOverrides bool `json:"profileWithOverrides,omitempty"`
+	Customers            bool `json:"customers,omitempty"`
+}
+
+type ListCustomerOverridesResult = pagination.PagedResponse[CustomerOverrideWithMergedProfile]
+
+type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverride]

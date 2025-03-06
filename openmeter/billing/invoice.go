@@ -408,6 +408,13 @@ func (i Invoice) InvoiceID() InvoiceID {
 	}
 }
 
+func (i Invoice) CustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: i.Namespace,
+		ID:        i.Customer.CustomerID,
+	}
+}
+
 func (i *Invoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
 	i.ValidationIssues = lo.Filter(i.ValidationIssues, func(issue ValidationIssue, _ int) bool {
 		return issue.Component != reportingComponent
