@@ -1,6 +1,8 @@
 -- modify "meters" table
 -- note that alter table doesn't accept multiple column changes with renaming
+-- atlas:nolint BC102
 ALTER TABLE "meters" RENAME COLUMN "organization_meters" TO "namespace";
+-- atlas:nolint BC102
 ALTER TABLE "meters" RENAME COLUMN "slug" TO "key";
 
 -- atlas:nolint DS103 BC102
