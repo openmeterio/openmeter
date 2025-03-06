@@ -22,6 +22,7 @@ var OMMigrations embed.FS
 
 // NewMigrate creates a new migrate instance.
 func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
+	fs = NewSourceWrapper(fs)
 	d, err := iofs.New(fs, fsPath)
 	if err != nil {
 		return nil, err
