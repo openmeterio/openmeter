@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS "meters" (
     PRIMARY KEY ("id")
 );
 
+-- create index "meter_id" to table: "meters"
+-- atlas:nolint MF101
+CREATE UNIQUE INDEX IF NOT EXISTS "meter_id" ON "meters" ("id");
+
 -- modify "meters" table
 -- note that alter table doesn't accept multiple column changes with renaming
 ALTER TABLE "meters" RENAME COLUMN "organization_meters" TO "namespace";
@@ -25,6 +29,7 @@ ALTER TABLE "meters"
     ADD COLUMN "deleted_at" timestamptz NULL,
     ALTER COLUMN "value_property" DROP NOT NULL,
     ALTER COLUMN "group_by" DROP NOT NULL,
+    ALTER COLUMN "description" DROP DEFAULT,
     DROP COLUMN "window_size";
 
 -- drop index "meter_slug_organization_meters" from table: "meters"
