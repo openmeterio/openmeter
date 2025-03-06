@@ -5,7 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestWindowSizeFromDuration(t *testing.T) {
@@ -62,11 +66,21 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "valid meter",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: nil,
@@ -74,20 +88,40 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "valid without group by",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 			},
 			error: nil,
 		},
 		{
 			description: "count is valid without value property",
 			meter: Meter{
-				Slug:        "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:         "slug-test",
 				Aggregation: MeterAggregationCount,
-				WindowSize:  WindowSizeMinute,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
@@ -96,11 +130,21 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "count is invalid with value property",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationCount,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter value property is not allowed when the aggregation is count"),
@@ -108,8 +152,18 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "slug is empty",
 			meter: Meter{
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
 				Aggregation: MeterAggregationCount,
-				WindowSize:  WindowSizeMinute,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
@@ -118,10 +172,20 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "aggregation is empty",
 			meter: Meter{
-				Slug:          "slug-test",
-				WindowSize:    WindowSizeMinute,
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter aggregation is required"),
@@ -129,7 +193,18 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "window size is empty",
 			meter: Meter{
-				Slug:        "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:         "slug-test",
 				Aggregation: MeterAggregationCount,
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
@@ -139,22 +214,63 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "event type is empty",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter event type is required"),
 		},
 		{
+			description: "missing value property",
+			meter: Meter{
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:         "slug-test",
+				Aggregation: MeterAggregationSum,
+				EventType:   "event-type-test",
+				GroupBy:     map[string]string{"test_group": "$.test_group"},
+			},
+			error: fmt.Errorf("meter value property is required"),
+		},
+		{
 			description: "invalid value property",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "invalid",
+				ValueProperty: lo.ToPtr("invalid"),
 				GroupBy:       map[string]string{"test_group": "$.test_group"},
 			},
 			error: fmt.Errorf("meter value property must start with $"),
@@ -162,11 +278,21 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by key",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"in-valid": "$.test_group"},
 			},
 			error: fmt.Errorf("meter group by key in-valid is invalid, only alphanumeric and underscore characters are allowed"),
@@ -174,11 +300,21 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by key",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"": "$.test_group"},
 			},
 			error: fmt.Errorf("meter group by key cannot be empty"),
@@ -186,11 +322,21 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "invalid group by property",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationSum,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "invalid"},
 			},
 			error: fmt.Errorf("meter group by value must start with $ for key test_group"),
@@ -198,11 +344,21 @@ func TestMeterValidation(t *testing.T) {
 		{
 			description: "value property cannot be in the group by",
 			meter: Meter{
-				Slug:          "slug-test",
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: ulid.Make().String(),
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Test meter",
+				},
+				Key:           "slug-test",
 				Aggregation:   MeterAggregationUniqueCount,
-				WindowSize:    WindowSizeMinute,
 				EventType:     "event-type-test",
-				ValueProperty: "$.my_property",
+				ValueProperty: lo.ToPtr("$.my_property"),
 				GroupBy:       map[string]string{"test_group": "$.my_property"},
 			},
 			error: fmt.Errorf("meter group by value test_group cannot be the same as value property"),

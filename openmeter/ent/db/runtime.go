@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -784,6 +785,37 @@ func init() {
 	dbgrantDescID := dbgrantMixinFields0[0].Descriptor()
 	// dbgrant.DefaultID holds the default value on creation for the id field.
 	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
+	dbmeterMixin := schema.Meter{}.Mixin()
+	dbmeterMixinFields0 := dbmeterMixin[0].Fields()
+	_ = dbmeterMixinFields0
+	dbmeterFields := schema.Meter{}.Fields()
+	_ = dbmeterFields
+	// dbmeterDescNamespace is the schema descriptor for namespace field.
+	dbmeterDescNamespace := dbmeterMixinFields0[1].Descriptor()
+	// dbmeter.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	dbmeter.NamespaceValidator = dbmeterDescNamespace.Validators[0].(func(string) error)
+	// dbmeterDescCreatedAt is the schema descriptor for created_at field.
+	dbmeterDescCreatedAt := dbmeterMixinFields0[3].Descriptor()
+	// dbmeter.DefaultCreatedAt holds the default value on creation for the created_at field.
+	dbmeter.DefaultCreatedAt = dbmeterDescCreatedAt.Default.(func() time.Time)
+	// dbmeterDescUpdatedAt is the schema descriptor for updated_at field.
+	dbmeterDescUpdatedAt := dbmeterMixinFields0[4].Descriptor()
+	// dbmeter.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	dbmeter.DefaultUpdatedAt = dbmeterDescUpdatedAt.Default.(func() time.Time)
+	// dbmeter.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	dbmeter.UpdateDefaultUpdatedAt = dbmeterDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// dbmeterDescKey is the schema descriptor for key field.
+	dbmeterDescKey := dbmeterMixinFields0[8].Descriptor()
+	// dbmeter.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	dbmeter.KeyValidator = dbmeterDescKey.Validators[0].(func(string) error)
+	// dbmeterDescEventType is the schema descriptor for event_type field.
+	dbmeterDescEventType := dbmeterFields[0].Descriptor()
+	// dbmeter.EventTypeValidator is a validator for the "event_type" field. It is called by the builders before save.
+	dbmeter.EventTypeValidator = dbmeterDescEventType.Validators[0].(func(string) error)
+	// dbmeterDescID is the schema descriptor for id field.
+	dbmeterDescID := dbmeterMixinFields0[0].Descriptor()
+	// dbmeter.DefaultID holds the default value on creation for the id field.
+	dbmeter.DefaultID = dbmeterDescID.Default.(func() string)
 	notificationchannelMixin := schema.NotificationChannel{}.Mixin()
 	notificationchannelMixinFields0 := notificationchannelMixin[0].Fields()
 	_ = notificationchannelMixinFields0

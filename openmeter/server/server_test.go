@@ -14,6 +14,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
@@ -31,8 +32,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -54,23 +55,39 @@ var mockEvent = event.New()
 
 var mockMeters = []meter.Meter{
 	{
-		Namespace:     DefaultNamespace,
-		ID:            ulid.Make().String(),
-		Slug:          "meter1",
-		WindowSize:    meter.WindowSizeMinute,
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: DefaultNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
+		Key:           "meter1",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 		GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
 	},
 	{
-		Namespace:     DefaultNamespace,
-		ID:            ulid.Make().String(),
-		Slug:          "meter2",
-		WindowSize:    meter.WindowSizeMinute,
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: DefaultNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 2",
+		},
+		Key:           "meter2",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "event",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 	},
 }
 
@@ -133,6 +150,10 @@ func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []strea
 	return nil
 }
 
+func (c *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return true, nil
+}
+
 type MockDebugHandler struct{}
 
 func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
@@ -163,7 +184,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	mockStreamingConnector := &MockStreamingConnector{}
 
-	meterService, err := meteradapter.New(mockMeters)
+	meterManageService, err := meteradapter.NewManage(mockMeters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
@@ -176,7 +197,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			FeatureConnector:            &NoopFeatureConnector{},
 			GrantConnector:              &NoopGrantConnector{},
-			MeterService:                meterService,
+			MeterManageService:          meterManageService,
 			MeterEventService:           meterEventService,
 			StreamingConnector:          mockStreamingConnector,
 			DebugConnector:              MockDebugHandler{},
@@ -270,7 +291,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].Slug,
+				path:   "/api/v1/meters/" + mockMeters[0].Key,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -282,7 +303,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -300,7 +321,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=path&groupBy=method",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?groupBy=path&groupBy=method",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -311,7 +332,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=subject",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?groupBy=subject",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -322,7 +343,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=foo",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?groupBy=foo",
 			},
 			res: testResponse{
 				status: http.StatusBadRequest,
@@ -333,7 +354,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?subject=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -351,7 +372,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?filterGroupBy[method]=GET",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?filterGroupBy[method]=GET",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -369,7 +390,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?filterGroupBy[invalid]=abcd",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?filterGroupBy[invalid]=abcd",
 			},
 			res: testResponse{
 				status: http.StatusBadRequest,
@@ -381,7 +402,7 @@ func TestRoutes(t *testing.T) {
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -401,7 +422,7 @@ func TestRoutes(t *testing.T) {
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?subject=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -419,7 +440,7 @@ func TestRoutes(t *testing.T) {
 			name: "list meter subjects",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   fmt.Sprintf("/api/v1/meters/%s/subjects", mockMeters[0].Slug),
+				path:   fmt.Sprintf("/api/v1/meters/%s/subjects", mockMeters[0].Key),
 			},
 			res: testResponse{
 				status: http.StatusOK,

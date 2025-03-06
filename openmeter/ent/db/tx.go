@@ -58,6 +58,8 @@ type Tx struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// Meter is the client for interacting with the Meter builders.
+	Meter *MeterClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
 	NotificationChannel *NotificationChannelClient
 	// NotificationEvent is the client for interacting with the NotificationEvent builders.
@@ -233,6 +235,7 @@ func (tx *Tx) init() {
 	tx.Entitlement = NewEntitlementClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
+	tx.Meter = NewMeterClient(tx.config)
 	tx.NotificationChannel = NewNotificationChannelClient(tx.config)
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)
 	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)

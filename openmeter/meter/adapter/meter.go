@@ -3,93 +3,100 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"slices"
 
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// ListMeters implements the [Repository] interface.
-func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
+// ListMeters returns a list of meters.
+func (a *adapter) ListMeters(ctx context.Context, params meter.ListMetersParams) (pagination.PagedResponse[meter.Meter], error) {
 	if err := params.Validate(); err != nil {
 		return pagination.PagedResponse[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
-	meters := []meter.Meter{}
+	query := a.db.Meter.Query()
 
-	// In memory filtering
-	for _, meter := range c.getMeters() {
-		if !params.WithoutNamespace && meter.Namespace != params.Namespace {
-			continue
-		}
-
-		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Slug) {
-			continue
-		}
-
-		meters = append(meters, meter)
+	if !params.WithoutNamespace {
+		query = query.
+			Where(meterdb.NamespaceEQ(params.Namespace)).
+			Where(meterdb.DeletedAtIsNil())
 	}
 
-	// In memory pagination
-	pageNumberIndex := params.PageNumber - 1
-
-	if pageNumberIndex*params.PageSize > len(meters) {
-		meters = []meter.Meter{}
-	} else {
-		meters = meters[pageNumberIndex*params.PageSize:]
+	if params.SlugFilter != nil {
+		query = query.Where(meterdb.KeyIn(*params.SlugFilter...))
 	}
 
-	if len(meters) > params.PageSize {
-		meters = meters[:params.PageSize]
+	entities, err := query.Paginate(ctx, params.Page)
+	if err != nil {
+		return pagination.PagedResponse[meter.Meter]{}, err
 	}
 
-	return pagination.PagedResponse[meter.Meter]{
-		Page:       params.Page,
-		Items:      meters,
-		TotalCount: len(meters),
-	}, nil
+	resp, err := pagination.MapPagedResponseError(entities, MapFromEntityFactory)
+	if err != nil {
+		return pagination.PagedResponse[meter.Meter]{}, fmt.Errorf("failed to map meters: %w", err)
+	}
+
+	return resp, nil
 }
 
-// GetMeterByIDOrSlug implements the [Repository] interface.
-func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInput) (meter.Meter, error) {
+// GetMeterByIDOrSlug returns a meter from the meter store by ID or slug.
+func (a *adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterInput) (meter.Meter, error) {
 	if err := input.Validate(); err != nil {
 		return meter.Meter{}, models.NewGenericValidationError(err)
 	}
 
-	for _, meter := range c.getMeters() {
-		if meter.Namespace != input.Namespace {
-			continue
+	entity, err := a.db.Meter.Query().
+		Where(meterdb.NamespaceEQ(input.Namespace)).
+		Where(meterdb.Or(
+			meterdb.ID(input.IDOrSlug),
+			meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
+		)).
+		First(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
 		}
 
-		if meter.ID == input.IDOrSlug || meter.Slug == input.IDOrSlug {
-			return meter, nil
-		}
+		return meter.Meter{}, fmt.Errorf("failed to get meter by ID or slug: %w", err)
 	}
 
-	return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
-}
-
-// ReplaceMeters can be used to replace all meters in the repository.
-func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
-	c.init()
-
-	for _, m := range meters {
-		if err := m.Validate(); err != nil {
-			return models.NewGenericValidationError(
-				fmt.Errorf("failed to validate meter: %w", err),
-			)
-		}
+	meter, err := MapFromEntityFactory(entity)
+	if err != nil {
+		return meter, fmt.Errorf("failed to map meter: %w", err)
 	}
 
-	c.meters = slices.Clone(meters)
-
-	return nil
+	return meter, nil
 }
 
-// getMeters returns all meters in the memory store.
-func (c *adapter) getMeters() []meter.Meter {
-	c.init()
+// MapFromEntityFactory creates a function that maps a meter db entity to a meter model.
+func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
+	if entity == nil {
+		return meter.Meter{}, fmt.Errorf("entity is required")
+	}
 
-	return slices.Clone(c.meters)
+	return meter.Meter{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: entity.Namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: entity.CreatedAt,
+				UpdatedAt: entity.UpdatedAt,
+				DeletedAt: entity.DeletedAt,
+			},
+			ID:          entity.ID,
+			Name:        entity.Name,
+			Description: entity.Description,
+		},
+		Key:           entity.Key,
+		Aggregation:   entity.Aggregation,
+		EventType:     entity.EventType,
+		EventFrom:     entity.EventFrom,
+		ValueProperty: entity.ValueProperty,
+		GroupBy:       entity.GroupBy,
+		WindowSize:    meter.WindowSizeMinute,
+	}, nil
 }

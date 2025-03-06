@@ -144,12 +144,21 @@ func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
 
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     s.Namespace,
-			Slug:          apiRequestsTotalMeterSlug,
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: s.Namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "API Requests Total",
+			},
+			Key:           apiRequestsTotalMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	s.NoError(err, "Replacing meters must not return error")

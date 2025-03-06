@@ -6,17 +6,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Meant to work for boolean entitlements
@@ -72,12 +76,21 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:          "meter1",
-		Namespace:     "ns1",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "ns1",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
+		Key:           "meter1",
 		Aggregation:   meter.MeterAggregationMax,
-		WindowSize:    meter.WindowSizeMinute,
 		EventType:     "test",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 	}})
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)

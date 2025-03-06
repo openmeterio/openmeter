@@ -104,7 +104,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	if err := params.Validate(meter); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
@@ -138,7 +138,7 @@ func (c *Connector) ListMeterSubjects(ctx context.Context, namespace string, met
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
-	if meter.Slug == "" {
+	if meter.Key == "" {
 		return nil, fmt.Errorf("meter is required")
 	}
 
@@ -226,6 +226,28 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// ValidateJSONPath checks if the given JSON path is valid by executing a simple query with it.
+func (c *Connector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	query := validateJsonPathQuery{
+		jsonPath: jsonPath,
+	}
+
+	sql, args := query.toSQL()
+
+	err := c.config.ClickHouse.Exec(ctx, sql, args...)
+	if err != nil {
+		// Code 36 means bad arguments
+		// See: https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp
+		if strings.Contains(err.Error(), "code: 36") {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
@@ -388,7 +410,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return values, fmt.Errorf("query meter view query: %w", err)
@@ -474,7 +496,7 @@ func (c *Connector) listMeterViewSubjects(ctx context.Context, namespace string,
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Slug)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 
 		return nil, fmt.Errorf("list meter view subjects: %w", err)

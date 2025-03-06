@@ -109,7 +109,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		}
 
 		if !slices.Contains(c.validMeterAggregations, meter.Aggregation) {
-			return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Slug, ValidAggregations: c.validMeterAggregations}
+			return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Key, ValidAggregations: c.validMeterAggregations}
 		}
 
 		if feature.MeterGroupByFilters != nil {

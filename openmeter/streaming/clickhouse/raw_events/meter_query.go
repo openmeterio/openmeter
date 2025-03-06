@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -99,10 +100,10 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 	if d.Meter.Aggregation == meter.MeterAggregationCount {
 		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
 	} else if d.Meter.Aggregation == meter.MeterAggregationUniqueCount {
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	} else {
 		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(toFloat64OrNull(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(toFloat64OrNull(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), sqlbuilder.Escape(*d.Meter.ValueProperty)))
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -170,8 +171,13 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 		}
 	}
 
-	if d.From != nil {
-		where = append(where, query.GreaterEqualThan(getColumn("time"), d.From.Unix()))
+	if d.From != nil || d.Meter.EventFrom != nil {
+		from, ok := lo.Coalesce(d.From, d.Meter.EventFrom)
+		if !ok {
+			return "", nil, fmt.Errorf("missing from time")
+		}
+
+		where = append(where, query.GreaterEqualThan(getColumn("time"), from.Unix()))
 	}
 
 	if d.To != nil {

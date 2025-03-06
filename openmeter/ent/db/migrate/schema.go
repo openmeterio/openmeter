@@ -1242,6 +1242,51 @@ var (
 			},
 		},
 	}
+	// MetersColumns holds the columns for the "meters" table.
+	MetersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "event_type", Type: field.TypeString},
+		{Name: "value_property", Type: field.TypeString, Nullable: true},
+		{Name: "group_by", Type: field.TypeJSON, Nullable: true},
+		{Name: "aggregation", Type: field.TypeEnum, Enums: []string{"SUM", "COUNT", "AVG", "MIN", "MAX", "UNIQUE_COUNT"}},
+		{Name: "event_from", Type: field.TypeTime, Nullable: true},
+	}
+	// MetersTable holds the schema information for the "meters" table.
+	MetersTable = &schema.Table{
+		Name:       "meters",
+		Columns:    MetersColumns,
+		PrimaryKey: []*schema.Column{MetersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "meter_id",
+				Unique:  true,
+				Columns: []*schema.Column{MetersColumns[0]},
+			},
+			{
+				Name:    "meter_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{MetersColumns[1]},
+			},
+			{
+				Name:    "meter_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{MetersColumns[1], MetersColumns[0]},
+			},
+			{
+				Name:    "meter_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{MetersColumns[1], MetersColumns[8], MetersColumns[5]},
+			},
+		},
+	}
 	// NotificationChannelsColumns holds the columns for the "notification_channels" table.
 	NotificationChannelsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1927,6 +1972,7 @@ var (
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
+		MetersTable,
 		NotificationChannelsTable,
 		NotificationEventsTable,
 		NotificationEventDeliveryStatusTable,

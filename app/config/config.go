@@ -4,12 +4,15 @@ package config
 import (
 	"errors"
 	"strings"
+	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Configuration holds any kind of Configuration that comes from the outside world and
@@ -84,16 +87,27 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errors.New("no meters configured: add meter to configuration file"))
 	}
 
-	for _, m := range c.Meters {
-		// Namespace is not configurable on per meter level
-		m.Namespace = c.Namespace.Default
-
-		// set default window size
-		if m.WindowSize == "" {
-			m.WindowSize = meter.WindowSizeMinute
+	for idx, m := range c.Meters {
+		// Set managed resource
+		c.Meters[idx].ManagedResource = models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: c.Namespace.Default,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			ID: m.Key,
+			// Meter used to not have a name,
+			// so we need to coalesce it with the key when it comes from the config
+			Name:        lo.CoalesceOrEmpty(m.Name, m.Key),
+			Description: m.Description,
 		}
 
-		if err := m.Validate(); err != nil {
+		// Window size is deprecated, always set to MINUTE
+		c.Meters[idx].WindowSize = meter.WindowSizeMinute
+
+		if err := c.Meters[idx].Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}

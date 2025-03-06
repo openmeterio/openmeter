@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
@@ -255,12 +257,21 @@ func TestComplete(t *testing.T) {
 		},
 		Meters: []*meter.Meter{
 			{
-				Namespace:     "default",
-				Slug:          "m1",
-				Description:   "",
+				ManagedResource: models.ManagedResource{
+					ID: "m1",
+					NamespacedModel: models.NamespacedModel{
+						Namespace: "default",
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: actual.Meters[0].ManagedResource.CreatedAt,
+						UpdatedAt: actual.Meters[0].ManagedResource.UpdatedAt,
+					},
+					Name: "m1",
+				},
+				Key:           "m1",
 				Aggregation:   "SUM",
 				EventType:     "api-calls",
-				ValueProperty: "$.duration_ms",
+				ValueProperty: lo.ToPtr("$.duration_ms"),
 				GroupBy: map[string]string{
 					"method": "$.method",
 					"path":   "$.path",

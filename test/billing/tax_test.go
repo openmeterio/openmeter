@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type InvoicingTaxTestSuite struct {
@@ -161,12 +163,21 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          meterSlug,
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           meterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	s.NoError(err, "meter replacement must not return error")

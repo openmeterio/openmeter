@@ -38,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -50,6 +51,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -88,6 +90,7 @@ const (
 	TypeEntitlement                        = "Entitlement"
 	TypeFeature                            = "Feature"
 	TypeGrant                              = "Grant"
+	TypeMeter                              = "Meter"
 	TypeNotificationChannel                = "NotificationChannel"
 	TypeNotificationEvent                  = "NotificationEvent"
 	TypeNotificationEventDeliveryStatus    = "NotificationEventDeliveryStatus"
@@ -28511,6 +28514,1103 @@ func (m *GrantMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Grant edge %s", name)
+}
+
+// MeterMutation represents an operation that mutates the Meter nodes in the graph.
+type MeterMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *string
+	namespace      *string
+	metadata       *map[string]string
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	name           *string
+	description    *string
+	key            *string
+	event_type     *string
+	value_property *string
+	group_by       *map[string]string
+	aggregation    *meter.MeterAggregation
+	event_from     *time.Time
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*Meter, error)
+	predicates     []predicate.Meter
+}
+
+var _ ent.Mutation = (*MeterMutation)(nil)
+
+// meterOption allows management of the mutation configuration using functional options.
+type meterOption func(*MeterMutation)
+
+// newMeterMutation creates new mutation for the Meter entity.
+func newMeterMutation(c config, op Op, opts ...meterOption) *MeterMutation {
+	m := &MeterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMeter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMeterID sets the ID field of the mutation.
+func withMeterID(id string) meterOption {
+	return func(m *MeterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Meter
+		)
+		m.oldValue = func(ctx context.Context) (*Meter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Meter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMeter sets the old Meter of the mutation.
+func withMeter(node *Meter) meterOption {
+	return func(m *MeterMutation) {
+		m.oldValue = func(context.Context) (*Meter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MeterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MeterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Meter entities.
+func (m *MeterMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MeterMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MeterMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Meter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *MeterMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *MeterMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *MeterMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *MeterMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *MeterMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *MeterMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[dbmeter.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *MeterMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *MeterMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, dbmeter.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *MeterMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *MeterMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *MeterMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *MeterMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *MeterMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *MeterMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *MeterMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *MeterMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *MeterMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[dbmeter.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *MeterMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *MeterMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, dbmeter.FieldDeletedAt)
+}
+
+// SetName sets the "name" field.
+func (m *MeterMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *MeterMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *MeterMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *MeterMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *MeterMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *MeterMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[dbmeter.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *MeterMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *MeterMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, dbmeter.FieldDescription)
+}
+
+// SetKey sets the "key" field.
+func (m *MeterMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *MeterMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *MeterMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetEventType sets the "event_type" field.
+func (m *MeterMutation) SetEventType(s string) {
+	m.event_type = &s
+}
+
+// EventType returns the value of the "event_type" field in the mutation.
+func (m *MeterMutation) EventType() (r string, exists bool) {
+	v := m.event_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventType returns the old "event_type" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldEventType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventType: %w", err)
+	}
+	return oldValue.EventType, nil
+}
+
+// ResetEventType resets all changes to the "event_type" field.
+func (m *MeterMutation) ResetEventType() {
+	m.event_type = nil
+}
+
+// SetValueProperty sets the "value_property" field.
+func (m *MeterMutation) SetValueProperty(s string) {
+	m.value_property = &s
+}
+
+// ValueProperty returns the value of the "value_property" field in the mutation.
+func (m *MeterMutation) ValueProperty() (r string, exists bool) {
+	v := m.value_property
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValueProperty returns the old "value_property" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldValueProperty(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValueProperty is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValueProperty requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValueProperty: %w", err)
+	}
+	return oldValue.ValueProperty, nil
+}
+
+// ClearValueProperty clears the value of the "value_property" field.
+func (m *MeterMutation) ClearValueProperty() {
+	m.value_property = nil
+	m.clearedFields[dbmeter.FieldValueProperty] = struct{}{}
+}
+
+// ValuePropertyCleared returns if the "value_property" field was cleared in this mutation.
+func (m *MeterMutation) ValuePropertyCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldValueProperty]
+	return ok
+}
+
+// ResetValueProperty resets all changes to the "value_property" field.
+func (m *MeterMutation) ResetValueProperty() {
+	m.value_property = nil
+	delete(m.clearedFields, dbmeter.FieldValueProperty)
+}
+
+// SetGroupBy sets the "group_by" field.
+func (m *MeterMutation) SetGroupBy(value map[string]string) {
+	m.group_by = &value
+}
+
+// GroupBy returns the value of the "group_by" field in the mutation.
+func (m *MeterMutation) GroupBy() (r map[string]string, exists bool) {
+	v := m.group_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupBy returns the old "group_by" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldGroupBy(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupBy: %w", err)
+	}
+	return oldValue.GroupBy, nil
+}
+
+// ClearGroupBy clears the value of the "group_by" field.
+func (m *MeterMutation) ClearGroupBy() {
+	m.group_by = nil
+	m.clearedFields[dbmeter.FieldGroupBy] = struct{}{}
+}
+
+// GroupByCleared returns if the "group_by" field was cleared in this mutation.
+func (m *MeterMutation) GroupByCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldGroupBy]
+	return ok
+}
+
+// ResetGroupBy resets all changes to the "group_by" field.
+func (m *MeterMutation) ResetGroupBy() {
+	m.group_by = nil
+	delete(m.clearedFields, dbmeter.FieldGroupBy)
+}
+
+// SetAggregation sets the "aggregation" field.
+func (m *MeterMutation) SetAggregation(ma meter.MeterAggregation) {
+	m.aggregation = &ma
+}
+
+// Aggregation returns the value of the "aggregation" field in the mutation.
+func (m *MeterMutation) Aggregation() (r meter.MeterAggregation, exists bool) {
+	v := m.aggregation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAggregation returns the old "aggregation" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldAggregation(ctx context.Context) (v meter.MeterAggregation, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAggregation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAggregation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAggregation: %w", err)
+	}
+	return oldValue.Aggregation, nil
+}
+
+// ResetAggregation resets all changes to the "aggregation" field.
+func (m *MeterMutation) ResetAggregation() {
+	m.aggregation = nil
+}
+
+// SetEventFrom sets the "event_from" field.
+func (m *MeterMutation) SetEventFrom(t time.Time) {
+	m.event_from = &t
+}
+
+// EventFrom returns the value of the "event_from" field in the mutation.
+func (m *MeterMutation) EventFrom() (r time.Time, exists bool) {
+	v := m.event_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventFrom returns the old "event_from" field's value of the Meter entity.
+// If the Meter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterMutation) OldEventFrom(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventFrom: %w", err)
+	}
+	return oldValue.EventFrom, nil
+}
+
+// ClearEventFrom clears the value of the "event_from" field.
+func (m *MeterMutation) ClearEventFrom() {
+	m.event_from = nil
+	m.clearedFields[dbmeter.FieldEventFrom] = struct{}{}
+}
+
+// EventFromCleared returns if the "event_from" field was cleared in this mutation.
+func (m *MeterMutation) EventFromCleared() bool {
+	_, ok := m.clearedFields[dbmeter.FieldEventFrom]
+	return ok
+}
+
+// ResetEventFrom resets all changes to the "event_from" field.
+func (m *MeterMutation) ResetEventFrom() {
+	m.event_from = nil
+	delete(m.clearedFields, dbmeter.FieldEventFrom)
+}
+
+// Where appends a list predicates to the MeterMutation builder.
+func (m *MeterMutation) Where(ps ...predicate.Meter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MeterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MeterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Meter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MeterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MeterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Meter).
+func (m *MeterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MeterMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.namespace != nil {
+		fields = append(fields, dbmeter.FieldNamespace)
+	}
+	if m.metadata != nil {
+		fields = append(fields, dbmeter.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, dbmeter.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, dbmeter.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, dbmeter.FieldDeletedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, dbmeter.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, dbmeter.FieldDescription)
+	}
+	if m.key != nil {
+		fields = append(fields, dbmeter.FieldKey)
+	}
+	if m.event_type != nil {
+		fields = append(fields, dbmeter.FieldEventType)
+	}
+	if m.value_property != nil {
+		fields = append(fields, dbmeter.FieldValueProperty)
+	}
+	if m.group_by != nil {
+		fields = append(fields, dbmeter.FieldGroupBy)
+	}
+	if m.aggregation != nil {
+		fields = append(fields, dbmeter.FieldAggregation)
+	}
+	if m.event_from != nil {
+		fields = append(fields, dbmeter.FieldEventFrom)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MeterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case dbmeter.FieldNamespace:
+		return m.Namespace()
+	case dbmeter.FieldMetadata:
+		return m.Metadata()
+	case dbmeter.FieldCreatedAt:
+		return m.CreatedAt()
+	case dbmeter.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case dbmeter.FieldDeletedAt:
+		return m.DeletedAt()
+	case dbmeter.FieldName:
+		return m.Name()
+	case dbmeter.FieldDescription:
+		return m.Description()
+	case dbmeter.FieldKey:
+		return m.Key()
+	case dbmeter.FieldEventType:
+		return m.EventType()
+	case dbmeter.FieldValueProperty:
+		return m.ValueProperty()
+	case dbmeter.FieldGroupBy:
+		return m.GroupBy()
+	case dbmeter.FieldAggregation:
+		return m.Aggregation()
+	case dbmeter.FieldEventFrom:
+		return m.EventFrom()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MeterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case dbmeter.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case dbmeter.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case dbmeter.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case dbmeter.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case dbmeter.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case dbmeter.FieldName:
+		return m.OldName(ctx)
+	case dbmeter.FieldDescription:
+		return m.OldDescription(ctx)
+	case dbmeter.FieldKey:
+		return m.OldKey(ctx)
+	case dbmeter.FieldEventType:
+		return m.OldEventType(ctx)
+	case dbmeter.FieldValueProperty:
+		return m.OldValueProperty(ctx)
+	case dbmeter.FieldGroupBy:
+		return m.OldGroupBy(ctx)
+	case dbmeter.FieldAggregation:
+		return m.OldAggregation(ctx)
+	case dbmeter.FieldEventFrom:
+		return m.OldEventFrom(ctx)
+	}
+	return nil, fmt.Errorf("unknown Meter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MeterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case dbmeter.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case dbmeter.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case dbmeter.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case dbmeter.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case dbmeter.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case dbmeter.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case dbmeter.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case dbmeter.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case dbmeter.FieldEventType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventType(v)
+		return nil
+	case dbmeter.FieldValueProperty:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValueProperty(v)
+		return nil
+	case dbmeter.FieldGroupBy:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupBy(v)
+		return nil
+	case dbmeter.FieldAggregation:
+		v, ok := value.(meter.MeterAggregation)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAggregation(v)
+		return nil
+	case dbmeter.FieldEventFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventFrom(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Meter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MeterMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MeterMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MeterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Meter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MeterMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(dbmeter.FieldMetadata) {
+		fields = append(fields, dbmeter.FieldMetadata)
+	}
+	if m.FieldCleared(dbmeter.FieldDeletedAt) {
+		fields = append(fields, dbmeter.FieldDeletedAt)
+	}
+	if m.FieldCleared(dbmeter.FieldDescription) {
+		fields = append(fields, dbmeter.FieldDescription)
+	}
+	if m.FieldCleared(dbmeter.FieldValueProperty) {
+		fields = append(fields, dbmeter.FieldValueProperty)
+	}
+	if m.FieldCleared(dbmeter.FieldGroupBy) {
+		fields = append(fields, dbmeter.FieldGroupBy)
+	}
+	if m.FieldCleared(dbmeter.FieldEventFrom) {
+		fields = append(fields, dbmeter.FieldEventFrom)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MeterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MeterMutation) ClearField(name string) error {
+	switch name {
+	case dbmeter.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case dbmeter.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case dbmeter.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case dbmeter.FieldValueProperty:
+		m.ClearValueProperty()
+		return nil
+	case dbmeter.FieldGroupBy:
+		m.ClearGroupBy()
+		return nil
+	case dbmeter.FieldEventFrom:
+		m.ClearEventFrom()
+		return nil
+	}
+	return fmt.Errorf("unknown Meter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MeterMutation) ResetField(name string) error {
+	switch name {
+	case dbmeter.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case dbmeter.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case dbmeter.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case dbmeter.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case dbmeter.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case dbmeter.FieldName:
+		m.ResetName()
+		return nil
+	case dbmeter.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case dbmeter.FieldKey:
+		m.ResetKey()
+		return nil
+	case dbmeter.FieldEventType:
+		m.ResetEventType()
+		return nil
+	case dbmeter.FieldValueProperty:
+		m.ResetValueProperty()
+		return nil
+	case dbmeter.FieldGroupBy:
+		m.ResetGroupBy()
+		return nil
+	case dbmeter.FieldAggregation:
+		m.ResetAggregation()
+		return nil
+	case dbmeter.FieldEventFrom:
+		m.ResetEventFrom()
+		return nil
+	}
+	return fmt.Errorf("unknown Meter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MeterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MeterMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MeterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MeterMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MeterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MeterMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MeterMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Meter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MeterMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Meter edge %s", name)
 }
 
 // NotificationChannelMutation represents an operation that mutates the NotificationChannel nodes in the graph.

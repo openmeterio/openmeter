@@ -52,7 +52,8 @@ type Application struct {
 	KafkaMetrics            *kafkametrics.Metrics
 	Logger                  *slog.Logger
 	MetricMeter             metric.Meter
-	MeterService            meter.Service
+	MeterConfigInitializer  common.MeterConfigInitializer
+	MeterManageService      meter.ManageService
 	MeterEventService       meterevent.Service
 	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager
@@ -81,7 +82,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Framework,
 		common.Kafka,
 		common.KafkaNamespaceResolver,
-		common.MeterInMemory,
+		common.MeterManageWithConfigMeters,
 		common.MeterEvent,
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,

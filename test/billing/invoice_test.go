@@ -10,6 +10,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -79,12 +80,21 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          "test",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test Meter",
+			},
+			Key:           "test",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "meter adapter should be able to replace meters")
@@ -1454,36 +1464,72 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          "flat-per-unit",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "flat-per-usage",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per usage",
+			},
+			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered graduated",
+			},
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-volume",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered volume",
+			},
+			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "meter adapter replace meters")
@@ -2352,12 +2398,21 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered graduated",
+			},
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "failed to replace meters")
@@ -2588,36 +2643,72 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          "flat-per-unit",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "flat-per-usage",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per usage",
+			},
+			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered graduated",
+			},
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-volume",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Tiered volume",
+			},
+			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "failed to replace meters")
@@ -3173,12 +3264,21 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          meterSlug,
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           meterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	require.NoError(s.T(), err, "failed to replace meters")

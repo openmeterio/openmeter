@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
@@ -97,17 +98,25 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 
 	err := s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     s.namespace,
-			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
-			Slug:          TestMeterSlug,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: s.namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           TestMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
-			ValueProperty: "$.duration_ms",
+			ValueProperty: lo.ToPtr("$.duration_ms"),
 			GroupBy: map[string]string{
 				"method": "$.method",
 				"path":   "$.path",
 			},
-			WindowSize: "MINUTE",
 		},
 	})
 	require.NoError(t, err, "Replacing meters must not return error")
@@ -125,7 +134,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) setupNamespace(ctx context.Context
 		Name:                TestFeatureName,
 		Key:                 TestFeatureKey,
 		Namespace:           s.namespace,
-		MeterSlug:           convert.ToPointer(meter.Slug),
+		MeterSlug:           convert.ToPointer(meter.Key),
 		MeterGroupByFilters: meter.GroupBy,
 	})
 	require.NoError(t, err, "Creating feature must not return error")
@@ -429,7 +438,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 		Name:                TestFeature2Name,
 		Key:                 TestFeature2Key,
 		Namespace:           s.namespace,
-		MeterSlug:           convert.ToPointer(meter.Slug),
+		MeterSlug:           convert.ToPointer(meter.Key),
 		MeterGroupByFilters: meter.GroupBy,
 	})
 	require.NoError(t, err, "Creating feature must not return error")
@@ -438,7 +447,7 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestFeatureFiltering(ctx context.C
 		Name:                TestFeature3Name,
 		Key:                 TestFeature3Key,
 		Namespace:           s.namespace,
-		MeterSlug:           convert.ToPointer(meter.Slug),
+		MeterSlug:           convert.ToPointer(meter.Key),
 		MeterGroupByFilters: meter.GroupBy,
 	})
 	require.NoError(t, err, "Creating feature must not return error")

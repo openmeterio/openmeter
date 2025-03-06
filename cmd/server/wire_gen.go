@@ -106,8 +106,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v2 := conf.Meters
-	meterService, err := common.NewMeterService(v2)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -116,7 +115,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, meterService, logger)
+	meterService, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -130,7 +129,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	eventsConfiguration := conf.Events
-	v3 := common.ServerProvisionTopics(eventsConfiguration)
+	v2 := common.ServerProvisionTopics(eventsConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -153,7 +152,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  v3,
+		ProvisionTopics:  v2,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup6, err := common.NewServerPublisher(ctx, publisherOptions, logger)
@@ -249,9 +248,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
 	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
+	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -312,10 +311,23 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	v4 := conf.Meters
+	manageService, err := common.NewMeterManageService(ctx, client, logger, entitlement, manager, connector)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	v5 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
 	metereventService := common.NewMeterEventService(connector)
 	notificationConfiguration := conf.Notification
-	v5 := conf.Svix
-	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v5, featureConnector)
+	v6 := conf.Svix
+	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v6, featureConnector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -350,7 +362,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v6 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
+	v7 := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	validator, err := common.BillingSubscriptionValidator(billingService, billingConfiguration)
 	if err != nil {
 		cleanup7()
@@ -386,7 +398,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v7, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v8, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	terminationConfig := conf.Termination
 	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
@@ -417,18 +429,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
 		MetricMeter:             meter,
-		MeterService:            meterService,
+		MeterConfigInitializer:  v5,
+		MeterManageService:      manageService,
 		MeterEventService:       metereventService,
-		NamespaceHandlers:       v4,
+		NamespaceHandlers:       v3,
 		NamespaceManager:        manager,
 		Notification:            notificationService,
 		Plan:                    planService,
 		Portal:                  portalService,
-		RouterHook:              v6,
+		RouterHook:              v7,
 		Secret:                  secretserviceService,
 		Subscription:            subscriptionServiceWithWorkflow,
 		StreamingConnector:      connector,
-		TelemetryServer:         v7,
+		TelemetryServer:         v8,
 		TerminationChecker:      terminationChecker,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 	}
@@ -464,7 +477,8 @@ type Application struct {
 	KafkaMetrics            *metrics.Metrics
 	Logger                  *slog.Logger
 	MetricMeter             metric.Meter
-	MeterService            meter.Service
+	MeterConfigInitializer  common.MeterConfigInitializer
+	MeterManageService      meter.ManageService
 	MeterEventService       meterevent.Service
 	NamespaceHandlers       []namespace.Handler
 	NamespaceManager        *namespace.Manager

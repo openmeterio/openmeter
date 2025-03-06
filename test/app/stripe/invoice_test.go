@@ -10,6 +10,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v80"
@@ -113,44 +114,89 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     namespace,
-			Slug:          "flat-per-unit",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           "flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "flat-per-usage",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           "flat-per-usage",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-graduated",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           "tiered-graduated",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "tiered-volume",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           "tiered-volume",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 		{
-			Namespace:     namespace,
-			Slug:          "ai-flat-per-unit",
-			WindowSize:    meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:           "ai-flat-per-unit",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: lo.ToPtr("$.value"),
 		},
 	})
 	s.Require().NoError(err)

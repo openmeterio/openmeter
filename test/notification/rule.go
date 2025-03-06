@@ -62,17 +62,26 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 	err := s.Env.Meter().ReplaceMeters(ctx, []meter.Meter{
 		{
-			Namespace:     TestNamespace,
-			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
-			Slug:          TestMeterSlug,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: TestNamespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test Meter",
+			},
+
+			Key:           TestMeterSlug,
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "request",
-			ValueProperty: "$.duration_ms",
+			ValueProperty: lo.ToPtr("$.duration_ms"),
 			GroupBy: map[string]string{
 				"method": "$.method",
 				"path":   "$.path",
 			},
-			WindowSize: "MINUTE",
 		},
 	})
 	require.NoError(t, err, "Replacing meters must not return error")
@@ -94,7 +103,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
 			Namespace:           TestNamespace,
-			MeterSlug:           convert.ToPointer(meter.Slug),
+			MeterSlug:           convert.ToPointer(meter.Key),
 			MeterGroupByFilters: meter.GroupBy,
 		})
 	}

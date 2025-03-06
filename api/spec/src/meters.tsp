@@ -2,6 +2,8 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 
+import "./types.tsp";
+
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
@@ -28,6 +30,30 @@ interface Meters {
   get(
     @path meterIdOrSlug: MeterIdentifier,
   ): Meter | NotFoundError | CommonErrors;
+
+  /**
+   * Create a meter.
+   */
+  @post
+  @operationId("createMeter")
+  @summary("Create meter")
+  create(
+    @body
+    meter: MeterCreate,
+  ): {
+    @statusCode _: 201;
+    @body body: OpenMeter.Meter;
+  } | OpenMeter.CommonErrors;
+
+  /**
+   * Delete a meter.
+   */
+  @delete
+  @operationId("deleteMeter")
+  @summary("Delete meter")
+  delete(
+    @path meterIdOrSlug: OpenMeter.MeterIdentifier,
+  ): void | OpenMeter.CommonErrors;
 
   /**
    * Query meter for usage.
@@ -80,24 +106,46 @@ interface Meters {
 /**
  * A meter is a configuration that defines how to match and aggregate events.
  */
-@friendlyName("Meter")
+@friendlyName("MeterCreate")
 @example(#{
-  id: "01G65Z755AFWAKHE12NY0CQ9FH",
   slug: "tokens_total",
+  name: "Tokens Total",
   description: "AI Token Usage",
-  aggregation: MeterAggregation.SUM,
-  windowSize: WindowSize.MINUTE,
+  aggregation: OpenMeter.MeterAggregation.SUM,
   eventType: "prompt",
   valueProperty: "$.tokens",
   groupBy: #{ `model`: "$.model", type: "$.type" },
 })
+model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
+
+/**
+ * A meter is a configuration that defines how to match and aggregate events.
+ */
+@friendlyName("Meter")
+@example(#{
+  id: "01G65Z755AFWAKHE12NY0CQ9FH",
+  slug: "tokens_total",
+  name: "Tokens Total",
+  description: "AI Token Usage",
+  aggregation: MeterAggregation.SUM,
+  eventType: "prompt",
+  valueProperty: "$.tokens",
+  groupBy: #{ `model`: "$.model", type: "$.type" },
+  createdAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+  updatedAt: DateTime.fromISO("2024-01-01T01:01:01.001Z"),
+})
 model Meter {
+  // We omit name from the global.Resource as name is optional in the Meter model to avoiud breaking changes for now.
+  ...OmitProperties<global.Resource, "name">;
+
   /**
-   * A unique identifier for the meter.
+   * Human-readable name for the resource. Between 1 and 256 characters.
+   * Defaults to the slug if not specified.
    */
-  @visibility(Lifecycle.Read)
-  @example("01G65Z755AFWAKHE12NY0CQ9FH")
-  id: ULID;
+  @summary("Display name")
+  @minLength(1)
+  @maxLength(256)
+  name?: string;
 
   /**
    * A unique, human-readable identifier for the meter.
@@ -107,26 +155,10 @@ model Meter {
   slug: Key;
 
   /**
-   * A description of the meter.
-   */
-  @minLength(1)
-  @example("AI Token Usage")
-  description?: string;
-
-  /**
    * The aggregation type to use for the meter.
    */
   @example(MeterAggregation.SUM)
   aggregation: MeterAggregation;
-
-  /**
-   * The window size that the usage is stored in.
-   * This controls the query granularity of the usage data.
-   * The larger the window size, the less space is used to store the data.
-   * By default, the window size is a minute.
-   */
-  @example(WindowSize.MINUTE)
-  windowSize?: WindowSize = WindowSize.MINUTE;
 
   /**
    * The event type to aggregate.
@@ -134,6 +166,13 @@ model Meter {
   @minLength(1)
   @example("prompt")
   eventType: string;
+
+  /**
+   * The date since the meter should include events.
+   * Useful to skip old events.
+   * If not specified, all historical events are included.
+   */
+  eventFrom?: DateTime;
 
   /**
    * JSONPath expression to extract the value from the ingested event's data property.

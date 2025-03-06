@@ -3,6 +3,7 @@ package testutils
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -85,16 +86,16 @@ func (m *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace stri
 // it will try to approximate the result by aggregating the simple events
 func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	rows := []meter.MeterQueryRow{}
-	_, rowOk := m.rows[mm.Slug]
+	_, rowOk := m.rows[mm.Key]
 
 	if rowOk {
-		for _, row := range m.rows[mm.Slug] {
+		for _, row := range m.rows[mm.Key] {
 			if row.WindowStart.Equal(*params.From) && row.WindowEnd.Equal(*params.To) {
 				rows = append(rows, row)
 			}
 		}
 	} else {
-		row, err := m.aggregateEvents(mm.Slug, params)
+		row, err := m.aggregateEvents(mm.Key, params)
 		if err != nil {
 			return rows, err
 		}
@@ -106,6 +107,10 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 
 func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
 	return nil
+}
+
+func (m *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return strings.HasPrefix(jsonPath, "$."), nil
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases

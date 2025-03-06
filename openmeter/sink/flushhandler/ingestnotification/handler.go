@@ -83,7 +83,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 func (h *handler) getMeterSlugsFromMeters(meters []meter.Meter) []string {
 	slugs := make([]string, len(meters))
 	for i, meter := range meters {
-		slugs[i] = meter.Slug
+		slugs[i] = meter.Key
 	}
 
 	return slugs

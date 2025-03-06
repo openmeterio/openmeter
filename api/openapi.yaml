@@ -3666,6 +3666,62 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
+    post:
+      operationId: createMeter
+      summary: Create meter
+      description: Create a meter.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeterCreate'
   /api/v1/meters/{meterIdOrSlug}:
     get:
       operationId: getMeter
@@ -3711,6 +3767,60 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Meters
+    delete:
+      operationId: deleteMeter
+      summary: Delete meter
+      description: Delete a meter.
+      parameters:
+        - name: meterIdOrSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -12704,6 +12814,8 @@ components:
       type: object
       required:
         - id
+        - createdAt
+        - updatedAt
         - slug
         - aggregation
         - eventType
@@ -12711,9 +12823,51 @@ components:
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: A unique identifier for the meter.
+          description: A unique identifier for the resource.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: ID
           readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
         slug:
           type: string
           minLength: 1
@@ -12723,31 +12877,24 @@ components:
             A unique, human-readable identifier for the meter.
             Must consist only alphanumeric and underscore characters.
           example: tokens_total
-        description:
-          type: string
-          minLength: 1
-          description: A description of the meter.
-          example: AI Token Usage
         aggregation:
           allOf:
             - $ref: '#/components/schemas/MeterAggregation'
           description: The aggregation type to use for the meter.
           example: SUM
-        windowSize:
-          allOf:
-            - $ref: '#/components/schemas/WindowSize'
-          description: |-
-            The window size that the usage is stored in.
-            This controls the query granularity of the usage data.
-            The larger the window size, the less space is used to store the data.
-            By default, the window size is a minute.
-          example: MINUTE
-          default: MINUTE
         eventType:
           type: string
           minLength: 1
           description: The event type to aggregate.
           example: prompt
+        eventFrom:
+          type: string
+          format: date-time
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+          example: '2023-01-01T01:01:01.001Z'
         valueProperty:
           type: string
           minLength: 1
@@ -12774,14 +12921,16 @@ components:
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         slug: tokens_total
+        name: Tokens Total
         description: AI Token Usage
         aggregation: SUM
-        windowSize: MINUTE
         eventType: prompt
         valueProperty: $.tokens
         groupBy:
           model: $.model
           type: $.type
+        createdAt: '2024-01-01T01:01:01.001Z'
+        updatedAt: '2024-01-01T01:01:01.001Z'
     MeterAggregation:
       type: string
       enum:
@@ -12799,6 +12948,93 @@ components:
         - Avg
         - Min
         - Max
+    MeterCreate:
+      type: object
+      required:
+        - slug
+        - aggregation
+        - eventType
+      properties:
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: |-
+            A unique, human-readable identifier for the meter.
+            Must consist only alphanumeric and underscore characters.
+          example: tokens_total
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/MeterAggregation'
+          description: The aggregation type to use for the meter.
+          example: SUM
+        eventType:
+          type: string
+          minLength: 1
+          description: The event type to aggregate.
+          example: prompt
+        eventFrom:
+          type: string
+          format: date-time
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+          example: '2023-01-01T01:01:01.001Z'
+        valueProperty:
+          type: string
+          minLength: 1
+          description: |-
+            JSONPath expression to extract the value from the ingested event's data property.
+
+            The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+
+            For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+          example: $.tokens
+        groupBy:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+
+            TODO: add key format enforcement
+          example:
+            type: $.type
+      description: A meter is a configuration that defines how to match and aggregate events.
+      example:
+        slug: tokens_total
+        name: Tokens Total
+        description: AI Token Usage
+        aggregation: SUM
+        eventType: prompt
+        valueProperty: $.tokens
+        groupBy:
+          model: $.model
+          type: $.type
     MeterQueryResult:
       type: object
       required:

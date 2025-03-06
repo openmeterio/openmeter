@@ -2,12 +2,15 @@ package subscriptiontestutils
 
 import (
 	"testing"
+	"time"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -19,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ExposedServiceDeps struct {
@@ -46,11 +50,20 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 	subItemRepo := NewSubscriptionItemRepo(t, dbDeps)
 
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:          ExampleFeatureMeterSlug,
-		Namespace:     ExampleNamespace,
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: ExampleNamespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
+		Key:           ExampleFeatureMeterSlug,
 		Aggregation:   meter.MeterAggregationSum,
-		WindowSize:    meter.WindowSizeMinute,
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 		EventType:     "test",
 	}})
 	require.NoError(t, err)

@@ -36,10 +36,16 @@ func ParseEvent(meter Meter, ev event.Event) (*float64, *string, map[string]stri
 		return nil, nil, groupBy, errors.New("event data is null and missing value property")
 	}
 
+	var rawValue interface{}
+
+	if meter.ValueProperty == nil {
+		return nil, nil, groupBy, errors.New("non count meter value property is missing")
+	}
+
 	// Get value from event data by value property
-	rawValue, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
+	rawValue, err := jsonpath.JsonPathLookup(data, *meter.ValueProperty)
 	if err != nil {
-		return nil, nil, groupBy, fmt.Errorf("event data is missing value property at %q", meter.ValueProperty)
+		return nil, nil, groupBy, fmt.Errorf("event data is missing value property at %q", *meter.ValueProperty)
 	}
 
 	if rawValue == nil {

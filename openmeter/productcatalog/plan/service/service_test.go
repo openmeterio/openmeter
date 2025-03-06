@@ -17,7 +17,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -59,10 +59,10 @@ func TestPlanService(t *testing.T) {
 	features := make(map[string]feature.Feature, len(meters))
 	for _, m := range meters {
 		input := feature.CreateFeatureInputs{
-			Name:                m.Slug,
-			Key:                 m.Slug,
+			Name:                m.Key,
+			Key:                 m.Key,
 			Namespace:           namespace,
-			MeterSlug:           lo.ToPtr(m.Slug),
+			MeterSlug:           lo.ToPtr(m.Key),
 			MeterGroupByFilters: m.GroupBy,
 			Metadata:            map[string]string{},
 		}
@@ -781,43 +781,67 @@ func NewTestMeters(t *testing.T, namespace string) []meter.Meter {
 
 	return []meter.Meter{
 		{
-			Namespace:   namespace,
-			ID:          NewTestULID(t),
-			Slug:        "api_requests_total",
+			ManagedResource: models.ManagedResource{
+				ID: NewTestULID(t),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test meter",
+			},
+			Key:         "api_requests_total",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "request",
 			GroupBy: map[string]string{
 				"method": "$.method",
 				"path":   "$.path",
 			},
-			WindowSize: "MINUTE",
 		},
 		{
-			Namespace:     namespace,
-			ID:            NewTestULID(t),
-			Slug:          "tokens_total",
+			ManagedResource: models.ManagedResource{
+				ID: NewTestULID(t),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test meter",
+			},
+			Key:           "tokens_total",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "prompt",
-			ValueProperty: "$.tokens",
+			ValueProperty: lo.ToPtr("$.tokens"),
 			GroupBy: map[string]string{
 				"model": "$.model",
 				"type":  "$.type",
 			},
-			WindowSize: "MINUTE",
 		},
 		{
-			Namespace:     namespace,
-			ID:            NewTestULID(t),
-			Slug:          "workload_runtime_duration_seconds",
+			ManagedResource: models.ManagedResource{
+				ID: NewTestULID(t),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Test meter",
+			},
+			Key:           "workload_runtime_duration_seconds",
 			Aggregation:   meter.MeterAggregationSum,
 			EventType:     "workload",
-			ValueProperty: "$.duration_seconds",
+			ValueProperty: lo.ToPtr("$.duration_seconds"),
 			GroupBy: map[string]string{
 				"region":        "$.region",
 				"zone":          "$.zone",
 				"instance_type": "$.instance_type",
 			},
-			WindowSize: "MINUTE",
 		},
 	}
 }

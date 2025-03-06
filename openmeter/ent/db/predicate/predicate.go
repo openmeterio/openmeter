@@ -83,6 +83,9 @@ type Feature func(*sql.Selector)
 // Grant is the predicate function for dbgrant builders.
 type Grant func(*sql.Selector)
 
+// Meter is the predicate function for dbmeter builders.
+type Meter func(*sql.Selector)
+
 // NotificationChannel is the predicate function for notificationchannel builders.
 type NotificationChannel func(*sql.Selector)
 

@@ -72,7 +72,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Framework,
 		common.Kafka,
 		common.KafkaNamespaceResolver,
-		common.MeterInMemory,
+		common.Meter,
 		common.Namespace,
 		common.NewBillingAutoAdvancer,
 		common.NewBillingCollector,

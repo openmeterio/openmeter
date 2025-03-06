@@ -26,6 +26,7 @@ import (
 
 type Application struct {
 	common.GlobalInitializer
+	common.Migrator
 
 	FlushHandler     flushhandler.FlushEventHandler
 	Logger           *slog.Logger
@@ -46,10 +47,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		metadata,
 		common.ClickHouse,
 		common.Config,
+		common.Database,
 		common.Framework,
 		common.KafkaTopic,
 		common.KafkaNamespaceResolver,
-		common.MeterInMemory,
+		common.Meter,
 		common.NewDefaultTextMapPropagator,
 		common.NewFlushHandler,
 		common.NewSinkWorkerPublisher,

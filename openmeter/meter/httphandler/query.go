@@ -168,7 +168,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
 			}
 
-			response := NewQueryMeterCSVResult(meter.Slug, params.GroupBy, rows)
+			response := NewQueryMeterCSVResult(meter.Key, params.GroupBy, rows)
 
 			return response, nil
 		},

@@ -122,8 +122,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v2 := conf.Meters
-	service, err := common.NewMeterService(v2)
+	service, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -134,8 +133,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	featureConnector := common.NewFeatureConnector(logger, client, service)
-	v3 := conf.Svix
-	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v3, featureConnector)
+	v2 := conf.Svix
+	notificationService, err := common.NewNotificationService(logger, client, notificationConfiguration, v2, featureConnector)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -147,7 +146,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v4, err := common.NewClickHouse(clickHouseAggregationConfiguration)
+	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -157,7 +156,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, service, logger)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -179,7 +178,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v5, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
@@ -194,7 +193,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		MeterService:       service,
 		Notification:       notificationService,
 		StreamingConnector: connector,
-		TelemetryServer:    v5,
+		TelemetryServer:    v4,
 	}
 	return application, func() {
 		cleanup7()

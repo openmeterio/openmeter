@@ -3,44 +3,74 @@ package meter_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestParseEvent(t *testing.T) {
 	meterSum := meter.Meter{
-		Namespace:     "default",
-		Slug:          "m1",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
+		Key:           "m1",
 		Aggregation:   meter.MeterAggregationSum,
 		EventType:     "api-calls",
-		ValueProperty: "$.duration_ms",
+		ValueProperty: lo.ToPtr("$.duration_ms"),
 		GroupBy: map[string]string{
 			"method": "$.method",
 			"path":   "$.path",
 		},
-		WindowSize: meter.WindowSizeMinute,
 	}
 
 	meterCount := meter.Meter{
-		Namespace:   "default",
-		Slug:        "m2",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
+		Key:         "m2",
 		Aggregation: meter.MeterAggregationCount,
 		EventType:   "api-calls",
-		WindowSize:  meter.WindowSizeMinute,
 	}
 
 	meterUniqueCount := meter.Meter{
-		Namespace:     "default",
-		Slug:          "m3",
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: "default",
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
+		Key:           "m3",
 		Aggregation:   meter.MeterAggregationUniqueCount,
 		EventType:     "spans",
-		WindowSize:    meter.WindowSizeMinute,
-		ValueProperty: "$.trace_id",
+		ValueProperty: lo.ToPtr("$.trace_id"),
 	}
 
 	tests := []struct {

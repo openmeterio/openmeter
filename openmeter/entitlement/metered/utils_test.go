@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -18,7 +20,7 @@ import (
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -26,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type dependencies struct {
@@ -63,13 +66,22 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
-		Slug:        meterSlug,
-		Namespace:   namespace,
+		ManagedResource: models.ManagedResource{
+			ID: ulid.Make().String(),
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Meter 1",
+		},
+		Key:         meterSlug,
 		Aggregation: meter.MeterAggregationSum,
-		WindowSize:  meter.WindowSizeMinute,
 		// These will be ignored in tests
 		EventType:     "test",
-		ValueProperty: "$.value",
+		ValueProperty: lo.ToPtr("$.value"),
 	}})
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)

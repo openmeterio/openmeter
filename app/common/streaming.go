@@ -9,7 +9,6 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/materialized_view"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
@@ -23,7 +22,6 @@ func NewStreamingConnector(
 	ctx context.Context,
 	conf config.AggregationConfiguration,
 	clickHouse clickhouse.Conn,
-	meterService meter.Service,
 	logger *slog.Logger,
 ) (streaming.Connector, error) {
 	var (
@@ -55,7 +53,6 @@ func NewStreamingConnector(
 			AsyncInsert:          conf.AsyncInsert,
 			AsyncInsertWait:      conf.AsyncInsertWait,
 			InsertQuerySettings:  conf.InsertQuerySettings,
-			Meters:               meterService,
 			PopulateMeter:        conf.PopulateMeter,
 			CreateOrReplaceMeter: conf.CreateOrReplaceMeter,
 			QueryRawEvents:       conf.QueryRawEvents,

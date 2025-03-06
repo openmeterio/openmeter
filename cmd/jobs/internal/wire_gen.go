@@ -103,8 +103,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v2 := conf.Meters
-	meterService, err := common.NewMeterService(v2)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -113,7 +112,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, meterService, logger)
+	meterService, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -127,7 +126,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
 	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
 	eventsConfiguration := conf.Events
-	v3 := common.ServerProvisionTopics(eventsConfiguration)
+	v2 := common.ServerProvisionTopics(eventsConfiguration)
 	adminClient, err := common.NewKafkaAdminClient(kafkaConfiguration)
 	if err != nil {
 		cleanup5()
@@ -150,7 +149,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	publisherOptions := kafka.PublisherOptions{
 		Broker:           brokerOptions,
-		ProvisionTopics:  v3,
+		ProvisionTopics:  v2,
 		TopicProvisioner: topicProvisioner,
 	}
 	publisher, cleanup6, err := common.NewServerPublisher(ctx, publisherOptions, logger)
@@ -246,9 +245,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	v3 := common.NewNamespaceHandlers(namespaceHandler, connector)
 	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
+	manager, err := common.NewNamespaceManager(v3, namespaceConfiguration)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -357,7 +356,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaMetrics:          metrics,
 		Logger:                logger,
 		MeterService:          meterService,
-		NamespaceHandlers:     v4,
+		NamespaceHandlers:     v3,
 		NamespaceManager:      manager,
 		Meter:                 meter,
 		Plan:                  planService,

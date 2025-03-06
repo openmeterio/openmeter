@@ -171,8 +171,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v3 := conf.Meters
-	meterService, err := common.NewMeterService(v3)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -182,7 +181,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v2, meterService, logger)
+	meterService, err := common.NewMeterService(logger, client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -269,8 +268,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v4, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BillingWorkerGroup(ctx, worker, v4)
+	v3, cleanup7 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BillingWorkerGroup(ctx, worker, v3)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,
@@ -319,9 +318,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	v5 := common.NewNamespaceHandlers(namespaceHandler, connector)
+	v4 := common.NewNamespaceHandlers(namespaceHandler, connector)
 	namespaceConfiguration := conf.Namespace
-	manager, err := common.NewNamespaceManager(v5, namespaceConfiguration)
+	manager, err := common.NewNamespaceManager(v4, namespaceConfiguration)
 	if err != nil {
 		cleanup7()
 		cleanup6()

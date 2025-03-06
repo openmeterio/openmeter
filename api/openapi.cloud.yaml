@@ -12864,6 +12864,8 @@ components:
       type: object
       required:
         - id
+        - createdAt
+        - updatedAt
         - slug
         - aggregation
         - eventType
@@ -12871,9 +12873,51 @@ components:
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: A unique identifier for the meter.
+          description: A unique identifier for the resource.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: ID
           readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
         slug:
           type: string
           minLength: 1
@@ -12883,31 +12927,24 @@ components:
             A unique, human-readable identifier for the meter.
             Must consist only alphanumeric and underscore characters.
           example: tokens_total
-        description:
-          type: string
-          minLength: 1
-          description: A description of the meter.
-          example: AI Token Usage
         aggregation:
           allOf:
             - $ref: '#/components/schemas/MeterAggregation'
           description: The aggregation type to use for the meter.
           example: SUM
-        windowSize:
-          allOf:
-            - $ref: '#/components/schemas/WindowSize'
-          description: |-
-            The window size that the usage is stored in.
-            This controls the query granularity of the usage data.
-            The larger the window size, the less space is used to store the data.
-            By default, the window size is a minute.
-          example: MINUTE
-          default: MINUTE
         eventType:
           type: string
           minLength: 1
           description: The event type to aggregate.
           example: prompt
+        eventFrom:
+          type: string
+          format: date-time
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+          example: '2023-01-01T01:01:01.001Z'
         valueProperty:
           type: string
           minLength: 1
@@ -12934,14 +12971,16 @@ components:
       example:
         id: 01G65Z755AFWAKHE12NY0CQ9FH
         slug: tokens_total
+        name: Tokens Total
         description: AI Token Usage
         aggregation: SUM
-        windowSize: MINUTE
         eventType: prompt
         valueProperty: $.tokens
         groupBy:
           model: $.model
           type: $.type
+        createdAt: '2024-01-01T01:01:01.001Z'
+        updatedAt: '2024-01-01T01:01:01.001Z'
     MeterAggregation:
       type: string
       enum:
@@ -12966,6 +13005,26 @@ components:
         - aggregation
         - eventType
       properties:
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
         slug:
           type: string
           minLength: 1
@@ -12975,31 +13034,24 @@ components:
             A unique, human-readable identifier for the meter.
             Must consist only alphanumeric and underscore characters.
           example: tokens_total
-        description:
-          type: string
-          minLength: 1
-          description: A description of the meter.
-          example: AI Token Usage
         aggregation:
           allOf:
             - $ref: '#/components/schemas/MeterAggregation'
           description: The aggregation type to use for the meter.
           example: SUM
-        windowSize:
-          allOf:
-            - $ref: '#/components/schemas/WindowSize'
-          description: |-
-            The window size that the usage is stored in.
-            This controls the query granularity of the usage data.
-            The larger the window size, the less space is used to store the data.
-            By default, the window size is a minute.
-          example: MINUTE
-          default: MINUTE
         eventType:
           type: string
           minLength: 1
           description: The event type to aggregate.
           example: prompt
+        eventFrom:
+          type: string
+          format: date-time
+          description: |-
+            The date since the meter should include events.
+            Useful to skip old events.
+            If not specified, all historical events are included.
+          example: '2023-01-01T01:01:01.001Z'
         valueProperty:
           type: string
           minLength: 1
@@ -13025,9 +13077,9 @@ components:
       description: A meter is a configuration that defines how to match and aggregate events.
       example:
         slug: tokens_total
+        name: Tokens Total
         description: AI Token Usage
         aggregation: SUM
-        windowSize: MINUTE
         eventType: prompt
         valueProperty: $.tokens
         groupBy:

@@ -146,7 +146,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				if !periodStart.Equal(to) {
 					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
 					if err != nil {
-						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
+						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Key, err)
 					}
 
 					valueTo, err = getValueFromRows(rows)
@@ -161,7 +161,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				if !params.From.Equal(*params.To) && !periodStart.Equal(from) {
 					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
 					if err != nil {
-						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
+						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Key, err)
 					}
 
 					valueFrom, err = getValueFromRows(rows)
@@ -189,7 +189,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				// Let's query the meter
 				rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
 				if err != nil {
-					return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Slug, err)
+					return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Key, err)
 				}
 
 				return getValueFromRows(rows)

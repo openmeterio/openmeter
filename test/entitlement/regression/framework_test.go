@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
@@ -18,7 +20,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalogrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -26,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Dependencies struct {
@@ -72,9 +75,18 @@ func setupDependencies(t *testing.T) Dependencies {
 
 	meters := []meter.Meter{
 		{
-			Namespace:   "namespace-1",
-			Slug:        "meter-1",
-			WindowSize:  meter.WindowSizeMinute,
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "namespace-1",
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Meter 1",
+			},
+			Key:         "meter-1",
 			Aggregation: meter.MeterAggregationCount,
 			EventType:   "test",
 		},
