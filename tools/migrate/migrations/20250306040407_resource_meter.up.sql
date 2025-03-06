@@ -2,6 +2,8 @@
 -- note that alter table doesn't accept multiple column changes with renaming
 ALTER TABLE "meters" RENAME COLUMN "organization_meters" TO "namespace";
 ALTER TABLE "meters" RENAME COLUMN "slug" TO "key";
+
+-- atlas:nolint DS103 BC102
 ALTER TABLE "meters"
     ADD COLUMN "name" character varying NULL,
     ADD COLUMN "event_from" timestamptz NULL,
