@@ -11,9 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// keyPrefix is the prefix for the key in the KV store
+// keyPrefix is the prefix for progress data in the Redis store.
+// All progress keys will be stored as "progress:<namespace>:<id>"
 const keyPrefix = "progress:"
-
 // GetProgress retrieves the progress
 func (a *adapter) GetProgress(ctx context.Context, input entity.GetProgressInput) (*entity.Progress, error) {
 	if err := input.Validate(); err != nil {

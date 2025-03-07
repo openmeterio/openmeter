@@ -28,7 +28,7 @@ func (a *ProgressID) Validate() error {
 	return errors.Join(errs...)
 }
 
-// Progress is the identifier for a progress
+// Progress represents the tracking details of an operation
 type Progress struct {
 	ProgressID `json:"id"`
 
@@ -51,6 +51,10 @@ func (a *Progress) Validate() error {
 
 	if a.Success+a.Failed > a.Total {
 		errs = append(errs, errors.New("success and failed must be less than or equal to total"))
+	}
+
+	if a.Total == 0 && (a.Success > 0 || a.Failed > 0) {
+		errs = append(errs, errors.New("success and failed must be zero when total is zero"))
 	}
 
 	if a.UpdatedAt.IsZero() {

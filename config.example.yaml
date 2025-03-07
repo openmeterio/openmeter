@@ -190,3 +190,8 @@ notification:
 
 # progressManager:
 #   enabled: true
+#   expiration: 5m
+#   redis:
+#     address: 127.0.0.1:6379
+#     database: 0
+#     # Other redis options as needed

@@ -43,7 +43,7 @@ func (h *handler) GetProgress() GetProgressHandler {
 			}
 
 			if progress == nil {
-				return GetProgressResponse{}, fmt.Errorf("failed to get progress")
+				return GetProgressResponse{}, fmt.Errorf("progress exists but contains nil data for ID: %s", request.ProgressID.ID)
 			}
 
 			apiProgress := progressToAPI(*progress)

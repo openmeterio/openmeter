@@ -47,11 +47,17 @@ func New(config Config) (progressmanager.Adapter, error) {
 var _ progressmanager.Adapter = (*adapter)(nil)
 
 type adapter struct {
+	// expiration defines how long progress data is stored in Redis before automatic removal
 	expiration time.Duration
+	// redis is the client for storing and retrieving progress data
 	redis      *redis.Client
+	// logger is used for logging errors and debug information
 	logger     *slog.Logger
 }
 
+// NewNoop creates a no-operation adapter that implements the progressmanager.Adapter interface
+// but performs no actual operations. This is useful for testing or when progress tracking
+// is disabled.
 func NewNoop() progressmanager.Adapter {
 	return &adapterNoop{}
 }
