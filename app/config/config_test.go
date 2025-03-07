@@ -356,6 +356,9 @@ func TestComplete(t *testing.T) {
 		ProgressManager: ProgressManagerConfiguration{
 			Enabled:    false,
 			Expiration: 5 * time.Minute,
+			Redis: redis.Config{
+				Address: "127.0.0.1:6379",
+			},
 		},
 	}
 
