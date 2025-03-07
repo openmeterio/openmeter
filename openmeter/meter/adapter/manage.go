@@ -13,6 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// RegisterPreUpdateMeterHook registers a hook to be called before updating a meter.
+func (a *manageAdapter) RegisterPreUpdateMeterHook(hook meterpkg.PreUpdateMeterHook) error {
+	a.preUpdateHooks = append(a.preUpdateHooks, hook)
+	return nil
+}
+
 // CreateMeter creates a new meter.
 func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {
 	if err := input.Validate(); err != nil {
@@ -109,6 +115,13 @@ func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMet
 					)
 				}
 			}
+		}
+	}
+
+	// Run pre-update hooks
+	for _, hook := range a.preUpdateHooks {
+		if err := hook(ctx, input); err != nil {
+			return meterpkg.Meter{}, err
 		}
 	}
 

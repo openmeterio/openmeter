@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -9,6 +10,13 @@ import (
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// RegisterPreUpdateMeterHook registers a pre-update meter hook.
+func (a manageAdapter) RegisterPreUpdateMeterHook(hook meterpkg.PreUpdateMeterHook) error {
+	return models.NewGenericNotImplementedError(
+		fmt.Errorf("pre-update meter hook is not implemented in mock adapter"),
+	)
+}
 
 // CreateMeter creates a new meter.
 func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {

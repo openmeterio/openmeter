@@ -23,7 +23,14 @@ type ManageService interface {
 	CreateMeter(ctx context.Context, input CreateMeterInput) (Meter, error)
 	UpdateMeter(ctx context.Context, input UpdateMeterInput) (Meter, error)
 	DeleteMeter(ctx context.Context, input DeleteMeterInput) error
+
+	// Observer hooks
+	// Useful to coordinate with other services
+	RegisterPreUpdateMeterHook(hook PreUpdateMeterHook) error
 }
+
+// PreUpdateMeterHook is a hook function to be called before updating a meter.
+type PreUpdateMeterHook = func(context.Context, UpdateMeterInput) error
 
 // GetMeterInput is a parameter object for getting a meter.
 type GetMeterInput struct {
