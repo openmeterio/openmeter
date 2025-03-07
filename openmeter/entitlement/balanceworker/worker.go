@@ -9,6 +9,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -149,6 +150,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
+					event.CreatedAt,
 				))
 		}),
 
@@ -159,6 +161,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 				PublishIfNoError(w.handleEntitlementEvent(ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
+					lo.FromPtrOr(event.DeletedAt, time.Now()),
 				))
 		}),
 
@@ -170,6 +173,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
+					event.CreatedAt,
 				))
 		}),
 
@@ -181,6 +185,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.OwnerID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.OwnerID, metadata.EntityGrant, event.ID),
+					event.UpdatedAt,
 				))
 		}),
 
@@ -192,6 +197,7 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
+					event.ResetRequestedAt,
 				))
 		}),
 

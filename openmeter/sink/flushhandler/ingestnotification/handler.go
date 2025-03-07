@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
@@ -59,12 +60,17 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 		return nil
 	}
 
+	now := time.Now()
+
 	// Map the filtered events to the ingest event
 	iEvents := slicesx.Map(filtered, func(message sinkmodels.SinkMessage) ingestevents.EventBatchedIngest {
 		return ingestevents.EventBatchedIngest{
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
+			// Warning: Given this is called after the clickhouse writes have completed, it's a fair assumption that
+			// the event was stored at this time to clickhouse.
+			StoredAt: now,
 		}
 	})
 
@@ -95,6 +101,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			Namespace:  events[0].Namespace,
 			SubjectKey: events[0].SubjectKey,
 			MeterSlugs: lo.Uniq(meterSlugs),
+			StoredAt:   now,
 		})
 	}
 
