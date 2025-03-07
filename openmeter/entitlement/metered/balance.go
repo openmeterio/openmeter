@@ -55,21 +55,15 @@ type BalanceHistoryParams struct {
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
 	e.logger.DebugContext(ctx, "Getting entitlement balance", "entitlement", entitlementID, "at", at)
 
+	// We round up to closest full minute to include all the partial usage in the last minute of querying
+	// Not that this will never throw us to a different usage period
+	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
+		at = trunc.Add(time.Minute)
+	}
+
 	nsOwner := models.NamespacedID{
 		Namespace: entitlementID.Namespace,
 		ID:        entitlementID.ID,
-	}
-	res, err := e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
-	if err != nil {
-		if _, ok := err.(*grant.OwnerNotFoundError); ok {
-			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
-		}
-		return nil, err
-	}
-
-	owner, err := e.ownerConnector.DescribeOwner(ctx, nsOwner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe owner: %w", err)
 	}
 
 	startOfPeriod, err := e.ownerConnector.GetUsagePeriodStartAt(ctx, nsOwner, at)
@@ -77,32 +71,21 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
 
-	// TODO: move usage calculation some place else
-
-	meterQuery := owner.DefaultQueryParams
-	meterQuery.From = &startOfPeriod
-	meterQuery.To = &at
-
-	// We round up to closest full minute to include all the partial usage in the last minute of querying
-	if trunc := meterQuery.To.Truncate(time.Minute); trunc.Before(*meterQuery.To) {
-		meterQuery.To = convert.ToPointer(trunc.Add(time.Minute))
-	}
-
-	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, owner.Meter, meterQuery)
+	res, err := e.balanceConnector.GetBalanceForPeriod(ctx, nsOwner, timeutil.Period{
+		From: startOfPeriod,
+		To:   at,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to query meter: %w", err)
-	}
-
-	// TODO: refactor, assert 1 row
-	usage := 0.0
-	for _, row := range rows {
-		usage += row.Value
+		if _, ok := err.(*grant.OwnerNotFoundError); ok {
+			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
+		}
+		return nil, err
 	}
 
 	return &EntitlementBalance{
 		EntitlementID: entitlementID.ID,
 		Balance:       res.Snapshot.Balance(),
-		UsageInPeriod: usage,
+		UsageInPeriod: res.History.TotalUsage(),
 		Overage:       res.Snapshot.Overage,
 		StartOfPeriod: startOfPeriod,
 	}, nil

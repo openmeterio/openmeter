@@ -181,6 +181,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 
 	t.Run("Should return consistent balance and usage values if there are late events", func(t *testing.T) {
 		connector, deps := setupMockedConnector(t)
+		defer deps.Teardown()
 
 		ctx := context.Background()
 		startTime := getAnchor(t)
