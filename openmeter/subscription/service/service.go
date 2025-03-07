@@ -57,7 +57,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, fmt.Errorf("spec is invalid: %w", err)
 	}
 
-	// Fetch the customer
+	// Fetch the customer & validate the customer
 	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: namespace,
 		ID:        spec.CustomerId,
@@ -70,9 +70,21 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, fmt.Errorf("customer is nil")
 	}
 
-	if cust.Currency != nil {
-		if string(*cust.Currency) != string(spec.Currency) {
-			return def, models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency))
+	if _, err := cust.UsageAttribution.GetSubjectKey(); err != nil {
+		if spec.HasEntitlements() {
+			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
+		}
+
+		if spec.HasMeteredBillables() {
+			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has metered billables"))
+		}
+	}
+
+	if spec.HasBillables() {
+		if cust.Currency != nil {
+			if string(*cust.Currency) != string(spec.Currency) {
+				return def, models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency))
+			}
 		}
 	}
 
@@ -136,8 +148,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return def, err
 		}
 
-		// Let's set the customer's currency to the subscription currency (if not already set)
-		if cust.Currency == nil {
+		// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
+		if cust.Currency == nil && spec.HasBillables() {
 			if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 				CustomerID: cust.GetID(),
 				CustomerMutate: customer.CustomerMutate{
@@ -192,6 +204,37 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		view.Subscription.GetStatusAt(clock.Now()),
 	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
 		return def, err
+	}
+
+	// Fetch the customer & validate the customer
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		Namespace: view.Subscription.Namespace,
+		ID:        view.Subscription.CustomerId,
+	})
+	if err != nil {
+		return def, err
+	}
+
+	if cust == nil {
+		return def, fmt.Errorf("customer is nil")
+	}
+
+	if _, err := cust.UsageAttribution.GetSubjectKey(); err != nil {
+		if newSpec.HasEntitlements() {
+			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
+		}
+
+		if newSpec.HasMeteredBillables() {
+			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has metered billables"))
+		}
+	}
+
+	if newSpec.HasBillables() {
+		if cust.Currency != nil {
+			if string(*cust.Currency) != string(newSpec.Currency) {
+				return def, models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, newSpec.Currency))
+			}
+		}
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
