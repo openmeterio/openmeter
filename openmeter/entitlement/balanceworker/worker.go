@@ -70,7 +70,8 @@ type Worker struct {
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 
-	metricRecalculationTime metric.Int64Histogram
+	metricRecalculationTime       metric.Int64Histogram
+	metricHighWatermarkCacheStats metric.Int64Counter
 
 	// Handlers
 	nonPublishingHandler *grouphandler.NoPublishingHandler
@@ -90,13 +91,19 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
 	}
 
+	metricHighWatermarkCacheStats, err := opts.Router.MetricMeter.Int64Counter(
+		metricNameHighWatermarkCacheStats,
+		metric.WithDescription("High watermark cache stats"),
+	)
+
 	worker := &Worker{
 		opts:               opts,
 		entitlement:        opts.Entitlement,
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 
-		metricRecalculationTime: metricRecalculationTime,
+		metricRecalculationTime:       metricRecalculationTime,
+		metricHighWatermarkCacheStats: metricHighWatermarkCacheStats,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
