@@ -95,6 +95,9 @@ func New(opts WorkerOptions) (*Worker, error) {
 		metricNameHighWatermarkCacheStats,
 		metric.WithDescription("High watermark cache stats"),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create high watermark cache stats counter: %w", err)
+	}
 
 	worker := &Worker{
 		opts:               opts,
