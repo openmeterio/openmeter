@@ -25,10 +25,13 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 	return service.NewConfigSpec().
 		Beta().
 		Categories("Services").
-		Summary("List pods in Kubernetes.").
+		Summary("List resources in Kubernetes.").
 		Fields(
 			service.NewStringListField("namespaces").
-				Description("List of namespaces to list pods from."),
+				Description("List of namespaces to list resources from."),
+			service.NewStringEnumField("resource_type", "pod", "node", "persistentvolume", "persistentvolumeclaim").
+				Description("Type of resource to list.").
+				Default("pod"),
 			service.NewStringField("label_selector").
 				Description("Label selector applied to each list operation.").
 				Optional(),
@@ -46,6 +49,7 @@ func init() {
 
 type kubernetesResourcesInput struct {
 	namespaces    []string
+	resourceType  string
 	labelSelector labels.Selector
 	logger        *service.Logger
 
@@ -59,6 +63,11 @@ type kubernetesResourcesInput struct {
 
 func newKubernetesResourcesInput(conf *service.ParsedConfig, logger *service.Logger) (*kubernetesResourcesInput, error) {
 	namespaces, err := conf.FieldStringList("namespaces")
+	if err != nil {
+		return nil, err
+	}
+
+	resourceType, err := conf.FieldString("resource_type")
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +125,7 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, logger *service.Log
 	return &kubernetesResourcesInput{
 		namespaces:    namespaces,
 		labelSelector: selector,
+		resourceType:  resourceType,
 		manager:       mgr,
 		client:        client,
 		logger:        logger,
@@ -153,7 +163,6 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 
 	// Iterate over each namespace and list pods.
 	for _, ns := range in.namespaces {
-		podList := &corev1.PodList{}
 		opts := []client.ListOption{client.InNamespace(ns)}
 		if in.labelSelector != nil {
 			opts = append(opts, client.MatchingLabelsSelector{
@@ -161,28 +170,77 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 			})
 		}
 
-		if err := in.client.List(ctx, podList, opts...); err != nil {
-			return nil, nil, err
-		}
-
-		for _, pod := range podList.Items {
-			if !lo.EveryBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
-				return cs.State.Running != nil
-			}) {
-				continue
-			}
-
-			encoded, err := json.Marshal(pod)
-			if err != nil {
+		switch in.resourceType {
+		case "pod":
+			podList := &corev1.PodList{}
+			if err := in.client.List(ctx, podList, opts...); err != nil {
 				return nil, nil, err
 			}
 
-			in.logger.Debugf("adding pod %s to batch", pod.Name)
-			batch = append(batch, service.NewMessage(encoded))
+			for _, pod := range podList.Items {
+				if !lo.EveryBy(pod.Status.ContainerStatuses, func(cs corev1.ContainerStatus) bool {
+					return cs.State.Running != nil
+				}) {
+					continue
+				}
+
+				encoded, err := json.Marshal(pod)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				in.logger.Debugf("adding pod %s to batch", pod.Name)
+				batch = append(batch, service.NewMessage(encoded))
+			}
+		case "node":
+			nodeList := &corev1.NodeList{}
+			if err := in.client.List(ctx, nodeList, opts...); err != nil {
+				return nil, nil, err
+			}
+
+			for _, node := range nodeList.Items {
+				encoded, err := json.Marshal(node)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				in.logger.Debugf("adding node %s to batch", node.Name)
+				batch = append(batch, service.NewMessage(encoded))
+			}
+		case "persistentvolume":
+			persistentVolumeList := &corev1.PersistentVolumeList{}
+			if err := in.client.List(ctx, persistentVolumeList, opts...); err != nil {
+				return nil, nil, err
+			}
+
+			for _, persistentVolume := range persistentVolumeList.Items {
+				encoded, err := json.Marshal(persistentVolume)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				in.logger.Debugf("adding persistent volume %s to batch", persistentVolume.Name)
+				batch = append(batch, service.NewMessage(encoded))
+			}
+		case "persistentvolumeclaim":
+			persistentVolumeClaimList := &corev1.PersistentVolumeClaimList{}
+			if err := in.client.List(ctx, persistentVolumeClaimList, opts...); err != nil {
+				return nil, nil, err
+			}
+
+			for _, persistentVolumeClaim := range persistentVolumeClaimList.Items {
+				encoded, err := json.Marshal(persistentVolumeClaim)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				in.logger.Debugf("adding persistent volume claim %s to batch", persistentVolumeClaim.Name)
+				batch = append(batch, service.NewMessage(encoded))
+			}
 		}
 	}
 
-	in.logger.Debugf("batch size: %d", len(batch))
+	in.logger.Debugf("batch size of %s: %d", in.resourceType, len(batch))
 
 	return batch, func(context.Context, error) error {
 		// A nack (when err is non-nil) is handled automatically when we
