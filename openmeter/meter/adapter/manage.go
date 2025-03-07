@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,6 +54,46 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 
 			// Create the meter in the streaming connector
 			err = a.streamingConnector.CreateMeter(ctx, input.Namespace, meter)
+			if err != nil {
+				return meter, fmt.Errorf("failed to create meter in streaming connector: %w", err)
+			}
+
+			return meter, nil
+		})
+}
+
+// UpdateMeter creates a new meter.
+func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMeterInput) (meterpkg.Meter, error) {
+	if err := input.Validate(); err != nil {
+		return meterpkg.Meter{}, models.NewGenericValidationError(err)
+	}
+
+	return entutils.TransactingRepo(
+		ctx,
+		a,
+		func(ctx context.Context, repo *manageAdapter) (meterpkg.Meter, error) {
+			entity, err := repo.db.Meter.UpdateOneID(input.ID.ID).
+				Where(meterdb.NamespaceEQ(input.ID.Namespace)).
+				SetName(input.UpdateMeterInput.Name).
+				SetNillableDescription(input.UpdateMeterInput.Description).
+				SetNillableEventFrom(input.UpdateMeterInput.EventFrom).
+				SetGroupBy(input.UpdateMeterInput.GroupBy).
+				Save(ctx)
+			if err != nil {
+				if db.IsConstraintError(err) {
+					return meterpkg.Meter{}, models.NewGenericConflictError(fmt.Errorf("meter with the same slug already exists"))
+				}
+
+				return meterpkg.Meter{}, fmt.Errorf("failed to create meter: %w", err)
+			}
+
+			meter, err := MapFromEntityFactory(entity)
+			if err != nil {
+				return meterpkg.Meter{}, fmt.Errorf("failed to map meter: %w", err)
+			}
+
+			// Update the meter in the streaming connector
+			err = a.streamingConnector.UpdateMeter(ctx, input.ID.Namespace, meter)
 			if err != nil {
 				return meter, fmt.Errorf("failed to create meter in streaming connector: %w", err)
 			}

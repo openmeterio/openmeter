@@ -29,6 +29,7 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 		Key:           input.Key,
 		Aggregation:   input.Aggregation,
 		EventType:     input.EventType,
+		EventFrom:     input.EventFrom,
 		ValueProperty: input.ValueProperty,
 		GroupBy:       input.GroupBy,
 		WindowSize:    meterpkg.WindowSizeMinute,
@@ -37,6 +38,54 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 	a.adapter.meters = append(a.adapter.meters, meter)
 
 	return meter, nil
+}
+
+// UpdateMeter updates a meter.
+func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMeterInput) (meterpkg.Meter, error) {
+	currentMeter, err := a.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+		Namespace: input.ID.Namespace,
+		IDOrSlug:  input.ID.ID,
+	})
+	if err != nil {
+		return meterpkg.Meter{}, err
+	}
+
+	meter := meterpkg.Meter{
+		ManagedResource: models.ManagedResource{
+			// Immutable fields
+			ID:              currentMeter.ID,
+			NamespacedModel: currentMeter.NamespacedModel,
+			ManagedModel: models.ManagedModel{
+				CreatedAt: currentMeter.CreatedAt,
+				UpdatedAt: time.Now(),
+			},
+			// Mutable fields
+			Name:        input.UpdateMeterInput.Name,
+			Description: input.UpdateMeterInput.Description,
+		},
+		// Immutable fields
+		Key:           currentMeter.Key,
+		Aggregation:   currentMeter.Aggregation,
+		EventType:     currentMeter.EventType,
+		ValueProperty: currentMeter.ValueProperty,
+		WindowSize:    currentMeter.WindowSize,
+		// Mutable fields
+		EventFrom: input.UpdateMeterInput.EventFrom,
+		GroupBy:   input.UpdateMeterInput.GroupBy,
+	}
+
+	for i, m := range a.adapter.meters {
+		if m.Namespace != input.UpdateMeterInput.Namespace {
+			continue
+		}
+
+		if m.ID == input.ID.ID || m.Key == input.UpdateMeterInput.Key {
+			a.adapter.meters[i] = meter
+			return meter, nil
+		}
+	}
+
+	return meter, meterpkg.NewMeterNotFoundError(input.UpdateMeterInput.Key)
 }
 
 // DeleteMeter deletes a meter.

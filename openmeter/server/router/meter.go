@@ -26,6 +26,11 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	a.meterHandler.CreateMeter().ServeHTTP(w, r)
 }
 
+// PUT /api/v1/meters/{meterIdOrSlug}
+func (a *Router) UpdateMeter(w http.ResponseWriter, r *http.Request, meterID string) {
+	a.meterHandler.UpdateMeter().With(meterID).ServeHTTP(w, r)
+}
+
 // DELETE /api/v1/meters/{meterIdOrSlug}
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
 	a.meterHandler.DeleteMeter().With(meterIdOrSlug).ServeHTTP(w, r)

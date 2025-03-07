@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -20,6 +21,7 @@ type ManageService interface {
 	Service
 
 	CreateMeter(ctx context.Context, input CreateMeterInput) (Meter, error)
+	UpdateMeter(ctx context.Context, input UpdateMeterInput) (Meter, error)
 	DeleteMeter(ctx context.Context, input DeleteMeterInput) error
 }
 
@@ -110,6 +112,33 @@ func (i CreateMeterInput) Validate() error {
 	)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("invalid meter create: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+// UpdateMeterInput is a parameter object for creating a meter.
+type UpdateMeterInput struct {
+	ID               models.NamespacedID
+	UpdateMeterInput CreateMeterInput
+}
+
+// Validate validates the create meter input.
+func (i UpdateMeterInput) Validate() error {
+	var errs []error
+
+	err := ValidateMeter(
+		i.UpdateMeterInput.Key,
+		i.UpdateMeterInput.Name,
+		i.UpdateMeterInput.Description,
+		i.UpdateMeterInput.Aggregation,
+		i.UpdateMeterInput.EventType,
+		i.UpdateMeterInput.EventFrom,
+		i.UpdateMeterInput.ValueProperty,
+		i.UpdateMeterInput.GroupBy,
+	)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter update: %w", err))
 	}
 
 	return errors.Join(errs...)

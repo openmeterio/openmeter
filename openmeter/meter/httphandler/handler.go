@@ -20,6 +20,7 @@ type MeterHandler interface {
 	ListMeters() ListMetersHandler
 	GetMeter() GetMeterHandler
 	CreateMeter() CreateMeterHandler
+	UpdateMeter() UpdateMeterHandler
 	DeleteMeter() DeleteMeterHandler
 	QueryMeter() QueryMeterHandler
 	QueryMeterCSV() QueryMeterCSVHandler
