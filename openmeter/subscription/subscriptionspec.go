@@ -389,27 +389,15 @@ func (s SubscriptionPhaseSpec) GetBillableItemsByKey() map[string][]*Subscriptio
 }
 
 func (s SubscriptionPhaseSpec) HasEntitlements() bool {
-	for _, items := range s.ItemsByKey {
-		for _, item := range items {
-			if item.RateCard.EntitlementTemplate != nil {
-				return true
-			}
-		}
-	}
-
-	return false
+	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
+		return item.RateCard.EntitlementTemplate != nil
+	})
 }
 
 func (s SubscriptionPhaseSpec) HasMeteredBillables() bool {
-	for _, items := range s.ItemsByKey {
-		for _, item := range items {
-			if item.RateCard.Price != nil && item.RateCard.Price.Type() != productcatalog.FlatPriceType {
-				return true
-			}
-		}
-	}
-
-	return false
+	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
+		return item.RateCard.Price != nil && item.RateCard.Price.Type() != productcatalog.FlatPriceType
+	})
 }
 
 func (s SubscriptionPhaseSpec) HasBillables() bool {
