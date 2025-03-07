@@ -13,7 +13,13 @@ const (
 )
 
 type EventBatchedIngest struct {
-	Events []IngestEventData `json:"events"`
+	Namespace  models.NamespaceID `json:"namespace"`
+	SubjectKey string             `json:"subjectKey"`
+
+	// MeterSlugs contain the list of slugs that are affected by the event. We
+	// should not use meterIDs as they are not something present in the open source
+	// version, thus any code that is in opensource should not rely on them.
+	MeterSlugs []string `json:"meterSlugs"`
 }
 
 var (
@@ -22,7 +28,7 @@ var (
 	batchIngestEventType = metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      "events.ingested",
-		Version:   "v1",
+		Version:   "v2",
 	}
 	batchIngestEventName  = metadata.GetEventName(batchIngestEventType)
 	EventVersionSubsystem = batchIngestEventType.VersionSubsystem()
@@ -33,49 +39,24 @@ func (b EventBatchedIngest) EventName() string {
 }
 
 func (b EventBatchedIngest) Validate() error {
-	if len(b.Events) == 0 {
-		return errors.New("events must not be empty")
-	}
-
-	var finalErr error
-
-	for _, e := range b.Events {
-		if err := e.Validate(); err != nil {
-			finalErr = errors.Join(finalErr, err)
-		}
-	}
-
-	return finalErr
-}
-
-func (b EventBatchedIngest) EventMetadata() metadata.EventMetadata {
-	return metadata.EventMetadata{
-		Source: metadata.ComposeResourcePathRaw(string(EventSubsystem)),
-	}
-}
-
-type IngestEventData struct {
-	Namespace  models.NamespaceID `json:"namespace"`
-	SubjectKey string             `json:"subjectKey"`
-
-	// MeterSlugs contain the list of slugs that are affected by the event. We
-	// should not use meterIDs as they are not something present in the open source
-	// version, thus any code that is in opensource should not rely on them.
-	MeterSlugs []string `json:"meterSlugs"`
-}
-
-func (i IngestEventData) Validate() error {
-	if err := i.Namespace.Validate(); err != nil {
+	if err := b.Namespace.Validate(); err != nil {
 		return err
 	}
 
-	if i.SubjectKey == "" {
+	if b.SubjectKey == "" {
 		return errors.New("subjectKey must be set")
 	}
 
-	if len(i.MeterSlugs) == 0 {
+	if len(b.MeterSlugs) == 0 {
 		return errors.New("meterSlugs must not be empty")
 	}
 
 	return nil
+}
+
+func (b EventBatchedIngest) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePathRaw(string(EventSubsystem)),
+		Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey),
+	}
 }
