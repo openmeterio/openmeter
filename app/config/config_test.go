@@ -357,7 +357,7 @@ func TestComplete(t *testing.T) {
 			Enabled:    false,
 			Expiration: 5 * time.Minute,
 			Redis: redis.Config{
-				Address: "127.0.0.1:6379",
+				Address:  "127.0.0.1:6379",
 				Database: 0,
 				Username: "",
 				Password: "",
