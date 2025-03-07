@@ -23,10 +23,10 @@ type ResetUsageForOwnerParams struct {
 
 // Generic connector for balance related operations.
 type BalanceConnector interface {
-	// GetResultAt returns the result of the engine.Run at a given time.
+	// GetBalanceAt returns the result of the engine.Run at a given time.
 	// It tries to minimize execution cost by calculating from the lastest valid snapshot, thus the length of the returned history WILL NOT be deterministic.
 	GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
-	// GetResultBetween returns the result of the engine.Run between for the provided period.
+	// GetBalanceForPeriod returns the result of the engine.Run between for the provided period.
 	// The returned history will exactly match the provided period.
 	GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error)
 	// ResetUsageForOwner resets the usage for an owner at a given time.
