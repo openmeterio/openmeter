@@ -228,6 +228,10 @@ func (m *Meter) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid managed resource: %w", err))
 	}
 
+	if m.Key == "" {
+		errs = append(errs, errors.New("meter key is required"))
+	}
+
 	if m.EventType == "" {
 		errs = append(errs, errors.New("meter event type is required"))
 	}
@@ -240,18 +244,14 @@ func (m *Meter) Validate() error {
 		errs = append(errs, errors.New("meter aggregation is required"))
 	}
 
-	if m.WindowSize != WindowSizeMinute {
-		errs = append(errs, errors.New("meter window size is deprecated and always must be set to minute"))
-	}
-
 	// Validate aggregation
 	if err := validateMeterAggregation(m.ValueProperty, m.Aggregation); err != nil {
-		errs = append(errs, fmt.Errorf("invalid meter aggregation: %w", err))
+		errs = append(errs, err)
 	}
 
 	// Validate group by values
 	if err := validateMeterGroupBy(m.ValueProperty, m.GroupBy); err != nil {
-		errs = append(errs, fmt.Errorf("invalid meter group by: %w", err))
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)

@@ -50,11 +50,11 @@ interface Meters {
    * Update a meter.
    */
   @put
-  @route("/{meterId}")
+  @route("/{meterIdOrSlug}")
   @operationId("updateMeter")
   @summary("Update meter")
   update(
-    @path meterId: ULID,
+    @path meterIdOrSlug: MeterIdentifier,
 
     @body
     meter: MeterUpdate,
@@ -66,6 +66,7 @@ interface Meters {
    * Delete a meter.
    */
   @delete
+  @route("/{meterIdOrSlug}")
   @operationId("deleteMeter")
   @summary("Delete meter")
   delete(

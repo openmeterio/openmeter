@@ -150,7 +150,7 @@ func TestMeterValidation(t *testing.T) {
 			error: fmt.Errorf("meter value property is not allowed when the aggregation is count"),
 		},
 		{
-			description: "slug is empty",
+			description: "key is empty",
 			meter: Meter{
 				ManagedResource: models.ManagedResource{
 					ID: ulid.Make().String(),
@@ -167,7 +167,7 @@ func TestMeterValidation(t *testing.T) {
 				EventType:   "event-type-test",
 				GroupBy:     map[string]string{"test_group": "$.test_group"},
 			},
-			error: fmt.Errorf("meter slug is required"),
+			error: fmt.Errorf("meter key is required"),
 		},
 		{
 			description: "aggregation is empty",
