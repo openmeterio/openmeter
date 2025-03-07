@@ -28,8 +28,6 @@ type Validator struct {
 	subscriptionService subscription.Service
 }
 
-// TODO: Wire in
-
 func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
 	// A customer can only be deleted if all of his invocies are in final state
 

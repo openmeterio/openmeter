@@ -9,18 +9,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
-	filters := slicesx.Map(event.Events, func(e ingestevents.IngestEventData) IngestEventQueryFilter {
-		return IngestEventQueryFilter{
-			Namespace:  e.Namespace.ID,
-			SubjectKey: e.SubjectKey,
-			MeterSlugs: e.MeterSlugs,
-		}
-	})
-	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx, filters)
+	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx,
+		[]IngestEventQueryFilter{
+			{
+				Namespace:  event.Namespace.ID,
+				SubjectKey: event.SubjectKey,
+				MeterSlugs: event.MeterSlugs,
+			},
+		})
 	if err != nil {
 		return err
 	}
