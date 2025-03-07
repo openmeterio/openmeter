@@ -95,6 +95,12 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, at, err)
 	}
 
+	// Let's remove any grants that are not active at the query time
+	err = m.removeInactiveGrantsFromSnapshotAt(&result.Snapshot, grants, at)
+	if err != nil {
+		return def, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
+	}
+
 	// Let's see if a snapshot should be saved
 	if err := m.snapshotEngineResult(ctx, snapshotParams{
 		grants: grants,
