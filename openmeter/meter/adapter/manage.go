@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -64,20 +65,63 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 
 // UpdateMeter creates a new meter.
 func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMeterInput) (meterpkg.Meter, error) {
-	if err := input.Validate(); err != nil {
+	// Get the meter by ID
+	currentMeter, err := a.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+		Namespace: input.ID.Namespace,
+		IDOrSlug:  input.ID.ID,
+	})
+	if err != nil {
+		return meterpkg.Meter{}, err
+	}
+
+	if err := input.Validate(currentMeter.ValueProperty); err != nil {
 		return meterpkg.Meter{}, models.NewGenericValidationError(err)
 	}
 
+	// Collect group by changes
+	var groupByToDelete []string
+
+	for key := range currentMeter.GroupBy {
+		if _, ok := input.GroupBy[key]; !ok {
+			groupByToDelete = append(groupByToDelete, key)
+		}
+	}
+
+	// FIXME: use foreign keys after we migrate Feature reference on meter id
+	// Check if features are compatible with the new group by values
+	// We only need to check deleted group bys because only those can be incompatible
+	if len(groupByToDelete) > 0 {
+		// List features depending on the meter
+		features, err := a.featureRepository.ListFeatures(ctx, feature.ListFeaturesParams{
+			Namespace:  input.ID.Namespace,
+			MeterSlugs: []string{currentMeter.Key},
+		})
+		if err != nil {
+			return meterpkg.Meter{}, fmt.Errorf("failed to list features for meter: %w", err)
+		}
+
+		// Check if the features are compatible with the new group by values
+		for _, feature := range features.Items {
+			for _, groupBy := range groupByToDelete {
+				if _, ok := feature.MeterGroupByFilters[groupBy]; ok {
+					return meterpkg.Meter{}, models.NewGenericConflictError(
+						fmt.Errorf("meter group by: %s cannot be dropped because it is used by feature: %s", groupBy, feature.Key),
+					)
+				}
+			}
+		}
+	}
+
+	// Update the meter
 	return entutils.TransactingRepo(
 		ctx,
 		a,
 		func(ctx context.Context, repo *manageAdapter) (meterpkg.Meter, error) {
 			entity, err := repo.db.Meter.UpdateOneID(input.ID.ID).
 				Where(meterdb.NamespaceEQ(input.ID.Namespace)).
-				SetName(input.UpdateMeterInput.Name).
-				SetNillableDescription(input.UpdateMeterInput.Description).
-				SetNillableEventFrom(input.UpdateMeterInput.EventFrom).
-				SetGroupBy(input.UpdateMeterInput.GroupBy).
+				SetName(input.Name).
+				SetNillableDescription(input.Description).
+				SetGroupBy(input.GroupBy).
 				Save(ctx)
 			if err != nil {
 				if db.IsConstraintError(err) {

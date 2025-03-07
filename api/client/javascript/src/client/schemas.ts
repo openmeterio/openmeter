@@ -5490,14 +5490,6 @@ export interface components {
        */
       name?: string
       /**
-       * Format: date-time
-       * @description The date since the meter should include events.
-       *     Useful to skip old events.
-       *     If not specified, all historical events are included.
-       * @example 2023-01-01T01:01:01.001Z
-       */
-      eventFrom?: Date
-      /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        *
        *     Keys must be unique and consist only alphanumeric and underscore characters.
