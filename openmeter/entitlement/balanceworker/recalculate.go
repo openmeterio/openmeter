@@ -31,8 +31,16 @@ const (
 
 	metricNameRecalculationTime               = "balance_worker.entitlement_recalculation_time_ms"
 	metricNameRecalculationJobCalculationTime = "balance_worker.entitlement_recalculation_job_calculation_time_ms"
+	metricNameHighWatermarkCacheStats         = "balance_worker.high_watermark_cache_stats"
 
 	metricAttributeKeyEntitltementType = "entitlement_type"
+)
+
+var (
+	metricAttributeHighWatermarkCacheHit        = attribute.String("op", "hit")
+	metricAttributeHighWatermarkCacheHitDeleted = attribute.String("op", "hit_deleted")
+	metricAttributeHighWatermarkCacheMiss       = attribute.String("op", "miss")
+	metricAttributeHighWatermarkCacheStale      = attribute.String("op", "stale")
 )
 
 type RecalculatorOptions struct {

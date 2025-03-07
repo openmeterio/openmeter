@@ -29,8 +29,18 @@ func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID Names
 
 	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
 		if entry.HighWatermark.After(eventAt) || entry.IsDeleted {
+			if entry.IsDeleted {
+				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHitDeleted))
+			} else {
+				w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheHit))
+			}
+
 			return nil, nil
 		}
+
+		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheStale))
+	} else {
+		w.metricHighWatermarkCacheStats.Add(ctx, 1, metric.WithAttributes(metricAttributeHighWatermarkCacheMiss))
 	}
 
 	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
