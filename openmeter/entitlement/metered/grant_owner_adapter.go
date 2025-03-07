@@ -128,6 +128,11 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 		return time.Time{}, err
 	}
 
+	metered, err := ParseFromGenericEntitlement(ent)
+	if err != nil {
+		return time.Time{}, err
+	}
+
 	lastReset, err := e.usageResetRepo.GetLastAt(ctx, owner, at)
 	if err != nil {
 		// If it's a not found error thats ok, it means there are no manual resets yet. Otherwise we return an error
@@ -141,6 +146,19 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 		return time.Time{}, fmt.Errorf("failed to calculate current usage period")
 	}
 
+	// Now let's try to figure out the first period (first means the period when the entitlement start, becomes active)
+	// This calculation has to use the original anchor and activation time
+	fp, ok := ent.CalculateCurrentUsagePeriodAt(ent.UsagePeriod.Anchor, metered.ActiveFromTime())
+	if !ok {
+		return time.Time{}, fmt.Errorf("failed to calculate first usage period")
+	}
+
+	// If we're still in the first period, then the period start is the start of measurement
+	if cp.From.Equal(fp.From) {
+		return metered.MeasureUsageFrom, nil
+	}
+
+	// Otherwise, the period start is the current period start
 	return cp.From, nil
 }
 
