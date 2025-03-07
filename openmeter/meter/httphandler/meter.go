@@ -143,7 +143,7 @@ func (h handler) CreateMeter() CreateMeterHandler {
 			// Validate JSON paths via ClickHouse
 			err := validateJSONPaths(ctx, h.streaming, request.MeterCreate.ValueProperty, request.MeterCreate.GroupBy)
 			if err != nil {
-				return UpdateMeterResponse{}, err
+				return CreateMeterResponse{}, err
 			}
 
 			// Create meter
@@ -177,7 +177,8 @@ func (h handler) CreateMeter() CreateMeterHandler {
 
 type (
 	UpdateMeterRequest = struct {
-		ID models.NamespacedID
+		namespace string
+		idOrKey   string
 		api.MeterUpdate
 	}
 	UpdateMeterResponse = api.Meter
@@ -187,7 +188,7 @@ type UpdateMeterHandler = httptransport.HandlerWithArgs[UpdateMeterRequest, Upda
 
 func (h handler) UpdateMeter() UpdateMeterHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, meterID string) (UpdateMeterRequest, error) {
+		func(ctx context.Context, r *http.Request, meterIdOrKey string) (UpdateMeterRequest, error) {
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return UpdateMeterRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
@@ -195,22 +196,20 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 
 			body := api.MeterUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return UpdateMeterRequest{}, fmt.Errorf("failed to decode create meter request: %w", err)
+				return UpdateMeterRequest{}, fmt.Errorf("failed to decode update meter request: %w", err)
 			}
 
 			return UpdateMeterRequest{
-				ID: models.NamespacedID{
-					Namespace: namespace,
-					ID:        meterID,
-				},
+				namespace:   namespace,
+				idOrKey:     meterIdOrKey,
 				MeterUpdate: body,
 			}, nil
 		},
 		func(ctx context.Context, request UpdateMeterRequest) (UpdateMeterResponse, error) {
 			// Get current meter
 			currentMeter, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-				Namespace: request.ID.Namespace,
-				IDOrSlug:  request.ID.ID,
+				Namespace: request.namespace,
+				IDOrSlug:  request.idOrKey,
 			})
 			if err != nil {
 				return UpdateMeterResponse{}, fmt.Errorf("failed to get meter: %w", err)
@@ -224,7 +223,10 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 
 			// Update meter
 			input := meter.UpdateMeterInput{
-				ID:          request.ID,
+				ID: models.NamespacedID{
+					Namespace: currentMeter.Namespace,
+					ID:        currentMeter.ID,
+				},
 				Name:        lo.FromPtrOr(request.MeterUpdate.Name, currentMeter.Key),
 				Description: request.MeterUpdate.Description,
 				GroupBy:     lo.FromPtrOr(request.MeterUpdate.GroupBy, map[string]string{}),
@@ -232,7 +234,7 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 
 			meter, err := h.meterService.UpdateMeter(ctx, input)
 			if err != nil {
-				return UpdateMeterResponse{}, fmt.Errorf("failed to create meter: %w", err)
+				return UpdateMeterResponse{}, fmt.Errorf("failed to update meter: %w", err)
 			}
 
 			return ToAPIMeter(meter), nil
