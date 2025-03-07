@@ -126,7 +126,7 @@ func TestEngine(t *testing.T) {
 						TotalUsage:         50.0,
 						Overage:            50.0,
 					},
-				}, res.History)
+				}, res.History.Segments())
 			},
 		},
 		{
@@ -308,10 +308,10 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
 				assert.Equal(t, 50.0, res.Snapshot.Overage) // usage after grant deletion
-				assert.Len(t, res.History, 2)
-				assert.Equal(t, 50.0, res.History[0].TotalUsage)
-				assert.Equal(t, 50.0, res.History[1].TotalUsage)
-				assert.Equal(t, 0.0, res.History[1].BalanceAtStart[g.ID])
+				assert.Len(t, res.History.Segments(), 2)
+				assert.Equal(t, 50.0, res.History.Segments()[0].TotalUsage)
+				assert.Equal(t, 50.0, res.History.Segments()[1].TotalUsage)
+				assert.Equal(t, 0.0, res.History.Segments()[1].BalanceAtStart[g.ID])
 			},
 		},
 		{
@@ -342,10 +342,10 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, 0.0, res.Snapshot.Balances[grant1.ID])
 				assert.Equal(t, 50.0, res.Snapshot.Overage) // usage after grant deletion
-				assert.Len(t, res.History, 2)
-				assert.Equal(t, 50.0, res.History[0].TotalUsage)
-				assert.Equal(t, 50.0, res.History[1].TotalUsage)
-				assert.Equal(t, 0.0, res.History[1].BalanceAtStart[g.ID])
+				assert.Len(t, res.History.Segments(), 2)
+				assert.Equal(t, 50.0, res.History.Segments()[0].TotalUsage)
+				assert.Equal(t, 50.0, res.History.Segments()[1].TotalUsage)
+				assert.Equal(t, 0.0, res.History.Segments()[1].BalanceAtStart[g.ID])
 			},
 		},
 		{
@@ -435,13 +435,13 @@ func TestEngine(t *testing.T) {
 				assert.Equal(t, 50.0, res.Snapshot.Balances[grant1.ID])
 
 				// sets correct starting balance for grant in segment
-				assert.Len(t, res.History, 2)
-				assert.Equal(t, 0.0, res.History[0].BalanceAtStart[g.ID])
+				assert.Len(t, res.History.Segments(), 2)
+				assert.Equal(t, 0.0, res.History.Segments()[0].BalanceAtStart[g.ID])
 
 				// starting balance doesnt have overage deducted
-				assert.Equal(t, g.Amount, res.History[1].BalanceAtStart[g.ID])
+				assert.Equal(t, g.Amount, res.History.Segments()[1].BalanceAtStart[g.ID])
 				// but it is stored separately
-				assert.Equal(t, 25.0, res.History[1].OverageAtStart)
+				assert.Equal(t, 25.0, res.History.Segments()[1].OverageAtStart)
 			},
 		},
 		{
@@ -795,7 +795,7 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotEmpty(t, res.History)
-				assert.Equal(t, 4, len(res.History))
+				assert.Equal(t, 4, len(res.History.Segments()))
 			},
 		},
 		{
@@ -863,17 +863,17 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotEmpty(t, res.History)
-				assert.Equal(t, 5, len(res.History))
-				assert.Equal(t, start.In(time.UTC), res.History[0].Period.From)
-				assert.Equal(t, t1.In(time.UTC), res.History[0].Period.To)
-				assert.Equal(t, t1.In(time.UTC), res.History[1].Period.From)
-				assert.Equal(t, t2.In(time.UTC), res.History[1].Period.To)
-				assert.Equal(t, t2.In(time.UTC), res.History[2].Period.From)
-				assert.Equal(t, t3.In(time.UTC), res.History[2].Period.To)
-				assert.Equal(t, t3.In(time.UTC), res.History[3].Period.From)
-				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History[3].Period.To)
-				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History[4].Period.From)
-				assert.Equal(t, end.In(time.UTC), res.History[4].Period.To)
+				assert.Equal(t, 5, len(res.History.Segments()))
+				assert.Equal(t, start.In(time.UTC), res.History.Segments()[0].Period.From)
+				assert.Equal(t, t1.In(time.UTC), res.History.Segments()[0].Period.To)
+				assert.Equal(t, t1.In(time.UTC), res.History.Segments()[1].Period.From)
+				assert.Equal(t, t2.In(time.UTC), res.History.Segments()[1].Period.To)
+				assert.Equal(t, t2.In(time.UTC), res.History.Segments()[2].Period.From)
+				assert.Equal(t, t3.In(time.UTC), res.History.Segments()[2].Period.To)
+				assert.Equal(t, t3.In(time.UTC), res.History.Segments()[3].Period.From)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History.Segments()[3].Period.To)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), res.History.Segments()[4].Period.From)
+				assert.Equal(t, end.In(time.UTC), res.History.Segments()[4].Period.To)
 			},
 		},
 	}

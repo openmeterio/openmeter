@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
-	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
@@ -324,8 +323,6 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	assert.NoError(err)
 	assert.Len(grants.Items, 1)
 
-	grant1 := &grants.Items[0]
-
 	// Let's create another grant
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:09:40Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
@@ -345,28 +342,20 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(grant2)
 
-	// Lets create a snapshot
-	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:09:05Z"))
-	err = deps.BalanceSnapshotRepo.Save(ctx, models.NamespacedID{
-		Namespace: "namespace-1",
-		ID:        entitlement.ID,
-	}, []balance.Snapshot{
-		{
-			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
-			Overage: 0.0,
-			Balances: balance.Map{
-				grant1.ID: 488.0,
-				grant2.ID: 10000.0,
-			},
-		},
-	})
-	assert.NoError(err)
+	// Let's add some usage
 
-	// Hack: this is in the future, but at least it won't return an error
-	deps.Streaming.AddSimpleEvent("meter-1", 1, testutils.GetRFC3339Time(t, "2099-06-28T14:36:00Z"))
+	// Due to grant priority this usage should be deduceted from grant 2
+	// The reason is that the default recurring grant's expiration date is way later (with hack set to 100y in future)
+	deps.Streaming.AddSimpleEvent("meter-1", 10, testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"))
+
+	// As this is later, this usage should be deducted from grant 1
 
 	// Lets void the grant
-	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T14:54:04Z"))
+	voidTime := testutils.GetRFC3339Time(t, "2024-07-09T14:54:04Z")
+
+	deps.Streaming.AddSimpleEvent("meter-1", 12, voidTime.Add(time.Minute*15))
+
+	clock.SetTime(voidTime)
 	err = deps.GrantConnector.VoidGrant(ctx, models.NamespacedID{
 		Namespace: "namespace-1",
 		ID:        grant2.ID,
