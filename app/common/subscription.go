@@ -92,7 +92,7 @@ func NewSubscriptionServices(
 		Logger:              logger.With("subsystem", "subscription.change.service"),
 	})
 
-	validator, err := subscriptioncustomer.NewValidator(subscriptionService)
+	validator, err := subscriptioncustomer.NewValidator(subscriptionService, customerService)
 	if err != nil {
 		return SubscriptionServiceWithWorkflow{}, err
 	}
