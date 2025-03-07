@@ -17,6 +17,9 @@ func NewValidator(subscriptionService subscription.Service, customerService cust
 	if subscriptionService == nil {
 		return nil, fmt.Errorf("subscription service is required")
 	}
+	if customerService == nil {
+		return nil, fmt.Errorf("customer service is required")
+	}
 
 	return &Validator{
 		subscriptionService: subscriptionService,
