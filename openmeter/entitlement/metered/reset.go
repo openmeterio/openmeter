@@ -52,8 +52,9 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			Subject: eventmodels.SubjectKeyAndID{
 				Key: ent.SubjectKey,
 			},
-			ResetAt:      params.At,
-			RetainAnchor: params.RetainAnchor,
+			ResetAt:          params.At,
+			RetainAnchor:     params.RetainAnchor,
+			ResetRequestedAt: time.Now(),
 		}
 
 		if err := e.publisher.Publish(ctx, event); err != nil {

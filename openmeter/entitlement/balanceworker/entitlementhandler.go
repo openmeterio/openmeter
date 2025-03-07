@@ -18,11 +18,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID NamespacedID, source string) (marshaler.Event, error) {
+func (w *Worker) handleEntitlementEvent(ctx context.Context, entitlementID NamespacedID, source string, eventAt time.Time) (marshaler.Event, error) {
 	calculatedAt := time.Now()
 
+	if eventAt.IsZero() {
+		// TODO: set to error when the queue has been flushed
+		w.opts.Logger.Warn("eventAt is zero, ignoring event", "entitlementID", entitlementID, "source", source)
+		return nil, nil
+	}
+
 	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
-		if entry.HighWatermark.After(calculatedAt) || entry.IsDeleted {
+		if entry.HighWatermark.After(eventAt) || entry.IsDeleted {
 			return nil, nil
 		}
 	}

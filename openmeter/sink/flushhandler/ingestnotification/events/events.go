@@ -2,6 +2,7 @@ package events
 
 import (
 	"errors"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -20,6 +21,8 @@ type EventBatchedIngest struct {
 	// should not use meterIDs as they are not something present in the open source
 	// version, thus any code that is in opensource should not rely on them.
 	MeterSlugs []string `json:"meterSlugs"`
+
+	StoredAt time.Time `json:"storedAt"`
 }
 
 var (
@@ -56,8 +59,7 @@ func (b EventBatchedIngest) Validate() error {
 
 func (b EventBatchedIngest) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
-		Source: metadata.ComposeResourcePathRaw(string(EventSubsystem)),
-		// TODO[later]: let's check why we don't have uniform distribution of partitions
-		// Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey),
+		Source:  metadata.ComposeResourcePathRaw(string(EventSubsystem)),
+		Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey),
 	}
 }

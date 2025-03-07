@@ -14,11 +14,12 @@ const (
 )
 
 type EntitlementResetEvent struct {
-	EntitlementID string                 `json:"entitlementId"`
-	Namespace     models.NamespaceID     `json:"namespace"`
-	Subject       models.SubjectKeyAndID `json:"subject"`
-	ResetAt       time.Time              `json:"resetAt"`
-	RetainAnchor  bool                   `json:"retainAnchor"`
+	EntitlementID    string                 `json:"entitlementId"`
+	Namespace        models.NamespaceID     `json:"namespace"`
+	Subject          models.SubjectKeyAndID `json:"subject"`
+	ResetAt          time.Time              `json:"resetAt"`
+	RetainAnchor     bool                   `json:"retainAnchor"`
+	ResetRequestedAt time.Time              `json:"resetRequestedAt"`
 }
 
 var (
@@ -58,5 +59,10 @@ func (e EntitlementResetEvent) Validate() error {
 	if e.ResetAt.IsZero() {
 		return errors.New("resetAt must be set")
 	}
+
+	if e.ResetRequestedAt.IsZero() {
+		return errors.New("resetRequestedAt must be set")
+	}
+
 	return nil
 }
