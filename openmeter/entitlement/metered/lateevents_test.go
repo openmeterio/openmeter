@@ -16,7 +16,7 @@ import (
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/adapter"
+	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -92,13 +92,18 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 
 		streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 		meterAdapter, err := meteradapter.New([]meter.Meter{{
-			Slug:        meterSlug,
-			Namespace:   namespace,
+			Key: meterSlug,
+			ManagedResource: models.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ID: "managed-resource-1",
+			},
 			Aggregation: meter.MeterAggregationSum,
 			WindowSize:  meter.WindowSizeMinute,
 			// These will be ignored in tests
 			EventType:     "test",
-			ValueProperty: "$.value",
+			ValueProperty: convert.ToPointer("$.value"),
 		}})
 		if err != nil {
 			t.Fatalf("failed to create meter adapter: %v", err)
