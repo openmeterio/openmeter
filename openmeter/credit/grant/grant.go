@@ -8,22 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type (
-	Owner           string
-	NamespacedOwner struct {
-		Namespace string
-		ID        Owner
-	}
-)
-
-// Casts the NamespacedGrantOwner to a NamespacedID. Owner might not be a valid ID.
-func (n NamespacedOwner) NamespacedID() models.NamespacedID {
-	return models.NamespacedID{
-		Namespace: n.Namespace,
-		ID:        string(n.ID),
-	}
-}
-
 // Grant is an immutable definition used to increase balance.
 type Grant struct {
 	models.ManagedModel
@@ -33,7 +17,7 @@ type Grant struct {
 	ID string `json:"id,omitempty"`
 
 	// Generic Owner reference
-	OwnerID Owner `json:"owner"`
+	OwnerID string `json:"owner"`
 
 	// Amount The amount to grant. Must be positive.
 	Amount float64 `json:"amount"`
@@ -131,8 +115,8 @@ func (g Grant) GetNamespacedID() models.NamespacedID {
 	}
 }
 
-func (g Grant) GetNamespacedOwner() NamespacedOwner {
-	return NamespacedOwner{
+func (g Grant) GetNamespacedOwner() models.NamespacedID {
+	return models.NamespacedID{
 		Namespace: g.Namespace,
 		ID:        g.OwnerID,
 	}

@@ -206,9 +206,9 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 
 		effectiveAt := metered.CurrentUsagePeriod.From
 		amountToIssue := metered.IssueAfterReset.Amount
-		_, err := c.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
+		_, err := c.grantConnector.CreateGrant(ctx, models.NamespacedID{
 			Namespace: metered.Namespace,
-			ID:        grant.Owner(metered.ID),
+			ID:        metered.ID,
 		}, credit.CreateGrantInput{
 			Amount:      amountToIssue,
 			Priority:    defaultx.WithDefault(metered.IssueAfterReset.Priority, DefaultIssueAfterResetPriority),

@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -60,9 +59,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		// We do no resets...
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		t.Run("Should return reset for period start if before the period", func(t *testing.T) {
@@ -137,9 +136,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		// We query for 4 days without the reset included
@@ -184,9 +183,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 
 		// We do no resets...
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		// We query for 4 days without the reset included
@@ -252,9 +251,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		// We query for 4 days without the reset included
@@ -311,9 +310,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
@@ -355,9 +354,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
@@ -411,9 +410,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{
@@ -467,9 +466,9 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		owner := grant.NamespacedOwner{
+		owner := models.NamespacedID{
 			Namespace: namespace,
-			ID:        grant.Owner(ent.ID),
+			ID:        ent.ID,
 		}
 
 		timeline, err := deps.ownerConnector.GetResetTimelineInclusive(ctx, owner, timeutil.Period{

@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -20,7 +21,7 @@ import (
 //
 // If no snapshot exists returns a default snapshot for measurement start to recalculate the entire history
 // in case no usable snapshot was found.
-func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (balance.Snapshot, error) {
+func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
 	bal, err := m.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
@@ -52,33 +53,28 @@ func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, o
 
 // Builds the engine for a given owner caching the period boundaries for the given range (queryBounds).
 // As QueryUsageFn is frequently called, getting the CurrentUsagePeriodStartTime during it's execution would impact performance, so we cache all possible values during engine building.
-func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.NamespacedOwner, queryBounds timeutil.Period) (engine.Engine, error) {
+func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.NamespacedID, queryBounds timeutil.Period) (engine.Engine, error) {
 	// Let's validate the parameters
 	if queryBounds.From.IsZero() || queryBounds.To.IsZero() {
 		return nil, fmt.Errorf("query bounds must have both from and to set")
 	}
 
-	// Let's get the owner specific params
-	ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
+	// Let's get the owner
+	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get query params for owner %v: %w", owner, err)
-	}
-
-	subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get owner subject key for owner %s: %w", owner.ID, err)
+		return nil, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
 
 	// Let's collect all period start times for any time between the query bounds
 	// First we get the period start time for the start of the period, then all times in between
-	firstPeriodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, queryBounds.From)
+	firstPeriodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, ownerID, queryBounds.From)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", owner.ID, queryBounds.From, err)
+		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", ownerID.ID, queryBounds.From, err)
 	}
 
-	inbetweenPeriodStarts, err := m.ownerConnector.GetResetTimelineInclusive(ctx, owner, queryBounds)
+	inbetweenPeriodStarts, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, queryBounds)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get period start times for owner %s between %s and %s: %w", owner.ID, queryBounds.From, queryBounds.To, err)
+		return nil, fmt.Errorf("failed to get period start times for owner %s between %s and %s: %w", ownerID.ID, queryBounds.From, queryBounds.To, err)
 	}
 
 	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts.GetTimes()...)
@@ -115,18 +111,17 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 	}
 
 	eng := engine.NewEngine(engine.EngineConfig{
-		Granularity: ownerMeter.Meter.WindowSize,
+		Granularity: owner.Meter.WindowSize,
 		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
 			// Let's validate we're not querying outside the bounds
 			if !queryBounds.ContainsInclusive(from) || !queryBounds.ContainsInclusive(to) {
 				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", queryBounds.From, queryBounds.To, from, to, queryBounds.ContainsInclusive(from), queryBounds.ContainsInclusive(to))
 			}
 
-			params := ownerMeter.DefaultParams
-			params.FilterSubject = []string{subjectKey}
+			params := owner.DefaultQueryParams
 
 			// Let's query the meter based on the aggregation
-			switch ownerMeter.Meter.Aggregation {
+			switch owner.Meter.Aggregation {
 			case meter.MeterAggregationUniqueCount:
 				periodStart, err := getUsagePeriodStartAtFromCache(from)
 				if err != nil {
@@ -144,9 +139,9 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				var valueFrom float64 = 0.0
 
 				if !periodStart.Equal(to) {
-					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+					rows, err := m.streamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
 					if err != nil {
-						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Key, err)
+						return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
 					}
 
 					valueTo, err = getValueFromRows(rows)
@@ -159,9 +154,9 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 
 				// If the two times are different we need to query the value at `from`
 				if !params.From.Equal(*params.To) && !periodStart.Equal(from) {
-					rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+					rows, err := m.streamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
 					if err != nil {
-						return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Key, err)
+						return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
 					}
 
 					valueFrom, err = getValueFromRows(rows)
@@ -187,14 +182,14 @@ func (m *connector) buildEngineForOwner(ctx context.Context, owner grant.Namespa
 				params.To = &to
 
 				// Let's query the meter
-				rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.Meter, params)
+				rows, err := m.streamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
 				if err != nil {
-					return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.Meter.Key, err)
+					return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
 				}
 
 				return getValueFromRows(rows)
 			default:
-				return 0.0, fmt.Errorf("unsupported aggregation %s", ownerMeter.Meter.Aggregation)
+				return 0.0, fmt.Errorf("unsupported aggregation %s", owner.Meter.Aggregation)
 			}
 		},
 	})
@@ -205,7 +200,7 @@ type snapshotParams struct {
 	// All grants used at engine.Run
 	grants []grant.Grant
 	// Owner of the snapshot
-	owner grant.NamespacedOwner
+	owner models.NamespacedID
 	// Result of the engine.Run
 	runRes engine.RunResult
 	// Snapshot is saved if the segment is before this time & the start of the current usage period (at time of snapshot)
