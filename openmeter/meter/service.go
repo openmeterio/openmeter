@@ -100,18 +100,42 @@ type CreateMeterInput struct {
 func (i CreateMeterInput) Validate() error {
 	var errs []error
 
-	err := ValidateMeter(
-		i.Key,
-		i.Name,
-		i.Description,
-		i.Aggregation,
-		i.EventType,
-		i.EventFrom,
-		i.ValueProperty,
-		i.GroupBy,
-	)
-	if err != nil {
-		errs = append(errs, fmt.Errorf("invalid meter create: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if i.Key == "" {
+		errs = append(errs, errors.New("key is required"))
+	}
+
+	if i.Description != nil && *i.Description == "" {
+		errs = append(errs, errors.New("description must not be empty string"))
+	}
+
+	if i.Aggregation == "" {
+		errs = append(errs, errors.New("meter aggregation is required"))
+	}
+
+	if i.EventType == "" {
+		errs = append(errs, errors.New("meter event type is required"))
+	}
+
+	if i.EventFrom != nil && i.EventFrom.IsZero() {
+		errs = append(errs, errors.New("meter event from must not be zero"))
+	}
+
+	// Validate aggregation
+	if err := validateMeterAggregation(i.ValueProperty, i.Aggregation); err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter aggregation: %w", err))
+	}
+
+	// Validate group by values
+	if err := validateMeterGroupBy(i.ValueProperty, i.GroupBy); err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter group by: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -119,26 +143,31 @@ func (i CreateMeterInput) Validate() error {
 
 // UpdateMeterInput is a parameter object for creating a meter.
 type UpdateMeterInput struct {
-	ID               models.NamespacedID
-	UpdateMeterInput CreateMeterInput
+	ID          models.NamespacedID
+	Name        string
+	Description *string
+	GroupBy     map[string]string
 }
 
 // Validate validates the create meter input.
-func (i UpdateMeterInput) Validate() error {
+func (i UpdateMeterInput) Validate(valueProperty *string) error {
 	var errs []error
 
-	err := ValidateMeter(
-		i.UpdateMeterInput.Key,
-		i.UpdateMeterInput.Name,
-		i.UpdateMeterInput.Description,
-		i.UpdateMeterInput.Aggregation,
-		i.UpdateMeterInput.EventType,
-		i.UpdateMeterInput.EventFrom,
-		i.UpdateMeterInput.ValueProperty,
-		i.UpdateMeterInput.GroupBy,
-	)
+	if err := i.ID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter id: %w", err))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if i.Description != nil && *i.Description == "" {
+		errs = append(errs, errors.New("description must not be empty string"))
+	}
+
+	err := validateMeterGroupBy(valueProperty, i.GroupBy)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("invalid meter update: %w", err))
+		return err
 	}
 
 	return errors.Join(errs...)

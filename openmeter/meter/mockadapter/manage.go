@@ -60,8 +60,8 @@ func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMet
 				UpdatedAt: time.Now(),
 			},
 			// Mutable fields
-			Name:        input.UpdateMeterInput.Name,
-			Description: input.UpdateMeterInput.Description,
+			Name:        input.Name,
+			Description: input.Description,
 		},
 		// Immutable fields
 		Key:           currentMeter.Key,
@@ -70,22 +70,22 @@ func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMet
 		ValueProperty: currentMeter.ValueProperty,
 		WindowSize:    currentMeter.WindowSize,
 		// Mutable fields
-		EventFrom: input.UpdateMeterInput.EventFrom,
-		GroupBy:   input.UpdateMeterInput.GroupBy,
+		EventFrom: currentMeter.EventFrom,
+		GroupBy:   input.GroupBy,
 	}
 
 	for i, m := range a.adapter.meters {
-		if m.Namespace != input.UpdateMeterInput.Namespace {
+		if m.Namespace != input.ID.Namespace {
 			continue
 		}
 
-		if m.ID == input.ID.ID || m.Key == input.UpdateMeterInput.Key {
+		if m.ID == input.ID.ID || m.Key == currentMeter.Key {
 			a.adapter.meters[i] = meter
 			return meter, nil
 		}
 	}
 
-	return meter, meterpkg.NewMeterNotFoundError(input.UpdateMeterInput.Key)
+	return meter, meterpkg.NewMeterNotFoundError(currentMeter.Key)
 }
 
 // DeleteMeter deletes a meter.

@@ -55,6 +55,7 @@ interface Meters {
   @summary("Update meter")
   update(
     @path meterId: ULID,
+
     @body
     meter: MeterUpdate,
   ): {
@@ -172,6 +173,7 @@ model Meter {
    * Human-readable name for the resource. Between 1 and 256 characters.
    * Defaults to the slug if not specified.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Display name")
   @minLength(1)
   @maxLength(256)
@@ -205,6 +207,7 @@ model Meter {
    * Useful to skip old events.
    * If not specified, all historical events are included.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   eventFrom?: DateTime;
 
   /**
@@ -226,6 +229,7 @@ model Meter {
    *
    * TODO: add key format enforcement
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @example(#{ type: "$.type" })
   groupBy?: Record<string>;
 }

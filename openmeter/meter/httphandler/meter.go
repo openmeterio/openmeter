@@ -224,20 +224,10 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 
 			// Update meter
 			input := meter.UpdateMeterInput{
-				ID: request.ID,
-				UpdateMeterInput: meter.CreateMeterInput{
-					// Immutable fields
-					Namespace:     currentMeter.Namespace,
-					Key:           currentMeter.Key,
-					Aggregation:   currentMeter.Aggregation,
-					EventType:     currentMeter.EventType,
-					ValueProperty: currentMeter.ValueProperty,
-					// Default the name to slug if not provided
-					Name:        lo.FromPtrOr(request.MeterUpdate.Name, currentMeter.Key),
-					EventFrom:   request.MeterUpdate.EventFrom,
-					Description: request.MeterUpdate.Description,
-					GroupBy:     lo.FromPtrOr(request.MeterUpdate.GroupBy, map[string]string{}),
-				},
+				ID:          request.ID,
+				Name:        lo.FromPtrOr(request.MeterUpdate.Name, currentMeter.Key),
+				Description: request.MeterUpdate.Description,
+				GroupBy:     lo.FromPtrOr(request.MeterUpdate.GroupBy, map[string]string{}),
 			}
 
 			meter, err := h.meterService.UpdateMeter(ctx, input)
