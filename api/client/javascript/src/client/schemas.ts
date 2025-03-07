@@ -762,6 +762,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/info/progress/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get progress
+     * @description Get progress
+     */
+    get: operations['getProgress']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/marketplace/listings': {
     parameters: {
       query?: never
@@ -6309,6 +6329,30 @@ export interface components {
        */
       unitPrice: components['schemas']['UnitPrice'] | null
     }
+    /** @description Progress describes a progress of a task. */
+    Progress: {
+      /**
+       * Format: uint64
+       * @description Success is the number of items that succeeded
+       */
+      success: number
+      /**
+       * Format: uint64
+       * @description Failed is the number of items that failed
+       */
+      failed: number
+      /**
+       * Format: uint64
+       * @description The total number of items to process
+       */
+      total: number
+      /**
+       * Format: date-time
+       * @description The time the progress was last updated
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      updatedAt: Date
+    }
     /** @description A rate card defines the pricing and entitlement of a feature or service. */
     RateCard:
       | components['schemas']['RateCardFlatFee']
@@ -7727,6 +7771,9 @@ export interface components {
     'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
     /** @description The type of the app to install. */
     'MarketplaceOAuth2InstallAuthorizeRequest.type': components['schemas']['AppType']
+    /** @description Client ID
+     *     Useful to track progress of a query. */
+    'MeterQuery.clientId': string
     /** @description Simple filter for group bys with exact match. */
     'MeterQuery.filterGroupBy': {
       [key: string]: string
@@ -8177,6 +8224,7 @@ export type PreconditionFailedProblemResponse =
   components['schemas']['PreconditionFailedProblemResponse']
 export type PricePaymentTerm = components['schemas']['PricePaymentTerm']
 export type PriceTier = components['schemas']['PriceTier']
+export type Progress = components['schemas']['Progress']
 export type RateCard = components['schemas']['RateCard']
 export type RateCardBooleanEntitlement =
   components['schemas']['RateCardBooleanEntitlement']
@@ -8327,6 +8375,8 @@ export type ParameterMarketplaceApiKeyInstallRequestType =
   components['parameters']['MarketplaceApiKeyInstallRequest.type']
 export type ParameterMarketplaceOAuth2InstallAuthorizeRequestType =
   components['parameters']['MarketplaceOAuth2InstallAuthorizeRequest.type']
+export type ParameterMeterQueryClientId =
+  components['parameters']['MeterQuery.clientId']
 export type ParameterMeterQueryFilterGroupBy =
   components['parameters']['MeterQuery.filterGroupBy']
 export type ParameterMeterQueryFrom =
@@ -11783,6 +11833,9 @@ export interface operations {
   listEvents: {
     parameters: {
       query?: {
+        /** @description Client ID
+         *     Useful to track progress of a query. */
+        clientId?: string
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */
@@ -12583,6 +12636,91 @@ export interface operations {
       }
     }
   }
+  getProgress: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Progress']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
   listMarketplaceListings: {
     parameters: {
       query?: {
@@ -13312,6 +13450,9 @@ export interface operations {
   queryMeter: {
     parameters: {
       query?: {
+        /** @description Client ID
+         *     Useful to track progress of a query. */
+        clientId?: components['parameters']['MeterQuery.clientId']
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */
@@ -15414,6 +15555,9 @@ export interface operations {
   queryPortalMeter: {
     parameters: {
       query?: {
+        /** @description Client ID
+         *     Useful to track progress of a query. */
+        clientId?: components['parameters']['MeterQuery.clientId']
         /** @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. */

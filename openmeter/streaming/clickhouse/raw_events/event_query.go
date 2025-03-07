@@ -52,7 +52,7 @@ type queryEventsTable struct {
 	Database        string
 	EventsTableName string
 	Namespace       string
-	From            *time.Time
+	From            time.Time
 	To              *time.Time
 	IngestedAtFrom  *time.Time
 	IngestedAtTo    *time.Time
@@ -62,41 +62,62 @@ type queryEventsTable struct {
 	Limit           int
 }
 
+// toCountRowSQL returns the SQL query for the estimated number of rows.
+// This estimate is useful for query progress tracking.
+// We only filter by columns that are in the ClickHouse table order.
+func (d queryEventsTable) toCountRowSQL() (string, []interface{}) {
+	tableName := getTableName(d.Database, d.EventsTableName)
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("count() as total")
+	query.From(tableName)
+
+	query.Where(query.Equal("namespace", d.Namespace))
+	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
+
+	if d.To != nil {
+		query.Where(query.LessEqualThan("time", d.To.Unix()))
+	}
+	if d.Subject != nil {
+		query.Where(query.Equal("subject", *d.Subject))
+	}
+
+	sql, args := query.Build()
+	return sql, args
+}
+
 func (d queryEventsTable) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
-	where := []string{}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
 	query.From(tableName)
 
-	where = append(where, query.Equal("namespace", d.Namespace))
-	if d.From != nil {
-		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
-	}
+	query.Where(query.Equal("namespace", d.Namespace))
+	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
+
 	if d.To != nil {
-		where = append(where, query.LessEqualThan("time", d.To.Unix()))
+		query.Where(query.LessEqualThan("time", d.To.Unix()))
 	}
 	if d.IngestedAtFrom != nil {
-		where = append(where, query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
+		query.Where(query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
 	}
 	if d.IngestedAtTo != nil {
-		where = append(where, query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
+		query.Where(query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
 	}
 	if d.ID != nil {
-		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
+		query.Where(query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
 	}
 	if d.Subject != nil {
-		where = append(where, query.Equal("subject", *d.Subject))
+		query.Where(query.Equal("subject", *d.Subject))
 	}
 	if d.HasError != nil {
 		if *d.HasError {
-			where = append(where, "notEmpty(validation_error) = 1")
+			query.Where("notEmpty(validation_error) = 1")
 		} else {
-			where = append(where, "empty(validation_error) = 1")
+			query.Where("empty(validation_error) = 1")
 		}
 	}
-	query.Where(where...)
 
 	query.Desc().OrderBy("time")
 	query.Limit(d.Limit)

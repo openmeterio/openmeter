@@ -45,6 +45,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 
 			result, err := h.metereventService.ListEvents(ctx, meterevent.ListEventsInput{
 				Namespace:      request.namespace,
+				ClientID:       request.ClientId,
 				IngestedAtFrom: request.IngestedAtFrom,
 				IngestedAtTo:   request.IngestedAtTo,
 				From:           lo.FromPtrOr(request.From, minimumFrom),

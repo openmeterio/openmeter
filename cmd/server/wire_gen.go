@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -106,7 +107,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger)
+	progressManagerConfiguration := conf.ProgressManager
+	progressmanagerService, err := common.NewProgressManager(logger, progressManagerConfiguration)
+	if err != nil {
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v, logger, progressmanagerService)
 	if err != nil {
 		cleanup5()
 		cleanup4()
@@ -437,6 +448,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Notification:            notificationService,
 		Plan:                    planService,
 		Portal:                  portalService,
+		ProgressManager:         progressmanagerService,
 		RouterHook:              v7,
 		Secret:                  secretserviceService,
 		Subscription:            subscriptionServiceWithWorkflow,
@@ -485,6 +497,7 @@ type Application struct {
 	Notification            notification.Service
 	Plan                    plan.Service
 	Portal                  portal.Service
+	ProgressManager         progressmanager.Service
 	RouterHook              func(chi.Router)
 	Secret                  secret.Service
 	Subscription            common.SubscriptionServiceWithWorkflow

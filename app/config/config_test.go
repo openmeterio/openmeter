@@ -353,6 +353,22 @@ func TestComplete(t *testing.T) {
 			GracefulShutdownTimeout: 43 * time.Second,
 			PropagationTimeout:      18 * time.Second,
 		},
+		ProgressManager: ProgressManagerConfiguration{
+			Enabled:    false,
+			Expiration: 5 * time.Minute,
+			Redis: redis.Config{
+				Address:  "127.0.0.1:6379",
+				Database: 0,
+				Username: "",
+				Password: "",
+				TLS: struct {
+					Enabled            bool
+					InsecureSkipVerify bool
+				}{
+					Enabled: false,
+				},
+			},
+		},
 	}
 
 	assert.Equal(t, expected, actual)

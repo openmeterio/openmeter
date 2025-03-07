@@ -37,6 +37,7 @@ func TestQueryEventsTable(t *testing.T) {
 	idFilter := "event-id-1"
 	hasErrorTrue := true
 	hasErrorFalse := false
+	from := time.Now()
 
 	tests := []struct {
 		query    queryEventsTable
@@ -48,32 +49,35 @@ func TestQueryEventsTable(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
+				From:            from,
 				Limit:           100,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", 100},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
 		},
 		{
 			query: queryEventsTable{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
+				From:            from,
 				Limit:           100,
 				Subject:         &subjectFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject = ? ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", subjectFilter, 100},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND subject = ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), subjectFilter, 100},
 		},
 		{
 			query: queryEventsTable{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
+				From:            from,
 				Limit:           100,
 				ID:              &idFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", "%event-id-1%", 100},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), "%event-id-1%", 100},
 		},
 		{
 			query: queryEventsTable{
@@ -81,21 +85,23 @@ func TestQueryEventsTable(t *testing.T) {
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
 				Limit:           100,
+				From:            from,
 				HasError:        &hasErrorTrue,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND notEmpty(validation_error) = 1 ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", 100},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND notEmpty(validation_error) = 1 ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
 		},
 		{
 			query: queryEventsTable{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Namespace:       "my_namespace",
+				From:            from,
 				Limit:           100,
 				HasError:        &hasErrorFalse,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND empty(validation_error) = 1 ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", 100},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND empty(validation_error) = 1 ORDER BY time DESC LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
 		},
 	}
 

@@ -171,7 +171,7 @@ func (DedupeDriverRedisConfiguration) DriverName() string {
 }
 
 func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, error) {
-	redisClient, err := redis.NewClient(redis.Options{Config: c.Config})
+	redisClient, err := c.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize redis client: %w", err)
 	}
@@ -186,14 +186,8 @@ func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, 
 func (c DedupeDriverRedisConfiguration) Validate() error {
 	var errs []error
 
-	if c.Address == "" {
-		errs = append(errs, errors.New("address is required"))
-	}
-
-	if c.Sentinel.Enabled {
-		if c.Sentinel.MasterName == "" {
-			errs = append(errs, errors.New("sentinel: master name is required"))
-		}
+	if err := c.Config.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "redis"))
 	}
 
 	return errors.Join(errs...)
@@ -208,13 +202,5 @@ func ConfigureDedupe(v *viper.Viper) {
 	v.SetDefault("dedupe.config.size", 128)
 
 	// Redis driver
-	v.SetDefault("dedupe.config.address", "127.0.0.1:6379")
-	v.SetDefault("dedupe.config.database", 0)
-	v.SetDefault("dedupe.config.username", "")
-	v.SetDefault("dedupe.config.password", "")
-	v.SetDefault("dedupe.config.expiration", "24h")
-	v.SetDefault("dedupe.config.sentinel.enabled", false)
-	v.SetDefault("dedupe.config.sentinel.masterName", "")
-	v.SetDefault("dedupe.config.tls.enabled", false)
-	v.SetDefault("dedupe.config.tls.insecureSkipVerify", false)
+	redis.Configure(v, "dedupe.config")
 }

@@ -27,7 +27,49 @@ type queryMeter struct {
 	WindowTimeZone  *time.Location
 }
 
-func (d queryMeter) toSQL() (string, []interface{}, error) {
+// toCountRowSQL returns the SQL query for the estimated number of rows.
+// This estimate is useful for query progress tracking.
+// We only filter by columns that are in the ClickHouse table order.
+func (d *queryMeter) toCountRowSQL() (string, []interface{}) {
+	tableName := getTableName(d.Database, d.EventsTableName)
+	getColumn := columnFactory(d.EventsTableName)
+	timeColumn := getColumn("time")
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("count() AS total")
+	query.From(tableName)
+
+	// The event table is ordered by namespace, type
+	query.Where(query.Equal("namespace", d.Namespace))
+	query.Where(query.Equal("type", d.Meter.EventType))
+
+	if len(d.Subject) > 0 {
+		mapFunc := func(subject string) string {
+			return query.Equal(getColumn("subject"), subject)
+		}
+
+		query.Where(query.Or(slicesx.Map(d.Subject, mapFunc)...))
+	}
+
+	// The event table is partitioned by time
+	if d.From != nil {
+		query.Where(query.GreaterEqualThan(timeColumn, d.From.Unix()))
+	}
+
+	if d.From != nil || d.Meter.EventFrom != nil {
+		from, _ := lo.Coalesce(d.From, d.Meter.EventFrom)
+		query.Where(query.GreaterEqualThan(timeColumn, from.Unix()))
+	}
+
+	if d.To != nil {
+		query.Where(query.LessEqualThan(timeColumn, d.To.Unix()))
+	}
+
+	sql, args := query.Build()
+	return sql, args
+}
+
+func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
@@ -177,11 +219,11 @@ func (d queryMeter) toSQL() (string, []interface{}, error) {
 			return "", nil, fmt.Errorf("missing from time")
 		}
 
-		where = append(where, query.GreaterEqualThan(getColumn("time"), from.Unix()))
+		where = append(where, query.GreaterEqualThan(timeColumn, from.Unix()))
 	}
 
 	if d.To != nil {
-		where = append(where, query.LessEqualThan(getColumn("time"), d.To.Unix()))
+		where = append(where, query.LessEqualThan(timeColumn, d.To.Unix()))
 	}
 
 	if len(where) > 0 {

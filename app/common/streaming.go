@@ -9,6 +9,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/materialized_view"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/raw_events"
@@ -23,6 +24,7 @@ func NewStreamingConnector(
 	conf config.AggregationConfiguration,
 	clickHouse clickhouse.Conn,
 	logger *slog.Logger,
+	progressmanager progressmanager.Service,
 ) (streaming.Connector, error) {
 	var (
 		connector streaming.Connector
@@ -39,6 +41,7 @@ func NewStreamingConnector(
 			AsyncInsert:         conf.AsyncInsert,
 			AsyncInsertWait:     conf.AsyncInsertWait,
 			InsertQuerySettings: conf.InsertQuerySettings,
+			ProgressManager:     progressmanager,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init clickhouse raw engine: %w", err)
@@ -56,6 +59,7 @@ func NewStreamingConnector(
 			PopulateMeter:        conf.PopulateMeter,
 			CreateOrReplaceMeter: conf.CreateOrReplaceMeter,
 			QueryRawEvents:       conf.QueryRawEvents,
+			ProgressManager:      progressmanager,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init clickhouse mv engine: %w", err)

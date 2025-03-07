@@ -2662,6 +2662,17 @@ paths:
 
         If the from query param is not provided it defaults to last 72 hours.
       parameters:
+        - name: clientId
+          in: query
+          required: false
+          description: |-
+            Client ID
+            Useful to track progress of a query.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 36
+          explode: false
         - name: ingestedAtFrom
           in: query
           required: false
@@ -3320,6 +3331,68 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Lookup Information
+  /api/v1/info/progress/{id}:
+    get:
+      operationId: getProgress
+      summary: Get progress
+      description: Get progress
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Progress'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Lookup Information
   /api/v1/marketplace/listings:
     get:
       operationId: listMarketplaceListings
@@ -3854,6 +3927,7 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+        - $ref: '#/components/parameters/MeterQuery.clientId'
         - $ref: '#/components/parameters/MeterQuery.from'
         - $ref: '#/components/parameters/MeterQuery.to'
         - $ref: '#/components/parameters/MeterQuery.windowSize'
@@ -5563,6 +5637,7 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+        - $ref: '#/components/parameters/MeterQuery.clientId'
         - $ref: '#/components/parameters/MeterQuery.from'
         - $ref: '#/components/parameters/MeterQuery.to'
         - $ref: '#/components/parameters/MeterQuery.windowSize'
@@ -7618,6 +7693,18 @@ components:
       description: The type of the app to install.
       schema:
         $ref: '#/components/schemas/AppType'
+    MeterQuery.clientId:
+      name: clientId
+      in: query
+      required: false
+      description: |-
+        Client ID
+        Useful to track progress of a query.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 36
+      explode: false
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -14423,6 +14510,32 @@ components:
       description: |-
         A price tier.
         At least one price component is required in each tier.
+    Progress:
+      type: object
+      required:
+        - success
+        - failed
+        - total
+        - updatedAt
+      properties:
+        success:
+          type: integer
+          format: uint64
+          description: Success is the number of items that succeeded
+        failed:
+          type: integer
+          format: uint64
+          description: Failed is the number of items that failed
+        total:
+          type: integer
+          format: uint64
+          description: The total number of items to process
+        updatedAt:
+          type: string
+          format: date-time
+          description: The time the progress was last updated
+          example: '2023-01-01T01:01:01.001Z'
+      description: Progress describes a progress of a task.
     RateCard:
       oneOf:
         - $ref: '#/components/schemas/RateCardFlatFee'

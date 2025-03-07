@@ -18,7 +18,8 @@ func (a *adapter) ListEvents(ctx context.Context, input meterevent.ListEventsInp
 	}
 
 	events, err := a.streamingConnector.ListEvents(ctx, input.Namespace, streaming.ListEventsParams{
-		From:           &input.From,
+		ClientID:       input.ClientID,
+		From:           input.From,
 		To:             input.To,
 		IngestedAtFrom: input.IngestedAtFrom,
 		IngestedAtTo:   input.IngestedAtTo,

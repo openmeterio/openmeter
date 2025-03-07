@@ -176,6 +176,7 @@ func main() {
 			Portal:                      app.Portal,
 			PortalCORSEnabled:           conf.Portal.CORS.Enabled,
 			ProductCatalogEnabled:       conf.ProductCatalog.Enabled,
+			ProgressManager:             app.ProgressManager,
 			SubscriptionService:         app.Subscription.Service,
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,
 			StreamingConnector:          app.StreamingConnector,
