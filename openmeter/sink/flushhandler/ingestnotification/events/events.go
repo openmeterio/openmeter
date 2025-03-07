@@ -56,7 +56,8 @@ func (b EventBatchedIngest) Validate() error {
 
 func (b EventBatchedIngest) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
-		Source:  metadata.ComposeResourcePathRaw(string(EventSubsystem)),
-		Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey),
+		Source: metadata.ComposeResourcePathRaw(string(EventSubsystem)),
+		// TODO[later]: let's check why we don't have uniform distribution of partitions
+		// Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey),
 	}
 }
