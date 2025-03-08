@@ -19,7 +19,6 @@ import (
 
 func TestIsQueryCachable(t *testing.T) {
 	now := time.Now().UTC()
-	clientID := "client1"
 
 	tests := []struct {
 		name         string
@@ -28,7 +27,7 @@ func TestIsQueryCachable(t *testing.T) {
 		wantCachable bool
 	}{
 		{
-			name: "no client ID",
+			name: "cachable is false",
 			meter: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
@@ -44,7 +43,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationSum,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				To:       lo.ToPtr(now),
 			},
 			wantCachable: false,
@@ -55,7 +54,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationSum,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				From:     lo.ToPtr(now.Add(-2 * 24 * time.Hour)), // Only 2 days, less than minCachableDuration
 				To:       lo.ToPtr(now),
 			},
@@ -67,7 +66,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationUniqueCount,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
@@ -79,7 +78,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationSum,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
@@ -91,7 +90,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationCount,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
@@ -103,7 +102,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationMin,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
@@ -115,7 +114,7 @@ func TestIsQueryCachable(t *testing.T) {
 				Aggregation: meter.MeterAggregationMax,
 			},
 			params: streaming.QueryParams{
-				ClientID: &clientID,
+				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},

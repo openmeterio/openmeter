@@ -110,6 +110,11 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
 
+			// We allow caching when client ID is provided
+			if params.ClientID != nil {
+				params.Cachable = true
+			}
+
 			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
