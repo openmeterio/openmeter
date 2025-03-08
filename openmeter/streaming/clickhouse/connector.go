@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/samber/lo"
 	"golang.org/x/exp/constraints"
 
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -429,6 +431,63 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	return results, nil
 }
 
+func (c *Connector) queryMeterHistorical(ctx context.Context, queryMeter queryMeter) (queryMeter, []meterpkg.MeterQueryRow, error) {
+	var values []meterpkg.MeterQueryRow
+
+	// Copy the query meter to avoid mutating the original
+	hp := queryMeter
+
+	if hp.From == nil {
+		return queryMeter, values, fmt.Errorf("from is required")
+	}
+
+	// Set the end of the query to now if not set
+	hp.To = lo.ToPtr(lo.FromPtrOr(hp.To, time.Now().UTC()))
+
+	// Only query complete days
+	hp.To = lo.ToPtr(hp.To.Truncate(time.Hour * 24))
+
+	// Set the window size to day if not set
+	if hp.WindowSize == nil {
+		duration := hp.To.Sub(*hp.From)
+
+		if duration > time.Hour*24 {
+			hp.WindowSize = lo.ToPtr(meter.WindowSizeDay)
+		}
+	}
+
+	// Build the SQL query
+	sql, args, err := hp.toSQL()
+	if err != nil {
+		return queryMeter, values, fmt.Errorf("query meter view: %w", err)
+	}
+
+	// Query the meter view
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return queryMeter, nil, meterpkg.NewMeterNotFoundError(queryMeter.Meter.Key)
+		}
+
+		return queryMeter, values, fmt.Errorf("query meter view query: %w", err)
+	}
+
+	defer rows.Close()
+
+	// Scan the rows
+	values, err = queryMeter.scanRows(rows)
+	if err != nil {
+		return queryMeter, nil, fmt.Errorf("scan meter query historical row: %w", err)
+	}
+
+	fmt.Println("historical", hp.From, hp.To, hp.WindowSize, len(values))
+
+	newQueryMeter := queryMeter
+	newQueryMeter.From = hp.To
+
+	return newQueryMeter, values, nil
+}
+
 func (c *Connector) queryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
@@ -447,6 +506,17 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 		GroupBy:         groupBy,
 		WindowSize:      params.WindowSize,
 		WindowTimeZone:  params.WindowTimeZone,
+	}
+
+	var historicalRows []meterpkg.MeterQueryRow
+
+	if queryMeter.From != nil && (meter.Aggregation == meterpkg.MeterAggregationSum || meter.Aggregation == meterpkg.MeterAggregationCount) {
+		var err error
+
+		queryMeter, historicalRows, err = c.queryMeterHistorical(ctx, queryMeter)
+		if err != nil {
+			return historicalRows, fmt.Errorf("query meter historical: %w", err)
+		}
 	}
 
 	values := []meterpkg.MeterQueryRow{}
@@ -483,61 +553,17 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 	elapsed := time.Since(start)
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
-	for rows.Next() {
-		row := meterpkg.MeterQueryRow{
-			GroupBy: map[string]*string{},
-		}
-
-		var value *float64
-		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
-		argCount := len(args)
-
-		for range queryMeter.GroupBy {
-			tmp := ""
-			args = append(args, &tmp)
-		}
-
-		if err := rows.Scan(args...); err != nil {
-			return values, fmt.Errorf("query meter view row scan: %w", err)
-		}
-
-		// If there is no value for the period, we skip the row
-		// This can happen when the event doesn't have the value field.
-		if value == nil {
-			continue
-		}
-
-		// TODO: should we use decima all the way?
-		row.Value = *value
-
-		for i, key := range queryMeter.GroupBy {
-			if s, ok := args[i+argCount].(*string); ok {
-				// Subject is a top level field
-				if key == "subject" {
-					row.Subject = s
-					continue
-				}
-
-				// We treat empty string as nil
-				if s != nil && *s == "" {
-					row.GroupBy[key] = nil
-				} else {
-					row.GroupBy[key] = s
-				}
-			}
-		}
-
-		// an empty row is returned when there are no values for the meter
-		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
-			continue
-		}
-
-		values = append(values, row)
+	values, err = queryMeter.scanRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("scan meter query row: %w", err)
 	}
 
-	err = rows.Err()
-	if err != nil {
-		return values, fmt.Errorf("rows error: %w", err)
+	if params.WindowSize == nil {
+		for _, row := range historicalRows {
+			values[0].Value += row.Value
+		}
+	} else {
+		values = append(values, historicalRows...)
 	}
 
 	return values, nil

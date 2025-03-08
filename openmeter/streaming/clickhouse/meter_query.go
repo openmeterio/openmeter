@@ -6,9 +6,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -258,6 +260,69 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	sql, args := query.Build()
 	return sql, args, nil
+}
+
+func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
+	values := []meterpkg.MeterQueryRow{}
+
+	for rows.Next() {
+		row := meterpkg.MeterQueryRow{
+			GroupBy: map[string]*string{},
+		}
+
+		var value *float64
+		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
+		argCount := len(args)
+
+		for range queryMeter.GroupBy {
+			tmp := ""
+			args = append(args, &tmp)
+		}
+
+		if err := rows.Scan(args...); err != nil {
+			return values, fmt.Errorf("query meter view row scan: %w", err)
+		}
+
+		// If there is no value for the period, we skip the row
+		// This can happen when the event doesn't have the value field.
+		if value == nil {
+			continue
+		}
+
+		// TODO: should we use decima all the way?
+		row.Value = *value
+
+		for i, key := range queryMeter.GroupBy {
+			if s, ok := args[i+argCount].(*string); ok {
+				// Subject is a top level field
+				if key == "subject" {
+					row.Subject = s
+					continue
+				}
+
+				// We treat empty string as nil
+				if s != nil && *s == "" {
+					row.GroupBy[key] = nil
+				} else {
+					row.GroupBy[key] = s
+				}
+			}
+		}
+
+		// an empty row is returned when there are no values for the meter
+		if row.WindowStart.IsZero() && row.WindowEnd.IsZero() && row.Value == 0 {
+			continue
+		}
+
+		values = append(values, row)
+	}
+
+	err := rows.Err()
+	if err != nil {
+		return values, fmt.Errorf("rows error: %w", err)
+	}
+
+	return values, nil
 }
 
 type listMeterSubjectsQuery struct {
