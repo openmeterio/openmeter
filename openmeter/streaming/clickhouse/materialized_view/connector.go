@@ -135,6 +135,12 @@ func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter met
 	return nil
 }
 
+func (c *Connector) UpdateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
+	return models.NewGenericNotImplementedError(
+		fmt.Errorf("update meter is not implemented with materialized view engine"),
+	)
+}
+
 func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")

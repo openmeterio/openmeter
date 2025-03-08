@@ -221,59 +221,44 @@ func (m1 Meter) Equal(m2 Meter) error {
 	return nil
 }
 
-type MeterOptions struct {
-	ID          string
-	Description *string
-	GroupBy     map[string]string
-}
-
 func (m *Meter) Validate() error {
-	if m.Namespace == "" {
-		return errors.New("namespace is required")
+	var errs []error
+
+	if err := m.ManagedResource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid managed resource: %w", err))
 	}
 
-	if m.ID == "" {
-		return errors.New("id is required")
+	if m.Key == "" {
+		errs = append(errs, errors.New("meter key is required"))
 	}
 
-	return ValidateMeter(
-		m.Key,
-		m.Name,
-		m.Description,
-		m.Aggregation,
-		m.EventType,
-		m.EventFrom,
-		m.ValueProperty,
-		m.GroupBy,
-	)
+	if m.EventType == "" {
+		errs = append(errs, errors.New("meter event type is required"))
+	}
+
+	if m.EventFrom != nil && m.EventFrom.IsZero() {
+		errs = append(errs, errors.New("meter event from must not be zero"))
+	}
+
+	if m.Aggregation == "" {
+		errs = append(errs, errors.New("meter aggregation is required"))
+	}
+
+	// Validate aggregation
+	if err := validateMeterAggregation(m.ValueProperty, m.Aggregation); err != nil {
+		errs = append(errs, err)
+	}
+
+	// Validate group by values
+	if err := validateMeterGroupBy(m.ValueProperty, m.GroupBy); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }
 
-func ValidateMeter(
-	key string,
-	name string,
-	description *string,
-	aggregation MeterAggregation,
-	eventType string,
-	eventFrom *time.Time,
-	valueProperty *string,
-	groupBy map[string]string,
-) error {
-	if key == "" {
-		return errors.New("meter slug is required")
-	}
-	if len(key) > 63 {
-		return errors.New("meter slug must be less than 64 characters")
-	}
-	if eventType == "" {
-		return errors.New("meter event type is required")
-	}
-	if eventFrom != nil && eventFrom.IsZero() {
-		return errors.New("meter event from cannot be zero if provided")
-	}
-	if aggregation == "" {
-		return errors.New("meter aggregation is required")
-	}
-
+// validateMeterAggregation validates the aggregation value
+func validateMeterAggregation(valueProperty *string, aggregation MeterAggregation) error {
 	// ValueProperty is required for all aggregations except count
 	if aggregation == MeterAggregationCount {
 		if valueProperty != nil {
@@ -293,6 +278,11 @@ func ValidateMeter(
 		}
 	}
 
+	return nil
+}
+
+// validateMeterGroupBy validates the group by values
+func validateMeterGroupBy(valueProperty *string, groupBy map[string]string) error {
 	for key, value := range groupBy {
 		if !strings.HasPrefix(value, "$") {
 			return fmt.Errorf("meter group by value must start with $ for key %s", key)

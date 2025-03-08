@@ -84,10 +84,6 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "entitlements"))
 	}
 
-	if len(c.Meters) == 0 {
-		errs = append(errs, errors.New("no meters configured: add meter to configuration file"))
-	}
-
 	for idx, m := range c.Meters {
 		// Set managed resource
 		c.Meters[idx].ManagedResource = models.ManagedResource{

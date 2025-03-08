@@ -102,6 +102,11 @@ func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter met
 	return nil
 }
 
+func (c *Connector) UpdateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
+	// Do nothing
+	return nil
+}
+
 func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	// Do nothing
 	return nil
