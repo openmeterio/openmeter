@@ -16,14 +16,14 @@ import (
 func TestCreateMeterQueryRowsCacheTableToSQL(t *testing.T) {
 	query := createMeterQueryRowsCacheTable{
 		Database:  "openmeter",
-		TableName: "meter_query_cache",
+		TableName: "meterqueryrow_cache",
 	}
 
 	sql := query.toSQL()
 
 	// Make sure the SQL contains important parts
 	assert.Contains(t, sql, "CREATE TABLE IF NOT EXISTS")
-	assert.Contains(t, sql, "openmeter.meter_query_cache")
+	assert.Contains(t, sql, "openmeter.meterqueryrow_cache")
 	assert.Contains(t, sql, "hash String")
 	assert.Contains(t, sql, "namespace String")
 	assert.Contains(t, sql, "window_start DateTime")
@@ -55,7 +55,7 @@ func TestInsertMeterQueryRowsToCache_ToSQL(t *testing.T) {
 
 	query := insertMeterQueryRowsToCache{
 		Database:  "openmeter",
-		TableName: "meter_query_cache",
+		TableName: "meterqueryrow_cache",
 		Hash:      "test-hash",
 		Namespace: "test-namespace",
 		QueryRows: []meterpkg.MeterQueryRow{meterQueryRow},
@@ -64,7 +64,7 @@ func TestInsertMeterQueryRowsToCache_ToSQL(t *testing.T) {
 	sql, args := query.toSQL()
 
 	// Check SQL
-	assert.Contains(t, sql, "INSERT INTO openmeter.meter_query_cache")
+	assert.Contains(t, sql, "INSERT INTO openmeter.meterqueryrow_cache")
 	assert.Contains(t, sql, "hash, namespace, window_start, window_end, value, subject, group_by")
 
 	// Check args
@@ -98,45 +98,45 @@ func TestGetMeterQueryRowsFromCache_ToSQL(t *testing.T) {
 			name: "with from and to",
 			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
-				TableName: "meter_query_cache",
+				TableName: "meterqueryrow_cache",
 				Hash:      "test-hash",
 				Namespace: "test-namespace",
 				From:      &from,
 				To:        &to,
 			},
-			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meter_query_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start",
+			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start",
 		},
 		{
 			name: "without from",
 			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
-				TableName: "meter_query_cache",
+				TableName: "meterqueryrow_cache",
 				Hash:      "test-hash",
 				Namespace: "test-namespace",
 				To:        &to,
 			},
-			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meter_query_cache WHERE hash = ? AND namespace = ? AND window_end <= ? ORDER BY window_start",
+			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_end <= ? ORDER BY window_start",
 		},
 		{
 			name: "without to",
 			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
-				TableName: "meter_query_cache",
+				TableName: "meterqueryrow_cache",
 				Hash:      "test-hash",
 				Namespace: "test-namespace",
 				From:      &from,
 			},
-			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meter_query_cache WHERE hash = ? AND namespace = ? AND window_start >= ? ORDER BY window_start",
+			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? ORDER BY window_start",
 		},
 		{
 			name: "without from and to",
 			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
-				TableName: "meter_query_cache",
+				TableName: "meterqueryrow_cache",
 				Hash:      "test-hash",
 				Namespace: "test-namespace",
 			},
-			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meter_query_cache WHERE hash = ? AND namespace = ? ORDER BY window_start",
+			wantSQL: "SELECT window_start, window_end, value, subject, group_by FROM openmeter.meterqueryrow_cache WHERE hash = ? AND namespace = ? ORDER BY window_start",
 		},
 	}
 
@@ -146,7 +146,7 @@ func TestGetMeterQueryRowsFromCache_ToSQL(t *testing.T) {
 
 			// Check SQL has the right parts
 			assert.Contains(t, sql, "SELECT window_start, window_end, value, subject, group_by")
-			assert.Contains(t, sql, "FROM openmeter.meter_query_cache")
+			assert.Contains(t, sql, "FROM openmeter.meterqueryrow_cache")
 			assert.Contains(t, sql, "WHERE hash = ? AND namespace = ?")
 			assert.Contains(t, sql, "ORDER BY window_start")
 

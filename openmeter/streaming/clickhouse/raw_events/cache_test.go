@@ -292,7 +292,7 @@ func TestConnector_LookupCachedMeterRows(t *testing.T) {
 	}
 
 	// Test successful lookup
-	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meter_query_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
+	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
 	expectedArgs := []interface{}{"test-hash", "test-namespace", from.Unix(), to.Unix()}
 
 	// Mock query execution
