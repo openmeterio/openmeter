@@ -356,6 +356,135 @@ func (d listMeterSubjectsQuery) toSQL() (string, []interface{}) {
 	return sql, args
 }
 
+type createMeterQueryHashTable struct {
+	Database  string
+	TableName string
+}
+
+func (d createMeterQueryHashTable) toSQL() string {
+	tableName := getTableName(d.Database, d.TableName)
+
+	return fmt.Sprintf(`
+		CREATE TABLE IF NOT EXISTS %s (
+			hash String,
+			namespace String,
+			window_start DateTime,
+			window_end DateTime,
+			value Float64,
+			subject String,
+			group_by Map(String, String),
+			created_at DateTime DEFAULT now()
+		)
+		ENGINE = MergeTree()
+		ORDER BY (namespace, hash, window_start, window_end)
+		PARTITION BY toYYYYMM(window_start)
+		TTL created_at + INTERVAL 30 DAY;`, tableName)
+}
+
+type insertMeterQueryHashRows struct {
+	Database  string
+	TableName string
+	Hash      string
+	Namespace string
+	QueryRows []meterpkg.MeterQueryRow
+}
+
+func (d insertMeterQueryHashRows) toSQL() (string, []interface{}) {
+	tableName := getTableName(d.Database, d.TableName)
+	sb := sqlbuilder.ClickHouse.NewInsertBuilder()
+	sb.InsertInto(tableName)
+	sb.Cols("hash", "namespace", "window_start", "window_end", "value", "subject", "group_by")
+
+	for _, row := range d.QueryRows {
+		groupBy := make(map[string]string)
+		for k, v := range row.GroupBy {
+			groupBy[k] = lo.FromPtrOr(v, "")
+		}
+
+		sb.Values(
+			d.Hash,
+			d.Namespace,
+			row.WindowStart,
+			row.WindowEnd,
+			row.Value,
+			lo.FromPtrOr(row.Subject, ""),
+			groupBy,
+		)
+	}
+
+	sql, args := sb.Build()
+	return sql, args
+}
+
+type getMeterQueryHashRows struct {
+	Database  string
+	TableName string
+	Hash      string
+	Namespace string
+	From      *time.Time
+	To        *time.Time
+}
+
+func (d getMeterQueryHashRows) toSQL() (string, []interface{}) {
+	tableName := getTableName(d.Database, d.TableName)
+	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
+	sb.Select("window_start", "window_end", "value", "subject", "group_by")
+	sb.From(tableName)
+	sb.Where(sb.Equal("hash", d.Hash))
+	sb.Where(sb.Equal("namespace", d.Namespace))
+
+	if d.From != nil {
+		sb.Where(sb.GreaterEqualThan("window_start", d.From.Unix()))
+	}
+
+	if d.To != nil {
+		sb.Where(sb.LessEqualThan("window_end", d.To.Unix()))
+	}
+
+	sb.OrderBy("window_start")
+
+	sql, args := sb.Build()
+	return sql, args
+}
+
+func (d getMeterQueryHashRows) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
+	values := []meterpkg.MeterQueryRow{}
+
+	for rows.Next() {
+		row := meterpkg.MeterQueryRow{
+			GroupBy: map[string]*string{},
+		}
+
+		var rowSubject string
+		var rowGroupBy map[string]string
+
+		if err := rows.Scan(&row.WindowStart, &row.WindowEnd, &row.Value, &rowSubject, &rowGroupBy); err != nil {
+			return values, fmt.Errorf("scan meter query hash row: %w", err)
+		}
+
+		if rowSubject != "" {
+			row.Subject = &rowSubject
+		}
+
+		for k, v := range rowGroupBy {
+			if v != "" {
+				row.GroupBy[k] = &v
+			} else {
+				row.GroupBy[k] = nil
+			}
+		}
+
+		values = append(values, row)
+	}
+
+	err := rows.Err()
+	if err != nil {
+		return values, fmt.Errorf("rows error: %w", err)
+	}
+
+	return values, nil
+}
+
 func columnFactory(alias string) func(string) string {
 	return func(column string) string {
 		return fmt.Sprintf("%s.%s", alias, column)
