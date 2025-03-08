@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// TestIsQueryCachable tests the isQueryCachable function
 func TestIsQueryCachable(t *testing.T) {
 	now := time.Now().UTC()
 
@@ -266,6 +267,123 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	mockRows2.AssertExpectations(t)
 }
 
+func TestConnector_LookupCachedMeterRows(t *testing.T) {
+	mockCH := clickhouse.NewMockClickHouse()
+
+	config := ConnectorConfig{
+		Logger:          slog.Default(),
+		ClickHouse:      mockCH,
+		Database:        "testdb",
+		EventsTableName: "events",
+		ProgressManager: progressmanager.NewMockProgressManager(),
+	}
+
+	connector := &Connector{config: config}
+
+	now := time.Now().UTC()
+	from := now.Add(-24 * time.Hour)
+	to := now
+
+	queryMeter := queryMeter{
+		Database:  "testdb",
+		Namespace: "test-namespace",
+		From:      &from,
+		To:        &to,
+	}
+
+	// Test successful lookup
+	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meter_query_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
+	expectedArgs := []interface{}{"test-hash", "test-namespace", from.Unix(), to.Unix()}
+
+	// Mock query execution
+	mockRows := clickhouse.NewMockRows()
+	mockCH.On("Query", mock.Anything, expectedQuery, expectedArgs).Return(mockRows, nil)
+
+	// Setup rows to return one value
+	windowStart := from
+	windowEnd := from.Add(time.Hour)
+	value := 42.0
+	subject := "test-subject"
+	groupBy := map[string]string{"group1": "value1"}
+
+	mockRows.On("Next").Return(true).Once()
+	mockRows.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
+		dest := args.Get(0).([]interface{})
+		*(dest[0].(*time.Time)) = windowStart
+		*(dest[1].(*time.Time)) = windowEnd
+		*(dest[2].(*float64)) = value
+		*(dest[3].(*string)) = subject
+		*(dest[4].(*map[string]string)) = groupBy
+	}).Return(nil)
+	mockRows.On("Next").Return(false)
+	mockRows.On("Err").Return(nil)
+	mockRows.On("Close").Return(nil)
+
+	// Execute the lookup
+	rows, err := connector.lookupCachedMeterRows(context.Background(), "test-hash", queryMeter)
+
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	// Verify row values
+	assert.Equal(t, windowStart, rows[0].WindowStart)
+	assert.Equal(t, windowEnd, rows[0].WindowEnd)
+	assert.Equal(t, value, rows[0].Value)
+	require.NotNil(t, rows[0].Subject)
+	assert.Equal(t, subject, *rows[0].Subject)
+	require.Contains(t, rows[0].GroupBy, "group1")
+	require.NotNil(t, rows[0].GroupBy["group1"])
+	assert.Equal(t, "value1", *rows[0].GroupBy["group1"])
+
+	mockCH.AssertExpectations(t)
+	mockRows.AssertExpectations(t)
+}
+
+// TestInsertRowsToCache tests the insertRowsToCache function
+func TestConnector_InsertRowsToCache(t *testing.T) {
+	mockCH := clickhouse.NewMockClickHouse()
+
+	config := ConnectorConfig{
+		Logger:          slog.Default(),
+		ClickHouse:      mockCH,
+		Database:        "testdb",
+		EventsTableName: "events",
+		ProgressManager: progressmanager.NewMockProgressManager(),
+	}
+
+	connector := &Connector{config: config}
+
+	now := time.Now().UTC()
+	subject := "test-subject"
+	groupValue := "group-value"
+
+	queryMeter := queryMeter{
+		Database:  "testdb",
+		Namespace: "test-namespace",
+	}
+
+	queryRows := []meterpkg.MeterQueryRow{
+		{
+			WindowStart: now,
+			WindowEnd:   now.Add(time.Hour),
+			Value:       42.0,
+			Subject:     &subject,
+			GroupBy: map[string]*string{
+				"group1": &groupValue,
+			},
+		},
+	}
+
+	// We don't need to check the exact SQL, just that the Exec is called with something
+	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil)
+
+	err := connector.insertRowsToCache(context.Background(), "test-hash", queryMeter, queryRows)
+
+	require.NoError(t, err)
+	mockCH.AssertExpectations(t)
+}
+
+// TestRemainingQueryMeterFactory tests the remainingQueryMeterFactory function
 func TestRemainingQueryMeterFactory(t *testing.T) {
 	mockCH := clickhouse.NewMockClickHouse()
 
@@ -305,6 +423,7 @@ func TestRemainingQueryMeterFactory(t *testing.T) {
 	assert.Equal(t, to, *resultQuery.To)
 }
 
+// TestGetQueryMeterForCachedPeriod tests the getQueryMeterForCachedPeriod function
 func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 	mockCH := clickhouse.NewMockClickHouse()
 
@@ -414,319 +533,6 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			assert.Equal(t, result.To.Hour(), 0)
 			assert.Equal(t, result.To.Minute(), 0)
 			assert.Equal(t, result.To.Second(), 0)
-		})
-	}
-}
-
-func TestMergeCachedRows(t *testing.T) {
-	subject1 := "subject1"
-	subject2 := "subject2"
-	group1Value := "group1_value"
-	group2Value := "group2_value"
-
-	windowStart1, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
-	windowEnd1, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
-	windowStart2, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
-	windowEnd2, _ := time.Parse(time.RFC3339, "2023-01-01T02:00:00Z")
-
-	windowSize := meter.WindowSizeHour
-
-	tests := []struct {
-		name       string
-		meter      meter.Meter
-		params     streaming.QueryParams
-		cachedRows []meterpkg.MeterQueryRow
-		freshRows  []meterpkg.MeterQueryRow
-		wantCount  int
-	}{
-		{
-			name: "empty cached rows",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			params:     streaming.QueryParams{},
-			cachedRows: []meterpkg.MeterQueryRow{},
-			freshRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
-					Value:       10,
-					Subject:     &subject1,
-				},
-			},
-			wantCount: 1,
-		},
-		{
-			name: "with window size, rows are concatenated",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			params: streaming.QueryParams{
-				WindowSize: &windowSize,
-			},
-			cachedRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
-					Value:       10,
-					Subject:     &subject1,
-				},
-			},
-			freshRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
-					Value:       20,
-					Subject:     &subject1,
-				},
-			},
-			wantCount: 2,
-		},
-		{
-			name: "without window size, sum aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			params: streaming.QueryParams{
-				GroupBy: []string{"subject"},
-			},
-			cachedRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
-					Value:       10,
-					Subject:     &subject1,
-				},
-			},
-			freshRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
-					Value:       20,
-					Subject:     &subject1,
-				},
-			},
-			wantCount: 1, // Aggregated to a single row
-		},
-		{
-			name: "without window size, different subjects",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			params: streaming.QueryParams{
-				GroupBy: []string{"subject"},
-			},
-			cachedRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
-					Value:       10,
-					Subject:     &subject1,
-				},
-			},
-			freshRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
-					Value:       20,
-					Subject:     &subject2,
-				},
-			},
-			wantCount: 2, // One row per subject
-		},
-		{
-			name: "without window size, with group by values",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			params: streaming.QueryParams{
-				GroupBy: []string{"subject", "group1", "group2"},
-			},
-			cachedRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart1,
-					WindowEnd:   windowEnd1,
-					Value:       10,
-					Subject:     &subject1,
-					GroupBy: map[string]*string{
-						"group1": &group1Value,
-						"group2": &group2Value,
-					},
-				},
-			},
-			freshRows: []meterpkg.MeterQueryRow{
-				{
-					WindowStart: windowStart2,
-					WindowEnd:   windowEnd2,
-					Value:       20,
-					Subject:     &subject1,
-					GroupBy: map[string]*string{
-						"group1": &group1Value,
-						"group2": &group2Value,
-					},
-				},
-			},
-			wantCount: 1, // Aggregated by groups
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := mergeCachedRows(tt.meter, tt.params, tt.cachedRows, tt.freshRows)
-			assert.Equal(t, tt.wantCount, len(result))
-
-			if tt.meter.Aggregation == meter.MeterAggregationSum && len(tt.params.GroupBy) > 0 && tt.params.WindowSize == nil {
-				// If we're aggregating, check that values are summed
-				if len(result) == 1 && len(tt.cachedRows) > 0 && len(tt.freshRows) > 0 {
-					expectedSum := tt.cachedRows[0].Value + tt.freshRows[0].Value
-					assert.Equal(t, expectedSum, result[0].Value)
-				}
-			}
-		})
-	}
-}
-
-func TestGetRowGroupKey(t *testing.T) {
-	subject := "test-subject"
-	group1Value := "group1-value"
-	group2Value := "group2-value"
-
-	row := meterpkg.MeterQueryRow{
-		Subject: &subject,
-		GroupBy: map[string]*string{
-			"group1": &group1Value,
-			"group2": &group2Value,
-		},
-	}
-
-	tests := []struct {
-		name   string
-		params streaming.QueryParams
-		want   string
-	}{
-		{
-			name: "subject only",
-			params: streaming.QueryParams{
-				GroupBy: []string{"subject"},
-			},
-			want: "subject=test-subject;group=subject=nil;",
-		},
-		{
-			name: "with group by fields",
-			params: streaming.QueryParams{
-				GroupBy: []string{"subject", "group1", "group2"},
-			},
-			want: "subject=test-subject;group=group1=group1-value;group=group2=group2-value;group=subject=nil;",
-		},
-		{
-			name: "with missing group by field",
-			params: streaming.QueryParams{
-				GroupBy: []string{"subject", "group1", "group3"},
-			},
-			want: "subject=test-subject;group=group1=group1-value;group=group3=nil;group=subject=nil;",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := getRowGroupKey(row, tt.params)
-			assert.Equal(t, tt.want, result)
-		})
-	}
-}
-
-func TestAggregateRows(t *testing.T) {
-	subject := "test-subject"
-	group1Value := "group1-value"
-
-	windowStart1, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
-	windowEnd1, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
-	windowStart2, _ := time.Parse(time.RFC3339, "2023-01-01T01:00:00Z")
-	windowEnd2, _ := time.Parse(time.RFC3339, "2023-01-01T02:00:00Z")
-
-	// Rows have the same subject and groupBy values
-	rows := []meterpkg.MeterQueryRow{
-		{
-			WindowStart: windowStart1,
-			WindowEnd:   windowEnd1,
-			Value:       10,
-			Subject:     &subject,
-			GroupBy: map[string]*string{
-				"group1": &group1Value,
-			},
-		},
-		{
-			WindowStart: windowStart2,
-			WindowEnd:   windowEnd2,
-			Value:       20,
-			Subject:     &subject,
-			GroupBy: map[string]*string{
-				"group1": &group1Value,
-			},
-		},
-	}
-
-	tests := []struct {
-		name        string
-		meter       meter.Meter
-		rows        []meterpkg.MeterQueryRow
-		wantValue   float64
-		wantSubject string
-	}{
-		{
-			name: "sum aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			rows:        rows,
-			wantValue:   30, // 10 + 20
-			wantSubject: subject,
-		},
-		{
-			name: "count aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationCount,
-			},
-			rows:        rows,
-			wantValue:   30, // count should be the same as sum
-			wantSubject: subject,
-		},
-		{
-			name: "min aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationMin,
-			},
-			rows:        rows,
-			wantValue:   10, // min of 10 and 20
-			wantSubject: subject,
-		},
-		{
-			name: "max aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationMax,
-			},
-			rows:        rows,
-			wantValue:   20, // max of 10 and 20
-			wantSubject: subject,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := aggregateRows(tt.meter, tt.rows)
-
-			assert.Equal(t, tt.wantValue, result.Value)
-			require.NotNil(t, result.Subject)
-			assert.Equal(t, tt.wantSubject, *result.Subject)
-
-			// Window range should span from earliest to latest
-			assert.Equal(t, windowStart1, result.WindowStart)
-			assert.Equal(t, windowEnd2, result.WindowEnd)
-
-			// GroupBy values should be preserved
-			require.Contains(t, result.GroupBy, "group1")
-			require.NotNil(t, result.GroupBy["group1"])
-			assert.Equal(t, group1Value, *result.GroupBy["group1"])
 		})
 	}
 }

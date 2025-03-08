@@ -1,8 +1,6 @@
 package raw_events
 
 import (
-	"context"
-	"log/slog"
 	"testing"
 	"time"
 
@@ -11,13 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
-	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 )
 
-// Test the SQL generation of the cache query structs
-func TestCreateMeterQueryHashTable_ToSQL(t *testing.T) {
-	query := createMeterQueryHashTable{
+// TestCreateMeterQueryRowsCacheTableToSQL tests the SQL generation of the createMeterQueryRowsCacheTable struct
+func TestCreateMeterQueryRowsCacheTableToSQL(t *testing.T) {
+	query := createMeterQueryRowsCacheTable{
 		Database:  "openmeter",
 		TableName: "meter_query_cache",
 	}
@@ -40,7 +37,8 @@ func TestCreateMeterQueryHashTable_ToSQL(t *testing.T) {
 	assert.Contains(t, sql, "TTL created_at + INTERVAL 30 DAY")
 }
 
-func TestInsertMeterQueryCachedRows_ToSQL(t *testing.T) {
+// TestInsertMeterQueryRowsToCache_ToSQL tests the SQL generation of the insertMeterQueryRowsToCache struct
+func TestInsertMeterQueryRowsToCache_ToSQL(t *testing.T) {
 	subject := "test-subject"
 	groupValue := "group-value"
 	now := time.Now().UTC()
@@ -55,7 +53,7 @@ func TestInsertMeterQueryCachedRows_ToSQL(t *testing.T) {
 		},
 	}
 
-	query := insertMeterQueryCachedRows{
+	query := insertMeterQueryRowsToCache{
 		Database:  "openmeter",
 		TableName: "meter_query_cache",
 		Hash:      "test-hash",
@@ -84,20 +82,21 @@ func TestInsertMeterQueryCachedRows_ToSQL(t *testing.T) {
 	assert.Equal(t, "group-value", groupByMap["group1"])
 }
 
-func TestGetMeterQueryCachedRows_ToSQL(t *testing.T) {
+// TestGetMeterQueryRowsFromCache_ToSQL tests the SQL generation of the getMeterQueryRowsFromCache struct
+func TestGetMeterQueryRowsFromCache_ToSQL(t *testing.T) {
 	now := time.Now().UTC()
 	from := now.Add(-24 * time.Hour)
 	to := now
 
 	tests := []struct {
 		name        string
-		queryParams getMeterQueryCachedRows
+		queryParams getMeterQueryRowsFromCache
 		wantSQL     string
 		wantArgs    []interface{}
 	}{
 		{
 			name: "with from and to",
-			queryParams: getMeterQueryCachedRows{
+			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
 				TableName: "meter_query_cache",
 				Hash:      "test-hash",
@@ -109,7 +108,7 @@ func TestGetMeterQueryCachedRows_ToSQL(t *testing.T) {
 		},
 		{
 			name: "without from",
-			queryParams: getMeterQueryCachedRows{
+			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
 				TableName: "meter_query_cache",
 				Hash:      "test-hash",
@@ -120,7 +119,7 @@ func TestGetMeterQueryCachedRows_ToSQL(t *testing.T) {
 		},
 		{
 			name: "without to",
-			queryParams: getMeterQueryCachedRows{
+			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
 				TableName: "meter_query_cache",
 				Hash:      "test-hash",
@@ -131,7 +130,7 @@ func TestGetMeterQueryCachedRows_ToSQL(t *testing.T) {
 		},
 		{
 			name: "without from and to",
-			queryParams: getMeterQueryCachedRows{
+			queryParams: getMeterQueryRowsFromCache{
 				Database:  "openmeter",
 				TableName: "meter_query_cache",
 				Hash:      "test-hash",
@@ -179,8 +178,9 @@ func TestGetMeterQueryCachedRows_ToSQL(t *testing.T) {
 	}
 }
 
-func TestGetMeterQueryCachedRows_ScanRows(t *testing.T) {
-	query := getMeterQueryCachedRows{}
+// TestGetMeterQueryRowsFromCache_ScanRows tests the scanning of the getMeterQueryRowsFromCache struct
+func TestGetMeterQueryRowsFromCache_ScanRows(t *testing.T) {
+	query := getMeterQueryRowsFromCache{}
 
 	// Test scanning a single row
 	windowStart := time.Now().UTC()
@@ -225,119 +225,4 @@ func TestGetMeterQueryCachedRows_ScanRows(t *testing.T) {
 	assert.Nil(t, rows[0].GroupBy["group2"])
 
 	mockRows.AssertExpectations(t)
-}
-
-func TestConnector_LookupCachedMeterRows(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
-
-	now := time.Now().UTC()
-	from := now.Add(-24 * time.Hour)
-	to := now
-
-	queryMeter := queryMeter{
-		Database:  "testdb",
-		Namespace: "test-namespace",
-		From:      &from,
-		To:        &to,
-	}
-
-	// Test successful lookup
-	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meter_query_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
-	expectedArgs := []interface{}{"test-hash", "test-namespace", from.Unix(), to.Unix()}
-
-	// Mock query execution
-	mockRows := clickhouse.NewMockRows()
-	mockCH.On("Query", mock.Anything, expectedQuery, expectedArgs).Return(mockRows, nil)
-
-	// Setup rows to return one value
-	windowStart := from
-	windowEnd := from.Add(time.Hour)
-	value := 42.0
-	subject := "test-subject"
-	groupBy := map[string]string{"group1": "value1"}
-
-	mockRows.On("Next").Return(true).Once()
-	mockRows.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
-		dest := args.Get(0).([]interface{})
-		*(dest[0].(*time.Time)) = windowStart
-		*(dest[1].(*time.Time)) = windowEnd
-		*(dest[2].(*float64)) = value
-		*(dest[3].(*string)) = subject
-		*(dest[4].(*map[string]string)) = groupBy
-	}).Return(nil)
-	mockRows.On("Next").Return(false)
-	mockRows.On("Err").Return(nil)
-	mockRows.On("Close").Return(nil)
-
-	// Execute the lookup
-	rows, err := connector.lookupCachedMeterRows(context.Background(), "test-hash", queryMeter)
-
-	require.NoError(t, err)
-	require.Len(t, rows, 1)
-
-	// Verify row values
-	assert.Equal(t, windowStart, rows[0].WindowStart)
-	assert.Equal(t, windowEnd, rows[0].WindowEnd)
-	assert.Equal(t, value, rows[0].Value)
-	require.NotNil(t, rows[0].Subject)
-	assert.Equal(t, subject, *rows[0].Subject)
-	require.Contains(t, rows[0].GroupBy, "group1")
-	require.NotNil(t, rows[0].GroupBy["group1"])
-	assert.Equal(t, "value1", *rows[0].GroupBy["group1"])
-
-	mockCH.AssertExpectations(t)
-	mockRows.AssertExpectations(t)
-}
-
-func TestConnector_CacheMeterRows(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
-
-	now := time.Now().UTC()
-	subject := "test-subject"
-	groupValue := "group-value"
-
-	queryMeter := queryMeter{
-		Database:  "testdb",
-		Namespace: "test-namespace",
-	}
-
-	queryRows := []meterpkg.MeterQueryRow{
-		{
-			WindowStart: now,
-			WindowEnd:   now.Add(time.Hour),
-			Value:       42.0,
-			Subject:     &subject,
-			GroupBy: map[string]*string{
-				"group1": &groupValue,
-			},
-		},
-	}
-
-	// We don't need to check the exact SQL, just that the Exec is called with something
-	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil)
-
-	err := connector.cacheMeterRows(context.Background(), "test-hash", queryMeter, queryRows)
-
-	require.NoError(t, err)
-	mockCH.AssertExpectations(t)
 }

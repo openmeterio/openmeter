@@ -3,9 +3,6 @@ package raw_events
 import (
 	"context"
 	"fmt"
-	"math"
-	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -110,7 +107,7 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 
 	// Step 3: Cache the new results
 	if len(newRows) > 0 {
-		if err := c.cacheMeterRows(ctx, hash, queryMeterCached, newRows); err != nil {
+		if err := c.insertRowsToCache(ctx, hash, queryMeterCached, newRows); err != nil {
 			// Log the error but don't fail the query
 			c.config.Logger.Error("failed to store new rows in cache", "error", err, "from", queryMeterCached.From, "to", queryMeterCached.To, "count", len(newRows))
 		} else {
@@ -186,122 +183,63 @@ func (c *Connector) queryNewMeterRows(ctx context.Context, hp queryMeter) ([]met
 	return newValues, nil
 }
 
-// mergeCachedRows merges cached rows with fresh rows
-func mergeCachedRows(meter meter.Meter, params streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
-	if len(cachedRows) == 0 {
-		return freshRows
+// lookupCachedMeterRows queries the meter_query_hash table for cached results
+func (c *Connector) lookupCachedMeterRows(ctx context.Context, hash string, hp queryMeter) ([]meterpkg.MeterQueryRow, error) {
+	var cachedValues []meterpkg.MeterQueryRow
+
+	hashQuery := getMeterQueryRowsFromCache{
+		Database:  hp.Database,
+		TableName: meterQueryRowCacheTable,
+		Hash:      hash,
+		Namespace: hp.Namespace,
+		From:      hp.From,
+		To:        hp.To,
 	}
 
-	// If window size is set there is no aggregation between cached and fresh rows
-	// So we just concatenate the rows
-	if params.WindowSize != nil {
-		values := append(freshRows, cachedRows...)
-
-		sort.Slice(values, func(i, j int) bool {
-			return values[i].WindowStart.Before(values[j].WindowStart)
-		})
-
-		return values
+	sql, args := hashQuery.toSQL()
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query meter query hash: %w", err)
 	}
 
-	// Create a map to store aggregated values by group and window
-	grouppedRows := make(map[string][]meterpkg.MeterQueryRow)
-
-	// Process all rows and aggregate them together
-	for _, row := range append(freshRows, cachedRows...) {
-		// Create a key based on groupBy values
-		key := getRowGroupKey(row, params)
-
-		// Add the row to the group
-		if _, exists := grouppedRows[key]; !exists {
-			grouppedRows[key] = []meterpkg.MeterQueryRow{row}
-		} else {
-			grouppedRows[key] = append(grouppedRows[key], row)
-		}
+	defer rows.Close()
+	cachedValues, err = hashQuery.scanRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("scan meter query hash rows: %w", err)
 	}
 
-	// Aggregate the rows
-	var results []meterpkg.MeterQueryRow
-
-	for _, rows := range grouppedRows {
-		aggregated := aggregateRows(meter, rows)
-
-		results = append(results, aggregated)
-	}
-
-	return results
+	return cachedValues, nil
 }
 
-// getRowGroupKey creates a unique key for grouping rows based on subject and group by fields
-// We don't include window start and end because we assume query window size is not set
-func getRowGroupKey(row meterpkg.MeterQueryRow, params streaming.QueryParams) string {
-	key := ""
-
-	// Add subject to the key if it exists
-	if row.Subject != nil {
-		key += fmt.Sprintf("subject=%s;", *row.Subject)
+// insertRowsToCache stores new meter query results in the meter_query_hash table
+func (c *Connector) insertRowsToCache(ctx context.Context, hash string, hp queryMeter, newValues []meterpkg.MeterQueryRow) error {
+	insertQuery := insertMeterQueryRowsToCache{
+		Database:  hp.Database,
+		TableName: meterQueryRowCacheTable,
+		Hash:      hash,
+		Namespace: hp.Namespace,
+		QueryRows: newValues,
 	}
 
-	// Add all groupBy values to the key
-	groupByKeys := params.GroupBy
-
-	slices.Sort(groupByKeys)
-
-	for _, groupByKey := range groupByKeys {
-		val := "nil"
-		if g, exists := row.GroupBy[groupByKey]; exists && g != nil {
-			val = *g
-		}
-
-		key += fmt.Sprintf("group=%s=%s;", groupByKey, val)
+	sql, args := insertQuery.toSQL()
+	if err := c.config.ClickHouse.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("insert meter query hash: %w", err)
 	}
 
-	return key
+	return nil
 }
 
-// aggregateRows combines rows into a single row
-func aggregateRows(meter meter.Meter, rows []meterpkg.MeterQueryRow) meterpkg.MeterQueryRow {
-	aggregated := meterpkg.MeterQueryRow{
-		WindowStart: lo.MinBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
-			return a.WindowStart.Before(b.WindowStart)
-		}).WindowStart,
-		WindowEnd: lo.MaxBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
-			return a.WindowEnd.After(b.WindowEnd)
-		}).WindowEnd,
-		Subject: rows[0].Subject,
-		GroupBy: make(map[string]*string),
+// createMeterQueryCacheTable creates the meter_query_hash table if it doesn't exist
+func (c *Connector) createMeterQueryCacheTable(ctx context.Context) error {
+	table := createMeterQueryRowsCacheTable{
+		Database:  c.config.Database,
+		TableName: meterQueryRowCacheTable,
 	}
 
-	for _, row := range rows {
-		for k, v := range row.GroupBy {
-			aggregated.GroupBy[k] = v
-		}
+	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
+	if err != nil {
+		return fmt.Errorf("create meter_query_hash table: %w", err)
 	}
 
-	if meter.Aggregation == meterpkg.MeterAggregationSum || meter.Aggregation == meterpkg.MeterAggregationCount {
-		var sum float64
-		for _, row := range rows {
-			sum += row.Value
-		}
-
-		aggregated.Value = sum
-	} else if meter.Aggregation == meterpkg.MeterAggregationMin {
-		min := rows[0].Value
-
-		for _, row := range rows {
-			min = math.Min(min, row.Value)
-		}
-
-		aggregated.Value = min
-	} else if meter.Aggregation == meterpkg.MeterAggregationMax {
-		max := rows[0].Value
-
-		for _, row := range rows {
-			max = math.Max(max, row.Value)
-		}
-
-		aggregated.Value = max
-	}
-
-	return aggregated
+	return nil
 }

@@ -1,7 +1,6 @@
 package raw_events
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -12,19 +11,17 @@ import (
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 )
 
-// Cache-related constants
-const (
-	// MeterQueryCacheTable is the name of the table that stores cached meter query results
-	MeterQueryCacheTable = "meter_query_cache"
-)
+// meterQueryRowCacheTable is the name of the table that stores cached meter query rows
+const meterQueryRowCacheTable = "meterqueryrow_cache"
 
-// createMeterQueryHashTable is a query to create the meter_query_hash table
-type createMeterQueryHashTable struct {
+// createMeterQueryRowsCacheTable is a query to create the cache table
+type createMeterQueryRowsCacheTable struct {
 	Database  string
 	TableName string
 }
 
-func (d createMeterQueryHashTable) toSQL() string {
+// toSQL converts the createMeterQueryRowsCacheTable struct to a SQL query
+func (d createMeterQueryRowsCacheTable) toSQL() string {
 	tableName := getTableName(d.Database, d.TableName)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
@@ -47,8 +44,8 @@ func (d createMeterQueryHashTable) toSQL() string {
 	return sql
 }
 
-// insertMeterQueryCachedRows is a query to insert rows into the meter_query_hash table
-type insertMeterQueryCachedRows struct {
+// insertMeterQueryRowsToCache is a query to insert rows into the cache table
+type insertMeterQueryRowsToCache struct {
 	Database  string
 	TableName string
 	Hash      string
@@ -56,7 +53,8 @@ type insertMeterQueryCachedRows struct {
 	QueryRows []meterpkg.MeterQueryRow
 }
 
-func (d insertMeterQueryCachedRows) toSQL() (string, []interface{}) {
+// toSQL converts the insertMeterQueryRowsToCache struct to a SQL query
+func (d insertMeterQueryRowsToCache) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.TableName)
 	sb := sqlbuilder.ClickHouse.NewInsertBuilder()
 	sb.InsertInto(tableName)
@@ -86,8 +84,8 @@ func (d insertMeterQueryCachedRows) toSQL() (string, []interface{}) {
 	return sql, args
 }
 
-// getMeterQueryCachedRows is a query to retrieve rows from the meter_query_hash table
-type getMeterQueryCachedRows struct {
+// getMeterQueryRowsFromCache is a query to retrieve rows from the cache table
+type getMeterQueryRowsFromCache struct {
 	Database  string
 	TableName string
 	Hash      string
@@ -96,7 +94,8 @@ type getMeterQueryCachedRows struct {
 	To        *time.Time
 }
 
-func (d getMeterQueryCachedRows) toSQL() (string, []interface{}) {
+// toSQL converts the getMeterQueryRowsFromCache struct to a SQL query
+func (d getMeterQueryRowsFromCache) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.TableName)
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
 	sb.Select("window_start", "window_end", "value", "subject", "group_by")
@@ -118,7 +117,8 @@ func (d getMeterQueryCachedRows) toSQL() (string, []interface{}) {
 	return sql, args
 }
 
-func (d getMeterQueryCachedRows) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
+// scanMeterQueryRowsFromCache scans the rows from the cache table
+func (d getMeterQueryRowsFromCache) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
 	values := []meterpkg.MeterQueryRow{}
 
 	for rows.Next() {
@@ -154,67 +154,4 @@ func (d getMeterQueryCachedRows) scanRows(rows driver.Rows) ([]meterpkg.MeterQue
 	}
 
 	return values, nil
-}
-
-// Connector methods for cache operations
-
-// lookupCachedMeterRows queries the meter_query_hash table for cached results
-func (c *Connector) lookupCachedMeterRows(ctx context.Context, hash string, hp queryMeter) ([]meterpkg.MeterQueryRow, error) {
-	var cachedValues []meterpkg.MeterQueryRow
-
-	hashQuery := getMeterQueryCachedRows{
-		Database:  hp.Database,
-		TableName: MeterQueryCacheTable,
-		Hash:      hash,
-		Namespace: hp.Namespace,
-		From:      hp.From,
-		To:        hp.To,
-	}
-
-	sql, args := hashQuery.toSQL()
-	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		return nil, fmt.Errorf("query meter query hash: %w", err)
-	}
-
-	defer rows.Close()
-	cachedValues, err = hashQuery.scanRows(rows)
-	if err != nil {
-		return nil, fmt.Errorf("scan meter query hash rows: %w", err)
-	}
-
-	return cachedValues, nil
-}
-
-// cacheMeterRows stores new meter query results in the meter_query_hash table
-func (c *Connector) cacheMeterRows(ctx context.Context, hash string, hp queryMeter, newValues []meterpkg.MeterQueryRow) error {
-	insertQuery := insertMeterQueryCachedRows{
-		Database:  hp.Database,
-		TableName: MeterQueryCacheTable,
-		Hash:      hash,
-		Namespace: hp.Namespace,
-		QueryRows: newValues,
-	}
-
-	sql, args := insertQuery.toSQL()
-	if err := c.config.ClickHouse.Exec(ctx, sql, args...); err != nil {
-		return fmt.Errorf("insert meter query hash: %w", err)
-	}
-
-	return nil
-}
-
-// createMeterQueryCacheTable creates the meter_query_hash table if it doesn't exist
-func (c *Connector) createMeterQueryCacheTable(ctx context.Context) error {
-	table := createMeterQueryHashTable{
-		Database:  c.config.Database,
-		TableName: MeterQueryCacheTable,
-	}
-
-	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
-	if err != nil {
-		return fmt.Errorf("create meter_query_hash table: %w", err)
-	}
-
-	return nil
 }
