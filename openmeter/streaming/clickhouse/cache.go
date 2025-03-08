@@ -3,6 +3,9 @@ package raw_events
 import (
 	"context"
 	"fmt"
+	"math"
+	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -80,7 +83,7 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 	// If we have cached values, add them to the results
 	// Also, update the query range to query uncached periods
 	if len(cachedValues) > 0 {
-		c.config.Logger.Debug("cached rows found", "from", queryMeterCached.From, "to", queryMeterCached.To, "windowSize", queryMeterCached.WindowSize, "count", len(cachedValues))
+		c.config.Logger.Debug("cached rows found", "from", queryMeterCached.From, "to", queryMeterCached.To, "count", len(cachedValues))
 
 		values = append(values, cachedValues...)
 
@@ -108,14 +111,14 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 	if len(newRows) > 0 {
 		if err := c.cacheMeterRows(ctx, hash, queryMeterCached, newRows); err != nil {
 			// Log the error but don't fail the query
-			c.config.Logger.Error("failed to store new rows in cache", "error", err, "from", queryMeterCached.From, "to", queryMeterCached.To, "windowSize", queryMeterCached.WindowSize, "count", len(newRows))
+			c.config.Logger.Error("failed to store new rows in cache", "error", err, "from", queryMeterCached.From, "to", queryMeterCached.To, "count", len(newRows))
 		} else {
-			c.config.Logger.Debug("new rows stored in cache", "from", queryMeterCached.From, "to", queryMeterCached.To, "windowSize", queryMeterCached.WindowSize, "count", len(newRows))
+			c.config.Logger.Debug("new rows stored in cache", "from", queryMeterCached.From, "to", queryMeterCached.To, "count", len(newRows))
 		}
 	}
 
 	// Result
-	c.config.Logger.Debug("returning cached and new rows", "from", queryMeterCached.From, "to", queryMeterCached.To, "windowSize", queryMeterCached.WindowSize, "count", len(values))
+	c.config.Logger.Debug("returning cached and new rows", "from", queryMeterCached.From, "to", queryMeterCached.To, "count", len(values))
 
 	return createReaminingQueryMeter(queryMeterCached), values, nil
 }
@@ -146,15 +149,9 @@ func (c *Connector) getQueryMeterForCachedPeriod(originalQueryMeter queryMeter) 
 	// We truncate to complete days to avoid partial days in the cache
 	cachedQueryMeter.To = lo.ToPtr(cachedQueryMeter.To.Truncate(time.Hour * 24))
 
-	// Set window size based on time range if not provided
-	// This is the window size that the cache will use.
+	// This is the window size that the cache will use if no window size is provided
 	if cachedQueryMeter.WindowSize == nil {
-		duration := cachedQueryMeter.To.Sub(*cachedQueryMeter.From)
-
-		// For long time ranges, we use the day window size
-		if duration > time.Hour*24 {
-			cachedQueryMeter.WindowSize = lo.ToPtr(meter.WindowSizeDay)
-		}
+		cachedQueryMeter.WindowSize = lo.ToPtr(meter.WindowSizeDay)
 	}
 
 	return cachedQueryMeter, nil
@@ -189,20 +186,119 @@ func (c *Connector) queryNewMeterRows(ctx context.Context, hp queryMeter) ([]met
 }
 
 // mergeCachedRows merges cached rows with fresh rows
-func mergeCachedRows(params streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
+func mergeCachedRows(meter meter.Meter, params streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
 	if len(cachedRows) == 0 {
 		return freshRows
 	}
 
-	values := freshRows
+	// If window size is set there is no aggregation between cached and fresh rows
+	// So we just concatenate the rows
+	if params.WindowSize != nil {
+		values := append(freshRows, cachedRows...)
 
-	if params.WindowSize == nil {
-		for _, row := range cachedRows {
-			values[0].Value += row.Value
-		}
-	} else {
-		values = append(values, cachedRows...)
+		sort.Slice(values, func(i, j int) bool {
+			return values[i].WindowStart.Before(values[j].WindowStart)
+		})
+
+		return values
 	}
 
-	return values
+	// Create a map to store aggregated values by group and window
+	grouppedRows := make(map[string][]meterpkg.MeterQueryRow)
+
+	// Process all rows and aggregate them together
+	for _, row := range append(freshRows, cachedRows...) {
+		// Create a key based on groupBy values
+		key := getRowGroupKey(row, params)
+
+		// Add the row to the group
+		if _, exists := grouppedRows[key]; !exists {
+			grouppedRows[key] = []meterpkg.MeterQueryRow{row}
+		} else {
+			grouppedRows[key] = append(grouppedRows[key], row)
+		}
+	}
+
+	// Aggregate the rows
+	var results []meterpkg.MeterQueryRow
+
+	for _, rows := range grouppedRows {
+		aggregated := aggregateRows(meter, rows)
+
+		results = append(results, aggregated)
+	}
+
+	return results
+}
+
+// getRowGroupKey creates a unique key for grouping rows based on subject and group by fields
+// We don't include window start and end because we assume query window size is not set
+func getRowGroupKey(row meterpkg.MeterQueryRow, params streaming.QueryParams) string {
+	key := ""
+
+	// Add subject to the key if it exists
+	if row.Subject != nil {
+		key += fmt.Sprintf("subject=%s;", *row.Subject)
+	}
+
+	// Add all groupBy values to the key
+	groupByKeys := params.GroupBy
+
+	slices.Sort(groupByKeys)
+
+	for _, groupByKey := range groupByKeys {
+		val := "nil"
+		if g, exists := row.GroupBy[groupByKey]; exists && g != nil {
+			val = *g
+		}
+
+		key += fmt.Sprintf("group=%s=%s;", groupByKey, val)
+	}
+
+	return key
+}
+
+// aggregateRows combines rows into a single row
+func aggregateRows(meter meter.Meter, rows []meterpkg.MeterQueryRow) meterpkg.MeterQueryRow {
+	aggregated := meterpkg.MeterQueryRow{
+		WindowStart: lo.MinBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
+			return a.WindowStart.Before(b.WindowStart)
+		}).WindowStart,
+		WindowEnd: lo.MaxBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
+			return a.WindowEnd.After(b.WindowEnd)
+		}).WindowEnd,
+		Subject: rows[0].Subject,
+		GroupBy: make(map[string]*string),
+	}
+
+	for _, row := range rows {
+		for k, v := range row.GroupBy {
+			aggregated.GroupBy[k] = v
+		}
+	}
+
+	if meter.Aggregation == meterpkg.MeterAggregationSum || meter.Aggregation == meterpkg.MeterAggregationCount {
+		var sum float64
+		for _, row := range rows {
+			sum += row.Value
+		}
+
+		aggregated.Value = sum
+	} else if meter.Aggregation == meterpkg.MeterAggregationMin {
+		var min float64
+		for _, row := range rows {
+			min = math.Min(min, row.Value)
+		}
+
+		aggregated.Value = min
+	} else if meter.Aggregation == meterpkg.MeterAggregationMax {
+		var max float64
+		for _, row := range rows {
+			max = math.Max(max, row.Value)
+		}
+
+		aggregated.Value = max
+	}
+
+	return aggregated
 }
