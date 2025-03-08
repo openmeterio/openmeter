@@ -1,4 +1,4 @@
-package raw_events
+package clickhouse
 
 import (
 	"context"
@@ -6,12 +6,13 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/stretchr/testify/mock"
-
-	"github.com/openmeterio/openmeter/openmeter/progressmanager"
-	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 )
 
 var _ clickhouse.Conn = &MockClickHouse{}
+
+func NewMockClickHouse() *MockClickHouse {
+	return &MockClickHouse{}
+}
 
 // MockClickHouse is a mock for the ClickHouse connection
 type MockClickHouse struct {
@@ -75,6 +76,10 @@ func (m *MockClickHouse) Close() error {
 
 var _ driver.Rows = &MockRows{}
 
+func NewMockRows() *MockRows {
+	return &MockRows{}
+}
+
 // MockRows is a mock for the Rows interface
 type MockRows struct {
 	mock.Mock
@@ -117,27 +122,5 @@ func (m *MockRows) ColumnTypes() []driver.ColumnType {
 
 func (m *MockRows) Err() error {
 	args := m.Called()
-	return args.Error(0)
-}
-
-var _ progressmanager.Service = &MockProgressManager{}
-
-// MockProgressManager is a mock for the ProgressManager
-type MockProgressManager struct {
-	mock.Mock
-}
-
-func (m *MockProgressManager) GetProgress(ctx context.Context, input progressmanagerentity.GetProgressInput) (*progressmanagerentity.Progress, error) {
-	args := m.Called(ctx, input)
-	return args.Get(0).(*progressmanagerentity.Progress), args.Error(1)
-}
-
-func (m *MockProgressManager) DeleteProgressByRuntimeID(ctx context.Context, runtimeID string) error {
-	args := m.Called(ctx, runtimeID)
-	return args.Error(0)
-}
-
-func (m *MockProgressManager) UpsertProgress(ctx context.Context, input progressmanagerentity.UpsertProgressInput) error {
-	args := m.Called(ctx, input)
 	return args.Error(0)
 }
