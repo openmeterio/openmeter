@@ -511,7 +511,7 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 
 	// Merge cached rows if any
 	if useCache {
-		values = mergeCachedRows(params, cachedRows, values)
+		values = mergeCachedRows(meter, params, cachedRows, values)
 	}
 
 	return values, nil
