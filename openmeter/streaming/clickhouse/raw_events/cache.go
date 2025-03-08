@@ -23,8 +23,8 @@ const (
 
 // isQueryCachable returns true if the query params are cachable
 func isQueryCachable(m meter.Meter, p streaming.QueryParams) bool {
-	// We only cache client queries for now
-	if p.ClientID == nil {
+	// We only cache queries where cachable is set to true
+	if !p.Cachable {
 		return false
 	}
 
