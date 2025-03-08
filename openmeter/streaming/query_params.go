@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/hasher"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -30,17 +31,17 @@ func (p *QueryParams) Hash() hasher.Hash {
 
 	// Hash ClientID
 	if p.ClientID != nil {
-		h.WriteString(*p.ClientID)
+		_, _ = h.WriteString(*p.ClientID)
 	}
 
 	// Hash From
 	if p.From != nil {
-		h.WriteString(p.From.UTC().Format(time.RFC3339))
+		_, _ = h.WriteString(p.From.UTC().Format(time.RFC3339))
 	}
 
 	// Hash To
 	if p.To != nil {
-		h.WriteString(p.To.UTC().Format(time.RFC3339))
+		_, _ = h.WriteString(p.To.UTC().Format(time.RFC3339))
 	}
 
 	// Hash FilterSubject (sort for determinism)
@@ -48,7 +49,7 @@ func (p *QueryParams) Hash() hasher.Hash {
 		sorted := make([]string, len(p.FilterSubject))
 		copy(sorted, p.FilterSubject)
 		sort.Strings(sorted)
-		h.WriteString(strings.Join(sorted, ","))
+		_, _ = h.WriteString(strings.Join(sorted, ","))
 	}
 
 	// Hash FilterGroupBy (sort keys and values for determinism)
@@ -59,11 +60,11 @@ func (p *QueryParams) Hash() hasher.Hash {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			h.WriteString(k)
+			_, _ = h.WriteString(k)
 			values := make([]string, len(p.FilterGroupBy[k]))
 			copy(values, p.FilterGroupBy[k])
 			sort.Strings(values)
-			h.WriteString(strings.Join(values, ","))
+			_, _ = h.WriteString(strings.Join(values, ","))
 		}
 	}
 
@@ -72,17 +73,17 @@ func (p *QueryParams) Hash() hasher.Hash {
 		sorted := make([]string, len(p.GroupBy))
 		copy(sorted, p.GroupBy)
 		sort.Strings(sorted)
-		h.WriteString(strings.Join(sorted, ","))
+		_, _ = h.WriteString(strings.Join(sorted, ","))
 	}
 
 	// Hash WindowSize
 	if p.WindowSize != nil {
-		h.WriteString(string(*p.WindowSize))
+		_, _ = h.WriteString(string(*p.WindowSize))
 	}
 
 	// Hash WindowTimeZone
 	if p.WindowTimeZone != nil {
-		h.WriteString(p.WindowTimeZone.String())
+		_, _ = h.WriteString(p.WindowTimeZone.String())
 	}
 
 	return h.Sum64()
