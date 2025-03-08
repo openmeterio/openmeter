@@ -7,8 +7,9 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
-	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/samber/lo"
+
+	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 // Cache-related constants
