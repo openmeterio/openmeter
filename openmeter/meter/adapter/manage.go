@@ -69,7 +69,7 @@ func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMet
 		})
 }
 
-// UpdateMeter creates a new meter.
+// UpdateMeter updates a new meter.
 func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMeterInput) (meterpkg.Meter, error) {
 	// Get the meter by ID
 	currentMeter, err := a.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
@@ -141,7 +141,7 @@ func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMet
 					return meterpkg.Meter{}, models.NewGenericConflictError(fmt.Errorf("meter with the same slug already exists"))
 				}
 
-				return meterpkg.Meter{}, fmt.Errorf("failed to create meter: %w", err)
+				return meterpkg.Meter{}, fmt.Errorf("failed to update meter: %w", err)
 			}
 
 			meter, err := MapFromEntityFactory(entity)
@@ -152,7 +152,7 @@ func (a manageAdapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMet
 			// Update the meter in the streaming connector
 			err = a.streamingConnector.UpdateMeter(ctx, input.ID.Namespace, meter)
 			if err != nil {
-				return meter, fmt.Errorf("failed to create meter in streaming connector: %w", err)
+				return meter, fmt.Errorf("failed to update meter in streaming connector: %w", err)
 			}
 
 			return meter, nil
