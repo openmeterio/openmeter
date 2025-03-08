@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/samber/lo"
 	"golang.org/x/exp/constraints"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -23,7 +21,7 @@ import (
 
 var _ streaming.Connector = (*Connector)(nil)
 
-// Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
+// Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
 	config Config
 }
@@ -77,15 +75,8 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 		return nil, fmt.Errorf("create events table in clickhouse: %w", err)
 	}
 
-	// TODO: refactor
-	createMeterQueryHashTable := createMeterQueryHashTable{
-		Database:  config.Database,
-		TableName: "meter_query_hash",
-	}
-
-	err = connector.config.ClickHouse.Exec(ctx, createMeterQueryHashTable.toSQL())
-	if err != nil {
-		return nil, fmt.Errorf("create meter query hash table in clickhouse: %w", err)
+	if err := connector.createMeterQueryCacheTable(ctx); err != nil {
+		return nil, fmt.Errorf("create meter query cache in clickhouse: %w", err)
 	}
 
 	return connector, nil
@@ -442,132 +433,6 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	return results, nil
 }
 
-func (c *Connector) queryMeterHistorical(ctx context.Context, hash string, queryMeter queryMeter) (queryMeter, []meterpkg.MeterQueryRow, error) {
-	var values []meterpkg.MeterQueryRow
-
-	// Copy the query meter to avoid mutating the original
-	hp := queryMeter
-
-	if hp.From == nil {
-		return queryMeter, values, fmt.Errorf("from is required")
-	}
-
-	queryMeterTo := lo.FromPtrOr(hp.To, time.Now().UTC())
-
-	// Set the end of the query to now if not set
-	hp.To = lo.ToPtr(lo.FromPtrOr(hp.To, time.Now().UTC()))
-
-	// Only query complete days
-	hp.To = lo.ToPtr(hp.To.Truncate(time.Hour * 24))
-
-	newQueryMeter := queryMeter
-	newQueryMeter.From = hp.To
-
-	// Set the window size to day if not set
-	if hp.WindowSize == nil {
-		duration := hp.To.Sub(*hp.From)
-
-		if duration > time.Hour*24 {
-			hp.WindowSize = lo.ToPtr(meter.WindowSizeDay)
-		}
-	}
-
-	// First check for cached results in meter_query_hash table
-	hashQuery := getMeterQueryHashRows{
-		Database:  hp.Database,
-		TableName: "meter_query_hash",
-		Hash:      hash,
-		Namespace: hp.Namespace,
-		From:      hp.From,
-		To:        hp.To,
-	}
-
-	sql, args := hashQuery.toSQL()
-	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		// Log the error but continue with the full query
-		c.config.Logger.Error("failed to query meter query hash", "error", err)
-	} else {
-		defer rows.Close()
-		cachedValues, err := hashQuery.scanRows(rows)
-		if err != nil {
-			// Log the error but continue with the full query
-			c.config.Logger.Error("failed to scan meter query hash rows", "error", err)
-		} else if len(cachedValues) > 0 {
-			fmt.Println("found in cache", hp.From, hp.To, len(cachedValues))
-
-			values = append(values, cachedValues...)
-			// If we have cached values, update the query range to only query uncached periods
-			lastCachedWindow := cachedValues[len(cachedValues)-1].WindowEnd
-			hp.From = &lastCachedWindow
-		}
-	}
-
-	// If we've covered the entire range with cached data, return early
-	if queryMeterTo.Equal(*hp.To) {
-		fmt.Println("entire range covered by cached data", hp.From, hp.To)
-		return newQueryMeter, values, nil
-	}
-
-	// If the query range is the same as the cached data we can't load new data to the cache
-	// We continue with querying fresh data
-	if hp.From.Equal(*hp.To) {
-		fmt.Println("query fresh data for", newQueryMeter.From, newQueryMeter.To)
-
-		return newQueryMeter, values, nil
-	}
-
-	// Build the SQL query to load new data to the cache
-	sql, args, err = hp.toSQL()
-	if err != nil {
-		return newQueryMeter, values, fmt.Errorf("query meter view: %w", err)
-	}
-
-	// Query the meter view
-	rows, err = c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return newQueryMeter, nil, meterpkg.NewMeterNotFoundError(queryMeter.Meter.Key)
-		}
-
-		return newQueryMeter, values, fmt.Errorf("query meter view query: %w", err)
-	}
-
-	defer rows.Close()
-
-	// Scan the rows
-	newValues, err := queryMeter.scanRows(rows)
-	if err != nil {
-		return newQueryMeter, nil, fmt.Errorf("scan meter query historical row: %w", err)
-	}
-
-	values = append(values, newValues...)
-
-	fmt.Println("new data found to cache", hp.From, hp.To, len(newValues))
-
-	// Cache the new results if we got any
-	if len(newValues) > 0 {
-		insertQuery := insertMeterQueryHashRows{
-			Database:  hp.Database,
-			TableName: "meter_query_hash",
-			Hash:      hash,
-			Namespace: hp.Namespace,
-			QueryRows: newValues,
-		}
-		sql, args := insertQuery.toSQL()
-		if err := c.config.ClickHouse.Exec(ctx, sql, args...); err != nil {
-			// Log the error but don't fail the query
-			c.config.Logger.Error("failed to cache meter query results", "error", err)
-		}
-
-		fmt.Println("new data saved to cache", hp.From, hp.To, len(newValues))
-	}
-
-	fmt.Println("query fresh data for", newQueryMeter.From, newQueryMeter.To)
-
-	return newQueryMeter, values, nil
-}
-
 func (c *Connector) queryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
@@ -588,19 +453,21 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 		WindowTimeZone:  params.WindowTimeZone,
 	}
 
-	var historicalRows []meterpkg.MeterQueryRow
+	// Load cached rows if any
+	var cachedRows []meterpkg.MeterQueryRow
 
-	if queryMeter.From != nil && (meter.Aggregation == meterpkg.MeterAggregationSum || meter.Aggregation == meterpkg.MeterAggregationCount) {
+	if isQueryCachable(meter, params) {
 		var err error
 
 		hash := fmt.Sprintf("%x", params.Hash())
 
-		queryMeter, historicalRows, err = c.queryMeterHistorical(ctx, hash, queryMeter)
+		queryMeter, cachedRows, err = c.queryMeterCached(ctx, hash, queryMeter)
 		if err != nil {
-			return historicalRows, fmt.Errorf("query meter historical: %w", err)
+			return cachedRows, fmt.Errorf("query cached rows: %w", err)
 		}
 	}
 
+	//  Load fresh rows from events table
 	values := []meterpkg.MeterQueryRow{}
 
 	sql, args, err := queryMeter.toSQL()
@@ -641,11 +508,11 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 	}
 
 	if params.WindowSize == nil {
-		for _, row := range historicalRows {
+		for _, row := range cachedRows {
 			values[0].Value += row.Value
 		}
 	} else {
-		values = append(values, historicalRows...)
+		values = append(values, cachedRows...)
 	}
 
 	return values, nil
