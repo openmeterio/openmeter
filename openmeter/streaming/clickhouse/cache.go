@@ -91,13 +91,13 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 		// We use the last cached window as the start of the new query period
 		lastCachedWindow := cachedValues[len(cachedValues)-1].WindowEnd
 		queryMeterCached.From = &lastCachedWindow
-	}
 
-	// If we've covered the entire range with cached data, return early
-	if queryMeterCached.From.Equal(*queryMeterCached.To) {
-		c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
+		// If we've covered the entire range with cached data, return early
+		if lastCachedWindow.Equal(*queryMeterCached.To) {
+			c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
 
-		return createReaminingQueryMeter(queryMeterCached), values, nil
+			return createReaminingQueryMeter(queryMeterCached), values, nil
+		}
 	}
 
 	// Step 2: Query new rows for the uncached time period
@@ -286,14 +286,16 @@ func aggregateRows(meter meter.Meter, rows []meterpkg.MeterQueryRow) meterpkg.Me
 
 		aggregated.Value = sum
 	} else if meter.Aggregation == meterpkg.MeterAggregationMin {
-		var min float64
+		min := rows[0].Value
+
 		for _, row := range rows {
 			min = math.Min(min, row.Value)
 		}
 
 		aggregated.Value = min
 	} else if meter.Aggregation == meterpkg.MeterAggregationMax {
-		var max float64
+		max := rows[0].Value
+
 		for _, row := range rows {
 			max = math.Max(max, row.Value)
 		}
