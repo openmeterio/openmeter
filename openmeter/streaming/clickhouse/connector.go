@@ -456,7 +456,9 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 	// Load cached rows if any
 	var cachedRows []meterpkg.MeterQueryRow
 
-	if isQueryCachable(meter, params) {
+	useCache := isQueryCachable(meter, params)
+
+	if useCache {
 		var err error
 
 		hash := fmt.Sprintf("%x", params.Hash())
@@ -507,12 +509,9 @@ func (c *Connector) queryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("scan meter query row: %w", err)
 	}
 
-	if params.WindowSize == nil {
-		for _, row := range cachedRows {
-			values[0].Value += row.Value
-		}
-	} else {
-		values = append(values, cachedRows...)
+	// Merge cached rows if any
+	if useCache {
+		values = mergeCachedRows(params, cachedRows, values)
 	}
 
 	return values, nil

@@ -12,10 +12,18 @@ import (
 	"github.com/samber/lo"
 )
 
-const minCachableDuration = 3 * 24 * time.Hour
+const (
+	minCachableDuration = 3 * 24 * time.Hour
+	minCacheableToAge   = 24 * time.Hour
+)
 
 // isQueryCachable returns true if the query params are cachable
 func isQueryCachable(m meter.Meter, p streaming.QueryParams) bool {
+	// We only cache client queries for now
+	if p.ClientID == nil {
+		return false
+	}
+
 	// We can only cache queries that have a from time
 	if p.From == nil {
 		return false
@@ -115,6 +123,7 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 // adjustQueryTimeRange prepares the time range for a query meter operation
 func (c *Connector) getQueryMeterForCachedPeriod(originalQueryMeter queryMeter) (queryMeter, error) {
 	cachedQueryMeter := originalQueryMeter
+	now := time.Now().UTC()
 
 	if originalQueryMeter.From == nil {
 		return cachedQueryMeter, fmt.Errorf("from is required for cached queries")
@@ -122,8 +131,16 @@ func (c *Connector) getQueryMeterForCachedPeriod(originalQueryMeter queryMeter) 
 
 	// Set the end time to now if not provided
 	if cachedQueryMeter.To == nil {
-		now := time.Now().UTC()
 		cachedQueryMeter.To = &now
+	}
+
+	// We do not cache data that is less than 24 hours old
+	toFresness := now.Sub(*cachedQueryMeter.To)
+
+	if toFresness < minCacheableToAge {
+		delta := minCacheableToAge - toFresness
+
+		cachedQueryMeter.To = lo.ToPtr(cachedQueryMeter.To.Add(-delta))
 	}
 
 	// We truncate to complete days to avoid partial days in the cache
@@ -169,4 +186,23 @@ func (c *Connector) queryNewMeterRows(ctx context.Context, hp queryMeter) ([]met
 	}
 
 	return newValues, nil
+}
+
+// mergeCachedRows merges cached rows with fresh rows
+func mergeCachedRows(params streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
+	if len(cachedRows) == 0 {
+		return freshRows
+	}
+
+	values := freshRows
+
+	if params.WindowSize == nil {
+		for _, row := range cachedRows {
+			values[0].Value += row.Value
+		}
+	} else {
+		values = append(values, cachedRows...)
+	}
+
+	return values
 }
