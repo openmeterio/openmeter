@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 )
 
 // Test the SQL generation of the cache query structs
@@ -32,7 +34,9 @@ func TestCreateMeterQueryHashTable_ToSQL(t *testing.T) {
 	assert.Contains(t, sql, "value Float64")
 	assert.Contains(t, sql, "subject String")
 	assert.Contains(t, sql, "group_by Map(String, String)")
-	assert.Contains(t, sql, "ENGINE = MergeTree()")
+	assert.Contains(t, sql, "ENGINE = MergeTree")
+	assert.Contains(t, sql, "PARTITION BY toYYYYMM(window_start)")
+	assert.Contains(t, sql, "ORDER BY (namespace, hash, window_start, window_end)")
 	assert.Contains(t, sql, "TTL created_at + INTERVAL 30 DAY")
 }
 
@@ -176,7 +180,6 @@ func TestGetMeterQueryCachedRows_ToSQL(t *testing.T) {
 }
 
 func TestGetMeterQueryCachedRows_ScanRows(t *testing.T) {
-	mockRows := new(MockRows)
 	query := getMeterQueryCachedRows{}
 
 	// Test scanning a single row
@@ -187,6 +190,7 @@ func TestGetMeterQueryCachedRows_ScanRows(t *testing.T) {
 	groupBy := map[string]string{"group1": "value1", "group2": ""}
 
 	// Set up mock to return one row
+	mockRows := clickhouse.NewMockRows()
 	mockRows.On("Next").Return(true).Once()
 	mockRows.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
 		dest := args.Get(0).([]interface{})
@@ -224,16 +228,14 @@ func TestGetMeterQueryCachedRows_ScanRows(t *testing.T) {
 }
 
 func TestConnector_LookupCachedMeterRows(t *testing.T) {
-	mockCH := new(MockClickHouse)
-	mockRows := new(MockRows)
-	progressMgr := new(MockProgressManager)
+	mockCH := clickhouse.NewMockClickHouse()
 
 	config := ConnectorConfig{
 		Logger:          slog.Default(),
 		ClickHouse:      mockCH,
 		Database:        "testdb",
 		EventsTableName: "events",
-		ProgressManager: progressMgr,
+		ProgressManager: progressmanager.NewMockProgressManager(),
 	}
 
 	connector := &Connector{config: config}
@@ -254,6 +256,7 @@ func TestConnector_LookupCachedMeterRows(t *testing.T) {
 	expectedArgs := []interface{}{"test-hash", "test-namespace", from.Unix(), to.Unix()}
 
 	// Mock query execution
+	mockRows := clickhouse.NewMockRows()
 	mockCH.On("Query", mock.Anything, expectedQuery, expectedArgs).Return(mockRows, nil)
 
 	// Setup rows to return one value
@@ -297,15 +300,14 @@ func TestConnector_LookupCachedMeterRows(t *testing.T) {
 }
 
 func TestConnector_CacheMeterRows(t *testing.T) {
-	mockCH := new(MockClickHouse)
-	progressMgr := new(MockProgressManager)
+	mockCH := clickhouse.NewMockClickHouse()
 
 	config := ConnectorConfig{
 		Logger:          slog.Default(),
 		ClickHouse:      mockCH,
 		Database:        "testdb",
 		EventsTableName: "events",
-		ProgressManager: progressMgr,
+		ProgressManager: progressmanager.NewMockProgressManager(),
 	}
 
 	connector := &Connector{config: config}

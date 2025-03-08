@@ -13,7 +13,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -132,15 +134,14 @@ func TestIsQueryCachable(t *testing.T) {
 
 // Integration test for queryMeterCached
 func TestConnector_QueryMeterCached(t *testing.T) {
-	mockCH := new(MockClickHouse)
-	progressMgr := new(MockProgressManager)
+	mockCH := clickhouse.NewMockClickHouse()
 
 	config := ConnectorConfig{
 		Logger:          slog.Default(),
 		ClickHouse:      mockCH,
 		Database:        "testdb",
 		EventsTableName: "events",
-		ProgressManager: progressMgr,
+		ProgressManager: progressmanager.NewMockProgressManager(),
 	}
 
 	connector := &Connector{config: config}
@@ -178,7 +179,7 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	currentCacheEnd := queryTo.Add(-5 * 24 * time.Hour).Truncate(time.Hour * 24)
 	cachedEnd := queryTo.Add(-24 * time.Hour).Truncate(time.Hour * 24)
 
-	mockRows1 := new(MockRows)
+	mockRows1 := clickhouse.NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
 		"test-hash",
 		"test-namespace",
@@ -200,7 +201,7 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	mockRows1.On("Close").Return(nil)
 
 	// Mock the SQL query for loading new data to the cache
-	mockRows2 := new(MockRows)
+	mockRows2 := clickhouse.NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
 		"test-namespace",
 		"",
@@ -266,15 +267,14 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 }
 
 func TestRemainingQueryMeterFactory(t *testing.T) {
-	mockCH := &MockClickHouse{}
-	progressMgr := &MockProgressManager{}
+	mockCH := clickhouse.NewMockClickHouse()
 
 	config := ConnectorConfig{
 		Logger:          slog.Default(),
 		ClickHouse:      mockCH,
 		Database:        "testdb",
 		EventsTableName: "events",
-		ProgressManager: progressMgr,
+		ProgressManager: progressmanager.NewMockProgressManager(),
 	}
 
 	connector := &Connector{config: config}
@@ -306,15 +306,14 @@ func TestRemainingQueryMeterFactory(t *testing.T) {
 }
 
 func TestGetQueryMeterForCachedPeriod(t *testing.T) {
-	mockCH := &MockClickHouse{}
-	progressMgr := &MockProgressManager{}
+	mockCH := clickhouse.NewMockClickHouse()
 
 	config := ConnectorConfig{
 		Logger:          slog.Default(),
 		ClickHouse:      mockCH,
 		Database:        "testdb",
 		EventsTableName: "events",
-		ProgressManager: progressMgr,
+		ProgressManager: progressmanager.NewMockProgressManager(),
 	}
 
 	connector := &Connector{config: config}

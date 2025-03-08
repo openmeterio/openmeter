@@ -27,21 +27,24 @@ type createMeterQueryHashTable struct {
 func (d createMeterQueryHashTable) toSQL() string {
 	tableName := getTableName(d.Database, d.TableName)
 
-	return fmt.Sprintf(`
-		CREATE TABLE IF NOT EXISTS %s (
-			hash String,
-			namespace String,
-			window_start DateTime,
-			window_end DateTime,
-			value Float64,
-			subject String,
-			group_by Map(String, String),
-			created_at DateTime DEFAULT now()
-		)
-		ENGINE = MergeTree()
-		ORDER BY (namespace, hash, window_start, window_end)
-		PARTITION BY toYYYYMM(window_start)
-		TTL created_at + INTERVAL 30 DAY;`, tableName)
+	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	sb.CreateTable(tableName)
+	sb.IfNotExists()
+	sb.Define("namespace", "String")
+	sb.Define("hash", "String")
+	sb.Define("window_start", "DateTime")
+	sb.Define("window_end", "DateTime")
+	sb.Define("value", "Float64")
+	sb.Define("subject", "String")
+	sb.Define("group_by", "Map(String, String)")
+	sb.Define("created_at", "DateTime DEFAULT now()")
+	sb.SQL("ENGINE = MergeTree")
+	sb.SQL("PARTITION BY toYYYYMM(window_start)")
+	sb.SQL("ORDER BY (namespace, hash, window_start, window_end)")
+	sb.SQL("TTL created_at + INTERVAL 30 DAY")
+
+	sql, _ := sb.Build()
+	return sql
 }
 
 // insertMeterQueryCachedRows is a query to insert rows into the meter_query_hash table
