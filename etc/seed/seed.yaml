@@ -5,7 +5,7 @@ input:
     # batch_size: 1
     mapping: |
       let max_subjects = ${SEEDER_MAX_SUBJECTS:20}
-      let event_type = "prompt"
+      let event_type = "tokens"
       let source = "api-gateway"
       let models = ["gpt-3", "gpt-4"]
       let types = ["input", "output"]
