@@ -3,9 +3,10 @@ package adapter
 import (
 	"context"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
-	"github.com/stretchr/testify/mock"
 )
 
 var _ progressmanager.Service = &MockProgressManager{}
