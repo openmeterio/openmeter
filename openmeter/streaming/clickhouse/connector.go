@@ -132,6 +132,7 @@ func (c *Connector) DeleteMeter(ctx context.Context, namespace string, meter met
 }
 
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
+	// Validate params
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -140,13 +141,61 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
-	values, err := c.queryMeter(ctx, namespace, meter, params)
-	if err != nil {
-		if meterpkg.IsMeterNotFoundError(err) {
-			return nil, err
-		}
+	// We sort the group by keys to ensure the order of the group by columns is deterministic
+	// It helps testing the SQL queries.
+	groupBy := params.GroupBy
+	sort.Strings(groupBy)
 
-		return nil, err
+	query := queryMeter{
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Namespace:       namespace,
+		Meter:           meter,
+		From:            params.From,
+		To:              params.To,
+		Subject:         params.FilterSubject,
+		FilterGroupBy:   params.FilterGroupBy,
+		GroupBy:         groupBy,
+		WindowSize:      params.WindowSize,
+		WindowTimeZone:  params.WindowTimeZone,
+	}
+
+	// Load cached rows if any
+	var cached []meterpkg.MeterQueryRow
+
+	useCache := isQueryCachable(meter, params)
+
+	if useCache {
+		var err error
+
+		hash := fmt.Sprintf("%x", params.Hash())
+
+		query, cached, err = c.queryMeterCached(ctx, hash, query)
+		if err != nil {
+			return cached, fmt.Errorf("query cached rows: %w", err)
+		}
+	}
+
+	//  Load fresh rows from events table
+	var err error
+	var values []meterpkg.MeterQueryRow
+
+	// If the client ID is set, we track track the progress of the query
+	if params.ClientID != nil {
+		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+		if err != nil {
+			return values, fmt.Errorf("query meter with progress: %w", err)
+		}
+	} else {
+		values, err = c.queryMeter(ctx, query)
+		if err != nil {
+			return values, fmt.Errorf("query meter: %w", err)
+		}
+	}
+
+	// Merge cached rows if any
+	if useCache {
+		values = mergeMeterQueryRows(meter, params, cached, values)
 	}
 
 	// If the total usage is queried for a single period (no window size),
@@ -433,85 +482,57 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	return results, nil
 }
 
-func (c *Connector) queryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {
-	// We sort the group by keys to ensure the order of the group by columns is deterministic
-	// It helps testing the SQL queries.
-	groupBy := params.GroupBy
-	sort.Strings(groupBy)
+// queryMeterWithProgress queries the meter and returns the rows
+// It also tracks the progress of the query
+func (c *Connector) queryMeterWithProgress(ctx context.Context, namespace string, clientID string, query queryMeter) ([]meterpkg.MeterQueryRow, error) {
+	var err error
 
-	queryMeter := queryMeter{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-		Namespace:       namespace,
-		Meter:           meter,
-		From:            params.From,
-		To:              params.To,
-		Subject:         params.FilterSubject,
-		FilterGroupBy:   params.FilterGroupBy,
-		GroupBy:         groupBy,
-		WindowSize:      params.WindowSize,
-		WindowTimeZone:  params.WindowTimeZone,
-	}
+	// Build SQL query to count the total number of rows
+	countSQL, countArgs := query.toCountRowSQL()
 
-	// Load cached rows if any
-	var cachedRows []meterpkg.MeterQueryRow
-
-	useCache := isQueryCachable(meter, params)
-
-	if useCache {
-		var err error
-
-		hash := fmt.Sprintf("%x", params.Hash())
-
-		queryMeter, cachedRows, err = c.queryMeterCached(ctx, hash, queryMeter)
-		if err != nil {
-			return cachedRows, fmt.Errorf("query cached rows: %w", err)
-		}
-	}
-
-	//  Load fresh rows from events table
-	values := []meterpkg.MeterQueryRow{}
-
-	sql, args, err := queryMeter.toSQL()
+	ctx, err = c.withProgressContext(ctx, namespace, clientID, countSQL, countArgs)
+	// Log error but don't return it
 	if err != nil {
-		return values, fmt.Errorf("query meter view: %w", err)
+		c.config.Logger.Error("failed track progress", "error", err, "clientId", clientID)
 	}
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
-		// Build SQL query to count the total number of rows
-		countSQL, countArgs := queryMeter.toCountRowSQL()
+	// Query the meter
+	values, err := c.queryMeter(ctx, query)
+	if err != nil {
+		return values, fmt.Errorf("query meter rows: %w", err)
+	}
 
-		ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs)
-		// Log error but don't return it
-		if err != nil {
-			c.config.Logger.Error("failed track progress", "error", err, "clientId", *params.ClientID)
-		}
+	return values, nil
+}
+
+// queryMeter queries the meter and returns the rows
+func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpkg.MeterQueryRow, error) {
+	// Build the SQL query
+	sql, args, err := query.toSQL()
+	if err != nil {
+		return nil, fmt.Errorf("build sql query: %w", err)
 	}
 
 	start := time.Now()
+
+	// Query the meter view
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
+			return nil, meterpkg.NewMeterNotFoundError(query.Meter.Key)
 		}
-
-		return values, fmt.Errorf("query meter view query: %w", err)
+		return nil, fmt.Errorf("clickhouse query: %w", err)
 	}
 
 	defer rows.Close()
 
 	elapsed := time.Since(start)
-	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
+	c.config.Logger.Debug("clickhouse query executed", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
-	values, err = queryMeter.scanRows(rows)
+	// Scan the rows
+	values, err := query.scanRows(rows)
 	if err != nil {
-		return nil, fmt.Errorf("scan meter query row: %w", err)
-	}
-
-	// Merge cached rows if any
-	if useCache {
-		values = mergeMeterQueryRows(meter, params, cachedRows, values)
+		return nil, fmt.Errorf("scan query rows: %w", err)
 	}
 
 	return values, nil

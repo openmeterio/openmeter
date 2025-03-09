@@ -3,7 +3,6 @@ package raw_events
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -98,7 +97,7 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 	}
 
 	// Step 2: Query new rows for the uncached time period
-	newRows, err := c.queryNewMeterRows(ctx, queryMeterCached)
+	newRows, err := c.queryMeter(ctx, queryMeterCached)
 	if err != nil {
 		return originalQueryMeter, values, fmt.Errorf("query new meter rows: %w", err)
 	}
@@ -147,40 +146,14 @@ func (c *Connector) getQueryMeterForCachedPeriod(originalQueryMeter queryMeter) 
 	// We truncate to complete days to avoid partial days in the cache
 	cachedQueryMeter.To = lo.ToPtr(cachedQueryMeter.To.Truncate(time.Hour * 24))
 
+	fmt.Println(cachedQueryMeter.To)
+
 	// This is the window size that the cache will use if no window size is provided
 	if cachedQueryMeter.WindowSize == nil {
 		cachedQueryMeter.WindowSize = lo.ToPtr(meter.WindowSizeDay)
 	}
 
 	return cachedQueryMeter, nil
-}
-
-// queryNewMeterRows executes a query to retrieve new meter data that is not cached
-func (c *Connector) queryNewMeterRows(ctx context.Context, hp queryMeter) ([]meterpkg.MeterQueryRow, error) {
-	// Build the SQL query for uncached data
-	sql, args, err := hp.toSQL()
-	if err != nil {
-		return nil, fmt.Errorf("build meter view query: %w", err)
-	}
-
-	// Query the meter view
-	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(hp.Meter.Key)
-		}
-		return nil, fmt.Errorf("execute meter view query: %w", err)
-	}
-
-	defer rows.Close()
-
-	// Scan the rows
-	newValues, err := hp.scanRows(rows)
-	if err != nil {
-		return nil, fmt.Errorf("scan meter query row: %w", err)
-	}
-
-	return newValues, nil
 }
 
 // lookupCachedMeterRows queries the meter_query_hash table for cached results
