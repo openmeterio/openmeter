@@ -50,7 +50,7 @@ func (m *MockClickHouse) Stats() driver.Stats {
 }
 
 func (m *MockClickHouse) PrepareBatch(ctx context.Context, query string, options ...driver.PrepareBatchOption) (driver.Batch, error) {
-	callArgs := m.Called(ctx, query, options, options)
+	callArgs := m.Called(ctx, query, options)
 	return callArgs.Get(0).(driver.Batch), callArgs.Error(1)
 }
 
@@ -60,8 +60,8 @@ func (m *MockClickHouse) AsyncInsert(ctx context.Context, query string, wait boo
 }
 
 func (m *MockClickHouse) Exec(ctx context.Context, query string, args ...interface{}) error {
-	callArgs := append([]interface{}{ctx, query}, args)
-	return m.Called(callArgs...).Error(0)
+	callArgs := m.Called(ctx, query, args)
+	return callArgs.Error(0)
 }
 
 func (m *MockClickHouse) Ping(ctx context.Context) error {

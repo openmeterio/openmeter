@@ -22,7 +22,13 @@ type MockProgressManager struct {
 
 func (m *MockProgressManager) GetProgress(ctx context.Context, input progressmanagerentity.GetProgressInput) (*progressmanagerentity.Progress, error) {
 	args := m.Called(ctx, input)
-	return args.Get(0).(*progressmanagerentity.Progress), args.Error(1)
+
+	result := args.Get(0)
+	if result == nil {
+		return nil, args.Error(1)
+	}
+
+	return result.(*progressmanagerentity.Progress), args.Error(1)
 }
 
 func (m *MockProgressManager) DeleteProgressByRuntimeID(ctx context.Context, runtimeID string) error {

@@ -27,7 +27,7 @@ func (c checkListener) OnCheckRegistered(name string, result health.Result) {
 }
 
 func (c checkListener) OnCheckStarted(name string) {
-	// c.logger.Debug("starting health check", slog.String("check", name))
+	c.logger.Debug("starting health check", slog.String("check", name))
 }
 
 func (c checkListener) OnCheckCompleted(name string, result health.Result) {
@@ -37,5 +37,5 @@ func (c checkListener) OnCheckCompleted(name string, result health.Result) {
 		return
 	}
 
-	// c.logger.Debug("health check completed", slog.String("check", name))
+	c.logger.Debug("health check completed", slog.String("check", name))
 }
