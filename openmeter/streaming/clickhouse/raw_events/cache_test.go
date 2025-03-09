@@ -472,7 +472,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
-			expectedTo:     lo.ToPtr(now.Add(-minCacheableToAge).Truncate(time.Hour * 24)),
+			expectedTo:     lo.ToPtr(now.Add(-36 * time.Hour).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
 		},
 		{
