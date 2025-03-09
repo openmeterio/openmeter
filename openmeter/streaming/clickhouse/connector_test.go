@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 )
 
 // TestConnector_QueryMeter tests the queryMeter function
