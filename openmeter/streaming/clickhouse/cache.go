@@ -146,8 +146,6 @@ func (c *Connector) getQueryMeterForCachedPeriod(originalQueryMeter queryMeter) 
 	// We truncate to complete days to avoid partial days in the cache
 	cachedQueryMeter.To = lo.ToPtr(cachedQueryMeter.To.Truncate(time.Hour * 24))
 
-	fmt.Println(cachedQueryMeter.To)
-
 	// This is the window size that the cache will use if no window size is provided
 	if cachedQueryMeter.WindowSize == nil {
 		cachedQueryMeter.WindowSize = lo.ToPtr(meter.WindowSizeDay)

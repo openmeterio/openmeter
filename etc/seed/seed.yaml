@@ -10,7 +10,7 @@ input:
       let models = ["gpt-3", "gpt-4"]
       let types = ["input", "output"]
       let subject = "customer-%d".format(random_int(seed: timestamp_unix_nano()) % $max_subjects)
-      let time = (now().ts_sub_iso8601("P30D").ts_unix() + random_int(min: 60, max: 60 * 60 * 24 * 30)).ts_format()
+      let time = now().ts_format()
       let model = $models.index(random_int(seed: timestamp_unix_nano()) % $models.length())
       let type = $types.index(random_int(seed: timestamp_unix_nano()) % $types.length())
       let tokens = random_int(seed: timestamp_unix_nano(), max: 100)
