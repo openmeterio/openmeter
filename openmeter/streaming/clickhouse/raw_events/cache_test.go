@@ -243,8 +243,9 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	assert.Len(t, results, 2) // Should have both cached and fresh rows
 
 	// Result query meter should have From set to the end of cached period
-	require.NotNil(t, resultQueryMeter.From)
-	assert.Equal(t, cachedEnd, *resultQueryMeter.From)
+	require.Nil(t, resultQueryMeter.From)
+	require.NotNil(t, resultQueryMeter.FromExclusive)
+	assert.Equal(t, cachedEnd, *resultQueryMeter.FromExclusive)
 
 	// Validate combined results
 	assert.Equal(t, []meterpkg.MeterQueryRow{
@@ -418,7 +419,8 @@ func TestRemainingQueryMeterFactory(t *testing.T) {
 	resultQuery := factory(cachedQuery)
 
 	// Should have the cached To as the new From
-	assert.Equal(t, cachedTo, *resultQuery.From)
+	require.Nil(t, resultQuery.From)
+	assert.Equal(t, cachedTo, *resultQuery.FromExclusive)
 	// Original To should be preserved
 	assert.Equal(t, to, *resultQuery.To)
 }
