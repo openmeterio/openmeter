@@ -1,0 +1,284 @@
+package filter
+
+import (
+	"errors"
+
+	"github.com/huandu/go-sqlbuilder"
+	"github.com/samber/lo"
+)
+
+// Filter is a filter for a field.
+type Filter interface {
+	Validate() error
+	ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
+}
+
+var (
+	_ Filter = (*FilterString)(nil)
+	_ Filter = (*FilterInteger)(nil)
+	_ Filter = (*FilterFloat)(nil)
+	_ Filter = (*FilterBoolean)(nil)
+)
+
+// FilterString is a filter for a string field.
+type FilterString struct {
+	Eq     *string         `json:"$eq,omitempty"`
+	Ne     *string         `json:"$ne,omitempty"`
+	In     *[]string       `json:"$in,omitempty"`
+	Nin    *[]string       `json:"$nin,omitempty"`
+	Like   *string         `json:"$like,omitempty"`
+	Nlike  *string         `json:"$nlike,omitempty"`
+	Ilike  *string         `json:"$ilike,omitempty"`
+	Nilike *string         `json:"$nilike,omitempty"`
+	Gt     *string         `json:"$gt,omitempty"`
+	Gte    *string         `json:"$gte,omitempty"`
+	Lt     *string         `json:"$lt,omitempty"`
+	Lte    *string         `json:"$lte,omitempty"`
+	And    *[]FilterString `json:"$and,omitempty"`
+	Or     *[]FilterString `json:"$or,omitempty"`
+}
+
+func (f *FilterString) Validate() error {
+	if f == nil {
+		return nil
+	}
+
+	// Check for multiple non-nil filters
+	if err := validateMutuallyExclusiveFilters([]bool{
+		f.Eq != nil, f.Ne != nil, f.In != nil, f.Nin != nil,
+		f.Like != nil, f.Nlike != nil, f.Ilike != nil, f.Nilike != nil,
+		f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+	}); err != nil {
+		return err
+	}
+
+	// Validate logical operators
+	errs := lo.Map(lo.FromPtr(f.And), func(f FilterString, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	errs = lo.Map(lo.FromPtr(f.Or), func(f FilterString, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
+func (f *FilterString) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	switch {
+	case f.Eq != nil:
+		return q.EQ(field, *f.Eq)
+	case f.Ne != nil:
+		return q.NE(field, *f.Ne)
+	case f.In != nil:
+		return q.In(field, *f.In)
+	case f.Nin != nil:
+		return q.NotIn(field, *f.Nin)
+	case f.Like != nil:
+		return q.Like(field, *f.Like)
+	case f.Nlike != nil:
+		return q.NotLike(field, *f.Nlike)
+	case f.Ilike != nil:
+		return q.ILike(field, *f.Ilike)
+	case f.Nilike != nil:
+		return q.NotILike(field, *f.Nilike)
+	case f.Gt != nil:
+		return q.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return q.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return q.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return q.LTE(field, *f.Lte)
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(filter FilterString, _ int) string {
+			return filter.ToSQLWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(filter FilterString, _ int) string {
+			return filter.ToSQLWhereExpr(field, q)
+		})...)
+	default:
+		return ""
+	}
+}
+
+// FilterInteger is a filter for an integer field.
+type FilterInteger struct {
+	Eq  *int             `json:"$eq,omitempty"`
+	Ne  *int             `json:"$ne,omitempty"`
+	Gt  *int             `json:"$gt,omitempty"`
+	Gte *int             `json:"$gte,omitempty"`
+	Lt  *int             `json:"$lt,omitempty"`
+	Lte *int             `json:"$lte,omitempty"`
+	And *[]FilterInteger `json:"$and,omitempty"`
+	Or  *[]FilterInteger `json:"$or,omitempty"`
+}
+
+func (f *FilterInteger) Validate() error {
+	if f == nil {
+		return nil
+	}
+
+	// Check for multiple non-nil filters
+	if err := validateMutuallyExclusiveFilters([]bool{
+		f.Eq != nil, f.Ne != nil, f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+	}); err != nil {
+		return err
+	}
+
+	// Validate logical operators
+	errs := lo.Map(lo.FromPtr(f.And), func(f FilterInteger, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	errs = lo.Map(lo.FromPtr(f.Or), func(f FilterInteger, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
+func (f *FilterInteger) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	switch {
+	case f.Eq != nil:
+		return q.EQ(field, *f.Eq)
+	case f.Ne != nil:
+		return q.NE(field, *f.Ne)
+	case f.Gt != nil:
+		return q.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return q.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return q.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return q.LTE(field, *f.Lte)
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(filter FilterInteger, _ int) string {
+			return filter.ToSQLWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(filter FilterInteger, _ int) string {
+			return filter.ToSQLWhereExpr(field, q)
+		})...)
+	default:
+		return ""
+	}
+}
+
+// FilterFloat is a filter for a float field.
+type FilterFloat struct {
+	Eq  *float64       `json:"$eq,omitempty"`
+	Ne  *float64       `json:"$ne,omitempty"`
+	Gt  *float64       `json:"$gt,omitempty"`
+	Gte *float64       `json:"$gte,omitempty"`
+	Lt  *float64       `json:"$lt,omitempty"`
+	Lte *float64       `json:"$lte,omitempty"`
+	And *[]FilterFloat `json:"$and,omitempty"`
+	Or  *[]FilterFloat `json:"$or,omitempty"`
+}
+
+func (f *FilterFloat) Validate() error {
+	if f == nil {
+		return nil
+	}
+
+	// Check for multiple non-nil filters
+	if err := validateMutuallyExclusiveFilters([]bool{
+		f.Eq != nil, f.Ne != nil, f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+	}); err != nil {
+		return err
+	}
+
+	// Validate logical operators
+	errs := lo.Map(lo.FromPtr(f.And), func(f FilterFloat, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	errs = lo.Map(lo.FromPtr(f.Or), func(f FilterFloat, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
+func (f *FilterFloat) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	switch {
+	case f.Eq != nil:
+		return q.EQ(field, *f.Eq)
+	case f.Ne != nil:
+		return q.NE(field, *f.Ne)
+	case f.Gt != nil:
+		return q.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return q.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return q.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return q.LTE(field, *f.Lte)
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(filter FilterFloat, _ int) string {
+			return filter.ToSQLWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(filter FilterFloat, _ int) string {
+			return filter.ToSQLWhereExpr(field, q)
+		})...)
+	default:
+		return ""
+	}
+}
+
+// FilterBoolean is a filter for a boolean field.
+type FilterBoolean struct {
+	Eq *bool `json:"$eq,omitempty"`
+}
+
+// Validate validates the filter.
+func (f *FilterBoolean) Validate() error {
+	if f == nil {
+		return nil
+	}
+
+	return nil
+}
+
+// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
+func (f *FilterBoolean) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	switch {
+	case f.Eq != nil:
+		return q.EQ(field, *f.Eq)
+	default:
+		return ""
+	}
+}
+
+// validateMutuallyExclusiveFilters checks if more than one filter field is set, as filters are mutually exclusive
+func validateMutuallyExclusiveFilters(fields []bool) error {
+	nonNilFilters := lo.CountBy(fields, func(b bool) bool { return b })
+	if nonNilFilters > 1 {
+		return errors.New("only one filter can be set")
+	}
+	return nil
+}
