@@ -134,6 +134,11 @@ func TestComplete(t *testing.T) {
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
+			QueryCache: AggregationQueryCacheConfiguration{
+				Enabled:                     false,
+				MinimumCacheableQueryPeriod: 72 * time.Hour,
+				MinimumCacheableUsageAge:    24 * time.Hour,
+			},
 		},
 		Entitlements: EntitlementsConfiguration{
 			GracePeriod: isodate.String("P1D"),
