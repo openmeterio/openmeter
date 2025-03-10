@@ -133,21 +133,21 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("fetching profile: %w", err)
 	}
 
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.Status != billing.InvoiceLineStatusValid || line.DeletedAt != nil {
-			continue
-		}
+	inScopeLineSvcs, err := s.lineService.FromEntities(
+		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+			return line.Status == billing.InvoiceLineStatusValid && line.DeletedAt == nil
+		}),
+	)
+	if err != nil {
+		return invoice, fmt.Errorf("creating line services: %w", err)
+	}
 
-		srv, err := s.lineService.FromEntity(line)
-		if err != nil {
-			return invoice, fmt.Errorf("creating line service: %w", err)
-		}
-
-		if err := srv.SnapshotQuantity(ctx, &invoice); err != nil {
+	for _, lineSvc := range inScopeLineSvcs {
+		if err := lineSvc.SnapshotQuantity(ctx, &invoice); err != nil {
 			return invoice, fmt.Errorf("snapshotting quantity: %w", err)
 		}
 
-		period, err := srv.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
+		period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
 			AsOf:               now,
 			ProgressiveBilling: billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
 		})
@@ -934,32 +934,32 @@ func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdap
 }
 
 func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.Invoice, progressiveBilling bool) error {
+	inScopeLineServices, err := s.lineService.FromEntities(
+		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+			return line.Status == billing.InvoiceLineStatusValid && line.DeletedAt == nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("creating line services: %w", err)
+	}
+
 	return errors.Join(
-		lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) error {
-			if line.Status != billing.InvoiceLineStatusValid || line.DeletedAt != nil {
-				return nil
-			}
-
-			lineSvc, err := s.lineService.FromEntity(line)
-			if err != nil {
-				return fmt.Errorf("creating line[%s] service from entity: %w", line.ID, err)
-			}
-
+		lo.Map(inScopeLineServices, func(lineSvc lineservice.Line, _ int) error {
 			if err := lineSvc.Validate(ctx, invoice); err != nil {
-				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
+				return fmt.Errorf("validating line[%s]: %w", lineSvc.ID(), err)
 			}
 
 			period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
-				AsOf:               line.InvoiceAt,
+				AsOf:               lineSvc.InvoiceAt(),
 				ProgressiveBilling: progressiveBilling,
 			})
 			if err != nil {
-				return fmt.Errorf("checking if line[%s] can be invoiced: %w", line.ID, err)
+				return fmt.Errorf("checking if line[%s] can be invoiced: %w", lineSvc.ID(), err)
 			}
 
 			if period == nil {
 				return billing.ValidationError{
-					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.Period.End),
+					Err: fmt.Errorf("line[%s]: %w as of %s", lineSvc.ID(), billing.ErrInvoiceLinesNotBillable, lineSvc.Period().End),
 				}
 			}
 
@@ -1045,19 +1045,22 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
+	err = errors.Join(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) error {
+		return line.Validate()
+	})...)
+	if err != nil {
+		return billing.Invoice{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	inScopeLineSvcs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("creating line services: %w", err)
+	}
+
 	// Let's update the lines and the detailed lines
-	for _, line := range invoice.Lines.OrEmpty() {
-		if err := line.Validate(); err != nil {
-			return billing.Invoice{}, billing.ValidationError{
-				Err: err,
-			}
-		}
-
-		lineSvc, err := s.lineService.FromEntity(line)
-		if err != nil {
-			return billing.Invoice{}, fmt.Errorf("creating line service from entity: %w", err)
-		}
-
+	for _, lineSvc := range inScopeLineSvcs {
 		if err := lineSvc.Validate(ctx, &invoice); err != nil {
 			return billing.Invoice{}, billing.ValidationError{
 				Err: err,

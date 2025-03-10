@@ -59,6 +59,7 @@ type SplitResult struct {
 type LineBase interface {
 	ToEntity() *billing.Line
 	ID() string
+	InvoiceAt() time.Time
 	InvoiceID() string
 	Currency() currencyx.Code
 	Period() billing.Period
@@ -103,6 +104,10 @@ func (l lineBase) ID() string {
 
 func (l lineBase) InvoiceID() string {
 	return l.line.InvoiceID
+}
+
+func (l lineBase) InvoiceAt() time.Time {
+	return l.line.InvoiceAt
 }
 
 func (l lineBase) Currency() currencyx.Code {
