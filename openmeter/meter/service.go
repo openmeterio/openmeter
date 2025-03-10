@@ -174,7 +174,7 @@ func (i UpdateMeterInput) Validate(valueProperty *string) error {
 
 	err := validateMeterGroupBy(valueProperty, i.GroupBy)
 	if err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)
