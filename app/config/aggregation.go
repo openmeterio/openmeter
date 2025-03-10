@@ -28,6 +28,23 @@ type AggregationConfiguration struct {
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
 	InsertQuerySettings map[string]string
+<<<<<<< HEAD
+=======
+
+	// Engine specific options
+
+	// Populate creates the materialized view with data from the events table
+	// This is not safe to use in production as requires to stop ingestion
+	PopulateMeter bool
+	// CreateOrReplace is used to force the recreation of the materialized view
+	// This is not safe to use in production as it will drop the existing views
+	CreateOrReplaceMeter bool
+	// QueryRawEvents is used to query the raw events table instead of the materialized view
+	QueryRawEvents bool
+
+	// QueryCache is the cache configuration
+	QueryCache AggregationQueryCacheConfiguration
+>>>>>>> 4c356376 (feat(meter): query cache configurable)
 }
 
 // Validate validates the configuration.
@@ -42,6 +59,32 @@ func (c AggregationConfiguration) Validate() error {
 
 	if c.AsyncInsertWait && !c.AsyncInsert {
 		return errors.New("async insert wait is set but async insert is not")
+	}
+
+	return nil
+}
+
+// AggregationQueryCacheConfiguration is the cache configuration for the aggregation engine
+type AggregationQueryCacheConfiguration struct {
+	Enabled bool
+
+	// Minimum query period that can be cached
+	MinimumCacheableQueryPeriod time.Duration
+	// Minimum age after usage data is cachable
+	MinimumCacheableUsageAge time.Duration
+}
+
+func (c AggregationQueryCacheConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.MinimumCacheableQueryPeriod.IsZero() {
+		return errors.New("minimum cacheable query period is required")
+	}
+
+	if c.MinimumCacheableUsageAge.IsZero() {
+		return errors.New("minimum cacheable usage age is required")
 	}
 
 	return nil
@@ -123,6 +166,11 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
 	v.SetDefault("aggregation.asyncInsert", false)
 	v.SetDefault("aggregation.asyncInsertWait", false)
+
+	// Cache configuration
+	v.SetDefault("aggregation.queryCache.enabled", false)
+	v.SetDefault("aggregation.queryCache.minimumCacheableQueryPeriod", "3d")
+	v.SetDefault("aggregation.queryCache.minimumCacheableUsageAge", "24h")
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("aggregation.clickhouse.tls", false)
