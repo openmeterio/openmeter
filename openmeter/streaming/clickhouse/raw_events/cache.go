@@ -218,3 +218,45 @@ func (c *Connector) createMeterQueryCacheTable(ctx context.Context) error {
 
 	return nil
 }
+
+// findNamespacesToInvalidateCache finds the namespaces that need to be invalidated
+func (c *Connector) findNamespacesToInvalidateCache(rawEvents []streaming.RawEvent) []string {
+	// Check if any events requires cache invalidation
+	now := time.Now().UTC()
+
+	// Remove duplicates from namespaces
+	uniqueNamespaces := []string{}
+	seen := map[string]struct{}{}
+
+	for _, event := range rawEvents {
+		if event.Time.Before(now.Add(-c.config.QueryCacheMinimumCacheableUsageAge)) {
+			if _, ok := seen[event.Namespace]; !ok {
+				seen[event.Namespace] = struct{}{}
+				uniqueNamespaces = append(uniqueNamespaces, event.Namespace)
+			}
+		}
+	}
+
+	return uniqueNamespaces
+}
+
+// invalidateCache deletes all cached rows for the specified namespaces
+func (c *Connector) invalidateCache(ctx context.Context, namespaces []string) error {
+	if !c.config.QueryCacheEnabled {
+		return nil
+	}
+
+	deleteQuery := deleteCacheForNamespaces{
+		Database:   c.config.Database,
+		TableName:  meterQueryRowCacheTable,
+		Namespaces: namespaces,
+	}
+
+	sql, args := deleteQuery.toSQL()
+
+	if err := c.config.ClickHouse.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("delete from cache: %w", err)
+	}
+
+	return nil
+}
