@@ -36,9 +36,9 @@ type Dependencies struct {
 	PGDriver  *pgdriver.Driver
 	EntDriver *entdriver.EntPostgresDriver
 
-	GrantRepo           grant.Repo
-	BalanceSnapshotRepo balance.SnapshotRepo
-	GrantConnector      credit.GrantConnector
+	GrantRepo              grant.Repo
+	BalanceSnapshotService balance.SnapshotService
+	GrantConnector         credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo
 
@@ -119,11 +119,17 @@ func setupDependencies(t *testing.T) Dependencies {
 		log,
 	)
 
+	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+		OwnerConnector:     owner,
+		StreamingConnector: streaming,
+		Repo:               balanceSnapshotRepo,
+	})
+
 	transactionManager := enttx.NewCreator(dbClient)
 
 	creditConnector := credit.NewCreditConnector(
 		grantRepo,
-		balanceSnapshotRepo,
+		balanceSnapshotService,
 		owner,
 		streaming,
 		log,
@@ -171,7 +177,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		BooleanEntitlementConnector: booleanEntitlementConnector,
 		MeteredEntitlementConnector: meteredEntitlementConnector,
 
-		BalanceSnapshotRepo: balanceSnapshotRepo,
+		BalanceSnapshotService: balanceSnapshotService,
 
 		Streaming: streaming,
 

@@ -32,18 +32,18 @@ import (
 )
 
 type dependencies struct {
-	dbClient            *db.Client
-	pgDriver            *pgdriver.Driver
-	entDriver           *entdriver.EntPostgresDriver
-	featureRepo         feature.FeatureRepo
-	entitlementRepo     entitlement.EntitlementRepo
-	usageResetRepo      meteredentitlement.UsageResetRepo
-	grantRepo           grant.Repo
-	balanceSnapshotRepo balance.SnapshotRepo
-	balanceConnector    credit.BalanceConnector
-	ownerConnector      grant.OwnerConnector
-	streamingConnector  *streamingtestutils.MockStreamingConnector
-	creditConnector     credit.CreditConnector
+	dbClient               *db.Client
+	pgDriver               *pgdriver.Driver
+	entDriver              *entdriver.EntPostgresDriver
+	featureRepo            feature.FeatureRepo
+	entitlementRepo        entitlement.EntitlementRepo
+	usageResetRepo         meteredentitlement.UsageResetRepo
+	grantRepo              grant.Repo
+	balanceSnapshotService balance.SnapshotService
+	balanceConnector       credit.BalanceConnector
+	ownerConnector         grant.OwnerConnector
+	streamingConnector     *streamingtestutils.MockStreamingConnector
+	creditConnector        credit.CreditConnector
 }
 
 // Teardown cleans up the dependencies
@@ -120,9 +120,15 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	transactionManager := enttx.NewCreator(dbClient)
 
+	snapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+		OwnerConnector:     ownerConnector,
+		StreamingConnector: streamingConnector,
+		Repo:               balanceSnapshotRepo,
+	})
+
 	creditConnector := credit.NewCreditConnector(
 		grantRepo,
-		balanceSnapshotRepo,
+		snapshotService,
 		ownerConnector,
 		streamingConnector,
 		testLogger,
@@ -150,7 +156,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		entitlementRepo,
 		usageResetRepo,
 		grantRepo,
-		balanceSnapshotRepo,
+		snapshotService,
 		creditConnector,
 		ownerConnector,
 		streamingConnector,

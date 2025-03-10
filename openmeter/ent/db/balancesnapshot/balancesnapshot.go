@@ -26,6 +26,8 @@ const (
 	FieldOwnerID = "owner_id"
 	// FieldGrantBalances holds the string denoting the grant_balances field in the database.
 	FieldGrantBalances = "grant_balances"
+	// FieldUsage holds the string denoting the usage field in the database.
+	FieldUsage = "usage"
 	// FieldBalance holds the string denoting the balance field in the database.
 	FieldBalance = "balance"
 	// FieldOverage holds the string denoting the overage field in the database.
@@ -54,6 +56,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldOwnerID,
 	FieldGrantBalances,
+	FieldUsage,
 	FieldBalance,
 	FieldOverage,
 	FieldAt,

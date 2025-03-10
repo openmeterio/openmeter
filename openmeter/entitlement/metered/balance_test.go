@@ -260,10 +260,14 @@ func TestGetEntitlementBalance(t *testing.T) {
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute))
 
 				// add a balance snapshot
-				err = deps.balanceSnapshotRepo.Save(
+				err = deps.balanceSnapshotService.Save(
 					ctx,
 					owner, []balance.Snapshot{
 						{
+							Usage: balance.SnapshottedUsage{
+								Since: startTime,
+								Usage: 0,
+							},
 							Balances: balance.Map{
 								g1.ID: 1000,
 							},
@@ -276,8 +280,19 @@ func TestGetEntitlementBalance(t *testing.T) {
 				clock.SetTime(queryTime)
 
 				// get last vaild snapshot
-				snap1, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
+				snap1, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
+				assert.Equal(t, balance.Snapshot{
+					Usage: balance.SnapshottedUsage{
+						Since: startTime,
+						Usage: 0,
+					},
+					Balances: balance.Map{
+						g1.ID: 1000,
+					},
+					Overage: 0,
+					At:      g1.EffectiveAt,
+				}, snap1)
 
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
 				assert.NoError(t, err)
@@ -287,15 +302,22 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 800.0, entBalance.Balance)
 				assert.Equal(t, 0.0, entBalance.Overage)
 
-				snap2, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
+				snap2, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
 
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
-				assert.Equal(t, 0.0, snap2.Overage)
-				assert.Equal(t, balance.Map{
-					g1.ID: 800,
-				}, snap2.Balances)
+				assert.Equal(t, balance.Snapshot{
+					Usage: balance.SnapshottedUsage{
+						Since: startTime.AddDate(0, 0, 2), // Entitlement resets daily, so this snapshot will be at a reset time
+						Usage: 0,                          // And at a reset time the usage is 0
+					},
+					Balances: balance.Map{
+						g1.ID: 800,
+					},
+					Overage: 0,
+					At:      startTime.AddDate(0, 0, 2), // When the 7 day graceperiod is over
+				}, snap2)
 			},
 		},
 		{
@@ -340,7 +362,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 200, g1.EffectiveAt.Add(time.Minute*5))
 
 				// add a balance snapshot
-				err = deps.balanceSnapshotRepo.Save(
+				err = deps.balanceSnapshotService.Save(
 					ctx,
 					owner, []balance.Snapshot{
 						{
@@ -354,7 +376,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.NoError(t, err)
 
 				// get last vaild snapshot
-				snap1, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
+				snap1, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
 
 				clock.SetTime(queryTime)
@@ -367,7 +389,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 800.0, entBalance.Balance)
 				assert.Equal(t, 0.0, entBalance.Overage)
 
-				snap2, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
+				snap2, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
 
 				// check snapshots

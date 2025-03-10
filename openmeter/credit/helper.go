@@ -6,23 +6,20 @@ import (
 	"sort"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// Fetches the last valid snapshot for an owner.
-//
-// If no snapshot exists returns a default snapshot for measurement start to recalculate the entire history
-// in case no usable snapshot was found.
-func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
-	bal, err := m.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, at)
+// GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
+// If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
+func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	bal, err := m.balanceSnapshotService.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
@@ -87,28 +84,31 @@ func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.Name
 		periodCache = []timeutil.Period{{From: firstPeriodStart, To: queryBounds.To}}
 	}
 
-	// Let's write a function that replaces GetUsagePeriodStartAt with a cache lookup
-	getUsagePeriodStartAtFromCache := func(at time.Time) (time.Time, error) {
-		for _, period := range periodCache {
-			// We run with ContainsInclusive in Time-ASC order so we can match the end of the last period
-			if period.ContainsInclusive(at) {
-				return period.From, nil
+	// We build a custom UsageQuerier for our usecase here. The engine should only every query the one owner we fetched above.
+	usageQuerier := balance.NewUsageQuerier(balance.UsageQuerierConfig{
+		StreamingConnector: m.streamingConnector,
+		DescribeOwner: func(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
+			if id != ownerID {
+				return grant.Owner{}, fmt.Errorf("expected owner %s, got %s", ownerID.ID, id.ID)
 			}
-		}
-		return time.Time{}, fmt.Errorf("no period start time found for %s, known periods: %+v", at, periodCache)
-	}
-
-	// Let's define a simple helper that validates the returned meter rows
-	getValueFromRows := func(rows []meter.MeterQueryRow) (float64, error) {
-		// We expect only one row
-		if len(rows) > 1 {
-			return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
-		}
-		if len(rows) == 0 {
-			return 0.0, nil
-		}
-		return rows[0].Value, nil
-	}
+			return owner, nil
+		},
+		GetDefaultParams: func(ctx context.Context, oID models.NamespacedID) (streaming.QueryParams, error) {
+			if oID != ownerID {
+				return streaming.QueryParams{}, fmt.Errorf("expected owner %s, got %s", ownerID.ID, oID.ID)
+			}
+			return owner.DefaultQueryParams, nil
+		},
+		GetUsagePeriodStartAt: func(_ context.Context, _ models.NamespacedID, at time.Time) (time.Time, error) {
+			for _, period := range periodCache {
+				// We run with ContainsInclusive in Time-ASC order so we can match the end of the last period
+				if period.ContainsInclusive(at) {
+					return period.From, nil
+				}
+			}
+			return time.Time{}, fmt.Errorf("no period start time found for %s, known periods: %+v", at, periodCache)
+		},
+	})
 
 	eng := engine.NewEngine(engine.EngineConfig{
 		Granularity: owner.Meter.WindowSize,
@@ -118,79 +118,8 @@ func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.Name
 				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", queryBounds.From, queryBounds.To, from, to, queryBounds.ContainsInclusive(from), queryBounds.ContainsInclusive(to))
 			}
 
-			params := owner.DefaultQueryParams
-
-			// Let's query the meter based on the aggregation
-			switch owner.Meter.Aggregation {
-			case meter.MeterAggregationUniqueCount:
-				periodStart, err := getUsagePeriodStartAtFromCache(from)
-				if err != nil {
-					return 0.0, err
-				}
-
-				// To get the UNIQUE_COUNT value between `from` and `to` we need to:
-				// 1. Query between the period start and `to` to get the unique count at `to`
-				// 2. Query between the period start and `from` to get the unique count at `from`
-				// 3. Subtract the two values
-				params.From = &periodStart
-				params.To = &to
-
-				var valueTo float64 = 0.0
-				var valueFrom float64 = 0.0
-
-				if !periodStart.Equal(to) {
-					rows, err := m.streamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
-					if err != nil {
-						return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
-					}
-
-					valueTo, err = getValueFromRows(rows)
-					if err != nil {
-						return 0.0, err
-					}
-				}
-
-				params.To = &from
-
-				// If the two times are different we need to query the value at `from`
-				if !params.From.Equal(*params.To) && !periodStart.Equal(from) {
-					rows, err := m.streamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
-					if err != nil {
-						return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
-					}
-
-					valueFrom, err = getValueFromRows(rows)
-					if err != nil {
-						return 0.0, err
-					}
-				}
-
-				// Let's do an accurate subsctraction
-				vTo := alpacadecimal.NewFromFloat(valueTo)
-				vFrom := alpacadecimal.NewFromFloat(valueFrom)
-
-				return vTo.Sub(vFrom).InexactFloat64(), nil
-
-			// For SUM and COUNT we can simply query the meter
-			case meter.MeterAggregationSum, meter.MeterAggregationCount:
-				// If the two times are the same we can return 0.0 as there's no usage
-				if from.Equal(to) {
-					return 0.0, nil
-				}
-
-				params.From = &from
-				params.To = &to
-
-				// Let's query the meter
-				rows, err := m.streamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
-				if err != nil {
-					return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
-				}
-
-				return getValueFromRows(rows)
-			default:
-				return 0.0, fmt.Errorf("unsupported aggregation %s", owner.Meter.Aggregation)
-			}
+			// If we're inside the period cache, we can just use the UsageQuerier
+			return usageQuerier.QueryUsage(ctx, ownerID, timeutil.Period{From: from, To: to})
 		},
 	})
 	return eng, nil
@@ -223,12 +152,16 @@ func (m *connector) snapshotEngineResult(ctx context.Context, params snapshotPar
 
 		// We can save a segment if its not after the current period start (this way backfilling, granting, resetting, etc... will work for the current UsagePeriod)
 		if !seg.From.After(currentPeriodStart) && !seg.From.After(params.before) {
-			snap := seg.ToSnapshot()
+			snap, err := params.runRes.History.GetSnapshotAtStartOfSegment(i)
+			if err != nil {
+				return fmt.Errorf("failed to get snapshot at start of segment: %w", err)
+			}
+
 			if err := m.removeInactiveGrantsFromSnapshotAt(&snap, params.grants, currentPeriodStart); err != nil {
 				return fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
 			}
 
-			if err := m.balanceSnapshotRepo.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
+			if err := m.balanceSnapshotService.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
 				return fmt.Errorf("failed to save snapshot: %w", err)
 			}
 

@@ -205,6 +205,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "grant_balances", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "usage", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "overage", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "at", Type: field.TypeTime},
@@ -218,7 +219,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "balance_snapshots_entitlements_balance_snapshot",
-				Columns:    []*schema.Column{BalanceSnapshotsColumns[9]},
+				Columns:    []*schema.Column{BalanceSnapshotsColumns[10]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -232,17 +233,17 @@ var (
 			{
 				Name:    "balancesnapshot_namespace_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[8]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[9]},
 			},
 			{
 				Name:    "balancesnapshot_namespace_balance",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[6]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[7]},
 			},
 			{
 				Name:    "balancesnapshot_namespace_balance_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[6], BalanceSnapshotsColumns[8]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[7], BalanceSnapshotsColumns[9]},
 			},
 		},
 	}

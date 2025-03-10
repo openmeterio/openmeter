@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -139,11 +140,17 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			testLogger,
 		)
 
+		balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+			OwnerConnector:     ownerConnector,
+			StreamingConnector: streamingConnector,
+			Repo:               balanceSnapshotRepo,
+		})
+
 		transactionManager := enttx.NewCreator(dbClient)
 
 		creditConnector := credit.NewCreditConnector(
 			grantRepo,
-			balanceSnapshotRepo,
+			balanceSnapshotService,
 			ownerConnector,
 			streamingConnector,
 			testLogger,
@@ -176,7 +183,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			entitlementRepo,
 			usageResetRepo,
 			grantRepo,
-			balanceSnapshotRepo,
+			balanceSnapshotService,
 			inconsistentCreditConnector,
 			ownerConnector,
 			streamingConnector,

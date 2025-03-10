@@ -19,8 +19,8 @@ type CreditConnector interface {
 
 type connector struct {
 	// grants and balance snapshots are managed in this same package
-	grantRepo           grant.Repo
-	balanceSnapshotRepo balance.SnapshotRepo
+	grantRepo              grant.Repo
+	balanceSnapshotService balance.SnapshotService
 	// external dependencies
 	transactionManager transaction.Creator
 	publisher          eventbus.Publisher
@@ -34,7 +34,7 @@ type connector struct {
 
 func NewCreditConnector(
 	grantRepo grant.Repo,
-	balanceSnapshotRepo balance.SnapshotRepo,
+	balanceSnapshotService balance.SnapshotService,
 	ownerConnector grant.OwnerConnector,
 	streamingConnector streaming.Connector,
 	logger *slog.Logger,
@@ -43,11 +43,11 @@ func NewCreditConnector(
 	transactionManager transaction.Creator,
 ) CreditConnector {
 	return &connector{
-		grantRepo:           grantRepo,
-		balanceSnapshotRepo: balanceSnapshotRepo,
-		ownerConnector:      ownerConnector,
-		streamingConnector:  streamingConnector,
-		logger:              logger,
+		grantRepo:              grantRepo,
+		balanceSnapshotService: balanceSnapshotService,
+		ownerConnector:         ownerConnector,
+		streamingConnector:     streamingConnector,
+		logger:                 logger,
 
 		transactionManager: transactionManager,
 

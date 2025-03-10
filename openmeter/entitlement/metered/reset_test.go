@@ -233,7 +233,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ID:        ent.ID,
 				}
 
-				err = deps.balanceSnapshotRepo.Save(ctx, models.NamespacedID{
+				err = deps.balanceSnapshotService.Save(ctx, models.NamespacedID{
 					Namespace: namespace,
 					ID:        ent.ID,
 				}, []balance.Snapshot{
@@ -249,7 +249,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				clock.ResetTime()
 
 				// for sanity check that snapshot was created (at g1.EffectiveAt)
-				snap, err := deps.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, queryTime)
+				snap, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
 				assert.NoError(t, err)
 
 				assert.Equal(t, g1.EffectiveAt, snap.At)
