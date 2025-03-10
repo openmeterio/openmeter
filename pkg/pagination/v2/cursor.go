@@ -24,50 +24,26 @@ func NewCursor(t time.Time, id string) *Cursor {
 }
 
 // DecodeCursor decodes a base64-encoded cursor string into a Cursor object.
-// It returns nil if the encoded cursor is nil.
-func DecodeCursor(encodedCursor *string) (*Cursor, error) {
-	if encodedCursor == nil {
-		return nil, nil
-	}
+func DecodeCursor(s string) (*Cursor, error) {
+	var cursor Cursor
 
-	byt, err := base64.StdEncoding.DecodeString(*encodedCursor)
+	err := cursor.UnmarshalText([]byte(s))
 	if err != nil {
-		return nil, fmt.Errorf("decode cursor: %w", err)
+		return nil, err
 	}
 
-	decodedStr := string(byt)
-	parts := strings.SplitN(decodedStr, cursorDelimiter, 2)
-
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("cursor is invalid: no delimiter found")
-	}
-
-	timeStr := parts[0]
-	id := parts[1]
-
-	// Parse the time
-	timestamp, err := time.Parse(time.RFC3339, timeStr)
-	if err != nil {
-		return nil, fmt.Errorf("parse cursor timestamp: %w", err)
-	}
-
-	cursor := &Cursor{
-		Time: timestamp,
-		ID:   id,
-	}
-
-	return cursor, nil
+	return &cursor, nil
 }
 
 // Encode converts the cursor to a base64-encoded string representation.
 // The encoded string is formatted as <RFC3339 time>,<ID>.
 func (c Cursor) Encode() string {
 	// Ensure time is in UTC
-	utcTime := c.Time.UTC()
+	t := c.Time.UTC()
 
-	encodedStr := fmt.Sprintf("%s%s%s", utcTime.Format(time.RFC3339), cursorDelimiter, c.ID)
+	s := fmt.Sprintf("%s%s%s", t.Format(time.RFC3339), cursorDelimiter, c.ID)
 
-	return base64.StdEncoding.EncodeToString([]byte(encodedStr))
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
@@ -79,16 +55,33 @@ func (c Cursor) MarshalText() ([]byte, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 // It decodes the cursor from its text form.
 func (c *Cursor) UnmarshalText(text []byte) error {
-	strText := string(text)
-	decoded, err := DecodeCursor(&strText)
+	if len(text) == 0 {
+		return fmt.Errorf("text is empty")
+	}
+
+	b, err := base64.StdEncoding.DecodeString(string(text))
 	if err != nil {
-		return err
+		return fmt.Errorf("decode cursor: %w", err)
 	}
 
-	if decoded == nil {
-		return fmt.Errorf("decoded cursor is nil")
+	parts := strings.SplitN(string(b), cursorDelimiter, 2)
+
+	if len(parts) != 2 {
+		return fmt.Errorf("cursor is invalid: no delimiter found")
 	}
 
-	*c = *decoded
+	// Parse the time
+	timestamp, err := time.Parse(time.RFC3339, parts[0])
+	if err != nil {
+		return fmt.Errorf("parse cursor timestamp: %w", err)
+	}
+
+	id := parts[1]
+
+	*c = Cursor{
+		Time: timestamp,
+		ID:   id,
+	}
+
 	return nil
 }

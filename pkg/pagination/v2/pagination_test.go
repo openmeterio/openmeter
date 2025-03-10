@@ -50,7 +50,7 @@ func TestCursorGeneration(t *testing.T) {
 		assert.Equal(t, int64(100), result.TotalCount)
 
 		// Decode and verify next cursor
-		nextCursor, err := DecodeCursor(result.NextCursor)
+		nextCursor, err := DecodeCursor(*result.NextCursor)
 		assert.NoError(t, err)
 		assert.Equal(t, items[len(items)-1].CreatedAt.UTC(), nextCursor.Time)
 		assert.Equal(t, items[len(items)-1].ItemID, nextCursor.ID)

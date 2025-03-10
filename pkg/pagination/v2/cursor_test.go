@@ -60,8 +60,7 @@ func TestCursorEncodeDecode(t *testing.T) {
 			encoded := cursor.Encode()
 
 			// Decode the cursor
-			decodedPtr := &encoded
-			decoded, err := DecodeCursor(decodedPtr)
+			decoded, err := DecodeCursor(encoded)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -96,12 +95,6 @@ func TestTimeEncodingIsConsistent(t *testing.T) {
 		"Cursors with same time instant in different zones should encode identically")
 }
 
-func TestDecodeCursorWithNil(t *testing.T) {
-	decoded, err := DecodeCursor(nil)
-	assert.NoError(t, err)
-	assert.Nil(t, decoded, "DecodeCursor should return nil for nil input")
-}
-
 func TestDecodeCursorWithInvalidInput(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -127,7 +120,7 @@ func TestDecodeCursorWithInvalidInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			decoded, err := DecodeCursor(&tt.input)
+			decoded, err := DecodeCursor(tt.input)
 			assert.Error(t, err)
 			assert.Equal(t, tt.errMessage, err.Error(), "error message should match expected")
 			assert.Nil(t, decoded)
@@ -150,8 +143,7 @@ func TestRoundTripWithDifferentTimes(t *testing.T) {
 			cursor := NewCursor(tm, "test-id")
 			encoded := cursor.Encode()
 
-			decodedPtr := &encoded
-			decoded, err := DecodeCursor(decodedPtr)
+			decoded, err := DecodeCursor(encoded)
 
 			assert.NoError(t, err)
 			assert.Equal(t, cursor.Time.Format(time.RFC3339), decoded.Time.Format(time.RFC3339),
