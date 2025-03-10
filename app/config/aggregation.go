@@ -167,7 +167,7 @@ func ConfigureAggregation(v *viper.Viper) {
 
 	// Cache configuration
 	v.SetDefault("aggregation.queryCache.enabled", false)
-	v.SetDefault("aggregation.queryCache.minimumCacheableQueryPeriod", "3d")
+	v.SetDefault("aggregation.queryCache.minimumCacheableQueryPeriod", "72h")
 	v.SetDefault("aggregation.queryCache.minimumCacheableUsageAge", "24h")
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
