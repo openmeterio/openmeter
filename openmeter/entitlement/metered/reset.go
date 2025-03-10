@@ -16,6 +16,9 @@ import (
 )
 
 func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (*EntitlementBalance, error) {
+	ctx, span := e.tracer.Start(ctx, "ResetEntitlementUsage")
+	defer span.End()
+
 	return transaction.Run(ctx, e.grantRepo, func(ctx context.Context) (*EntitlementBalance, error) {
 		owner := models.NamespacedID{
 			Namespace: entitlementID.Namespace,

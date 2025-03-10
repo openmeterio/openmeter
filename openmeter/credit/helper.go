@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
@@ -19,6 +21,9 @@ import (
 // GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
 // If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
 func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.GetLastValidSnapshotAt")
+	defer span.End()
+
 	bal, err := m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
@@ -48,9 +53,19 @@ func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.Nam
 	return bal, nil
 }
 
+func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams) (engine.RunResult, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.runEngine")
+	defer span.End()
+
+	return eng.Run(ctx, runParams)
+}
+
 // Builds the engine for a given owner caching the period boundaries for the given range (queryBounds).
 // As QueryUsageFn is frequently called, getting the CurrentUsagePeriodStartTime during it's execution would impact performance, so we cache all possible values during engine building.
 func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.NamespacedID, queryBounds timeutil.Period) (engine.Engine, error) {
+	ctx, span := m.Tracer.Start(ctx, "buildEngineForOwner")
+	defer span.End()
+
 	// Let's validate the parameters
 	if queryBounds.From.IsZero() || queryBounds.To.IsZero() {
 		return nil, fmt.Errorf("query bounds must have both from and to set")
@@ -113,6 +128,14 @@ func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.Name
 	eng := engine.NewEngine(engine.EngineConfig{
 		Granularity: owner.Meter.WindowSize,
 		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
+			ctx, span := m.Tracer.Start(
+				ctx,
+				"credit.QueryUsageFn",
+				trace.WithAttributes(attribute.String("from", from.String())),
+				trace.WithAttributes(attribute.String("to", to.String())),
+			)
+			defer span.End()
+
 			// Let's validate we're not querying outside the bounds
 			if !queryBounds.ContainsInclusive(from) || !queryBounds.ContainsInclusive(to) {
 				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", queryBounds.From, queryBounds.To, from, to, queryBounds.ContainsInclusive(from), queryBounds.ContainsInclusive(to))
@@ -136,6 +159,9 @@ type snapshotParams struct {
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
 func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
+	ctx, span := m.Tracer.Start(ctx, "snapshotEngineResult")
+	defer span.End()
+
 	segs := runRes.History.Segments()
 
 	// i >= 1 because:
@@ -162,6 +188,9 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 }
 
 func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, snap balance.Snapshot) (balance.Snapshot, error) {
+	ctx, span := m.Tracer.Start(ctx, "saveSnapshot")
+	defer span.End()
+
 	// Let's validate the timestamp
 	if !snap.At.Truncate(m.Granularity).Equal(snap.At) {
 		return snap, fmt.Errorf("snapshot timestamp %s is not aligned to granularity %s", snap.At, m.Granularity)
