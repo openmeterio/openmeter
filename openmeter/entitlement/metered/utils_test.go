@@ -28,22 +28,23 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type dependencies struct {
-	dbClient            *db.Client
-	pgDriver            *pgdriver.Driver
-	entDriver           *entdriver.EntPostgresDriver
-	featureRepo         feature.FeatureRepo
-	entitlementRepo     entitlement.EntitlementRepo
-	usageResetRepo      meteredentitlement.UsageResetRepo
-	grantRepo           grant.Repo
-	balanceSnapshotRepo balance.SnapshotRepo
-	balanceConnector    credit.BalanceConnector
-	ownerConnector      grant.OwnerConnector
-	streamingConnector  *streamingtestutils.MockStreamingConnector
-	creditConnector     credit.CreditConnector
+	dbClient               *db.Client
+	pgDriver               *pgdriver.Driver
+	entDriver              *entdriver.EntPostgresDriver
+	featureRepo            feature.FeatureRepo
+	entitlementRepo        entitlement.EntitlementRepo
+	usageResetRepo         meteredentitlement.UsageResetRepo
+	grantRepo              grant.Repo
+	balanceSnapshotService balance.SnapshotService
+	balanceConnector       credit.BalanceConnector
+	ownerConnector         grant.OwnerConnector
+	streamingConnector     *streamingtestutils.MockStreamingConnector
+	creditConnector        credit.CreditConnector
 }
 
 // Teardown cleans up the dependencies
@@ -120,15 +121,24 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	transactionManager := enttx.NewCreator(dbClient)
 
+	snapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+		OwnerConnector:     ownerConnector,
+		StreamingConnector: streamingConnector,
+		Repo:               balanceSnapshotRepo,
+	})
+
 	creditConnector := credit.NewCreditConnector(
-		grantRepo,
-		balanceSnapshotRepo,
-		ownerConnector,
-		streamingConnector,
-		testLogger,
-		time.Minute,
-		mockPublisher,
-		transactionManager,
+		credit.CreditConnectorConfig{
+			GrantRepo:              grantRepo,
+			BalanceSnapshotService: snapshotService,
+			OwnerConnector:         ownerConnector,
+			StreamingConnector:     streamingConnector,
+			Logger:                 testLogger,
+			Granularity:            time.Minute,
+			Publisher:              mockPublisher,
+			SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+			TransactionManager:     transactionManager,
+		},
 	)
 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(
@@ -150,7 +160,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		entitlementRepo,
 		usageResetRepo,
 		grantRepo,
-		balanceSnapshotRepo,
+		snapshotService,
 		creditConnector,
 		ownerConnector,
 		streamingConnector,

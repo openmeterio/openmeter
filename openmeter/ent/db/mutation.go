@@ -4098,6 +4098,7 @@ type BalanceSnapshotMutation struct {
 	updated_at         *time.Time
 	deleted_at         *time.Time
 	grant_balances     *balance.Map
+	usage              **balance.SnapshottedUsage
 	balance            *float64
 	addbalance         *float64
 	overage            *float64
@@ -4438,6 +4439,55 @@ func (m *BalanceSnapshotMutation) ResetGrantBalances() {
 	m.grant_balances = nil
 }
 
+// SetUsage sets the "usage" field.
+func (m *BalanceSnapshotMutation) SetUsage(bu *balance.SnapshottedUsage) {
+	m.usage = &bu
+}
+
+// Usage returns the value of the "usage" field in the mutation.
+func (m *BalanceSnapshotMutation) Usage() (r *balance.SnapshottedUsage, exists bool) {
+	v := m.usage
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUsage returns the old "usage" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldUsage(ctx context.Context) (v *balance.SnapshottedUsage, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUsage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUsage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUsage: %w", err)
+	}
+	return oldValue.Usage, nil
+}
+
+// ClearUsage clears the value of the "usage" field.
+func (m *BalanceSnapshotMutation) ClearUsage() {
+	m.usage = nil
+	m.clearedFields[balancesnapshot.FieldUsage] = struct{}{}
+}
+
+// UsageCleared returns if the "usage" field was cleared in this mutation.
+func (m *BalanceSnapshotMutation) UsageCleared() bool {
+	_, ok := m.clearedFields[balancesnapshot.FieldUsage]
+	return ok
+}
+
+// ResetUsage resets all changes to the "usage" field.
+func (m *BalanceSnapshotMutation) ResetUsage() {
+	m.usage = nil
+	delete(m.clearedFields, balancesnapshot.FieldUsage)
+}
+
 // SetBalance sets the "balance" field.
 func (m *BalanceSnapshotMutation) SetBalance(f float64) {
 	m.balance = &f
@@ -4660,7 +4710,7 @@ func (m *BalanceSnapshotMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BalanceSnapshotMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, balancesnapshot.FieldNamespace)
 	}
@@ -4678,6 +4728,9 @@ func (m *BalanceSnapshotMutation) Fields() []string {
 	}
 	if m.grant_balances != nil {
 		fields = append(fields, balancesnapshot.FieldGrantBalances)
+	}
+	if m.usage != nil {
+		fields = append(fields, balancesnapshot.FieldUsage)
 	}
 	if m.balance != nil {
 		fields = append(fields, balancesnapshot.FieldBalance)
@@ -4708,6 +4761,8 @@ func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 		return m.OwnerID()
 	case balancesnapshot.FieldGrantBalances:
 		return m.GrantBalances()
+	case balancesnapshot.FieldUsage:
+		return m.Usage()
 	case balancesnapshot.FieldBalance:
 		return m.Balance()
 	case balancesnapshot.FieldOverage:
@@ -4735,6 +4790,8 @@ func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (en
 		return m.OldOwnerID(ctx)
 	case balancesnapshot.FieldGrantBalances:
 		return m.OldGrantBalances(ctx)
+	case balancesnapshot.FieldUsage:
+		return m.OldUsage(ctx)
 	case balancesnapshot.FieldBalance:
 		return m.OldBalance(ctx)
 	case balancesnapshot.FieldOverage:
@@ -4791,6 +4848,13 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGrantBalances(v)
+		return nil
+	case balancesnapshot.FieldUsage:
+		v, ok := value.(*balance.SnapshottedUsage)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUsage(v)
 		return nil
 	case balancesnapshot.FieldBalance:
 		v, ok := value.(float64)
@@ -4873,6 +4937,9 @@ func (m *BalanceSnapshotMutation) ClearedFields() []string {
 	if m.FieldCleared(balancesnapshot.FieldDeletedAt) {
 		fields = append(fields, balancesnapshot.FieldDeletedAt)
 	}
+	if m.FieldCleared(balancesnapshot.FieldUsage) {
+		fields = append(fields, balancesnapshot.FieldUsage)
+	}
 	return fields
 }
 
@@ -4889,6 +4956,9 @@ func (m *BalanceSnapshotMutation) ClearField(name string) error {
 	switch name {
 	case balancesnapshot.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case balancesnapshot.FieldUsage:
+		m.ClearUsage()
 		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot nullable field %s", name)
@@ -4915,6 +4985,9 @@ func (m *BalanceSnapshotMutation) ResetField(name string) error {
 		return nil
 	case balancesnapshot.FieldGrantBalances:
 		m.ResetGrantBalances()
+		return nil
+	case balancesnapshot.FieldUsage:
+		m.ResetUsage()
 		return nil
 	case balancesnapshot.FieldBalance:
 		m.ResetBalance()

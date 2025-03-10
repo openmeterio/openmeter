@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -24,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -139,17 +141,26 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			testLogger,
 		)
 
+		balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+			OwnerConnector:     ownerConnector,
+			StreamingConnector: streamingConnector,
+			Repo:               balanceSnapshotRepo,
+		})
+
 		transactionManager := enttx.NewCreator(dbClient)
 
 		creditConnector := credit.NewCreditConnector(
-			grantRepo,
-			balanceSnapshotRepo,
-			ownerConnector,
-			streamingConnector,
-			testLogger,
-			time.Minute,
-			mockPublisher,
-			transactionManager,
+			credit.CreditConnectorConfig{
+				GrantRepo:              grantRepo,
+				BalanceSnapshotService: balanceSnapshotService,
+				OwnerConnector:         ownerConnector,
+				StreamingConnector:     streamingConnector,
+				Logger:                 testLogger,
+				Granularity:            time.Minute,
+				Publisher:              mockPublisher,
+				SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+				TransactionManager:     transactionManager,
+			},
 		)
 
 		inconsistentCreditConnector := &inconsistentCreditConnector{
@@ -176,7 +187,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			entitlementRepo,
 			usageResetRepo,
 			grantRepo,
-			balanceSnapshotRepo,
+			balanceSnapshotService,
 			inconsistentCreditConnector,
 			ownerConnector,
 			streamingConnector,

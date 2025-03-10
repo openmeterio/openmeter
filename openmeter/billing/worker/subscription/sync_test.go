@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -211,17 +212,26 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		slog.Default(),
 	)
 
+	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+		OwnerConnector:     owner,
+		StreamingConnector: s.MockStreamingConnector,
+		Repo:               balanceSnapshotRepo,
+	})
+
 	transactionManager := enttx.NewCreator(s.DBClient)
 
 	creditConnector := credit.NewCreditConnector(
-		grantRepo,
-		balanceSnapshotRepo,
-		owner,
-		s.MockStreamingConnector,
-		slog.Default(),
-		time.Minute,
-		mockPublisher,
-		transactionManager,
+		credit.CreditConnectorConfig{
+			GrantRepo:              grantRepo,
+			BalanceSnapshotService: balanceSnapshotService,
+			OwnerConnector:         owner,
+			StreamingConnector:     s.MockStreamingConnector,
+			Logger:                 slog.Default(),
+			Granularity:            time.Minute,
+			Publisher:              mockPublisher,
+			TransactionManager:     transactionManager,
+			SnapshotGracePeriod:    isodate.MustParse(s.T(), "P1W"),
+		},
 	)
 
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(

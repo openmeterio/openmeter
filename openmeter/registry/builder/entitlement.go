@@ -4,8 +4,10 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -22,11 +24,12 @@ import (
 )
 
 type EntitlementOptions struct {
-	DatabaseClient     *db.Client
-	StreamingConnector streaming.Connector
-	Logger             *slog.Logger
-	MeterService       meter.Service
-	Publisher          eventbus.Publisher
+	DatabaseClient            *db.Client
+	EntitlementsConfiguration config.EntitlementsConfiguration
+	StreamingConnector        streaming.Connector
+	Logger                    *slog.Logger
+	MeterService              meter.Service
+	Publisher                 eventbus.Publisher
 }
 
 func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
@@ -48,15 +51,24 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	)
 	transactionManager := enttx.NewCreator(opts.DatabaseClient)
 
+	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
+		OwnerConnector:     entitlementOwnerConnector,
+		StreamingConnector: opts.StreamingConnector,
+		Repo:               balanceSnashotDBAdapter,
+	})
+
 	creditConnector := credit.NewCreditConnector(
-		grantDBAdapter,
-		balanceSnashotDBAdapter,
-		entitlementOwnerConnector,
-		opts.StreamingConnector,
-		opts.Logger,
-		time.Minute,
-		opts.Publisher,
-		transactionManager,
+		credit.CreditConnectorConfig{
+			GrantRepo:              grantDBAdapter,
+			BalanceSnapshotService: balanceSnapshotService,
+			OwnerConnector:         entitlementOwnerConnector,
+			StreamingConnector:     opts.StreamingConnector,
+			Logger:                 opts.Logger,
+			Granularity:            time.Minute,
+			SnapshotGracePeriod:    opts.EntitlementsConfiguration.GetGracePeriod(),
+			TransactionManager:     transactionManager,
+			Publisher:              opts.Publisher,
+		},
 	)
 	creditBalanceConnector := creditConnector
 	grantConnector := creditConnector

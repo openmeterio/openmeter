@@ -41,6 +41,14 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	historySegments := make([]GrantBurnDownHistorySegment, 0)
 
 	for idx, period := range timeline.GetPeriods() {
+		// Let's reset the snapshot usage information as we're entering a new period (between resets)
+		if idx > 0 {
+			snapshot.Usage = balance.SnapshottedUsage{
+				Since: period.From,
+				Usage: 0.0,
+			}
+		}
+
 		// We need to find the grants that are relevant for this period.
 		// We do this filtering so that history isn't polluted with grants that are irrelevant.
 		relevantGrants := e.filterRelevantGrants(params.Grants, snapshot.Balances, period)
@@ -74,7 +82,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		}
 	}
 
-	history, err := NewGrantBurnDownHistory(historySegments)
+	history, err := NewGrantBurnDownHistory(historySegments, params.StartingSnapshot.Usage)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
@@ -204,7 +212,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		}
 	}
 
-	history, err := NewGrantBurnDownHistory(segments)
+	history, err := NewGrantBurnDownHistory(segments, params.StartingSnapshot.Usage)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
@@ -214,6 +222,10 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 			Balances: balancesAtPhaseStart,
 			Overage:  overage,
 			At:       period.To,
+			Usage: balance.SnapshottedUsage{
+				Since: params.StartingSnapshot.Usage.Since,
+				Usage: params.StartingSnapshot.Usage.Usage + history.TotalUsageInHistory(),
+			},
 		},
 		History: history,
 	}, nil

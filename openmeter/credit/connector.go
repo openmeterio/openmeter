@@ -18,48 +18,32 @@ type CreditConnector interface {
 }
 
 type connector struct {
-	// grants and balance snapshots are managed in this same package
-	grantRepo           grant.Repo
-	balanceSnapshotRepo balance.SnapshotRepo
-	// external dependencies
-	transactionManager transaction.Creator
-	publisher          eventbus.Publisher
-	ownerConnector     grant.OwnerConnector
-	streamingConnector streaming.Connector
-	logger             *slog.Logger
+	CreditConnectorConfig
+}
+
+type CreditConnectorConfig struct {
+	// services
+	GrantRepo              grant.Repo
+	BalanceSnapshotService balance.SnapshotService
+	OwnerConnector         grant.OwnerConnector
+	StreamingConnector     streaming.Connector
+	Logger                 *slog.Logger
+	Publisher              eventbus.Publisher
+	TransactionManager     transaction.Creator
 	// configuration
-	granularity         time.Duration
-	snapshotGracePeriod isodate.Period
+	Granularity         time.Duration
+	SnapshotGracePeriod isodate.Period
 }
 
 func NewCreditConnector(
-	grantRepo grant.Repo,
-	balanceSnapshotRepo balance.SnapshotRepo,
-	ownerConnector grant.OwnerConnector,
-	streamingConnector streaming.Connector,
-	logger *slog.Logger,
-	granularity time.Duration,
-	publisher eventbus.Publisher,
-	transactionManager transaction.Creator,
+	cfg CreditConnectorConfig,
 ) CreditConnector {
 	return &connector{
-		grantRepo:           grantRepo,
-		balanceSnapshotRepo: balanceSnapshotRepo,
-		ownerConnector:      ownerConnector,
-		streamingConnector:  streamingConnector,
-		logger:              logger,
-
-		transactionManager: transactionManager,
-
-		publisher: publisher,
-
-		// TODO: make configurable
-		granularity:         granularity,
-		snapshotGracePeriod: isodate.NewPeriod(0, 0, 1, 0, 0, 0, 0),
+		CreditConnectorConfig: cfg,
 	}
 }
 
 func (c *connector) getSnapshotBefore(at time.Time) time.Time {
-	t, _ := c.snapshotGracePeriod.Negate().AddTo(at)
+	t, _ := c.SnapshotGracePeriod.Negate().AddTo(at)
 	return t
 }

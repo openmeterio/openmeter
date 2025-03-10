@@ -78,6 +78,10 @@ func TestReset(t *testing.T) {
 			engine.RunParams{
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
+					Usage: balance.SnapshottedUsage{
+						Since: t1.AddDate(0, 0, -1), // Last "reset time", outside this period, arbitrary
+						Usage: 0.0,
+					},
 					Balances: balance.Map{
 						g1.ID: 100.0,
 					},
@@ -97,6 +101,10 @@ func TestReset(t *testing.T) {
 		// 100 - 10 = 90;
 		// Min(50, max(0, 90)) = 50
 		assert.Equal(t, 50.0, res.Snapshot.Balances[grant1.ID])
+
+		// Usage since last reset should be captured in snapshot
+		assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)                 // 0 usage after 5h mark
+		assert.Equal(t, t1.Add(time.Hour*5), res.Snapshot.Usage.Since) // should mark since the last reset time
 
 		// History should have 2 segments, one before and one after the reset
 		assert.Equal(t, 2, len(res.History.Segments()))
@@ -173,11 +181,17 @@ func TestReset(t *testing.T) {
 		g2 := grant1
 		g2.EffectiveAt = t1.Add(time.Hour * 2)
 
+		u := balance.SnapshottedUsage{
+			Since: t1.AddDate(0, 0, -1),
+			Usage: 10.0,
+		}
+
 		res, err := eng.Run(
 			context.Background(),
 			engine.RunParams{
 				Grants: []grant.Grant{grant1, g2},
 				StartingSnapshot: balance.Snapshot{
+					Usage: u,
 					Balances: balance.Map{
 						grant1.ID: 100.0,
 						g2.ID:     100.0,
@@ -189,6 +203,10 @@ func TestReset(t *testing.T) {
 			},
 		)
 		assert.NoError(t, err)
+
+		// If there was no reset, should extend the starting snapshot with the current usage data
+		assert.Equal(t, 20.0, res.Snapshot.Usage.Usage) // 10 + 10
+		assert.Equal(t, u.Since, res.Snapshot.Usage.Since)
 
 		// Should have 2 periods, start - g2, g2 - end
 		assert.Equal(t, 2, len(res.History.Segments()))
@@ -222,6 +240,10 @@ func TestReset(t *testing.T) {
 			},
 		)
 		assert.NoError(t, err)
+
+		// There cannot be any usage right at reset
+		assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)
+		assert.Equal(t, resetTime, res.Snapshot.Usage.Since)
 
 		// Should have 2 periods, start - reset, reset - end where reset = end, 2nd period is 0 length
 		assert.Equal(t, 2, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 2, len(res.History.Segments()), res.History.Segments())

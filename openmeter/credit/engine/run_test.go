@@ -181,11 +181,19 @@ func TestEngine(t *testing.T) {
 				// We have report usage so the meter is found
 				use(100.0, t1.Add(time.Hour))
 
+				prevPeriodStart := t1.AddDate(0, 0, -1)
+
+				u := balance.SnapshottedUsage{
+					Since: prevPeriodStart,
+					Usage: 10.0,
+				}
+
 				res, err := eng.Run(
 					context.Background(),
 					engine.RunParams{
 						Grants: []grant.Grant{grant1},
 						StartingSnapshot: balance.Snapshot{
+							Usage: u,
 							Balances: balance.Map{
 								grant1.ID: 100.0,
 							},
@@ -197,6 +205,7 @@ func TestEngine(t *testing.T) {
 				)
 				assert.NoError(t, err)
 				assert.Equal(t, balance.Snapshot{
+					Usage: u, // Should pass through the original usage info
 					Balances: balance.Map{
 						grant1.ID: 100.0,
 					},

@@ -133,6 +133,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v2, err := common.NewClickHouse(clickHouseAggregationConfiguration)
@@ -177,11 +178,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	entitlementOptions := registrybuilder.EntitlementOptions{
-		DatabaseClient:     client,
-		StreamingConnector: connector,
-		Logger:             logger,
-		MeterService:       meterService,
-		Publisher:          eventbusPublisher,
+		DatabaseClient:            client,
+		EntitlementsConfiguration: entitlementsConfiguration,
+		StreamingConnector:        connector,
+		Logger:                    logger,
+		MeterService:              meterService,
+		Publisher:                 eventbusPublisher,
 	}
 	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)

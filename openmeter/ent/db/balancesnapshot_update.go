@@ -124,6 +124,9 @@ func (bsu *BalanceSnapshotUpdate) sqlSave(ctx context.Context) (n int, err error
 	if bsu.mutation.DeletedAtCleared() {
 		_spec.ClearField(balancesnapshot.FieldDeletedAt, field.TypeTime)
 	}
+	if bsu.mutation.UsageCleared() {
+		_spec.ClearField(balancesnapshot.FieldUsage, field.TypeJSON)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bsu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{balancesnapshot.Label}
@@ -269,6 +272,9 @@ func (bsuo *BalanceSnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Balan
 	}
 	if bsuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(balancesnapshot.FieldDeletedAt, field.TypeTime)
+	}
+	if bsuo.mutation.UsageCleared() {
+		_spec.ClearField(balancesnapshot.FieldUsage, field.TypeJSON)
 	}
 	_node = &BalanceSnapshot{config: bsuo.config}
 	_spec.Assign = _node.assignValues

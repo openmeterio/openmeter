@@ -32,6 +32,8 @@ type BalanceSnapshot struct {
 	OwnerID string `json:"owner_id,omitempty"`
 	// GrantBalances holds the value of the "grant_balances" field.
 	GrantBalances balance.Map `json:"grant_balances,omitempty"`
+	// Usage holds the value of the "usage" field.
+	Usage *balance.SnapshottedUsage `json:"usage,omitempty"`
 	// Balance holds the value of the "balance" field.
 	Balance float64 `json:"balance,omitempty"`
 	// Overage holds the value of the "overage" field.
@@ -69,7 +71,7 @@ func (*BalanceSnapshot) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case balancesnapshot.FieldGrantBalances:
+		case balancesnapshot.FieldGrantBalances, balancesnapshot.FieldUsage:
 			values[i] = new([]byte)
 		case balancesnapshot.FieldBalance, balancesnapshot.FieldOverage:
 			values[i] = new(sql.NullFloat64)
@@ -137,6 +139,14 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &bs.GrantBalances); err != nil {
 					return fmt.Errorf("unmarshal field grant_balances: %w", err)
+				}
+			}
+		case balancesnapshot.FieldUsage:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field usage", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bs.Usage); err != nil {
+					return fmt.Errorf("unmarshal field usage: %w", err)
 				}
 			}
 		case balancesnapshot.FieldBalance:
@@ -217,6 +227,9 @@ func (bs *BalanceSnapshot) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("grant_balances=")
 	builder.WriteString(fmt.Sprintf("%v", bs.GrantBalances))
+	builder.WriteString(", ")
+	builder.WriteString("usage=")
+	builder.WriteString(fmt.Sprintf("%v", bs.Usage))
 	builder.WriteString(", ")
 	builder.WriteString("balance=")
 	builder.WriteString(fmt.Sprintf("%v", bs.Balance))
