@@ -64,7 +64,7 @@ func (c *Connector) remainingQueryMeterFactory(originalQueryMeter queryMeter) fu
 func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQueryMeter queryMeter) (queryMeter, []meterpkg.MeterQueryRow, error) {
 	var values []meterpkg.MeterQueryRow
 
-	createReaminingQueryMeter := c.remainingQueryMeterFactory(originalQueryMeter)
+	createRemainingQueryMeter := c.remainingQueryMeterFactory(originalQueryMeter)
 
 	// Calculate the period to query from the cache
 	queryMeterCached, err := c.getQueryMeterForCachedPeriod(originalQueryMeter)
@@ -96,7 +96,7 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 		if lastCachedWindow.Equal(*queryMeterCached.To) {
 			c.config.Logger.Debug("no new rows to query for cache period, returning cached data", "count", len(values))
 
-			return createReaminingQueryMeter(queryMeterCached), values, nil
+			return createRemainingQueryMeter(queryMeterCached), values, nil
 		}
 	}
 
@@ -121,7 +121,7 @@ func (c *Connector) queryMeterCached(ctx context.Context, hash string, originalQ
 	// Result
 	c.config.Logger.Debug("returning cached and new rows", "from", queryMeterCached.From, "to", queryMeterCached.To, "count", len(values))
 
-	return createReaminingQueryMeter(queryMeterCached), values, nil
+	return createRemainingQueryMeter(queryMeterCached), values, nil
 }
 
 // adjustQueryTimeRange prepares the time range for a query meter operation
