@@ -66,7 +66,16 @@ func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
 	return balance
 }
 
-func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment) (*GrantBurnDownHistory, error) {
+// Creates a GrantBalanceSnapshot from the starting state of the segment
+func (s *GrantBurnDownHistorySegment) ToSnapshot() balance.Snapshot {
+	return balance.Snapshot{
+		Overage:  s.OverageAtStart,
+		Balances: s.BalanceAtStart,
+		At:       s.From,
+	}
+}
+
+func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment) (GrantBurnDownHistory, error) {
 	s := make([]GrantBurnDownHistorySegment, len(segments))
 	copy(s, segments)
 
@@ -82,11 +91,11 @@ func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment) (*GrantBurn
 		}
 
 		if s[i-1].To.After(s[i].From) {
-			return nil, fmt.Errorf("segments %d and %d overlap", i-1, i)
+			return GrantBurnDownHistory{}, fmt.Errorf("segments %d and %d overlap", i-1, i)
 		}
 	}
 
-	return &GrantBurnDownHistory{segments: s}, nil
+	return GrantBurnDownHistory{segments: s}, nil
 }
 
 type GrantBurnDownHistory struct {
@@ -108,13 +117,4 @@ func (g *GrantBurnDownHistory) TotalUsage() float64 {
 func (g *GrantBurnDownHistory) Overage() float64 {
 	lastSegment := g.segments[len(g.segments)-1]
 	return lastSegment.Overage
-}
-
-// Creates a GrantBalanceSnapshot from the starting state of the segment
-func (s *GrantBurnDownHistorySegment) ToSnapshot() balance.Snapshot {
-	return balance.Snapshot{
-		Overage:  s.OverageAtStart,
-		Balances: s.BalanceAtStart,
-		At:       s.From,
-	}
 }

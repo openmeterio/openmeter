@@ -99,20 +99,20 @@ func TestReset(t *testing.T) {
 		assert.Equal(t, 50.0, res.Snapshot.Balances[grant1.ID])
 
 		// History should have 2 segments, one before and one after the reset
-		assert.Equal(t, 2, len(res.History))
+		assert.Equal(t, 2, len(res.History.Segments()))
 
 		// The first segment should have a balance of 100 with 10 usage
-		assert.Equal(t, 100.0, res.History[0].BalanceAtStart.Balance())
-		assert.Equal(t, 0.0, res.History[0].OverageAtStart)
-		assert.Equal(t, 10.0, res.History[0].TotalUsage)
+		assert.Equal(t, 100.0, res.History.Segments()[0].BalanceAtStart.Balance())
+		assert.Equal(t, 0.0, res.History.Segments()[0].OverageAtStart)
+		assert.Equal(t, 10.0, res.History.Segments()[0].TotalUsage)
 
 		// It should end with a reset
-		assert.True(t, res.History[0].TerminationReasons.UsageReset)
+		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
 
 		// The second segment should have a balance of 50 with no usage
-		assert.Equal(t, 50.0, res.History[1].BalanceAtStart.Balance())
-		assert.Equal(t, 0.0, res.History[1].OverageAtStart)
-		assert.Equal(t, 0.0, res.History[1].TotalUsage)
+		assert.Equal(t, 50.0, res.History.Segments()[1].BalanceAtStart.Balance())
+		assert.Equal(t, 0.0, res.History.Segments()[1].OverageAtStart)
+		assert.Equal(t, 0.0, res.History.Segments()[1].TotalUsage)
 	})
 
 	t.Run("Should carry over overage to next period", func(t *testing.T) {
@@ -149,21 +149,21 @@ func TestReset(t *testing.T) {
 		assert.Equal(t, 40.0, res.Snapshot.Balances[grant1.ID])
 
 		// History should have 2 segments, one before and one after the reset
-		assert.Equal(t, 2, len(res.History))
+		assert.Equal(t, 2, len(res.History.Segments()))
 
 		// The first segment should have a balance of 0 with 10 overage
-		assert.Equal(t, 100.0, res.History[0].BalanceAtStart.Balance())
-		assert.Equal(t, 0.0, res.History[0].OverageAtStart)
-		assert.Equal(t, 10.0, res.History[0].Overage)
-		assert.Equal(t, 110.0, res.History[0].TotalUsage)
+		assert.Equal(t, 100.0, res.History.Segments()[0].BalanceAtStart.Balance())
+		assert.Equal(t, 0.0, res.History.Segments()[0].OverageAtStart)
+		assert.Equal(t, 10.0, res.History.Segments()[0].Overage)
+		assert.Equal(t, 110.0, res.History.Segments()[0].TotalUsage)
 
 		// It should end with a reset
-		assert.True(t, res.History[0].TerminationReasons.UsageReset)
+		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
 
 		// The second segment should have a balance of 50 - 10 with no usage (minRolloverAmount + overage)
-		assert.Equal(t, 40.0, res.History[1].BalanceAtStart.Balance())
-		assert.Equal(t, 0.0, res.History[1].OverageAtStart)
-		assert.Equal(t, 0.0, res.History[1].TotalUsage)
+		assert.Equal(t, 40.0, res.History.Segments()[1].BalanceAtStart.Balance())
+		assert.Equal(t, 0.0, res.History.Segments()[1].OverageAtStart)
+		assert.Equal(t, 0.0, res.History.Segments()[1].TotalUsage)
 	})
 
 	t.Run("No reset", func(t *testing.T) {
@@ -191,10 +191,10 @@ func TestReset(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Should have 2 periods, start - g2, g2 - end
-		assert.Equal(t, 2, len(res.History))
+		assert.Equal(t, 2, len(res.History.Segments()))
 
-		assert.False(t, res.History[0].TerminationReasons.UsageReset)
-		assert.False(t, res.History[1].TerminationReasons.UsageReset)
+		assert.False(t, res.History.Segments()[0].TerminationReasons.UsageReset)
+		assert.False(t, res.History.Segments()[1].TerminationReasons.UsageReset)
 	})
 
 	t.Run("Should return starting balance if the end of the queried period is a reset", func(t *testing.T) {
@@ -224,10 +224,10 @@ func TestReset(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Should have 2 periods, start - reset, reset - end where reset = end, 2nd period is 0 length
-		assert.Equal(t, 2, len(res.History), "expected: %+v, got %+v, history: %+v", 2, len(res.History), res.History)
+		assert.Equal(t, 2, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 2, len(res.History.Segments()), res.History.Segments())
 
-		assert.True(t, res.History[0].TerminationReasons.UsageReset)
-		assert.False(t, res.History[1].TerminationReasons.UsageReset)
+		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
+		assert.False(t, res.History.Segments()[1].TerminationReasons.UsageReset)
 	})
 
 	t.Run("Should error if a reset is provided for the starting snapshot", func(t *testing.T) {

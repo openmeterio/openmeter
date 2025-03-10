@@ -28,7 +28,7 @@ type RunResult struct {
 	// Snapshot of the balances at the END OF THE PERIOD.
 	Snapshot balance.Snapshot
 	// History of the grant burn down.
-	History []GrantBurnDownHistorySegment
+	History GrantBurnDownHistory
 }
 
 type Engine interface {

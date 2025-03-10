@@ -174,6 +174,7 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner mode
 				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.ExpiresAtGT(from)),
 				db_grant.And(db_grant.EffectiveAtGTE(from), db_grant.EffectiveAtLT(to)),
 				db_grant.EffectiveAt(from),
+				db_grant.EffectiveAt(to),
 			),
 		).Where(
 		db_grant.Or(db_grant.Not(db_grant.DeletedAtLTE(from)), db_grant.DeletedAtIsNil()),

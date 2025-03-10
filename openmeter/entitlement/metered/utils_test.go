@@ -43,6 +43,7 @@ type dependencies struct {
 	balanceConnector    credit.BalanceConnector
 	ownerConnector      grant.OwnerConnector
 	streamingConnector  *streamingtestutils.MockStreamingConnector
+	creditConnector     credit.CreditConnector
 }
 
 // Teardown cleans up the dependencies
@@ -153,6 +154,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		creditConnector,
 		ownerConnector,
 		streamingConnector,
+		creditConnector,
 	}
 }
 
