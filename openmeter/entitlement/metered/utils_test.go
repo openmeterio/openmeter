@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -127,14 +128,17 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	})
 
 	creditConnector := credit.NewCreditConnector(
-		grantRepo,
-		snapshotService,
-		ownerConnector,
-		streamingConnector,
-		testLogger,
-		time.Minute,
-		mockPublisher,
-		transactionManager,
+		credit.CreditConnectorConfig{
+			GrantRepo:              grantRepo,
+			BalanceSnapshotService: snapshotService,
+			OwnerConnector:         ownerConnector,
+			StreamingConnector:     streamingConnector,
+			Logger:                 testLogger,
+			Granularity:            time.Minute,
+			Publisher:              mockPublisher,
+			SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+			TransactionManager:     transactionManager,
+		},
 	)
 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(

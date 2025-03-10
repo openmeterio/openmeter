@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -149,14 +150,17 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		transactionManager := enttx.NewCreator(dbClient)
 
 		creditConnector := credit.NewCreditConnector(
-			grantRepo,
-			balanceSnapshotService,
-			ownerConnector,
-			streamingConnector,
-			testLogger,
-			time.Minute,
-			mockPublisher,
-			transactionManager,
+			credit.CreditConnectorConfig{
+				GrantRepo:              grantRepo,
+				BalanceSnapshotService: balanceSnapshotService,
+				OwnerConnector:         ownerConnector,
+				StreamingConnector:     streamingConnector,
+				Logger:                 testLogger,
+				Granularity:            time.Minute,
+				Publisher:              mockPublisher,
+				SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
+				TransactionManager:     transactionManager,
+			},
 		)
 
 		inconsistentCreditConnector := &inconsistentCreditConnector{

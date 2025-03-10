@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -22,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -75,6 +77,9 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		Logger:             logger,
 		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
+		},
 	})
 
 	entitlementAdapter := subscriptionentitlement.NewSubscriptionEntitlementAdapter(

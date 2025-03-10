@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
@@ -29,6 +30,7 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
@@ -101,6 +103,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Logger:             logger,
 		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
+		},
 	})
 
 	customerService, err := customerservice.New(customerservice.Config{
@@ -230,6 +235,9 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		Logger:             slog.Default(),
 		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
+		},
 	})
 
 	// Feature

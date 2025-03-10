@@ -40,7 +40,7 @@ var _ BalanceConnector = &connector{}
 
 func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
 	var def engine.RunResult
-	m.logger.Debug("getting balance of owner since snapshot", "owner", ownerID.ID, "since", snap.At, "at", at)
+	m.Logger.Debug("getting balance of owner since snapshot", "owner", ownerID.ID, "since", snap.At, "at", at)
 
 	period := timeutil.Period{
 		From: snap.At,
@@ -48,18 +48,18 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	}
 
 	// get all usage resets between queryied period
-	resetTimesInclusive, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
+	resetTimesInclusive, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
 	if err != nil {
 		return def, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, ownerID.ID, err)
 	}
 
-	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
+	owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return def, fmt.Errorf("failed to describe owner %s: %w", owner.ID, err)
 	}
 
 	// get all relevant grants
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, period.From, period.To)
+	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, period.From, period.To)
 	if err != nil {
 		return def, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}
@@ -93,12 +93,13 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	}
 
 	// Let's see if a snapshot should be saved
+	// TODO: it might be the case that we don't save any snapshots as they require a history breakpoint. To solve this,
+	// we should introduce artificial history breakpoints in the engine, but that would result in more streaming.Query calls, so first lets improve the visibility of what's happening.
 	if err := m.snapshotEngineResult(ctx, snapshotParams{
 		grants: grants,
 		owner:  ownerID,
-		runRes: result,
 		before: m.getSnapshotBefore(clock.Now()),
-	}); err != nil {
+	}, result); err != nil {
 		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
 
@@ -107,7 +108,7 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 }
 
 func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
-	m.logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
+	m.Logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
 
 	var def engine.RunResult
 
@@ -126,7 +127,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
-	m.logger.Debug("calculating history for owner", "owner", ownerID.ID, "period", period)
+	m.Logger.Debug("calculating history for owner", "owner", ownerID.ID, "period", period)
 
 	var def engine.RunResult
 
@@ -136,12 +137,12 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 	}
 
 	// get all usage resets between queryied period
-	resetTimesInclusive, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
+	resetTimesInclusive, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
 	if err != nil {
 		return def, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, ownerID.ID, err)
 	}
 
-	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
+	owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return def, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
@@ -153,7 +154,7 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 	}
 
 	// get all relevant grants
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, res.Snapshot.At, period.To)
+	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, res.Snapshot.At, period.To)
 	if err != nil {
 		return def, err
 	}
@@ -192,7 +193,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, models.NewGenericValidationError(fmt.Errorf("cannot reset at %s in the future", params.At))
 	}
 
-	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
+	owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
@@ -200,7 +201,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	at := params.At.Truncate(owner.Meter.WindowSize.Duration())
 
 	// check if reset is possible (not before current period)
-	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
+	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
 	if err != nil {
 		if _, ok := err.(*grant.OwnerNotFoundError); ok {
 			return nil, err
@@ -211,7 +212,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart))
 	}
 
-	resetsSinceTime, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, timeutil.Period{From: at, To: clock.Now()})
+	resetsSinceTime, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, timeutil.Period{From: at, To: clock.Now()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reset times since %s for owner %s: %w", at, ownerID.ID, err)
 	}
@@ -232,7 +233,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	}
 
 	// get all usage resets between queryied period
-	resetTimesInclusive, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
+	resetTimesInclusive, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reset times between %s and %s for owner %s: %w", period.From, period.To, ownerID.ID, err)
 	}
@@ -245,7 +246,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	resetBehavior := owner.ResetBehavior
 	resetBehavior.PreserveOverage = params.PreserveOverage
 
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, bal.At, at)
+	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, bal.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}
@@ -276,25 +277,26 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}
 
-	// Some grants in the snapshot might have been terminated at the reset time, in which case they're irrelevant for the next period
-	startingSnap := res.Snapshot
-	err = m.removeInactiveGrantsFromSnapshotAt(&startingSnap, grants, at)
-	if err != nil {
-		return nil, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
-	}
+	snap := res.Snapshot
 
-	_, err = transaction.Run(ctx, m.transactionManager, func(ctx context.Context) (*balance.Snapshot, error) {
-		err = m.ownerConnector.LockOwnerForTx(ctx, ownerID)
+	_, err = transaction.Run(ctx, m.TransactionManager, func(ctx context.Context) (*balance.Snapshot, error) {
+		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", ownerID.ID, err)
 		}
 
-		err = m.balanceSnapshotService.Save(ctx, ownerID, []balance.Snapshot{startingSnap})
+		// Let's save the snapshot
+		snap, err = m.saveSnapshot(ctx, snapshotParams{
+			grants: grants,
+			owner:  ownerID,
+			before: at,
+		}, snap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", ownerID.ID, at, err)
+			return nil, fmt.Errorf("failed to save snapshot: %w", err)
 		}
 
-		err = m.ownerConnector.EndCurrentUsagePeriod(ctx, ownerID, grant.EndCurrentUsagePeriodParams{
+		// Let's end the current usage period
+		err = m.OwnerConnector.EndCurrentUsagePeriod(ctx, ownerID, grant.EndCurrentUsagePeriodParams{
 			At:           at,
 			RetainAnchor: params.RetainAnchor,
 		})
@@ -308,5 +310,5 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, err
 	}
 
-	return &startingSnap, nil
+	return &snap, nil
 }

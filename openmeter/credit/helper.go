@@ -19,18 +19,18 @@ import (
 // GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
 // If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
 func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
-	bal, err := m.balanceSnapshotService.GetLatestValidAt(ctx, owner, at)
+	bal, err := m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
-			m.logger.Debug(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
+			m.Logger.Debug(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
 
-			startOfMeasurement, err := m.ownerConnector.GetStartOfMeasurement(ctx, owner)
+			startOfMeasurement, err := m.OwnerConnector.GetStartOfMeasurement(ctx, owner)
 			if err != nil {
 				return bal, err
 			}
 
-			grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
+			grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
 			if err != nil {
 				return bal, err
 			}
@@ -57,19 +57,19 @@ func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.Name
 	}
 
 	// Let's get the owner
-	owner, err := m.ownerConnector.DescribeOwner(ctx, ownerID)
+	owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
 	}
 
 	// Let's collect all period start times for any time between the query bounds
 	// First we get the period start time for the start of the period, then all times in between
-	firstPeriodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, ownerID, queryBounds.From)
+	firstPeriodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, queryBounds.From)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", ownerID.ID, queryBounds.From, err)
 	}
 
-	inbetweenPeriodStarts, err := m.ownerConnector.GetResetTimelineInclusive(ctx, ownerID, queryBounds)
+	inbetweenPeriodStarts, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, queryBounds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get period start times for owner %s between %s and %s: %w", ownerID.ID, queryBounds.From, queryBounds.To, err)
 	}
@@ -86,7 +86,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.Name
 
 	// We build a custom UsageQuerier for our usecase here. The engine should only every query the one owner we fetched above.
 	usageQuerier := balance.NewUsageQuerier(balance.UsageQuerierConfig{
-		StreamingConnector: m.streamingConnector,
+		StreamingConnector: m.StreamingConnector,
 		DescribeOwner: func(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
 			if id != ownerID {
 				return grant.Owner{}, fmt.Errorf("expected owner %s, got %s", ownerID.ID, id.ID)
@@ -130,20 +130,13 @@ type snapshotParams struct {
 	grants []grant.Grant
 	// Owner of the snapshot
 	owner models.NamespacedID
-	// Result of the engine.Run
-	runRes engine.RunResult
 	// Snapshot is saved if the segment is before this time & the start of the current usage period (at time of snapshot)
 	before time.Time
 }
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
-func (m *connector) snapshotEngineResult(ctx context.Context, params snapshotParams) error {
-	currentPeriodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, params.owner, params.runRes.Snapshot.At)
-	if err != nil {
-		return fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", params.owner.ID, params.runRes.Snapshot.At, err)
-	}
-
-	segs := params.runRes.History.Segments()
+func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
+	segs := runRes.History.Segments()
 
 	// i >= 1 because:
 	// The first segment starts with the last valid snapshot and we don't want to create another snapshot for that same time
@@ -151,27 +144,35 @@ func (m *connector) snapshotEngineResult(ctx context.Context, params snapshotPar
 		seg := segs[i]
 
 		// We can save a segment if its not after the current period start (this way backfilling, granting, resetting, etc... will work for the current UsagePeriod)
-		if !seg.From.After(currentPeriodStart) && !seg.From.After(params.before) {
-			snap, err := params.runRes.History.GetSnapshotAtStartOfSegment(i)
+		if !seg.From.After(snapParams.before) {
+			snap, err := runRes.History.GetSnapshotAtStartOfSegment(i)
 			if err != nil {
 				return fmt.Errorf("failed to get snapshot at start of segment: %w", err)
 			}
 
-			if err := m.removeInactiveGrantsFromSnapshotAt(&snap, params.grants, currentPeriodStart); err != nil {
-				return fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
-			}
-
-			if err := m.balanceSnapshotService.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
+			if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
 				return fmt.Errorf("failed to save snapshot: %w", err)
 			}
-
-			m.logger.DebugContext(ctx, "saved snapshot", "snapshot", snap, "owner", params.owner)
 
 			break
 		}
 	}
 
 	return nil
+}
+
+func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, snap balance.Snapshot) (balance.Snapshot, error) {
+	if err := m.removeInactiveGrantsFromSnapshotAt(&snap, params.grants, snap.At); err != nil {
+		return snap, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
+	}
+
+	if err := m.BalanceSnapshotService.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
+		return snap, fmt.Errorf("failed to save snapshot: %w", err)
+	}
+
+	m.Logger.DebugContext(ctx, "saved snapshot", "snapshot", snap, "owner", params.owner)
+
+	return snap, nil
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
