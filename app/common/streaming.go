@@ -34,14 +34,17 @@ func NewStreamingConnector(
 	switch conf.Engine {
 	case config.AggregationEngineClickHouseRaw:
 		connector, err = raw_events.NewConnector(ctx, raw_events.ConnectorConfig{
-			ClickHouse:          clickHouse,
-			Database:            conf.ClickHouse.Database,
-			EventsTableName:     conf.EventsTableName,
-			Logger:              logger,
-			AsyncInsert:         conf.AsyncInsert,
-			AsyncInsertWait:     conf.AsyncInsertWait,
-			InsertQuerySettings: conf.InsertQuerySettings,
-			ProgressManager:     progressmanager,
+			ClickHouse:                            clickHouse,
+			Database:                              conf.ClickHouse.Database,
+			EventsTableName:                       conf.EventsTableName,
+			Logger:                                logger,
+			AsyncInsert:                           conf.AsyncInsert,
+			AsyncInsertWait:                       conf.AsyncInsertWait,
+			InsertQuerySettings:                   conf.InsertQuerySettings,
+			ProgressManager:                       progressmanager,
+			QueryCacheEnabled:                     conf.QueryCache.Enabled,
+			QueryCacheMinimumCacheableQueryPeriod: conf.QueryCache.MinimumCacheableQueryPeriod,
+			QueryCacheMinimumCacheableUsageAge:    conf.QueryCache.MinimumCacheableUsageAge,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init clickhouse raw engine: %w", err)
