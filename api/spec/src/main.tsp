@@ -7,6 +7,7 @@ import "@typespec/versioning";
 import "./auth.tsp";
 import "./errors.tsp";
 import "./types.tsp";
+import "./filter.tsp";
 
 import "./app";
 import "./query.tsp";
