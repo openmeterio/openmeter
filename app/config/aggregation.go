@@ -28,23 +28,9 @@ type AggregationConfiguration struct {
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
 	InsertQuerySettings map[string]string
-<<<<<<< HEAD
-=======
-
-	// Engine specific options
-
-	// Populate creates the materialized view with data from the events table
-	// This is not safe to use in production as requires to stop ingestion
-	PopulateMeter bool
-	// CreateOrReplace is used to force the recreation of the materialized view
-	// This is not safe to use in production as it will drop the existing views
-	CreateOrReplaceMeter bool
-	// QueryRawEvents is used to query the raw events table instead of the materialized view
-	QueryRawEvents bool
 
 	// QueryCache is the cache configuration
 	QueryCache AggregationQueryCacheConfiguration
->>>>>>> 4c356376 (feat(meter): query cache configurable)
 }
 
 // Validate validates the configuration.
@@ -59,6 +45,10 @@ func (c AggregationConfiguration) Validate() error {
 
 	if c.AsyncInsertWait && !c.AsyncInsert {
 		return errors.New("async insert wait is set but async insert is not")
+	}
+
+	if err := c.QueryCache.Validate(); err != nil {
+		return fmt.Errorf("query cache: %w", err)
 	}
 
 	return nil
