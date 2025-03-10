@@ -177,6 +177,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	entitlementOptions := registrybuilder.EntitlementOptions{
 		DatabaseClient:            client,
 		EntitlementsConfiguration: entitlementsConfiguration,
@@ -184,6 +185,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger:                    logger,
 		MeterService:              meterService,
 		Publisher:                 eventbusPublisher,
+		Tracer:                    tracer,
 	}
 	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)

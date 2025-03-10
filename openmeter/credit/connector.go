@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -28,6 +30,7 @@ type CreditConnectorConfig struct {
 	OwnerConnector         grant.OwnerConnector
 	StreamingConnector     streaming.Connector
 	Logger                 *slog.Logger
+	Tracer                 trace.Tracer
 	Publisher              eventbus.Publisher
 	TransactionManager     transaction.Creator
 	// configuration

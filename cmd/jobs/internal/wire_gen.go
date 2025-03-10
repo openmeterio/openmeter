@@ -91,6 +91,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
@@ -181,7 +182,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, meterService, eventbusPublisher)
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	customerService, err := common.NewCustomerService(logger, client, entitlement)
 	if err != nil {
 		cleanup6()

@@ -14,6 +14,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -194,6 +195,8 @@ func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
 }
 
 func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector {
+	tracer := noop.NewTracerProvider().Tracer("test")
+
 	// Init grants/credit
 	grantRepo := grantrepo.NewPostgresGrantRepo(s.DBClient)
 	balanceSnapshotRepo := grantrepo.NewPostgresBalanceSnapshotRepo(s.DBClient)
@@ -210,6 +213,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		usageResetRepo,
 		s.MeterAdapter,
 		slog.Default(),
+		tracer,
 	)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
@@ -227,6 +231,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 			OwnerConnector:         owner,
 			StreamingConnector:     s.MockStreamingConnector,
 			Logger:                 slog.Default(),
+			Tracer:                 tracer,
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
 			TransactionManager:     transactionManager,
@@ -243,6 +248,7 @@ func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector
 		entitlementRepo,
 		mockPublisher,
 		slog.Default(),
+		tracer,
 	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()

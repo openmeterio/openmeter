@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
@@ -91,6 +92,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 
 	setupMockedConnector := func(t *testing.T) (meteredentitlement.Connector, *dependencies) {
 		testLogger := testutils.NewLogger(t)
+		tracer := noop.NewTracerProvider().Tracer("test")
 
 		streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 		meterAdapter, err := meteradapter.New([]meter.Meter{{
@@ -139,6 +141,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			usageResetRepo,
 			meterAdapter,
 			testLogger,
+			tracer,
 		)
 
 		balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
@@ -156,6 +159,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 				OwnerConnector:         ownerConnector,
 				StreamingConnector:     streamingConnector,
 				Logger:                 testLogger,
+				Tracer:                 tracer,
 				Granularity:            time.Minute,
 				Publisher:              mockPublisher,
 				SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
@@ -177,6 +181,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			entitlementRepo,
 			mockPublisher,
 			testLogger,
+			tracer,
 		)
 
 		return connector, &dependencies{
