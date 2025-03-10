@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -20,8 +21,16 @@ type ManageService interface {
 	Service
 
 	CreateMeter(ctx context.Context, input CreateMeterInput) (Meter, error)
+	UpdateMeter(ctx context.Context, input UpdateMeterInput) (Meter, error)
 	DeleteMeter(ctx context.Context, input DeleteMeterInput) error
+
+	// Observer hooks
+	// Useful to coordinate with other services
+	RegisterPreUpdateMeterHook(hook PreUpdateMeterHook) error
 }
+
+// PreUpdateMeterHook is a hook function to be called before updating a meter.
+type PreUpdateMeterHook = func(context.Context, UpdateMeterInput) error
 
 // GetMeterInput is a parameter object for getting a meter.
 type GetMeterInput struct {
@@ -98,18 +107,74 @@ type CreateMeterInput struct {
 func (i CreateMeterInput) Validate() error {
 	var errs []error
 
-	err := ValidateMeter(
-		i.Key,
-		i.Name,
-		i.Description,
-		i.Aggregation,
-		i.EventType,
-		i.EventFrom,
-		i.ValueProperty,
-		i.GroupBy,
-	)
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if i.Key == "" {
+		errs = append(errs, errors.New("key is required"))
+	}
+
+	if i.Description != nil && *i.Description == "" {
+		errs = append(errs, errors.New("description must not be empty string"))
+	}
+
+	if i.Aggregation == "" {
+		errs = append(errs, errors.New("meter aggregation is required"))
+	}
+
+	if i.EventType == "" {
+		errs = append(errs, errors.New("meter event type is required"))
+	}
+
+	if i.EventFrom != nil && i.EventFrom.IsZero() {
+		errs = append(errs, errors.New("meter event from must not be zero"))
+	}
+
+	// Validate aggregation
+	if err := validateMeterAggregation(i.ValueProperty, i.Aggregation); err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter aggregation: %w", err))
+	}
+
+	// Validate group by values
+	if err := validateMeterGroupBy(i.ValueProperty, i.GroupBy); err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter group by: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+// UpdateMeterInput is a parameter object for creating a meter.
+type UpdateMeterInput struct {
+	ID          models.NamespacedID
+	Name        string
+	Description *string
+	GroupBy     map[string]string
+}
+
+// Validate validates the create meter input.
+func (i UpdateMeterInput) Validate(valueProperty *string) error {
+	var errs []error
+
+	if err := i.ID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid meter id: %w", err))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if i.Description != nil && *i.Description == "" {
+		errs = append(errs, errors.New("description must not be empty string"))
+	}
+
+	err := validateMeterGroupBy(valueProperty, i.GroupBy)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("invalid meter create: %w", err))
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)

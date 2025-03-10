@@ -129,6 +129,10 @@ func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace stri
 	return nil
 }
 
+func (c *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
 func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }

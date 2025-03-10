@@ -3861,6 +3861,70 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Meters
+    put:
+      operationId: updateMeter
+      summary: Update meter
+      description: Update a meter.
+      parameters:
+        - name: meterIdOrSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeterUpdate'
     delete:
       operationId: deleteMeter
       summary: Delete meter
@@ -13161,7 +13225,7 @@ components:
             TODO: add key format enforcement
           example:
             type: $.type
-      description: A meter is a configuration that defines how to match and aggregate events.
+      description: A meter create model.
       example:
         slug: tokens_total
         name: Tokens Total
@@ -13261,6 +13325,52 @@ components:
         groupBy:
           model: gpt-4-turbo
           type: prompt
+    MeterUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Human-readable name for the resource. Between 1 and 256 characters.
+            Defaults to the slug if not specified.
+          title: Display name
+        groupBy:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+
+            TODO: add key format enforcement
+          example:
+            type: $.type
+      description: |-
+        A meter update model.
+
+        Only the properties that can be updated are included.
+        For example, the slug and aggregation cannot be updated.
+      example:
+        name: Tokens Total
+        description: AI Token Usage
+        groupBy:
+          model: $.model
+          type: $.type
     NotFoundProblemResponse:
       type: object
       allOf:

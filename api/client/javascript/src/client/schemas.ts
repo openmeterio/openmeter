@@ -920,7 +920,11 @@ export interface paths {
      * @description Get a meter by ID or slug.
      */
     get: operations['getMeter']
-    put?: never
+    /**
+     * Update meter
+     * @description Update a meter.
+     */
+    put: operations['updateMeter']
     post?: never
     /**
      * Delete meter
@@ -5279,7 +5283,7 @@ export interface components {
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX'
     /**
-     * @description A meter is a configuration that defines how to match and aggregate events.
+     * @description A meter create model.
      * @example {
      *       "slug": "tokens_total",
      *       "name": "Tokens Total",
@@ -5436,6 +5440,51 @@ export interface components {
       /** @description The group by values the value is aggregated over. */
       groupBy: {
         [key: string]: string | null
+      }
+    }
+    /**
+     * @description A meter update model.
+     *
+     *     Only the properties that can be updated are included.
+     *     For example, the slug and aggregation cannot be updated.
+     * @example {
+     *       "name": "Tokens Total",
+     *       "description": "AI Token Usage",
+     *       "groupBy": {
+     *         "model": "$.model",
+     *         "type": "$.type"
+     *       }
+     *     }
+     */
+    MeterUpdate: {
+      /**
+       * Description
+       * @description Optional description of the resource. Maximum 1024 characters.
+       */
+      description?: string
+      /**
+       * Metadata
+       * @description Additional metadata for the resource.
+       */
+      metadata?: components['schemas']['Metadata'] | null
+      /**
+       * Display name
+       * @description Human-readable name for the resource. Between 1 and 256 characters.
+       *     Defaults to the slug if not specified.
+       */
+      name?: string
+      /**
+       * @description Named JSONPath expressions to extract the group by values from the event data.
+       *
+       *     Keys must be unique and consist only alphanumeric and underscore characters.
+       *
+       *     TODO: add key format enforcement
+       * @example {
+       *       "type": "$.type"
+       *     }
+       */
+      groupBy?: {
+        [key: string]: string
       }
     }
     /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
@@ -8145,6 +8194,7 @@ export type MeterAggregation = components['schemas']['MeterAggregation']
 export type MeterCreate = components['schemas']['MeterCreate']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
+export type MeterUpdate = components['schemas']['MeterUpdate']
 export type NotFoundProblemResponse =
   components['schemas']['NotFoundProblemResponse']
 export type NotImplementedProblemResponse =
@@ -13342,6 +13392,86 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  updateMeter: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        meterIdOrSlug: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MeterUpdate']
+      }
+    }
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Meter']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */

@@ -108,8 +108,9 @@ var _ meter.ManageService = (*manageAdapter)(nil)
 type manageAdapter struct {
 	meter.Service
 
-	db     *db.Client
-	logger *slog.Logger
+	db             *db.Client
+	logger         *slog.Logger
+	preUpdateHooks []meter.PreUpdateMeterHook
 
 	entitlementRepository entitlement.EntitlementRepo
 	featureRepository     feature.FeatureRepo

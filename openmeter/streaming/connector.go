@@ -54,6 +54,7 @@ type Connector interface {
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
 	CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error
+	UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error
 	DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
 	ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params ListMeterSubjectsParams) ([]string, error)

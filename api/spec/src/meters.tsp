@@ -25,6 +25,7 @@ interface Meters {
    * Get a meter by ID or slug.
    */
   @get
+  @route("/{meterIdOrSlug}")
   @operationId("getMeter")
   @summary("Get meter")
   get(
@@ -46,9 +47,26 @@ interface Meters {
   } | OpenMeter.CommonErrors;
 
   /**
+   * Update a meter.
+   */
+  @put
+  @route("/{meterIdOrSlug}")
+  @operationId("updateMeter")
+  @summary("Update meter")
+  update(
+    @path meterIdOrSlug: MeterIdentifier,
+
+    @body
+    meter: MeterUpdate,
+  ): {
+    @body body: OpenMeter.Meter;
+  } | OpenMeter.CommonErrors;
+
+  /**
    * Delete a meter.
    */
   @delete
+  @route("/{meterIdOrSlug}")
   @operationId("deleteMeter")
   @summary("Delete meter")
   delete(
@@ -104,7 +122,7 @@ interface Meters {
 }
 
 /**
- * A meter is a configuration that defines how to match and aggregate events.
+ * A meter create model.
  */
 @friendlyName("MeterCreate")
 @example(#{
@@ -117,6 +135,20 @@ interface Meters {
   groupBy: #{ `model`: "$.model", type: "$.type" },
 })
 model MeterCreate is Rest.Resource.ResourceCreateModel<OpenMeter.Meter>;
+
+/**
+ * A meter update model.
+ *
+ * Only the properties that can be updated are included.
+ * For example, the slug and aggregation cannot be updated.
+ */
+@friendlyName("MeterUpdate")
+@example(#{
+  name: "Tokens Total",
+  description: "AI Token Usage",
+  groupBy: #{ `model`: "$.model", type: "$.type" },
+})
+model MeterUpdate is Rest.Resource.ResourceReplaceModel<OpenMeter.Meter>;
 
 /**
  * A meter is a configuration that defines how to match and aggregate events.
@@ -142,6 +174,7 @@ model Meter {
    * Human-readable name for the resource. Between 1 and 256 characters.
    * Defaults to the slug if not specified.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Display name")
   @minLength(1)
   @maxLength(256)
@@ -151,18 +184,21 @@ model Meter {
    * A unique, human-readable identifier for the meter.
    * Must consist only alphanumeric and underscore characters.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @example("tokens_total")
   slug: Key;
 
   /**
    * The aggregation type to use for the meter.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @example(MeterAggregation.SUM)
   aggregation: MeterAggregation;
 
   /**
    * The event type to aggregate.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @minLength(1)
   @example("prompt")
   eventType: string;
@@ -172,6 +208,7 @@ model Meter {
    * Useful to skip old events.
    * If not specified, all historical events are included.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   eventFrom?: DateTime;
 
   /**
@@ -181,6 +218,7 @@ model Meter {
    *
    * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @minLength(1)
   @example("$.tokens")
   valueProperty?: string;
@@ -192,6 +230,7 @@ model Meter {
    *
    * TODO: add key format enforcement
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @example(#{ type: "$.type" })
   groupBy?: Record<string>;
 }
