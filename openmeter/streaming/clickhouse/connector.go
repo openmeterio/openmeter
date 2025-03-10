@@ -1,4 +1,4 @@
-package raw_events
+package clickhouse
 
 import (
 	"context"
@@ -37,6 +37,12 @@ type Config struct {
 	AsyncInsertWait     bool
 	InsertQuerySettings map[string]string
 	ProgressManager     progressmanager.Service
+
+	QueryCacheEnabled bool
+	// Minimum query period that can be cached
+	QueryCacheMinimumCacheableQueryPeriod time.Duration
+	// Minimum age after usage data is cachable
+	QueryCacheMinimumCacheableUsageAge time.Duration
 }
 
 func (c Config) Validate() error {
@@ -58,6 +64,16 @@ func (c Config) Validate() error {
 
 	if c.ProgressManager == nil {
 		return fmt.Errorf("progress manager is required")
+	}
+
+	if c.QueryCacheEnabled {
+		if c.QueryCacheMinimumCacheableQueryPeriod <= 0 {
+			return fmt.Errorf("minimum cacheable query period is required")
+		}
+
+		if c.QueryCacheMinimumCacheableUsageAge <= 0 {
+			return fmt.Errorf("minimum cacheable usage age is required")
+		}
 	}
 
 	return nil
@@ -148,7 +164,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	// Load cached rows if any
 	var cached []meterpkg.MeterQueryRow
 
-	useCache := isQueryCachable(meter, params)
+	useCache := c.isQueryCachable(meter, params)
 
 	if useCache {
 		var err error

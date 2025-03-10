@@ -1,4 +1,4 @@
-package raw_events
+package clickhouse
 
 import (
 	"context"
@@ -14,14 +14,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 )
 
 // TestConnector_QueryMeter tests the queryMeter function
 func TestConnector_QueryMeter(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
+	mockCH := NewMockClickHouse()
 
-	config := ConnectorConfig{
+	config := Config{
 		Logger:          slog.Default(),
 		ClickHouse:      mockCH,
 		Database:        "testdb",
@@ -54,7 +53,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	}
 
 	// Mock the SQL query and response
-	mockRows1 := clickhouse.NewMockRows()
+	mockRows1 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
 		"test-namespace",
 		"test-event",
@@ -104,7 +103,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	// 1. Query error
 	queryErrorMsg := "query error"
 	mockCH.ExpectedCalls = nil
-	mockRows2 := clickhouse.NewMockRows()
+	mockRows2 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockRows2, errors.New(queryErrorMsg))
 
 	_, err = connector.queryMeter(context.Background(), queryMeter)
@@ -113,7 +112,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 
 	// 2. Meter not found error
 	mockCH.ExpectedCalls = nil
-	mockRows3 := clickhouse.NewMockRows()
+	mockRows3 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockRows3, errors.New("code: 60"))
 
 	_, err = connector.queryMeter(context.Background(), queryMeter)
@@ -125,7 +124,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	// 3. Scan error
 	scanErrorMsg := "scan error"
 	mockCH.ExpectedCalls = nil
-	mockRows4 := clickhouse.NewMockRows()
+	mockRows4 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockRows4, nil)
 	mockRows4.On("Next").Return(true).Once()
 	mockRows4.On("Scan", mock.Anything).Return(errors.New(scanErrorMsg))

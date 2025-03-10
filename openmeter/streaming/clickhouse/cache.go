@@ -1,4 +1,4 @@
-package raw_events
+package clickhouse
 
 import (
 	"context"
@@ -12,13 +12,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-const (
-	minCachableDuration = 3 * 24 * time.Hour
-	minCacheableToAge   = 24 * time.Hour
-)
-
 // isQueryCachable returns true if the query params are cachable
-func isQueryCachable(m meter.Meter, p streaming.QueryParams) bool {
+func (c *Connector) isQueryCachable(m meter.Meter, p streaming.QueryParams) bool {
+	// If caching is disabled, we don't cache anything
+	if !c.config.QueryCacheEnabled {
+		return false
+	}
+
 	// We only cache queries where cachable is set to true
 	if !p.Cachable {
 		return false
@@ -34,7 +34,7 @@ func isQueryCachable(m meter.Meter, p streaming.QueryParams) bool {
 	duration := to.Sub(from)
 
 	// It must be at least 3 days of usage to be cachable
-	if duration < minCachableDuration {
+	if duration < c.config.QueryCacheMinimumCacheableQueryPeriod {
 		return false
 	}
 
@@ -141,8 +141,8 @@ func (c *Connector) getQueryMeterForCachedPeriod(originalQueryMeter queryMeter) 
 	// We do not cache data that is less than 24 hours old
 	toFresness := now.Sub(*cachedQueryMeter.To)
 
-	if toFresness < minCacheableToAge {
-		delta := minCacheableToAge - toFresness
+	if toFresness < c.config.QueryCacheMinimumCacheableUsageAge {
+		delta := c.config.QueryCacheMinimumCacheableUsageAge - toFresness
 
 		cachedQueryMeter.To = lo.ToPtr(cachedQueryMeter.To.Add(-delta))
 	}

@@ -1,4 +1,4 @@
-package raw_events
+package clickhouse
 
 import (
 	"testing"
@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 )
 
 // TestCreateMeterQueryRowsCacheTableToSQL tests the SQL generation of the createMeterQueryRowsCacheTable struct
@@ -190,7 +189,7 @@ func TestGetMeterQueryRowsFromCache_ScanRows(t *testing.T) {
 	groupBy := map[string]string{"group1": "value1", "group2": ""}
 
 	// Set up mock to return one row
-	mockRows := clickhouse.NewMockRows()
+	mockRows := NewMockRows()
 	mockRows.On("Next").Return(true).Once()
 	mockRows.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
 		dest := args.Get(0).([]interface{})
