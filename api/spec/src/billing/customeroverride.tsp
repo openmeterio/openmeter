@@ -139,18 +139,22 @@ model ListCustomerOverridesParams {
   billingProfile?: ULID[];
 
   /**
-   * Include the default profile in the results.
+   * Include customers without customer overrides.
    *
    * If set to false only the customers specifically associated with a billing profile will be returned.
+   *
+   * If set to true, in case of the default billing profile, all customers will be returned.
    */
   @query(#{ explode: true })
-  includeDefaultProfile?: boolean = true;
+  includeAllCustomers?: boolean = true;
 
   /**
    * Expand the response with additional details.
    */
   @query(#{ explode: true })
   expand?: BillingProfileCustomerOverrideExpand[];
+
+  // TODO: let's add filters from the cutomers too
 
   /**
    * Order the response by.
