@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
@@ -71,6 +72,8 @@ func setupDependencies(t *testing.T) Dependencies {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
+	tracer := noop.NewTracerProvider().Tracer("test")
+
 	// Init product catalog
 	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log)
 
@@ -118,6 +121,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		usageResetRepo,
 		meterAdapter,
 		log,
+		tracer,
 	)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
@@ -135,6 +139,7 @@ func setupDependencies(t *testing.T) Dependencies {
 			OwnerConnector:         owner,
 			StreamingConnector:     streaming,
 			Logger:                 log,
+			Tracer:                 tracer,
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
 			TransactionManager:     transactionManager,
@@ -151,6 +156,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		entitlementRepo,
 		mockPublisher,
 		log,
+		tracer,
 	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
