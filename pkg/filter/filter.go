@@ -10,7 +10,7 @@ import (
 // Filter is a filter for a field.
 type Filter interface {
 	Validate() error
-	ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
+	SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
 }
 
 var (
@@ -38,11 +38,7 @@ type FilterString struct {
 	Or     *[]FilterString `json:"$or,omitempty"`
 }
 
-func (f *FilterString) Validate() error {
-	if f == nil {
-		return nil
-	}
-
+func (f FilterString) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
 		f.Eq != nil, f.Ne != nil, f.In != nil, f.Nin != nil,
@@ -70,8 +66,8 @@ func (f *FilterString) Validate() error {
 	return nil
 }
 
-// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
-func (f *FilterString) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
 	case f.Eq != nil:
 		return q.EQ(field, *f.Eq)
@@ -99,11 +95,11 @@ func (f *FilterString) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder)
 		return q.LTE(field, *f.Lte)
 	case f.And != nil:
 		return q.And(lo.Map(*f.And, func(filter FilterString, _ int) string {
-			return filter.ToSQLWhereExpr(field, q)
+			return filter.SelectWhereExpr(field, q)
 		})...)
 	case f.Or != nil:
 		return q.Or(lo.Map(*f.Or, func(filter FilterString, _ int) string {
-			return filter.ToSQLWhereExpr(field, q)
+			return filter.SelectWhereExpr(field, q)
 		})...)
 	default:
 		return ""
@@ -122,11 +118,7 @@ type FilterInteger struct {
 	Or  *[]FilterInteger `json:"$or,omitempty"`
 }
 
-func (f *FilterInteger) Validate() error {
-	if f == nil {
-		return nil
-	}
-
+func (f FilterInteger) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
 		f.Eq != nil, f.Ne != nil, f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
@@ -152,8 +144,8 @@ func (f *FilterInteger) Validate() error {
 	return nil
 }
 
-// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
-func (f *FilterInteger) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterInteger) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
 	case f.Eq != nil:
 		return q.EQ(field, *f.Eq)
@@ -169,11 +161,11 @@ func (f *FilterInteger) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder
 		return q.LTE(field, *f.Lte)
 	case f.And != nil:
 		return q.And(lo.Map(*f.And, func(filter FilterInteger, _ int) string {
-			return filter.ToSQLWhereExpr(field, q)
+			return filter.SelectWhereExpr(field, q)
 		})...)
 	case f.Or != nil:
 		return q.Or(lo.Map(*f.Or, func(filter FilterInteger, _ int) string {
-			return filter.ToSQLWhereExpr(field, q)
+			return filter.SelectWhereExpr(field, q)
 		})...)
 	default:
 		return ""
@@ -192,11 +184,7 @@ type FilterFloat struct {
 	Or  *[]FilterFloat `json:"$or,omitempty"`
 }
 
-func (f *FilterFloat) Validate() error {
-	if f == nil {
-		return nil
-	}
-
+func (f FilterFloat) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
 		f.Eq != nil, f.Ne != nil, f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
@@ -222,8 +210,8 @@ func (f *FilterFloat) Validate() error {
 	return nil
 }
 
-// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
-func (f *FilterFloat) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterFloat) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
 	case f.Eq != nil:
 		return q.EQ(field, *f.Eq)
@@ -239,11 +227,11 @@ func (f *FilterFloat) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) 
 		return q.LTE(field, *f.Lte)
 	case f.And != nil:
 		return q.And(lo.Map(*f.And, func(filter FilterFloat, _ int) string {
-			return filter.ToSQLWhereExpr(field, q)
+			return filter.SelectWhereExpr(field, q)
 		})...)
 	case f.Or != nil:
 		return q.Or(lo.Map(*f.Or, func(filter FilterFloat, _ int) string {
-			return filter.ToSQLWhereExpr(field, q)
+			return filter.SelectWhereExpr(field, q)
 		})...)
 	default:
 		return ""
@@ -256,16 +244,12 @@ type FilterBoolean struct {
 }
 
 // Validate validates the filter.
-func (f *FilterBoolean) Validate() error {
-	if f == nil {
-		return nil
-	}
-
+func (f FilterBoolean) Validate() error {
 	return nil
 }
 
-// ToSQLWhereExpr converts the filter to a SQL WHERE expression.
-func (f *FilterBoolean) ToSQLWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterBoolean) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
 	case f.Eq != nil:
 		return q.EQ(field, *f.Eq)

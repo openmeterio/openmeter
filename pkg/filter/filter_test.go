@@ -147,7 +147,7 @@ func TestFilterString_Validate(t *testing.T) {
 	}
 }
 
-func TestFilterString_ToSQLWhereExpr(t *testing.T) {
+func TestFilterString_SelectWhereExpr(t *testing.T) {
 	tests := []struct {
 		name      string
 		filter    filter.FilterString
@@ -263,7 +263,7 @@ func TestFilterString_ToSQLWhereExpr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := sqlbuilder.Select("*").From("table")
-			expr := tt.filter.ToSQLWhereExpr(tt.field, q)
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
@@ -281,7 +281,7 @@ func TestFilterString_ToSQLWhereExpr(t *testing.T) {
 	}
 }
 
-func TestFilterString_ToSQLWhereExpr_NestedOperators(t *testing.T) {
+func TestFilterString_SelectWhereExpr_NestedOperators(t *testing.T) {
 	tests := []struct {
 		name      string
 		filter    filter.FilterString
@@ -338,7 +338,7 @@ func TestFilterString_ToSQLWhereExpr_NestedOperators(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := sqlbuilder.Select("*").From("table")
-			expr := tt.filter.ToSQLWhereExpr(tt.field, q)
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
@@ -452,7 +452,7 @@ func TestFilterInteger_Validate(t *testing.T) {
 	}
 }
 
-func TestFilterInteger_ToSQLWhereExpr(t *testing.T) {
+func TestFilterInteger_SelectWhereExpr(t *testing.T) {
 	tests := []struct {
 		name      string
 		filter    filter.FilterInteger
@@ -528,7 +528,7 @@ func TestFilterInteger_ToSQLWhereExpr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := sqlbuilder.Select("*").From("table")
-			expr := tt.filter.ToSQLWhereExpr(tt.field, q)
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
@@ -642,7 +642,7 @@ func TestFilterFloat_Validate(t *testing.T) {
 	}
 }
 
-func TestFilterFloat_ToSQLWhereExpr(t *testing.T) {
+func TestFilterFloat_SelectWhereExpr(t *testing.T) {
 	tests := []struct {
 		name      string
 		filter    filter.FilterFloat
@@ -718,7 +718,7 @@ func TestFilterFloat_ToSQLWhereExpr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := sqlbuilder.Select("*").From("table")
-			expr := tt.filter.ToSQLWhereExpr(tt.field, q)
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
@@ -772,7 +772,7 @@ func TestFilterBoolean_Validate(t *testing.T) {
 	}
 }
 
-func TestFilterBoolean_ToSQLWhereExpr(t *testing.T) {
+func TestFilterBoolean_SelectWhereExpr(t *testing.T) {
 	tests := []struct {
 		name      string
 		filter    filter.FilterBoolean
@@ -812,7 +812,7 @@ func TestFilterBoolean_ToSQLWhereExpr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := sqlbuilder.Select("*").From("table")
-			expr := tt.filter.ToSQLWhereExpr(tt.field, q)
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
 
 			if tt.wantEmpty {
 				assert.Empty(t, expr, "SQL expression should be empty")
