@@ -19,9 +19,30 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+func GetMockConnector() (*Connector, *clickhouse.MockClickHouse) {
+	mockClickhouse := clickhouse.NewMockClickHouse()
+
+	config := ConnectorConfig{
+		Logger:                                slog.Default(),
+		ClickHouse:                            mockClickhouse,
+		Database:                              "testdb",
+		EventsTableName:                       "events",
+		ProgressManager:                       progressmanager.NewMockProgressManager(),
+		QueryCacheEnabled:                     true,
+		QueryCacheMinimumCacheableQueryPeriod: 3 * 24 * time.Hour,
+		QueryCacheMinimumCacheableUsageAge:    24 * time.Hour,
+	}
+
+	connector := &Connector{config: config}
+
+	return connector, mockClickhouse
+}
+
 // TestIsQueryCachable tests the isQueryCachable function
 func TestIsQueryCachable(t *testing.T) {
 	now := time.Now().UTC()
+
+	connector, _ := GetMockConnector()
 
 	tests := []struct {
 		name         string
@@ -127,7 +148,7 @@ func TestIsQueryCachable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isQueryCachable(tt.meter, tt.params)
+			result := connector.isQueryCachable(tt.meter, tt.params)
 			assert.Equal(t, tt.wantCachable, result)
 		})
 	}
@@ -135,17 +156,7 @@ func TestIsQueryCachable(t *testing.T) {
 
 // Integration test for queryMeterCached
 func TestConnector_QueryMeterCached(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
+	connector, mockCH := GetMockConnector()
 
 	// Setup test data
 	now := time.Now().UTC()
@@ -269,17 +280,7 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 }
 
 func TestConnector_LookupCachedMeterRows(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
+	connector, mockCH := GetMockConnector()
 
 	now := time.Now().UTC()
 	from := now.Add(-24 * time.Hour)
@@ -342,17 +343,7 @@ func TestConnector_LookupCachedMeterRows(t *testing.T) {
 
 // TestInsertRowsToCache tests the insertRowsToCache function
 func TestConnector_InsertRowsToCache(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
+	connector, mockCH := GetMockConnector()
 
 	now := time.Now().UTC()
 	subject := "test-subject"
@@ -386,17 +377,7 @@ func TestConnector_InsertRowsToCache(t *testing.T) {
 
 // TestRemainingQueryMeterFactory tests the remainingQueryMeterFactory function
 func TestRemainingQueryMeterFactory(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
+	connector, _ := GetMockConnector()
 
 	now := time.Now().UTC()
 	from := now.Add(-4 * 24 * time.Hour)
@@ -427,17 +408,7 @@ func TestRemainingQueryMeterFactory(t *testing.T) {
 
 // TestGetQueryMeterForCachedPeriod tests the getQueryMeterForCachedPeriod function
 func TestGetQueryMeterForCachedPeriod(t *testing.T) {
-	mockCH := clickhouse.NewMockClickHouse()
-
-	config := ConnectorConfig{
-		Logger:          slog.Default(),
-		ClickHouse:      mockCH,
-		Database:        "testdb",
-		EventsTableName: "events",
-		ProgressManager: progressmanager.NewMockProgressManager(),
-	}
-
-	connector := &Connector{config: config}
+	connector, _ := GetMockConnector()
 
 	now := time.Now().UTC()
 	tests := []struct {
@@ -459,11 +430,11 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			name: "cache `to` should be truncated to complete days and be a day before the original `to`",
 			originalQuery: queryMeter{
 				From: lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
-				To:   lo.ToPtr(now.Add(-12 * time.Hour)), // Less than minCacheableToAge
+				To:   lo.ToPtr(now.Add(-12 * time.Hour)), // Less than config.minCacheableToAge
 			},
 			expectedError:  false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
-			expectedTo:     lo.ToPtr(now.Add(-minCacheableToAge).Truncate(time.Hour * 24)),
+			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
 		},
 		{
@@ -485,7 +456,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
-			expectedTo:     lo.ToPtr(now.Add(-minCacheableToAge).Truncate(time.Hour * 24)),
+			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
 		},
 		{
@@ -497,7 +468,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
-			expectedTo:     lo.ToPtr(now.Add(-minCacheableToAge).Truncate(time.Hour * 24)),
+			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeHour),
 		},
 	}
