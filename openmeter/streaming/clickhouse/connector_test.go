@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 // TestConnector_QueryMeter tests the queryMeter function
@@ -139,4 +140,72 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows2.AssertExpectations(t)
 	mockRows3.AssertExpectations(t)
 	mockRows4.AssertExpectations(t)
+}
+
+func TestBatchInsertWithCacheInvalidation(t *testing.T) {
+	connector, mockCH := GetMockConnector()
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+
+	// Set up test events
+	events := []streaming.RawEvent{
+		{
+			Namespace: "test-namespace-1",
+			ID:        "1",
+			Time:      now.Add(-48 * time.Hour), // This event is older than the minimum cacheable age
+		},
+		{
+			Namespace: "test-namespace-2",
+			ID:        "2",
+			Time:      now.Add(-48 * time.Hour), // This event is older than the minimum cacheable age
+		},
+		{
+			Namespace: "test-namespace-3",
+			ID:        "3",
+			Time:      now, // This event is newer than the minimum cacheable age, shouldn't trigger cache invalidation
+		},
+	}
+
+	// Mock the batch insert
+	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+
+	// Mock the cache invalidation (only for test-namespace-1 and test-namespace-2)
+	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)",
+		[]interface{}{[]string{"test-namespace-1", "test-namespace-2"}}).Return(nil).Once()
+
+	// Execute the method
+	err := connector.BatchInsert(ctx, events)
+	require.NoError(t, err)
+
+	// Verify mocks were called
+	mockCH.AssertExpectations(t)
+}
+
+func TestBatchInsertWithCacheDisabled(t *testing.T) {
+	connector, mockCH := GetMockConnector()
+	connector.config.QueryCacheEnabled = false
+	connector.config.QueryCacheMinimumCacheableUsageAge = 24 * time.Hour
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+
+	// Set up test events
+	events := []streaming.RawEvent{
+		{
+			Namespace: "test-namespace-1",
+			ID:        "1",
+			Time:      now.Add(-48 * time.Hour), // This event is older than the minimum cacheable age
+		},
+	}
+
+	// Mock the batch insert
+	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+
+	// Execute the method (should not call cache invalidation since cache is disabled)
+	err := connector.BatchInsert(ctx, events)
+	require.NoError(t, err)
+
+	// Verify mocks were called
+	mockCH.AssertExpectations(t)
 }

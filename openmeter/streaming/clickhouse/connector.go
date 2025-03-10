@@ -308,6 +308,17 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
 	}
 
+	// Check if any events requires cache invalidation
+	namespacesToInvalidateCache := c.findNamespacesToInvalidateCache(rawEvents)
+
+	if len(namespacesToInvalidateCache) > 0 {
+		if err := c.invalidateCache(ctx, namespacesToInvalidateCache); err != nil {
+			return fmt.Errorf("invalidate query cache: %w", err)
+		}
+
+		c.config.Logger.Info("invalidated query cache for namespaces", "namespaces", namespacesToInvalidateCache)
+	}
+
 	return nil
 }
 

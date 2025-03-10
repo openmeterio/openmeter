@@ -225,3 +225,37 @@ func TestGetMeterQueryRowsFromCache_ScanRows(t *testing.T) {
 
 	mockRows.AssertExpectations(t)
 }
+
+func TestDeleteCacheForNamespaces_ToSQL(t *testing.T) {
+	tests := []struct {
+		name        string
+		queryParams deleteCacheForNamespaces
+		wantSQL     string
+	}{
+		{
+			name: "single namespace",
+			queryParams: deleteCacheForNamespaces{
+				Database:   "openmeter",
+				TableName:  "meterqueryrow_cache",
+				Namespaces: []string{"test-namespace"},
+			},
+			wantSQL: "DELETE FROM openmeter.meterqueryrow_cache WHERE namespace IN (?)",
+		},
+		{
+			name: "multiple namespaces",
+			queryParams: deleteCacheForNamespaces{
+				Database:   "openmeter",
+				TableName:  "meterqueryrow_cache",
+				Namespaces: []string{"test-namespace-1", "test-namespace-2"},
+			},
+			wantSQL: "DELETE FROM openmeter.meterqueryrow_cache WHERE namespace IN (?)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sql, _ := tt.queryParams.toSQL()
+			assert.Equal(t, tt.wantSQL, sql)
+		})
+	}
+}

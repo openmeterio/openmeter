@@ -155,3 +155,21 @@ func (d getMeterQueryRowsFromCache) scanRows(rows driver.Rows) ([]meterpkg.Meter
 
 	return values, nil
 }
+
+// deleteCacheForNamespaces is a query to delete rows from the cache table for specific namespaces
+type deleteCacheForNamespaces struct {
+	Database   string
+	TableName  string
+	Namespaces []string
+}
+
+// toSQL converts the deleteCacheForNamespaces struct to a SQL query
+func (d deleteCacheForNamespaces) toSQL() (string, []interface{}) {
+	tableName := getTableName(d.Database, d.TableName)
+	sb := sqlbuilder.ClickHouse.NewDeleteBuilder()
+	sb.DeleteFrom(tableName)
+
+	sb.Where(sb.In("namespace", d.Namespaces))
+	sql, args := sb.Build()
+	return sql, args
+}

@@ -2,7 +2,9 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"sort"
 	"testing"
 	"time"
 
@@ -505,6 +507,141 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			assert.Equal(t, result.To.Hour(), 0)
 			assert.Equal(t, result.To.Minute(), 0)
 			assert.Equal(t, result.To.Second(), 0)
+		})
+	}
+}
+
+func TestInvalidateCache(t *testing.T) {
+	connector, mockCH := GetMockConnector()
+
+	// Test case: single namespace
+	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
+		[]string{"test-namespace-1"},
+	}).Return(nil).Once()
+	err := connector.invalidateCache(context.Background(), []string{"test-namespace-1"})
+	require.NoError(t, err)
+
+	// Test case: multiple namespaces
+	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
+		[]string{"test-namespace-1", "test-namespace-2"},
+	}).Return(nil).Once()
+	err = connector.invalidateCache(context.Background(), []string{"test-namespace-1", "test-namespace-2"})
+	require.NoError(t, err)
+
+	// Test case: error from database
+	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
+		[]string{"error-namespace"},
+	}).Return(errors.New("database error")).Once()
+	err = connector.invalidateCache(context.Background(), []string{"error-namespace"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "delete from cache: database error")
+
+	mockCH.AssertExpectations(t)
+}
+
+// TestFindNamespacesToInvalidateCache tests the findNamespacesToInvalidateCache function
+func TestFindNamespacesToInvalidateCache(t *testing.T) {
+	connector, _ := GetMockConnector()
+
+	// Current time for the test
+	now := time.Now().UTC()
+
+	// Set up our test cache age parameter - from the test connector it's 24 hours
+	cacheableAge := connector.config.QueryCacheMinimumCacheableUsageAge
+
+	// Test cases
+	tests := []struct {
+		name      string
+		rawEvents []streaming.RawEvent
+		want      []string
+	}{
+		{
+			name:      "empty events",
+			rawEvents: []streaming.RawEvent{},
+			want:      []string{},
+		},
+		{
+			name: "single event, not old enough",
+			rawEvents: []streaming.RawEvent{
+				{
+					Namespace: "test-namespace-1",
+					Time:      now.Add(-cacheableAge + time.Hour), // Not old enough, no need to invalidate cache
+				},
+			},
+			want: []string{},
+		},
+		{
+			name: "single event, old enough",
+			rawEvents: []streaming.RawEvent{
+				{
+					Namespace: "test-namespace-1",
+					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+				},
+			},
+			want: []string{"test-namespace-1"},
+		},
+		{
+			name: "multiple events, different namespaces, all old enough",
+			rawEvents: []streaming.RawEvent{
+				{
+					Namespace: "test-namespace-1",
+					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+				},
+				{
+					Namespace: "test-namespace-2",
+					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+				},
+			},
+			want: []string{"test-namespace-1", "test-namespace-2"},
+		},
+		{
+			name: "multiple events, same namespace, all old enough",
+			rawEvents: []streaming.RawEvent{
+				{
+					Namespace: "test-namespace-1",
+					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+				},
+				{
+					Namespace: "test-namespace-1", // Duplicate namespace
+					Time:      now.Add(-cacheableAge - 2*time.Hour),
+				},
+			},
+			want: []string{"test-namespace-1"}, // Should be deduplicated
+		},
+		{
+			name: "mixed ages and namespaces",
+			rawEvents: []streaming.RawEvent{
+				{
+					Namespace: "test-namespace-1",
+					Time:      now.Add(-cacheableAge - time.Hour), // Old enough
+				},
+				{
+					Namespace: "test-namespace-2",
+					Time:      now.Add(-cacheableAge + time.Hour), // Not old enough
+				},
+				{
+					Namespace: "test-namespace-3",
+					Time:      now.Add(-cacheableAge - 2*time.Hour), // Old enough
+				},
+				{
+					Namespace: "test-namespace-1",                   // Duplicate namespace
+					Time:      now.Add(-cacheableAge - 3*time.Hour), // Old enough
+				},
+			},
+			want: []string{"test-namespace-1", "test-namespace-3"}, // test-namespace-2 not included, duplicates removed
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := connector.findNamespacesToInvalidateCache(tt.rawEvents)
+
+			// Since the order of the namespaces isn't guaranteed, we need to sort both slices
+			// before comparison to ensure consistent test results
+			sort.Strings(result)
+			sort.Strings(tt.want)
+
+			assert.Equal(t, tt.want, result)
 		})
 	}
 }
