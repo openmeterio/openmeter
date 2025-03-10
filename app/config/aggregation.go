@@ -79,11 +79,11 @@ func (c AggregationQueryCacheConfiguration) Validate() error {
 		return nil
 	}
 
-	if c.MinimumCacheableQueryPeriod.IsZero() {
+	if c.MinimumCacheableQueryPeriod <= 0 {
 		return errors.New("minimum cacheable query period is required")
 	}
 
-	if c.MinimumCacheableUsageAge.IsZero() {
+	if c.MinimumCacheableUsageAge <= 0 {
 		return errors.New("minimum cacheable usage age is required")
 	}
 
