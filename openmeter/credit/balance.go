@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -23,6 +22,8 @@ type ResetUsageForOwnerParams struct {
 
 // Generic connector for balance related operations.
 type BalanceConnector interface {
+	// GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
+	GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error)
 	// GetBalanceAt returns the result of the engine.Run at a given time.
 	// It tries to minimize execution cost by calculating from the latest valid snapshot, thus the length of the returned history WILL NOT be deterministic.
 	GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
@@ -31,25 +32,15 @@ type BalanceConnector interface {
 	GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error)
 	// ResetUsageForOwner resets the usage for an owner at a given time.
 	ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (balanceAfterReset *balance.Snapshot, err error)
+	// GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
+	GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error)
 }
 
 var _ BalanceConnector = &connector{}
 
-func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
-	m.logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
-
+func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
 	var def engine.RunResult
-
-	// To include the current last minute lets round it trunc to the next minute
-	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
-		at = trunc.Add(time.Minute)
-	}
-
-	// get last valid grantbalances
-	snap, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, ownerID, at)
-	if err != nil {
-		return def, err
-	}
+	m.logger.Debug("getting balance of owner since snapshot", "owner", ownerID.ID, "since", snap.At, "at", at)
 
 	period := timeutil.Period{
 		From: snap.At,
@@ -68,13 +59,13 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 	}
 
 	// get all relevant grants
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, snap.At, at)
+	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, ownerID, period.From, period.To)
 	if err != nil {
 		return def, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}
 	// These grants might not be present in the starting balance so lets fill them
 	// This is only possible in case the grant becomes active exactly at the start of the current period
-	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, snap.At)
+	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, period.From)
 
 	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
 	if err != nil {
@@ -88,7 +79,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 			StartingSnapshot: snap,
 			Until:            period.To,
 			ResetBehavior:    owner.ResetBehavior,
-			Resets:           resetTimesInclusive.After(snap.At),
+			Resets:           resetTimesInclusive.After(period.From),
 		},
 	)
 	if err != nil {
@@ -113,6 +104,25 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 
 	// return balance
 	return result, nil
+}
+
+func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
+	m.logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
+
+	var def engine.RunResult
+
+	// To include the current last minute lets round it trunc to the next minute
+	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
+		at = trunc.Add(time.Minute)
+	}
+
+	// get last valid grantbalances
+	snap, err := m.GetLastValidSnapshotAt(ctx, ownerID, at)
+	if err != nil {
+		return def, err
+	}
+
+	return m.GetBalanceSinceSnapshot(ctx, ownerID, snap, at)
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
@@ -211,7 +221,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s is before last reset at %s", at, lastReset))
 	}
 
-	bal, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, ownerID, at)
+	bal, err := m.GetLastValidSnapshotAt(ctx, ownerID, at)
 	if err != nil {
 		return nil, err
 	}
@@ -274,18 +284,12 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	}
 
 	_, err = transaction.Run(ctx, m.transactionManager, func(ctx context.Context) (*balance.Snapshot, error) {
-		//lint:ignore SA1019 we need to use the transaction here
-		tx, err := entutils.GetDriverFromContext(ctx)
-		if err != nil {
-			return nil, err
-		}
-
 		err = m.ownerConnector.LockOwnerForTx(ctx, ownerID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", ownerID.ID, err)
 		}
 
-		err = m.balanceSnapshotRepo.WithTx(ctx, tx).Save(ctx, ownerID, []balance.Snapshot{startingSnap})
+		err = m.balanceSnapshotService.Save(ctx, ownerID, []balance.Snapshot{startingSnap})
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", ownerID.ID, at, err)
 		}

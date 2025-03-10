@@ -355,6 +355,16 @@ func OwnerIDContainsFold(v string) predicate.BalanceSnapshot {
 	return predicate.BalanceSnapshot(sql.FieldContainsFold(FieldOwnerID, v))
 }
 
+// UsageIsNil applies the IsNil predicate on the "usage" field.
+func UsageIsNil() predicate.BalanceSnapshot {
+	return predicate.BalanceSnapshot(sql.FieldIsNull(FieldUsage))
+}
+
+// UsageNotNil applies the NotNil predicate on the "usage" field.
+func UsageNotNil() predicate.BalanceSnapshot {
+	return predicate.BalanceSnapshot(sql.FieldNotNull(FieldUsage))
+}
+
 // BalanceEQ applies the EQ predicate on the "balance" field.
 func BalanceEQ(v float64) predicate.BalanceSnapshot {
 	return predicate.BalanceSnapshot(sql.FieldEQ(FieldBalance, v))

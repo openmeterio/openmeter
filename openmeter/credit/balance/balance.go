@@ -68,7 +68,17 @@ func (g Map) ExactlyForGrants(grants []grant.Grant) bool {
 	return true
 }
 
+type SnapshottedUsage struct {
+	Usage float64   `json:"usage"`
+	Since time.Time `json:"since"`
+}
+
+func (s SnapshottedUsage) IsZero() bool {
+	return s.Usage == 0.0 && s.Since.IsZero()
+}
+
 type Snapshot struct {
+	Usage    SnapshottedUsage
 	Balances Map
 	Overage  float64
 	At       time.Time

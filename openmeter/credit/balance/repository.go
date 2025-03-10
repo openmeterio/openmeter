@@ -5,17 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SnapshotRepo interface {
 	InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error
+	// The returned Snapshot might not have usage data.
 	GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error)
 	Save(ctx context.Context, owner models.NamespacedID, balances []Snapshot) error
-
-	entutils.TxCreator
-	entutils.TxUser[SnapshotRepo]
 }
 
 // No balance has been saved since start of measurement for the owner

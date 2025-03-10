@@ -9,7 +9,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
-	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -71,21 +70,21 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
 
-	res, err := e.balanceConnector.GetBalanceForPeriod(ctx, nsOwner, timeutil.Period{
-		From: startOfPeriod,
-		To:   at,
-	})
+	lastSnap, err := e.balanceConnector.GetLastValidSnapshotAt(ctx, nsOwner, at)
 	if err != nil {
-		if _, ok := err.(*grant.OwnerNotFoundError); ok {
-			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
-		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get last valid snapshot at: %w", err)
+	}
+
+	// Let's calculate balance since the last snapshot
+	res, err := e.balanceConnector.GetBalanceSinceSnapshot(ctx, nsOwner, lastSnap, at)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get balance since snapshot: %w", err)
 	}
 
 	return &EntitlementBalance{
 		EntitlementID: entitlementID.ID,
 		Balance:       res.Snapshot.Balance(),
-		UsageInPeriod: res.History.TotalUsage(),
+		UsageInPeriod: res.Snapshot.Usage.Usage,
 		Overage:       res.Snapshot.Overage,
 		StartOfPeriod: startOfPeriod,
 	}, nil

@@ -81,7 +81,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		}
 
 		// invalidate snapshots
-		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, ownerID, g.EffectiveAt)
+		err = m.balanceSnapshotService.InvalidateAfter(ctx, ownerID, g.EffectiveAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
@@ -142,7 +142,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		}
 
 		// invalidate snapshots
-		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, ownerID, now)
+		err = m.balanceSnapshotService.InvalidateAfter(ctx, ownerID, now)
 		if err != nil {
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
