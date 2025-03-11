@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
@@ -134,6 +135,9 @@ func TestComplete(t *testing.T) {
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
+		},
+		Entitlements: EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
 		},
 		Billing: BillingConfiguration{
 			Enabled:             false,

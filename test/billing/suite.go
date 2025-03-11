@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
@@ -35,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -101,6 +103,9 @@ func (s *BaseSuite) SetupSuite() {
 		Logger:             slog.Default(),
 		MeterService:       s.MeterAdapter,
 		Publisher:          eventbus.NewMock(t),
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
+		},
 	})
 
 	// Feature

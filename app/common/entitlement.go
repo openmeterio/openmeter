@@ -27,10 +27,11 @@ func NewEntitlementRegistry(
 	eventPublisher eventbus.Publisher,
 ) *registry.Entitlement {
 	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     db,
-		StreamingConnector: streamingConnector,
-		MeterService:       meterService,
-		Logger:             logger,
-		Publisher:          eventPublisher,
+		DatabaseClient:            db,
+		StreamingConnector:        streamingConnector,
+		MeterService:              meterService,
+		Logger:                    logger,
+		Publisher:                 eventPublisher,
+		EntitlementsConfiguration: entitlementConfig,
 	})
 }

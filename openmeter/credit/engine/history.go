@@ -66,16 +66,7 @@ func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
 	return balance
 }
 
-// Creates a GrantBalanceSnapshot from the starting state of the segment
-func (s *GrantBurnDownHistorySegment) ToSnapshot() balance.Snapshot {
-	return balance.Snapshot{
-		Overage:  s.OverageAtStart,
-		Balances: s.BalanceAtStart,
-		At:       s.From,
-	}
-}
-
-func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment) (GrantBurnDownHistory, error) {
+func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, usageAtStart balance.SnapshottedUsage) (GrantBurnDownHistory, error) {
 	s := make([]GrantBurnDownHistorySegment, len(segments))
 	copy(s, segments)
 
@@ -95,18 +86,79 @@ func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment) (GrantBurnD
 		}
 	}
 
-	return GrantBurnDownHistory{segments: s}, nil
+	return GrantBurnDownHistory{segments: s, usageAtStart: usageAtStart}, nil
 }
 
 type GrantBurnDownHistory struct {
-	segments []GrantBurnDownHistorySegment
+	segments     []GrantBurnDownHistorySegment
+	usageAtStart balance.SnapshottedUsage
+}
+
+func (g *GrantBurnDownHistory) GetSnapshotAtStartOfSegment(segmentIndex int) (balance.Snapshot, error) {
+	// Let's validate the segment index
+	if segmentIndex < 0 || segmentIndex >= len(g.segments) {
+		return balance.Snapshot{}, fmt.Errorf("segment index %d out of bounds", segmentIndex)
+	}
+
+	// Let's get the segment
+	segment := g.segments[segmentIndex]
+
+	// Let's get the usage in the period until the start of the segment
+	usage, err := g.GetUsageInPeriodUntilSegment(segmentIndex)
+	if err != nil {
+		return balance.Snapshot{}, fmt.Errorf("failed to get usage in period until segment: %w", err)
+	}
+
+	return balance.Snapshot{
+		Usage:    usage,
+		Overage:  segment.OverageAtStart,
+		Balances: segment.BalanceAtStart,
+		At:       segment.From,
+	}, nil
+}
+
+// GetUsageInPeriodUntilSegment returns the SnapshottedUsage at the start of the given segment
+func (g *GrantBurnDownHistory) GetUsageInPeriodUntilSegment(segmentIndex int) (balance.SnapshottedUsage, error) {
+	// Let's validate the segment index
+	if segmentIndex < 0 || segmentIndex >= len(g.segments) {
+		return balance.SnapshottedUsage{}, fmt.Errorf("segment index %d out of bounds", segmentIndex)
+	}
+
+	// Let's find the segment of the last reset before the provided segment
+	lastResetSegmentIndex := -1
+	for i := 0; i < segmentIndex; i++ {
+		if g.segments[i].TerminationReasons.UsageReset {
+			lastResetSegmentIndex = i
+		}
+	}
+
+	// Now let's build a starting SnapshottedUsage
+	usage := g.usageAtStart
+
+	if lastResetSegmentIndex != -1 {
+		// We need the segment right after the last reset
+		if lastResetSegmentIndex+1 < len(g.segments) {
+			firstSeg := g.segments[lastResetSegmentIndex+1]
+			usage = balance.SnapshottedUsage{
+				Since: firstSeg.From,
+				Usage: 0.0,
+			}
+		}
+	}
+
+	// Now we need to add up the usage in all segments between the starting usage and the provided segment
+	for i := lastResetSegmentIndex + 1; i < segmentIndex; i++ {
+		usage.Usage += g.segments[i].TotalUsage
+	}
+
+	return usage, nil
 }
 
 func (g *GrantBurnDownHistory) Segments() []GrantBurnDownHistorySegment {
 	return g.segments
 }
 
-func (g *GrantBurnDownHistory) TotalUsage() float64 {
+func (g *GrantBurnDownHistory) TotalUsageInHistory() float64 {
 	var total float64
 	for _, s := range g.segments {
 		total += s.TotalUsage

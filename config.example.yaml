@@ -54,6 +54,9 @@ termination:
 #     database: 0
 #     expiration: 768h # 32d
 
+# entitlements:
+#   gracePeriod: P1D
+
 productcatalog:
   enabled: true
 

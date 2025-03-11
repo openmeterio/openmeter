@@ -179,6 +179,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)
+	ConfigureEntitlements(v, flags)
 	ConfigureTermination(v, "termination")
 	ConfigureProgressManager(v)
 }
