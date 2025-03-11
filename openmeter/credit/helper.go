@@ -163,7 +163,7 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 
 func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, snap balance.Snapshot) (balance.Snapshot, error) {
 	// Let's validate the timestamp
-	if snap.At.Truncate(m.Granularity) != snap.At {
+	if !snap.At.Truncate(m.Granularity).Equal(snap.At) {
 		return snap, fmt.Errorf("snapshot timestamp %s is not aligned to granularity %s", snap.At, m.Granularity)
 	}
 
