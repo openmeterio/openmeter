@@ -2,6 +2,7 @@ package filter_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
@@ -826,6 +827,182 @@ func TestFilterBoolean_SelectWhereExpr(t *testing.T) {
 
 			assert.Equal(t, tt.wantSQL, sql, "SQL statement should match expected value")
 			assert.Equal(t, tt.wantArgs, args, "SQL arguments should match expected values")
+		})
+	}
+}
+
+func TestFilterTime_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		filter  filter.FilterTime
+		wantErr bool
+	}{
+		{
+			name: "valid single filter",
+			filter: filter.FilterTime{
+				Gt: lo.ToPtr(time.Now()),
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid AND filter",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(time.Now())},
+					{Lt: lo.ToPtr(time.Now().Add(24 * time.Hour))},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid OR filter",
+			filter: filter.FilterTime{
+				Or: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(time.Now())},
+					{Lt: lo.ToPtr(time.Now().Add(24 * time.Hour))},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid multiple filters",
+			filter: filter.FilterTime{
+				Gt:  lo.ToPtr(time.Now()),
+				Gte: lo.ToPtr(time.Now()),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid nested AND filter",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{
+						Gt:  lo.ToPtr(time.Now()),
+						Gte: lo.ToPtr(time.Now()),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterTime_SelectWhereExpr(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name      string
+		filter    filter.FilterTime
+		field     string
+		wantEmpty bool
+		wantSQL   string
+		wantArgs  []interface{}
+	}{
+		{
+			name:      "nil filter",
+			filter:    filter.FilterTime{},
+			field:     "created_at",
+			wantEmpty: true,
+		},
+		{
+			name: "greater than",
+			filter: filter.FilterTime{
+				Gt: lo.ToPtr(now),
+			},
+			field:     "created_at",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE created_at > ?",
+			wantArgs:  []interface{}{now},
+		},
+		{
+			name: "greater than or equal",
+			filter: filter.FilterTime{
+				Gte: lo.ToPtr(now),
+			},
+			field:     "created_at",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE created_at >= ?",
+			wantArgs:  []interface{}{now},
+		},
+		{
+			name: "less than",
+			filter: filter.FilterTime{
+				Lt: lo.ToPtr(now),
+			},
+			field:     "created_at",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE created_at < ?",
+			wantArgs:  []interface{}{now},
+		},
+		{
+			name: "less than or equal",
+			filter: filter.FilterTime{
+				Lte: lo.ToPtr(now),
+			},
+			field:     "created_at",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE created_at <= ?",
+			wantArgs:  []interface{}{now},
+		},
+		{
+			name: "AND combination",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+					{Lt: lo.ToPtr(now.Add(24 * time.Hour))},
+				},
+			},
+			field:     "created_at",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE (created_at > ? AND created_at < ?)",
+			wantArgs:  []interface{}{now, now.Add(24 * time.Hour)},
+		},
+		{
+			name: "OR combination",
+			filter: filter.FilterTime{
+				Or: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+					{Lt: lo.ToPtr(now.Add(24 * time.Hour))},
+				},
+			},
+			field:     "created_at",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE (created_at > ? OR created_at < ?)",
+			wantArgs:  []interface{}{now, now.Add(24 * time.Hour)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := sqlbuilder.NewSelectBuilder()
+			builder.Select("*").From("table")
+
+			result := tt.filter.SelectWhereExpr(tt.field, builder)
+
+			if tt.wantEmpty {
+				assert.Empty(t, result)
+			} else {
+				if !assert.NotEmpty(t, result) {
+					return
+				}
+
+				builder.Where(result)
+				sql, args := builder.Build()
+
+				assert.Equal(t, tt.wantSQL, sql)
+				assert.Equal(t, tt.wantArgs, args)
+			}
 		})
 	}
 }

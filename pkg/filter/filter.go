@@ -2,6 +2,7 @@ package filter
 
 import (
 	"errors"
+	"time"
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
@@ -9,7 +10,9 @@ import (
 
 // Filter is a filter for a field.
 type Filter interface {
+	// Validate validates the filter.
 	Validate() error
+	// SelectWhereExpr converts the filter to a SQL WHERE expression.
 	SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
 }
 
@@ -17,6 +20,7 @@ var (
 	_ Filter = (*FilterString)(nil)
 	_ Filter = (*FilterInteger)(nil)
 	_ Filter = (*FilterFloat)(nil)
+	_ Filter = (*FilterTime)(nil)
 	_ Filter = (*FilterBoolean)(nil)
 )
 
@@ -38,12 +42,14 @@ type FilterString struct {
 	Or     *[]FilterString `json:"$or,omitempty"`
 }
 
+// Validate validates the filter.
 func (f FilterString) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
 		f.Eq != nil, f.Ne != nil, f.In != nil, f.Nin != nil,
 		f.Like != nil, f.Nlike != nil, f.Ilike != nil, f.Nilike != nil,
 		f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+		f.And != nil, f.Or != nil,
 	}); err != nil {
 		return err
 	}
@@ -118,10 +124,12 @@ type FilterInteger struct {
 	Or  *[]FilterInteger `json:"$or,omitempty"`
 }
 
+// Validate validates the filter.
 func (f FilterInteger) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
 		f.Eq != nil, f.Ne != nil, f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+		f.And != nil, f.Or != nil,
 	}); err != nil {
 		return err
 	}
@@ -188,6 +196,7 @@ func (f FilterFloat) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
 		f.Eq != nil, f.Ne != nil, f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+		f.And != nil, f.Or != nil,
 	}); err != nil {
 		return err
 	}
@@ -231,6 +240,68 @@ func (f FilterFloat) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) 
 		})...)
 	case f.Or != nil:
 		return q.Or(lo.Map(*f.Or, func(filter FilterFloat, _ int) string {
+			return filter.SelectWhereExpr(field, q)
+		})...)
+	default:
+		return ""
+	}
+}
+
+// FilterTime is a filter for a time field.
+type FilterTime struct {
+	Gt  *time.Time    `json:"$gt,omitempty"`
+	Gte *time.Time    `json:"$gte,omitempty"`
+	Lt  *time.Time    `json:"$lt,omitempty"`
+	Lte *time.Time    `json:"$lte,omitempty"`
+	And *[]FilterTime `json:"$and,omitempty"`
+	Or  *[]FilterTime `json:"$or,omitempty"`
+}
+
+// Validate validates the filter.
+func (f FilterTime) Validate() error {
+	// Check for multiple non-nil filters
+	if err := validateMutuallyExclusiveFilters([]bool{
+		f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
+		f.And != nil, f.Or != nil,
+	}); err != nil {
+		return err
+	}
+
+	// Validate logical operators
+	errs := lo.Map(lo.FromPtr(f.And), func(f FilterTime, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	errs = lo.Map(lo.FromPtr(f.Or), func(f FilterTime, _ int) error {
+		return f.Validate()
+	})
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	switch {
+	case f.Gt != nil:
+		return q.GT(field, *f.Gt)
+	case f.Gte != nil:
+		return q.GTE(field, *f.Gte)
+	case f.Lt != nil:
+		return q.LT(field, *f.Lt)
+	case f.Lte != nil:
+		return q.LTE(field, *f.Lte)
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(filter FilterTime, _ int) string {
+			return filter.SelectWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(filter FilterTime, _ int) string {
 			return filter.SelectWhereExpr(field, q)
 		})...)
 	default:
