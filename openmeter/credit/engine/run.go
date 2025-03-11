@@ -38,7 +38,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	}
 
 	snapshot := params.StartingSnapshot
-	history := make([]GrantBurnDownHistorySegment, 0)
+	historySegments := make([]GrantBurnDownHistorySegment, 0)
 
 	for idx, period := range timeline.GetPeriods() {
 		// We need to find the grants that are relevant for this period.
@@ -55,7 +55,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		}
 
 		snapshot = runRes.Snapshot
-		history = append(history, runRes.History...)
+		historySegments = append(historySegments, runRes.History.Segments()...)
 
 		if idx != len(timeline.GetPeriods())-1 {
 			// We need to reset at each period, except the last one.
@@ -68,10 +68,15 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 			snapshot = snap
 
 			// We need to mark the history segment as one resulting from a reset for all periods except the last one
-			if len(history) > 0 {
-				history[len(history)-1].TerminationReasons.UsageReset = true
+			if len(historySegments) > 0 {
+				historySegments[len(historySegments)-1].TerminationReasons.UsageReset = true
 			}
 		}
+	}
+
+	history, err := NewGrantBurnDownHistory(historySegments)
+	if err != nil {
+		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
 
 	return RunResult{
@@ -198,13 +203,19 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 			recurredGrants = phase.grantsRecurredAtEnd
 		}
 	}
+
+	history, err := NewGrantBurnDownHistory(segments)
+	if err != nil {
+		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
+	}
+
 	return RunResult{
 		Snapshot: balance.Snapshot{
 			Balances: balancesAtPhaseStart,
 			Overage:  overage,
 			At:       period.To,
 		},
-		History: segments,
+		History: history,
 	}, nil
 }
 

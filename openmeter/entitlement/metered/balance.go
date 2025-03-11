@@ -8,7 +8,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -56,21 +55,15 @@ type BalanceHistoryParams struct {
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
 	e.logger.DebugContext(ctx, "Getting entitlement balance", "entitlement", entitlementID, "at", at)
 
+	// We round up to closest full minute to include all the partial usage in the last minute of querying
+	// Not that this will never throw us to a different usage period
+	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
+		at = trunc.Add(time.Minute)
+	}
+
 	nsOwner := models.NamespacedID{
 		Namespace: entitlementID.Namespace,
 		ID:        entitlementID.ID,
-	}
-	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
-	if err != nil {
-		if _, ok := err.(*grant.OwnerNotFoundError); ok {
-			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
-		}
-		return nil, err
-	}
-
-	owner, err := e.ownerConnector.DescribeOwner(ctx, nsOwner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe owner: %w", err)
 	}
 
 	startOfPeriod, err := e.ownerConnector.GetUsagePeriodStartAt(ctx, nsOwner, at)
@@ -78,33 +71,22 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
 
-	// TODO: move usage calculation some place else
-
-	meterQuery := owner.DefaultQueryParams
-	meterQuery.From = &startOfPeriod
-	meterQuery.To = &at
-
-	// We round up to closest full minute to include all the partial usage in the last minute of querying
-	if trunc := meterQuery.To.Truncate(time.Minute); trunc.Before(*meterQuery.To) {
-		meterQuery.To = convert.ToPointer(trunc.Add(time.Minute))
-	}
-
-	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, owner.Meter, meterQuery)
+	res, err := e.balanceConnector.GetBalanceForPeriod(ctx, nsOwner, timeutil.Period{
+		From: startOfPeriod,
+		To:   at,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to query meter: %w", err)
-	}
-
-	// TODO: refactor, assert 1 row
-	usage := 0.0
-	for _, row := range rows {
-		usage += row.Value
+		if _, ok := err.(*grant.OwnerNotFoundError); ok {
+			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
+		}
+		return nil, err
 	}
 
 	return &EntitlementBalance{
 		EntitlementID: entitlementID.ID,
-		Balance:       res.Balance(),
-		UsageInPeriod: usage,
-		Overage:       res.Overage,
+		Balance:       res.Snapshot.Balance(),
+		UsageInPeriod: res.History.TotalUsage(),
+		Overage:       res.Snapshot.Overage,
 		StartOfPeriod: startOfPeriod,
 	}, nil
 }
@@ -249,7 +231,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		}
 	}
 
-	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner.NamespacedID, credit.BalanceHistoryParams{
+	historyRes, err := e.balanceConnector.GetBalanceForPeriod(ctx, owner.NamespacedID, timeutil.Period{
 		From: periodToQueryEngine.From,
 		To:   periodToQueryEngine.To,
 	})
@@ -258,7 +240,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	}
 
 	// convert history segments to list of point-in-time balances
-	segments := burndownHistory.Segments()
+	segments := historyRes.History.Segments()
 
 	if len(segments) == 0 {
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("returned history is empty")
@@ -361,7 +343,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		tsBalance.overage = overage
 	}
 
-	return windows, burndownHistory, nil
+	return windows, historyRes.History, nil
 }
 
 // queryMeter is a wrapper around streamingConnector.QueryMeter that accepts a 0 length period and returns 0 for it
