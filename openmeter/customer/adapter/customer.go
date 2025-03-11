@@ -517,6 +517,25 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 	})
 }
 
+func (a *adapter) CustomerExists(ctx context.Context, customerID customer.CustomerID) error {
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		count, err := repo.db.Customer.Query().
+			Where(customerdb.Namespace(customerID.Namespace)).
+			Where(customerdb.ID(customerID.ID)).
+			Where(customerdb.DeletedAtIsNil()).
+			Count(ctx)
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			return customer.NewNotFoundError(customerID)
+		}
+
+		return nil
+	})
+}
+
 func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time) {
 	query.Where(
 		subscriptiondb.ActiveFromLTE(at),

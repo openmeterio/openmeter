@@ -35,25 +35,6 @@ func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 			return def, err
 		}
 
-		// The user doesn't specified a profile, let's use the default
-		if input.ProfileID == "" {
-			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
-			if err != nil {
-				return def, err
-			}
-
-			if defaultProfile == nil {
-				return def, billing.NotFoundError{
-					Entity: billing.EntityDefaultProfile,
-					Err:    billing.ErrDefaultProfileNotFound,
-				}
-			}
-
-			input.ProfileID = defaultProfile.ID
-		}
-
 		var upsertedOverride *billing.CustomerOverride
 		if existingOverride != nil {
 			// We have an existing override, let's rather update it
@@ -92,40 +73,25 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 		}
 	}
 
-	adapterOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: input.Customer,
-
-		IncludeDeleted: false,
-	})
-	if err != nil {
-		return def, err
-	}
-
-	if adapterOverride == nil {
-		return def, billing.NotFoundError{
-			ID:     input.Customer.ID,
-			Entity: billing.EntityCustomerOverride,
-			Err:    billing.ErrCustomerOverrideNotFound,
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
+		if err := s.customerService.CustomerExists(ctx, input.Customer); err != nil {
+			return def, err
 		}
-	}
 
-	var defaultProfile *billing.Profile
+		adapterOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+			Customer: input.Customer,
 
-	// If the override doesn't have a profile, let's use the default profile
-	if adapterOverride.Profile == nil {
-		defaultProfile, err = s.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: input.Customer.Namespace,
+			IncludeDeleted: false,
 		})
 		if err != nil {
 			return def, err
 		}
-	}
 
-	return s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
-		CustomerID:     input.Customer,
-		Override:       adapterOverride,
-		DefaultProfile: defaultProfile,
-		Expand:         input.Expand,
+		return s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
+			CustomerID: input.Customer,
+			Override:   adapterOverride,
+			Expand:     input.Expand,
+		})
 	})
 }
 
@@ -327,7 +293,7 @@ func (s *Service) resolveProfileWorkflow(ctx context.Context, in resolveCustomer
 
 		return billing.CustomerOverrideWithDetails{
 			Expand:        in.Expand,
-			MergedProfile: *in.DefaultProfile,
+			MergedProfile: *defaultProfile,
 		}, nil
 	}
 

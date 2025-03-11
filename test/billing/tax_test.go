@@ -35,7 +35,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
-	customer := s.CreateTestCustomer(namespace, "test")
+	cust := s.CreateTestCustomer(namespace, "test")
 
 	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
 	minimalCreateProfileInput.Namespace = namespace
@@ -52,7 +52,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	s.NotNil(profile)
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
-		draftInvoice := s.generateDraftInvoice(ctx, namespace, customer)
+		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
@@ -70,9 +70,9 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.NoError(err)
 		s.Nil(profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
-		override := billing.CreateCustomerOverrideInput{
+		override := billing.UpsertCustomerOverrideInput{
 			Namespace:  namespace,
-			CustomerID: customer.ID,
+			CustomerID: cust.ID,
 			Invoicing: billing.InvoicingOverrideConfig{
 				DefaultTaxConfig: &productcatalog.TaxConfig{
 					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
@@ -83,19 +83,21 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 			},
 		}
 
-		_, err := s.BillingService.CreateCustomerOverride(ctx, override)
+		_, err := s.BillingService.UpsertCustomerOverride(ctx, override)
 		s.NoError(err)
 
-		mappedBillingProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  namespace,
-			CustomerID: customer.ID,
+		customerOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: namespace,
+				ID:        cust.ID,
+			},
 		})
 		s.NoError(err)
-		s.NotNil(mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.NotNil(customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
+		s.Equal("txcd_20000000", customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
 
-		draftInvoice := s.generateDraftInvoice(ctx, namespace, customer)
+		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
 		s.Equal("txcd_20000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
@@ -103,19 +105,23 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	s.Run("Profile default tax config is not set, invoice inherits it, but can be updated", func() {
 		err := s.BillingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
-			Namespace:  namespace,
-			CustomerID: customer.ID,
+			Customer: customer.CustomerID{
+				Namespace: namespace,
+				ID:        cust.ID,
+			},
 		})
 		s.NoError(err)
 
-		mappedBillingProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  namespace,
-			CustomerID: customer.ID,
+		customerOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: namespace,
+				ID:        cust.ID,
+			},
 		})
 		s.NoError(err)
-		s.Nil(mappedBillingProfile.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+		s.Nil(customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
-		draftInvoice := s.generateDraftInvoice(ctx, namespace, customer)
+		draftInvoice := s.generateDraftInvoice(ctx, namespace, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 
 		// let's update the invoice

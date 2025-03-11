@@ -107,8 +107,7 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 			WithBillingProfile(func(bpq *db.BillingProfileQuery) {
 				bpq.WithWorkflowConfig()
-			}).
-			WithCustomer()
+			})
 
 		if !input.IncludeDeleted {
 			query = query.Where(billingcustomeroverride.DeletedAtIsNil())
@@ -121,14 +120,6 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 			}
 
 			return nil, err
-		}
-
-		if dbCustomerOverride.Edges.Customer == nil {
-			return nil, billing.NotFoundError{
-				ID:     input.Customer.ID,
-				Entity: billing.EntityCustomer,
-				Err:    billing.ErrCustomerNotFound,
-			}
 		}
 
 		if dbCustomerOverride.BillingProfileID == nil {

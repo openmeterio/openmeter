@@ -904,3 +904,7 @@ func (n NoopCustomerService) FindCustomer(ctx context.Context, namespace string,
 
 func (n NoopCustomerService) RegisterRequestValidator(validator customer.RequestValidator) {
 }
+
+func (n NoopCustomerService) CustomerExists(ctx context.Context, customer customer.CustomerID) error {
+	return nil
+}

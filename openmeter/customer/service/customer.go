@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -74,4 +75,10 @@ func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEnt
 	}
 
 	return val, nil
+}
+
+func (s *Service) CustomerExists(ctx context.Context, customer customer.CustomerID) error {
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.CustomerExists(ctx, customer)
+	})
 }
