@@ -236,7 +236,7 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			overrideQuery = overrideQuery.Where(billingcustomeroverride.NamespaceEQ(input.Namespace)).
 				Where(billingcustomeroverride.DeletedAtIsNil())
 
-			overrideQuery = overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
+			overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
 				profileQuery.WithWorkflowConfig()
 			})
 		})

@@ -40,7 +40,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 
 			return ListCustomerOverridesRequest{
 				Namespace:            ns,
-				BillingProfiles:      []string(lo.FromPtr(input.BillingProfile)),
+				BillingProfiles:      lo.FromPtr(input.BillingProfile),
 				IncludeAllCustomers:  lo.FromPtr(input.IncludeAllCustomers),
 				CustomerID:           lo.FromPtr(input.CustomerId),
 				CustomerName:         lo.FromPtr(input.CustomerName),

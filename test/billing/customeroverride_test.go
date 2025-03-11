@@ -543,6 +543,35 @@ func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
 				custPinnedToDefaultProfile,
 			},
 		},
+		{
+			// When we filter by customer name, we get the customers that match the name
+			name: "filter by customer name",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomerName: "override",
+			},
+			expectedCustomers: []*customer.Customer{
+				custOverrideProfile,
+			},
+		},
+		{
+			// When we filter by customer name, but don't have any customers that match, we get an empty list
+			name: "filter by customer name, no customers match",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomerName: "noOverride",
+			},
+			expectedCustomers: []*customer.Customer{},
+		},
+		{
+			// When we filter by customer name and enable IncludeAllCustomers we get a match even if the customer has no override
+			name: "filter by customer name, include all customers",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomerName:        "noOverride",
+				IncludeAllCustomers: true,
+			},
+			expectedCustomers: []*customer.Customer{
+				custNoOverride,
+			},
+		},
 	}
 
 	for _, tc := range tcs {
