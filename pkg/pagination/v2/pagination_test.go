@@ -9,32 +9,32 @@ import (
 
 // TestItem implements the Item interface
 type TestItem struct {
-	ItemID    string
+	ID        string
 	CreatedAt time.Time
 }
 
-// Time implements Item.Time
-func (i TestItem) Time() time.Time {
+// GetTime implements Item.GetTime
+func (i TestItem) GetTime() time.Time {
 	return i.CreatedAt
 }
 
-// ID implements Item.ID
-func (i TestItem) ID() string {
-	return i.ItemID
+// GetID implements Item.GetID
+func (i TestItem) GetID() string {
+	return i.ID
 }
 
 func TestCursorGeneration(t *testing.T) {
 	items := []TestItem{
 		{
-			ItemID:    "1",
+			ID:        "1",
 			CreatedAt: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC),
 		},
 		{
-			ItemID:    "2",
+			ID:        "2",
 			CreatedAt: time.Date(2023, 1, 2, 12, 0, 0, 0, time.UTC),
 		},
 		{
-			ItemID:    "3",
+			ID:        "3",
 			CreatedAt: time.Date(2023, 1, 3, 12, 0, 0, 0, time.UTC),
 		},
 	}
@@ -53,7 +53,7 @@ func TestCursorGeneration(t *testing.T) {
 		nextCursor, err := DecodeCursor(*result.NextCursor)
 		assert.NoError(t, err)
 		assert.Equal(t, items[len(items)-1].CreatedAt.UTC(), nextCursor.Time)
-		assert.Equal(t, items[len(items)-1].ItemID, nextCursor.ID)
+		assert.Equal(t, items[len(items)-1].ID, nextCursor.ID)
 	})
 
 	t.Run("Empty results", func(t *testing.T) {

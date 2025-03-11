@@ -7,11 +7,11 @@ import (
 // Item is the interface that must be implemented by items used in cursor pagination.
 // It provides access to the time and ID fields needed for cursor generation.
 type Item interface {
-	// Time returns the timestamp used for cursor-based ordering
-	Time() time.Time
+	// GetTime returns the timestamp used for cursor-based ordering
+	GetTime() time.Time
 
-	// ID returns the unique identifier for this item
-	ID() string
+	// GetID returns the unique identifier for this item
+	GetID() string
 }
 
 // Result represents the response structure for cursor-based pagination
@@ -31,8 +31,8 @@ type Result[T any] struct {
 func NewResult[T Item](
 	items []T,
 	totalCount int64,
-) *Result[T] {
-	result := &Result[T]{
+) Result[T] {
+	result := Result[T]{
 		Items:      items,
 		TotalCount: totalCount,
 	}
@@ -40,7 +40,7 @@ func NewResult[T Item](
 	// Generate next cursor from the last item if there are any items
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
-		cursor := NewCursor(lastItem.Time(), lastItem.ID()).Encode()
+		cursor := NewCursor(lastItem.GetTime(), lastItem.GetID()).Encode()
 		result.NextCursor = &cursor
 	}
 
