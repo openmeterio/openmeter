@@ -162,6 +162,11 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 }
 
 func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, snap balance.Snapshot) (balance.Snapshot, error) {
+	// Let's validate the timestamp
+	if snap.At.Truncate(m.Granularity) != snap.At {
+		return snap, fmt.Errorf("snapshot timestamp %s is not aligned to granularity %s", snap.At, m.Granularity)
+	}
+
 	if err := m.removeInactiveGrantsFromSnapshotAt(&snap, params.grants, snap.At); err != nil {
 		return snap, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
 	}

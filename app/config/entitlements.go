@@ -20,8 +20,10 @@ func (c EntitlementsConfiguration) Validate() error {
 		return errors.New("gracePeriod is required")
 	}
 
-	if _, err := c.GracePeriod.Parse(); err != nil {
+	if p, err := c.GracePeriod.Parse(); err != nil {
 		return errors.New("gracePeriod is invalid")
+	} else if p.Sign() != 1 {
+		return errors.New("gracePeriod must be positive")
 	}
 
 	return nil
