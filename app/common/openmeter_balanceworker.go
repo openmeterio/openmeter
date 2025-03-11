@@ -16,7 +16,6 @@ import (
 	entitlementadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/registry"
-	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -26,10 +25,7 @@ import (
 var BalanceWorker = wire.NewSet(
 	BalanceWorkerProvisionTopics,
 	BalanceWorkerSubscriber,
-
-	wire.Struct(new(registrybuilder.EntitlementOptions), "*"),
-	registrybuilder.GetEntitlementRegistry,
-
+	NewEntitlementRegistry,
 	NewBalanceWorkerOptions,
 	NewBalanceWorker,
 	BalanceWorkerGroup,
