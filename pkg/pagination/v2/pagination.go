@@ -14,22 +14,15 @@ type Result[T any] struct {
 	// The items returned
 	Items []T `json:"items"`
 
-	// The total count of items
-	TotalCount int64 `json:"totalCount"`
-
 	// Cursor for the next page
 	NextCursor *string `json:"nextCursor"`
 }
 
 // NewResult creates a new pagination result
 // T must implement the Item interface for cursor generation
-func NewResult[T Item](
-	items []T,
-	totalCount int64,
-) Result[T] {
+func NewResult[T Item](items []T) Result[T] {
 	result := Result[T]{
-		Items:      items,
-		TotalCount: totalCount,
+		Items: items,
 	}
 
 	// Generate next cursor from the last item if there are any items
