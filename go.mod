@@ -113,6 +113,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
 	github.com/cncf/xds/go v0.0.0-20250121191232-2f005788dc42 // indirect
+	github.com/dave/jennifer v1.6.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.0.1 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
@@ -128,6 +129,7 @@ require (
 	github.com/hamba/avro/v2 v2.27.0 // indirect
 	github.com/invopop/validation v0.8.0 // indirect
 	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
+	github.com/jmattheis/goverter v1.8.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/jzelinskie/stringz v0.0.3 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
