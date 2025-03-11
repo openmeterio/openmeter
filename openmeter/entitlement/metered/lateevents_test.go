@@ -99,7 +99,12 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
-				ID: "managed-resource-1",
+				ID:   "managed-resource-1",
+				Name: "managed-resource-1",
+				ManagedModel: models.ManagedModel{
+					CreatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+					UpdatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+				},
 			},
 			Aggregation: meter.MeterAggregationSum,
 			WindowSize:  meter.WindowSizeMinute,

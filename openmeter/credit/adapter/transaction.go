@@ -48,6 +48,6 @@ func (e *balanceSnapshotRepo) WithTx(ctx context.Context, tx *entutils.TxDriver)
 	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }
 
-func (e *balanceSnapshotRepo) Self() balance.SnapshotRepo {
+func (e *balanceSnapshotRepo) Self() *balanceSnapshotRepo {
 	return e
 }
