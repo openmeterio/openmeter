@@ -58,6 +58,10 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, customer.IncludeDeleted),
 			}
 
+			if err := req.Page.Validate(); err != nil {
+				return ListCustomersRequest{}, err
+			}
+
 			return req, nil
 		},
 		func(ctx context.Context, request ListCustomersRequest) (ListCustomersResponse, error) {

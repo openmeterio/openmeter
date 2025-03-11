@@ -439,3 +439,132 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	require.NotNil(s.T(), customerProfile)
 	require.Nil(s.T(), customerProfile.CustomerOverride.Collection.Interval)
 }
+
+func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
+	ns := "test-list-customer-overrides"
+	ctx := context.Background()
+
+	_ = s.InstallSandboxApp(s.T(), ns)
+
+	// Given we have a default profile and an override profile
+
+	defaultProfileCreateInput := MinimalCreateProfileInputTemplate
+	defaultProfileCreateInput.Namespace = ns
+
+	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileCreateInput)
+	require.NoError(s.T(), err)
+
+	overrideProfileCreateInput := MinimalCreateProfileInputTemplate
+	overrideProfileCreateInput.Namespace = ns
+	overrideProfileCreateInput.Default = false
+
+	overrideProfile, err := s.BillingService.CreateProfile(ctx, overrideProfileCreateInput)
+	require.NoError(s.T(), err)
+
+	customers := []*customer.Customer{}
+	for _, name := range []string{"custNoOverride", "custOverride", "custPinnedToDefault"} {
+		cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: ns,
+			CustomerMutate: customer.CustomerMutate{
+				Name: name,
+			},
+		})
+		require.NoError(s.T(), err)
+		customers = append(customers, cust)
+	}
+
+	// Given we have a customer with no override (uses default profile)
+
+	custNoOverride := customers[0]
+
+	// Given we have a customer with an override (uses override profile)
+
+	custOverrideProfile := customers[1]
+	_, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: custOverrideProfile.ID,
+		ProfileID:  overrideProfile.ID,
+	})
+	require.NoError(s.T(), err)
+
+	// Given we have a customer with an override (uses *default* profile)
+
+	custPinnedToDefaultProfile := customers[2]
+	_, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: custPinnedToDefaultProfile.ID,
+		ProfileID:  defaultProfile.ID,
+	})
+	require.NoError(s.T(), err)
+
+	// When listing the customer overrides
+
+	tcs := []struct {
+		name              string
+		listInput         billing.ListCustomerOverridesInput
+		expectedCustomers []*customer.Customer
+	}{
+		{
+			// When there's no filter only customers with overrides are returned
+			name:      "no filter",
+			listInput: billing.ListCustomerOverridesInput{},
+			expectedCustomers: []*customer.Customer{
+				custOverrideProfile,
+				custPinnedToDefaultProfile,
+			},
+		},
+		{
+			// When we require all customers, all customers are returned
+			name: "all customers",
+			listInput: billing.ListCustomerOverridesInput{
+				IncludeAllCustomers: true,
+			},
+			expectedCustomers: customers,
+		},
+		{
+			// When we filter by profile ID, only customers with explicit overrides for that profile are returned
+			name: "filter by profile ID",
+			listInput: billing.ListCustomerOverridesInput{
+				BillingProfiles: []string{defaultProfile.ID},
+			},
+			expectedCustomers: []*customer.Customer{
+				custPinnedToDefaultProfile,
+			},
+		},
+		{
+			// When we filter by profile ID, but enable IncludeAllCustomers, for default profile we get all customers that either explicitly use the default profile or not set any profile
+			name: "filter by profile ID, include all customers",
+			listInput: billing.ListCustomerOverridesInput{
+				BillingProfiles:     []string{defaultProfile.ID},
+				IncludeAllCustomers: true,
+			},
+			expectedCustomers: []*customer.Customer{
+				custNoOverride,
+				custPinnedToDefaultProfile,
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		s.T().Run(tc.name, func(t *testing.T) {
+			tc.listInput.Expand = billing.CustomerOverrideExpand{
+				Customer: true,
+			}
+
+			tc.listInput.Namespace = ns
+
+			customerOverrides, err := s.BillingService.ListCustomerOverrides(ctx, tc.listInput)
+			require.NoError(t, err)
+
+			expectedCustomerNames := lo.Map(tc.expectedCustomers, func(c *customer.Customer, _ int) string {
+				return c.Name
+			})
+
+			actualCustomerNames := lo.Map(customerOverrides.Items, func(co billing.CustomerOverrideWithDetails, _ int) string {
+				return co.Customer.Name
+			})
+
+			require.ElementsMatch(t, expectedCustomerNames, actualCustomerNames)
+		})
+	}
+}

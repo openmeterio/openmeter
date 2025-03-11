@@ -120,6 +120,14 @@ type ListCustomersInput struct {
 	CustomerIDs  []string
 }
 
+func (i ListCustomersInput) Validate() error {
+	if i.Namespace == "" {
+		return models.NewGenericValidationError(errors.New("namespace is required"))
+	}
+
+	return nil
+}
+
 // CreateCustomerInput represents the input for the CreateCustomer method
 type CreateCustomerInput struct {
 	Namespace string

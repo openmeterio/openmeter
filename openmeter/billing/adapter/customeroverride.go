@@ -3,6 +3,7 @@ package billingadapter
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -151,10 +153,6 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			Where(dbcustomer.NamespaceEQ(input.Namespace)).
 			Where(dbcustomer.DeletedAtIsNil())
 
-		if !input.IncludeAllCustomers {
-			query = query.Where(dbcustomer.HasBillingCustomerOverride())
-		}
-
 		// Customer field filters
 		if input.CustomerID != nil {
 			query = query.Where(dbcustomer.IDIn(input.CustomerID...))
@@ -193,13 +191,50 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 		}
 
 		// Customer override filtering
+		customerOverrideFilters := []predicate.BillingCustomerOverride{
+			billingcustomeroverride.DeletedAtIsNil(),
+			billingcustomeroverride.NamespaceEQ(input.Namespace),
+		}
+
+		if len(input.BillingProfiles) > 0 {
+			customerOverrideFilters = append(customerOverrideFilters, billingcustomeroverride.BillingProfileIDIn(input.BillingProfiles...))
+		}
+
+		if !input.IncludeAllCustomers {
+			query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...))
+		} else {
+			// We need to understand if the default profile is being queried for or not
+
+			shouldIncludeDefaultProfile := false
+			if len(input.BillingProfiles) == 0 {
+				shouldIncludeDefaultProfile = true
+			} else {
+				// Let's see if we are interested in the default profile
+				defaultProfile, err := tx.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+					Namespace: input.Namespace,
+				})
+				if err != nil {
+					return billing.ListCustomerOverridesAdapterResult{}, err
+				}
+
+				shouldIncludeDefaultProfile = slices.Contains(input.BillingProfiles, defaultProfile.ID)
+			}
+
+			if shouldIncludeDefaultProfile {
+				query = query.Where(
+					dbcustomer.Or(
+						dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...),
+						dbcustomer.Not(dbcustomer.HasBillingCustomerOverride()),
+					),
+				)
+			} else {
+				query = query.Where(dbcustomer.HasBillingCustomerOverrideWith(customerOverrideFilters...))
+			}
+		}
+
 		query = query.WithBillingCustomerOverride(func(overrideQuery *db.BillingCustomerOverrideQuery) {
 			overrideQuery = overrideQuery.Where(billingcustomeroverride.NamespaceEQ(input.Namespace)).
 				Where(billingcustomeroverride.DeletedAtIsNil())
-
-			if len(input.BillingProfiles) > 0 {
-				overrideQuery = overrideQuery.Where(billingcustomeroverride.BillingProfileIDIn(input.BillingProfiles...))
-			}
 
 			overrideQuery = overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
 				profileQuery.WithWorkflowConfig()
