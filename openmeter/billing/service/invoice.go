@@ -125,7 +125,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 	hasInvoicableLines := mo.Option[bool]{}
 	now := clock.Now()
 
-	billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: invoice.CustomerID(),
 	})
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 		period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
 			AsOf:               now,
-			ProgressiveBilling: billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
+			ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
 		})
 		if err != nil {
 			return invoice, fmt.Errorf("checking if can be invoiced: %w", err)
@@ -239,8 +239,9 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		input.Customer,
 		func(ctx context.Context) ([]billing.Invoice, error) {
 			// let's resolve the customer's settings
-			customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+			customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 				Customer: input.Customer,
+				Expand:   billing.CustomerOverrideExpand{Customer: true},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("fetching customer profile: %w", err)
@@ -253,7 +254,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				Customer:           input.Customer,
 				LinesToInclude:     input.IncludePendingLines,
 				AsOf:               asof,
-				ProgressiveBilling: customerProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling,
+				ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
 			})
 			if err != nil {
 				return nil, err
@@ -288,7 +289,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
 					billing.SequenceGenerationInput{
 						Namespace:    input.Customer.Namespace,
-						CustomerName: customerProfile.Profile.Name,
+						CustomerName: customerProfile.MergedProfile.Name,
 						Currency:     currency,
 					},
 					billing.DraftInvoiceSequenceNumber,
@@ -300,8 +301,8 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				// let's create the invoice
 				invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 					Namespace: input.Customer.Namespace,
-					Customer:  customerProfile.Customer,
-					Profile:   customerProfile.Profile,
+					Customer:  lo.FromPtrOr(customerProfile.Customer, customer.Customer{}),
+					Profile:   customerProfile.MergedProfile,
 
 					Currency: currency,
 					Number:   invoiceNumber,
@@ -391,13 +392,13 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 				for _, invoice := range resp.Items {
 					collectionAt := invoice.CollectionAt
-					if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.Profile.WorkflowConfig.Collection); ok {
+					if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.MergedProfile.WorkflowConfig.Collection); ok {
 						s.logger.DebugContext(ctx, "collection time updated for invoice",
 							"invoiceID", invoice.ID,
 							"collectionAt", map[string]interface{}{
 								"from":               lo.FromPtr(collectionAt),
 								"to":                 lo.FromPtr(invoice.CollectionAt),
-								"collectionInterval": customerProfile.Profile.WorkflowConfig.Collection.Interval.String(),
+								"collectionInterval": customerProfile.MergedProfile.WorkflowConfig.Collection.Interval.String(),
 							},
 						)
 					}
@@ -829,7 +830,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 	}
 
 	if invoice.Status == billing.InvoiceStatusGathering {
-		billingProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
+		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: invoice.CustomerID(),
 		})
 		if err != nil {
@@ -862,13 +863,13 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			}
 
 			collectionAt := invoice.CollectionAt
-			if ok := UpdateInvoiceCollectionAt(&invoice, billingProfile.Profile.WorkflowConfig.Collection); ok {
+			if ok := UpdateInvoiceCollectionAt(&invoice, customerProfile.MergedProfile.WorkflowConfig.Collection); ok {
 				s.logger.DebugContext(ctx, "collection time updated for invoice",
 					"invoiceID", invoice.ID,
 					"collectionAt", map[string]interface{}{
 						"from":               lo.FromPtr(collectionAt),
 						"to":                 lo.FromPtr(invoice.CollectionAt),
-						"collectionInterval": billingProfile.Profile.WorkflowConfig.Collection.Interval.String(),
+						"collectionInterval": customerProfile.MergedProfile.WorkflowConfig.Collection.Interval.String(),
 					},
 				)
 			}
@@ -880,7 +881,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			}
 
 			// Check if the new lines are still invoicable
-			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, billingProfile.Profile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
+			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
 				return billing.Invoice{}, err
 			}
 
@@ -971,8 +972,9 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.Invoice{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	billingProfile, err := s.getProfileWithCustomerOverride(ctx, s.adapter, billing.GetProfileWithCustomerOverrideInput{
+	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: input.CustomerID,
+		Expand:   billing.CustomerOverrideExpand{Customer: true},
 	})
 	if err != nil {
 		return billing.Invoice{}, fmt.Errorf("getting profile with customer override: %w", err)
@@ -998,23 +1000,23 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 			Customer: billing.InvoiceCustomer{
 				CustomerID: input.CustomerID.ID,
 
-				Name:             billingProfile.Customer.Name,
-				BillingAddress:   billingProfile.Customer.BillingAddress,
-				UsageAttribution: billingProfile.Customer.UsageAttribution,
+				Name:             customerProfile.Customer.Name,
+				BillingAddress:   customerProfile.Customer.BillingAddress,
+				UsageAttribution: customerProfile.Customer.UsageAttribution,
 			},
 
 			Supplier: billing.SupplierContact{
-				ID:      billingProfile.Profile.Supplier.ID,
-				Name:    billingProfile.Profile.Supplier.Name,
-				Address: billingProfile.Profile.Supplier.Address,
-				TaxCode: billingProfile.Profile.Supplier.TaxCode,
+				ID:      customerProfile.MergedProfile.Supplier.ID,
+				Name:    customerProfile.MergedProfile.Supplier.Name,
+				Address: customerProfile.MergedProfile.Supplier.Address,
+				TaxCode: customerProfile.MergedProfile.Supplier.TaxCode,
 			},
 
 			Workflow: billing.InvoiceWorkflow{
-				AppReferences:          lo.FromPtrOr(billingProfile.Profile.AppReferences, billing.ProfileAppReferences{}),
-				Apps:                   billingProfile.Profile.Apps,
-				SourceBillingProfileID: billingProfile.Profile.ID,
-				Config:                 billingProfile.Profile.WorkflowConfig,
+				AppReferences:          lo.FromPtrOr(customerProfile.MergedProfile.AppReferences, billing.ProfileAppReferences{}),
+				Apps:                   customerProfile.MergedProfile.Apps,
+				SourceBillingProfileID: customerProfile.MergedProfile.ID,
+				Config:                 customerProfile.MergedProfile.WorkflowConfig,
 			},
 		},
 	}

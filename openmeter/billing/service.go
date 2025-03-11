@@ -30,13 +30,11 @@ type ProfileService interface {
 }
 
 type CustomerOverrideService interface {
-	CreateCustomerOverride(ctx context.Context, input CreateCustomerOverrideInput) (*CustomerOverride, error)
-	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideInput) (*CustomerOverride, error)
-	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (*CustomerOverrideWithMergedProfile, error)
+	UpsertCustomerOverride(ctx context.Context, input UpsertCustomerOverrideInput) (CustomerOverrideWithDetails, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
-	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesResult, error)
 
-	GetProfileWithCustomerOverride(ctx context.Context, input GetProfileWithCustomerOverrideInput) (*ProfileWithCustomerDetails, error)
+	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (CustomerOverrideWithDetails, error)
+	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesResult, error)
 }
 
 type InvoiceLineService interface {

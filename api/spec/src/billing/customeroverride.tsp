@@ -15,13 +15,12 @@ interface CustomerOverrides {
   list(
     ...ListCustomerOverridesParams,
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
-  ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverride> | OpenMeter.CommonErrors;
+  ): OpenMeter.PaginatedResponse<BillingProfileCustomerOverrideWithDetails> | OpenMeter.CommonErrors;
 
   /**
    * Create a new or update an existing customer override.
    */
-  @post
+  @put
   @route("/{customerId}")
   @operationId("upsertBillingProfileCustomerOverride")
   @summary("Create a new or update a customer override")
@@ -44,7 +43,7 @@ interface CustomerOverrides {
 
         @body body: BillingProfileCustomerOverride;
       }
-    | BillingProfileCustomerOverride
+    | BillingProfileCustomerOverrideWithDetails
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
 
@@ -61,7 +60,7 @@ interface CustomerOverrides {
 
     @query(#{ explode: true })
     expand?: BillingProfileCustomerOverrideExpand[],
-  ): BillingProfileCustomerOverride | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+  ): BillingProfileCustomerOverrideWithDetails | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Delete a customer override by customer id.
@@ -83,43 +82,104 @@ interface CustomerOverrides {
  */
 @friendlyName("BillingProfileCustomerOverrideOrderBy")
 enum BillingProfileCustomerOverrideOrderBy {
-  id: "id",
+  customerId: "customer.Id",
+  customerName: "customerName",
+  customerKey: "customerKey",
+  customerPrimaryEmail: "customerPrimaryEmail",
+  customerCreatedAt: "customerCreatedAt",
 }
 
 /**
  * CustomerOverrideExpand specifies the parts of the profile to expand.
  */
 @friendlyName("BillingProfileCustomerOverrideExpand")
-@extension("x-enum-varnames", ["all", "profileWithOverrides", "customer"])
+@extension("x-enum-varnames", ["all", "apps", "customer"])
 enum BillingProfileCustomerOverrideExpand {
   all: "*",
-  profileWithOverrides: "profileWithOverrides",
+  apps: "apps",
   customer: "customer",
+}
+
+/**
+ * Customer override values.
+ */
+@friendlyName("BillingProfileCustomerOverride")
+model BillingProfileCustomerOverride {
+  ...OmitProperties<
+    ResourceTimestamps,
+    "deletedAt" // This is not interesting as we are not allowing deleted listing
+  >;
+
+  // TODO: this is not supported yet, let's enable it once we choose to add wrokflow overrides here.
+  // workflow?: BillingProfileCustomerWorkflowOverride;
+
+  /**
+   * The billing profile this override is associated with.
+   *
+   * If empty the default profile is looked up dynamically.
+   */
+  billingProfileId?: ULID;
+
+  /**
+   * The customer id this override is associated with.
+   */
+  customerId: ULID;
+}
+
+/**
+ * Customer specific merged profile.
+ *
+ * This profile is calculated from the customer override and the billing profile it references or the default.
+ *
+ * Thus this does not have any kind of resource fields, only the calculated values.
+ */
+@friendlyName("BillingCustomerProfile")
+model BillingCustomerProfile {
+  /**
+   * The name and contact information for the supplier this billing profile represents
+   */
+  @visibility(Lifecycle.Read)
+  supplier: Invoices.BillingParty;
+
+  /**
+   * The billing workflow settings for this profile
+   */
+  @visibility(Lifecycle.Read)
+  workflow: BillingWorkflow;
+
+  /**
+   * The applications used by this billing profile.
+   *
+   * Expand settings govern if this includes the whole app object or just the ID references.
+   */
+  @visibility(Lifecycle.Read)
+  apps: BillingProfileAppsOrReference;
 }
 
 /**
  * Customer specific workflow overrides.
  */
-@friendlyName("BillingProfileCustomerOverride")
-model BillingProfileCustomerOverride {
-  ...ResourceTimestamps;
-
+@friendlyName("BillingProfileCustomerOverrideWithDetails")
+model BillingProfileCustomerOverrideWithDetails {
   /**
-   * The details of the overrides active for this specific customer.
-   */
-  workflow?: BillingProfileCustomerWorkflowOverride;
-
-  /**
-   * The billing profile this override is associated with.
+   * The customer override values.
    *
-   * If not provided, the default billing profile is chosen if available.
+   * If empty the merged values are calculated based on the default profile.
    */
-  billingProfile?: ULID;
+  customerOverride?: BillingProfileCustomerOverride;
+
+  /**
+   * The billing profile the customerProfile is associated with at the time of query.
+   *
+   * customerOverride contains the explicit mapping set in the customer override object. If that is
+   * empty, then the baseBillingProfileId is the default profile.
+   */
+  baseBillingProfileId: ULID;
 
   /**
    * Merged billing profile with the customer specific overrides.
    */
-  billingProfileWithOverrides?: BillingProfile;
+  customerProfile?: BillingCustomerProfile;
 
   /**
    * The customer this override belongs to.
@@ -149,12 +209,34 @@ model ListCustomerOverridesParams {
   includeAllCustomers?: boolean = true;
 
   /**
+   * Filter by customer id.
+   */
+  @query(#{ explode: true })
+  customerId?: ULID[];
+
+  /**
+   * Filter by customer name.
+   */
+  @query
+  customerName?: string;
+
+  /**
+   * Filter by customer key
+   */
+  @query
+  customerKey?: string;
+
+  /**
+   * Filter by customer primary email
+   */
+  @query
+  customerPrimaryEmail?: string;
+
+  /**
    * Expand the response with additional details.
    */
   @query(#{ explode: true })
   expand?: BillingProfileCustomerOverrideExpand[];
-
-  // TODO: let's add filters from the cutomers too
 
   /**
    * Order the response by.
@@ -166,10 +248,8 @@ model ListCustomerOverridesParams {
  */
 @friendlyName("BillingProfileCustomerOverrideCreate")
 model BillingProfileCustomerOverrideCreate {
-  /**
-   * The details of the overrides active for this specific customer.
-   */
-  workflow?: Rest.Resource.ResourceCreateModel<BillingProfileCustomerWorkflowOverride>;
+  // TODO: this is not supported yet, let's enable it once we choose to add workflow overrides here.
+  // workflow?: Rest.Resource.ResourceCreateModel<BillingProfileCustomerWorkflowOverride>;
 
   /**
    * The billing profile this override is associated with.

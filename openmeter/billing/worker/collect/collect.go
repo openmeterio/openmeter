@@ -101,15 +101,17 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	// Calculate asOf parameter
 	asOf := lo.FromPtr(params.AsOf)
 	if asOf.IsZero() {
-		profile, err := a.billing.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  resp.Items[0].Namespace,
-			CustomerID: resp.Items[0].Customer.CustomerID,
+		customerProfile, err := a.billing.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: resp.Items[0].Namespace,
+				ID:        resp.Items[0].Customer.CustomerID,
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get customer profile [customer=%s]: %w", params.CustomerID, err)
 		}
 
-		asOf, _ = profile.Profile.WorkflowConfig.Collection.Interval.Negate().AddTo(time.Now())
+		asOf, _ = customerProfile.MergedProfile.WorkflowConfig.Collection.Interval.Negate().AddTo(time.Now())
 	}
 
 	// Calculate alignedAsOf time which is set to the latest invoiceAt time which is still before the time defined by asOf.
@@ -163,9 +165,8 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 }
 
 func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer customer.CustomerID) (billing.CollectionConfig, error) {
-	profileDetails, err := a.billing.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  customer.Namespace,
-		CustomerID: customer.ID,
+	customerProfile, err := a.billing.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customer,
 	})
 	if err != nil {
 		return billing.CollectionConfig{}, fmt.Errorf("failed to get collection configfor customer [namespace=%s customer=%s]: %w",
@@ -173,7 +174,7 @@ func (a *InvoiceCollector) GetCollectionConfig(ctx context.Context, customer cus
 		)
 	}
 
-	return profileDetails.Profile.WorkflowConfig.Collection, nil
+	return customerProfile.MergedProfile.WorkflowConfig.Collection, nil
 }
 
 func (a *InvoiceCollector) GetAsOfForCustomer(ctx context.Context, customer customer.CustomerID) (time.Time, error) {

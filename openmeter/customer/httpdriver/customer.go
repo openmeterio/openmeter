@@ -71,7 +71,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			for _, customer := range resp.Items {
 				var item api.Customer
 
-				item, err = customerToAPI(customer)
+				item, err = CustomerToAPI(customer)
 				if err != nil {
 					return ListCustomersResponse{}, fmt.Errorf("failed to cast customer customer: %w", err)
 				}
@@ -139,7 +139,7 @@ func (h *handler) CreateCustomer() CreateCustomerHandler {
 				return CreateCustomerResponse{}, fmt.Errorf("failed to create customer")
 			}
 
-			return customerToAPI(*customer)
+			return CustomerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -197,7 +197,7 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerResponse{}, fmt.Errorf("failed to update customer")
 			}
 
-			return customerToAPI(*customer)
+			return CustomerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -273,7 +273,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 				return GetCustomerResponse{}, fmt.Errorf("failed to get customer")
 			}
 
-			return customerToAPI(*customer)
+			return CustomerToAPI(*customer)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerResponse](http.StatusOK),
 		httptransport.AppendOptions(

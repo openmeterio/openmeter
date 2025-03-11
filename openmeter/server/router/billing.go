@@ -12,25 +12,52 @@ import (
 // List customer overrides
 // (GET /api/v1/billing/customer)
 func (a *Router) ListBillingProfileCustomerOverrides(w http.ResponseWriter, r *http.Request, params api.ListBillingProfileCustomerOverridesParams) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.ListBillingProfileCustomerOverrides(w, r, params)
+		return
+	}
+
+	a.billingHandler.ListCustomerOverrides().With(params).ServeHTTP(w, r)
 }
 
 // Delete a customer override
 // (DELETE /api/v1/billing/customer/{customerId})
 func (a *Router) DeleteBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.DeleteBillingProfileCustomerOverride(w, r, customerId)
+		return
+	}
+
+	a.billingHandler.DeleteCustomerOverride().With(httpdriver.DeleteCustomerOverrideParams{
+		CustomerId: customerId,
+	}).ServeHTTP(w, r)
 }
 
 // Get a customer override
 // (GET /api/v1/billing/customer/{customerId})
-func (a *Router) GetBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+func (a *Router) GetBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string, params api.GetBillingProfileCustomerOverrideParams) {
+	if !a.config.BillingEnabled {
+		unimplemented.GetBillingProfileCustomerOverride(w, r, customerId, params)
+		return
+	}
+
+	a.billingHandler.GetCustomerOverride().With(httpdriver.GetCustomerOverrideParams{
+		CustomerId: customerId,
+		Expand:     params.Expand,
+	}).ServeHTTP(w, r)
 }
 
 // Create/update a customer override
 // (POST /api/v1/billing/customer/{customerId})
 func (a *Router) UpsertBillingProfileCustomerOverride(w http.ResponseWriter, r *http.Request, customerId string) {
-	w.WriteHeader(http.StatusNotImplemented)
+	if !a.config.BillingEnabled {
+		unimplemented.UpsertBillingProfileCustomerOverride(w, r, customerId)
+		return
+	}
+
+	a.billingHandler.UpsertCustomerOverride().With(httpdriver.UpsertCustomerOverrideParams{
+		CustomerId: customerId,
+	}).ServeHTTP(w, r)
 }
 
 // List invoices

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/samber/lo"
 )
 
 type CustomerOverride struct {
@@ -125,46 +125,9 @@ func (c *PaymentOverrideConfig) Validate() error {
 	return nil
 }
 
-type CreateCustomerOverrideInput struct {
-	Namespace string `json:"namespace"`
-
-	CustomerID string `json:"customerID"`
-	ProfileID  string `json:"billingProfile,omitempty"`
-
-	Collection CollectionOverrideConfig `json:"collection"`
-	Invoicing  InvoicingOverrideConfig  `json:"invoicing"`
-	Payment    PaymentOverrideConfig    `json:"payment"`
-}
-
-func (c CreateCustomerOverrideInput) Validate() error {
-	if c.Namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-
-	if c.CustomerID == "" {
-		return fmt.Errorf("customer id is required")
-	}
-
-	if err := c.Collection.Validate(); err != nil {
-		return fmt.Errorf("invalid collection: %w", err)
-	}
-
-	if err := c.Invoicing.Validate(); err != nil {
-		return fmt.Errorf("invalid invoicing: %w", err)
-	}
-
-	if err := c.Payment.Validate(); err != nil {
-		return fmt.Errorf("invalid payment: %w", err)
-	}
-
-	return nil
-}
-
-type UpdateCustomerOverrideInput struct {
+type UpsertCustomerOverrideInput struct {
 	Namespace  string `json:"namespace"`
 	CustomerID string `json:"customerID"`
-
-	UpdatedAt time.Time `json:"updatedAt"`
 
 	ProfileID string `json:"billingProfileID"`
 
@@ -173,17 +136,13 @@ type UpdateCustomerOverrideInput struct {
 	Payment    PaymentOverrideConfig    `json:"payment"`
 }
 
-func (u UpdateCustomerOverrideInput) Validate() error {
+func (u UpsertCustomerOverrideInput) Validate() error {
 	if u.Namespace == "" {
 		return fmt.Errorf("namespace is required")
 	}
 
 	if u.CustomerID == "" {
 		return fmt.Errorf("customer id is required")
-	}
-
-	if u.UpdatedAt.IsZero() {
-		return fmt.Errorf("updated at is required")
 	}
 
 	if err := u.Collection.Validate(); err != nil {
@@ -240,19 +199,10 @@ func (i GetCustomerOverrideAdapterInput) Validate() error {
 	return nil
 }
 
-type UpdateCustomerOverrideAdapterInput struct {
-	UpdateCustomerOverrideInput
-
-	ResetDeletedAt bool
-}
-
-func (i UpdateCustomerOverrideAdapterInput) Validate() error {
-	if err := i.UpdateCustomerOverrideInput.Validate(); err != nil {
-		return fmt.Errorf("error validating update customer override input: %w", err)
-	}
-
-	return nil
-}
+type (
+	UpdateCustomerOverrideAdapterInput = UpsertCustomerOverrideInput
+	CreateCustomerOverrideAdapterInput = UpdateCustomerOverrideAdapterInput
+)
 
 type HasCustomerOverrideReferencingProfileAdapterInput = ProfileID
 
@@ -261,11 +211,13 @@ type (
 	LockCustomerForUpdateAdapterInput  = customer.CustomerID
 )
 
-type CustomerOverrideWithMergedProfile struct {
-	CustomerOverride `json:",inline"`
+type CustomerOverrideWithDetails struct {
+	CustomerOverride *CustomerOverride `json:",inline"`
+	MergedProfile    Profile           `json:"mergedProfile,omitempty"`
 
-	Customer                    *customer.Customer `json:"customer,omitempty"`
-	BillingProfileWithOverrides *Profile           `json:"billingProfileWithOverrides,omitempty"`
+	// Expanded fields
+	Expand   CustomerOverrideExpand `json:"expand,omitempty"`
+	Customer *customer.Customer     `json:"customer,omitempty"`
 }
 
 type CustomerOverrideWithAdapterProfile struct {
@@ -283,10 +235,14 @@ type ListCustomerOverridesInput struct {
 	Namespace       string                 `json:"namespace"`
 	BillingProfiles []string               `json:"billingProfile,omitempty"`
 	Expand          CustomerOverrideExpand `json:"expand,omitempty"`
-	// TODO: OrderBy
 
-	// TODO: type!
-	OrderBy api.CustomerOrderBy
+	IncludeAllCustomers  bool     `json:"includeAllCustomers,omitempty"`
+	CustomerID           []string `json:"customerID,omitempty"`
+	CustomerName         string   `json:"customerName,omitempty"`
+	CustomerKey          string   `json:"customerKey,omitempty"`
+	CustomerPrimaryEmail string   `json:"customerPrimaryEmail,omitempty"`
+
+	OrderBy CustomerOverrideOrderBy
 	Order   sortx.Order
 }
 
@@ -299,10 +255,54 @@ func (l ListCustomerOverridesInput) Validate() error {
 }
 
 type CustomerOverrideExpand struct {
-	ProfileWithOverrides bool `json:"profileWithOverrides,omitempty"`
-	Customers            bool `json:"customers,omitempty"`
+	// Apps specifies if the merged profile should include the apps
+	Apps bool `json:"apps,omitempty"`
+
+	// Customer specifies if the customer should be included in the response
+	Customer bool `json:"customers,omitempty"`
 }
 
-type ListCustomerOverridesResult = pagination.PagedResponse[CustomerOverrideWithMergedProfile]
+var CustomerOverrideExpandAll = CustomerOverrideExpand{
+	Apps:     true,
+	Customer: true,
+}
 
-type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverride]
+type CustomerOverrideOrderBy string
+
+const (
+	CustomerOverrideOrderByCustomerID           CustomerOverrideOrderBy = "customerId"
+	CustomerOverrideOrderByCustomerName         CustomerOverrideOrderBy = "customerName"
+	CustomerOverrideOrderByCustomerKey          CustomerOverrideOrderBy = "customerKey"
+	CustomerOverrideOrderByCustomerPrimaryEmail CustomerOverrideOrderBy = "customerPrimaryEmail"
+	CustomerOverrideOrderByCustomerCreatedAt    CustomerOverrideOrderBy = "customerCreatedAt"
+
+	DefaultCustomerOverrideOrderBy CustomerOverrideOrderBy = CustomerOverrideOrderByCustomerID
+)
+
+var CustomerOverrideOrderByValues = []CustomerOverrideOrderBy{
+	CustomerOverrideOrderByCustomerID,
+	CustomerOverrideOrderByCustomerName,
+	CustomerOverrideOrderByCustomerKey,
+	CustomerOverrideOrderByCustomerPrimaryEmail,
+	CustomerOverrideOrderByCustomerCreatedAt,
+}
+
+func (o CustomerOverrideOrderBy) Validate() error {
+	if !lo.Contains(CustomerOverrideOrderByValues, o) {
+		return ValidationError{
+			Err: fmt.Errorf("invalid order by: %s", o),
+		}
+	}
+
+	return nil
+}
+
+type ListCustomerOverridesResult = pagination.PagedResponse[CustomerOverrideWithDetails]
+
+type CustomerOverrideWithCustomerID struct {
+	*CustomerOverride `json:",inline"`
+
+	CustomerID customer.CustomerID `json:"customerID,omitempty"`
+}
+
+type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverrideWithCustomerID]

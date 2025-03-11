@@ -44,7 +44,6 @@ interface InvoicesEndpoints {
   list(
     ...InvoiceListParams,
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<InvoiceOrderBy>,
   ): OpenMeter.PaginatedResponse<Invoices.Invoice> | OpenMeter.CommonErrors;
 

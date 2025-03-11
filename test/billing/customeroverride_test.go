@@ -28,9 +28,11 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	ns := "test-ns"
 
 	// When querying the customer's billing profile overrides
-	customerEntity, err := s.BillingService.GetProfileWithCustomerOverride(context.Background(), billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  ns,
-		CustomerID: nonExistingCustomerID,
+	customerEntity, err := s.BillingService.GetCustomerOverride(context.Background(), billing.GetCustomerOverrideInput{
+		Customer: customer.CustomerID{
+			Namespace: ns,
+			ID:        nonExistingCustomerID,
+		},
 	})
 
 	// Then we get a customer not found error

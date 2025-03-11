@@ -18,6 +18,7 @@ type Handler interface {
 	ProfileHandler
 	InvoiceLineHandler
 	InvoiceHandler
+	CustomerOverrideHandler
 }
 
 type ProfileHandler interface {
