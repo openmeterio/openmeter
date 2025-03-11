@@ -10,7 +10,6 @@ import (
 	"context"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"log/slog"
@@ -133,6 +132,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
@@ -177,17 +177,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
-	entitlementOptions := registrybuilder.EntitlementOptions{
-		DatabaseClient:            client,
-		EntitlementsConfiguration: entitlementsConfiguration,
-		StreamingConnector:        connector,
-		Logger:                    logger,
-		MeterService:              meterService,
-		Publisher:                 eventbusPublisher,
-		Tracer:                    tracer,
-	}
-	entitlement := registrybuilder.GetEntitlementRegistry(entitlementOptions)
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	subjectResolver := common.BalanceWorkerSubjectResolver()
 	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, subjectResolver, logger)
