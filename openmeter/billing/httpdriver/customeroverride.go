@@ -42,7 +42,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 				Namespace:            ns,
 				BillingProfiles:      lo.FromPtr(input.BillingProfile),
 				IncludeAllCustomers:  lo.FromPtr(input.IncludeAllCustomers),
-				CustomerID:           lo.FromPtr(input.CustomerId),
+				CustomerIDs:          lo.FromPtr(input.CustomerId),
 				CustomerName:         lo.FromPtr(input.CustomerName),
 				CustomerKey:          lo.FromPtr(input.CustomerKey),
 				CustomerPrimaryEmail: lo.FromPtr(input.CustomerPrimaryEmail),
@@ -285,8 +285,6 @@ func (h *handler) mapCustomerOverrideToAPI(in billing.CustomerOverrideWithDetail
 	}
 
 	res.BaseBillingProfileId = in.MergedProfile.ID
-
-	// TODO: validate for nil pointer deref!
 
 	profile, err := h.mapCustomerProfileToAPI(in.MergedProfile)
 	if err != nil {

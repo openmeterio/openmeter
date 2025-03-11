@@ -154,8 +154,8 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 			Where(dbcustomer.DeletedAtIsNil())
 
 		// Customer field filters
-		if input.CustomerID != nil {
-			query = query.Where(dbcustomer.IDIn(input.CustomerID...))
+		if len(input.CustomerIDs) > 0 {
+			query = query.Where(dbcustomer.IDIn(input.CustomerIDs...))
 		}
 
 		if input.CustomerName != "" {

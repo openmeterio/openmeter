@@ -238,7 +238,7 @@ type ListCustomerOverridesInput struct {
 	Expand          CustomerOverrideExpand `json:"expand,omitempty"`
 
 	IncludeAllCustomers  bool     `json:"includeAllCustomers,omitempty"`
-	CustomerID           []string `json:"customerID,omitempty"`
+	CustomerIDs          []string `json:"customerID,omitempty"`
 	CustomerName         string   `json:"customerName,omitempty"`
 	CustomerKey          string   `json:"customerKey,omitempty"`
 	CustomerPrimaryEmail string   `json:"customerPrimaryEmail,omitempty"`

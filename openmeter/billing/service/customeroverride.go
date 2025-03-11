@@ -143,58 +143,60 @@ func (s *Service) ListCustomerOverrides(ctx context.Context, input billing.ListC
 		}
 	}
 
-	res, err := s.adapter.ListCustomerOverrides(ctx, input)
-	if err != nil {
-		return billing.ListCustomerOverridesResult{}, err
-	}
-
-	// For list let's not fetch the customers one by one, let's do it in a single query
-	customersByID := make(map[string]customer.Customer, len(res.Items))
-	if input.Expand.Customer {
-		customers, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
-			Namespace: input.Namespace,
-			CustomerIDs: lo.Map(res.Items, func(override billing.CustomerOverrideWithCustomerID, _ int) string {
-				return override.CustomerID.ID
-			}),
-		})
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.ListCustomerOverridesResult, error) {
+		res, err := s.adapter.ListCustomerOverrides(ctx, input)
 		if err != nil {
 			return billing.ListCustomerOverridesResult{}, err
 		}
 
-		for _, c := range customers.Items {
-			customersByID[c.ID] = c
+		// For list let's not fetch the customers one by one, let's do it in a single query
+		customersByID := make(map[string]customer.Customer, len(res.Items))
+		if input.Expand.Customer {
+			customers, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+				Namespace: input.Namespace,
+				CustomerIDs: lo.Map(res.Items, func(override billing.CustomerOverrideWithCustomerID, _ int) string {
+					return override.CustomerID.ID
+				}),
+			})
+			if err != nil {
+				return billing.ListCustomerOverridesResult{}, err
+			}
+
+			for _, c := range customers.Items {
+				customersByID[c.ID] = c
+			}
 		}
-	}
 
-	var defaultProfile *billing.Profile
-	// Let's see if we need to fetch the default profile
+		var defaultProfile *billing.Profile
+		// Let's see if we need to fetch the default profile
 
-	_, needDefaultProfile := lo.Find(res.Items, func(override billing.CustomerOverrideWithCustomerID) bool {
-		return override.CustomerOverride == nil || override.CustomerOverride.Profile == nil
-	})
-
-	if needDefaultProfile {
-		defaultProfile, err = s.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: input.Namespace,
+		_, needDefaultProfile := lo.Find(res.Items, func(override billing.CustomerOverrideWithCustomerID) bool {
+			return override.CustomerOverride == nil || override.CustomerOverride.Profile == nil
 		})
-		if err != nil {
-			return billing.ListCustomerOverridesResult{}, err
-		}
-	}
 
-	return pagination.MapPagedResponseError(res, func(override billing.CustomerOverrideWithCustomerID) (billing.CustomerOverrideWithDetails, error) {
-		res, err := s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
-			CustomerID:         override.CustomerID,
-			Override:           override.CustomerOverride,
-			DefaultProfile:     defaultProfile,
-			Expand:             input.Expand,
-			CustomersByIdCache: customersByID,
+		if needDefaultProfile {
+			defaultProfile, err = s.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+				Namespace: input.Namespace,
+			})
+			if err != nil {
+				return billing.ListCustomerOverridesResult{}, err
+			}
+		}
+
+		return pagination.MapPagedResponseError(res, func(override billing.CustomerOverrideWithCustomerID) (billing.CustomerOverrideWithDetails, error) {
+			res, err := s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
+				CustomerID:         override.CustomerID,
+				Override:           override.CustomerOverride,
+				DefaultProfile:     defaultProfile,
+				Expand:             input.Expand,
+				CustomersByIdCache: customersByID,
+			})
+			if err != nil {
+				return billing.CustomerOverrideWithDetails{}, err
+			}
+
+			return res, nil
 		})
-		if err != nil {
-			return billing.CustomerOverrideWithDetails{}, err
-		}
-
-		return res, nil
 	})
 }
 
