@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
@@ -19,6 +21,9 @@ import (
 // GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
 // If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
 func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.GetLastValidSnapshotAt", cTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", at.String())))
+	defer span.End()
+
 	bal, err := m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*balance.NoSavedBalanceForOwnerError); ok {
@@ -48,56 +53,64 @@ func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.Nam
 	return bal, nil
 }
 
+func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams) (engine.RunResult, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.runEngine")
+	defer span.End()
+
+	return eng.Run(ctx, runParams)
+}
+
+type buildEngineForOwnerParams struct {
+	// The owner that will be queried
+	owner grant.Owner
+	// A limit to that period that can be queried
+	queryBounds timeutil.Period
+	// A timeline of all reset events that have happened inside query bounds
+	inbetweenPeriodStarts timeutil.SimpleTimeline
+}
+
 // Builds the engine for a given owner caching the period boundaries for the given range (queryBounds).
 // As QueryUsageFn is frequently called, getting the CurrentUsagePeriodStartTime during it's execution would impact performance, so we cache all possible values during engine building.
-func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.NamespacedID, queryBounds timeutil.Period) (engine.Engine, error) {
-	// Let's validate the parameters
-	if queryBounds.From.IsZero() || queryBounds.To.IsZero() {
-		return nil, fmt.Errorf("query bounds must have both from and to set")
-	}
+func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineForOwnerParams) (engine.Engine, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.buildEngineForOwner", cTrace.WithOwner(params.owner.NamespacedID), cTrace.WithPeriod(params.queryBounds))
+	defer span.End()
 
-	// Let's get the owner
-	owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe owner %s: %w", ownerID.ID, err)
+	// Let's validate the parameters
+	if params.queryBounds.From.IsZero() || params.queryBounds.To.IsZero() {
+		return nil, fmt.Errorf("query bounds must have both from and to set")
 	}
 
 	// Let's collect all period start times for any time between the query bounds
 	// First we get the period start time for the start of the period, then all times in between
-	firstPeriodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, queryBounds.From)
+	firstPeriodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, params.owner.NamespacedID, params.queryBounds.From)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", ownerID.ID, queryBounds.From, err)
+		return nil, fmt.Errorf("failed to get usage period start time for owner %s at %s: %w", params.owner.NamespacedID.ID, params.queryBounds.From, err)
 	}
 
-	inbetweenPeriodStarts, err := m.OwnerConnector.GetResetTimelineInclusive(ctx, ownerID, queryBounds)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get period start times for owner %s between %s and %s: %w", ownerID.ID, queryBounds.From, queryBounds.To, err)
-	}
-
-	times := append([]time.Time{firstPeriodStart}, inbetweenPeriodStarts.GetTimes()...)
-	times = append(times, queryBounds.To)
+	times := append([]time.Time{firstPeriodStart}, params.inbetweenPeriodStarts.GetTimes()...)
+	times = append(times, params.queryBounds.To)
 
 	periodCache := SortedPeriodsFromDedupedTimes(times)
 
 	if len(periodCache) == 0 {
 		// If we didn't have at least 2 different timestamps, we need to create a period from the first start time and the bound
-		periodCache = []timeutil.Period{{From: firstPeriodStart, To: queryBounds.To}}
+		periodCache = []timeutil.Period{{From: firstPeriodStart, To: params.queryBounds.To}}
 	}
 
 	// We build a custom UsageQuerier for our usecase here. The engine should only every query the one owner we fetched above.
 	usageQuerier := balance.NewUsageQuerier(balance.UsageQuerierConfig{
 		StreamingConnector: m.StreamingConnector,
 		DescribeOwner: func(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
-			if id != ownerID {
-				return grant.Owner{}, fmt.Errorf("expected owner %s, got %s", ownerID.ID, id.ID)
+			if id != params.owner.NamespacedID {
+				return grant.Owner{}, fmt.Errorf("expected owner %s, got %s", params.owner.NamespacedID.ID, id.ID)
 			}
-			return owner, nil
+			return params.owner, nil
 		},
 		GetDefaultParams: func(ctx context.Context, oID models.NamespacedID) (streaming.QueryParams, error) {
-			if oID != ownerID {
-				return streaming.QueryParams{}, fmt.Errorf("expected owner %s, got %s", ownerID.ID, oID.ID)
+			if oID != params.owner.NamespacedID {
+				return streaming.QueryParams{}, fmt.Errorf("expected owner %s, got %s", params.owner.NamespacedID.ID, oID.ID)
 			}
-			return owner.DefaultQueryParams, nil
+			return params.owner.DefaultQueryParams, nil
 		},
 		GetUsagePeriodStartAt: func(_ context.Context, _ models.NamespacedID, at time.Time) (time.Time, error) {
 			for _, period := range periodCache {
@@ -111,15 +124,23 @@ func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.Name
 	})
 
 	eng := engine.NewEngine(engine.EngineConfig{
-		Granularity: owner.Meter.WindowSize,
+		Granularity: params.owner.Meter.WindowSize,
 		QueryUsage: func(ctx context.Context, from, to time.Time) (float64, error) {
+			ctx, span := m.Tracer.Start(
+				ctx,
+				"credit.QueryUsageFn",
+				trace.WithAttributes(attribute.String("from", from.String())),
+				trace.WithAttributes(attribute.String("to", to.String())),
+			)
+			defer span.End()
+
 			// Let's validate we're not querying outside the bounds
-			if !queryBounds.ContainsInclusive(from) || !queryBounds.ContainsInclusive(to) {
-				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", queryBounds.From, queryBounds.To, from, to, queryBounds.ContainsInclusive(from), queryBounds.ContainsInclusive(to))
+			if !params.queryBounds.ContainsInclusive(from) || !params.queryBounds.ContainsInclusive(to) {
+				return 0.0, fmt.Errorf("query bounds between %s and %s do not contain query from %s to %s: %t %t", params.queryBounds.From, params.queryBounds.To, from, to, params.queryBounds.ContainsInclusive(from), params.queryBounds.ContainsInclusive(to))
 			}
 
 			// If we're inside the period cache, we can just use the UsageQuerier
-			return usageQuerier.QueryUsage(ctx, ownerID, timeutil.Period{From: from, To: to})
+			return usageQuerier.QueryUsage(ctx, params.owner.NamespacedID, timeutil.Period{From: from, To: to})
 		},
 	})
 	return eng, nil
@@ -136,6 +157,9 @@ type snapshotParams struct {
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
 func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
+	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
+	defer span.End()
+
 	segs := runRes.History.Segments()
 
 	// i >= 1 because:
@@ -162,6 +186,9 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 }
 
 func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, snap balance.Snapshot) (balance.Snapshot, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.saveSnapshot", cTrace.WithOwner(params.owner))
+	defer span.End()
+
 	// Let's validate the timestamp
 	if !snap.At.Truncate(m.Granularity).Equal(snap.At) {
 		return snap, fmt.Errorf("snapshot timestamp %s is not aligned to granularity %s", snap.At, m.Granularity)

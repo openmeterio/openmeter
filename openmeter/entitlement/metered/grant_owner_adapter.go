@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -25,6 +27,7 @@ type entitlementGrantOwner struct {
 	usageResetRepo  UsageResetRepo
 	meterService    meter.Service
 	logger          *slog.Logger
+	tracer          trace.Tracer
 }
 
 func NewEntitlementGrantOwnerAdapter(
@@ -33,6 +36,7 @@ func NewEntitlementGrantOwnerAdapter(
 	usageResetRepo UsageResetRepo,
 	meterService meter.Service,
 	logger *slog.Logger,
+	tracer trace.Tracer,
 ) grant.OwnerConnector {
 	return &entitlementGrantOwner{
 		featureRepo:     featureRepo,
@@ -40,10 +44,14 @@ func NewEntitlementGrantOwnerAdapter(
 		usageResetRepo:  usageResetRepo,
 		meterService:    meterService,
 		logger:          logger,
+		tracer:          tracer,
 	}
 }
 
 func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.DescribeOwner", mTrace.WithOwner(id))
+	defer span.End()
+
 	var def grant.Owner
 
 	// get feature of ent
@@ -101,6 +109,9 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner models.NamespacedID) (time.Time, error) {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetStartOfMeasurement", mTrace.WithOwner(owner))
+	defer span.End()
+
 	owningEntitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner)
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
@@ -123,6 +134,9 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 
 // The current usage period start time is either the current period start time, or if this is the first period then the start of measurement
 func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner models.NamespacedID, at time.Time) (time.Time, error) {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetUsagePeriodStartAt", mTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", at.String())))
+	defer span.End()
+
 	ent, err := e.entitlementRepo.GetEntitlement(ctx, owner)
 	if err != nil {
 		return time.Time{}, err
@@ -163,6 +177,9 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 }
 
 func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, owner models.NamespacedID, period timeutil.Period) (timeutil.SimpleTimeline, error) {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetResetTimelineInclusive", mTrace.WithOwner(owner), mTrace.WithPeriod(period))
+	defer span.End()
+
 	var def timeutil.SimpleTimeline
 
 	// Let's fetch the owner entitlement
@@ -322,6 +339,9 @@ func (e *entitlementGrantOwner) getProgrammaticResetTimesInPeriodExclusiveInclus
 }
 
 func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner models.NamespacedID, params grant.EndCurrentUsagePeriodParams) error {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.EndCurrentUsagePeriod", mTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", params.At.String())))
+	defer span.End()
+
 	// If we're not in a transaction this method should fail
 	_, err := transaction.GetDriverFromContext(ctx)
 	if err != nil {
@@ -367,6 +387,9 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 }
 
 func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, owner models.NamespacedID, params grant.EndCurrentUsagePeriodParams) error {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.updateEntitlementUsagePeriod", mTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", params.At.String())))
+	defer span.End()
+
 	entitlementEntity, err := e.entitlementRepo.GetEntitlement(ctx, owner)
 	if err != nil {
 		return err
@@ -396,6 +419,9 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 }
 
 func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner models.NamespacedID) error {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.LockOwnerForTx", mTrace.WithOwner(owner))
+	defer span.End()
+
 	// If we're not in a transaction this method has to fail
 	tx, err := entutils.GetDriverFromContext(ctx)
 	if err != nil {

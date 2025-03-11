@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -39,6 +42,9 @@ type BalanceConnector interface {
 var _ BalanceConnector = &connector{}
 
 func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
+	defer span.End()
+
 	var def engine.RunResult
 	m.Logger.Debug("getting balance of owner since snapshot", "owner", ownerID.ID, "since", snap.At, "at", at)
 
@@ -67,21 +73,22 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	// This is only possible in case the grant becomes active exactly at the start of the current period
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, period.From)
 
-	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
+	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		owner:                 owner,
+		queryBounds:           period,
+		inbetweenPeriodStarts: resetTimesInclusive,
+	})
 	if err != nil {
 		return def, err
 	}
 
-	result, err := eng.Run(
-		ctx,
-		engine.RunParams{
-			Grants:           grants,
-			StartingSnapshot: snap,
-			Until:            period.To,
-			ResetBehavior:    owner.ResetBehavior,
-			Resets:           resetTimesInclusive.After(period.From),
-		},
-	)
+	result, err := m.runEngineInSpan(ctx, eng, engine.RunParams{
+		Grants:           grants,
+		StartingSnapshot: snap,
+		Until:            period.To,
+		ResetBehavior:    owner.ResetBehavior,
+		Resets:           resetTimesInclusive.After(period.From),
+	})
 	if err != nil {
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, at, err)
 	}
@@ -108,6 +115,9 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 }
 
 func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceAt", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
+	defer span.End()
+
 	m.Logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
 
 	var def engine.RunResult
@@ -127,6 +137,9 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceForPeriod", cTrace.WithOwner(ownerID), cTrace.WithPeriod(period))
+	defer span.End()
+
 	m.Logger.Debug("calculating history for owner", "owner", ownerID.ID, "period", period)
 
 	var def engine.RunResult
@@ -165,21 +178,22 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 	// This is only possible in case the grant becomes active exactly at the start of the first period
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, snap.At)
 
-	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
+	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		owner:                 owner,
+		queryBounds:           period,
+		inbetweenPeriodStarts: resetTimesInclusive,
+	})
 	if err != nil {
 		return def, err
 	}
 
-	result, err := eng.Run(
-		ctx,
-		engine.RunParams{
-			Grants:           grants,
-			StartingSnapshot: snap,
-			Until:            period.To,
-			ResetBehavior:    owner.ResetBehavior,
-			Resets:           resetTimesInclusive.After(snap.At),
-		},
-	)
+	result, err := m.runEngineInSpan(ctx, eng, engine.RunParams{
+		Grants:           grants,
+		StartingSnapshot: snap,
+		Until:            period.To,
+		ResetBehavior:    owner.ResetBehavior,
+		Resets:           resetTimesInclusive.After(snap.At),
+	})
 	if err != nil {
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, period.From, err)
 	}
@@ -188,6 +202,9 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 }
 
 func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.ResetUsageForOwner", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", params.At.String())))
+	defer span.End()
+
 	// Cannot reset for the future
 	if params.At.After(clock.Now()) {
 		return nil, models.NewGenericValidationError(fmt.Errorf("cannot reset at %s in the future", params.At))
@@ -258,21 +275,22 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		To:   at,
 	}
 
-	eng, err := m.buildEngineForOwner(ctx, ownerID, queriedPeriod)
+	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		owner:                 owner,
+		queryBounds:           queriedPeriod,
+		inbetweenPeriodStarts: resetTimesInclusive,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := eng.Run(
-		ctx,
-		engine.RunParams{
-			Grants:           grants,
-			StartingSnapshot: bal,
-			Until:            queriedPeriod.To,
-			ResetBehavior:    resetBehavior,
-			Resets:           resetTimeline.After(bal.At),
-		},
-	)
+	res, err := m.runEngineInSpan(ctx, eng, engine.RunParams{
+		Grants:           grants,
+		StartingSnapshot: bal,
+		Until:            queriedPeriod.To,
+		ResetBehavior:    resetBehavior,
+		Resets:           resetTimeline.After(bal.At),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}

@@ -52,6 +52,9 @@ type BalanceHistoryParams struct {
 }
 
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetEntitlementBalance")
+	defer span.End()
+
 	e.logger.DebugContext(ctx, "Getting entitlement balance", "entitlement", entitlementID, "at", at)
 
 	// We round up to closest full minute to include all the partial usage in the last minute of querying
@@ -91,6 +94,9 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 }
 
 func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
+	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetEntitlementBalanceHistory")
+	defer span.End()
+
 	// TODO: we should guard against abuse, getting history is expensive
 
 	// validate that we're working with a metered entitlement

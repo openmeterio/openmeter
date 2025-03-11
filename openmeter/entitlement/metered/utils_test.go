@@ -9,6 +9,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
@@ -65,7 +66,7 @@ var m sync.Mutex
 // builds connector with mock streaming and real PG
 func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
-
+	tracer := noop.NewTracerProvider().Tracer("test")
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
 		ManagedResource: models.ManagedResource{
@@ -117,6 +118,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		usageResetRepo,
 		meterAdapter,
 		testLogger,
+		tracer,
 	)
 
 	transactionManager := enttx.NewCreator(dbClient)
@@ -134,6 +136,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 			OwnerConnector:         ownerConnector,
 			StreamingConnector:     streamingConnector,
 			Logger:                 testLogger,
+			Tracer:                 tracer,
 			Granularity:            time.Minute,
 			Publisher:              mockPublisher,
 			SnapshotGracePeriod:    isodate.MustParse(t, "P1W"),
@@ -150,6 +153,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		entitlementRepo,
 		mockPublisher,
 		testLogger,
+		tracer,
 	)
 
 	return connector, &dependencies{

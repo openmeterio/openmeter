@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
@@ -69,6 +70,7 @@ type Application struct {
 	TelemetryServer         common.TelemetryServer
 	TerminationChecker      *common.TerminationChecker
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
+	Tracer                  trace.Tracer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {

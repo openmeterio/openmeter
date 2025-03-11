@@ -7,6 +7,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -75,6 +76,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
 		Logger:             logger,
+		Tracer:             noop.NewTracerProvider().Tracer("test"),
 		MeterService:       meterAdapter,
 		Publisher:          eventbus.NewMock(t),
 		EntitlementsConfiguration: config.EntitlementsConfiguration{

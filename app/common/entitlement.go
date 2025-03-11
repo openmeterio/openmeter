@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -21,6 +22,7 @@ var Entitlement = wire.NewSet(
 func NewEntitlementRegistry(
 	logger *slog.Logger,
 	db *entdb.Client,
+	tracer trace.Tracer,
 	entitlementConfig config.EntitlementsConfiguration,
 	streamingConnector streaming.Connector,
 	meterService meter.Service,
@@ -33,5 +35,6 @@ func NewEntitlementRegistry(
 		Logger:                    logger,
 		Publisher:                 eventPublisher,
 		EntitlementsConfiguration: entitlementConfig,
+		Tracer:                    tracer,
 	})
 }

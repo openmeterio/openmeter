@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 )
 
@@ -95,6 +96,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
@@ -185,7 +187,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement := common.NewEntitlementRegistry(logger, client, entitlementsConfiguration, connector, meterService, eventbusPublisher)
+	entitlement := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher)
 	customerService, err := common.NewCustomerService(logger, client, entitlement)
 	if err != nil {
 		cleanup6()
@@ -291,7 +293,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner, logger, tracer)
 	if err != nil {
 		cleanup6()
@@ -457,6 +458,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TelemetryServer:         v8,
 		TerminationChecker:      terminationChecker,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
+		Tracer:                  tracer,
 	}
 	return application, func() {
 		cleanup8()
@@ -506,6 +508,7 @@ type Application struct {
 	TelemetryServer         common.TelemetryServer
 	TerminationChecker      *common.TerminationChecker
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
+	Tracer                  trace.Tracer
 }
 
 func metadata(conf config.Configuration) common.Metadata {

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -68,6 +70,7 @@ type connector struct {
 	publisher   eventbus.Publisher
 
 	logger *slog.Logger
+	tracer trace.Tracer
 }
 
 func NewMeteredEntitlementConnector(
@@ -79,6 +82,7 @@ func NewMeteredEntitlementConnector(
 	entitlementRepo entitlement.EntitlementRepo,
 	publisher eventbus.Publisher,
 	logger *slog.Logger,
+	tracer trace.Tracer,
 ) Connector {
 	return &connector{
 		streamingConnector: streamingConnector,
@@ -93,6 +97,7 @@ func NewMeteredEntitlementConnector(
 
 		publisher: publisher,
 		logger:    logger,
+		tracer:    tracer,
 	}
 }
 
