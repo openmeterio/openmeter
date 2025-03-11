@@ -1,17 +1,12 @@
 package pagination
 
-import (
-	"time"
-)
+import "github.com/samber/lo"
 
 // Item is the interface that must be implemented by items used in cursor pagination.
 // It provides access to the time and ID fields needed for cursor generation.
 type Item interface {
-	// GetTime returns the timestamp used for cursor-based ordering
-	GetTime() time.Time
-
-	// GetID returns the unique identifier for this item
-	GetID() string
+	// Cursor returns the cursor used for cursor-based ordering
+	Cursor() Cursor
 }
 
 // Result represents the response structure for cursor-based pagination
@@ -40,8 +35,7 @@ func NewResult[T Item](
 	// Generate next cursor from the last item if there are any items
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
-		cursor := NewCursor(lastItem.GetTime(), lastItem.GetID()).Encode()
-		result.NextCursor = &cursor
+		result.NextCursor = lo.ToPtr(lastItem.Cursor().Encode())
 	}
 
 	return result

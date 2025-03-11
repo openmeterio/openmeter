@@ -16,8 +16,8 @@ const cursorDelimiter = ","
 
 // NewCursor creates a new Cursor object with the given time and ID.
 // The time is converted to UTC before being stored.
-func NewCursor(t time.Time, id string) *Cursor {
-	return &Cursor{
+func NewCursor(t time.Time, id string) Cursor {
+	return Cursor{
 		Time: t.UTC(),
 		ID:   id,
 	}
