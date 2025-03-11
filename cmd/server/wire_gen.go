@@ -293,7 +293,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner, logger, tracer)
 	if err != nil {
 		cleanup6()
