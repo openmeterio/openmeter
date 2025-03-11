@@ -8,6 +8,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -24,6 +25,8 @@ func NewKafkaIngestCollector(
 	producer *kafka.Producer,
 	topicResolver topicresolver.Resolver,
 	topicProvisioner pkgkafka.TopicProvisioner,
+	logger *slog.Logger,
+	tracer trace.Tracer,
 ) (*kafkaingest.Collector, error) {
 	collector, err := kafkaingest.NewCollector(
 		producer,
@@ -31,6 +34,8 @@ func NewKafkaIngestCollector(
 		topicResolver,
 		topicProvisioner,
 		config.Partitions,
+		logger,
+		tracer,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kafka ingest: %w", err)
@@ -44,8 +49,9 @@ func NewIngestCollector(
 	kafkaCollector *kafkaingest.Collector,
 	logger *slog.Logger,
 	meter metric.Meter,
+	tracer trace.Tracer,
 ) (ingest.Collector, func(), error) {
-	collector, err := ingestadapter.WithMetrics(kafkaCollector, meter)
+	collector, err := ingestadapter.WithTelemetry(kafkaCollector, meter, tracer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
 	}
