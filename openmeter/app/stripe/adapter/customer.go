@@ -14,7 +14,7 @@ import (
 )
 
 // GetStripeCustomerData gets stripe customer data
-func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
+func (a *adapter) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
 	if err := input.Validate(); err != nil {
 		return appstripeentity.CustomerData{}, models.NewGenericValidationError(
 			fmt.Errorf("error getting stripe customer data: %w", err),
@@ -53,7 +53,7 @@ func (a adapter) GetStripeCustomerData(ctx context.Context, input appstripeentit
 }
 
 // UpsertStripeCustomerData upserts stripe customer data
-func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
+func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			fmt.Errorf("error upsert stripe customer data: %w", err),
@@ -152,7 +152,7 @@ func (a adapter) UpsertStripeCustomerData(ctx context.Context, input appstripeen
 }
 
 // DeleteStripeCustomerData deletes stripe customer data
-func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
+func (a *adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			fmt.Errorf("error delete stripe customer data: %w", err),
@@ -213,7 +213,7 @@ func (a adapter) DeleteStripeCustomerData(ctx context.Context, input appstripeen
 }
 
 // createStripeCustomer creates a new stripe customer
-func (a adapter) createStripeCustomer(ctx context.Context, input appstripeentity.CreateStripeCustomerInput) (appstripeentity.CreateStripeCustomerOutput, error) {
+func (a *adapter) createStripeCustomer(ctx context.Context, input appstripeentity.CreateStripeCustomerInput) (appstripeentity.CreateStripeCustomerOutput, error) {
 	// Get the stripe app
 	stripeAppData, err := a.GetStripeAppData(ctx, appstripeentity.GetStripeAppDataInput{
 		AppID: input.AppID,

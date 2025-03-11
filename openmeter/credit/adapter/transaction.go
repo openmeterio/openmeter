@@ -30,6 +30,10 @@ func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) gran
 	return NewPostgresGrantRepo(txClient.Client())
 }
 
+func (e *grantDBADapter) Self() grant.Repo {
+	return e
+}
+
 func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
@@ -43,4 +47,8 @@ func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, transact
 func (e *balanceSnapshotRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) balance.SnapshotRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresBalanceSnapshotRepo(txClient.Client())
+}
+
+func (e *balanceSnapshotRepo) Self() balance.SnapshotRepo {
+	return e
 }

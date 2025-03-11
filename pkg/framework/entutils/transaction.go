@@ -191,10 +191,11 @@ type TxUser[T any] interface {
 	//     return res
 	// }
 	WithTx(ctx context.Context, tx *TxDriver) T
+	Self() T
 }
 
 // TransactingRepo is a helper that can be used inside repository methods.
-// It uses any preexisting transaction in the context or starts and executes a new one.
+// It uses any preexisting transaction in the context if exists.
 func TransactingRepo[R, T any](
 	ctx context.Context,
 	repo interface {
@@ -203,14 +204,20 @@ func TransactingRepo[R, T any](
 	},
 	cb func(ctx context.Context, rep T) (R, error),
 ) (R, error) {
-	return transaction.Run(ctx, repo, func(ctx context.Context) (R, error) {
-		var def R
-		tx, err := GetDriverFromContext(ctx)
-		if err != nil {
+	var def R
+	tx, err := GetDriverFromContext(ctx)
+	if err != nil {
+		// For all other errors, we return the error
+		if _, ok := err.(*transaction.DriverNotFoundError); !ok {
 			return def, err
 		}
-		return cb(ctx, repo.WithTx(ctx, tx))
-	})
+
+		// If we're not in a transaction, we just use the repo
+		return cb(ctx, repo.Self())
+	}
+
+	// If we're in a transaction, we use it
+	return cb(ctx, repo.WithTx(ctx, tx))
 }
 
 // TransactingRepoWithNoValue is a helper that can be used inside repository methods.
@@ -228,15 +235,19 @@ func TransactingRepoWithNoValue[T any](
 	return err
 }
 
+func asEntDriver(drv transaction.Driver) (*TxDriver, error) {
+	entTxDriver, ok := drv.(*TxDriver)
+	if !ok {
+		return nil, fmt.Errorf("tx driver is not ent tx driver")
+	}
+	return entTxDriver, nil
+}
+
 // Only use for direct interacton with the Ent driver implementation
 func GetDriverFromContext(ctx context.Context) (*TxDriver, error) {
 	driver, err := transaction.GetDriverFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	entTxDriver, ok := driver.(*TxDriver)
-	if !ok {
-		return nil, fmt.Errorf("tx driver is not ent tx driver")
-	}
-	return entTxDriver, nil
+	return asEntDriver(driver)
 }

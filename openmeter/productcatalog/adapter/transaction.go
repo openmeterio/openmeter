@@ -28,3 +28,7 @@ func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) fe
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresFeatureRepo(txClient.Client(), e.logger)
 }
+
+func (e *featureDBAdapter) Self() feature.FeatureRepo {
+	return e
+}

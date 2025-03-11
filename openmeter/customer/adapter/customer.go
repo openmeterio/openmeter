@@ -16,6 +16,7 @@ import (
 	subscriptiondb "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -122,145 +123,149 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 
 // CreateCustomer creates a new customer
 func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCustomerInput) (*customer.Customer, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
-			if err := input.Validate(); err != nil {
-				return nil, models.NewGenericValidationError(
-					fmt.Errorf("error creating customer: %w", err),
-				)
-			}
-
-			// Create the customer in the database
-			query := repo.db.Customer.Create().
-				SetNamespace(input.Namespace).
-				SetName(input.Name).
-				SetNillableDescription(input.Description).
-				SetNillablePrimaryEmail(input.PrimaryEmail).
-				SetNillableCurrency(input.Currency)
-
-			if input.Key != nil {
-				query = query.SetKey(*input.Key)
-			}
-
-			if input.BillingAddress != nil {
-				query = query.
-					SetNillableBillingAddressCity(input.BillingAddress.City).
-					SetNillableBillingAddressCountry(input.BillingAddress.Country).
-					SetNillableBillingAddressLine1(input.BillingAddress.Line1).
-					SetNillableBillingAddressLine2(input.BillingAddress.Line2).
-					SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
-					SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
-					SetNillableBillingAddressState(input.BillingAddress.State)
-			}
-
-			customerEntity, err := query.Save(ctx)
-			if err != nil {
-				if entdb.IsConstraintError(err) {
-					return nil, customer.NewKeyConflictError(
-						input.Namespace,
-						*lo.CoalesceOrEmpty(input.Key),
+	return transaction.Run(ctx, a, func(ctx context.Context) (*customer.Customer, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
+				if err := input.Validate(); err != nil {
+					return nil, models.NewGenericValidationError(
+						fmt.Errorf("error creating customer: %w", err),
 					)
 				}
 
-				return nil, fmt.Errorf("failed to create customer: %w", err)
-			}
+				// Create the customer in the database
+				query := repo.db.Customer.Create().
+					SetNamespace(input.Namespace).
+					SetName(input.Name).
+					SetNillableDescription(input.Description).
+					SetNillablePrimaryEmail(input.PrimaryEmail).
+					SetNillableCurrency(input.Currency)
 
-			// Create customer subjects
-			// TODO: customer.AddSubjects produces an invalid database query so we create it separately in a transaction.
-			// The number and shape of the queries executed is the same, it's a devex thing only.
-			customerSubjects, err := repo.db.CustomerSubjects.
-				CreateBulk(
-					lo.Map(
-						input.UsageAttribution.SubjectKeys,
-						func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
-							return repo.db.CustomerSubjects.Create().
-								SetNamespace(customerEntity.Namespace).
-								SetCustomerID(customerEntity.ID).
-								SetSubjectKey(subjectKey)
-						},
-					)...,
-				).
-				Save(ctx)
-			if err != nil {
-				if entdb.IsConstraintError(err) {
-					return nil, customer.NewSubjectKeyConflictError(
-						input.Namespace,
-						input.UsageAttribution.SubjectKeys,
-					)
+				if input.Key != nil {
+					query = query.SetKey(*input.Key)
 				}
 
-				return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
-			}
+				if input.BillingAddress != nil {
+					query = query.
+						SetNillableBillingAddressCity(input.BillingAddress.City).
+						SetNillableBillingAddressCountry(input.BillingAddress.Country).
+						SetNillableBillingAddressLine1(input.BillingAddress.Line1).
+						SetNillableBillingAddressLine2(input.BillingAddress.Line2).
+						SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
+						SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
+						SetNillableBillingAddressState(input.BillingAddress.State)
+				}
 
-			if customerEntity == nil {
-				return nil, fmt.Errorf("invalid query result: nil customer received")
-			}
+				customerEntity, err := query.Save(ctx)
+				if err != nil {
+					if entdb.IsConstraintError(err) {
+						return nil, customer.NewKeyConflictError(
+							input.Namespace,
+							*lo.CoalesceOrEmpty(input.Key),
+						)
+					}
 
-			// When creating a customer it's not possible for it to have a subscription,
-			// so we don't need to fetch it here.
+					return nil, fmt.Errorf("failed to create customer: %w", err)
+				}
 
-			customerEntity.Edges.Subjects = customerSubjects
-			customer, err := CustomerFromDBEntity(*customerEntity)
-			if err != nil {
-				return customer, fmt.Errorf("failed to convert customer: %w", err)
-			}
-			if customer == nil {
-				return customer, fmt.Errorf("invalid query result: nil customer received")
-			}
+				// Create customer subjects
+				// TODO: customer.AddSubjects produces an invalid database query so we create it separately in a transaction.
+				// The number and shape of the queries executed is the same, it's a devex thing only.
+				customerSubjects, err := repo.db.CustomerSubjects.
+					CreateBulk(
+						lo.Map(
+							input.UsageAttribution.SubjectKeys,
+							func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
+								return repo.db.CustomerSubjects.Create().
+									SetNamespace(customerEntity.Namespace).
+									SetCustomerID(customerEntity.ID).
+									SetSubjectKey(subjectKey)
+							},
+						)...,
+					).
+					Save(ctx)
+				if err != nil {
+					if entdb.IsConstraintError(err) {
+						return nil, customer.NewSubjectKeyConflictError(
+							input.Namespace,
+							input.UsageAttribution.SubjectKeys,
+						)
+					}
 
-			return customer, nil
-		},
-	)
+					return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
+				}
+
+				if customerEntity == nil {
+					return nil, fmt.Errorf("invalid query result: nil customer received")
+				}
+
+				// When creating a customer it's not possible for it to have a subscription,
+				// so we don't need to fetch it here.
+
+				customerEntity.Edges.Subjects = customerSubjects
+				customer, err := CustomerFromDBEntity(*customerEntity)
+				if err != nil {
+					return customer, fmt.Errorf("failed to convert customer: %w", err)
+				}
+				if customer == nil {
+					return customer, fmt.Errorf("invalid query result: nil customer received")
+				}
+
+				return customer, nil
+			},
+		)
+	})
 }
 
 // DeleteCustomer deletes a customer
 func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
-	_, err := entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *adapter) (any, error) {
-			if err := input.Validate(); err != nil {
-				return nil, models.NewGenericValidationError(
-					fmt.Errorf("error deleting customer: %w", err),
-				)
-			}
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		_, err := entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *adapter) (any, error) {
+				if err := input.Validate(); err != nil {
+					return nil, models.NewGenericValidationError(
+						fmt.Errorf("error deleting customer: %w", err),
+					)
+				}
 
-			deletedAt := clock.Now().UTC()
+				deletedAt := clock.Now().UTC()
 
-			// Soft delete the customer
-			rows, err := repo.db.Customer.Update().
-				Where(customerdb.ID(input.ID)).
-				Where(customerdb.Namespace(input.Namespace)).
-				Where(customerdb.DeletedAtIsNil()).
-				SetDeletedAt(deletedAt).
-				Save(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to delete customer: %w", err)
-			}
+				// Soft delete the customer
+				rows, err := repo.db.Customer.Update().
+					Where(customerdb.ID(input.ID)).
+					Where(customerdb.Namespace(input.Namespace)).
+					Where(customerdb.DeletedAtIsNil()).
+					SetDeletedAt(deletedAt).
+					Save(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to delete customer: %w", err)
+				}
 
-			if rows == 0 {
-				return nil, customer.NewNotFoundError(customer.CustomerID(input))
-			}
+				if rows == 0 {
+					return nil, customer.NewNotFoundError(customer.CustomerID(input))
+				}
 
-			// Soft delete the customer subjects
-			err = repo.db.CustomerSubjects.
-				Update().
-				Where(customersubjectsdb.CustomerID(input.ID)).
-				Where(customersubjectsdb.Namespace(input.Namespace)).
-				Where(customersubjectsdb.DeletedAtIsNil()).
-				SetDeletedAt(deletedAt).
-				Exec(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
-			}
+				// Soft delete the customer subjects
+				err = repo.db.CustomerSubjects.
+					Update().
+					Where(customersubjectsdb.CustomerID(input.ID)).
+					Where(customersubjectsdb.Namespace(input.Namespace)).
+					Where(customersubjectsdb.DeletedAtIsNil()).
+					SetDeletedAt(deletedAt).
+					Exec(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
+				}
 
-			return nil, nil
-		},
-	)
+				return nil, nil
+			},
+		)
 
-	return err
+		return err
+	})
 }
 
 // GetCustomer gets a customer
@@ -306,204 +311,206 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 
 // UpdateCustomer updates a customer
 func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
-			if err := input.Validate(); err != nil {
-				return nil, models.NewGenericValidationError(
-					fmt.Errorf("error updating customer: %w", err),
-				)
-			}
-
-			// Get the customer to diff the subjects
-			dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput(input.CustomerID))
-			if err != nil {
-				return nil, err
-			}
-
-			query := repo.db.Customer.UpdateOneID(dbCustomer.ID).
-				Where(customerdb.Namespace(dbCustomer.Namespace)).
-				SetUpdatedAt(clock.Now().UTC()).
-				SetName(input.Name).
-				SetOrClearDescription(input.Description).
-				SetNillablePrimaryEmail(input.PrimaryEmail).
-				SetNillableCurrency(input.Currency)
-
-			if input.Key != nil {
-				query = query.SetKey(*input.Key)
-			} else {
-				query = query.ClearKey()
-			}
-
-			if input.BillingAddress != nil {
-				query = query.
-					SetNillableBillingAddressCity(input.BillingAddress.City).
-					SetNillableBillingAddressCountry(input.BillingAddress.Country).
-					SetNillableBillingAddressLine1(input.BillingAddress.Line1).
-					SetNillableBillingAddressLine2(input.BillingAddress.Line2).
-					SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
-					SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
-					SetNillableBillingAddressState(input.BillingAddress.State)
-			} else {
-				query = query.
-					ClearBillingAddressCity().
-					ClearBillingAddressCountry().
-					ClearBillingAddressLine1().
-					ClearBillingAddressLine2().
-					ClearBillingAddressPhoneNumber().
-					ClearBillingAddressPostalCode().
-					ClearBillingAddressState()
-			}
-
-			// Save the updated customer
-			entity, err := query.Save(ctx)
-			if err != nil {
-				if entdb.IsNotFound(err) {
-					return nil, customer.NewNotFoundError(input.CustomerID)
-				}
-
-				if entdb.IsConstraintError(err) {
-					return nil, customer.NewKeyConflictError(
-						input.CustomerID.Namespace,
-						*lo.CoalesceOrEmpty(input.Key),
+	return transaction.Run(ctx, a, func(ctx context.Context) (*customer.Customer, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
+				if err := input.Validate(); err != nil {
+					return nil, models.NewGenericValidationError(
+						fmt.Errorf("error updating customer: %w", err),
 					)
 				}
 
-				return nil, fmt.Errorf("failed to update customer: %w", err)
-			}
+				// Get the customer to diff the subjects
+				dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput(input.CustomerID))
+				if err != nil {
+					return nil, err
+				}
 
-			// Add new subjects
-			var subjectsKeysToAdd []string
+				query := repo.db.Customer.UpdateOneID(dbCustomer.ID).
+					Where(customerdb.Namespace(dbCustomer.Namespace)).
+					SetUpdatedAt(clock.Now().UTC()).
+					SetName(input.Name).
+					SetOrClearDescription(input.Description).
+					SetNillablePrimaryEmail(input.PrimaryEmail).
+					SetNillableCurrency(input.Currency)
 
-			for _, subjectKey := range input.UsageAttribution.SubjectKeys {
-				found := false
+				if input.Key != nil {
+					query = query.SetKey(*input.Key)
+				} else {
+					query = query.ClearKey()
+				}
 
-				for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
-					if subjectKey == existingSubjectKey {
-						found = true
-						continue
+				if input.BillingAddress != nil {
+					query = query.
+						SetNillableBillingAddressCity(input.BillingAddress.City).
+						SetNillableBillingAddressCountry(input.BillingAddress.Country).
+						SetNillableBillingAddressLine1(input.BillingAddress.Line1).
+						SetNillableBillingAddressLine2(input.BillingAddress.Line2).
+						SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
+						SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
+						SetNillableBillingAddressState(input.BillingAddress.State)
+				} else {
+					query = query.
+						ClearBillingAddressCity().
+						ClearBillingAddressCountry().
+						ClearBillingAddressLine1().
+						ClearBillingAddressLine2().
+						ClearBillingAddressPhoneNumber().
+						ClearBillingAddressPostalCode().
+						ClearBillingAddressState()
+				}
+
+				// Save the updated customer
+				entity, err := query.Save(ctx)
+				if err != nil {
+					if entdb.IsNotFound(err) {
+						return nil, customer.NewNotFoundError(input.CustomerID)
 					}
+
+					if entdb.IsConstraintError(err) {
+						return nil, customer.NewKeyConflictError(
+							input.CustomerID.Namespace,
+							*lo.CoalesceOrEmpty(input.Key),
+						)
+					}
+
+					return nil, fmt.Errorf("failed to update customer: %w", err)
 				}
 
-				if !found {
-					subjectsKeysToAdd = append(subjectsKeysToAdd, subjectKey)
-				}
-			}
-
-			_, err = repo.db.CustomerSubjects.
-				CreateBulk(
-					lo.Map(
-						subjectsKeysToAdd,
-						func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
-							return repo.db.CustomerSubjects.Create().
-								SetNamespace(input.CustomerID.Namespace).
-								SetCustomerID(input.CustomerID.ID).
-								SetSubjectKey(subjectKey)
-						},
-					)...,
-				).
-				Save(ctx)
-			if err != nil {
-				if entdb.IsConstraintError(err) {
-					return nil, customer.NewSubjectKeyConflictError(
-						input.CustomerID.Namespace,
-						subjectsKeysToAdd,
-					)
-				}
-
-				return nil, fmt.Errorf("failed to add customer subjects: %w", err)
-			}
-
-			// Remove subjects
-			var subjectKeysToRemove []string
-
-			for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
-				found := false
+				// Add new subjects
+				var subjectsKeysToAdd []string
 
 				for _, subjectKey := range input.UsageAttribution.SubjectKeys {
-					if subjectKey == existingSubjectKey {
-						found = true
-						continue
+					found := false
+
+					for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+						if subjectKey == existingSubjectKey {
+							found = true
+							continue
+						}
+					}
+
+					if !found {
+						subjectsKeysToAdd = append(subjectsKeysToAdd, subjectKey)
 					}
 				}
 
-				if !found {
-					subjectKeysToRemove = append(subjectKeysToRemove, existingSubjectKey)
-				}
-			}
+				_, err = repo.db.CustomerSubjects.
+					CreateBulk(
+						lo.Map(
+							subjectsKeysToAdd,
+							func(subjectKey string, _ int) *entdb.CustomerSubjectsCreate {
+								return repo.db.CustomerSubjects.Create().
+									SetNamespace(input.CustomerID.Namespace).
+									SetCustomerID(input.CustomerID.ID).
+									SetSubjectKey(subjectKey)
+							},
+						)...,
+					).
+					Save(ctx)
+				if err != nil {
+					if entdb.IsConstraintError(err) {
+						return nil, customer.NewSubjectKeyConflictError(
+							input.CustomerID.Namespace,
+							subjectsKeysToAdd,
+						)
+					}
 
-			err = repo.db.CustomerSubjects.
-				Update().
-				Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
-				Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
-				Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
-				Where(customersubjectsdb.DeletedAtIsNil()).
-				SetDeletedAt(clock.Now().UTC()).
-				Exec(ctx)
-			if err != nil {
-				if entdb.IsConstraintError(err) {
-					return nil, customer.NewSubjectKeyConflictError(
-						input.CustomerID.Namespace,
-						subjectKeysToRemove,
+					return nil, fmt.Errorf("failed to add customer subjects: %w", err)
+				}
+
+				// Remove subjects
+				var subjectKeysToRemove []string
+
+				for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+					found := false
+
+					for _, subjectKey := range input.UsageAttribution.SubjectKeys {
+						if subjectKey == existingSubjectKey {
+							found = true
+							continue
+						}
+					}
+
+					if !found {
+						subjectKeysToRemove = append(subjectKeysToRemove, existingSubjectKey)
+					}
+				}
+
+				err = repo.db.CustomerSubjects.
+					Update().
+					Where(customersubjectsdb.CustomerID(input.CustomerID.ID)).
+					Where(customersubjectsdb.Namespace(input.CustomerID.Namespace)).
+					Where(customersubjectsdb.SubjectKeyIn(subjectKeysToRemove...)).
+					Where(customersubjectsdb.DeletedAtIsNil()).
+					SetDeletedAt(clock.Now().UTC()).
+					Exec(ctx)
+				if err != nil {
+					if entdb.IsConstraintError(err) {
+						return nil, customer.NewSubjectKeyConflictError(
+							input.CustomerID.Namespace,
+							subjectKeysToRemove,
+						)
+					}
+
+					return nil, fmt.Errorf("failed to remove customer subjects: %w", err)
+				}
+
+				if entity == nil {
+					return nil, fmt.Errorf("invalid query result: nil customer received")
+				}
+
+				// Let's fetch the Subscription if present
+				subsQuery := repo.db.Subscription.Query()
+				applyActiveSubscriptionFilter(subsQuery, clock.Now().UTC())
+				subsEnt, err := subsQuery.
+					WithPlan().
+					Where(subscriptiondb.CustomerID(entity.ID)).
+					Only(ctx)
+				if err == nil && subsEnt != nil {
+					entity.Edges.Subscription = []*entdb.Subscription{subsEnt}
+				} else if !entdb.IsNotFound(err) {
+					return nil, fmt.Errorf("failed to fetch customer subscription: %w", err)
+				}
+
+				// Let's error if the UsageAttributions were to change with a Subscription present
+				if subsEnt != nil && (len(subjectsKeysToAdd) > 0 || len(subjectKeysToRemove) > 0) {
+					return nil, models.NewGenericForbiddenError(
+						fmt.Errorf("cannot update customer UsageAttribution with active subscription"),
 					)
 				}
 
-				return nil, fmt.Errorf("failed to remove customer subjects: %w", err)
-			}
+				// Final subject keys
+				entity.Edges.Subjects = []*entdb.CustomerSubjects{}
 
-			if entity == nil {
-				return nil, fmt.Errorf("invalid query result: nil customer received")
-			}
+				// Loop through the existing subjects and add the ones that are not removed
+				for _, subjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+					if lo.Contains(subjectKeysToRemove, subjectKey) {
+						continue
+					}
 
-			// Let's fetch the Subscription if present
-			subsQuery := repo.db.Subscription.Query()
-			applyActiveSubscriptionFilter(subsQuery, clock.Now().UTC())
-			subsEnt, err := subsQuery.
-				WithPlan().
-				Where(subscriptiondb.CustomerID(entity.ID)).
-				Only(ctx)
-			if err == nil && subsEnt != nil {
-				entity.Edges.Subscription = []*entdb.Subscription{subsEnt}
-			} else if !entdb.IsNotFound(err) {
-				return nil, fmt.Errorf("failed to fetch customer subscription: %w", err)
-			}
-
-			// Let's error if the UsageAttributions were to change with a Subscription present
-			if subsEnt != nil && (len(subjectsKeysToAdd) > 0 || len(subjectKeysToRemove) > 0) {
-				return nil, models.NewGenericForbiddenError(
-					fmt.Errorf("cannot update customer UsageAttribution with active subscription"),
-				)
-			}
-
-			// Final subject keys
-			entity.Edges.Subjects = []*entdb.CustomerSubjects{}
-
-			// Loop through the existing subjects and add the ones that are not removed
-			for _, subjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
-				if lo.Contains(subjectKeysToRemove, subjectKey) {
-					continue
+					entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
+						Namespace:  input.CustomerID.Namespace,
+						CustomerID: input.CustomerID.ID,
+						SubjectKey: subjectKey,
+					})
 				}
 
-				entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
-					Namespace:  input.CustomerID.Namespace,
-					CustomerID: input.CustomerID.ID,
-					SubjectKey: subjectKey,
-				})
-			}
+				// Add the new subjects
+				for _, subjectKey := range subjectsKeysToAdd {
+					entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
+						Namespace:  input.CustomerID.Namespace,
+						CustomerID: input.CustomerID.ID,
+						SubjectKey: subjectKey,
+					})
+				}
 
-			// Add the new subjects
-			for _, subjectKey := range subjectsKeysToAdd {
-				entity.Edges.Subjects = append(entity.Edges.Subjects, &entdb.CustomerSubjects{
-					Namespace:  input.CustomerID.Namespace,
-					CustomerID: input.CustomerID.ID,
-					SubjectKey: subjectKey,
-				})
-			}
-
-			return CustomerFromDBEntity(*entity)
-		},
-	)
+				return CustomerFromDBEntity(*entity)
+			},
+		)
+	})
 }
 
 func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time) {

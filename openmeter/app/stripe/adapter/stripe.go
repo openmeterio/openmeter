@@ -36,7 +36,7 @@ func (a adapter) GetStripeAppClientFactory() stripeclient.StripeAppClientFactory
 }
 
 // CreateApp creates a new app
-func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error) {
+func (a *adapter) CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error) {
 	if err := input.Validate(); err != nil {
 		return appstripeentity.AppBase{}, models.NewGenericValidationError(
 			fmt.Errorf("error create stripe app: %w", err),
@@ -82,7 +82,7 @@ func (a adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Crea
 }
 
 // UpdateAPIKey replaces the API key
-func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
 	// Validate the input
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
@@ -179,7 +179,7 @@ func (a adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateA
 }
 
 // GetStripeAppData gets stripe customer data
-func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
+func (a *adapter) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
 	if err := input.Validate(); err != nil {
 		return appstripeentity.AppData{}, models.NewGenericValidationError(
 			fmt.Errorf("error getting stripe customer data: %w", err),
@@ -211,7 +211,7 @@ func (a adapter) GetStripeAppData(ctx context.Context, input appstripeentity.Get
 }
 
 // DeleteStripeAppData deletes the stripe app data
-func (a adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error {
+func (a *adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.DeleteStripeAppDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			fmt.Errorf("error delete stripe app: %w", err),
@@ -238,7 +238,7 @@ func (a adapter) DeleteStripeAppData(ctx context.Context, input appstripeentity.
 }
 
 // GetWebhookSecret gets the webhook secret
-func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
+func (a *adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
 	if err := input.Validate(); err != nil {
 		return secretentity.Secret{}, models.NewGenericValidationError(
 			fmt.Errorf("error get webhook secret: %w", err),
@@ -280,7 +280,7 @@ func (a adapter) GetWebhookSecret(ctx context.Context, input appstripeentity.Get
 }
 
 // SetCustomerDefaultPaymentMethod sets the default payment method for a customer
-func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
+func (a *adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
 	if err := input.Validate(); err != nil {
 		return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, models.NewGenericValidationError(
 			fmt.Errorf("error set customer default payment method: %w", err),
@@ -343,7 +343,7 @@ func (a adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input apps
 }
 
 // CreateCheckoutSession creates a new checkout session
-func (a adapter) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
+func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
 	if err := input.Validate(); err != nil {
 		return appstripeentity.CreateCheckoutSessionOutput{}, models.NewGenericValidationError(
 			fmt.Errorf("error create checkout session: %w", err),
