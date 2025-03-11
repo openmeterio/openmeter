@@ -206,3 +206,45 @@ model FilterBoolean {
    */
   $eq?: boolean | null;
 }
+
+/**
+ * A filter for a time field.
+ */
+@friendlyName("FilterTime")
+model FilterTime {
+  /**
+   * The field must be greater than the provided value.
+   */
+  $gt?: utcDateTime | null;
+
+  /**
+   * The field must be greater than or equal to the provided value.
+   */
+  $gte?: utcDateTime | null;
+
+  /**
+   * The field must be less than the provided value.
+   */
+  $lt?: utcDateTime | null;
+
+  /**
+   * The field must be less than or equal to the provided value.
+   */
+  $lte?: utcDateTime | null;
+
+  /**
+   * Provide a list of filters to be combined with a logical AND.
+   */
+  // Not supported for nullable types
+  // @minItems(1)
+  // @maxItems(10)
+  $and?: FilterTime[] | null;
+
+  /**
+   * Provide a list of filters to be combined with a logical OR.
+   */
+  // Not supported for nullable types
+  // @minItems(1)
+  // @maxItems(10)
+  $or?: FilterTime[] | null;
+}

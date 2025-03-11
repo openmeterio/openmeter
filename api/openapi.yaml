@@ -11082,6 +11082,42 @@ components:
           nullable: true
           description: Provide a list of filters to be combined with a logical OR.
       description: A filter for a string field.
+    FilterTime:
+      type: object
+      properties:
+        $gt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be greater than the provided value.
+        $gte:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be greater than or equal to the provided value.
+        $lt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be less than the provided value.
+        $lte:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be less than or equal to the provided value.
+        $and:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterTime'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical AND.
+        $or:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterTime'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical OR.
+      description: A filter for a time field.
     FlatPrice:
       type: object
       required:
