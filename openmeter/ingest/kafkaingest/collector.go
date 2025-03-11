@@ -9,12 +9,17 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
+	"github.com/openmeterio/openmeter/pkg/otelx"
 )
 
 const (
@@ -28,6 +33,9 @@ type Collector struct {
 	TopicResolver    topicresolver.Resolver
 	TopicProvisioner pkgkafka.TopicProvisioner
 	TopicPartitions  int
+
+	Logger *slog.Logger
+	Tracer trace.Tracer
 }
 
 func NewCollector(
@@ -36,6 +44,8 @@ func NewCollector(
 	resolver topicresolver.Resolver,
 	provisioner pkgkafka.TopicProvisioner,
 	partitions int,
+	logger *slog.Logger,
+	tracer trace.Tracer,
 ) (*Collector, error) {
 	if producer == nil {
 		return nil, fmt.Errorf("producer is required")
@@ -50,6 +60,12 @@ func NewCollector(
 	if provisioner == nil {
 		return nil, fmt.Errorf("topic provisioner is required")
 	}
+	if logger == nil {
+		return nil, fmt.Errorf("logger is required")
+	}
+	if tracer == nil {
+		return nil, fmt.Errorf("tracer is required")
+	}
 
 	return &Collector{
 		Producer:         producer,
@@ -57,33 +73,62 @@ func NewCollector(
 		TopicResolver:    resolver,
 		TopicProvisioner: provisioner,
 		TopicPartitions:  partitions,
+		Logger:           logger,
+		Tracer:           tracer,
 	}, nil
 }
 
 // Ingest produces an event to a Kafka topic.
 func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event) error {
+	var err error
+
+	ctx, span := s.Tracer.Start(ctx, "openmeter.ingest.process.event", trace.WithAttributes(
+		attribute.String("event.id", ev.ID()),
+		attribute.String("event.namespace", namespace),
+	))
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(otelcodes.Error, err.Error())
+		}
+
+		span.End()
+	}()
+
+	span.AddEvent("resolved namespace to kafka topic")
 	topicName, err := s.TopicResolver.Resolve(ctx, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to resolve namespace to topic name: %w", err)
+		err = fmt.Errorf("failed to resolve namespace to topic name: %w", err)
+		return err
 	}
+	span.SetAttributes(semconv.MessagingDestinationName(topicName))
 
 	// Make sure topic is provisioned
+	span.AddEvent("provisioning kafka topic")
 	err = s.TopicProvisioner.Provision(ctx, pkgkafka.TopicConfig{
 		Name:       topicName,
 		Partitions: s.TopicPartitions,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to provision topic: %w", err)
+		err = fmt.Errorf("failed to provision topic: %w", err)
+		return err
 	}
 
 	key, err := s.Serializer.SerializeKey(topicName, ev)
 	if err != nil {
-		return fmt.Errorf("serialize event key: %w", err)
+		err = fmt.Errorf("serialize event key: %w", err)
+		return err
 	}
 
 	value, err := s.Serializer.SerializeValue(topicName, ev)
 	if err != nil {
-		return fmt.Errorf("serialize event value: %w", err)
+		err = fmt.Errorf("serialize event value: %w", err)
+		return err
+	}
+
+	spanCtx, err := otelx.SerializeSpanContext(span.SpanContext())
+	if err != nil {
+		s.Logger.WarnContext(ctx, "failed to serialize span context", "error", err)
 	}
 
 	msg := &kafka.Message{
@@ -93,14 +138,17 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 			{Key: HeaderKeyNamespace, Value: []byte(namespace)},
 			{Key: "specversion", Value: []byte(ev.SpecVersion())},
 			{Key: "ingested_at", Value: []byte(time.Now().UTC().Format(time.RFC3339))},
+			{Key: otelx.OTelSpanContextKey, Value: spanCtx},
 		},
 		Key:   key,
 		Value: value,
 	}
 
+	span.AddEvent("publishing event to kafka topic")
 	err = s.Producer.Produce(msg, nil)
 	if err != nil {
-		return fmt.Errorf("producing kafka message: %w", err)
+		err = fmt.Errorf("producing kafka message: %w", err)
+		return err
 	}
 
 	return nil
