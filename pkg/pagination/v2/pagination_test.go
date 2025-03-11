@@ -35,14 +35,10 @@ func TestCursorGeneration(t *testing.T) {
 	}
 
 	t.Run("Generate next cursor", func(t *testing.T) {
-		result := NewResult(
-			items,
-			100, // Total count of 100
-		)
+		result := NewResult(items)
 
 		// Verify next cursor
 		assert.NotNil(t, result.NextCursor)
-		assert.Equal(t, int64(100), result.TotalCount)
 
 		// Decode and verify next cursor
 		nextCursor, err := DecodeCursor(*result.NextCursor)
@@ -52,13 +48,9 @@ func TestCursorGeneration(t *testing.T) {
 	})
 
 	t.Run("Empty results", func(t *testing.T) {
-		emptyResult := NewResult(
-			[]TestItem{},
-			0, // No items total
-		)
+		emptyResult := NewResult([]TestItem{})
 
 		// Verify cursor is not set
 		assert.Nil(t, emptyResult.NextCursor)
-		assert.Equal(t, int64(0), emptyResult.TotalCount)
 	})
 }
