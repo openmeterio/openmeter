@@ -170,7 +170,6 @@ func setupDependencies(t *testing.T) Dependencies {
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
 		mockPublisher,
-		tracer,
 	)
 
 	return Dependencies{
