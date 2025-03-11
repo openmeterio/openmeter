@@ -47,6 +47,9 @@ type SubscriptionRepository interface {
 
 	// List subscriptions
 	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+
+	// Marks the subscription as custom
+	MarkEdited(ctx context.Context, id models.NamespacedID, at time.Time) (Subscription, error)
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

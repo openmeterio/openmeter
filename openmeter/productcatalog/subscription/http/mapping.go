@@ -191,6 +191,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Alignment: &api.Alignment{
 			BillablesMustAlign: &sub.BillablesMustAlign,
 		},
+		IsCustom: sub.IsCustom(),
 	}
 }
 
@@ -519,6 +520,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 		UpdatedAt:   apiSub.UpdatedAt,
 		Status:      apiSub.Status,
 		Alignment:   &alg,
+		IsCustom:    apiSub.IsCustom,
 	}
 
 	phases := make([]api.SubscriptionPhaseExpanded, 0, len(view.Phases))

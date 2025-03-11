@@ -97,6 +97,13 @@ model Subscription {
   plan?: PlanReference;
 
   /**
+   * Whether the subscription is custom. A subscription is custom if
+   * - it was customized at creation (not based on a plan, has no PlanReference)
+   * - or if it has been edited (even if eventually edited back to it's original form)
+   */
+  isCustom: boolean;
+
+  /**
    * The currency code of the subscription.
    * Will be revised once we add multi currency support.
    */

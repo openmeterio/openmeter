@@ -170,6 +170,20 @@ func (sc *SubscriptionCreate) SetCurrency(c currencyx.Code) *SubscriptionCreate 
 	return sc
 }
 
+// SetLastEditedAt sets the "last_edited_at" field.
+func (sc *SubscriptionCreate) SetLastEditedAt(t time.Time) *SubscriptionCreate {
+	sc.mutation.SetLastEditedAt(t)
+	return sc
+}
+
+// SetNillableLastEditedAt sets the "last_edited_at" field if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillableLastEditedAt(t *time.Time) *SubscriptionCreate {
+	if t != nil {
+		sc.SetLastEditedAt(*t)
+	}
+	return sc
+}
+
 // SetID sets the "id" field.
 func (sc *SubscriptionCreate) SetID(s string) *SubscriptionCreate {
 	sc.mutation.SetID(s)
@@ -409,6 +423,10 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := sc.mutation.Currency(); ok {
 		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := sc.mutation.LastEditedAt(); ok {
+		_spec.SetField(subscription.FieldLastEditedAt, field.TypeTime, value)
+		_node.LastEditedAt = &value
 	}
 	if nodes := sc.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -654,6 +672,24 @@ func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
 	return u
 }
 
+// SetLastEditedAt sets the "last_edited_at" field.
+func (u *SubscriptionUpsert) SetLastEditedAt(v time.Time) *SubscriptionUpsert {
+	u.Set(subscription.FieldLastEditedAt, v)
+	return u
+}
+
+// UpdateLastEditedAt sets the "last_edited_at" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateLastEditedAt() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldLastEditedAt)
+	return u
+}
+
+// ClearLastEditedAt clears the value of the "last_edited_at" field.
+func (u *SubscriptionUpsert) ClearLastEditedAt() *SubscriptionUpsert {
+	u.SetNull(subscription.FieldLastEditedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -861,6 +897,27 @@ func (u *SubscriptionUpsertOne) UpdatePlanID() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetLastEditedAt sets the "last_edited_at" field.
+func (u *SubscriptionUpsertOne) SetLastEditedAt(v time.Time) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetLastEditedAt(v)
+	})
+}
+
+// UpdateLastEditedAt sets the "last_edited_at" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateLastEditedAt() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateLastEditedAt()
+	})
+}
+
+// ClearLastEditedAt clears the value of the "last_edited_at" field.
+func (u *SubscriptionUpsertOne) ClearLastEditedAt() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearLastEditedAt()
 	})
 }
 
@@ -1238,6 +1295,27 @@ func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetLastEditedAt sets the "last_edited_at" field.
+func (u *SubscriptionUpsertBulk) SetLastEditedAt(v time.Time) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetLastEditedAt(v)
+	})
+}
+
+// UpdateLastEditedAt sets the "last_edited_at" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateLastEditedAt() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateLastEditedAt()
+	})
+}
+
+// ClearLastEditedAt clears the value of the "last_edited_at" field.
+func (u *SubscriptionUpsertBulk) ClearLastEditedAt() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearLastEditedAt()
 	})
 }
 

@@ -135,6 +135,12 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, err
 		}
 
+		// Let's mark it as edited
+		subs, err = s.SubscriptionRepo.MarkEdited(ctx, subs.NamespacedID, clock.Now())
+		if err != nil {
+			return subs, fmt.Errorf("failed to mark subscription as edited: %w", err)
+		}
+
 		// Let's fetch the view for event generation
 		updatedView, err := s.GetView(ctx, subs.NamespacedID)
 		if err != nil {

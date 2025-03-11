@@ -36939,6 +36939,7 @@ type SubscriptionMutation struct {
 	name                 *string
 	description          *string
 	currency             *currencyx.Code
+	last_edited_at       *time.Time
 	clearedFields        map[string]struct{}
 	plan                 *string
 	clearedplan          bool
@@ -37592,6 +37593,55 @@ func (m *SubscriptionMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetLastEditedAt sets the "last_edited_at" field.
+func (m *SubscriptionMutation) SetLastEditedAt(t time.Time) {
+	m.last_edited_at = &t
+}
+
+// LastEditedAt returns the value of the "last_edited_at" field in the mutation.
+func (m *SubscriptionMutation) LastEditedAt() (r time.Time, exists bool) {
+	v := m.last_edited_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastEditedAt returns the old "last_edited_at" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldLastEditedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastEditedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastEditedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastEditedAt: %w", err)
+	}
+	return oldValue.LastEditedAt, nil
+}
+
+// ClearLastEditedAt clears the value of the "last_edited_at" field.
+func (m *SubscriptionMutation) ClearLastEditedAt() {
+	m.last_edited_at = nil
+	m.clearedFields[subscription.FieldLastEditedAt] = struct{}{}
+}
+
+// LastEditedAtCleared returns if the "last_edited_at" field was cleared in this mutation.
+func (m *SubscriptionMutation) LastEditedAtCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldLastEditedAt]
+	return ok
+}
+
+// ResetLastEditedAt resets all changes to the "last_edited_at" field.
+func (m *SubscriptionMutation) ResetLastEditedAt() {
+	m.last_edited_at = nil
+	delete(m.clearedFields, subscription.FieldLastEditedAt)
+}
+
 // ClearPlan clears the "plan" edge to the Plan entity.
 func (m *SubscriptionMutation) ClearPlan() {
 	m.clearedplan = true
@@ -37788,7 +37838,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -37828,6 +37878,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	if m.currency != nil {
 		fields = append(fields, subscription.FieldCurrency)
 	}
+	if m.last_edited_at != nil {
+		fields = append(fields, subscription.FieldLastEditedAt)
+	}
 	return fields
 }
 
@@ -37862,6 +37915,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomerID()
 	case subscription.FieldCurrency:
 		return m.Currency()
+	case subscription.FieldLastEditedAt:
+		return m.LastEditedAt()
 	}
 	return nil, false
 }
@@ -37897,6 +37952,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCustomerID(ctx)
 	case subscription.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case subscription.FieldLastEditedAt:
+		return m.OldLastEditedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Subscription field %s", name)
 }
@@ -37997,6 +38054,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCurrency(v)
 		return nil
+	case subscription.FieldLastEditedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastEditedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)
 }
@@ -38042,6 +38106,9 @@ func (m *SubscriptionMutation) ClearedFields() []string {
 	if m.FieldCleared(subscription.FieldPlanID) {
 		fields = append(fields, subscription.FieldPlanID)
 	}
+	if m.FieldCleared(subscription.FieldLastEditedAt) {
+		fields = append(fields, subscription.FieldLastEditedAt)
+	}
 	return fields
 }
 
@@ -38070,6 +38137,9 @@ func (m *SubscriptionMutation) ClearField(name string) error {
 		return nil
 	case subscription.FieldPlanID:
 		m.ClearPlanID()
+		return nil
+	case subscription.FieldLastEditedAt:
+		m.ClearLastEditedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription nullable field %s", name)
@@ -38117,6 +38187,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case subscription.FieldLastEditedAt:
+		m.ResetLastEditedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)

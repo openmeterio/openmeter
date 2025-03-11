@@ -2085,6 +2085,20 @@ func (u *SubscriptionUpdateOne) SetOrClearPlanID(value *string) *SubscriptionUpd
 	return u.SetPlanID(*value)
 }
 
+func (u *SubscriptionUpdate) SetOrClearLastEditedAt(value *time.Time) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearLastEditedAt()
+	}
+	return u.SetLastEditedAt(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearLastEditedAt(value *time.Time) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearLastEditedAt()
+	}
+	return u.SetLastEditedAt(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

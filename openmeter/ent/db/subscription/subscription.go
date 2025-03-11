@@ -40,6 +40,8 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldLastEditedAt holds the string denoting the last_edited_at field in the database.
+	FieldLastEditedAt = "last_edited_at"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -96,6 +98,7 @@ var Columns = []string{
 	FieldPlanID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldLastEditedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -197,6 +200,11 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByLastEditedAt orders the results by the last_edited_at field.
+func ByLastEditedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastEditedAt, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.

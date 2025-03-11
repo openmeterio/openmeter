@@ -23,7 +23,6 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 			Key:     sub.Edges.Plan.Key,
 			Version: sub.Edges.Plan.Version,
 		}
-		ref.Id = sub.Edges.Plan.ID
 	}
 
 	return subscription.Subscription{
@@ -46,11 +45,12 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Alignment: productcatalog.Alignment{
 			BillablesMustAlign: sub.BillablesMustAlign,
 		},
-		PlanRef:     ref,
-		Name:        sub.Name,
-		Description: sub.Description,
-		CustomerId:  sub.CustomerID,
-		Currency:    sub.Currency,
+		PlanRef:      ref,
+		Name:         sub.Name,
+		Description:  sub.Description,
+		CustomerId:   sub.CustomerID,
+		Currency:     sub.Currency,
+		LastEditedAt: convert.SafeToUTC(sub.LastEditedAt),
 	}, nil
 }
 
