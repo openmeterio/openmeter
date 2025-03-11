@@ -260,7 +260,7 @@ type CustomerOverrideExpand struct {
 	Apps bool `json:"apps,omitempty"`
 
 	// Customer specifies if the customer should be included in the response
-	Customer bool `json:"customers,omitempty"`
+	Customer bool `json:"customer,omitempty"`
 }
 
 var CustomerOverrideExpandAll = CustomerOverrideExpand{

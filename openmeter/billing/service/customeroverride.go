@@ -254,12 +254,12 @@ func (s *Service) resolveCustomerOverrideWithDetails(ctx context.Context, in res
 		if cachedCustomer, ok := in.GetCustomerFromCache(in.CustomerID.ID); ok {
 			details.Customer = &cachedCustomer
 		} else {
-			customer, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput(in.CustomerID))
+			cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput(in.CustomerID))
 			if err != nil {
 				return def, err
 			}
 
-			details.Customer = customer
+			details.Customer = cust
 		}
 	}
 
