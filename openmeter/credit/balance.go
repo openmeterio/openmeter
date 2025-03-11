@@ -73,7 +73,11 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	// This is only possible in case the grant becomes active exactly at the start of the current period
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, period.From)
 
-	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
+	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		owner:                 owner,
+		queryBounds:           period,
+		inbetweenPeriodStarts: resetTimesInclusive,
+	})
 	if err != nil {
 		return def, err
 	}
@@ -174,7 +178,11 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 	// This is only possible in case the grant becomes active exactly at the start of the first period
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, snap.At)
 
-	eng, err := m.buildEngineForOwner(ctx, ownerID, period)
+	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		owner:                 owner,
+		queryBounds:           period,
+		inbetweenPeriodStarts: resetTimesInclusive,
+	})
 	if err != nil {
 		return def, err
 	}
@@ -267,7 +275,11 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		To:   at,
 	}
 
-	eng, err := m.buildEngineForOwner(ctx, ownerID, queriedPeriod)
+	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		owner:                 owner,
+		queryBounds:           queriedPeriod,
+		inbetweenPeriodStarts: resetTimesInclusive,
+	})
 	if err != nil {
 		return nil, err
 	}
