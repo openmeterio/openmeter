@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -39,7 +42,7 @@ type BalanceConnector interface {
 var _ BalanceConnector = &connector{}
 
 func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot")
+	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
 	var def engine.RunResult
@@ -108,7 +111,7 @@ func (m *connector) GetBalanceSinceSnapshot(ctx context.Context, ownerID models.
 }
 
 func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceAt")
+	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceAt", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
 	m.Logger.Debug("getting balance of owner", "owner", ownerID.ID, "at", at)
@@ -130,7 +133,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.Period) (engine.RunResult, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceForPeriod")
+	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceForPeriod", cTrace.WithOwner(ownerID), cTrace.WithPeriod(period))
 	defer span.End()
 
 	m.Logger.Debug("calculating history for owner", "owner", ownerID.ID, "period", period)
@@ -191,7 +194,7 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 }
 
 func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.NamespacedID, params ResetUsageForOwnerParams) (*balance.Snapshot, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.ResetUsageForOwner")
+	ctx, span := m.Tracer.Start(ctx, "credit.ResetUsageForOwner", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", params.At.String())))
 	defer span.End()
 
 	// Cannot reset for the future

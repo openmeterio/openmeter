@@ -21,7 +21,7 @@ import (
 // GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
 // If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
 func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
-	ctx, span := m.Tracer.Start(ctx, "credit.GetLastValidSnapshotAt")
+	ctx, span := m.Tracer.Start(ctx, "credit.GetLastValidSnapshotAt", cTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
 	bal, err := m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
@@ -63,7 +63,7 @@ func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runP
 // Builds the engine for a given owner caching the period boundaries for the given range (queryBounds).
 // As QueryUsageFn is frequently called, getting the CurrentUsagePeriodStartTime during it's execution would impact performance, so we cache all possible values during engine building.
 func (m *connector) buildEngineForOwner(ctx context.Context, ownerID models.NamespacedID, queryBounds timeutil.Period) (engine.Engine, error) {
-	ctx, span := m.Tracer.Start(ctx, "buildEngineForOwner")
+	ctx, span := m.Tracer.Start(ctx, "credit.buildEngineForOwner", cTrace.WithOwner(ownerID), cTrace.WithPeriod(queryBounds))
 	defer span.End()
 
 	// Let's validate the parameters
@@ -159,7 +159,7 @@ type snapshotParams struct {
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
 func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
-	ctx, span := m.Tracer.Start(ctx, "snapshotEngineResult")
+	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
 	defer span.End()
 
 	segs := runRes.History.Segments()
@@ -188,7 +188,7 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 }
 
 func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, snap balance.Snapshot) (balance.Snapshot, error) {
-	ctx, span := m.Tracer.Start(ctx, "saveSnapshot")
+	ctx, span := m.Tracer.Start(ctx, "credit.saveSnapshot", cTrace.WithOwner(params.owner))
 	defer span.End()
 
 	// Let's validate the timestamp

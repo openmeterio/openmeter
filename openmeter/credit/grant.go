@@ -33,6 +33,9 @@ type CreateGrantInput struct {
 }
 
 func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID, input CreateGrantInput) (*grant.Grant, error) {
+	ctx, span := m.Tracer.Start(ctx, "credit.CreateGrant", cTrace.WithOwner(ownerID))
+	defer span.End()
+
 	return transaction.Run(ctx, m.GrantRepo, func(ctx context.Context) (*grant.Grant, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
 		if err != nil {
@@ -107,6 +110,9 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 }
 
 func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+	ctx, span := m.Tracer.Start(ctx, "credit.VoidGrant", cTrace.WithOwner(grantID))
+	defer span.End()
+
 	// can we void grants that have been used?
 	g, err := m.GrantRepo.GetGrant(ctx, grantID)
 	if err != nil {
