@@ -119,7 +119,7 @@ type manageAdapter struct {
 }
 
 // Tx implements entutils.TxCreator interface
-func (a manageAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+func (a *manageAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -130,7 +130,7 @@ func (a manageAdapter) Tx(ctx context.Context) (context.Context, transaction.Dri
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (a manageAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *manageAdapter {
+func (a *manageAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *manageAdapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 
 	return &manageAdapter{
@@ -142,4 +142,8 @@ func (a manageAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *manag
 		namespaceManager:      a.namespaceManager,
 		streamingConnector:    a.streamingConnector,
 	}
+}
+
+func (a *manageAdapter) Self() *manageAdapter {
+	return a
 }

@@ -28,6 +28,10 @@ func (e *entitlementDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver
 	return NewPostgresEntitlementRepo(txClient.Client())
 }
 
+func (e *entitlementDBAdapter) Self() *entitlementDBAdapter {
+	return e
+}
+
 func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := u.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
@@ -41,4 +45,8 @@ func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, transact
 func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *usageResetDBAdapter {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresUsageResetRepo(txClient.Client())
+}
+
+func (u *usageResetDBAdapter) Self() *usageResetDBAdapter {
+	return u
 }

@@ -10,6 +10,7 @@ import (
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -17,54 +18,56 @@ import (
 var _ app.AppAdapter = (*adapter)(nil)
 
 // CreateApp creates an app
-func (a adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *adapter) (app.AppBase, error) {
-			count, err := repo.db.App.Query().
-				Where(appdb.Namespace(input.Namespace)).
-				Where(appdb.Type(input.Type)).
-				Where(appdb.DeletedAtIsNil()).
-				Count(ctx)
-			if err != nil {
-				return app.AppBase{}, fmt.Errorf("failed to count apps from same type: %w", err)
-			}
+func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (app.AppBase, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *adapter) (app.AppBase, error) {
+				count, err := repo.db.App.Query().
+					Where(appdb.Namespace(input.Namespace)).
+					Where(appdb.Type(input.Type)).
+					Where(appdb.DeletedAtIsNil()).
+					Count(ctx)
+				if err != nil {
+					return app.AppBase{}, fmt.Errorf("failed to count apps from same type: %w", err)
+				}
 
-			appCreateQuery := repo.db.App.Create().
-				SetNamespace(input.Namespace).
-				SetName(input.Name).
-				SetDescription(input.Description).
-				SetType(input.Type).
-				// Set the app as default if it is the first app of its type
-				SetIsDefault(count == 0).
-				SetStatus(app.AppStatusReady)
+				appCreateQuery := repo.db.App.Create().
+					SetNamespace(input.Namespace).
+					SetName(input.Name).
+					SetDescription(input.Description).
+					SetType(input.Type).
+					// Set the app as default if it is the first app of its type
+					SetIsDefault(count == 0).
+					SetStatus(app.AppStatusReady)
 
-			// Set ID if provided by the input
-			if input.ID != nil {
-				appCreateQuery = appCreateQuery.SetID(input.ID.ID)
-			}
+				// Set ID if provided by the input
+				if input.ID != nil {
+					appCreateQuery = appCreateQuery.SetID(input.ID.ID)
+				}
 
-			dbApp, err := appCreateQuery.Save(ctx)
-			if err != nil {
-				return app.AppBase{}, fmt.Errorf("failed to create app: %w", err)
-			}
+				dbApp, err := appCreateQuery.Save(ctx)
+				if err != nil {
+					return app.AppBase{}, fmt.Errorf("failed to create app: %w", err)
+				}
 
-			// Get registry item
-			registryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
-				Type: dbApp.Type,
+				// Get registry item
+				registryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
+					Type: dbApp.Type,
+				})
+				if err != nil {
+					return app.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
+				}
+
+				// Map app base from db
+				return mapAppBaseFromDB(dbApp, registryItem), nil
 			})
-			if err != nil {
-				return app.AppBase{}, fmt.Errorf("failed to get listing for app %s: %w", dbApp.ID, err)
-			}
-
-			// Map app base from db
-			return mapAppBaseFromDB(dbApp, registryItem), nil
-		})
+	})
 }
 
 // UpdateAppStatus updates an app status
-func (a adapter) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
+func (a *adapter) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusInput) error {
 	_, err := a.db.App.Update().
 		Where(appdb.Namespace(input.ID.Namespace)).
 		Where(appdb.ID(input.ID.ID)).
@@ -78,7 +81,7 @@ func (a adapter) UpdateAppStatus(ctx context.Context, input app.UpdateAppStatusI
 }
 
 // ListApps lists apps
-func (a adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagination.PagedResponse[app.App], error) {
+func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagination.PagedResponse[app.App], error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
@@ -139,7 +142,7 @@ func (a adapter) ListApps(ctx context.Context, params app.ListAppInput) (paginat
 }
 
 // GetApp gets an app
-func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
+func (a *adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
@@ -176,7 +179,7 @@ func (a adapter) GetApp(ctx context.Context, input app.GetAppInput) (app.App, er
 }
 
 // GetDefaultApp gets the default app for the app type
-func (a adapter) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
+func (a *adapter) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput) (app.App, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
@@ -214,101 +217,105 @@ func (a adapter) GetDefaultApp(ctx context.Context, input app.GetDefaultAppInput
 }
 
 // UpdateApp updates an app
-func (a adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
-	return entutils.TransactingRepo(
-		ctx,
-		a,
-		func(ctx context.Context, repo *adapter) (app.App, error) {
-			// Get the app
-			dbApp, err := repo.db.App.Query().
-				Where(appdb.Namespace(input.AppID.Namespace)).
-				Where(appdb.ID(input.AppID.ID)).
-				Where(appdb.DeletedAtIsNil()).
-				First(ctx)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return nil, app.NewAppNotFoundError(input.AppID)
-				}
-
-				return nil, fmt.Errorf("failed to get app: %s: %w", input.AppID.ID, err)
-			}
-
-			// Clear the default flag for the app type
-			if input.Default {
-				_, err = repo.db.App.Update().
-					Where(appdb.IDNEQ(dbApp.ID)).
+func (a *adapter) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (app.App, error) {
+		return entutils.TransactingRepo(
+			ctx,
+			a,
+			func(ctx context.Context, repo *adapter) (app.App, error) {
+				// Get the app
+				dbApp, err := repo.db.App.Query().
 					Where(appdb.Namespace(input.AppID.Namespace)).
-					Where(appdb.Type(dbApp.Type)).
-					Where(appdb.IsDefault(true)).
-					SetIsDefault(false).
-					Save(ctx)
+					Where(appdb.ID(input.AppID.ID)).
+					Where(appdb.DeletedAtIsNil()).
+					First(ctx)
 				if err != nil {
-					return nil, fmt.Errorf("failed to clear default flag for app type %s with id %s: %w", dbApp.Type, dbApp.ID, err)
+					if db.IsNotFound(err) {
+						return nil, app.NewAppNotFoundError(input.AppID)
+					}
+
+					return nil, fmt.Errorf("failed to get app: %s: %w", input.AppID.ID, err)
 				}
-			}
 
-			// Update the app
-			query := repo.db.App.Update().
-				Where(appdb.Namespace(input.AppID.Namespace)).
-				Where(appdb.ID(input.AppID.ID)).
-				SetName(input.Name).
-				SetNillableDescription(input.Description).
-				SetIsDefault(input.Default)
+				// Clear the default flag for the app type
+				if input.Default {
+					_, err = repo.db.App.Update().
+						Where(appdb.IDNEQ(dbApp.ID)).
+						Where(appdb.Namespace(input.AppID.Namespace)).
+						Where(appdb.Type(dbApp.Type)).
+						Where(appdb.IsDefault(true)).
+						SetIsDefault(false).
+						Save(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to clear default flag for app type %s with id %s: %w", dbApp.Type, dbApp.ID, err)
+					}
+				}
 
-			if input.Metadata != nil {
-				query.SetMetadata(*input.Metadata)
-			}
+				// Update the app
+				query := repo.db.App.Update().
+					Where(appdb.Namespace(input.AppID.Namespace)).
+					Where(appdb.ID(input.AppID.ID)).
+					SetName(input.Name).
+					SetNillableDescription(input.Description).
+					SetIsDefault(input.Default)
 
-			_, err = query.Save(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to update the app with id %s: %w", dbApp.ID, err)
-			}
+				if input.Metadata != nil {
+					query.SetMetadata(*input.Metadata)
+				}
 
-			// Get the updated app
-			app, err := a.GetApp(ctx, input.AppID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get updated app: %s: %w", input.AppID.ID, err)
-			}
+				_, err = query.Save(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to update the app with id %s: %w", dbApp.ID, err)
+				}
 
-			return app, nil
-		})
+				// Get the updated app
+				app, err := a.GetApp(ctx, input.AppID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get updated app: %s: %w", input.AppID.ID, err)
+				}
+
+				return app, nil
+			})
+	})
 }
 
 // UninstallApp uninstalls an app
-func (a adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
-	_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
-		installedApp, err := repo.GetApp(ctx, input)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get app: %w", err)
-		}
+func (a *adapter) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		_, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+			installedApp, err := repo.GetApp(ctx, input)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get app: %w", err)
+			}
 
-		// Get app factory through registry
-		registryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
-			Type: installedApp.GetType(),
+			// Get app factory through registry
+			registryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
+				Type: installedApp.GetType(),
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get listing for app: %w", err)
+			}
+
+			// Uninstall app through factory
+			err = registryItem.Factory.UninstallApp(ctx, installedApp.GetID())
+			if err != nil {
+				return nil, fmt.Errorf("failed to uninstall app: %w", err)
+			}
+
+			// Delete app from database
+			_, err = repo.db.App.Update().
+				Where(appdb.Namespace(input.Namespace)).
+				Where(appdb.ID(input.ID)).
+				SetDeletedAt(time.Now()).
+				Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to delete app from database: %w", err)
+			}
+
+			return nil, nil
 		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get listing for app: %w", err)
-		}
-
-		// Uninstall app through factory
-		err = registryItem.Factory.UninstallApp(ctx, installedApp.GetID())
-		if err != nil {
-			return nil, fmt.Errorf("failed to uninstall app: %w", err)
-		}
-
-		// Delete app from database
-		_, err = repo.db.App.Update().
-			Where(appdb.Namespace(input.Namespace)).
-			Where(appdb.ID(input.ID)).
-			SetDeletedAt(time.Now()).
-			Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to delete app from database: %w", err)
-		}
-
-		return nil, nil
+		return err
 	})
-	return err
 }
 
 // mapAppBaseFromDB maps an app base from the database

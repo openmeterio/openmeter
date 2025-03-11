@@ -57,6 +57,10 @@ func (d *db1Adapter) Tx(ctx context.Context) (context.Context, transaction.Drive
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
+func (d *db1Adapter) Self() SomeDB[db1.Example1] {
+	return d
+}
+
 func (d *db1Adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) SomeDB[db1.Example1] {
 	txClient := db1.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	res := &db1Adapter{db: txClient.Client()}
@@ -89,6 +93,10 @@ func (d *db2Adapter) Tx(ctx context.Context) (context.Context, transaction.Drive
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
+}
+
+func (d *db2Adapter) Self() SomeDB[db2.Example2] {
+	return d
 }
 
 func (d *db2Adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) SomeDB[db2.Example2] {

@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -37,32 +38,34 @@ func (a adapter) GetMarketplaceListing(ctx context.Context, input app.Marketplac
 }
 
 // InstallMarketplaceListingWithAPIKey installs an app with an API key
-func (a adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
-	// Get registry item
-	registryItem, err := a.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
-		Type: input.Type,
+func (a *adapter) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
+	return transaction.Run(ctx, a, func(ctx context.Context) (app.App, error) {
+		// Get registry item
+		registryItem, err := a.GetMarketplaceListing(ctx, app.MarketplaceGetInput{
+			Type: input.Type,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
+		}
+
+		name, ok := lo.Coalesce(input.Name, registryItem.Listing.Name)
+		if !ok {
+			return nil, fmt.Errorf("name is required, listing doesn't have a name either")
+		}
+
+		// Install app
+		app, err := registryItem.Factory.InstallAppWithAPIKey(ctx, app.AppFactoryInstallAppWithAPIKeyInput{
+			Namespace: input.Namespace,
+			APIKey:    input.APIKey,
+			BaseURL:   a.baseURL,
+			Name:      name,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to install app: %w", err)
+		}
+
+		return app, nil
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get listing for app %s: %w", input.Type, err)
-	}
-
-	name, ok := lo.Coalesce(input.Name, registryItem.Listing.Name)
-	if !ok {
-		return nil, fmt.Errorf("name is required, listing doesn't have a name either")
-	}
-
-	// Install app
-	app, err := registryItem.Factory.InstallAppWithAPIKey(ctx, app.AppFactoryInstallAppWithAPIKeyInput{
-		Namespace: input.Namespace,
-		APIKey:    input.APIKey,
-		BaseURL:   a.baseURL,
-		Name:      name,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to install app: %w", err)
-	}
-
-	return app, nil
 }
 
 // GetMarketplaceListingOauth2InstallURL gets an OAuth2 install URL

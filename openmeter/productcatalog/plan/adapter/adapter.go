@@ -77,3 +77,7 @@ func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 		logger: a.logger,
 	}
 }
+
+func (a *adapter) Self() *adapter {
+	return a
+}
