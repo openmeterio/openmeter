@@ -14,13 +14,8 @@ type TestItem struct {
 }
 
 // GetTime implements Item.GetTime
-func (i TestItem) GetTime() time.Time {
-	return i.CreatedAt
-}
-
-// GetID implements Item.GetID
-func (i TestItem) GetID() string {
-	return i.ID
+func (i TestItem) Cursor() Cursor {
+	return NewCursor(i.CreatedAt, i.ID)
 }
 
 func TestCursorGeneration(t *testing.T) {
