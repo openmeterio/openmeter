@@ -797,7 +797,8 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 		return err
 	}
 
-	if invoice.Status != billing.InvoiceStatusDeleted {
+	// Given we are doing background processing, we might be in any delete.* state
+	if invoice.Status == billing.InvoiceStatusDeleteFailed {
 		// If we have validation issues we return them as the deletion sync handler
 		// yields validation errors
 		if len(invoice.ValidationIssues) > 0 {
