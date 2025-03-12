@@ -107,10 +107,10 @@ input:
       - POD_COUNT
       - RUNNING_POD_COUNT
     http:
-      timeout: "${RUNAI_HTTP_TIMEOUT:30s}"
-      retry_count: "${RUNAI_HTTP_RETRY_COUNT:1}"
-      retry_wait_time: "${RUNAI_HTTP_RETRY_WAIT_TIME:100ms}"
-      retry_max_wait_time: "${RUNAI_HTTP_RETRY_MAX_WAIT_TIME:1s}"
+      timeout: 30s
+      retry_count: 1
+      retry_wait_time: 100ms
+      retry_max_wait_time: 1s
 `)
 }
 
