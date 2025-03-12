@@ -241,6 +241,10 @@ func (c *Connector) findNamespacesToInvalidateCache(rawEvents []streaming.RawEve
 }
 
 // invalidateCache deletes all cached rows for the specified namespaces
+// Potential improvements for finer-grained cache invalidation:
+// - invalidate cache for a specific time range
+// - invalidate cache for a specific subject (if present in query)
+// - invalidate cache for a specific meter (event type)
 func (c *Connector) invalidateCache(ctx context.Context, namespaces []string) error {
 	if !c.config.QueryCacheEnabled {
 		return nil
