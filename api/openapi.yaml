@@ -8570,11 +8570,7 @@ components:
       type: string
       enum:
         - apps
-        - '*'
       description: BillingProfileExpand details what profile fields to expand
-      x-enum-varnames:
-        - apps
-        - all
     BillingProfileOrderBy:
       type: string
       enum:
@@ -11620,16 +11616,10 @@ components:
     InvoiceExpand:
       type: string
       enum:
-        - '*'
         - lines
         - preceding
         - workflow.apps
       description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
-      x-enum-varnames:
-        - all
-        - lines
-        - preceding
-        - workflowApps
     InvoiceFlatFeeCategory:
       type: string
       enum:

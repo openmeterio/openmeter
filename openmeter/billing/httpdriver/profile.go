@@ -524,12 +524,6 @@ func mapProfileExpandToEntity(expand []api.BillingProfileExpand) billing.Profile
 		return billing.ProfileExpand{}
 	}
 
-	if slices.Contains(expand, api.BillingProfileExpandAll) {
-		return billing.ProfileExpand{
-			Apps: true,
-		}
-	}
-
 	return billing.ProfileExpand{
 		Apps: slices.Contains(expand, api.BillingProfileExpandApps),
 	}

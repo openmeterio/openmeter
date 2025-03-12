@@ -599,10 +599,6 @@ func mapInvoiceExpandToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand 
 		return billing.InvoiceExpand{}
 	}
 
-	if slices.Contains(expand, api.InvoiceExpandAll) {
-		return billing.InvoiceExpandAll
-	}
-
 	return billing.InvoiceExpand{
 		Lines:        slices.Contains(expand, api.InvoiceExpandLines),
 		Preceding:    slices.Contains(expand, api.InvoiceExpandPreceding),

@@ -410,9 +410,7 @@ model InvoiceListParams {
  * InvoiceExpand specifies the parts of the invoice to expand in the list output.
  */
 @friendlyName("InvoiceExpand")
-@extension("x-enum-varnames", ["all", "lines", "preceding", "workflowApps"])
 enum InvoiceExpand {
-  all: "*",
   lines: "lines",
   preceding: "preceding",
   workflowApps: "workflow.apps",

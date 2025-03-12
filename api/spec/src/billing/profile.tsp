@@ -99,10 +99,8 @@ enum BillingProfileOrderBy {
  * BillingProfileExpand details what profile fields to expand
  */
 @friendlyName("BillingProfileExpand")
-@extension("x-enum-varnames", ["apps", "all"])
 enum BillingProfileExpand {
   apps: "apps",
-  all: "*",
 }
 
 /**
