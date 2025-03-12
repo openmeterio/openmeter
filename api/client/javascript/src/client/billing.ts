@@ -355,7 +355,7 @@ export class BillingCustomers {
     body: BillingProfileCustomerOverrideCreate,
     options?: RequestOptions
   ) {
-    const resp = await this.client.POST(
+    const resp = await this.client.PUT(
       '/api/v1/billing/customers/{customerId}',
       {
         body,
