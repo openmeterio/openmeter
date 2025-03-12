@@ -22,7 +22,6 @@
     "@typespec/openapi3": "0.64.0",
     "@typespec/prettier-plugin-typespec": "0.64.0",
     "@typespec/rest": "0.64.0",
-    "@typespec/versioning": "0.64.0",
     "prettier": "3.4.2"
   },
   "private": true,
