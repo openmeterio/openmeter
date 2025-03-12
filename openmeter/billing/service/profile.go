@@ -2,7 +2,9 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/samber/lo"
 
@@ -24,25 +26,15 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.Profile, error) {
+		var demotedProfile *demoteDefaultProfileResult
+
 		// Given that we have multiple constraints let's validate those here for better error reporting
 		if input.Default {
-			oldDefaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
+			var err error
+
+			demotedProfile, err = s.demoteDefaultProfile(ctx, input.Namespace)
 			if err != nil {
-				return nil, fmt.Errorf("error fetching default profile: %w", err)
-			}
-
-			if oldDefaultProfile != nil {
-				oldDefaultProfile.Default = false
-
-				_, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
-					TargetState:      oldDefaultProfile.BaseProfile,
-					WorkflowConfigID: oldDefaultProfile.WorkflowConfigID,
-				})
-				if err != nil {
-					return nil, err
-				}
+				return nil, err
 			}
 		}
 
@@ -75,7 +67,21 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 		}
 
-		return s.resolveProfileApps(ctx, profile)
+		profileWithApps, err := s.resolveProfileApps(ctx, profile)
+		if err != nil {
+			return nil, err
+		}
+
+		if demotedProfile != nil {
+			if err := s.handleDefaultProfileChange(ctx, defaultProfileChangeInput{
+				Old: demotedProfile,
+				New: profileWithApps,
+			}); err != nil {
+				return nil, err
+			}
+		}
+
+		return profileWithApps, nil
 	})
 }
 
@@ -322,18 +328,14 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
+		var demotedProfile *demoteDefaultProfileResult
+
 		if !profile.Default && input.Default {
-			oldDefaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
+			var err error
+
+			demotedProfile, err = s.demoteDefaultProfile(ctx, input.Namespace)
 			if err != nil {
 				return nil, err
-			}
-
-			if oldDefaultProfile != nil {
-				if err := s.adapter.UnsetDefaultProfile(ctx, oldDefaultProfile.ProfileID()); err != nil {
-					return nil, err
-				}
 			}
 		}
 
@@ -357,7 +359,21 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			}
 		}
 
-		return s.resolveProfileApps(ctx, updatedProfile)
+		profileWithApps, err := s.resolveProfileApps(ctx, updatedProfile)
+		if err != nil {
+			return nil, err
+		}
+
+		if demotedProfile != nil {
+			if err := s.handleDefaultProfileChange(ctx, defaultProfileChangeInput{
+				Old: demotedProfile,
+				New: profileWithApps,
+			}); err != nil {
+				return nil, err
+			}
+		}
+
+		return profileWithApps, nil
 	})
 }
 
@@ -440,4 +456,118 @@ func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BasePro
 	out.Apps.Payment = paymentApp
 
 	return &out, nil
+}
+
+type demoteDefaultProfileResult struct {
+	Profile *billing.Profile
+
+	CustomersWithPaidSubscription []customer.CustomerID
+}
+
+func (s *Service) demoteDefaultProfile(ctx context.Context, ns string) (*demoteDefaultProfileResult, error) {
+	if ns == "" {
+		return nil, errors.New("namespace is required")
+	}
+
+	defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: ns,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error fetching default profile: %w", err)
+	}
+
+	// Nothing to do if there is no default profile
+	if defaultProfile == nil {
+		return nil, nil
+	}
+
+	defaultProfile.Default = false
+
+	customerIDsWithPaidSubscription, err := s.adapter.GetUnpinnedCustomerIDsWithPaidSubscription(ctx, billing.GetUnpinnedCustomerIDsWithPaidSubscriptionInput{
+		Namespace: ns,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error fetching customer IDs with paid subscription: %w", err)
+	}
+
+	updatedBaseProfile, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
+		TargetState:      defaultProfile.BaseProfile,
+		WorkflowConfigID: defaultProfile.WorkflowConfigID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	updatedProfile, err := s.resolveProfileApps(ctx, updatedBaseProfile)
+	if err != nil {
+		return nil, fmt.Errorf("error resolving profile apps: %w", err)
+	}
+
+	return &demoteDefaultProfileResult{
+		Profile:                       updatedProfile,
+		CustomersWithPaidSubscription: customerIDsWithPaidSubscription,
+	}, nil
+}
+
+type defaultProfileChangeInput struct {
+	Old *demoteDefaultProfileResult
+	New *billing.Profile
+}
+
+func (s *Service) handleDefaultProfileChange(ctx context.Context, input defaultProfileChangeInput) error {
+	if input.Old == nil || input.New == nil {
+		return errors.New("old or new default profile is nil")
+	}
+
+	oldProfile := input.Old.Profile
+
+	if oldProfile.Apps == nil || oldProfile.Apps.Invoicing == nil {
+		return fmt.Errorf("old profile has no invoicing app")
+	}
+
+	newProfile := input.New
+
+	if newProfile.Apps == nil || newProfile.Apps.Invoicing == nil {
+		return fmt.Errorf("new profile has no invoicing app")
+	}
+
+	if oldProfile.Apps.Invoicing.GetType() == newProfile.Apps.Invoicing.GetType() {
+		s.logger.InfoContext(ctx, "no need to unassign customers from old default profile as invoicing app type is the same",
+			"old_profile_id", oldProfile.ID,
+			"new_profile_id", input.New.ID,
+			"namespace", oldProfile.Namespace,
+			"invoicing_app_type", oldProfile.Apps.Invoicing.GetType(),
+		)
+		return nil
+	}
+
+	// The app type have changed (right now we are checking the invoicing app type as we do not support mix and match setups)
+	// let's pin the customers with paid subscriptions to the old profile.
+	if len(input.Old.CustomersWithPaidSubscription) > 0 {
+		err := s.adapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
+			ProfileID:   oldProfile.ProfileID(),
+			CustomerIDs: input.Old.CustomersWithPaidSubscription,
+		})
+		if err != nil {
+			return fmt.Errorf("error pinning customers to old profile: %w", err)
+		}
+
+		// Let's log all the customer IDs (even if this can be a long list) so that we can use the logs
+		// to troubleshoot issues if any arise.
+		s.logger.InfoContext(ctx, "automatically pinned customers with paid subscription to the old default billing profile",
+			"old_profile_id", oldProfile.ID,
+			"new_profile_id", newProfile.ID,
+			"namespace", oldProfile.Namespace,
+			"invoicing_app_type_old", oldProfile.Apps.Invoicing.GetType(),
+			"invoicing_app_type_new", newProfile.Apps.Invoicing.GetType(),
+			"customer_ids", strings.Join(
+				lo.Map(input.Old.CustomersWithPaidSubscription, func(item customer.CustomerID, _ int) string {
+					return item.ID
+				}),
+				",",
+			),
+		)
+	}
+
+	return nil
 }

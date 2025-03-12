@@ -68,6 +68,17 @@ func (s *BaseSuite) GetUniqueNamespace(prefix string) string {
 	return fmt.Sprintf("%s_%s", prefix, ulid.Make().String())
 }
 
+func (b *BaseSuite) GetSubscriptionMixInDependencies() SubscriptionMixInDependencies {
+	return SubscriptionMixInDependencies{
+		DBClient:               b.DBClient,
+		FeatureRepo:            b.FeatureRepo,
+		FeatureService:         b.FeatureService,
+		CustomerService:        b.CustomerService,
+		MeterAdapter:           b.MeterAdapter,
+		MockStreamingConnector: b.MockStreamingConnector,
+	}
+}
+
 func (s *BaseSuite) SetupSuite() {
 	t := s.T()
 	t.Log("setup suite")

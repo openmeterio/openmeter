@@ -30,8 +30,10 @@ type ProfileAdapter interface {
 	GetDefaultProfile(ctx context.Context, input GetDefaultProfileInput) (*AdapterGetProfileResponse, error)
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*BaseProfile, error)
-	UnsetDefaultProfile(ctx context.Context, input UnsetDefaultProfileInput) error
+
 	IsAppUsed(ctx context.Context, appID app.AppID) (bool, error)
+
+	GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context, input GetUnpinnedCustomerIDsWithPaidSubscriptionInput) ([]customer.CustomerID, error)
 }
 
 type CustomerOverrideAdapter interface {
@@ -40,6 +42,8 @@ type CustomerOverrideAdapter interface {
 	UpdateCustomerOverride(ctx context.Context, input UpdateCustomerOverrideAdapterInput) (*CustomerOverride, error)
 	DeleteCustomerOverride(ctx context.Context, input DeleteCustomerOverrideInput) error
 	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesAdapterResult, error)
+
+	BulkAssignCustomersToProfile(ctx context.Context, input BulkAssignCustomersToProfileInput) error
 
 	GetCustomerOverrideReferencingProfile(ctx context.Context, input HasCustomerOverrideReferencingProfileAdapterInput) ([]customer.CustomerID, error)
 }
