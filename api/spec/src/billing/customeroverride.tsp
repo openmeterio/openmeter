@@ -30,22 +30,7 @@ interface CustomerOverrides {
 
     @body
     request: BillingProfileCustomerOverrideCreate,
-  ):
-    | {
-        // Created
-        @statusCode _: 201;
-
-        @body body: BillingProfileCustomerOverride;
-      }
-    | {
-        // Updated
-        @statusCode _: 200;
-
-        @body body: BillingProfileCustomerOverride;
-      }
-    | BillingProfileCustomerOverrideWithDetails
-    | OpenMeter.NotFoundError
-    | OpenMeter.CommonErrors;
+  ): BillingProfileCustomerOverrideWithDetails | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 
   /**
    * Get a customer override by customer id.
@@ -82,7 +67,7 @@ interface CustomerOverrides {
  */
 @friendlyName("BillingProfileCustomerOverrideOrderBy")
 enum BillingProfileCustomerOverrideOrderBy {
-  customerId: "customer.Id",
+  customerId: "customerId",
   customerName: "customerName",
   customerKey: "customerKey",
   customerPrimaryEmail: "customerPrimaryEmail",
@@ -93,9 +78,7 @@ enum BillingProfileCustomerOverrideOrderBy {
  * CustomerOverrideExpand specifies the parts of the profile to expand.
  */
 @friendlyName("BillingProfileCustomerOverrideExpand")
-@extension("x-enum-varnames", ["all", "apps", "customer"])
 enum BillingProfileCustomerOverrideExpand {
-  all: "*",
   apps: "apps",
   customer: "customer",
 }

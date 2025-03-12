@@ -494,15 +494,7 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - $ref: '#/components/schemas/BillingProfileCustomerOverride'
-                  - $ref: '#/components/schemas/BillingProfileCustomerOverrideWithDetails'
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BillingProfileCustomerOverride'
+                $ref: '#/components/schemas/BillingProfileCustomerOverrideWithDetails'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -8645,18 +8637,13 @@ components:
     BillingProfileCustomerOverrideExpand:
       type: string
       enum:
-        - '*'
         - apps
         - customer
       description: CustomerOverrideExpand specifies the parts of the profile to expand.
-      x-enum-varnames:
-        - all
-        - apps
-        - customer
     BillingProfileCustomerOverrideOrderBy:
       type: string
       enum:
-        - customer.Id
+        - customerId
         - customerName
         - customerKey
         - customerPrimaryEmail

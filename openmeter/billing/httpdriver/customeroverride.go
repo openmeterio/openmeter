@@ -240,8 +240,6 @@ func (h *handler) mapCustomerOverrideExpandToEntity(in *api.BillingProfileListCu
 
 	for _, e := range *in {
 		switch e {
-		case api.BillingProfileCustomerOverrideExpandAll:
-			expand = billing.CustomerOverrideExpandAll
 		case api.BillingProfileCustomerOverrideExpandApps:
 			expand.Apps = true
 		case api.BillingProfileCustomerOverrideExpandCustomer:
