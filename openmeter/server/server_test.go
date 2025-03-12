@@ -194,7 +194,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
 
-	meterEventService := metereventadapter.New(mockStreamingConnector)
+	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{

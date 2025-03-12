@@ -318,15 +318,14 @@ func TestInvalidIngest(t *testing.T) {
 
 	// List events with has error should return the invalid events
 	resp, err := client.ListEventsWithResponse(context.Background(), &api.ListEventsParams{
-		Subject:  &subject,
-		HasError: lo.ToPtr(true),
+		Subject: &subject,
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode())
 	require.NotNil(t, resp.JSON200)
 
 	events := *resp.JSON200
-	require.Len(t, events, 3)
+	require.Len(t, events, 4)
 
 	// unsupported data content gets rejected with a bad request so it should not be in the list
 

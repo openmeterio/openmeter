@@ -35,8 +35,6 @@ func TestCreateEventsTable(t *testing.T) {
 func TestQueryEventsTable(t *testing.T) {
 	subjectFilter := "customer-1"
 	idFilter := "event-id-1"
-	hasErrorTrue := true
-	hasErrorFalse := false
 	from := time.Now()
 
 	tests := []struct {
@@ -78,30 +76,6 @@ func TestQueryEventsTable(t *testing.T) {
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND id LIKE ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), "%event-id-1%", 100},
-		},
-		{
-			query: queryEventsTable{
-				Database:        "openmeter",
-				EventsTableName: "om_events",
-				Namespace:       "my_namespace",
-				Limit:           100,
-				From:            from,
-				HasError:        &hasErrorTrue,
-			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
-		},
-		{
-			query: queryEventsTable{
-				Database:        "openmeter",
-				EventsTableName: "om_events",
-				Namespace:       "my_namespace",
-				From:            from,
-				Limit:           100,
-				HasError:        &hasErrorFalse,
-			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
 		},
 	}
 

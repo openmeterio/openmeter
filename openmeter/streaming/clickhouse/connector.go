@@ -276,7 +276,6 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		IngestedAtTo:    params.IngestedAtTo,
 		ID:              params.ID,
 		Subject:         params.Subject,
-		HasError:        params.HasError,
 		Limit:           params.Limit,
 	}
 

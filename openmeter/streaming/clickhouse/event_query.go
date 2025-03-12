@@ -57,7 +57,6 @@ type queryEventsTable struct {
 	IngestedAtTo    *time.Time
 	ID              *string
 	Subject         *string
-	HasError        *bool
 	Limit           int
 }
 

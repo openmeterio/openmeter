@@ -28,10 +28,6 @@ type ListEventsInput struct {
 	IngestedAtFrom *time.Time
 	// End date-time. Inclusive.
 	IngestedAtTo *time.Time
-	// If not provided lists all events.
-	// If provided with true, only list events with processing error.
-	// If provided with false, only list events without processing error. */
-	HasError *bool
 	// The event ID. Accepts partial ID.
 	ID *string
 	// The event subject. Accepts partial subject.
