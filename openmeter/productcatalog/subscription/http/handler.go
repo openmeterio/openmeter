@@ -20,6 +20,7 @@ type Handler interface {
 	EditSubscription() EditSubscriptionHandler
 	CancelSubscription() CancelSubscriptionHandler
 	ContinueSubscription() ContinueSubscriptionHandler
+	RestoreSubscription() RestoreSubscriptionHandler
 	MigrateSubscription() MigrateSubscriptionHandler
 	ChangeSubscription() ChangeSubscriptionHandler
 }

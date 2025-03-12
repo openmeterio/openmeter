@@ -7207,7 +7207,9 @@ paths:
     post:
       operationId: cancelSubscription
       summary: Cancel subscription
-      description: Cancels the subscription.
+      description: |-
+        Cancels the subscription.
+        Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancellation time.
       parameters:
         - name: subscriptionId
           in: path
@@ -7445,6 +7447,72 @@ paths:
                 targetVersion:
                   type: integer
                   minimum: 1
+  /api/v1/subscriptions/{subscriptionId}/restore:
+    post:
+      operationId: restoreSubscription
+      summary: Restore subscription
+      description: |-
+        Restores a canceled subscription.
+        Any subscription scheduled to start later will be deleted and this subscription will be continued indefinitely.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Subscriptions (Beta)
   /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unscheduleCancelation
@@ -8719,11 +8787,7 @@ components:
       type: string
       enum:
         - apps
-        - '*'
       description: BillingProfileExpand details what profile fields to expand
-      x-enum-varnames:
-        - apps
-        - all
     BillingProfileOrderBy:
       type: string
       enum:
@@ -11484,16 +11548,10 @@ components:
     InvoiceExpand:
       type: string
       enum:
-        - '*'
         - lines
         - preceding
         - workflow.apps
       description: InvoiceExpand specifies the parts of the invoice to expand in the list output.
-      x-enum-varnames:
-        - all
-        - lines
-        - preceding
-        - workflowApps
     InvoiceFlatFeeCategory:
       type: string
       enum:

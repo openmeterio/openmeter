@@ -82,3 +82,14 @@ func (a *Router) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
 }
+
+// (POST /api/v1/subscriptions/{subscriptionId}/restore)
+func (a *Router) RestoreSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
+	if !a.config.ProductCatalogEnabled {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	a.subscriptionHandler.RestoreSubscription().With(subscriptionhttpdriver.RestoreSubscriptionParams{
+		ID: subscriptionId,
+	}).ServeHTTP(w, r)
+}
