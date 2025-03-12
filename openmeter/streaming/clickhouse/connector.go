@@ -25,10 +25,10 @@ var _ streaming.Connector = (*Connector)(nil)
 
 // Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type Connector struct {
-	config ConnectorConfig
+	config Config
 }
 
-type ConnectorConfig struct {
+type Config struct {
 	Logger              *slog.Logger
 	ClickHouse          clickhouse.Conn
 	Database            string
@@ -39,7 +39,7 @@ type ConnectorConfig struct {
 	ProgressManager     progressmanager.Service
 }
 
-func (c ConnectorConfig) Validate() error {
+func (c Config) Validate() error {
 	if c.Logger == nil {
 		return fmt.Errorf("logger is required")
 	}
@@ -63,7 +63,7 @@ func (c ConnectorConfig) Validate() error {
 	return nil
 }
 
-func NewConnector(ctx context.Context, config ConnectorConfig) (*Connector, error) {
+func New(ctx context.Context, config Config) (*Connector, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
@@ -276,7 +276,6 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		IngestedAtTo:    params.IngestedAtTo,
 		ID:              params.ID,
 		Subject:         params.Subject,
-		HasError:        params.HasError,
 		Limit:           params.Limit,
 	}
 
@@ -314,11 +313,10 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		var source string
 		var eventTime time.Time
 		var dataStr string
-		var validationError string
 		var ingestedAt time.Time
 		var storedAt time.Time
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &storedAt); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &ingestedAt, &storedAt); err != nil {
 			return nil, err
 		}
 
@@ -347,10 +345,6 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 
 		ingestedEvent := api.IngestedEvent{
 			Event: ev,
-		}
-
-		if validationError != "" {
-			ingestedEvent.ValidationError = &validationError
 		}
 
 		ingestedEvent.IngestedAt = ingestedAt
@@ -392,7 +386,7 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	for rows.Next() {
 		result := streaming.CountEventRow{}
 
-		if err = rows.Scan(&result.Count, &result.Subject, &result.IsError); err != nil {
+		if err = rows.Scan(&result.Count, &result.Subject); err != nil {
 			return nil, err
 		}
 

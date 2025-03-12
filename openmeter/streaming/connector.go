@@ -19,7 +19,6 @@ type ListEventsParams struct {
 	IngestedAtTo   *time.Time
 	ID             *string
 	Subject        *string
-	HasError       *bool
 	Limit          int
 }
 
@@ -31,21 +30,19 @@ type CountEventsParams struct {
 type CountEventRow struct {
 	Count   uint64
 	Subject string
-	IsError bool
 }
 
 // RawEvent represents a single raw event
 type RawEvent struct {
-	Namespace       string
-	ValidationError string
-	ID              string
-	Type            string
-	Source          string
-	Subject         string
-	Time            time.Time
-	Data            string
-	IngestedAt      time.Time
-	StoredAt        time.Time
+	Namespace  string
+	ID         string
+	Type       string
+	Source     string
+	Subject    string
+	Time       time.Time
+	Data       string
+	IngestedAt time.Time
+	StoredAt   time.Time
 }
 
 type Connector interface {

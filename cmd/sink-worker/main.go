@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -99,12 +98,6 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
-	// Migrate database
-	if err := app.Migrate(ctx); err != nil {
-		logger.Error("failed to initialize database", "error", err)
-		os.Exit(1)
-	}
-
 	var group run.Group
 
 	// Initialize sink worker
@@ -112,7 +105,6 @@ func main() {
 		conf,
 		logger,
 		app.Meter,
-		app.MeterService,
 		app.Streaming,
 		app.Tracer,
 		app.TopicResolver,
@@ -160,7 +152,6 @@ func initSink(
 	conf config.Configuration,
 	logger *slog.Logger,
 	metricMeter metric.Meter,
-	meterService meter.Service,
 	streaming streaming.Connector,
 	tracer trace.Tracer,
 	topicResolver *topicresolver.NamespacedTopicResolver,
@@ -238,7 +229,6 @@ func initSink(
 		Logger:                  logger,
 		Tracer:                  tracer,
 		MetricMeter:             metricMeter,
-		MeterService:            meterService,
 		Storage:                 storage,
 		Deduplicator:            deduplicator,
 		Consumer:                consumer,

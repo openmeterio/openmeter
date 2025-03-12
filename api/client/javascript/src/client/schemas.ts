@@ -11894,12 +11894,6 @@ export interface operations {
          *
          *     Inclusive. */
         ingestedAtTo?: Date | string
-        /** @description If not provided lists all events.
-         *
-         *     If provided with true, only list events with processing error.
-         *
-         *     If provided with false, only list events without processing error. */
-        hasError?: boolean
         /** @description The event ID.
          *
          *     Accepts partial ID. */

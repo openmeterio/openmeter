@@ -50,7 +50,6 @@ func (h *handler) ListEvents() ListEventsHandler {
 				IngestedAtTo:   request.IngestedAtTo,
 				From:           lo.FromPtrOr(request.From, minimumFrom),
 				To:             request.To,
-				HasError:       request.HasError,
 				ID:             request.Id,
 				Subject:        request.Subject,
 				Limit:          lo.FromPtrOr(request.Limit, meterevent.MaximumLimit),

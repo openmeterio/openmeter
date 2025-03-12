@@ -49,17 +49,6 @@ interface Events {
     ingestedAtTo?: utcDateTime,
 
     /**
-     * If not provided lists all events.
-     *
-     * If provided with true, only list events with processing error.
-     *
-     * If provided with false, only list events without processing error.
-     */
-    @query
-    @example(false)
-    hasError?: boolean,
-
-    /**
      * The event ID.
      *
      * Accepts partial ID.

@@ -2692,18 +2692,6 @@ paths:
           schema:
             type: string
             format: date-time
-        - name: hasError
-          in: query
-          required: false
-          description: |-
-            If not provided lists all events.
-
-            If provided with true, only list events with processing error.
-
-            If provided with false, only list events without processing error.
-          schema:
-            type: boolean
-          explode: false
         - name: id
           in: query
           required: false
