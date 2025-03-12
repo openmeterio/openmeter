@@ -36,16 +36,15 @@ type CountEventRow struct {
 
 // RawEvent represents a single raw event
 type RawEvent struct {
-	Namespace       string
-	ValidationError string
-	ID              string
-	Type            string
-	Source          string
-	Subject         string
-	Time            time.Time
-	Data            string
-	IngestedAt      time.Time
-	StoredAt        time.Time
+	Namespace  string
+	ID         string
+	Type       string
+	Source     string
+	Subject    string
+	Time       time.Time
+	Data       string
+	IngestedAt time.Time
+	StoredAt   time.Time
 }
 
 type Connector interface {

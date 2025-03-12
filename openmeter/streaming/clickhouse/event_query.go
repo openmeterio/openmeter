@@ -24,7 +24,6 @@ func (d createEventsTable) toSQL() string {
 	sb.CreateTable(tableName)
 	sb.IfNotExists()
 	sb.Define("namespace", "String")
-	sb.Define("validation_error", "String")
 	sb.Define("id", "String")
 	sb.Define("type", "LowCardinality(String)")
 	sb.Define("subject", "String")
@@ -90,7 +89,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
+	query.Select("id", "type", "subject", "source", "time", "data", "ingested_at", "stored_at")
 	query.From(tableName)
 
 	query.Where(query.Equal("namespace", d.Namespace))
@@ -111,13 +110,6 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	if d.Subject != nil {
 		query.Where(query.Equal("subject", *d.Subject))
 	}
-	if d.HasError != nil {
-		if *d.HasError {
-			query.Where("notEmpty(validation_error) = 1")
-		} else {
-			query.Where("empty(validation_error) = 1")
-		}
-	}
 
 	query.Desc().OrderBy("time")
 	query.Limit(d.Limit)
@@ -137,7 +129,7 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("count() as count", "subject", "notEmpty(validation_error) as is_error")
+	query.Select("count() as count", "subject")
 	query.From(tableName)
 
 	query.Where(query.Equal("namespace", d.Namespace))
@@ -161,7 +153,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
+	query.Cols("namespace", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
 
 	// Add settings
 	var settings []string
@@ -176,7 +168,6 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 	for _, event := range q.Events {
 		query.Values(
 			event.Namespace,
-			event.ValidationError,
 			event.ID,
 			event.Type,
 			event.Source,

@@ -44,11 +44,6 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 	var rawEvents []streaming.RawEvent
 
 	for _, message := range messages {
-		var eventErr string
-		if message.Status.Error != nil {
-			eventErr = message.Status.Error.Error()
-		}
-
 		storedAt := time.Now()
 		ingestedAt := storedAt
 
@@ -60,23 +55,22 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 
 					ingestedAt, err = time.Parse(time.RFC3339, string(header.Value))
 					if err != nil {
-						eventErr = fmt.Sprintf("failed to parse ingested_at header: %s", err)
+						return fmt.Errorf("failed to parse ingested_at header: %s", err)
 					}
 				}
 			}
 		}
 
 		rawEvent := streaming.RawEvent{
-			Namespace:       message.Namespace,
-			ValidationError: eventErr,
-			ID:              message.Serialized.Id,
-			Type:            message.Serialized.Type,
-			Source:          message.Serialized.Source,
-			Subject:         message.Serialized.Subject,
-			Time:            time.Unix(message.Serialized.Time, 0),
-			Data:            message.Serialized.Data,
-			IngestedAt:      ingestedAt,
-			StoredAt:        storedAt,
+			Namespace:  message.Namespace,
+			ID:         message.Serialized.Id,
+			Type:       message.Serialized.Type,
+			Source:     message.Serialized.Source,
+			Subject:    message.Serialized.Subject,
+			Time:       time.Unix(message.Serialized.Time, 0),
+			Data:       message.Serialized.Data,
+			IngestedAt: ingestedAt,
+			StoredAt:   storedAt,
 		}
 
 		rawEvents = append(rawEvents, rawEvent)

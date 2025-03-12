@@ -43,6 +43,6 @@ const (
 )
 
 type ProcessingStatus struct {
-	State ProcessingState
-	Error error
+	State     ProcessingState
+	DropError error
 }

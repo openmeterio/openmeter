@@ -23,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -36,7 +35,6 @@ type Sink struct {
 	flushTimer        *time.Timer
 	flushEventCounter metric.Int64Counter
 	messageCounter    metric.Int64Counter
-	namespaceStore    *NamespaceStore
 	namespaceRefetch  *time.Timer
 	topicResolver     topicresolver.Resolver
 
@@ -52,7 +50,6 @@ type SinkConfig struct {
 	Logger       *slog.Logger
 	Tracer       trace.Tracer
 	MetricMeter  metric.Meter
-	MeterService meter.Service
 	Storage      Storage
 	Deduplicator dedupe.Deduplicator
 	Consumer     *kafka.Consumer
@@ -101,10 +98,6 @@ func (s *SinkConfig) Validate() error {
 
 	if s.MetricMeter == nil {
 		return errors.New("metric meter is required")
-	}
-
-	if s.MeterService == nil {
-		return errors.New("meter repository is required")
 	}
 
 	if s.Storage == nil {
@@ -201,7 +194,6 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	sink := &Sink{
 		config:               config,
 		buffer:               NewSinkBuffer(),
-		namespaceStore:       NewNamespaceStore(),
 		flushEventCounter:    flushEventCounter,
 		messageCounter:       messageCounter,
 		kafkaMetrics:         kafkaMetrics,
@@ -374,7 +366,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 			// Skip message from batch
 			logger.Debug("dropping message",
 				slog.String("status", message.Status.State.String()),
-				slog.String("error", message.Status.Error.Error()),
+				slog.String("error", message.Status.DropError.Error()),
 				slog.String("message", string(message.KafkaMessage.Value)),
 				slog.String("namespace", message.Namespace),
 			)
@@ -441,23 +433,6 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 	return nil
 }
 
-func (s *Sink) updateNamespaceStore(ctx context.Context) error {
-	meters, err := meter.ListMetersForAllNamespaces(ctx, s.config.MeterService)
-	if err != nil {
-		return fmt.Errorf("failed to get meters: %s", err)
-	}
-
-	namespaceStore := NewNamespaceStore()
-	for _, m := range meters {
-		namespaceStore.AddMeter(m)
-	}
-
-	// We always replace store to ensure we have the latest meter changes
-	s.namespaceStore = namespaceStore
-
-	return nil
-}
-
 func (s *Sink) updateTopicSubscription(ctx context.Context, metadataTimeout time.Duration) error {
 	logger := s.config.Logger.With("operation", "updateTopicSubscription")
 
@@ -501,63 +476,17 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, s.config.NamespaceRefetchTimeout)
 	defer cancel()
 
-	wg := &sync.WaitGroup{}
+	logger.Debug("updating topic subscription: started")
 
-	errChan := make(chan error, 2)
-	closeErrChannelOnce := sync.OnceFunc(func() {
-		close(errChan)
-	})
+	// Set getting timeout for getting metadata from Kafka to make sure that we can
+	metadataTimeout := s.config.NamespaceRefetchTimeout / 2
 
-	defer closeErrChannelOnce()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		logger.Debug("updating namespace store: started")
-
-		err := s.updateNamespaceStore(ctx)
-		if err != nil {
-			err = fmt.Errorf("failed to update namespace store: %w", err)
-		}
-
-		errChan <- err
-
-		logger.Debug("updating namespace store: done")
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		logger.Debug("updating topic subscription: started")
-
-		// Set getting timeout for getting metadata from Kafka to make sure that we can
-		metadataTimeout := s.config.NamespaceRefetchTimeout / 2
-
-		err := s.updateTopicSubscription(ctx, metadataTimeout)
-		if err != nil {
-			err = fmt.Errorf("failed to update topic subscription: %w", err)
-		}
-
-		errChan <- err
-
-		logger.Debug("updating topic subscription: done")
-	}()
-
-	wg.Wait()
-	closeErrChannelOnce()
-
-	var errs []error
-	for err := range errChan {
-		if err != nil {
-			errs = append(errs, err)
-		}
+	err := s.updateTopicSubscription(ctx, metadataTimeout)
+	if err != nil {
+		return fmt.Errorf("failed to update topic subscription: %w", err)
 	}
 
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
+	logger.Debug("updating topic subscription: done")
 
 	return nil
 }
@@ -837,7 +766,7 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 	if namespace == "" {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.DROP,
-			Error: fmt.Errorf("failed to get namespace as header (%q) for Kafka Message is missing: %s",
+			DropError: fmt.Errorf("failed to get namespace as header (%q) for Kafka Message is missing: %s",
 				kafkaingest.HeaderKeyNamespace,
 				e.TopicPartition.String(),
 			),
@@ -852,8 +781,8 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 	err := json.Unmarshal(e.Value, kafkaCloudEvent)
 	if err != nil {
 		sinkMessage.Status = sinkmodels.ProcessingStatus{
-			State: sinkmodels.DROP,
-			Error: fmt.Errorf("failed to json parse kafka message: %w", err),
+			State:     sinkmodels.DROP,
+			DropError: errors.New("failed to json parse kafka message"),
 		}
 
 		// We should never have events we can't json parse, so we drop them
@@ -876,16 +805,13 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 
 		if !isUnique {
 			sinkMessage.Status = sinkmodels.ProcessingStatus{
-				State: sinkmodels.DROP,
-				Error: errors.New("skipping non unique message"),
+				State:     sinkmodels.DROP,
+				DropError: errors.New("skipping non unique message"),
 			}
 
 			return sinkMessage, nil
 		}
 	}
-
-	// Validation
-	s.namespaceStore.ValidateEvent(ctx, sinkMessage)
 
 	return sinkMessage, err
 }

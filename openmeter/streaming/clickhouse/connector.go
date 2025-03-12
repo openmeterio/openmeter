@@ -25,10 +25,10 @@ var _ streaming.Connector = (*Connector)(nil)
 
 // Connector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type Connector struct {
-	config ConnectorConfig
+	config Config
 }
 
-type ConnectorConfig struct {
+type Config struct {
 	Logger              *slog.Logger
 	ClickHouse          clickhouse.Conn
 	Database            string
@@ -39,7 +39,7 @@ type ConnectorConfig struct {
 	ProgressManager     progressmanager.Service
 }
 
-func (c ConnectorConfig) Validate() error {
+func (c Config) Validate() error {
 	if c.Logger == nil {
 		return fmt.Errorf("logger is required")
 	}
@@ -63,7 +63,7 @@ func (c ConnectorConfig) Validate() error {
 	return nil
 }
 
-func NewConnector(ctx context.Context, config ConnectorConfig) (*Connector, error) {
+func New(ctx context.Context, config Config) (*Connector, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}

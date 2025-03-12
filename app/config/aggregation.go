@@ -4,36 +4,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/spf13/viper"
 )
 
-type AggregationEngine string
-
-const (
-	// Raw engine queries the raw events table
-	AggregationEngineClickHouseRaw AggregationEngine = "clickhouse_raw"
-	// MV engine maintains and queries materialized views
-	AggregationEngineClickHouseMV AggregationEngine = "clickhouse_mv"
-)
-
-func (e AggregationEngine) Values() []AggregationEngine {
-	return []AggregationEngine{AggregationEngineClickHouseRaw, AggregationEngineClickHouseMV}
-}
-
-func (e AggregationEngine) Validate() error {
-	if !slices.Contains(e.Values(), e) {
-		return fmt.Errorf("invalid value")
-	}
-	return nil
-}
-
 type AggregationConfiguration struct {
-	// Engine is the aggregation engine to use
-	Engine     AggregationEngine
 	ClickHouse ClickHouseAggregationConfiguration
 
 	EventsTableName string
@@ -51,17 +28,6 @@ type AggregationConfiguration struct {
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
 	InsertQuerySettings map[string]string
-
-	// Engine specific options
-
-	// Populate creates the materialized view with data from the events table
-	// This is not safe to use in production as requires to stop ingestion
-	PopulateMeter bool
-	// CreateOrReplace is used to force the recreation of the materialized view
-	// This is not safe to use in production as it will drop the existing views
-	CreateOrReplaceMeter bool
-	// QueryRawEvents is used to query the raw events table instead of the materialized view
-	QueryRawEvents bool
 }
 
 // Validate validates the configuration.
@@ -70,35 +36,12 @@ func (c AggregationConfiguration) Validate() error {
 		return fmt.Errorf("clickhouse: %w", err)
 	}
 
-	if c.Engine == "" {
-		return errors.New("engine is required")
-	}
-
-	if err := c.Engine.Validate(); err != nil {
-		return fmt.Errorf("engine: %w", err)
-	}
-
 	if c.EventsTableName == "" {
 		return errors.New("events table is required")
 	}
 
 	if c.AsyncInsertWait && !c.AsyncInsert {
 		return errors.New("async insert wait is set but async insert is not")
-	}
-
-	// Validate engine specific options
-	if c.Engine != AggregationEngineClickHouseMV {
-		if c.PopulateMeter {
-			return errors.New("populate meter is only supported with materialized view engine")
-		}
-
-		if c.CreateOrReplaceMeter {
-			return errors.New("create or replace meter is only with materialized view engine")
-		}
-
-		if c.QueryRawEvents {
-			return errors.New("query raw events is only with materialized view engine")
-		}
 	}
 
 	return nil
@@ -175,7 +118,6 @@ func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Optio
 
 // ConfigureAggregation configures some defaults in the Viper instance.
 func ConfigureAggregation(v *viper.Viper) {
-	v.SetDefault("aggregation.engine", AggregationEngineClickHouseMV)
 	v.SetDefault("aggregation.eventsTableName", "om_events")
 	v.SetDefault("aggregation.asyncInsert", false)
 	v.SetDefault("aggregation.asyncInsertWait", false)
