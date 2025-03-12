@@ -45,18 +45,6 @@ var _ subscription.Service = &service{}
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	def := subscription.Subscription{}
 
-	// Let's make sure Create is possible based on the transition rules
-	if err := subscription.NewStateMachine(
-		def.GetStatusAt(clock.Now()),
-	).CanTransitionOrErr(ctx, subscription.SubscriptionActionCreate); err != nil {
-		return def, err
-	}
-
-	// Valiate the spec
-	if err := spec.Validate(); err != nil {
-		return def, fmt.Errorf("spec is invalid: %w", err)
-	}
-
 	// Fetch the customer & validate the customer
 	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: namespace,
@@ -70,50 +58,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, fmt.Errorf("customer is nil")
 	}
 
-	if _, err := cust.UsageAttribution.GetSubjectKey(); err != nil {
-		if spec.HasEntitlements() {
-			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
-		}
-
-		if spec.HasMeteredBillables() {
-			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has metered billables"))
-		}
-	}
-
-	if spec.HasBillables() {
-		if cust.Currency != nil {
-			if string(*cust.Currency) != string(spec.Currency) {
-				return def, models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, spec.Currency))
-			}
-		}
-	}
-
-	// Let's build a timeline of every already schedueld subscription along with the new one
-	// so we can validate the timeline
-	scheduled, err := s.SubscriptionRepo.GetAllForCustomerSince(ctx, models.NamespacedID{
-		ID:        spec.CustomerId,
-		Namespace: namespace,
-	}, clock.Now())
-	if err != nil {
-		return def, fmt.Errorf("failed to get scheduled subscriptions: %w", err)
-	}
-
-	scheduledInps := lo.Map(scheduled, func(i subscription.Subscription, _ int) subscription.CreateSubscriptionEntityInput {
-		return i.AsEntityInput()
-	})
-
-	subscriptionTimeline := models.NewSortedCadenceList(scheduledInps)
-
-	// Sanity check, lets validate that the scheduled timeline is consistent (without the new spec)
-	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return def, fmt.Errorf("inconsistency error: already scheduled subscriptions are overlapping: %v", overlaps)
-	}
-
-	// Now let's check that the new Spec also fits into the timeline
-	subscriptionTimeline = models.NewSortedCadenceList(append(scheduledInps, spec.ToCreateSubscriptionEntityInput(namespace)))
-
-	if overlaps := subscriptionTimeline.GetOverlaps(); len(overlaps) > 0 {
-		return def, models.NewGenericConflictError(fmt.Errorf("new subscription overlaps with existing ones: %v", overlaps))
+	if err := s.validateCreate(ctx, *cust, spec); err != nil {
+		return def, err
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
@@ -139,30 +85,9 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			}
 		}
 
-		// Re-Fetch the customer
-		cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-			Namespace: namespace,
-			ID:        spec.CustomerId,
-		})
-		if err != nil {
+		// Let's update the customer currency if needed
+		if err := s.updateCustomerCurrencyIfNotSet(ctx, sub, spec); err != nil {
 			return def, err
-		}
-
-		// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
-		if cust.Currency == nil && spec.HasBillables() {
-			if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-				CustomerID: cust.GetID(),
-				CustomerMutate: customer.CustomerMutate{
-					Name:             cust.Name,
-					Description:      cust.Description,
-					UsageAttribution: cust.UsageAttribution,
-					PrimaryEmail:     cust.PrimaryEmail,
-					BillingAddress:   cust.BillingAddress,
-					Currency:         &spec.Currency,
-				},
-			}); err != nil {
-				return def, fmt.Errorf("failed to update customer currency: %w", err)
-			}
 		}
 
 		// Let's fetch the view for event generation
@@ -199,42 +124,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		return def, fmt.Errorf("failed to get view: %w", err)
 	}
 
-	// Let's make sure edit is possible based on the transition rules
-	if err := subscription.NewStateMachine(
-		view.Subscription.GetStatusAt(clock.Now()),
-	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
+	if err := s.validateUpdate(ctx, view, newSpec); err != nil {
 		return def, err
-	}
-
-	// Fetch the customer & validate the customer
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: view.Subscription.Namespace,
-		ID:        view.Subscription.CustomerId,
-	})
-	if err != nil {
-		return def, err
-	}
-
-	if cust == nil {
-		return def, fmt.Errorf("customer is nil")
-	}
-
-	if _, err := cust.UsageAttribution.GetSubjectKey(); err != nil {
-		if newSpec.HasEntitlements() {
-			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has entitlements"))
-		}
-
-		if newSpec.HasMeteredBillables() {
-			return def, models.NewGenericValidationError(errors.New("customer has no subject but subscription has metered billables"))
-		}
-	}
-
-	if newSpec.HasBillables() {
-		if cust.Currency != nil {
-			if string(*cust.Currency) != string(newSpec.Currency) {
-				return def, models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cust.Currency, newSpec.Currency))
-			}
-		}
 	}
 
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
@@ -322,35 +213,23 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 		return subscription.Subscription{}, err
 	}
 
-	// Let's make sure Cancel is possible based on the transition rules
-	if err := subscription.NewStateMachine(
-		view.Subscription.GetStatusAt(clock.Now()),
-	).CanTransitionOrErr(ctx, subscription.SubscriptionActionCancel); err != nil {
+	if err := s.validateCancel(ctx, view, timing); err != nil {
 		return subscription.Subscription{}, err
 	}
 
+	// Cancellation means that we deactivate everything by that deadline (set ActiveTo)
+	// The different Cadences of the Spec are derived from the Subscription Cadence
 	spec := view.AsSpec()
-
-	// Let's try to decode when the subscription should be canceled
-	if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &view); err != nil {
-		return subscription.Subscription{}, fmt.Errorf("invalid cancelation timing: %w", err)
-	}
 
 	cancelTime, err := timing.ResolveForSpec(view.Spec)
 	if err != nil {
 		return subscription.Subscription{}, fmt.Errorf("failed to get cancelation time: %w", err)
 	}
 
-	// Cancellation means that we deactivate everything by that deadline (set ActiveTo)
-	// The different Cadences of the Spec are derived from the Subscription Cadence
 	spec.ActiveTo = lo.ToPtr(cancelTime)
 
-	if err := spec.Validate(); err != nil {
-		return subscription.Subscription{}, fmt.Errorf("spec is invalid after setting cancelation time: %w", err)
-	}
-
-	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		// We can use sync to do this
 		sub, err := s.sync(ctx, view, spec)
 		if err != nil {
 			return sub, err
@@ -387,10 +266,7 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 		return subscription.Subscription{}, err
 	}
 
-	// Let's make sure Continue is possible based on the transition rules
-	if err := subscription.NewStateMachine(
-		view.Subscription.GetStatusAt(clock.Now()),
-	).CanTransitionOrErr(ctx, subscription.SubscriptionActionContinue); err != nil {
+	if err := s.validateContinue(ctx, view); err != nil {
 		return subscription.Subscription{}, err
 	}
 
@@ -399,10 +275,6 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 	spec := view.AsSpec()
 
 	spec.ActiveTo = nil
-
-	if err := spec.Validate(); err != nil {
-		return subscription.Subscription{}, fmt.Errorf("spec is invalid after unsetting cancelation time: %w", err)
-	}
 
 	// We can use sync to do this
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
@@ -502,4 +374,37 @@ func (s *service) List(ctx context.Context, input subscription.ListSubscriptions
 	}
 
 	return s.SubscriptionRepo.List(ctx, input)
+}
+
+func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscription.Subscription, currentSpec subscription.SubscriptionSpec) error {
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		Namespace: sub.Namespace,
+		ID:        sub.CustomerId,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get customer: %w", err)
+	}
+
+	if cust == nil {
+		return fmt.Errorf("customer is nil")
+	}
+
+	// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
+	if cust.Currency == nil && currentSpec.HasBillables() {
+		if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
+			CustomerID: cust.GetID(),
+			CustomerMutate: customer.CustomerMutate{
+				Name:             cust.Name,
+				Description:      cust.Description,
+				UsageAttribution: cust.UsageAttribution,
+				PrimaryEmail:     cust.PrimaryEmail,
+				BillingAddress:   cust.BillingAddress,
+				Currency:         &currentSpec.Currency,
+			},
+		}); err != nil {
+			return fmt.Errorf("failed to update customer currency: %w", err)
+		}
+	}
+
+	return nil
 }
