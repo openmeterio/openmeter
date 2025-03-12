@@ -314,11 +314,10 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		var source string
 		var eventTime time.Time
 		var dataStr string
-		var validationError string
 		var ingestedAt time.Time
 		var storedAt time.Time
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &storedAt); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &ingestedAt, &storedAt); err != nil {
 			return nil, err
 		}
 
@@ -347,10 +346,6 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 
 		ingestedEvent := api.IngestedEvent{
 			Event: ev,
-		}
-
-		if validationError != "" {
-			ingestedEvent.ValidationError = &validationError
 		}
 
 		ingestedEvent.IngestedAt = ingestedAt
@@ -392,7 +387,7 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 	for rows.Next() {
 		result := streaming.CountEventRow{}
 
-		if err = rows.Scan(&result.Count, &result.Subject, &result.IsError); err != nil {
+		if err = rows.Scan(&result.Count, &result.Subject); err != nil {
 			return nil, err
 		}
 

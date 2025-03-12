@@ -31,7 +31,6 @@ type CountEventsParams struct {
 type CountEventRow struct {
 	Count   uint64
 	Subject string
-	IsError bool
 }
 
 // RawEvent represents a single raw event

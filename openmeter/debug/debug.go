@@ -62,13 +62,6 @@ func (c *debugConnector) GetDebugMetrics(ctx context.Context, namespace string) 
 			},
 		}
 
-		if row.IsError {
-			metric.Label = append(metric.Label, &dto.LabelPair{
-				Name:  proto.String("error"),
-				Value: proto.String("true"),
-			})
-		}
-
 		metrics = append(metrics, metric)
 	}
 

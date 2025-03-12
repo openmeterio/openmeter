@@ -134,7 +134,7 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 
 	query.Where(query.Equal("namespace", d.Namespace))
 	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
-	query.GroupBy("subject", "is_error")
+	query.GroupBy("subject")
 
 	sql, args := query.Build()
 	return sql, args

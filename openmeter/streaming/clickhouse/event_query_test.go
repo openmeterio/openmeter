@@ -130,7 +130,7 @@ func TestQueryEventsCount(t *testing.T) {
 				Namespace:       "my_namespace",
 				From:            from,
 			},
-			wantSQL:  "SELECT count() as count, subject FROM openmeter.om_events WHERE namespace = ? AND time >= ? GROUP BY subject, is_error",
+			wantSQL:  "SELECT count() as count, subject FROM openmeter.om_events WHERE namespace = ? AND time >= ? GROUP BY subject",
 			wantArgs: []interface{}{"my_namespace", from.Unix()},
 		},
 	}
