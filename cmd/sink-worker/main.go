@@ -98,12 +98,6 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
-	// Migrate database
-	if err := app.Migrate(ctx); err != nil {
-		logger.Error("failed to initialize database", "error", err)
-		os.Exit(1)
-	}
-
 	var group run.Group
 
 	// Initialize sink worker
