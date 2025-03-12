@@ -231,19 +231,12 @@ var (
 				Columns: []*schema.Column{BalanceSnapshotsColumns[1]},
 			},
 			{
-				Name:    "balancesnapshot_namespace_at",
+				Name:    "balancesnapshot_namespace_owner_id_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[9]},
-			},
-			{
-				Name:    "balancesnapshot_namespace_balance",
-				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[7]},
-			},
-			{
-				Name:    "balancesnapshot_namespace_balance_at",
-				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[7], BalanceSnapshotsColumns[9]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[10], BalanceSnapshotsColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}

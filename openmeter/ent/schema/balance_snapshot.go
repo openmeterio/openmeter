@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -45,9 +46,9 @@ func (BalanceSnapshot) Fields() []ent.Field {
 
 func (BalanceSnapshot) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "at"),
-		index.Fields("namespace", "balance"),
-		index.Fields("namespace", "balance", "at"),
+		index.Fields("namespace", "owner_id", "at").Annotations(
+			entsql.IndexWhere("deleted_at IS NULL"),
+		),
 	}
 }
 
