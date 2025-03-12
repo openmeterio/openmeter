@@ -100,7 +100,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:           100,
 				HasError:        &hasErrorFalse,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND ORDER BY time DESC LIMIT ?",
+			wantSQL:  "SELECT id, type, subject, source, time, data, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT ?",
 			wantArgs: []interface{}{"my_namespace", from.Unix(), 100},
 		},
 	}
@@ -196,5 +196,5 @@ func TestInsertEventsQuery(t *testing.T) {
 		"my_namespace", "", "2", "api-calls", "source", "subject-2", now, `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`, now, now,
 		"my_namespace", "event data value cannot be parsed as float64: not a number", "3", "api-calls", "source", "subject-2", now, `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`, now, now,
 	}, args)
-	assert.Equal(t, `INSERT INTO database.om_events (namespace, id, type, source, subject, time, data, ingested_at, stored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sql)
+	assert.Equal(t, `INSERT INTO database.om_events (namespace, id, type, source, subject, time, data, ingested_at, stored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?)`, sql)
 }
