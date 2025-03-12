@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 func (a *adapter) ListEvents(ctx context.Context, input meterevent.ListEventsInput) ([]api.IngestedEvent, error) {
