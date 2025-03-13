@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	chttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 )
 
 // List customers
@@ -70,5 +71,19 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 	a.customerHandler.GetCustomerEntitlementValue().With(chttpdriver.GetCustomerEntitlementValueParams{
 		CustomerID: customerId,
 		FeatureKey: featureKey,
+	}).ServeHTTP(w, r)
+}
+
+// List customer subscriptions
+// (GET /api/v1/customer/customers/{customerId}/subscriptions)
+func (a *Router) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Request, customerID string, params api.ListCustomerSubscriptionsParams) {
+	if !a.config.ProductCatalogEnabled {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+
+	a.subscriptionHandler.ListCustomerSubscriptions().With(subscriptionhttpdriver.ListCustomerSubscriptionsParams{
+		CustomerID: customerID,
+		Params:     params,
 	}).ServeHTTP(w, r)
 }

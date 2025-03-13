@@ -527,6 +527,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/customers/{customerId}/subscriptions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List customer subscriptions
+     * @description Lists all subscriptions for a customer.
+     */
+    get: operations['listCustomerSubscriptions']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/customers/{id}': {
     parameters: {
       query?: never
@@ -7379,6 +7399,26 @@ export interface components {
       /** @description The entitlement of the Subscription Item. */
       entitlement?: components['schemas']['Entitlement']
     }
+    /** @description Paginated response */
+    SubscriptionPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['Subscription'][]
+    }
     /** @description Subscription phase create input. */
     SubscriptionPhaseCreate: {
       /**
@@ -8385,6 +8425,8 @@ export type SubscriptionExpanded = components['schemas']['SubscriptionExpanded']
 export type SubscriptionItem = components['schemas']['SubscriptionItem']
 export type SubscriptionItemIncluded =
   components['schemas']['SubscriptionItemIncluded']
+export type SubscriptionPaginatedResponse =
+  components['schemas']['SubscriptionPaginatedResponse']
 export type SubscriptionPhaseCreate =
   components['schemas']['SubscriptionPhaseCreate']
 export type SubscriptionPhaseExpanded =
@@ -11342,6 +11384,96 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['EntitlementValue']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  listCustomerSubscriptions: {
+    parameters: {
+      query?: {
+        /** @description The page number. */
+        page?: components['parameters']['PaginatedQuery.page']
+        /** @description The number of items in the page. */
+        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+      }
+      header?: never
+      path: {
+        customerId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SubscriptionPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
