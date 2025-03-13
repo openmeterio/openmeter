@@ -78,6 +78,7 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 
 		update := tx.db.BillingCustomerOverride.Update().
 			Where(billingcustomeroverride.CustomerID(input.CustomerID)).
+			SetOrClearBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 			SetOrClearCollectionAlignment(input.Collection.Alignment).
 			SetOrClearLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
 			SetOrClearInvoiceAutoAdvance(input.Invoicing.AutoAdvance).
