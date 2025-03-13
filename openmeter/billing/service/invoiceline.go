@@ -97,15 +97,24 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 						invoicesByCurrency[currency] = *res
 					}
 
-					for i, line := range lineByCustomer {
-						targetInvoice := invoicesByCurrency[line.Line.Currency]
+					lineServices, err := s.lineService.FromEntities(lo.Map(lineByCustomer, func(l billing.LineWithCustomer, _ int) *billing.Line {
+						return &l.Line
+					}))
+					if err != nil {
+						return nil, fmt.Errorf("creating line services: %w", err)
+					}
+
+					for i, lineSvc := range lineServices {
+						line := lineSvc.ToEntity()
+
+						targetInvoice := invoicesByCurrency[line.Currency]
 
 						if targetInvoice.Invoice == nil {
 							return nil, fmt.Errorf("invoice not found for line[%d]", i)
 						}
 
 						invoiceID := billing.InvoiceID{
-							Namespace: input.Namespace,
+							Namespace: line.Namespace,
 							ID:        targetInvoice.Invoice.ID,
 						}
 
@@ -123,21 +132,16 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 							}
 						}
 
-						lineService, err := s.lineService.FromEntity(&line.Line)
+						if err := lineSvc.Validate(ctx, targetInvoice.Invoice); err != nil {
+							return nil, fmt.Errorf("validating line[%d]: %w", i, err)
+						}
+
+						lineSvc, err = lineSvc.PrepareForCreate(ctx)
 						if err != nil {
-							return nil, fmt.Errorf("creating line service[%d]: %w", i, err)
+							return nil, fmt.Errorf("modifying line[%d]: %w", i, err)
 						}
 
-						if err := lineService.Validate(ctx, targetInvoice.Invoice); err != nil {
-							return nil, fmt.Errorf("validating line[%s]: %w", input.Lines[i].ID, err)
-						}
-
-						lineService, err = lineService.PrepareForCreate(ctx)
-						if err != nil {
-							return nil, fmt.Errorf("modifying line[%s]: %w", input.Lines[i].ID, err)
-						}
-
-						lines = append(lines, lineService)
+						lines = append(lines, lineSvc)
 					}
 
 					// Create the invoice Lines
