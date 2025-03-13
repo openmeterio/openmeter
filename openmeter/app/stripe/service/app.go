@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -72,8 +75,8 @@ func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstrip
 		event := app.CustomerPaymentSetupSucceededEvent{
 			App:      handlingApp.GetAppBase(),
 			Customer: res.CustomerID,
-			PaymentSetup: app.CustomerPaymentSetupResult{
-				Metadata: input.PaymentIntentMetadata,
+			Result: app.CustomerPaymentSetupResult{
+				Metadata: lo.OmitByKeys(input.PaymentIntentMetadata, stripeclient.SetupIntentReservedMetadataKeys),
 				AppData: appstripeentity.CustomerPaymentSetupSucceededEventAppData{
 					StripeCustomerID: input.StripeCustomerID,
 					PaymentMethodID:  input.PaymentMethodID,
@@ -85,9 +88,7 @@ func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstrip
 			return def, fmt.Errorf("failed to publish event: %w", err)
 		}
 
-		return appstripeentity.HandleSetupIntentSucceededOutput{
-			CustomerID: res.CustomerID,
-		}, nil
+		return appstripeentity.HandleSetupIntentSucceededOutput(res), nil
 	})
 }
 

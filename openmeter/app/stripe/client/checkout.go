@@ -12,24 +12,30 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreateCheckoutSession creates a checkout session
 func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input CreateCheckoutSessionInput) (StripeCheckoutSession, error) {
 	if err := input.Validate(); err != nil {
-		return StripeCheckoutSession{}, err
+		return StripeCheckoutSession{}, models.NewGenericValidationError(err)
 	}
+
+	metadata := lo.FromPtr(input.Options.Metadata)
+	if metadata == nil {
+		metadata = map[string]string{}
+	}
+
+	metadata[SetupIntentDataMetadataNamespace] = input.AppID.Namespace
+	metadata[SetupIntentDataMetadataAppID] = input.AppID.ID
+	metadata[SetupIntentDataMetadataCustomerID] = input.CustomerID.ID
 
 	// Create checkout session
 	params := &stripe.CheckoutSessionParams{
 		Customer: lo.ToPtr(input.StripeCustomerID),
 		Mode:     lo.ToPtr(string(stripe.CheckoutSessionModeSetup)),
 		SetupIntentData: &stripe.CheckoutSessionSetupIntentDataParams{
-			Metadata: map[string]string{
-				SetupIntentDataMetadataNamespace:  input.AppID.Namespace,
-				SetupIntentDataMetadataAppID:      input.AppID.ID,
-				SetupIntentDataMetadataCustomerID: input.CustomerID.ID,
-			},
+			Metadata: metadata,
 		},
 	}
 
@@ -127,10 +133,6 @@ func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input Creat
 
 	if input.Options.Locale != nil {
 		params.Locale = input.Options.Locale
-	}
-
-	if input.Options.Metadata != nil {
-		params.Metadata = *input.Options.Metadata
 	}
 
 	if input.Options.ReturnURL != nil {
@@ -272,5 +274,14 @@ func (i CreateCheckoutSessionInput) Validate() error {
 		}
 	}
 
+	// Let's validate metadata for reserved keys
+	metadata := lo.FromPtr(i.Options.Metadata)
+	if metadata != nil {
+		for _, reservedKey := range SetupIntentReservedMetadataKeys {
+			if _, ok := metadata[reservedKey]; ok {
+				return fmt.Errorf("metadata key %s is reserved", reservedKey)
+			}
+		}
+	}
 	return nil
 }

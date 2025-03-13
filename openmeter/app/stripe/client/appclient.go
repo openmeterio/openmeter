@@ -19,7 +19,17 @@ const (
 	SetupIntentDataMetadataNamespace  = "om_namespace"
 	SetupIntentDataMetadataAppID      = "om_app_id"
 	SetupIntentDataMetadataCustomerID = "om_customer_id"
+)
 
+// SetupIntentReservedMetadataKeys are the keys that are reserved for internal use by OpenMeter
+// specifying these keys in the metadata will result in a validation error
+var SetupIntentReservedMetadataKeys = []string{
+	SetupIntentDataMetadataNamespace,
+	SetupIntentDataMetadataAppID,
+	SetupIntentDataMetadataCustomerID,
+}
+
+const (
 	// Stripe Webhook event types
 
 	// Occurs when an SetupIntent has successfully setup a payment method.

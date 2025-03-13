@@ -17,9 +17,9 @@ type PaymentSetupAppData interface {
 }
 
 type CustomerPaymentSetupResult struct {
-	Metadata map[string]string `json:"metadata"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// AppData is the app specific data for the payment setup (the root object's App specifies the app type)
-	AppData PaymentSetupAppData `json:"appData"`
+	AppData PaymentSetupAppData `json:"appData,omitempty"`
 }
 
 func (r CustomerPaymentSetupResult) Validate() error {
@@ -31,9 +31,9 @@ func (r CustomerPaymentSetupResult) Validate() error {
 }
 
 type CustomerPaymentSetupSucceededEvent struct {
-	App          AppBase                    `json:"app"`
-	Customer     customer.CustomerID        `json:"customer"`
-	PaymentSetup CustomerPaymentSetupResult `json:"paymentSetup"`
+	App      AppBase                    `json:"app"`
+	Customer customer.CustomerID        `json:"customer"`
+	Result   CustomerPaymentSetupResult `json:"result"`
 }
 
 var (
@@ -55,8 +55,8 @@ func (e CustomerPaymentSetupSucceededEvent) Validate() error {
 		return fmt.Errorf("customer: %w", err)
 	}
 
-	if err := e.PaymentSetup.Validate(); err != nil {
-		return fmt.Errorf("payment setup: %w", err)
+	if err := e.Result.Validate(); err != nil {
+		return fmt.Errorf("result: %w", err)
 	}
 
 	return nil
