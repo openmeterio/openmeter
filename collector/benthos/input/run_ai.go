@@ -23,7 +23,7 @@ const (
 	fieldResourceType         = "resource_type"
 	fieldMetrics              = "metrics"
 	fieldSchedule             = "schedule"
-	fieldMetricsScrapeOffset  = "metrics_scrape_offset"
+	fieldMetricsOffset        = "metrics_offset"
 	fieldHTTPConfig           = "http"
 	fieldHTTPTimeout          = "timeout"
 	fieldHTTPRetryCount       = "retry_count"
@@ -67,7 +67,7 @@ func runAIInputConfig() *service.ConfigSpec {
 				Description("The cron expression to use for the scrape job.").
 				Examples("*/30 * * * * *", "@every 30s").
 				Default("*/30 * * * * *"),
-			service.NewDurationField(fieldMetricsScrapeOffset).
+			service.NewDurationField(fieldMetricsOffset).
 				Description("Indicates how far back in time the scraping window should start to account for delays in metric availability.").
 				Default("0s"),
 			service.NewObjectField(fieldHTTPConfig,
@@ -126,16 +126,16 @@ func init() {
 var _ service.BatchInput = (*runAIInput)(nil)
 
 type runAIInput struct {
-	logger              *service.Logger
-	service             *runai.Service
-	resourceType        string
-	metrics             []runai.MetricType
-	interval            time.Duration
-	schedule            string
-	metricsScrapeOffset time.Duration
-	scheduler           gocron.Scheduler
-	store               map[time.Time][]runai.ResourceWithMetrics
-	mu                  sync.Mutex
+	logger        *service.Logger
+	service       *runai.Service
+	resourceType  string
+	metrics       []runai.MetricType
+	interval      time.Duration
+	schedule      string
+	metricsOffset time.Duration
+	scheduler     gocron.Scheduler
+	store         map[time.Time][]runai.ResourceWithMetrics
+	mu            sync.Mutex
 }
 
 func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIInput, error) {
@@ -169,7 +169,7 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 		return nil, err
 	}
 
-	metricsScrapeOffset, err := conf.FieldDuration(fieldMetricsScrapeOffset)
+	metricsOffset, err := conf.FieldDuration(fieldMetricsOffset)
 	if err != nil {
 		return nil, err
 	}
@@ -183,8 +183,8 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 			return nil, err
 		}
 
-		// Get current time
-		now := time.Now()
+		// Get current time in UTC
+		now := time.Now().UTC()
 
 		// Get next two occurrences
 		nextRun := cronSchedule.Next(now)
@@ -230,13 +230,13 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 	}
 
 	return &runAIInput{
-		logger:              logger,
-		service:             service,
-		resourceType:        resourceType,
-		interval:            interval,
-		schedule:            schedule,
-		metricsScrapeOffset: metricsScrapeOffset,
-		scheduler:           scheduler,
+		logger:        logger,
+		service:       service,
+		resourceType:  resourceType,
+		interval:      interval,
+		schedule:      schedule,
+		metricsOffset: metricsOffset,
+		scheduler:     scheduler,
 		metrics: lo.Map(metrics, func(metric string, _ int) runai.MetricType {
 			return runai.MetricType(metric)
 		}),
@@ -249,12 +249,15 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 func (in *runAIInput) scrape(ctx context.Context, t time.Time) error {
 	in.logger.Debugf("scraping %s metrics between %s and %s", in.resourceType, t.Add(-in.interval).Format(time.RFC3339), t.Format(time.RFC3339))
 
+	startTime := t.Add(-in.interval).Add(-in.metricsOffset)
+	endTime := t.Add(-in.metricsOffset)
+
 	switch in.resourceType {
 	case "workload":
 		workloadsWithMetrics, err := in.service.GetAllWorkloadWithMetrics(ctx, runai.MeasurementParams{
 			MetricType: in.metrics,
-			StartTime:  t.Add(-in.interval).Add(-in.metricsScrapeOffset),
-			EndTime:    t.Add(-in.metricsScrapeOffset),
+			StartTime:  startTime,
+			EndTime:    endTime,
 		})
 		if err != nil {
 			return err
@@ -268,8 +271,8 @@ func (in *runAIInput) scrape(ctx context.Context, t time.Time) error {
 	case "pod":
 		podsWithMetrics, err := in.service.GetAllPodWithMetrics(ctx, runai.MeasurementParams{
 			MetricType: in.metrics,
-			StartTime:  t.Add(-in.interval).Add(-in.metricsScrapeOffset),
-			EndTime:    t.Add(-in.metricsScrapeOffset),
+			StartTime:  startTime,
+			EndTime:    endTime,
 		})
 		if err != nil {
 			return err
@@ -291,7 +294,8 @@ func (in *runAIInput) Connect(ctx context.Context) error {
 		gocron.CronJob(in.schedule, true),
 		gocron.NewTask(
 			func(ctx context.Context) error {
-				t := time.Now()
+				// Get current time in UTC
+				t := time.Now().UTC()
 				err := in.scrape(ctx, t)
 				if err != nil {
 					in.logger.Errorf("error scraping metrics: %v", err)
@@ -336,6 +340,9 @@ func (in *runAIInput) ReadBatch(ctx context.Context) (service.MessageBatch, serv
 			msg := service.NewMessage(encoded)
 			msg.MetaSet("scrape_time", t.Format(time.RFC3339))
 			msg.MetaSet("scrape_interval", in.interval.String())
+			msg.MetaSet("metrics_offset", in.metricsOffset.String())
+			msg.MetaSet("resource_type", in.resourceType)
+			msg.MetaSet("metrics_time", resourceWithMetrics.GetMetrics().Timestamp.Format(time.RFC3339))
 			batch = append(batch, msg)
 		}
 
