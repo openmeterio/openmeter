@@ -26,20 +26,20 @@ func TestMergeMeterQueryRows(t *testing.T) {
 	windowSize := meter.WindowSizeHour
 
 	tests := []struct {
-		name       string
-		meter      meter.Meter
-		params     streaming.QueryParams
-		cachedRows []meterpkg.MeterQueryRow
-		freshRows  []meterpkg.MeterQueryRow
-		wantCount  int
+		name        string
+		meterDef    meter.Meter
+		queryParams streaming.QueryParams
+		cachedRows  []meterpkg.MeterQueryRow
+		freshRows   []meterpkg.MeterQueryRow
+		wantCount   int
 	}{
 		{
 			name: "empty cached rows",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params:     streaming.QueryParams{},
-			cachedRows: []meterpkg.MeterQueryRow{},
+			queryParams: streaming.QueryParams{},
+			cachedRows:  []meterpkg.MeterQueryRow{},
 			freshRows: []meterpkg.MeterQueryRow{
 				{
 					WindowStart: windowStart1,
@@ -52,10 +52,10 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "with window size, rows are concatenated",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				WindowSize: &windowSize,
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
@@ -78,10 +78,10 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "without window size, sum aggregation",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject"},
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
@@ -104,10 +104,10 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "without window size, different subjects",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject"},
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
@@ -130,10 +130,10 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 		{
 			name: "without window size, with group by values",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject", "group1", "group2"},
 			},
 			cachedRows: []meterpkg.MeterQueryRow{
@@ -164,15 +164,15 @@ func TestMergeMeterQueryRows(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := mergeMeterQueryRows(tt.meter, tt.params, tt.cachedRows, tt.freshRows)
-			assert.Equal(t, tt.wantCount, len(result))
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := mergeMeterQueryRows(testCase.meterDef, testCase.queryParams, testCase.cachedRows, testCase.freshRows)
+			assert.Equal(t, testCase.wantCount, len(result))
 
-			if tt.meter.Aggregation == meter.MeterAggregationSum && len(tt.params.GroupBy) > 0 && tt.params.WindowSize == nil {
+			if testCase.meterDef.Aggregation == meter.MeterAggregationSum && len(testCase.queryParams.GroupBy) > 0 && testCase.queryParams.WindowSize == nil {
 				// If we're aggregating, check that values are summed
-				if len(result) == 1 && len(tt.cachedRows) > 0 && len(tt.freshRows) > 0 {
-					expectedSum := tt.cachedRows[0].Value + tt.freshRows[0].Value
+				if len(result) == 1 && len(testCase.cachedRows) > 0 && len(testCase.freshRows) > 0 {
+					expectedSum := testCase.cachedRows[0].Value + testCase.freshRows[0].Value
 					assert.Equal(t, expectedSum, result[0].Value)
 				}
 			}
@@ -180,12 +180,12 @@ func TestMergeMeterQueryRows(t *testing.T) {
 	}
 }
 
-func TestGetMeterQueryRowKey(t *testing.T) {
+func TestCreateGroupKeyFromRow(t *testing.T) {
 	subject := "test-subject"
 	group1Value := "group1-value"
 	group2Value := "group2-value"
 
-	row := meterpkg.MeterQueryRow{
+	testRow := meterpkg.MeterQueryRow{
 		Subject: &subject,
 		GroupBy: map[string]*string{
 			"group1": &group1Value,
@@ -194,42 +194,42 @@ func TestGetMeterQueryRowKey(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		params streaming.QueryParams
-		want   string
+		name        string
+		queryParams streaming.QueryParams
+		expectedKey string
 	}{
 		{
 			name: "subject only",
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject"},
 			},
-			want: "subject=test-subject;group=subject=nil;",
+			expectedKey: "subject=test-subject;group=subject=nil;",
 		},
 		{
 			name: "with group by fields",
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject", "group1", "group2"},
 			},
-			want: "subject=test-subject;group=group1=group1-value;group=group2=group2-value;group=subject=nil;",
+			expectedKey: "subject=test-subject;group=group1=group1-value;group=group2=group2-value;group=subject=nil;",
 		},
 		{
 			name: "with missing group by field",
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				GroupBy: []string{"subject", "group1", "group3"},
 			},
-			want: "subject=test-subject;group=group1=group1-value;group=group3=nil;group=subject=nil;",
+			expectedKey: "subject=test-subject;group=group1=group1-value;group=group3=nil;group=subject=nil;",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := getMeterQueryRowKey(row, tt.params)
-			assert.Equal(t, tt.want, result)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := createGroupKeyFromRow(testRow, testCase.queryParams)
+			assert.Equal(t, testCase.expectedKey, result)
 		})
 	}
 }
 
-func TestAggregateMeterQueryRows(t *testing.T) {
+func TestAggregateRowsByAggregationType(t *testing.T) {
 	subject := "test-subject"
 	group1Value := "group1-value"
 
@@ -239,7 +239,7 @@ func TestAggregateMeterQueryRows(t *testing.T) {
 	windowEnd2, _ := time.Parse(time.RFC3339, "2023-01-01T02:00:00Z")
 
 	// Rows have the same subject and groupBy values
-	rows := []meterpkg.MeterQueryRow{
+	testRows := []meterpkg.MeterQueryRow{
 		{
 			WindowStart: windowStart1,
 			WindowEnd:   windowEnd1,
@@ -262,56 +262,48 @@ func TestAggregateMeterQueryRows(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		meter       meter.Meter
+		aggregation meter.MeterAggregation
 		rows        []meterpkg.MeterQueryRow
 		wantValue   float64
 		wantSubject string
 	}{
 		{
-			name: "sum aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationSum,
-			},
-			rows:        rows,
+			name:        "sum aggregation",
+			aggregation: meter.MeterAggregationSum,
+			rows:        testRows,
 			wantValue:   30, // 10 + 20
 			wantSubject: subject,
 		},
 		{
-			name: "count aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationCount,
-			},
-			rows:        rows,
+			name:        "count aggregation",
+			aggregation: meter.MeterAggregationCount,
+			rows:        testRows,
 			wantValue:   30, // count should be the same as sum
 			wantSubject: subject,
 		},
 		{
-			name: "min aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationMin,
-			},
-			rows:        rows,
+			name:        "min aggregation",
+			aggregation: meter.MeterAggregationMin,
+			rows:        testRows,
 			wantValue:   10, // min of 10 and 20
 			wantSubject: subject,
 		},
 		{
-			name: "max aggregation",
-			meter: meter.Meter{
-				Aggregation: meter.MeterAggregationMax,
-			},
-			rows:        rows,
+			name:        "max aggregation",
+			aggregation: meter.MeterAggregationMax,
+			rows:        testRows,
 			wantValue:   20, // max of 10 and 20
 			wantSubject: subject,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := aggregateMeterQueryRows(tt.meter, tt.rows)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := aggregateRowsByAggregationType(testCase.aggregation, testCase.rows)
 
-			assert.Equal(t, tt.wantValue, result.Value)
+			assert.Equal(t, testCase.wantValue, result.Value)
 			require.NotNil(t, result.Subject)
-			assert.Equal(t, tt.wantSubject, *result.Subject)
+			assert.Equal(t, testCase.wantSubject, *result.Subject)
 
 			// Window range should span from earliest to latest
 			assert.Equal(t, windowStart1, result.WindowStart)
