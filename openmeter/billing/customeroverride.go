@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -307,3 +308,26 @@ type CustomerOverrideWithCustomerID struct {
 }
 
 type ListCustomerOverridesAdapterResult = pagination.PagedResponse[CustomerOverrideWithCustomerID]
+
+type BulkAssignCustomersToProfileInput struct {
+	ProfileID   ProfileID
+	CustomerIDs []customer.CustomerID
+}
+
+func (b BulkAssignCustomersToProfileInput) Validate() error {
+	if err := b.ProfileID.Validate(); err != nil {
+		return fmt.Errorf("invalid billing profile: %w", err)
+	}
+
+	if len(b.CustomerIDs) == 0 {
+		return errors.New("customer ids are required")
+	}
+
+	for i, customerID := range b.CustomerIDs {
+		if err := customerID.Validate(); err != nil {
+			return fmt.Errorf("invalid customer id[%d]: %w", i, err)
+		}
+	}
+
+	return nil
+}

@@ -475,4 +475,14 @@ func (i UpdateProfileAdapterInput) Validate() error {
 	return nil
 }
 
-type UnsetDefaultProfileInput = ProfileID
+type GetUnpinnedCustomerIDsWithPaidSubscriptionInput struct {
+	Namespace string
+}
+
+func (i GetUnpinnedCustomerIDsWithPaidSubscriptionInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	return nil
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -19,6 +20,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
+
+// defaultBulkAssignCustomersToProfileBatchSize is the maximum number of customers that can be assigned to a profile in a single
+// upsert operation. This is based on the maximum number of parameters PostgreSQL can handle in a single upsert operation (64k).
+//
+// This is a pessimistic approximation, as entgo might not try to insert the null columns, but still as of the writing we are still
+// inserting in 4k batches, which is more than enough.
+var defaultBulkAssignCustomersToProfileBatchSize int = (65535 / len(billingcustomeroverride.Columns)) - 1
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
@@ -325,6 +333,33 @@ func (a *adapter) GetCustomerOverrideReferencingProfile(ctx context.Context, inp
 		}
 
 		return customerIDs, nil
+	})
+}
+
+func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billing.BulkAssignCustomersToProfileInput) error {
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		creates := make([]*db.BillingCustomerOverrideCreate, len(input.CustomerIDs))
+		for i, customerID := range input.CustomerIDs {
+			creates[i] = tx.db.BillingCustomerOverride.Create().
+				SetNamespace(input.ProfileID.Namespace).
+				SetCustomerID(customerID.ID).
+				SetBillingProfileID(input.ProfileID.ID)
+		}
+
+		for _, createChunk := range lo.Chunk(creates, defaultBulkAssignCustomersToProfileBatchSize) {
+			err := tx.db.BillingCustomerOverride.
+				CreateBulk(createChunk...).
+				OnConflict(
+					sql.ConflictColumns(billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID),
+				).
+				UpdateBillingProfileID().
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 

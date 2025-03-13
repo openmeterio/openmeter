@@ -10,9 +10,14 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -269,16 +274,55 @@ func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 	})
 }
 
-func (a *adapter) UnsetDefaultProfile(ctx context.Context, input billing.UnsetDefaultProfileInput) error {
+func (a *adapter) GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context, input billing.GetUnpinnedCustomerIDsWithPaidSubscriptionInput) ([]customer.CustomerID, error) {
 	if err := input.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		return tx.db.BillingProfile.Update().
-			Where(billingprofile.Namespace(input.Namespace)).
-			SetDefault(false).
-			Exec(ctx)
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]customer.CustomerID, error) {
+		var out []customer.CustomerID
+
+		err := tx.db.Customer.Query().
+			Where(
+				dbcustomer.NamespaceEQ(input.Namespace),
+				dbcustomer.DeletedAtIsNil(),
+				// Has outstanding line items belonging to a subscription (a paid subscription always has at least
+				// one gathering line item, if there are still upcoming lines)
+				dbcustomer.HasBillingInvoiceWith(
+					billinginvoice.NamespaceEQ(input.Namespace),
+					billinginvoice.StatusEQ(billing.InvoiceStatusGathering),
+					billinginvoice.DeletedAtIsNil(),
+					billinginvoice.HasBillingInvoiceLinesWith(
+						billinginvoiceline.DeletedAtIsNil(),
+						billinginvoiceline.StatusEQ(billing.InvoiceLineStatusValid),
+						billinginvoiceline.NamespaceEQ(input.Namespace),
+						billinginvoiceline.SubscriptionIDNotNil(),
+					),
+				),
+				// Has no customer override with explicit billing profile pinning
+				dbcustomer.Or(
+					// Either has a customer override with no billing profile id set
+					dbcustomer.HasBillingCustomerOverrideWith(
+						billingcustomeroverride.NamespaceEQ(input.Namespace),
+						billingcustomeroverride.DeletedAtIsNil(),
+						billingcustomeroverride.BillingProfileIDIsNil(),
+					),
+					// Or has no customer override at all
+					dbcustomer.Not(
+						dbcustomer.HasBillingCustomerOverrideWith(
+							billingcustomeroverride.NamespaceEQ(input.Namespace),
+							billingcustomeroverride.DeletedAtIsNil(),
+						),
+					),
+				),
+			).
+			Select(dbcustomer.FieldNamespace, dbcustomer.FieldID).
+			Scan(ctx, &out)
+		if err != nil {
+			return nil, err
+		}
+
+		return out, nil
 	})
 }
 

@@ -14,34 +14,17 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/credit"
-	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
-	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	entitlementrepo "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
-	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
-	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
-	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionentitlementadatapter "github.com/openmeterio/openmeter/openmeter/subscription/adapters/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
-	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
-	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -52,10 +35,7 @@ import (
 type SubscriptionHandlerTestSuite struct {
 	billingtest.BaseSuite
 
-	PlanService                 plan.Service
-	SubscriptionService         subscription.Service
-	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
-	SubscriptionWorkflowService subscription.WorkflowService
+	billingtest.SubscriptionMixin
 
 	Namespace               string
 	Customer                *customer.Customer
@@ -67,53 +47,7 @@ type SubscriptionHandlerTestSuite struct {
 
 func (s *SubscriptionHandlerTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-
-	planAdapter, err := planadapter.New(planadapter.Config{
-		Client: s.DBClient,
-		Logger: slog.Default(),
-	})
-	s.NoError(err)
-
-	planService, err := planservice.New(planservice.Config{
-		Feature: s.FeatureService,
-		Adapter: planAdapter,
-		Logger:  slog.Default(),
-	})
-	s.NoError(err)
-
-	s.PlanService = planService
-
-	subsRepo := subscriptionrepo.NewSubscriptionRepo(s.DBClient)
-	subsItemRepo := subscriptionrepo.NewSubscriptionItemRepo(s.DBClient)
-
-	s.SubscriptionService = subscriptionservice.New(subscriptionservice.ServiceConfig{
-		SubscriptionRepo:      subsRepo,
-		SubscriptionPhaseRepo: subscriptionrepo.NewSubscriptionPhaseRepo(s.DBClient),
-		SubscriptionItemRepo:  subsItemRepo,
-		// connectors
-		CustomerService: s.CustomerService,
-		// adapters
-		EntitlementAdapter: subscriptionentitlementadatapter.NewSubscriptionEntitlementAdapter(
-			s.SetupEntitlements(),
-			subsItemRepo,
-			subsRepo,
-		),
-		// framework
-		TransactionManager: subsRepo,
-		// events
-		Publisher: eventbus.NewMock(s.T()),
-	})
-
-	s.SubscriptionPlanAdapter = subscriptiontestutils.NewPlanSubscriptionAdapter(subscriptiontestutils.PlanSubscriptionAdapterConfig{
-		PlanService: planService,
-		Logger:      slog.Default(),
-	})
-
-	s.SubscriptionWorkflowService = subscriptionservice.NewWorkflowService(subscriptionservice.WorkflowServiceConfig{
-		Service:            s.SubscriptionService,
-		CustomerService:    s.CustomerService,
-		TransactionManager: subsRepo,
-	})
+	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
 	handler, err := New(Config{
 		BillingService:      s.BillingService,
@@ -192,77 +126,6 @@ func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
 
 	s.MockStreamingConnector.Reset()
 	s.Handler.featureFlags = FeatureFlags{}
-}
-
-func (s *SubscriptionHandlerTestSuite) SetupEntitlements() entitlement.Connector {
-	tracer := noop.NewTracerProvider().Tracer("test")
-
-	// Init grants/credit
-	grantRepo := grantrepo.NewPostgresGrantRepo(s.DBClient)
-	balanceSnapshotRepo := grantrepo.NewPostgresBalanceSnapshotRepo(s.DBClient)
-
-	// Init entitlements
-	entitlementRepo := entitlementrepo.NewPostgresEntitlementRepo(s.DBClient)
-	usageResetRepo := entitlementrepo.NewPostgresUsageResetRepo(s.DBClient)
-
-	mockPublisher := eventbus.NewMock(s.T())
-
-	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
-		s.FeatureRepo,
-		entitlementRepo,
-		usageResetRepo,
-		s.MeterAdapter,
-		slog.Default(),
-		tracer,
-	)
-
-	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
-		OwnerConnector:     owner,
-		StreamingConnector: s.MockStreamingConnector,
-		Repo:               balanceSnapshotRepo,
-	})
-
-	transactionManager := enttx.NewCreator(s.DBClient)
-
-	creditConnector := credit.NewCreditConnector(
-		credit.CreditConnectorConfig{
-			GrantRepo:              grantRepo,
-			BalanceSnapshotService: balanceSnapshotService,
-			OwnerConnector:         owner,
-			StreamingConnector:     s.MockStreamingConnector,
-			Logger:                 slog.Default(),
-			Tracer:                 tracer,
-			Granularity:            time.Minute,
-			Publisher:              mockPublisher,
-			TransactionManager:     transactionManager,
-			SnapshotGracePeriod:    isodate.MustParse(s.T(), "P1W"),
-		},
-	)
-
-	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(
-		s.MockStreamingConnector,
-		owner,
-		creditConnector,
-		creditConnector,
-		grantRepo,
-		entitlementRepo,
-		mockPublisher,
-		slog.Default(),
-		tracer,
-	)
-
-	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
-	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
-
-	return entitlement.NewEntitlementConnector(
-		entitlementRepo,
-		s.FeatureService,
-		s.MeterAdapter,
-		meteredEntitlementConnector,
-		staticEntitlementConnector,
-		booleanEntitlementConnector,
-		mockPublisher,
-	)
 }
 
 func TestSubscriptionHandlerScenarios(t *testing.T) {

@@ -205,7 +205,19 @@ type MockableFactory struct {
 	overrideFactory AppFactory
 }
 
-func NewMockableFactory(_ *testing.T, config Config) (*MockableFactory, error) {
+type mockConfig struct {
+	OverrideType app.AppType
+}
+
+type mockConfigOption func(*mockConfig)
+
+func MockWithAppType(t app.AppType) mockConfigOption {
+	return func(c *mockConfig) {
+		c.OverrideType = t
+	}
+}
+
+func NewMockableFactory(_ *testing.T, config Config, opts ...mockConfigOption) (*MockableFactory, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
@@ -217,8 +229,19 @@ func NewMockableFactory(_ *testing.T, config Config) (*MockableFactory, error) {
 		},
 	}
 
+	mockConfig := &mockConfig{}
+	for _, opt := range opts {
+		opt(mockConfig)
+	}
+
+	listing := MarketplaceListing
+
+	if mockConfig.OverrideType != "" {
+		listing.Type = mockConfig.OverrideType
+	}
+
 	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
-		Listing: MarketplaceListing,
+		Listing: listing,
 		Factory: fact,
 	})
 	if err != nil {
