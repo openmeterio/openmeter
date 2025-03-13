@@ -105,6 +105,18 @@ interface Customers {
   } | NotFoundError | CommonErrors;
 
   /**
+   * Lists all subscriptions for a customer.
+   */
+  @get
+  @route("/{customerId}/subscriptions")
+  @operationId("listCustomerSubscriptions")
+  @summary("List customer subscriptions")
+  listCustomerSubscriptions(
+    @path customerId: ULID,
+    ...PaginatedQuery,
+  ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
+
+  /**
    * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
    */
   @get

@@ -2232,6 +2232,72 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers (Beta)
+  /api/v1/customers/{customerId}/subscriptions:
+    get:
+      operationId: listCustomerSubscriptions
+      summary: List customer subscriptions
+      description: Lists all subscriptions for a customer.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - $ref: '#/components/parameters/PaginatedQuery.page'
+        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Customers (Beta)
   /api/v1/customers/{id}:
     get:
       operationId: getCustomer
@@ -15998,6 +16064,32 @@ components:
             - $ref: '#/components/schemas/Entitlement'
           description: The entitlement of the Subscription Item.
       description: Included contents like Entitlement, or the Feature.
+    SubscriptionPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: The items in the current page.
+          example: 500
+        page:
+          type: integer
+          description: The items in the current page.
+          example: 1
+        pageSize:
+          type: integer
+          description: The items in the current page.
+          example: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+          description: The items in the current page.
+      description: Paginated response
     SubscriptionPhaseCreate:
       type: object
       required:

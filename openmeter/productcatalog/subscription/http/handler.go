@@ -23,6 +23,7 @@ type Handler interface {
 	RestoreSubscription() RestoreSubscriptionHandler
 	MigrateSubscription() MigrateSubscriptionHandler
 	ChangeSubscription() ChangeSubscriptionHandler
+	ListCustomerSubscriptions() ListCustomerSubscriptionsHandler
 }
 
 type HandlerConfig struct {

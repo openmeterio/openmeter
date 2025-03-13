@@ -382,6 +382,27 @@ func TestPlan(t *testing.T) {
 		customSubscriptionId = *subscription.Id
 	})
 
+	t.Run("Should list customer subscriptions", func(t *testing.T) {
+		require.NotNil(t, customer2)
+		require.NotNil(t, customer2.Id)
+
+		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, *customer2.Id, &api.ListCustomerSubscriptionsParams{
+			Page:     lo.ToPtr(1),
+			PageSize: lo.ToPtr(10),
+		})
+		require.Nil(t, err)
+		require.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+
+		body := apiRes.JSON200
+		require.NotNil(t, body)
+
+		require.Equal(t, 1, len(body.Items))
+		require.Equal(t, customSubscriptionId, *body.Items[0].Id)
+		require.Equal(t, 1, body.Page)
+		require.Equal(t, 10, body.PageSize)
+		require.Equal(t, 1, body.TotalCount)
+	})
+
 	t.Run("Should create a subscription based on the plan", func(t *testing.T) {
 		require.NotNil(t, customer1)
 		require.NotNil(t, customer1.Id)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -175,6 +176,8 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 				),
 			)
 		}
+
+		query = query.Order(dbsubscription.ByActiveFrom(sql.OrderAsc()))
 
 		paged, err := query.Paginate(ctx, in.Page)
 		if err != nil {

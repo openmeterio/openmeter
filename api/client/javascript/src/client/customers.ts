@@ -203,6 +203,22 @@ export class CustomerApps {
 
     return transformResponse(resp)
   }
+
+  public async listSubscriptions(
+    customerId: operations['listCustomerSubscriptions']['parameters']['path']['customerId'],
+    query?: operations['listCustomerSubscriptions']['parameters']['query'],
+    options?: RequestOptions
+  ) {
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerId}/subscriptions',
+      {
+        params: { path: { customerId }, query },
+        ...options,
+      }
+    )
+
+    return transformResponse(resp)
+  }
 }
 
 /**
