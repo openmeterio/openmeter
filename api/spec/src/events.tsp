@@ -268,7 +268,7 @@ model IngestedEvent {
   storedAt: DateTime;
 }
 
-@route("api/v2/events")
+@route("/api/v2/events")
 @tag("Events")
 interface EventsV2 {
   /**
