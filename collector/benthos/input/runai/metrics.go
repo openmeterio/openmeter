@@ -103,7 +103,7 @@ func (s *Service) GetWorkloadMetrics(ctx context.Context, workloadID string, par
 
 	for _, measurement := range result.Measurements {
 		if len(measurement.Values) > 0 {
-			v, err := strconv.ParseFloat(measurement.Values[0].Value, 64)
+			v, err := strconv.ParseFloat(measurement.Values[len(measurement.Values)-1].Value, 64)
 			if err != nil {
 				return m, fmt.Errorf("failed to parse metric value: %w", err)
 			}
@@ -240,7 +240,7 @@ func (s *Service) GetPodMetrics(ctx context.Context, workloadID string, podID st
 
 	for _, measurement := range result.Measurements {
 		if len(measurement.Values) > 0 {
-			v, err := strconv.ParseFloat(measurement.Values[0].Value, 64)
+			v, err := strconv.ParseFloat(measurement.Values[len(measurement.Values)-1].Value, 64)
 			if err != nil {
 				return m, fmt.Errorf("failed to parse metric value: %w", err)
 			}
