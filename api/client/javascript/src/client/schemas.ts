@@ -1646,6 +1646,7 @@ export interface paths {
     /**
      * Cancel subscription
      * @description Cancels the subscription.
+     *     Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancellation time.
      */
     post: operations['cancelSubscription']
     delete?: never
@@ -1691,6 +1692,27 @@ export interface paths {
      *     If not, the migration will be scheduled to the end of the current billing period.
      */
     post: operations['migrateSubscription']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/subscriptions/{subscriptionId}/restore': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Restore subscription
+     * @description Restores a canceled subscription.
+     *     Any subscription scheduled to start later will be deleted and this subscription will be continued indefinitely.
+     */
+    post: operations['restoreSubscription']
     delete?: never
     options?: never
     head?: never
@@ -2134,7 +2156,7 @@ export interface components {
      * @description BillingProfileExpand details what profile fields to expand
      * @enum {string}
      */
-    BillingProfileExpand: 'apps' | '*'
+    BillingProfileExpand: 'apps'
     /**
      * @description BillingProfileOrderBy specifies the ordering options for profiles
      * @enum {string}
@@ -4196,7 +4218,7 @@ export interface components {
      * @description InvoiceExpand specifies the parts of the invoice to expand in the list output.
      * @enum {string}
      */
-    InvoiceExpand: '*' | 'lines' | 'preceding' | 'workflow.apps'
+    InvoiceExpand: 'lines' | 'preceding' | 'workflow.apps'
     /**
      * @description InvoiceFlatFeeCategory determines if the flat fee is a regular fee due to use due to a
      *     commitment.
@@ -17836,6 +17858,91 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  restoreSubscription: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        subscriptionId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Subscription']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */

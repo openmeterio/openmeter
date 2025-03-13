@@ -80,7 +80,7 @@ func (r *subscriptionRepo) GetAllForCustomerSince(ctx context.Context, customerI
 
 func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
-		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).First(ctx)
+		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).Where(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)
 
 		if db.IsNotFound(err) {
 			return subscription.Subscription{}, &subscription.NotFoundError{

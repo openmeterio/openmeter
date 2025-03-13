@@ -1062,6 +1062,151 @@ func TestEditCombinations(t *testing.T) {
 	})
 }
 
+func TestRestore(t *testing.T) {
+	examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
+	// Let's define what deps a test case needs
+	type testCaseDeps struct {
+		CurrentTime     time.Time
+		Customer        customer.Customer
+		WorkflowService subscription.WorkflowService
+		Service         subscription.Service
+		DBDeps          *subscriptiontestutils.DBDeps
+		Plan1           subscription.Plan
+	}
+
+	withDeps := func(t *testing.T) func(fn func(t *testing.T, deps testCaseDeps)) {
+		return func(fn func(t *testing.T, deps testCaseDeps)) {
+			tcDeps := testCaseDeps{
+				CurrentTime: testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z"),
+			}
+
+			clock.SetTime(tcDeps.CurrentTime)
+
+			// Let's build the dependencies
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			require.NotNil(t, dbDeps)
+			defer dbDeps.Cleanup(t)
+
+			services, deps := subscriptiontestutils.NewService(t, dbDeps)
+			deps.FeatureConnector.CreateExampleFeature(t)
+
+			// Let's create the plan
+			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
+
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+
+			tcDeps.Customer = *cust
+			tcDeps.DBDeps = dbDeps
+			tcDeps.Service = services.Service
+			tcDeps.WorkflowService = services.WorkflowService
+			tcDeps.Plan1 = plan1
+
+			fn(t, tcDeps)
+		}
+	}
+
+	t.Run("Should restore a subscription that was canceled", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Let's create an example subscription
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Let's pass some time
+			clock.SetTime(clock.Now().Add(time.Hour))
+
+			// Let's cancel the subscription
+			cancelBy := clock.Now().AddDate(0, 0, 1)
+			s, err := deps.Service.Cancel(ctx, sub.Subscription.NamespacedID, subscription.Timing{
+				Custom: &cancelBy,
+			})
+			require.Nil(t, err)
+
+			// Let's validate its canceled
+			require.Equal(t, subscription.SubscriptionStatusCanceled, s.GetStatusAt(clock.Now()))
+
+			// Let's pass some more time
+			clock.SetTime(clock.Now().Add(time.Hour))
+
+			// Let's restore the subscription
+			restored, err := deps.WorkflowService.Restore(ctx, sub.Subscription.NamespacedID)
+			require.Nil(t, err)
+
+			// Let's validate its active
+			require.Equal(t, subscription.SubscriptionStatusActive, restored.GetStatusAt(clock.Now()))
+		})
+	})
+
+	t.Run("Should restore a subscription that was changed to another plan", func(t *testing.T) {
+		withDeps(t)(func(t *testing.T, deps testCaseDeps) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Let's create an example subscription
+			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscription.CreateSubscriptionWorkflowInput{
+				ChangeSubscriptionWorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Custom: &deps.CurrentTime,
+					},
+					Name: "Example Subscription",
+				},
+				CustomerID: deps.Customer.ID,
+				Namespace:  subscriptiontestutils.ExampleNamespace,
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Let's pass some time
+			clock.SetTime(clock.Now().Add(time.Hour))
+
+			// Let's change to another plan (same plan, but still a change)
+			changeBy := clock.Now().AddDate(0, 0, 1)
+			old, new, err := deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, subscription.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Custom: &changeBy,
+				},
+				Name: "Example Subscription 2",
+			}, deps.Plan1)
+			require.Nil(t, err)
+
+			// Let's validate the change
+			require.Equal(t, subscription.SubscriptionStatusCanceled, old.GetStatusAt(clock.Now()))
+			require.Equal(t, subscription.SubscriptionStatusScheduled, new.Subscription.GetStatusAt(clock.Now()))
+
+			require.Equal(t, subscription.SubscriptionStatusInactive, old.GetStatusAt(changeBy))
+			require.Equal(t, subscription.SubscriptionStatusActive, new.Subscription.GetStatusAt(changeBy))
+
+			// Let's pass some more time
+			clock.SetTime(clock.Now().Add(time.Hour))
+
+			// Let's restore the subscription
+			restored, err := deps.WorkflowService.Restore(ctx, sub.Subscription.NamespacedID)
+			require.Nil(t, err)
+
+			// Let's validate the restored subscription
+			require.Equal(t, subscription.SubscriptionStatusActive, restored.GetStatusAt(clock.Now()))
+			require.Equal(t, subscription.SubscriptionStatusActive, restored.GetStatusAt(changeBy))
+
+			// Let's make sure the new sub was deleted
+			_, err = deps.Service.GetView(ctx, new.Subscription.NamespacedID)
+			require.Error(t, err)
+			require.ErrorAs(t, err, lo.ToPtr(&subscription.NotFoundError{}))
+		})
+	})
+}
+
 var immediate = subscription.Timing{
 	Enum: lo.ToPtr(subscription.TimingImmediate),
 }

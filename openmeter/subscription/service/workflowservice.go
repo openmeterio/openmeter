@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -166,4 +167,40 @@ func (s *workflowService) ChangeToPlan(ctx context.Context, subscriptionID model
 	})
 
 	return r.curr, r.new, err
+}
+
+func (s *workflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	now := clock.Now()
+
+	// Let's fetch the sub
+	sub, err := s.Service.GetView(ctx, subscriptionID)
+	if err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to fetch subscription: %w", err)
+	}
+
+	// Let's get all subs scheduled afterward
+	scheduled, err := s.Service.GetAllForCustomerSince(ctx, models.NamespacedID{
+		Namespace: sub.Subscription.Namespace,
+		ID:        sub.Subscription.CustomerId,
+	}, now)
+	if err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to fetch scheduled subscriptions: %w", err)
+	}
+
+	// Let's filter out the current sub if present
+	scheduled = lo.Filter(scheduled, func(s subscription.Subscription, _ int) bool {
+		return s.NamespacedID != subscriptionID
+	})
+
+	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		// Let's delete all scheduled subs
+		for _, sch := range scheduled {
+			if err := s.Service.Delete(ctx, sch.NamespacedID); err != nil {
+				return subscription.Subscription{}, fmt.Errorf("failed to delete scheduled subscription: %w", err)
+			}
+		}
+
+		// Let's continue the current sub
+		return s.Service.Continue(ctx, subscriptionID)
+	})
 }

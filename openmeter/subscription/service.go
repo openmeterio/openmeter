@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -23,12 +24,15 @@ type Service interface {
 	GetView(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
 	// List lists the subscriptions matching the set criteria
 	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+	// GetAllForCustomerSince returns all subscriptions for the given customer that are active or scheduled to start after the given timestamp
+	GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]Subscription, error)
 }
 
 type WorkflowService interface {
 	CreateFromPlan(ctx context.Context, inp CreateSubscriptionWorkflowInput, plan Plan) (SubscriptionView, error)
 	EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []Patch, timing Timing) (SubscriptionView, error)
 	ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp ChangeSubscriptionWorkflowInput, plan Plan) (current Subscription, new SubscriptionView, err error)
+	Restore(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
 }
 
 type CreateSubscriptionWorkflowInput struct {

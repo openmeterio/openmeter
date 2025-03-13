@@ -234,7 +234,20 @@ interface Subscriptions {
     | OpenMeter.CommonErrors;
 
   /**
+   * Restores a canceled subscription.
+   * Any subscription scheduled to start later will be deleted and this subscription will be continued indefinitely.
+   */
+  @post
+  @operationId("restoreSubscription")
+  @summary("Restore subscription")
+  @route("/{subscriptionId}/restore")
+  restore(
+    @path subscriptionId: ULID,
+  ): Subscription | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
    * Cancels the subscription.
+   * Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancellation time.
    */
   @post
   @operationId("cancelSubscription")

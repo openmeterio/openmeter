@@ -111,3 +111,43 @@ func (h *handler) ContinueSubscription() ContinueSubscriptionHandler {
 		)...,
 	)
 }
+
+type (
+	RestoreSubscriptionRequest = struct {
+		ID models.NamespacedID
+	}
+	RestoreSubscriptionResponse = api.Subscription
+	RestoreSubscriptionParams   = struct {
+		ID string
+	}
+	RestoreSubscriptionHandler = httptransport.HandlerWithArgs[RestoreSubscriptionRequest, RestoreSubscriptionResponse, RestoreSubscriptionParams]
+)
+
+func (h *handler) RestoreSubscription() RestoreSubscriptionHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params RestoreSubscriptionParams) (RestoreSubscriptionRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return RestoreSubscriptionRequest{}, err
+			}
+
+			return RestoreSubscriptionRequest{
+				ID: models.NamespacedID{Namespace: ns, ID: params.ID},
+			}, nil
+		},
+		func(ctx context.Context, req RestoreSubscriptionRequest) (RestoreSubscriptionResponse, error) {
+			sub, err := h.SubscriptionWorkflowService.Restore(ctx, req.ID)
+			if err != nil {
+				return RestoreSubscriptionResponse{}, err
+			}
+
+			return MapSubscriptionToAPI(sub), nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[RestoreSubscriptionResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.Options,
+			httptransport.WithOperationName("restoreSubscription"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
