@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	fieldPrometheusURL      = "url"
-	fieldPrometheusQueries  = "queries"
-	fieldPrometheusSchedule = "schedule"
+	fieldPrometheusURL         = "url"
+	fieldPrometheusQueries     = "queries"
+	fieldPrometheusSchedule    = "schedule"
+	fieldPrometheusQueryOffset = "query_offset"
 )
 
 func prometheusInputConfig() *service.ConfigSpec {
@@ -42,11 +43,15 @@ func prometheusInputConfig() *service.ConfigSpec {
 				Description("The cron expression to use for the scrape job.").
 				Examples("0 * * * * *", "@every 1m").
 				Default("0 * * * * *"),
-		).Example("Basic Configuration", "Collect Prometheus metrics with a scrape interval of 1 minute.", `
+			service.NewDurationField(fieldPrometheusQueryOffset).
+				Description("Indicates how far back in time the scraping should be done to account for delays in metric availability.").
+				Default("0s"),
+		).Example("Basic Configuration", "Collect Prometheus metrics with a scrape interval of 1 minute and a scrape offset of 30 seconds to account for delays in metric availability.", `
 input:
   prometheus:
     url: "${PROMETHEUS_URL:http://localhost:9090}"
     schedule: "0 * * * * *"
+    query_offset: "1m"
     queries:
       - query:
           name: "node_cpu_usage"
@@ -78,14 +83,15 @@ type QueryResult struct {
 var _ service.BatchInput = (*prometheusInput)(nil)
 
 type prometheusInput struct {
-	logger    *service.Logger
-	client    v1.API
-	queries   []PromQuery
-	interval  time.Duration
-	schedule  string
-	scheduler gocron.Scheduler
-	store     map[time.Time][]QueryResult
-	mu        sync.Mutex
+	logger      *service.Logger
+	client      v1.API
+	queries     []PromQuery
+	interval    time.Duration
+	schedule    string
+	queryOffset time.Duration
+	scheduler   gocron.Scheduler
+	store       map[time.Time][]QueryResult
+	mu          sync.Mutex
 }
 
 func newPrometheusInput(conf *service.ParsedConfig, logger *service.Logger) (*prometheusInput, error) {
@@ -95,6 +101,11 @@ func newPrometheusInput(conf *service.ParsedConfig, logger *service.Logger) (*pr
 	}
 
 	schedule, err := conf.FieldString(fieldPrometheusSchedule)
+	if err != nil {
+		return nil, err
+	}
+
+	queryOffset, err := conf.FieldDuration(fieldPrometheusQueryOffset)
 	if err != nil {
 		return nil, err
 	}
@@ -160,14 +171,15 @@ func newPrometheusInput(conf *service.ParsedConfig, logger *service.Logger) (*pr
 	}
 
 	return &prometheusInput{
-		logger:    logger,
-		client:    v1.NewAPI(client),
-		queries:   queries,
-		interval:  interval,
-		schedule:  schedule,
-		scheduler: scheduler,
-		store:     make(map[time.Time][]QueryResult),
-		mu:        sync.Mutex{},
+		logger:      logger,
+		client:      v1.NewAPI(client),
+		queries:     queries,
+		interval:    interval,
+		schedule:    schedule,
+		queryOffset: queryOffset,
+		scheduler:   scheduler,
+		store:       make(map[time.Time][]QueryResult),
+		mu:          sync.Mutex{},
 	}, nil
 }
 
@@ -176,15 +188,21 @@ func (in *prometheusInput) scrape(ctx context.Context, t time.Time) error {
 	// Convert time to UTC
 	t = t.UTC()
 
-	in.logger.Debugf("executing PromQL queries at %s", t.Format(time.RFC3339))
+	// Apply the metrics scrape offset
+	queryTime := t.Add(-in.queryOffset)
+
+	in.logger.Debugf("executing PromQL queries at %s (using query time %s with offset %s)",
+		t.Format(time.RFC3339),
+		queryTime.Format(time.RFC3339),
+		in.queryOffset)
 
 	results := make([]QueryResult, 0, len(in.queries))
 
 	for _, query := range in.queries {
 		in.logger.Tracef("executing query: %s", query.PromQL)
 
-		// Execute the PromQL query
-		result, warnings, err := in.client.Query(ctx, query.PromQL, t)
+		// Execute the PromQL query with the offset applied time
+		result, warnings, err := in.client.Query(ctx, query.PromQL, queryTime)
 		if err != nil {
 			in.logger.Errorf("error executing query %s: %v", query.PromQL, err)
 			return err
@@ -206,7 +224,7 @@ func (in *prometheusInput) scrape(ctx context.Context, t time.Time) error {
 		results = append(results, QueryResult{
 			Name:      query.Name,
 			Query:     query.PromQL,
-			Timestamp: t,
+			Timestamp: queryTime,
 			Values:    vector,
 		})
 	}
@@ -269,6 +287,7 @@ func (in *prometheusInput) ReadBatch(ctx context.Context) (service.MessageBatch,
 			msg := service.NewMessage(encoded)
 			msg.MetaSet("scrape_time", t.Format(time.RFC3339))
 			msg.MetaSet("scrape_interval", in.interval.String())
+			msg.MetaSet("query_offset", in.queryOffset.String())
 			msg.MetaSet("query_name", result.Name)
 			batch = append(batch, msg)
 		}
