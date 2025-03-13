@@ -70,6 +70,8 @@ type Worker struct {
 	billingService      billing.Service
 	subscriptionHandler *billingworkersubscription.Handler
 	asyncAdvanceHandler *asyncadvance.Handler
+
+	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -115,17 +117,26 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, err
 	}
 
+	worker.nonPublishingHandler = eventHandler
+
 	router.AddNoPublisherHandler(
 		"billing_worker_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
-		eventHandler,
+		worker.nonPublishingHandler.Handle,
 	)
 
 	return worker, nil
 }
 
-func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc, error) {
+// AddHandler adds an additional handler to the list of event handlers.
+// Handlers are called in the order they are added and run after the built in handlers.
+// In the case of any handler returning an error, the event will be retried so it is important that all handlers are idempotent.
+func (w *Worker) AddHandler(handler grouphandler.GroupEventHandler) {
+	w.nonPublishingHandler.AddHandler(handler)
+}
+
+func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHandler, error) {
 	handler, err := grouphandler.NewNoPublishingHandler(
 		opts.EventBus.Marshaler(),
 		opts.Router.MetricMeter,
@@ -153,7 +164,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (message.NoPublishHandlerFunc,
 		return nil, fmt.Errorf("failed to create event handler: %w", err)
 	}
 
-	return handler.Handle, nil
+	return handler, nil
 }
 
 func (w *Worker) Run(ctx context.Context) error {
