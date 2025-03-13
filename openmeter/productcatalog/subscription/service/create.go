@@ -10,7 +10,6 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func (s *service) Create(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (subscription.Subscription, error) {
@@ -22,7 +21,6 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		cust, err := s.CustomerService.ListCustomers(ctx, customer.ListCustomersInput{
 			Key:            lo.ToPtr(request.CustomerRef.Key),
 			Namespace:      request.WorkflowInput.Namespace,
-			Page:           pagination.NewPage(1, 1),
 			IncludeDeleted: false,
 		})
 		if err != nil {

@@ -2,22 +2,28 @@ package billingservice
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ billing.CustomerOverrideService = (*Service)(nil)
 
-func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideInput) (*billing.CustomerOverride, error) {
+func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	def := billing.CustomerOverrideWithDetails{}
+
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return def, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	adapterOverride, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.CustomerOverride, error) {
+	adapterOverride, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
 		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Customer: customer.CustomerID{
 				Namespace: input.Namespace,
@@ -27,118 +33,67 @@ func (s *Service) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			IncludeDeleted: true,
 		})
 		if err != nil {
-			return nil, err
+			return def, err
 		}
 
-		// The user doesn't specified a profile, let's use the default
-		if input.ProfileID == "" {
-			defaultProfile, err := s.adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-				Namespace: input.Namespace,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			if defaultProfile == nil {
-				return nil, billing.NotFoundError{
-					Entity: billing.EntityDefaultProfile,
-					Err:    billing.ErrDefaultProfileNotFound,
-				}
-			}
-
-			input.ProfileID = defaultProfile.ID
-		}
-
+		var upsertedOverride *billing.CustomerOverride
 		if existingOverride != nil {
 			// We have an existing override, let's rather update it
-			return s.adapter.UpdateCustomerOverride(ctx, billing.UpdateCustomerOverrideAdapterInput{
-				UpdateCustomerOverrideInput: billing.UpdateCustomerOverrideInput{
-					Namespace:  input.Namespace,
-					CustomerID: input.CustomerID,
-
-					ProfileID: input.ProfileID,
-					UpdatedAt: existingOverride.UpdatedAt,
-
-					Collection: input.Collection,
-					Invoicing:  input.Invoicing,
-					Payment:    input.Payment,
-				},
-				ResetDeletedAt: true,
-			})
+			upsertedOverride, err = s.adapter.UpdateCustomerOverride(ctx, input)
+			if err != nil {
+				return def, err
+			}
+		} else {
+			upsertedOverride, err = s.adapter.CreateCustomerOverride(ctx, input)
+			if err != nil {
+				return def, err
+			}
 		}
 
-		return s.adapter.CreateCustomerOverride(ctx, input)
+		return s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
+			CustomerID: customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+			Override: upsertedOverride,
+		})
 	})
 	if err != nil {
-		return nil, err
+		return def, err
 	}
 
-	return s.resolveCustomerOverride(ctx, adapterOverride)
+	return adapterOverride, nil
 }
 
-func (s *Service) UpdateCustomerOverride(ctx context.Context, input billing.UpdateCustomerOverrideInput) (*billing.CustomerOverride, error) {
+func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	def := billing.CustomerOverrideWithDetails{}
+
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return def, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customer.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if existingOverride == nil {
-		return nil, billing.NotFoundError{
-			ID:     input.CustomerID,
-			Entity: billing.EntityCustomerOverride,
-			Err:    billing.ErrCustomerOverrideNotFound,
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
+		if err := s.customerService.CustomerExists(ctx, input.Customer); err != nil {
+			return def, err
 		}
-	}
 
-	override, err := s.adapter.UpdateCustomerOverride(ctx, billing.UpdateCustomerOverrideAdapterInput{
-		UpdateCustomerOverrideInput: input,
-	})
-	if err != nil {
-		return nil, err
-	}
+		adapterOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+			Customer: input.Customer,
 
-	return s.resolveCustomerOverride(ctx, override)
-}
-
-func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (*billing.CustomerOverride, error) {
-	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
-			Err: err,
+			IncludeDeleted: false,
+		})
+		if err != nil {
+			return def, err
 		}
-	}
 
-	adapterOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customer.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
-
-		IncludeDeleted: false,
+		return s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
+			CustomerID: input.Customer,
+			Override:   adapterOverride,
+			Expand:     input.Expand,
+		})
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	if adapterOverride == nil {
-		return nil, billing.NotFoundError{
-			ID:     input.CustomerID,
-			Entity: billing.EntityCustomerOverride,
-			Err:    billing.ErrCustomerOverrideNotFound,
-		}
-	}
-
-	return s.resolveCustomerOverride(ctx, adapterOverride)
 }
 
 func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
@@ -151,8 +106,8 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Customer: customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
+				Namespace: input.Customer.Namespace,
+				ID:        input.Customer.ID,
 			},
 
 			IncludeDeleted: true,
@@ -163,7 +118,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 		if existingOverride == nil {
 			return billing.NotFoundError{
-				ID:     input.CustomerID,
+				ID:     input.Customer.ID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideNotFound,
 			}
@@ -171,7 +126,7 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 
 		if existingOverride.DeletedAt != nil {
 			return billing.NotFoundError{
-				ID:     input.CustomerID,
+				ID:     input.Customer.ID,
 				Entity: billing.EntityCustomerOverride,
 				Err:    billing.ErrCustomerOverrideAlreadyDeleted,
 			}
@@ -181,130 +136,201 @@ func (s *Service) DeleteCustomerOverride(ctx context.Context, input billing.Dele
 	})
 }
 
-func (s *Service) GetProfileWithCustomerOverride(ctx context.Context, input billing.GetProfileWithCustomerOverrideInput) (*billing.ProfileWithCustomerDetails, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*billing.ProfileWithCustomerDetails, error) {
-		return s.getProfileWithCustomerOverride(ctx, s.adapter, input)
-	})
-}
-
-func (s *Service) getProfileWithCustomerOverride(ctx context.Context, adapter billing.Adapter, input billing.GetProfileWithCustomerOverrideInput) (*billing.ProfileWithCustomerDetails, error) {
+func (s *Service) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
 	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return billing.ListCustomerOverridesResult{}, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	// TODO[later]: We need cross service transactions to include this in the same transaction as the calculation itself
-	customer, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: input.Namespace,
-		ID:        input.CustomerID,
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.ListCustomerOverridesResult, error) {
+		res, err := s.adapter.ListCustomerOverrides(ctx, input)
+		if err != nil {
+			return billing.ListCustomerOverridesResult{}, err
+		}
+
+		// For list let's not fetch the customers one by one, let's do it in a single query
+		customersByID := make(map[string]customer.Customer, len(res.Items))
+		if input.Expand.Customer {
+			customers, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+				Namespace: input.Namespace,
+				CustomerIDs: lo.Map(res.Items, func(override billing.CustomerOverrideWithCustomerID, _ int) string {
+					return override.CustomerID.ID
+				}),
+			})
+			if err != nil {
+				return billing.ListCustomerOverridesResult{}, err
+			}
+
+			for _, c := range customers.Items {
+				customersByID[c.ID] = c
+			}
+		}
+
+		var defaultProfile *billing.Profile
+		// Let's see if we need to fetch the default profile
+
+		_, needDefaultProfile := lo.Find(res.Items, func(override billing.CustomerOverrideWithCustomerID) bool {
+			return override.CustomerOverride == nil || override.CustomerOverride.Profile == nil
+		})
+
+		if needDefaultProfile {
+			defaultProfile, err = s.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+				Namespace: input.Namespace,
+			})
+			if err != nil {
+				return billing.ListCustomerOverridesResult{}, err
+			}
+		}
+
+		return pagination.MapPagedResponseError(res, func(override billing.CustomerOverrideWithCustomerID) (billing.CustomerOverrideWithDetails, error) {
+			res, err := s.resolveCustomerOverrideWithDetails(ctx, resolveCustomerOverrideWithDetailsInput{
+				CustomerID:         override.CustomerID,
+				Override:           override.CustomerOverride,
+				DefaultProfile:     defaultProfile,
+				Expand:             input.Expand,
+				CustomersByIdCache: customersByID,
+			})
+			if err != nil {
+				return billing.CustomerOverrideWithDetails{}, err
+			}
+
+			return res, nil
+		})
 	})
-	if err != nil {
-		// This popagates the not found error
-		return nil, err
-	}
-
-	billingProfileWithOverrides, err := s.getProfileWithCustomerOverrideMerges(ctx, adapter, input)
-	if err != nil {
-		return nil, err
-	}
-
-	return &billing.ProfileWithCustomerDetails{
-		Profile:  *billingProfileWithOverrides,
-		Customer: *customer,
-	}, nil
 }
 
-// getProfileWithCustomerOverrideMerges fetches the billing profile with the customer specific overrides applied,
-// if any. If there are no overrides, it returns the default billing profile.
-//
-// This function does not perform validations or customer entity overrides.
-func (s *Service) getProfileWithCustomerOverrideMerges(ctx context.Context, adapter billing.Adapter, input billing.GetProfileWithCustomerOverrideInput) (*billing.Profile, error) {
-	adapterOverride, err := adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
-		Customer: customer.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
+type resolveCustomerOverrideWithDetailsInput struct {
+	CustomerID     customer.CustomerID
+	Override       *billing.CustomerOverride
+	DefaultProfile *billing.Profile
+	Expand         billing.CustomerOverrideExpand
+
+	CustomersByIdCache map[string]customer.Customer
+}
+
+func (v resolveCustomerOverrideWithDetailsInput) GetCustomerFromCache(id string) (customer.Customer, bool) {
+	if v.CustomersByIdCache == nil {
+		return customer.Customer{}, false
+	}
+
+	customer, found := v.CustomersByIdCache[id]
+	return customer, found
+}
+
+func (v *resolveCustomerOverrideWithDetailsInput) GetDefaultProfile(ctx context.Context, svc *Service) (*billing.Profile, error) {
+	if v.DefaultProfile != nil {
+		return v.DefaultProfile, nil
+	}
+
+	return svc.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: v.CustomerID.Namespace,
 	})
-	if err != nil {
-		return nil, err
+}
+
+func (v resolveCustomerOverrideWithDetailsInput) Validate() error {
+	if err := v.CustomerID.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: fmt.Errorf("invalid customer ID: %w", err),
+		}
 	}
 
-	override, err := s.resolveCustomerOverride(ctx, adapterOverride)
-	if err != nil {
-		return nil, err
+	return nil
+}
+
+func (s *Service) resolveCustomerOverrideWithDetails(ctx context.Context, in resolveCustomerOverrideWithDetailsInput) (billing.CustomerOverrideWithDetails, error) {
+	def := billing.CustomerOverrideWithDetails{}
+
+	if err := in.Validate(); err != nil {
+		return def, err
 	}
 
-	if override == nil || override.DeletedAt != nil {
-		// Let's fetch the default billing profile
-		defaultProfile, err := adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: input.Namespace,
-		})
+	details, err := s.resolveProfileWorkflow(ctx, in)
+	if err != nil {
+		return def, err
+	}
+
+	if details.Expand.Customer {
+		if cachedCustomer, ok := in.GetCustomerFromCache(in.CustomerID.ID); ok {
+			details.Customer = &cachedCustomer
+		} else {
+			cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput(in.CustomerID))
+			if err != nil {
+				return def, err
+			}
+
+			details.Customer = cust
+		}
+	}
+
+	if details.Expand.Apps {
+		profileWithApps, err := s.resolveProfileApps(ctx, &details.MergedProfile.BaseProfile)
 		if err != nil {
-			return nil, err
+			return def, err
+		}
+
+		details.MergedProfile.Apps = profileWithApps.Apps
+	}
+
+	return details, nil
+}
+
+// resolveProfileWorkflow resolves the profile workflow for a customer override, popuplates the baseline profile and the
+// merged profile for the output.
+func (s *Service) resolveProfileWorkflow(ctx context.Context, in resolveCustomerOverrideWithDetailsInput) (billing.CustomerOverrideWithDetails, error) {
+	def := billing.CustomerOverrideWithDetails{}
+
+	// If there is no override or it's deleted, let's use the default profile
+	if in.Override == nil || in.Override.DeletedAt != nil {
+		defaultProfile, err := in.GetDefaultProfile(ctx, s)
+		if err != nil {
+			return def, err
 		}
 
 		if defaultProfile == nil {
-			return nil, billing.NotFoundError{
+			return def, billing.NotFoundError{
 				Entity: billing.EntityDefaultProfile,
 				Err:    billing.ErrDefaultProfileNotFound,
 			}
 		}
 
-		return s.resolveProfileApps(ctx, defaultProfile.BaseProfileOrEmpty())
+		return billing.CustomerOverrideWithDetails{
+			Expand:        in.Expand,
+			MergedProfile: *defaultProfile,
+		}, nil
 	}
 
 	// We have an active override, let's see what's the baseline profile
-	baselineProfile := override.Profile
+	baselineProfile := in.Override.Profile
 	if baselineProfile == nil {
 		// Let's fetch the default billing profile
-		defaultBaseProfile, err := adapter.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-			Namespace: input.Namespace,
-		})
+		defaultProfile, err := in.GetDefaultProfile(ctx, s)
 		if err != nil {
-			return nil, err
+			return def, err
 		}
 
-		baselineProfile, err = s.resolveProfileApps(ctx, defaultBaseProfile.BaseProfileOrEmpty())
-		if err != nil {
-			return nil, err
-		}
-
-		if baselineProfile == nil {
-			return nil, billing.NotFoundError{
+		if defaultProfile == nil {
+			return def, billing.NotFoundError{
 				Entity: billing.EntityDefaultProfile,
 				Err:    billing.ErrDefaultProfileNotFound,
 			}
 		}
+
+		baselineProfile = defaultProfile
 	}
 
 	// We have the patches and the profile, let's merge them
-	profile := baselineProfile.Merge(override)
+	profile := baselineProfile.Merge(in.Override)
 
 	if err := profile.Validate(); err != nil {
-		return nil, billing.ValidationError{
+		return def, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return &profile, nil
-}
-
-func (s *Service) resolveCustomerOverride(ctx context.Context, input *billing.CustomerOverride) (*billing.CustomerOverride, error) {
-	if input == nil {
-		return nil, nil
-	}
-
-	out := *input
-
-	if input.Profile != nil {
-		profile, err := s.resolveProfileApps(ctx, &input.Profile.BaseProfile)
-		if err != nil {
-			return nil, err
-		}
-
-		out.Profile = profile
-	}
-
-	return &out, nil
+	return billing.CustomerOverrideWithDetails{
+		Expand:           in.Expand,
+		CustomerOverride: in.Override,
+		MergedProfile:    profile,
+	}, nil
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -292,19 +291,6 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 	}
 
 	return p
-}
-
-type ProfileWithCustomerDetails struct {
-	Profile  Profile           `json:"profile"`
-	Customer customer.Customer `json:"customer"`
-}
-
-func (p ProfileWithCustomerDetails) Validate() error {
-	if err := p.Profile.Validate(); err != nil {
-		return fmt.Errorf("invalid profile: %w", err)
-	}
-
-	return nil
 }
 
 type ProfileAppReferences struct {

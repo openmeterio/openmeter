@@ -48,7 +48,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		type UpsertedInvoiceWithProfile struct {
 			InvoiceID       billing.InvoiceID
-			CustomerProfile *billing.ProfileWithCustomerDetails
+			CustomerProfile billing.CustomerOverrideWithDetails
 			IsInvoiceNew    bool
 		}
 
@@ -71,9 +71,14 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 				},
 				func(ctx context.Context) ([]*billing.Line, error) {
 					// let's resolve the customer's settings
-					customerProfile, err := s.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-						Namespace:  input.Namespace,
-						CustomerID: customerID,
+					customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+						Customer: customer.CustomerID{
+							Namespace: input.Namespace,
+							ID:        customerID,
+						},
+						Expand: billing.CustomerOverrideExpand{
+							Customer: true,
+						},
 					})
 					if err != nil {
 						return nil, fmt.Errorf("fetching customer profile: %w", err)
@@ -172,7 +177,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			}
 
 			// Update invoice if collectionAt field has changed
-			collectionConfig := upsertedInvoice.CustomerProfile.Profile.WorkflowConfig.Collection
+			collectionConfig := upsertedInvoice.CustomerProfile.MergedProfile.WorkflowConfig.Collection
 			collectionAt := invoice.CollectionAt
 			if ok := UpdateInvoiceCollectionAt(&invoice, collectionConfig); ok {
 				s.logger.DebugContext(ctx, "collection time updated for invoice",
@@ -205,7 +210,7 @@ type upsertGatheringInvoiceForCurrencyResponse struct {
 	IsInvoiceNew bool
 }
 
-func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, input billing.CreateInvoiceLinesInput, customerProfile *billing.ProfileWithCustomerDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
+func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, input billing.CreateInvoiceLinesInput, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
 		Page: pagination.Page{
@@ -239,8 +244,8 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		// Create a new invoice
 		invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 			Namespace: input.Namespace,
-			Customer:  customerProfile.Customer,
-			Profile:   customerProfile.Profile,
+			Customer:  lo.FromPtr(customerProfile.Customer),
+			Profile:   customerProfile.MergedProfile,
 			Number:    invoiceNumber,
 			Currency:  currency,
 			Status:    billing.InvoiceStatusGathering,

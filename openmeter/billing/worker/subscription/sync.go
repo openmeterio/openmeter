@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -81,11 +82,13 @@ func New(config Config) (*Handler, error) {
 func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
 	// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 	// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-	_, err := h.billingService.GetProfileWithCustomerOverride(
+	_, err := h.billingService.GetCustomerOverride(
 		ctx,
-		billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  subs.Subscription.Namespace,
-			CustomerID: subs.Subscription.CustomerId,
+		billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: subs.Subscription.Namespace,
+				ID:        subs.Subscription.CustomerId,
+			},
 		},
 	)
 	if err != nil {

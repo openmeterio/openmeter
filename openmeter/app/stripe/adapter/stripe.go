@@ -20,7 +20,6 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ appstripe.AppStripeAdapter = (*adapter)(nil)
@@ -397,7 +396,6 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 			customers, err := repo.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 				Namespace: input.Namespace,
 				Key:       input.CustomerKey,
-				Page:      pagination.NewPage(1, 1),
 			})
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to list customers: %w", err)

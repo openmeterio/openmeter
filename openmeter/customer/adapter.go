@@ -19,4 +19,5 @@ type CustomerAdapter interface {
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
+	CustomerExists(ctx context.Context, customer CustomerID) error
 }

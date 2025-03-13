@@ -18,6 +18,7 @@ type Handler interface {
 	ProfileHandler
 	InvoiceLineHandler
 	InvoiceHandler
+	CustomerOverrideHandler
 }
 
 type ProfileHandler interface {
@@ -40,6 +41,13 @@ type InvoiceHandler interface {
 	UpdateInvoice() UpdateInvoiceHandler
 	ProgressInvoice(ProgressAction) ProgressInvoiceHandler
 	SimulateInvoice() SimulateInvoiceHandler
+}
+
+type CustomerOverrideHandler interface {
+	ListCustomerOverrides() ListCustomerOverridesHandler
+	UpsertCustomerOverride() UpsertCustomerOverrideHandler
+	GetCustomerOverride() GetCustomerOverrideHandler
+	DeleteCustomerOverride() DeleteCustomerOverrideHandler
 }
 
 type handler struct {

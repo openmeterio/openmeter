@@ -70,6 +70,10 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 				query = query.Where(customerdb.HasSubscriptionWith(subscriptiondb.HasPlanWith(plandb.Key(*input.PlanKey))))
 			}
 
+			if len(input.CustomerIDs) > 0 {
+				query = query.Where(customerdb.IDIn(input.CustomerIDs...))
+			}
+
 			// Order
 			order := entutils.GetOrdering(sortx.OrderDefault)
 			if !input.Order.IsDefaultValue() {
@@ -510,6 +514,25 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				return CustomerFromDBEntity(*entity)
 			},
 		)
+	})
+}
+
+func (a *adapter) CustomerExists(ctx context.Context, customerID customer.CustomerID) error {
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
+		count, err := repo.db.Customer.Query().
+			Where(customerdb.Namespace(customerID.Namespace)).
+			Where(customerdb.ID(customerID.ID)).
+			Where(customerdb.DeletedAtIsNil()).
+			Count(ctx)
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			return customer.NewNotFoundError(customerID)
+		}
+
+		return nil
 	})
 }
 

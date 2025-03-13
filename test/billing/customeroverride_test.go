@@ -26,16 +26,26 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	// Given we have a non-existing customer
 	nonExistingCustomerID := "non-existing-customer-id"
 	ns := "test-ns"
+	ctx := context.Background()
+
+	s.InstallSandboxApp(s.T(), ns)
+	profileInput := MinimalCreateProfileInputTemplate
+	profileInput.Namespace = ns
+
+	_, err := s.BillingService.CreateProfile(ctx, profileInput)
+	require.NoError(s.T(), err)
 
 	// When querying the customer's billing profile overrides
-	customerEntity, err := s.BillingService.GetProfileWithCustomerOverride(context.Background(), billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  ns,
-		CustomerID: nonExistingCustomerID,
+	customerEntity, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customer.CustomerID{
+			Namespace: ns,
+			ID:        nonExistingCustomerID,
+		},
 	})
 
 	// Then we get a customer not found error
 	require.True(s.T(), customer.IsNotFoundError(err), "expect a customer not found error")
-	require.Nil(s.T(), customerEntity)
+	require.Empty(s.T(), customerEntity)
 }
 
 func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
@@ -45,26 +55,28 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 	_ = s.InstallSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})
 	require.NoError(s.T(), err)
-	require.NotNil(s.T(), customer)
-	customerID := customer.ID
+	require.NotNil(s.T(), cust)
+	customerID := cust.ID
 
 	s.T().Run("customer without default profile, no override", func(t *testing.T) {
 		// When not having a default profile
 		// Then we get a NotFoundError
-		profileWithOverride, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customerID,
+		profileWithOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        customerID,
+			},
 		})
 		require.ErrorIs(t, err, billing.ErrDefaultProfileNotFound)
 		require.ErrorAs(t, err, &billing.NotFoundError{})
-		require.Nil(t, profileWithOverride)
+		require.Empty(t, profileWithOverride)
 	})
 
 	var defaultProfile *billing.Profile
@@ -78,25 +90,31 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 		require.NoError(t, err)
 		require.NotNil(t, defaultProfile)
 
+		// Let's fetch the default profile again to make sure we have truncated timestamps
+		defaultProfile, err = s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+			Namespace: ns,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, defaultProfile)
+
 		// When fetching the profile
-		customerProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customerID,
+		customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        customerID,
+			},
 		})
 
 		// Then we get the default profile as the customer profile
 		require.NoError(t, err)
 		require.NotNil(t, customerProfile)
 
-		defaultProfile.CreatedAt = customerProfile.Profile.CreatedAt
-		defaultProfile.UpdatedAt = customerProfile.Profile.UpdatedAt
-
-		require.Equal(t, *defaultProfile, customerProfile.Profile)
+		require.Equal(t, defaultProfile.BaseProfile, customerProfile.MergedProfile.BaseProfile)
 	})
 
 	s.T().Run("customer with default profile, with override", func(t *testing.T) {
 		// Given we have an override for the customer
-		createdCustomerOverride, err := s.BillingService.CreateCustomerOverride(ctx, billing.CreateCustomerOverrideInput{
+		createdCustomerOverride, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 			Namespace:  ns,
 			CustomerID: customerID,
 
@@ -116,16 +134,18 @@ func (s *CustomerOverrideTestSuite) TestDefaultProfileHandling() {
 		require.NoError(t, err)
 		require.NotNil(t, createdCustomerOverride)
 		// When fetching the override
-		customerProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customerID,
+		customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        customerID,
+			},
 		})
 
 		// Then we get the override as the customer profile
 		require.NoError(t, err)
 		require.NotNil(t, customerProfile)
 
-		wfConfig := customerProfile.Profile.WorkflowConfig
+		wfConfig := customerProfile.MergedProfile.WorkflowConfig
 
 		require.Equal(t, wfConfig.Collection.Interval, isodate.MustParse(t, "PT1H"))
 		require.Equal(t, wfConfig.Invoicing.AutoAdvance, false)
@@ -142,15 +162,15 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	_ = s.InstallSandboxApp(s.T(), ns)
 
 	// Given we have an existing customer
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})
 	require.NoError(s.T(), err)
-	require.NotNil(s.T(), customer)
-	customerID := customer.ID
+	require.NotNil(s.T(), cust)
+	customerID := cust.ID
 
 	// Given we have a non-default profile
 	profileInput := MinimalCreateProfileInputTemplate
@@ -164,18 +184,20 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 	s.T().Run("customer without default profile, no profile override", func(t *testing.T) {
 		// When not having a default profile
 		// Then we get a NotFoundError
-		profileWithOverride, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customerID,
+		profileWithOverride, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        customerID,
+			},
 		})
 		require.ErrorIs(t, err, billing.ErrDefaultProfileNotFound)
 		require.ErrorAs(t, err, &billing.NotFoundError{})
-		require.Nil(t, profileWithOverride)
+		require.Empty(t, profileWithOverride)
 	})
 
 	s.T().Run("customer without default profile, with override", func(t *testing.T) {
 		// Given we have an override for the customer
-		createdCustomerOverride, err := s.BillingService.CreateCustomerOverride(ctx, billing.CreateCustomerOverrideInput{
+		createdCustomerOverride, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 			Namespace:  ns,
 			CustomerID: customerID,
 			ProfileID:  pinnedProfile.ID,
@@ -188,16 +210,18 @@ func (s *CustomerOverrideTestSuite) TestPinnedProfileHandling() {
 		require.NoError(t, err)
 		require.NotNil(t, createdCustomerOverride)
 		// When fetching the override
-		customerProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customerID,
+		customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        customerID,
+			},
 		})
 
 		// Then we get the override as the customer profile
 		require.NoError(t, err)
 		require.NotNil(t, customerProfile)
 
-		wfConfig := customerProfile.Profile.WorkflowConfig
+		wfConfig := customerProfile.MergedProfile.WorkflowConfig
 
 		require.Equal(t, wfConfig.Collection.Interval, isodate.MustParse(s.T(), "PT1H"))
 		require.Equal(t, wfConfig.Invoicing.AutoAdvance, true)
@@ -214,20 +238,22 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 	s.InstallSandboxApp(s.T(), ns)
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 		CustomerMutate: customer.CustomerMutate{
 			Name: "Johny the Doe",
 		},
 	})
 	require.NoError(s.T(), err)
-	require.NotNil(s.T(), customer)
+	require.NotNil(s.T(), cust)
 
 	s.T().Run("delete non-existingoverride", func(t *testing.T) {
 		// When deleting a non-existing override
 		err := s.BillingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customer.ID,
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        cust.ID,
+			},
 		})
 
 		// Then we get a NotFoundError
@@ -243,9 +269,9 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 	s.T().Run("create, delete, create override", func(t *testing.T) {
 		// Given we have an override for the customer
-		createdCustomerOverride, err := s.BillingService.CreateCustomerOverride(ctx, billing.CreateCustomerOverrideInput{
+		createdCustomerOverride, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 			Namespace:  ns,
-			CustomerID: customer.ID,
+			CustomerID: cust.ID,
 
 			Collection: billing.CollectionOverrideConfig{
 				Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT1234H")),
@@ -257,38 +283,34 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 
 		// When deleting the override
 		err = s.BillingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customer.ID,
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        cust.ID,
+			},
 		})
 
 		// Then the override is deleted
 		require.NoError(t, err)
 
 		// When fetching the customer profile
-		customerProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customer.ID,
+		customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: ns,
+				ID:        cust.ID,
+			},
 		})
 
 		// Then we get a NotFoundError
 		require.NoError(t, err)
 		require.NotNil(t, customerProfile)
-		require.Equal(t, defaultProfile.WorkflowConfig.Collection.Interval, customerProfile.Profile.WorkflowConfig.Collection.Interval)
-
-		// When fetching the override
-		_, err = s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-			Namespace:  ns,
-			CustomerID: customer.ID,
-		})
-
-		// Then we get a NotFoundError
-		require.ErrorAs(t, err, &billing.NotFoundError{})
+		require.Equal(t, defaultProfile.WorkflowConfig.Collection.Interval, customerProfile.MergedProfile.WorkflowConfig.Collection.Interval)
+		require.Nil(t, customerProfile.CustomerOverride, "expect the customer override to be nil, as it has been deleted")
 
 		// When creating the override again
 		// Note: this is an implicit update test
-		createdCustomerOverride, err = s.BillingService.CreateCustomerOverride(ctx, billing.CreateCustomerOverrideInput{
+		createdCustomerOverride, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 			Namespace:  ns,
-			CustomerID: customer.ID,
+			CustomerID: cust.ID,
 
 			Collection: billing.CollectionOverrideConfig{
 				Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT48H")),
@@ -298,7 +320,7 @@ func (s *CustomerOverrideTestSuite) TestSanityOverrideOperations() {
 		// Then the override is created
 		require.NoError(t, err)
 		require.NotNil(t, createdCustomerOverride)
-		require.Equal(t, *createdCustomerOverride.Collection.Interval, isodate.MustParse(s.T(), "PT48H"))
+		require.Equal(t, *createdCustomerOverride.CustomerOverride.Collection.Interval, isodate.MustParse(s.T(), "PT48H"))
 	})
 }
 
@@ -309,7 +331,7 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 
 	_ = s.InstallSandboxApp(s.T(), ns)
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
 		CustomerMutate: customer.CustomerMutate{
@@ -320,9 +342,16 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 			},
 		},
 	})
-
 	require.NoError(s.T(), err)
-	require.NotNil(s.T(), customer)
+	require.NotNil(s.T(), cust)
+
+	// Let's fetch the customer again to make sure we have truncated timestamps
+	cust, err = s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		Namespace: ns,
+		ID:        cust.ID,
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), cust)
 
 	profileInput := MinimalCreateProfileInputTemplate
 	profileInput.Namespace = ns
@@ -332,17 +361,21 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 	require.NotNil(s.T(), defaultProfile)
 
 	// When querying the customer's billing profile overrides
-	customerProfile, err := s.BillingService.GetProfileWithCustomerOverride(ctx, billing.GetProfileWithCustomerOverrideInput{
-		Namespace:  ns,
-		CustomerID: customer.ID,
+	customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customer.CustomerID{
+			Namespace: ns,
+			ID:        cust.ID,
+		},
+		Expand: billing.CustomerOverrideExpand{
+			Customer: true,
+		},
 	})
 
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customerProfile)
 
 	// Then we get the customer object, name and billing address gets overridden
-	require.Equal(s.T(), customer.Name, customerProfile.Customer.Name)
-	require.Equal(s.T(), customer.BillingAddress, customerProfile.Customer.BillingAddress)
+	require.Equal(s.T(), *cust, *customerProfile.Customer)
 }
 
 func (s *CustomerOverrideTestSuite) TestNullSetting() {
@@ -352,7 +385,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 
 	_ = s.InstallSandboxApp(s.T(), ns)
 
-	customer, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: ns,
 
 		CustomerMutate: customer.CustomerMutate{
@@ -361,7 +394,7 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	})
 
 	require.NoError(s.T(), err)
-	require.NotNil(s.T(), customer)
+	require.NotNil(s.T(), cust)
 
 	profileInput := MinimalCreateProfileInputTemplate
 	profileInput.Namespace = ns
@@ -370,9 +403,9 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), defaultProfile)
 
-	createdCustomerOverride, err := s.BillingService.CreateCustomerOverride(ctx, billing.CreateCustomerOverrideInput{
+	createdCustomerOverride, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 		Namespace:  ns,
-		CustomerID: customer.ID,
+		CustomerID: cust.ID,
 
 		Collection: billing.CollectionOverrideConfig{
 			Interval: lo.ToPtr(isodate.MustParse(s.T(), "PT1H")),
@@ -382,10 +415,9 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 	require.NotNil(s.T(), createdCustomerOverride)
 
 	// When updating the override with null values
-	updatedCustomerOverride, err := s.BillingService.UpdateCustomerOverride(ctx, billing.UpdateCustomerOverrideInput{
+	updatedCustomerOverride, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 		Namespace:  ns,
-		CustomerID: customer.ID,
-		UpdatedAt:  createdCustomerOverride.UpdatedAt,
+		CustomerID: cust.ID,
 
 		Collection: billing.CollectionOverrideConfig{
 			Interval: nil,
@@ -397,11 +429,171 @@ func (s *CustomerOverrideTestSuite) TestNullSetting() {
 
 	// Then the override is updated with the null values
 	customerProfile, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Namespace:  ns,
-		CustomerID: customer.ID,
+		Customer: customer.CustomerID{
+			Namespace: ns,
+			ID:        cust.ID,
+		},
 	})
 
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), customerProfile)
-	require.Nil(s.T(), customerProfile.Collection.Interval)
+	require.Nil(s.T(), customerProfile.CustomerOverride.Collection.Interval)
+}
+
+func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {
+	ns := "test-list-customer-overrides"
+	ctx := context.Background()
+
+	_ = s.InstallSandboxApp(s.T(), ns)
+
+	// Given we have a default profile and an override profile
+
+	defaultProfileCreateInput := MinimalCreateProfileInputTemplate
+	defaultProfileCreateInput.Namespace = ns
+
+	defaultProfile, err := s.BillingService.CreateProfile(ctx, defaultProfileCreateInput)
+	require.NoError(s.T(), err)
+
+	overrideProfileCreateInput := MinimalCreateProfileInputTemplate
+	overrideProfileCreateInput.Namespace = ns
+	overrideProfileCreateInput.Default = false
+
+	overrideProfile, err := s.BillingService.CreateProfile(ctx, overrideProfileCreateInput)
+	require.NoError(s.T(), err)
+
+	customers := []*customer.Customer{}
+	for _, name := range []string{"custNoOverride", "custOverride", "custPinnedToDefault"} {
+		cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: ns,
+			CustomerMutate: customer.CustomerMutate{
+				Name: name,
+			},
+		})
+		require.NoError(s.T(), err)
+		customers = append(customers, cust)
+	}
+
+	// Given we have a customer with no override (uses default profile)
+
+	custNoOverride := customers[0]
+
+	// Given we have a customer with an override (uses override profile)
+
+	custOverrideProfile := customers[1]
+	_, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: custOverrideProfile.ID,
+		ProfileID:  overrideProfile.ID,
+	})
+	require.NoError(s.T(), err)
+
+	// Given we have a customer with an override (uses *default* profile)
+
+	custPinnedToDefaultProfile := customers[2]
+	_, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: custPinnedToDefaultProfile.ID,
+		ProfileID:  defaultProfile.ID,
+	})
+	require.NoError(s.T(), err)
+
+	// When listing the customer overrides
+
+	tcs := []struct {
+		name              string
+		listInput         billing.ListCustomerOverridesInput
+		expectedCustomers []*customer.Customer
+	}{
+		{
+			// When there's no filter only customers with overrides are returned
+			name:      "no filter",
+			listInput: billing.ListCustomerOverridesInput{},
+			expectedCustomers: []*customer.Customer{
+				custOverrideProfile,
+				custPinnedToDefaultProfile,
+			},
+		},
+		{
+			// When we require all customers, all customers are returned
+			name: "all customers",
+			listInput: billing.ListCustomerOverridesInput{
+				IncludeAllCustomers: true,
+			},
+			expectedCustomers: customers,
+		},
+		{
+			// When we filter by profile ID, only customers with explicit overrides for that profile are returned
+			name: "filter by profile ID",
+			listInput: billing.ListCustomerOverridesInput{
+				BillingProfiles: []string{defaultProfile.ID},
+			},
+			expectedCustomers: []*customer.Customer{
+				custPinnedToDefaultProfile,
+			},
+		},
+		{
+			// When we filter by profile ID, but enable IncludeAllCustomers, for default profile we get all customers that either explicitly use the default profile or not set any profile
+			name: "filter by profile ID, include all customers",
+			listInput: billing.ListCustomerOverridesInput{
+				BillingProfiles:     []string{defaultProfile.ID},
+				IncludeAllCustomers: true,
+			},
+			expectedCustomers: []*customer.Customer{
+				custNoOverride,
+				custPinnedToDefaultProfile,
+			},
+		},
+		{
+			// When we filter by customer name, we get the customers that match the name
+			name: "filter by customer name",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomerName: "override",
+			},
+			expectedCustomers: []*customer.Customer{
+				custOverrideProfile,
+			},
+		},
+		{
+			// When we filter by customer name, but don't have any customers that match, we get an empty list
+			name: "filter by customer name, no customers match",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomerName: "noOverride",
+			},
+			expectedCustomers: []*customer.Customer{},
+		},
+		{
+			// When we filter by customer name and enable IncludeAllCustomers we get a match even if the customer has no override
+			name: "filter by customer name, include all customers",
+			listInput: billing.ListCustomerOverridesInput{
+				CustomerName:        "noOverride",
+				IncludeAllCustomers: true,
+			},
+			expectedCustomers: []*customer.Customer{
+				custNoOverride,
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		s.T().Run(tc.name, func(t *testing.T) {
+			tc.listInput.Expand = billing.CustomerOverrideExpand{
+				Customer: true,
+			}
+
+			tc.listInput.Namespace = ns
+
+			customerOverrides, err := s.BillingService.ListCustomerOverrides(ctx, tc.listInput)
+			require.NoError(t, err)
+
+			expectedCustomerNames := lo.Map(tc.expectedCustomers, func(c *customer.Customer, _ int) string {
+				return c.Name
+			})
+
+			actualCustomerNames := lo.Map(customerOverrides.Items, func(co billing.CustomerOverrideWithDetails, _ int) string {
+				return co.Customer.Name
+			})
+
+			require.ElementsMatch(t, expectedCustomerNames, actualCustomerNames)
+		})
+	}
 }

@@ -50,8 +50,8 @@ func MapAddress(apiAddress *api.Address) *models.Address {
 	return &address
 }
 
-// customerToAPI converts a Customer to an API Customer
-func customerToAPI(c customer.Customer) (api.Customer, error) {
+// CustomerToAPI converts a Customer to an API Customer
+func CustomerToAPI(c customer.Customer) (api.Customer, error) {
 	apiCustomer := api.Customer{
 		Id:                    c.ManagedResource.ID,
 		Key:                   c.Key,

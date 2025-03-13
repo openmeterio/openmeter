@@ -419,29 +419,24 @@ paths:
       summary: List customer overrides
       description: List customer overrides
       parameters:
-        - name: billingProfile
-          in: query
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-              description: ULID (Universally Unique Lexicographically Sortable Identifier).
-              example: 01G65Z755AFWAKHE12NY0CQ9FH
-        - $ref: '#/components/parameters/Pagination.page'
-        - $ref: '#/components/parameters/Pagination.pageSize'
-        - $ref: '#/components/parameters/LimitOffset.offset'
-        - $ref: '#/components/parameters/LimitOffset.limit'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.billingProfile'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.includeAllCustomers'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customerId'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customerName'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customerKey'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.customerPrimaryEmail'
+        - $ref: '#/components/parameters/BillingProfileListCustomerOverridesParams.expand'
         - $ref: '#/components/parameters/BillingProfileCustomerOverrideOrderByOrdering.order'
         - $ref: '#/components/parameters/BillingProfileCustomerOverrideOrderByOrdering.orderBy'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingProfileCustomerOverridePaginatedResponse'
+                $ref: '#/components/schemas/BillingProfileCustomerOverrideWithDetailsPaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -481,7 +476,7 @@ paths:
       tags:
         - Billing (Beta)
   /api/v1/billing/customers/{customerId}:
-    post:
+    put:
       operationId: upsertBillingProfileCustomerOverride
       summary: Create a new or update a customer override
       description: Create a new or update an existing customer override.
@@ -499,15 +494,7 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                  - $ref: '#/components/schemas/BillingProfileCustomerOverride'
-                  - $ref: '#/components/schemas/BillingProfileCustomerOverride'
-        '201':
-          description: The request has succeeded and a new resource has been created as a result.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BillingProfileCustomerOverride'
+                $ref: '#/components/schemas/BillingProfileCustomerOverrideWithDetails'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -570,13 +557,20 @@ paths:
             type: string
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - name: expand
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingProfileCustomerOverrideExpand'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingProfileCustomerOverride'
+                $ref: '#/components/schemas/BillingProfileCustomerOverrideWithDetails'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -764,8 +758,6 @@ paths:
         - $ref: '#/components/parameters/InvoiceListParams.includeDeleted'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
-        - $ref: '#/components/parameters/LimitOffset.offset'
-        - $ref: '#/components/parameters/LimitOffset.limit'
         - $ref: '#/components/parameters/InvoiceOrderByOrdering.order'
         - $ref: '#/components/parameters/InvoiceOrderByOrdering.orderBy'
       responses:
@@ -1535,8 +1527,6 @@ paths:
               $ref: '#/components/schemas/BillingProfileExpand'
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
-        - $ref: '#/components/parameters/LimitOffset.offset'
-        - $ref: '#/components/parameters/LimitOffset.limit'
         - $ref: '#/components/parameters/BillingProfileOrderByOrdering.order'
         - $ref: '#/components/parameters/BillingProfileOrderByOrdering.orderBy'
       responses:
@@ -7371,6 +7361,76 @@ components:
       schema:
         $ref: '#/components/schemas/BillingProfileCustomerOverrideOrderBy'
       explode: false
+    BillingProfileListCustomerOverridesParams.billingProfile:
+      name: billingProfile
+      in: query
+      required: false
+      description: Filter by billing profile.
+      schema:
+        type: array
+        items:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+    BillingProfileListCustomerOverridesParams.customerId:
+      name: customerId
+      in: query
+      required: false
+      description: Filter by customer id.
+      schema:
+        type: array
+        items:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+    BillingProfileListCustomerOverridesParams.customerKey:
+      name: customerKey
+      in: query
+      required: false
+      description: Filter by customer key
+      schema:
+        type: string
+      explode: false
+    BillingProfileListCustomerOverridesParams.customerName:
+      name: customerName
+      in: query
+      required: false
+      description: Filter by customer name.
+      schema:
+        type: string
+      explode: false
+    BillingProfileListCustomerOverridesParams.customerPrimaryEmail:
+      name: customerPrimaryEmail
+      in: query
+      required: false
+      description: Filter by customer primary email
+      schema:
+        type: string
+      explode: false
+    BillingProfileListCustomerOverridesParams.expand:
+      name: expand
+      in: query
+      required: false
+      description: Expand the response with additional details.
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/BillingProfileCustomerOverrideExpand'
+    BillingProfileListCustomerOverridesParams.includeAllCustomers:
+      name: includeAllCustomers
+      in: query
+      required: false
+      description: |-
+        Include customers without customer overrides.
+
+        If set to false only the customers specifically associated with a billing profile will be returned.
+
+        If set to true, in case of the default billing profile, all customers will be returned.
+      schema:
+        type: boolean
+        default: true
     BillingProfileOrderByOrdering.order:
       name: order
       in: query
@@ -8186,6 +8246,37 @@ components:
         BillingCollectionAlignment specifies when the pending line items should be collected into
         an invoice.
       title: Collection alignment
+    BillingCustomerProfile:
+      type: object
+      required:
+        - supplier
+        - workflow
+        - apps
+      properties:
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingParty'
+          description: The name and contact information for the supplier this billing profile represents
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflow'
+          description: The billing workflow settings for this profile
+          readOnly: true
+        apps:
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileAppsOrReference'
+          description: |-
+            The applications used by this billing profile.
+
+            Expand settings govern if this includes the whole app object or just the ID references.
+          readOnly: true
+      description: |-
+        Customer specific merged profile.
+
+        This profile is calculated from the customer override and the billing profile it references or the default.
+
+        Thus this does not have any kind of resource fields, only the calculated values.
     BillingLineCharge:
       type: object
       required:
@@ -8501,6 +8592,7 @@ components:
       required:
         - createdAt
         - updatedAt
+        - customerId
       properties:
         createdAt:
           type: string
@@ -8516,33 +8608,23 @@ components:
           example: '2024-01-01T01:01:01.001Z'
           title: Last Update Time
           readOnly: true
-        deletedAt:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          example: '2024-01-01T01:01:01.001Z'
-          title: Deletion Time
-          readOnly: true
-        workflow:
-          allOf:
-            - $ref: '#/components/schemas/BillingProfileCustomerWorkflowOverride'
-          description: The details of the overrides active for this specific customer.
-        billingProfile:
+        billingProfileId:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: |-
             The billing profile this override is associated with.
 
-            If not provided, the default billing profile is chosen if available.
+            If empty the default profile is looked up dynamically.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
-      description: Customer specific workflow overrides.
+        customerId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The customer id this override is associated with.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+      description: Customer override values.
     BillingProfileCustomerOverrideCreate:
       type: object
       properties:
-        workflow:
-          allOf:
-            - $ref: '#/components/schemas/BillingProfileCustomerWorkflowOverrideCreate'
-          description: The details of the overrides active for this specific customer.
         billingProfile:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -8552,12 +8634,52 @@ components:
             If not provided, the default billing profile is chosen if available.
           example: 01G65Z755AFWAKHE12NY0CQ9FH
       description: Payload for creating a new or updating an existing customer override.
+    BillingProfileCustomerOverrideExpand:
+      type: string
+      enum:
+        - apps
+        - customer
+      description: CustomerOverrideExpand specifies the parts of the profile to expand.
     BillingProfileCustomerOverrideOrderBy:
       type: string
       enum:
-        - id
+        - customerId
+        - customerName
+        - customerKey
+        - customerPrimaryEmail
+        - customerCreatedAt
       description: Order by options for customers.
-    BillingProfileCustomerOverridePaginatedResponse:
+    BillingProfileCustomerOverrideWithDetails:
+      type: object
+      required:
+        - baseBillingProfileId
+      properties:
+        customerOverride:
+          allOf:
+            - $ref: '#/components/schemas/BillingProfileCustomerOverride'
+          description: |-
+            The customer override values.
+
+            If empty the merged values are calculated based on the default profile.
+        baseBillingProfileId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: |-
+            The billing profile the customerProfile is associated with at the time of query.
+
+            customerOverride contains the explicit mapping set in the customer override object. If that is
+            empty, then the baseBillingProfileId is the default profile.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+        customerProfile:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerProfile'
+          description: Merged billing profile with the customer specific overrides.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/Customer'
+          description: The customer this override belongs to.
+      description: Customer specific workflow overrides.
+    BillingProfileCustomerOverrideWithDetailsPaginatedResponse:
       type: object
       required:
         - totalCount
@@ -8580,7 +8702,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/BillingProfileCustomerOverride'
+            $ref: '#/components/schemas/BillingProfileCustomerOverrideWithDetails'
           description: The items in the current page.
       description: Paginated response
     BillingProfileCustomerWorkflowOverride:
@@ -8618,22 +8740,6 @@ components:
           description: The payment app used for this workflow
           readOnly: true
       description: Customer specific workflow overrides.
-    BillingProfileCustomerWorkflowOverrideCreate:
-      type: object
-      properties:
-        collection:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowCollectionSettings'
-          description: The collection settings for this workflow
-        invoicing:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowInvoicingSettings'
-          description: The invoicing settings for this workflow
-        payment:
-          allOf:
-            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
-          description: The payment settings for this workflow
-      description: Resource create operation model.
     BillingProfileExpand:
       type: string
       enum:

@@ -22,7 +22,6 @@ interface Profiles {
     expand?: BillingProfileExpand[],
 
     ...OpenMeter.QueryPagination,
-    ...OpenMeter.QueryLimitOffset,
     ...OpenMeter.QueryOrdering<BillingProfileOrderBy>,
   ): OpenMeter.PaginatedResponse<BillingProfile> | OpenMeter.CommonErrors;
 
