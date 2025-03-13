@@ -23,8 +23,10 @@ type CustomerPaymentSetupResult struct {
 }
 
 func (r CustomerPaymentSetupResult) Validate() error {
-	if err := r.AppData.Validate(); err != nil {
-		return fmt.Errorf("app data: %w", err)
+	if r.AppData != nil {
+		if err := r.AppData.Validate(); err != nil {
+			return fmt.Errorf("app data: %w", err)
+		}
 	}
 
 	return nil
