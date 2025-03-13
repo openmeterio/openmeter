@@ -2,7 +2,6 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/openapi3";
-import "@typespec/versioning";
 
 import "../..";
 import "../../productcatalog";
@@ -17,6 +16,5 @@ import "./docref.tsp";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
-using TypeSpec.Versioning;
 
 namespace Invoice;

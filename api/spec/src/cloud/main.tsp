@@ -106,6 +106,10 @@ namespace OpenMeterCloud;
 @tag("Events")
 interface Events extends OpenMeter.Events {}
 
+@route("/api/v2/events")
+@tag("Events")
+interface EventsV2 extends OpenMeter.EventsV2 {}
+
 @route("/api/v1/meters")
 @tag("Meters")
 interface Meters extends OpenMeter.Meters {}

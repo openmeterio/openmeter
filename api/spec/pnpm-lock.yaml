@@ -37,9 +37,6 @@ importers:
       '@typespec/rest':
         specifier: 0.64.0
         version: 0.64.0(@typespec/compiler@0.64.0)(@typespec/http@0.64.0(patch_hash=ov3xu4ntgi5g5vjojctyr6774u)(@typespec/compiler@0.64.0))
-      '@typespec/versioning':
-        specifier: 0.64.0
-        version: 0.64.0(@typespec/compiler@0.64.0)
       prettier:
         specifier: 3.4.2
         version: 3.4.2

@@ -1,6 +1,7 @@
 import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
+import "./pagination.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -265,4 +266,47 @@ model IngestedEvent {
    * The date and time the event was stored.
    */
   storedAt: DateTime;
+}
+
+@route("/api/v2/events")
+@tag("Events")
+interface EventsV2 {
+  /**
+   * List ingested events with advanced filtering and cursor pagination.
+   */
+  @list
+  @operationId("listEventsV2")
+  @summary("List ingested events")
+  @extension("x-internal", true)
+  list(
+    ...CursorPaginatedQuery,
+
+    /**
+     * Client ID
+     * Useful to track progress of a query.
+     */
+    @query
+    @example("f74e58ed-94ce-4041-ae06-cf45420451a3")
+    @minLength(1)
+    @maxLength(36)
+    clientId?: string,
+
+    @query(#{ explode: true, style: "deepObject" })
+    id?: OpenMeter.FilterString,
+
+    @query(#{ explode: true, style: "deepObject" })
+    source?: OpenMeter.FilterString,
+
+    @query(#{ explode: true, style: "deepObject" })
+    subject?: OpenMeter.FilterString,
+
+    @query(#{ explode: true, style: "deepObject" })
+    type?: OpenMeter.FilterString,
+
+    @query(#{ explode: true, style: "deepObject" })
+    time?: OpenMeter.FilterTime,
+
+    @query(#{ explode: true, style: "deepObject" })
+    ingestedAt?: OpenMeter.FilterTime,
+  ): CursorPagedList<IngestedEvent> | OpenMeter.CommonErrors;
 }
