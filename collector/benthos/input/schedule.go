@@ -66,7 +66,7 @@ func (in *scheduleInput) ReadBatch(ctx context.Context) (service.MessageBatch, s
 
 	select {
 	case v := <-in.timer.C:
-		t = v
+		t = v.UTC()
 	default:
 		return nil, func(context.Context, error) error { return nil }, nil
 	}

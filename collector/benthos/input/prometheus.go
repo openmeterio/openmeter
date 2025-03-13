@@ -40,17 +40,17 @@ func prometheusInputConfig() *service.ConfigSpec {
 			).Description("List of PromQL queries to execute."),
 			service.NewStringField(fieldPrometheusSchedule).
 				Description("The cron expression to use for the scrape job.").
-				Examples("*/30 * * * * *", "@every 30s").
-				Default("*/30 * * * * *"),
-		).Example("Basic Configuration", "Collect Prometheus metrics with a scrape interval of 30 seconds.", `
+				Examples("0 * * * * *", "@every 1m").
+				Default("0 * * * * *"),
+		).Example("Basic Configuration", "Collect Prometheus metrics with a scrape interval of 1 minute.", `
 input:
   prometheus:
     url: "${PROMETHEUS_URL:http://localhost:9090}"
-    schedule: "* * * * *"
+    schedule: "0 * * * * *"
     queries:
       - query:
           name: "node_cpu_usage"
-          promql: "sum(rate(node_cpu_seconds_total{mode!='idle'}[1m])) by (instance)"
+          promql: "sum(increase(node_cpu_seconds_total{mode!='idle'}[1m])) by (instance)"
 `)
 }
 
@@ -173,6 +173,9 @@ func newPrometheusInput(conf *service.ParsedConfig, logger *service.Logger) (*pr
 
 // scrape executes the PromQL queries and stores the results.
 func (in *prometheusInput) scrape(ctx context.Context, t time.Time) error {
+	// Convert time to UTC
+	t = t.UTC()
+
 	in.logger.Debugf("executing PromQL queries at %s", t.Format(time.RFC3339))
 
 	results := make([]QueryResult, 0, len(in.queries))

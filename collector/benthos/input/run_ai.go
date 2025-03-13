@@ -183,8 +183,8 @@ func newRunAIInput(conf *service.ParsedConfig, logger *service.Logger) (*runAIIn
 			return nil, err
 		}
 
-		// Get current time
-		now := time.Now()
+		// Get current time in UTC
+		now := time.Now().UTC()
 
 		// Get next two occurrences
 		nextRun := cronSchedule.Next(now)
@@ -291,7 +291,8 @@ func (in *runAIInput) Connect(ctx context.Context) error {
 		gocron.CronJob(in.schedule, true),
 		gocron.NewTask(
 			func(ctx context.Context) error {
-				t := time.Now()
+				// Get current time in UTC
+				t := time.Now().UTC()
 				err := in.scrape(ctx, t)
 				if err != nil {
 					in.logger.Errorf("error scraping metrics: %v", err)

@@ -152,7 +152,7 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 	workloadsWithMetrics := make([]WorkloadWithMetrics, len(workloads))
 	for i, workload := range workloads {
 		metrics := Metrics{
-			Timestamp: params.StartTime,
+			Timestamp: params.StartTime.UTC(),
 			Values:    make(map[MetricType]float64),
 		}
 
@@ -160,14 +160,14 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 		for _, metricTypes := range lo.Chunk(params.MetricType, 9) {
 			m, err := s.GetWorkloadMetrics(ctx, workload.ID, MeasurementParams{
 				MetricType: metricTypes,
-				StartTime:  params.StartTime,
-				EndTime:    params.EndTime,
+				StartTime:  params.StartTime.UTC(),
+				EndTime:    params.EndTime.UTC(),
 			})
 			if err != nil {
 				return nil, err
 			}
 
-			metrics.Timestamp = m.Timestamp
+			metrics.Timestamp = m.Timestamp.UTC()
 			for mt, v := range m.Values {
 				metrics.Values[mt] = v
 			}
@@ -289,7 +289,7 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 	podsWithMetrics := make([]PodWithMetrics, len(pods))
 	for i, pod := range pods {
 		metrics := Metrics{
-			Timestamp: params.StartTime,
+			Timestamp: params.StartTime.UTC(),
 			Values:    make(map[MetricType]float64),
 		}
 
@@ -297,14 +297,14 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 		for _, metricTypes := range lo.Chunk(params.MetricType, 9) {
 			m, err := s.GetPodMetrics(ctx, pod.WorkloadID, pod.ID, MeasurementParams{
 				MetricType: metricTypes,
-				StartTime:  params.StartTime,
-				EndTime:    params.EndTime,
+				StartTime:  params.StartTime.UTC(),
+				EndTime:    params.EndTime.UTC(),
 			})
 			if err != nil {
 				return nil, err
 			}
 
-			metrics.Timestamp = m.Timestamp
+			metrics.Timestamp = m.Timestamp.UTC()
 			for mt, v := range m.Values {
 				metrics.Values[mt] = v
 			}
