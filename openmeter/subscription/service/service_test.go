@@ -334,6 +334,9 @@ func TestContinuing(t *testing.T) {
 
 		require.Nil(t, err)
 
+		// Let's pass some time
+		clock.SetTime(clock.Now().AddDate(0, 0, 1))
+
 		// Third, let's continue the subscription
 		_, err = service.Continue(ctx, sub.NamespacedID)
 		require.Nil(t, err)
@@ -378,5 +381,61 @@ func TestContinuing(t *testing.T) {
 				}
 			}
 		}
+	})
+
+	t.Run("Should not continue subscription if it would result in a scheduling conflict", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		services, deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := services.Service
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		_ = deps.FeatureConnector.CreateExampleFeature(t)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		// First, let's create a subscription
+		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId: cust.ID,
+			Currency:   "USD",
+			ActiveFrom: currentTime,
+			Name:       "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		sub1, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec1)
+
+		require.Nil(t, err)
+
+		// Second, let's cancel the subscription
+		cancelTime := testutils.GetRFC3339Time(t, "2021-04-01T00:00:00Z")
+		_, err = service.Cancel(ctx, sub1.NamespacedID, subscription.Timing{
+			Custom: &cancelTime,
+		})
+
+		require.Nil(t, err)
+
+		// Third, let's create another subscription for later
+		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId: cust.ID,
+			Currency:   "USD",
+			ActiveFrom: cancelTime.AddDate(0, 0, 1),
+			Name:       "Test Subscription",
+		})
+		require.Nil(t, err)
+
+		_, err = service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec2)
+		require.Nil(t, err)
+
+		// Fourth, let's continue the first subscription
+		_, err = service.Continue(ctx, sub1.NamespacedID)
+		require.Error(t, err)
+		require.ErrorAs(t, err, lo.ToPtr(&models.GenericConflictError{}))
 	})
 }
