@@ -27,7 +27,7 @@ type AppFactoryService interface {
 // StripeAppService contains methods for managing stripe app
 type StripeAppService interface {
 	UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error
-	GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error)
+	GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error)
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 }

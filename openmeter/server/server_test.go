@@ -844,7 +844,7 @@ func (n NoopAppStripeService) GetSupplierContact(ctx context.Context, input apps
 	return billing.SupplierContact{}, nil
 }
 
-func (n NoopAppStripeService) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {
+func (n NoopAppStripeService) GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error) {
 	return "", nil
 }
 

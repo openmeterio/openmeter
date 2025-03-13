@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -33,12 +34,12 @@ type AppMapper struct {
 }
 
 // MapAppToAPI maps an app to an API app
-func (a *AppMapper) MapAppToAPI(item app.App) (api.App, error) {
+func (a *AppMapper) MapAppToAPI(ctx context.Context, item app.App) (api.App, error) {
 	switch item.GetType() {
 	case app.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
 
-		stripeAPIApp, err := a.mapStripeAppToAPI(stripeApp)
+		stripeAPIApp, err := a.mapStripeAppToAPI(ctx, stripeApp)
 		if err != nil {
 			return api.App{}, fmt.Errorf("failed to map stripe app to api: %w", err)
 		}
@@ -78,10 +79,11 @@ func (a *AppMapper) mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 }
 
 func (a *AppMapper) mapStripeAppToAPI(
+	ctx context.Context,
 	stripeApp appstripeentityapp.App,
 ) (api.StripeApp, error) {
 	// Get masked API key
-	maskedAPIKey, err := a.stripeAppService.GetMaskedSecretAPIKey(stripeApp.APIKey)
+	maskedAPIKey, err := a.stripeAppService.GetMaskedSecretAPIKey(ctx, stripeApp.APIKey)
 	if err != nil {
 		var secretNotFoundError *secretentity.SecretNotFoundError
 

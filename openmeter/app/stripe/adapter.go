@@ -25,7 +25,7 @@ type AppStripeAdapter interface {
 	UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error
 	CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
-	GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error)
+	GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error)
 	// App
 	CreateStripeApp(ctx context.Context, input appstripeentity.CreateAppStripeInput) (appstripeentity.AppBase, error)
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)

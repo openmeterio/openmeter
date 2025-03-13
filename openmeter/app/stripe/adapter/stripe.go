@@ -618,7 +618,7 @@ func (a adapter) GetStripeInvoice(ctx context.Context, input appstripeentity.Get
 }
 
 // GetMaskedSecretAPIKey returns a masked secret API key
-func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {
+func (a adapter) GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error) {
 	// Validate input
 	if err := secretAPIKeyID.Validate(); err != nil {
 		return "", models.NewGenericValidationError(
@@ -627,7 +627,7 @@ func (a adapter) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (st
 	}
 
 	// Get the secret API key
-	secretAPIKey, err := a.secretService.GetAppSecret(context.Background(), secretAPIKeyID)
+	secretAPIKey, err := a.secretService.GetAppSecret(ctx, secretAPIKeyID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get secret api key: %w", err)
 	}
