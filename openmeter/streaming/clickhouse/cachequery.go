@@ -21,26 +21,26 @@ type createMeterQueryRowsCacheTable struct {
 }
 
 // toSQL converts the createMeterQueryRowsCacheTable struct to a SQL query
-func (d createMeterQueryRowsCacheTable) toSQL() string {
-	tableName := getTableName(d.Database, d.TableName)
+func (tableCreation createMeterQueryRowsCacheTable) toSQL() string {
+	tableName := getTableName(tableCreation.Database, tableCreation.TableName)
 
-	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
-	sb.CreateTable(tableName)
-	sb.IfNotExists()
-	sb.Define("namespace", "String")
-	sb.Define("hash", "String")
-	sb.Define("window_start", "DateTime")
-	sb.Define("window_end", "DateTime")
-	sb.Define("value", "Float64")
-	sb.Define("subject", "String")
-	sb.Define("group_by", "Map(String, String)")
-	sb.Define("created_at", "DateTime DEFAULT now()")
-	sb.SQL("ENGINE = MergeTree")
-	sb.SQL("PARTITION BY toYYYYMM(window_start)")
-	sb.SQL("ORDER BY (namespace, hash, window_start, window_end)")
-	sb.SQL("TTL created_at + INTERVAL 30 DAY")
+	builder := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	builder.CreateTable(tableName)
+	builder.IfNotExists()
+	builder.Define("namespace", "String")
+	builder.Define("hash", "String")
+	builder.Define("window_start", "DateTime")
+	builder.Define("window_end", "DateTime")
+	builder.Define("value", "Float64")
+	builder.Define("subject", "String")
+	builder.Define("group_by", "Map(String, String)")
+	builder.Define("created_at", "DateTime DEFAULT now()")
+	builder.SQL("ENGINE = MergeTree")
+	builder.SQL("PARTITION BY toYYYYMM(window_start)")
+	builder.SQL("ORDER BY (namespace, hash, window_start, window_end)")
+	builder.SQL("TTL created_at + INTERVAL 30 DAY")
 
-	sql, _ := sb.Build()
+	sql, _ := builder.Build()
 	return sql
 }
 
@@ -53,23 +53,23 @@ type insertMeterQueryRowsToCache struct {
 	QueryRows []meterpkg.MeterQueryRow
 }
 
-// toSQL converts the insertMeterQueryRowsToCache struct to a SQL query
-func (d insertMeterQueryRowsToCache) toSQL() (string, []interface{}) {
-	tableName := getTableName(d.Database, d.TableName)
-	sb := sqlbuilder.ClickHouse.NewInsertBuilder()
-	sb.InsertInto(tableName)
-	sb.Cols("hash", "namespace", "window_start", "window_end", "value", "subject", "group_by")
+// toSQL converts the insertMeterQueryRowsToCache struct to a SQL query with parameters
+func (insertQuery insertMeterQueryRowsToCache) toSQL() (string, []interface{}) {
+	tableName := getTableName(insertQuery.Database, insertQuery.TableName)
+	builder := sqlbuilder.ClickHouse.NewInsertBuilder()
+	builder.InsertInto(tableName)
+	builder.Cols("hash", "namespace", "window_start", "window_end", "value", "subject", "group_by")
 
 	var args []interface{}
-	for _, row := range d.QueryRows {
+	for _, row := range insertQuery.QueryRows {
 		groupBy := make(map[string]string)
-		for k, v := range row.GroupBy {
-			groupBy[k] = lo.FromPtrOr(v, "")
+		for key, value := range row.GroupBy {
+			groupBy[key] = lo.FromPtrOr(value, "")
 		}
 
 		args = append(args,
-			d.Hash,
-			d.Namespace,
+			insertQuery.Hash,
+			insertQuery.Namespace,
 			row.WindowStart,
 			row.WindowEnd,
 			row.Value,
@@ -77,10 +77,10 @@ func (d insertMeterQueryRowsToCache) toSQL() (string, []interface{}) {
 			groupBy,
 		)
 
-		sb.Values("?", "?", "?", "?", "?", "?", "?")
+		builder.Values("?", "?", "?", "?", "?", "?", "?")
 	}
 
-	sql, _ := sb.Build()
+	sql, _ := builder.Build()
 	return sql, args
 }
 
@@ -94,66 +94,66 @@ type getMeterQueryRowsFromCache struct {
 	To        *time.Time
 }
 
-// toSQL converts the getMeterQueryRowsFromCache struct to a SQL query
-func (d getMeterQueryRowsFromCache) toSQL() (string, []interface{}) {
-	tableName := getTableName(d.Database, d.TableName)
-	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
-	sb.Select("window_start", "window_end", "value", "subject", "group_by")
-	sb.From(tableName)
-	sb.Where(sb.Equal("hash", d.Hash))
-	sb.Where(sb.Equal("namespace", d.Namespace))
+// toSQL converts the getMeterQueryRowsFromCache struct to a SQL query with parameters
+func (queryCache getMeterQueryRowsFromCache) toSQL() (string, []interface{}) {
+	tableName := getTableName(queryCache.Database, queryCache.TableName)
+	builder := sqlbuilder.ClickHouse.NewSelectBuilder()
+	builder.Select("window_start", "window_end", "value", "subject", "group_by")
+	builder.From(tableName)
+	builder.Where(builder.Equal("hash", queryCache.Hash))
+	builder.Where(builder.Equal("namespace", queryCache.Namespace))
 
-	if d.From != nil {
-		sb.Where(sb.GreaterEqualThan("window_start", d.From.Unix()))
+	if queryCache.From != nil {
+		builder.Where(builder.GreaterEqualThan("window_start", queryCache.From.Unix()))
 	}
 
-	if d.To != nil {
-		sb.Where(sb.LessEqualThan("window_end", d.To.Unix()))
+	if queryCache.To != nil {
+		builder.Where(builder.LessEqualThan("window_end", queryCache.To.Unix()))
 	}
 
-	sb.OrderBy("window_start")
+	builder.OrderBy("window_start")
 
-	sql, args := sb.Build()
+	sql, args := builder.Build()
 	return sql, args
 }
 
-// scanMeterQueryRowsFromCache scans the rows from the cache table
-func (d getMeterQueryRowsFromCache) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
-	values := []meterpkg.MeterQueryRow{}
+// processDatabaseRows processes database rows and returns structured MeterQueryRow objects
+func (queryCache getMeterQueryRowsFromCache) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, error) {
+	queryRows := []meterpkg.MeterQueryRow{}
 
 	for rows.Next() {
-		row := meterpkg.MeterQueryRow{
+		currentRow := meterpkg.MeterQueryRow{
 			GroupBy: map[string]*string{},
 		}
 
 		var rowSubject string
 		var rowGroupBy map[string]string
 
-		if err := rows.Scan(&row.WindowStart, &row.WindowEnd, &row.Value, &rowSubject, &rowGroupBy); err != nil {
-			return values, fmt.Errorf("scan meter query hash row: %w", err)
+		if err := rows.Scan(&currentRow.WindowStart, &currentRow.WindowEnd, &currentRow.Value, &rowSubject, &rowGroupBy); err != nil {
+			return queryRows, fmt.Errorf("scan meter query hash row: %w", err)
 		}
 
 		if rowSubject != "" {
-			row.Subject = &rowSubject
+			currentRow.Subject = &rowSubject
 		}
 
-		for k, v := range rowGroupBy {
-			if v != "" {
-				row.GroupBy[k] = &v
+		for groupKey, groupValue := range rowGroupBy {
+			if groupValue != "" {
+				currentRow.GroupBy[groupKey] = &groupValue
 			} else {
-				row.GroupBy[k] = nil
+				currentRow.GroupBy[groupKey] = nil
 			}
 		}
 
-		values = append(values, row)
+		queryRows = append(queryRows, currentRow)
 	}
 
 	err := rows.Err()
 	if err != nil {
-		return values, fmt.Errorf("rows error: %w", err)
+		return queryRows, fmt.Errorf("rows error: %w", err)
 	}
 
-	return values, nil
+	return queryRows, nil
 }
 
 // deleteCacheForNamespaces is a query to delete rows from the cache table for specific namespaces
@@ -163,13 +163,13 @@ type deleteCacheForNamespaces struct {
 	Namespaces []string
 }
 
-// toSQL converts the deleteCacheForNamespaces struct to a SQL query
-func (d deleteCacheForNamespaces) toSQL() (string, []interface{}) {
-	tableName := getTableName(d.Database, d.TableName)
-	sb := sqlbuilder.ClickHouse.NewDeleteBuilder()
-	sb.DeleteFrom(tableName)
+// toSQL converts the deleteCacheForNamespaces struct to a SQL query with parameters
+func (deleteQuery deleteCacheForNamespaces) toSQL() (string, []interface{}) {
+	tableName := getTableName(deleteQuery.Database, deleteQuery.TableName)
+	builder := sqlbuilder.ClickHouse.NewDeleteBuilder()
+	builder.DeleteFrom(tableName)
 
-	sb.Where(sb.In("namespace", d.Namespaces))
-	sql, args := sb.Build()
+	builder.Where(builder.In("namespace", deleteQuery.Namespaces))
+	sql, args := builder.Build()
 	return sql, args
 }

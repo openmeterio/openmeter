@@ -39,134 +39,134 @@ func GetMockConnector() (*Connector, *MockClickHouse) {
 	return connector, mockClickhouse
 }
 
-// TestIsQueryCachable tests the isQueryCachable function
-func TestIsQueryCachable(t *testing.T) {
+// TestCanQueryBeCached tests the canQueryBeCached function
+func TestCanQueryBeCached(t *testing.T) {
 	now := time.Now().UTC()
 
 	connector, _ := GetMockConnector()
 
 	tests := []struct {
-		name         string
-		meter        meter.Meter
-		params       streaming.QueryParams
-		wantCachable bool
+		name           string
+		meterDef       meter.Meter
+		queryParams    streaming.QueryParams
+		expectCachable bool
 	}{
 		{
 			name: "cachable is false",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				From: lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:   lo.ToPtr(now),
 			},
-			wantCachable: false,
+			expectCachable: false,
 		},
 		{
 			name: "no from time",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: false,
+			expectCachable: false,
 		},
 		{
 			name: "duration too short",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				From:     lo.ToPtr(now.Add(-2 * 24 * time.Hour)), // Only 2 days, less than minCachableDuration
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: false,
+			expectCachable: false,
 		},
 		{
 			name: "non cachable aggregation",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationUniqueCount,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: false,
+			expectCachable: false,
 		},
 		{
 			name: "cachable sum query",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationSum,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: true,
+			expectCachable: true,
 		},
 		{
 			name: "cachable count query",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationCount,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: true,
+			expectCachable: true,
 		},
 		{
 			name: "cachable min query",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationMin,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: true,
+			expectCachable: true,
 		},
 		{
 			name: "cachable max query",
-			meter: meter.Meter{
+			meterDef: meter.Meter{
 				Aggregation: meter.MeterAggregationMax,
 			},
-			params: streaming.QueryParams{
+			queryParams: streaming.QueryParams{
 				Cachable: true,
 				From:     lo.ToPtr(now.Add(-4 * 24 * time.Hour)),
 				To:       lo.ToPtr(now),
 			},
-			wantCachable: true,
+			expectCachable: true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := connector.isQueryCachable(tt.meter, tt.params)
-			assert.Equal(t, tt.wantCachable, result)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := connector.canQueryBeCached(testCase.meterDef, testCase.queryParams)
+			assert.Equal(t, testCase.expectCachable, result)
 		})
 	}
 }
 
-// Integration test for queryMeterCached
-func TestConnector_QueryMeterCached(t *testing.T) {
-	connector, mockCH := GetMockConnector()
+// Integration test for executeQueryWithCaching
+func TestConnector_ExecuteQueryWithCaching(t *testing.T) {
+	connector, mockClickHouse := GetMockConnector()
 
 	// Setup test data
 	now := time.Now().UTC()
 	queryFrom := now.Add(-7 * 24 * time.Hour)
 	queryTo := now
 
-	hash := "test-hash"
+	queryHash := "test-hash"
 
-	meter := meterpkg.Meter{
+	testMeter := meterpkg.Meter{
 		ManagedResource: models.ManagedResource{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: "test-namespace",
@@ -182,18 +182,18 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	originalQueryMeter := queryMeter{
 		Database:  "testdb",
 		Namespace: "test-namespace",
-		Meter:     meter,
+		Meter:     testMeter,
 		From:      &queryFrom,
 		To:        &queryTo,
 	}
 
-	// Mock for lookupCachedMeterRows
+	// Mock for fetchCachedMeterRows
 	cachedStart := queryFrom
 	currentCacheEnd := queryTo.Add(-5 * 24 * time.Hour).Truncate(time.Hour * 24)
 	cachedEnd := queryTo.Add(-24 * time.Hour).Truncate(time.Hour * 24)
 
 	mockRows1 := NewMockRows()
-	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
 		"test-hash",
 		"test-namespace",
 		// We query for the full cached period
@@ -215,7 +215,7 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 
 	// Mock the SQL query for loading new data to the cache
 	mockRows2 := NewMockRows()
-	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+	mockClickHouse.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
 		"test-namespace",
 		"",
 		// We query for the period we don't have cache but could have
@@ -237,7 +237,7 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	mockRows2.On("Close").Return(nil)
 
 	// Store new cachable data in cache
-	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), []interface{}{
 		// Called with the new data
 		"test-hash",
 		"test-namespace",
@@ -249,7 +249,7 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 	}).Return(nil).Once()
 
 	// Execute query with caching
-	resultQueryMeter, results, err := connector.queryMeterCached(context.Background(), hash, originalQueryMeter)
+	resultQueryMeter, results, err := connector.executeQueryWithCaching(context.Background(), queryHash, originalQueryMeter)
 
 	require.NoError(t, err)
 	assert.Len(t, results, 2) // Should have both cached and fresh rows
@@ -275,37 +275,37 @@ func TestConnector_QueryMeterCached(t *testing.T) {
 		},
 	}, results)
 
-	mockCH.AssertExpectations(t)
+	mockClickHouse.AssertExpectations(t)
 	mockRows1.AssertExpectations(t)
 	mockRows2.AssertExpectations(t)
 }
 
-func TestConnector_LookupCachedMeterRows(t *testing.T) {
-	connector, mockCH := GetMockConnector()
+func TestConnector_FetchCachedMeterRows(t *testing.T) {
+	connector, mockClickHouse := GetMockConnector()
 
 	now := time.Now().UTC()
-	from := now.Add(-24 * time.Hour)
-	to := now
+	fromTime := now.Add(-24 * time.Hour)
+	toTime := now
 
-	queryMeter := queryMeter{
+	testQueryMeter := queryMeter{
 		Database:  "testdb",
 		Namespace: "test-namespace",
-		From:      &from,
-		To:        &to,
+		From:      &fromTime,
+		To:        &toTime,
 	}
 
 	// Test successful lookup
 	expectedQuery := "SELECT window_start, window_end, value, subject, group_by FROM testdb.meterqueryrow_cache WHERE hash = ? AND namespace = ? AND window_start >= ? AND window_end <= ? ORDER BY window_start"
-	expectedArgs := []interface{}{"test-hash", "test-namespace", from.Unix(), to.Unix()}
+	expectedArgs := []interface{}{"test-hash", "test-namespace", fromTime.Unix(), toTime.Unix()}
 
 	// Mock query execution
 	mockRows := NewMockRows()
-	mockCH.On("Query", mock.Anything, expectedQuery, expectedArgs).Return(mockRows, nil)
+	mockClickHouse.On("Query", mock.Anything, expectedQuery, expectedArgs).Return(mockRows, nil)
 
 	// Setup rows to return one value
-	windowStart := from
-	windowEnd := from.Add(time.Hour)
-	value := 42.0
+	windowStart := fromTime
+	windowEnd := fromTime.Add(time.Hour)
+	rowValue := 42.0
 	subject := "test-subject"
 	groupBy := map[string]string{"group1": "value1"}
 
@@ -314,7 +314,7 @@ func TestConnector_LookupCachedMeterRows(t *testing.T) {
 		dest := args.Get(0).([]interface{})
 		*(dest[0].(*time.Time)) = windowStart
 		*(dest[1].(*time.Time)) = windowEnd
-		*(dest[2].(*float64)) = value
+		*(dest[2].(*float64)) = rowValue
 		*(dest[3].(*string)) = subject
 		*(dest[4].(*map[string]string)) = groupBy
 	}).Return(nil)
@@ -323,39 +323,39 @@ func TestConnector_LookupCachedMeterRows(t *testing.T) {
 	mockRows.On("Close").Return(nil)
 
 	// Execute the lookup
-	rows, err := connector.lookupCachedMeterRows(context.Background(), "test-hash", queryMeter)
+	cachedRows, err := connector.fetchCachedMeterRows(context.Background(), "test-hash", testQueryMeter)
 
 	require.NoError(t, err)
-	require.Len(t, rows, 1)
+	require.Len(t, cachedRows, 1)
 
 	// Verify row values
-	assert.Equal(t, windowStart, rows[0].WindowStart)
-	assert.Equal(t, windowEnd, rows[0].WindowEnd)
-	assert.Equal(t, value, rows[0].Value)
-	require.NotNil(t, rows[0].Subject)
-	assert.Equal(t, subject, *rows[0].Subject)
-	require.Contains(t, rows[0].GroupBy, "group1")
-	require.NotNil(t, rows[0].GroupBy["group1"])
-	assert.Equal(t, "value1", *rows[0].GroupBy["group1"])
+	assert.Equal(t, windowStart, cachedRows[0].WindowStart)
+	assert.Equal(t, windowEnd, cachedRows[0].WindowEnd)
+	assert.Equal(t, rowValue, cachedRows[0].Value)
+	require.NotNil(t, cachedRows[0].Subject)
+	assert.Equal(t, subject, *cachedRows[0].Subject)
+	require.Contains(t, cachedRows[0].GroupBy, "group1")
+	require.NotNil(t, cachedRows[0].GroupBy["group1"])
+	assert.Equal(t, "value1", *cachedRows[0].GroupBy["group1"])
 
-	mockCH.AssertExpectations(t)
+	mockClickHouse.AssertExpectations(t)
 	mockRows.AssertExpectations(t)
 }
 
-// TestInsertRowsToCache tests the insertRowsToCache function
-func TestConnector_InsertRowsToCache(t *testing.T) {
-	connector, mockCH := GetMockConnector()
+// TestStoreCachedMeterRows tests the storeCachedMeterRows function
+func TestConnector_StoreCachedMeterRows(t *testing.T) {
+	connector, mockClickHouse := GetMockConnector()
 
 	now := time.Now().UTC()
 	subject := "test-subject"
 	groupValue := "group-value"
 
-	queryMeter := queryMeter{
+	testQueryMeter := queryMeter{
 		Database:  "testdb",
 		Namespace: "test-namespace",
 	}
 
-	queryRows := []meterpkg.MeterQueryRow{
+	testQueryRows := []meterpkg.MeterQueryRow{
 		{
 			WindowStart: now,
 			WindowEnd:   now.Add(time.Hour),
@@ -368,54 +368,54 @@ func TestConnector_InsertRowsToCache(t *testing.T) {
 	}
 
 	// We don't need to check the exact SQL, just that the Exec is called with something
-	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil)
+	mockClickHouse.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 
-	err := connector.insertRowsToCache(context.Background(), "test-hash", queryMeter, queryRows)
+	err := connector.storeCachedMeterRows(context.Background(), "test-hash", testQueryMeter, testQueryRows)
 
 	require.NoError(t, err)
-	mockCH.AssertExpectations(t)
+	mockClickHouse.AssertExpectations(t)
 }
 
-// TestRemainingQueryMeterFactory tests the remainingQueryMeterFactory function
-func TestRemainingQueryMeterFactory(t *testing.T) {
+// TestCreateRemainingQueryFactory tests the createRemainingQueryFactory function
+func TestCreateRemainingQueryFactory(t *testing.T) {
 	connector, _ := GetMockConnector()
 
 	now := time.Now().UTC()
-	from := now.Add(-4 * 24 * time.Hour)
-	to := now
+	fromTime := now.Add(-4 * 24 * time.Hour)
+	toTime := now
 
 	originalQuery := queryMeter{
-		From: &from,
-		To:   &to,
+		From: &fromTime,
+		To:   &toTime,
 	}
 
-	factory := connector.remainingQueryMeterFactory(originalQuery)
+	factory := connector.createRemainingQueryFactory(originalQuery)
 
 	// Test the factory with a cached query meter
-	cachedTo := now.Add(-1 * 24 * time.Hour)
+	cachedToTime := now.Add(-1 * 24 * time.Hour)
 	cachedQuery := queryMeter{
-		From: &from,
-		To:   &cachedTo,
+		From: &fromTime,
+		To:   &cachedToTime,
 	}
 
 	resultQuery := factory(cachedQuery)
 
 	// Should have the cached To as the new From
 	require.Nil(t, resultQuery.From)
-	assert.Equal(t, cachedTo, *resultQuery.FromExclusive)
+	assert.Equal(t, cachedToTime, *resultQuery.FromExclusive)
 	// Original To should be preserved
-	assert.Equal(t, to, *resultQuery.To)
+	assert.Equal(t, toTime, *resultQuery.To)
 }
 
-// TestGetQueryMeterForCachedPeriod tests the getQueryMeterForCachedPeriod function
-func TestGetQueryMeterForCachedPeriod(t *testing.T) {
+// TestPrepareCacheableQueryPeriod tests the prepareCacheableQueryPeriod function
+func TestPrepareCacheableQueryPeriod(t *testing.T) {
 	connector, _ := GetMockConnector()
 
 	now := time.Now().UTC()
 	tests := []struct {
 		name           string
 		originalQuery  queryMeter
-		expectedError  bool
+		expectError    bool
 		expectedFrom   *time.Time
 		expectedTo     *time.Time
 		expectedWindow *meter.WindowSize
@@ -425,7 +425,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 			originalQuery: queryMeter{
 				To: lo.ToPtr(now),
 			},
-			expectedError: true,
+			expectError: true,
 		},
 		{
 			name: "cache `to` should be truncated to complete days and be a day before the original `to`",
@@ -433,7 +433,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 				From: lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 				To:   lo.ToPtr(now.Add(-12 * time.Hour)), // Less than config.minCacheableToAge
 			},
-			expectedError:  false,
+			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
@@ -444,7 +444,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 				From: lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 				To:   lo.ToPtr(now.Add(-36 * time.Hour)), // Less than minCacheableToAge
 			},
-			expectedError:  false,
+			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-36 * time.Hour).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
@@ -455,7 +455,7 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 				From: lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 				To:   lo.ToPtr(now.Add(-12 * time.Hour)),
 			},
-			expectedError:  false,
+			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeDay),
@@ -467,38 +467,38 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 				To:         lo.ToPtr(now.Add(-12 * time.Hour)),
 				WindowSize: lo.ToPtr(meter.WindowSizeHour),
 			},
-			expectedError:  false,
+			expectError:    false,
 			expectedFrom:   lo.ToPtr(now.Add(-7 * 24 * time.Hour)),
 			expectedTo:     lo.ToPtr(now.Add(-connector.config.QueryCacheMinimumCacheableUsageAge).Truncate(time.Hour * 24)),
 			expectedWindow: lo.ToPtr(meter.WindowSizeHour),
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := connector.getQueryMeterForCachedPeriod(tt.originalQuery)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result, err := connector.prepareCacheableQueryPeriod(testCase.originalQuery)
 
-			if tt.expectedError {
+			if testCase.expectError {
 				assert.Error(t, err)
 				return
 			}
 
 			assert.NoError(t, err)
 
-			if tt.expectedFrom != nil {
-				assert.Equal(t, tt.expectedFrom.Truncate(time.Second), result.From.Truncate(time.Second))
+			if testCase.expectedFrom != nil {
+				assert.Equal(t, testCase.expectedFrom.Truncate(time.Second), result.From.Truncate(time.Second))
 			} else {
 				assert.Nil(t, result.From)
 			}
 
-			if tt.expectedTo != nil {
-				assert.Equal(t, tt.expectedTo.Truncate(time.Second), result.To.Truncate(time.Second))
+			if testCase.expectedTo != nil {
+				assert.Equal(t, testCase.expectedTo.Truncate(time.Second), result.To.Truncate(time.Second))
 			} else {
 				assert.Nil(t, result.To)
 			}
 
-			if tt.expectedWindow != nil {
-				assert.Equal(t, *tt.expectedWindow, *result.WindowSize)
+			if testCase.expectedWindow != nil {
+				assert.Equal(t, *testCase.expectedWindow, *result.WindowSize)
 			} else {
 				assert.Nil(t, result.WindowSize)
 			}
@@ -512,31 +512,31 @@ func TestGetQueryMeterForCachedPeriod(t *testing.T) {
 }
 
 func TestInvalidateCache(t *testing.T) {
-	connector, mockCH := GetMockConnector()
+	connector, mockClickHouse := GetMockConnector()
 
 	// Test case: single namespace
-	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
+	mockClickHouse.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
 		[]string{"test-namespace-1"},
 	}).Return(nil).Once()
 	err := connector.invalidateCache(context.Background(), []string{"test-namespace-1"})
 	require.NoError(t, err)
 
 	// Test case: multiple namespaces
-	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
+	mockClickHouse.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
 		[]string{"test-namespace-1", "test-namespace-2"},
 	}).Return(nil).Once()
 	err = connector.invalidateCache(context.Background(), []string{"test-namespace-1", "test-namespace-2"})
 	require.NoError(t, err)
 
 	// Test case: error from database
-	mockCH.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
+	mockClickHouse.On("Exec", mock.Anything, "DELETE FROM testdb.meterqueryrow_cache WHERE namespace IN (?)", []interface{}{
 		[]string{"error-namespace"},
 	}).Return(errors.New("database error")).Once()
 	err = connector.invalidateCache(context.Background(), []string{"error-namespace"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "delete from cache: database error")
 
-	mockCH.AssertExpectations(t)
+	mockClickHouse.AssertExpectations(t)
 }
 
 // TestFindNamespacesToInvalidateCache tests the findNamespacesToInvalidateCache function
@@ -547,101 +547,101 @@ func TestFindNamespacesToInvalidateCache(t *testing.T) {
 	now := time.Now().UTC()
 
 	// Set up our test cache age parameter - from the test connector it's 24 hours
-	cacheableAge := connector.config.QueryCacheMinimumCacheableUsageAge
+	minCacheableAge := connector.config.QueryCacheMinimumCacheableUsageAge
 
 	// Test cases
 	tests := []struct {
-		name      string
-		rawEvents []streaming.RawEvent
-		want      []string
+		name               string
+		rawEvents          []streaming.RawEvent
+		expectedNamespaces []string
 	}{
 		{
-			name:      "empty events",
-			rawEvents: []streaming.RawEvent{},
-			want:      []string{},
+			name:               "empty events",
+			rawEvents:          []streaming.RawEvent{},
+			expectedNamespaces: []string{},
 		},
 		{
 			name: "single event, not old enough",
 			rawEvents: []streaming.RawEvent{
 				{
 					Namespace: "test-namespace-1",
-					Time:      now.Add(-cacheableAge + time.Hour), // Not old enough, no need to invalidate cache
+					Time:      now.Add(-minCacheableAge + time.Hour), // Not old enough, no need to invalidate cache
 				},
 			},
-			want: []string{},
+			expectedNamespaces: []string{},
 		},
 		{
 			name: "single event, old enough",
 			rawEvents: []streaming.RawEvent{
 				{
 					Namespace: "test-namespace-1",
-					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+					Time:      now.Add(-minCacheableAge - time.Hour), // Old enough, need to invalidate cache
 				},
 			},
-			want: []string{"test-namespace-1"},
+			expectedNamespaces: []string{"test-namespace-1"},
 		},
 		{
 			name: "multiple events, different namespaces, all old enough",
 			rawEvents: []streaming.RawEvent{
 				{
 					Namespace: "test-namespace-1",
-					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+					Time:      now.Add(-minCacheableAge - time.Hour), // Old enough, need to invalidate cache
 				},
 				{
 					Namespace: "test-namespace-2",
-					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+					Time:      now.Add(-minCacheableAge - time.Hour), // Old enough, need to invalidate cache
 				},
 			},
-			want: []string{"test-namespace-1", "test-namespace-2"},
+			expectedNamespaces: []string{"test-namespace-1", "test-namespace-2"},
 		},
 		{
 			name: "multiple events, same namespace, all old enough",
 			rawEvents: []streaming.RawEvent{
 				{
 					Namespace: "test-namespace-1",
-					Time:      now.Add(-cacheableAge - time.Hour), // Old enough, need to invalidate cache
+					Time:      now.Add(-minCacheableAge - time.Hour), // Old enough, need to invalidate cache
 				},
 				{
 					Namespace: "test-namespace-1", // Duplicate namespace
-					Time:      now.Add(-cacheableAge - 2*time.Hour),
+					Time:      now.Add(-minCacheableAge - 2*time.Hour),
 				},
 			},
-			want: []string{"test-namespace-1"}, // Should be deduplicated
+			expectedNamespaces: []string{"test-namespace-1"}, // Should be deduplicated
 		},
 		{
 			name: "mixed ages and namespaces",
 			rawEvents: []streaming.RawEvent{
 				{
 					Namespace: "test-namespace-1",
-					Time:      now.Add(-cacheableAge - time.Hour), // Old enough
+					Time:      now.Add(-minCacheableAge - time.Hour), // Old enough
 				},
 				{
 					Namespace: "test-namespace-2",
-					Time:      now.Add(-cacheableAge + time.Hour), // Not old enough
+					Time:      now.Add(-minCacheableAge + time.Hour), // Not old enough
 				},
 				{
 					Namespace: "test-namespace-3",
-					Time:      now.Add(-cacheableAge - 2*time.Hour), // Old enough
+					Time:      now.Add(-minCacheableAge - 2*time.Hour), // Old enough
 				},
 				{
-					Namespace: "test-namespace-1",                   // Duplicate namespace
-					Time:      now.Add(-cacheableAge - 3*time.Hour), // Old enough
+					Namespace: "test-namespace-1",                      // Duplicate namespace
+					Time:      now.Add(-minCacheableAge - 3*time.Hour), // Old enough
 				},
 			},
-			want: []string{"test-namespace-1", "test-namespace-3"}, // test-namespace-2 not included, duplicates removed
+			expectedNamespaces: []string{"test-namespace-1", "test-namespace-3"}, // test-namespace-2 not included, duplicates removed
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := connector.findNamespacesToInvalidateCache(tt.rawEvents)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := connector.findNamespacesToInvalidateCache(testCase.rawEvents)
 
 			// Since the order of the namespaces isn't guaranteed, we need to sort both slices
 			// before comparison to ensure consistent test results
 			sort.Strings(result)
-			sort.Strings(tt.want)
+			sort.Strings(testCase.expectedNamespaces)
 
-			assert.Equal(t, tt.want, result)
+			assert.Equal(t, testCase.expectedNamespaces, result)
 		})
 	}
 }

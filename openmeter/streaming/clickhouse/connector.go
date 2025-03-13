@@ -179,14 +179,14 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	// Load cached rows if any
 	var cached []meterpkg.MeterQueryRow
 
-	useCache := c.isQueryCachable(meter, params)
+	useCache := c.canQueryBeCached(meter, params)
 
 	if useCache {
 		var err error
 
 		hash := fmt.Sprintf("%x", params.Hash())
 
-		query, cached, err = c.queryMeterCached(ctx, hash, query)
+		query, cached, err = c.executeQueryWithCaching(ctx, hash, query)
 		if err != nil {
 			return cached, fmt.Errorf("query cached rows: %w", err)
 		}

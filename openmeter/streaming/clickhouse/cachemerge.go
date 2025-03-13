@@ -14,121 +14,128 @@ import (
 )
 
 // mergeMeterQueryRows merges cached rows with fresh rows
-func mergeMeterQueryRows(meter meter.Meter, params streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
+func mergeMeterQueryRows(meterDef meter.Meter, queryParams streaming.QueryParams, cachedRows []meterpkg.MeterQueryRow, freshRows []meterpkg.MeterQueryRow) []meterpkg.MeterQueryRow {
 	if len(cachedRows) == 0 {
 		return freshRows
 	}
 
 	// If window size is set there is no aggregation between cached and fresh rows
 	// So we just concatenate the rows
-	if params.WindowSize != nil {
-		values := append(freshRows, cachedRows...)
+	if queryParams.WindowSize != nil {
+		combinedRows := append(freshRows, cachedRows...)
 
-		sort.Slice(values, func(i, j int) bool {
-			return values[i].WindowStart.Before(values[j].WindowStart)
+		sort.Slice(combinedRows, func(i, j int) bool {
+			return combinedRows[i].WindowStart.Before(combinedRows[j].WindowStart)
 		})
 
-		return values
+		return combinedRows
 	}
 
 	// Create a map to store aggregated values by group and window
-	grouppedRows := make(map[string][]meterpkg.MeterQueryRow)
+	groupedRows := make(map[string][]meterpkg.MeterQueryRow)
 
 	// Process all rows and aggregate them together
 	for _, row := range append(freshRows, cachedRows...) {
 		// Create a key based on groupBy values
-		key := getMeterQueryRowKey(row, params)
+		groupKey := createGroupKeyFromRow(row, queryParams)
 
 		// Add the row to the group
-		if _, exists := grouppedRows[key]; !exists {
-			grouppedRows[key] = []meterpkg.MeterQueryRow{row}
+		if _, exists := groupedRows[groupKey]; !exists {
+			groupedRows[groupKey] = []meterpkg.MeterQueryRow{row}
 		} else {
-			grouppedRows[key] = append(grouppedRows[key], row)
+			groupedRows[groupKey] = append(groupedRows[groupKey], row)
 		}
 	}
 
 	// Aggregate the rows
-	var results []meterpkg.MeterQueryRow
+	var aggregatedResults []meterpkg.MeterQueryRow
 
-	for _, rows := range grouppedRows {
-		aggregated := aggregateMeterQueryRows(meter, rows)
-
-		results = append(results, aggregated)
+	for _, rowGroup := range groupedRows {
+		aggregatedRow := aggregateRowsByAggregationType(meterDef.Aggregation, rowGroup)
+		aggregatedResults = append(aggregatedResults, aggregatedRow)
 	}
 
-	return results
+	return aggregatedResults
 }
 
-// getMeterQueryRowKey creates a unique key for grouping rows based on subject and group by fields
+// createGroupKeyFromRow creates a unique key for grouping rows based on subject and group by fields
 // We don't include window start and end because we assume query window size is not set
-func getMeterQueryRowKey(row meterpkg.MeterQueryRow, params streaming.QueryParams) string {
-	key := ""
+func createGroupKeyFromRow(row meterpkg.MeterQueryRow, queryParams streaming.QueryParams) string {
+	groupKey := ""
 
 	// Add subject to the key if it exists
 	if row.Subject != nil {
-		key += fmt.Sprintf("subject=%s;", *row.Subject)
+		groupKey += fmt.Sprintf("subject=%s;", *row.Subject)
 	}
 
 	// Add all groupBy values to the key
-	groupByKeys := params.GroupBy
+	groupByFields := queryParams.GroupBy
 
-	slices.Sort(groupByKeys)
+	slices.Sort(groupByFields)
 
-	for _, groupByKey := range groupByKeys {
-		val := "nil"
-		if g, exists := row.GroupBy[groupByKey]; exists && g != nil {
-			val = *g
+	for _, groupByField := range groupByFields {
+		valueStr := "nil"
+		if groupValue, exists := row.GroupBy[groupByField]; exists && groupValue != nil {
+			valueStr = *groupValue
 		}
 
-		key += fmt.Sprintf("group=%s=%s;", groupByKey, val)
+		groupKey += fmt.Sprintf("group=%s=%s;", groupByField, valueStr)
 	}
 
-	return key
+	return groupKey
 }
 
-// aggregateMeterQueryRows combines rows into a single row
-func aggregateMeterQueryRows(meter meter.Meter, rows []meterpkg.MeterQueryRow) meterpkg.MeterQueryRow {
-	aggregated := meterpkg.MeterQueryRow{
-		WindowStart: lo.MinBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
-			return a.WindowStart.Before(b.WindowStart)
-		}).WindowStart,
-		WindowEnd: lo.MaxBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
-			return a.WindowEnd.After(b.WindowEnd)
-		}).WindowEnd,
-		Subject: rows[0].Subject,
-		GroupBy: make(map[string]*string),
+// aggregateRowsByAggregationType combines rows into a single row based on the meter aggregation type
+func aggregateRowsByAggregationType(aggregation meterpkg.MeterAggregation, rows []meterpkg.MeterQueryRow) meterpkg.MeterQueryRow {
+	// Find earliest window start and latest window end
+	earliestStart := lo.MinBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
+		return a.WindowStart.Before(b.WindowStart)
+	}).WindowStart
+
+	latestEnd := lo.MaxBy(rows, func(a meterpkg.MeterQueryRow, b meterpkg.MeterQueryRow) bool {
+		return a.WindowEnd.After(b.WindowEnd)
+	}).WindowEnd
+
+	// Initialize aggregated row
+	aggregatedRow := meterpkg.MeterQueryRow{
+		WindowStart: earliestStart,
+		WindowEnd:   latestEnd,
+		Subject:     rows[0].Subject,
+		GroupBy:     make(map[string]*string),
 	}
 
+	// Preserve group by values
 	for _, row := range rows {
-		for k, v := range row.GroupBy {
-			aggregated.GroupBy[k] = v
+		for key, value := range row.GroupBy {
+			aggregatedRow.GroupBy[key] = value
 		}
 	}
 
-	if meter.Aggregation == meterpkg.MeterAggregationSum || meter.Aggregation == meterpkg.MeterAggregationCount {
+	// Apply appropriate aggregation based on meter type
+	if aggregation == meterpkg.MeterAggregationSum || aggregation == meterpkg.MeterAggregationCount {
 		var sum float64
 		for _, row := range rows {
 			sum += row.Value
 		}
 
-		aggregated.Value = sum
-	} else if meter.Aggregation == meterpkg.MeterAggregationMin {
-		min := rows[0].Value
+		aggregatedRow.Value = sum
+	} else if aggregation == meterpkg.MeterAggregationMin {
+		minValue := rows[0].Value
 
 		for _, row := range rows {
-			min = math.Min(min, row.Value)
+			minValue = math.Min(minValue, row.Value)
 		}
 
-		aggregated.Value = min
-	} else if meter.Aggregation == meterpkg.MeterAggregationMax {
-		max := rows[0].Value
+		aggregatedRow.Value = minValue
+	} else if aggregation == meterpkg.MeterAggregationMax {
+		maxValue := rows[0].Value
 
 		for _, row := range rows {
-			max = math.Max(max, row.Value)
+			maxValue = math.Max(maxValue, row.Value)
 		}
 
-		aggregated.Value = max
+		aggregatedRow.Value = maxValue
 	}
 
-	return aggregated
+	return aggregatedRow
 }
