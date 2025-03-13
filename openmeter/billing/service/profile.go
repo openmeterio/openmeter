@@ -514,22 +514,29 @@ type defaultProfileChangeInput struct {
 	New *billing.Profile
 }
 
-func (s *Service) handleDefaultProfileChange(ctx context.Context, input defaultProfileChangeInput) error {
-	if input.Old == nil || input.New == nil {
+func (i defaultProfileChangeInput) Validate() error {
+	if i.Old == nil || i.New == nil {
 		return errors.New("old or new default profile is nil")
 	}
 
-	oldProfile := input.Old.Profile
-
-	if oldProfile.Apps == nil || oldProfile.Apps.Invoicing == nil {
+	if i.Old.Profile.Apps == nil || i.Old.Profile.Apps.Invoicing == nil {
 		return fmt.Errorf("old profile has no invoicing app")
 	}
 
-	newProfile := input.New
-
-	if newProfile.Apps == nil || newProfile.Apps.Invoicing == nil {
+	if i.New.Apps == nil || i.New.Apps.Invoicing == nil {
 		return fmt.Errorf("new profile has no invoicing app")
 	}
+
+	return nil
+}
+
+func (s *Service) handleDefaultProfileChange(ctx context.Context, input defaultProfileChangeInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	oldProfile := input.Old.Profile
+	newProfile := input.New
 
 	if oldProfile.Apps.Invoicing.GetType() == newProfile.Apps.Invoicing.GetType() {
 		s.logger.InfoContext(ctx, "no need to unassign customers from old default profile as invoicing app type is the same",
