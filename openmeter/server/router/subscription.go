@@ -93,3 +93,15 @@ func (a *Router) RestoreSubscription(w http.ResponseWriter, r *http.Request, sub
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
 }
+
+// (DELETE /api/v1/subscriptions/{subscriptionId})
+func (a *Router) DeleteSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
+	if !a.config.ProductCatalogEnabled {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+
+	a.subscriptionHandler.DeleteSubscription().With(subscriptionhttpdriver.DeleteSubscriptionParams{
+		ID: subscriptionId,
+	}).ServeHTTP(w, r)
+}
