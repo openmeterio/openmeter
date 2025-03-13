@@ -71,7 +71,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 			}
 
 			for _, override := range overrides.Items {
-				override, err := h.mapCustomerOverrideToAPI(override)
+				override, err := h.mapCustomerOverrideToAPI(ctx, override)
 				if err != nil {
 					return ListCustomerOverridesResponse{}, err
 				}
@@ -127,7 +127,7 @@ func (h *handler) GetCustomerOverride() GetCustomerOverrideHandler {
 				return GetCustomerOverrideResponse{}, err
 			}
 
-			res, err := h.mapCustomerOverrideToAPI(override)
+			res, err := h.mapCustomerOverrideToAPI(ctx, override)
 			if err != nil {
 				return GetCustomerOverrideResponse{}, err
 			}
@@ -179,7 +179,7 @@ func (h *handler) UpsertCustomerOverride() UpsertCustomerOverrideHandler {
 				return UpsertCustomerOverrideResponse{}, err
 			}
 
-			return h.mapCustomerOverrideToAPI(override)
+			return h.mapCustomerOverrideToAPI(ctx, override)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpsertCustomerOverrideResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -252,7 +252,7 @@ func (h *handler) mapCustomerOverrideExpandToEntity(in *api.BillingProfileListCu
 	return expand, nil
 }
 
-func (h *handler) mapCustomerOverrideToAPI(in billing.CustomerOverrideWithDetails) (api.BillingProfileCustomerOverrideWithDetails, error) {
+func (h *handler) mapCustomerOverrideToAPI(ctx context.Context, in billing.CustomerOverrideWithDetails) (api.BillingProfileCustomerOverrideWithDetails, error) {
 	res := api.BillingProfileCustomerOverrideWithDetails{}
 
 	if in.CustomerOverride != nil {
@@ -284,7 +284,7 @@ func (h *handler) mapCustomerOverrideToAPI(in billing.CustomerOverrideWithDetail
 
 	res.BaseBillingProfileId = in.MergedProfile.ID
 
-	profile, err := h.mapCustomerProfileToAPI(in.MergedProfile)
+	profile, err := h.mapCustomerProfileToAPI(ctx, in.MergedProfile)
 	if err != nil {
 		return res, err
 	}
@@ -294,8 +294,8 @@ func (h *handler) mapCustomerOverrideToAPI(in billing.CustomerOverrideWithDetail
 	return res, nil
 }
 
-func (h *handler) mapCustomerProfileToAPI(in billing.Profile) (api.BillingCustomerProfile, error) {
-	profile, err := h.MapProfileToApi(&in)
+func (h *handler) mapCustomerProfileToAPI(ctx context.Context, in billing.Profile) (api.BillingCustomerProfile, error) {
+	profile, err := h.MapProfileToApi(ctx, &in)
 	if err != nil {
 		return api.BillingCustomerProfile{}, err
 	}

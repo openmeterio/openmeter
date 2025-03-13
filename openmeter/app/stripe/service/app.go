@@ -6,42 +6,61 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var _ appstripe.Service = (*Service)(nil)
 
 func (s *Service) GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error) {
-	return s.adapter.GetWebhookSecret(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.GetWebhookSecretOutput, error) {
+		return s.adapter.GetWebhookSecret(ctx, input)
+	})
 }
 
 func (s *Service) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
-	return s.adapter.UpdateAPIKey(ctx, input)
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.UpdateAPIKey(ctx, input)
+	})
 }
 
 func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripeentity.CreateCheckoutSessionInput) (appstripeentity.CreateCheckoutSessionOutput, error) {
-	return s.adapter.CreateCheckoutSession(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.CreateCheckoutSessionOutput, error) {
+		return s.adapter.CreateCheckoutSession(ctx, input)
+	})
 }
 
 func (s *Service) GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error) {
-	return s.adapter.GetStripeAppData(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.AppData, error) {
+		return s.adapter.GetStripeAppData(ctx, input)
+	})
 }
 
 func (s *Service) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {
-	return s.adapter.GetStripeCustomerData(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.CustomerData, error) {
+		return s.adapter.GetStripeCustomerData(ctx, input)
+	})
 }
 
 func (s *Service) UpsertStripeCustomerData(ctx context.Context, input appstripeentity.UpsertStripeCustomerDataInput) error {
-	return s.adapter.UpsertStripeCustomerData(ctx, input)
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.UpsertStripeCustomerData(ctx, input)
+	})
 }
 
 func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripeentity.DeleteStripeCustomerDataInput) error {
-	return s.adapter.DeleteStripeCustomerData(ctx, input)
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.DeleteStripeCustomerData(ctx, input)
+	})
 }
 
 func (s *Service) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
-	return s.adapter.SetCustomerDefaultPaymentMethod(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
+		return s.adapter.SetCustomerDefaultPaymentMethod(ctx, input)
+	})
 }
 
-func (s *Service) GetMaskedSecretAPIKey(secretAPIKeyID secretentity.SecretID) (string, error) {
-	return s.adapter.GetMaskedSecretAPIKey(secretAPIKeyID)
+func (s *Service) GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (string, error) {
+		return s.adapter.GetMaskedSecretAPIKey(ctx, secretAPIKeyID)
+	})
 }

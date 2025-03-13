@@ -49,7 +49,7 @@ func (h *handler) ListApps() ListAppsHandler {
 
 			items := make([]api.App, 0, len(result.Items))
 			for _, item := range result.Items {
-				app, err := h.appMapper.MapAppToAPI(item)
+				app, err := h.appMapper.MapAppToAPI(ctx, item)
 				if err != nil {
 					return ListAppsResponse{}, fmt.Errorf("failed to map app to api: %w", err)
 				}
@@ -100,7 +100,7 @@ func (h *handler) GetApp() GetAppHandler {
 				return GetAppResponse{}, fmt.Errorf("failed to get app: %w", err)
 			}
 
-			return h.appMapper.MapAppToAPI(app)
+			return h.appMapper.MapAppToAPI(ctx, app)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAppResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -149,7 +149,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				return UpdateAppResponse{}, fmt.Errorf("failed to update app: %w", err)
 			}
 
-			return h.appMapper.MapAppToAPI(app)
+			return h.appMapper.MapAppToAPI(ctx, app)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateAppResponse](http.StatusOK),
 		httptransport.AppendOptions(
