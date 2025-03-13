@@ -10,6 +10,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/secret"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var _ appstripe.Service = (*Service)(nil)
@@ -20,6 +21,7 @@ type Service struct {
 	secretService              secret.Service
 	billingService             billing.Service
 	logger                     *slog.Logger
+	publisher                  eventbus.Publisher
 	disableWebhookRegistration bool
 }
 
@@ -30,6 +32,7 @@ type Config struct {
 	BillingService             billing.Service
 	Logger                     *slog.Logger
 	DisableWebhookRegistration bool
+	Publisher                  eventbus.Publisher
 }
 
 func (c Config) Validate() error {
@@ -53,6 +56,10 @@ func (c Config) Validate() error {
 		return errors.New("logger cannot be null")
 	}
 
+	if c.Publisher == nil {
+		return errors.New("publisher cannot be null")
+	}
+
 	return nil
 }
 
@@ -68,6 +75,7 @@ func New(config Config) (*Service, error) {
 		billingService:             config.BillingService,
 		logger:                     config.Logger,
 		disableWebhookRegistration: config.DisableWebhookRegistration,
+		publisher:                  config.Publisher,
 	}
 
 	// Register stripe app in marketplace

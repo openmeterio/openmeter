@@ -153,11 +153,15 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 				}
 
 				// Set the default payment method for the customer
-				out, err := h.service.SetCustomerDefaultPaymentMethod(ctx, appstripeentity.SetCustomerDefaultPaymentMethodInput{
-					AppID:            request.AppID,
-					StripeCustomerID: paymentIntent.Customer.ID,
-					PaymentMethodID:  paymentIntent.PaymentMethod.ID,
-				})
+				out, err := h.service.HandleSetupIntentSucceeded(ctx,
+					appstripeentity.HandleSetupIntentSucceededInput{
+						SetCustomerDefaultPaymentMethodInput: appstripeentity.SetCustomerDefaultPaymentMethodInput{
+							AppID:            request.AppID,
+							StripeCustomerID: paymentIntent.Customer.ID,
+							PaymentMethodID:  paymentIntent.PaymentMethod.ID,
+						},
+						PaymentIntentMetadata: paymentIntent.Metadata,
+					})
 				if err != nil {
 					return AppStripeWebhookResponse{}, err
 				}

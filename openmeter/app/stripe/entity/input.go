@@ -450,6 +450,24 @@ func (i SetCustomerDefaultPaymentMethodInput) Validate() error {
 	return nil
 }
 
+type HandleSetupIntentSucceededInput struct {
+	SetCustomerDefaultPaymentMethodInput
+
+	PaymentIntentMetadata map[string]string
+}
+
+func (i HandleSetupIntentSucceededInput) Validate() error {
+	if err := i.SetCustomerDefaultPaymentMethodInput.Validate(); err != nil {
+		return fmt.Errorf("error validating set customer default payment method adapter input: %w", err)
+	}
+
+	return nil
+}
+
+type HandleSetupIntentSucceededOutput struct {
+	CustomerID customer.CustomerID
+}
+
 // GetSupplierContactInput to get the default supplier
 type GetSupplierContactInput struct {
 	AppID app.AppID

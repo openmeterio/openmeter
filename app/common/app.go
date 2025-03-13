@@ -20,6 +20,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/secret"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var App = wire.NewSet(
@@ -49,7 +50,7 @@ func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.Apps
 	})
 }
 
-func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service) (appstripe.Service, error) {
+func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service, publisher eventbus.Publisher) (appstripe.Service, error) {
 	// TODO: remove this check after enabled by default
 	if !appsConfig.Enabled || db == nil {
 		return nil, nil
@@ -73,6 +74,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		BillingService:             billingService,
 		Logger:                     logger,
 		DisableWebhookRegistration: appsConfig.Stripe.DisableWebhookRegistration,
+		Publisher:                  publisher,
 	})
 }
 
