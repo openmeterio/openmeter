@@ -77,10 +77,6 @@ func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstrip
 			Customer: res.CustomerID,
 			Result: app.CustomerPaymentSetupResult{
 				Metadata: lo.OmitByKeys(input.PaymentIntentMetadata, stripeclient.SetupIntentReservedMetadataKeys),
-				AppData: appstripeentity.CustomerPaymentSetupSucceededEventAppData{
-					StripeCustomerID: input.StripeCustomerID,
-					PaymentMethodID:  input.PaymentMethodID,
-				},
 			},
 		}
 

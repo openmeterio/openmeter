@@ -136,7 +136,7 @@ func (m ManagedModel) IsDeletedAt(t time.Time) bool {
 }
 
 type NamespacedModel struct {
-	Namespace string `json:"-" yaml:"-"`
+	Namespace string `json:"namespace"`
 }
 
 func (m NamespacedModel) Validate() error {
