@@ -40,10 +40,6 @@ func NewPlanService(
 	productCatalogConf config.ProductCatalogConfiguration,
 	featureConnector feature.FeatureConnector,
 ) (plan.Service, error) {
-	if !productCatalogConf.Enabled {
-		return nil, nil
-	}
-
 	adapter, err := planadapter.New(planadapter.Config{
 		Client: db,
 		Logger: logger.With("subsystem", "productcatalog.plan"),

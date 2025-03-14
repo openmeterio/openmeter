@@ -9,18 +9,10 @@ import (
 
 // (POST /api/v1/subscriptions)
 func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.CreateSubscription().ServeHTTP(w, r)
 }
 
 func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.ChangeSubscription().With(subscriptionhttpdriver.ChangeSubscriptionParams{
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
@@ -28,10 +20,6 @@ func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subs
 
 // (GET /api/v1/subscriptions/{subscriptionId})
 func (a *Router) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string, params api.GetSubscriptionParams) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.GetSubscription().With(subscriptionhttpdriver.GetSubscriptionParams{
 		Query: params,
 		ID:    subscriptionId,
@@ -40,10 +28,6 @@ func (a *Router) GetSubscription(w http.ResponseWriter, r *http.Request, subscri
 
 // (PATCH /api/v1/subscriptions/{subscriptionId})
 func (a *Router) EditSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.EditSubscription().With(subscriptionhttpdriver.EditSubscriptionParams{
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
@@ -51,10 +35,6 @@ func (a *Router) EditSubscription(w http.ResponseWriter, r *http.Request, subscr
 
 // (POST /api/v1/subscriptions/{subscriptionId}/cancel)
 func (a *Router) CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.CancelSubscription().With(subscriptionhttpdriver.CancelSubscriptionParams{
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
@@ -62,10 +42,6 @@ func (a *Router) CancelSubscription(w http.ResponseWriter, r *http.Request, subs
 
 // (POST /api/v1/subscriptions/{subscriptionId}/migrate)
 func (a *Router) MigrateSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.MigrateSubscription().With(subscriptionhttpdriver.MigrateSubscriptionParams{
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
@@ -73,11 +49,6 @@ func (a *Router) MigrateSubscription(w http.ResponseWriter, r *http.Request, sub
 
 // (POST /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation)
 func (a *Router) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
-
 	a.subscriptionHandler.ContinueSubscription().With(subscriptionhttpdriver.ContinueSubscriptionParams{
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)
@@ -85,10 +56,6 @@ func (a *Router) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 
 // (POST /api/v1/subscriptions/{subscriptionId}/restore)
 func (a *Router) RestoreSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
 	a.subscriptionHandler.RestoreSubscription().With(subscriptionhttpdriver.RestoreSubscriptionParams{
 		ID: subscriptionId,
 	}).ServeHTTP(w, r)

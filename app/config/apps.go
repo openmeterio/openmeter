@@ -8,7 +8,6 @@ import (
 )
 
 type AppsConfiguration struct {
-	Enabled bool
 	// BaseURL is the base URL for the Stripe webhook.
 	BaseURL string `yaml:"baseURL"`
 
@@ -17,10 +16,6 @@ type AppsConfiguration struct {
 
 func (c AppsConfiguration) Validate() error {
 	var errs []error
-
-	if !c.Enabled {
-		return nil
-	}
 
 	if c.BaseURL == "" {
 		errs = append(errs, errors.New("base URL is required"))
@@ -42,7 +37,6 @@ func (c AppStripeConfiguration) Validate() error {
 }
 
 func ConfigureApps(v *viper.Viper, flags *pflag.FlagSet) {
-	v.SetDefault("apps.enabled", false)
 	v.SetDefault("apps.baseURL", "https://example.com")
 
 	flags.Bool("stripe-disable-webhook-registration", false, "Disable webhook registration for Stripe [for local development]")
