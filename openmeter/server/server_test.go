@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,6 +24,8 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -44,7 +47,9 @@ import (
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/log"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
@@ -171,7 +176,10 @@ func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace
 	w.WriteHeader(http.StatusOK)
 }
 
-func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
+func makeRequest(t *testing.T, r *http.Request) (*httptest.ResponseRecorder, error) {
+	// Initialize postgres driver
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		DefaultNamespace: DefaultNamespace,
 	})
@@ -196,8 +204,27 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
 
+	logger := slog.New(log.NewMockHandler())
+
+	billingAdapter, err := billingadapter.New(billingadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing service: %w", err)
+	}
+
+	billingService, err := billingservice.New(billingservice.Config{
+		Adapter: billingAdapter,
+		Logger:  logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing service: %w", err)
+	}
+
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
+			Billing:                     billingService,
 			EntitlementConnector:        &NoopEntitlementConnector{},
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			FeatureConnector:            &NoopFeatureConnector{},
@@ -507,7 +534,7 @@ func TestRoutes(t *testing.T) {
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
-			w, err := makeRequest(req)
+			w, err := makeRequest(t, req)
 			assert.NoError(t, err)
 			res := w.Result()
 
