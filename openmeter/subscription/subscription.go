@@ -48,6 +48,10 @@ func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 		return SubscriptionStatusInactive
 	}
 
+	if s.DeletedAt != nil && !s.DeletedAt.After(at) {
+		return SubscriptionStatusInactive
+	}
+
 	// If the subscription has already started...
 	if !s.ActiveFrom.After(at) {
 		// ...and it has not been canceled yet, it is active
