@@ -24,13 +24,10 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -51,7 +48,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -135,11 +131,8 @@ type testResponse struct {
 }
 
 func TestRoutes(t *testing.T) {
-	// Initialize postgres driver
-	dbDeps := subscriptiontestutils.SetupDBDeps(t)
-	defer dbDeps.Cleanup(t)
-
-	testServer := getTestServer(t, dbDeps.DBClient)
+	// No need for DB setup with NoopBillingService
+	testServer := getTestServer(t)
 
 	tests := []struct {
 		name string
@@ -438,7 +431,7 @@ func TestRoutes(t *testing.T) {
 }
 
 // getTestServer returns a test server
-func getTestServer(t *testing.T, db *db.Client) *Server {
+func getTestServer(t *testing.T) *Server {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		DefaultNamespace: DefaultNamespace,
 	})
@@ -483,24 +476,7 @@ func getTestServer(t *testing.T, db *db.Client) *Server {
 	grantRepo := &NoopGrantRepo{}
 
 	// Create billing service
-	billingAdapter, err := billingadapter.New(billingadapter.Config{
-		Client: db,
-		Logger: logger,
-	})
-	assert.NoError(t, err, "failed to create billing adapter")
-
-	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:             billingAdapter,
-		AppService:          appService,
-		AdvancementStrategy: billing.ForegroundAdvancementStrategy,
-		CustomerService:     customerService,
-		Logger:              logger,
-		FeatureService:      featureService,
-		MeterService:        meterManageService,
-		StreamingConnector:  mockStreamingConnector,
-		Publisher:           NewNoopPublisher(),
-	})
-	assert.NoError(t, err, "failed to create billing service")
+	billingService := &NoopBillingService{}
 
 	config := &Config{
 		RouterConfig: router.Config{
@@ -1200,4 +1176,132 @@ func (n NoopGrantRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.
 
 func (n NoopGrantRepo) Self() grant.Repo {
 	return n
+}
+
+var _ billing.Service = (*NoopBillingService)(nil)
+
+// NoopBillingService implements billing.Service with no-op operations
+type NoopBillingService struct{}
+
+// ProfileService methods
+func (n NoopBillingService) CreateProfile(ctx context.Context, param billing.CreateProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (billing.ListProfilesResult, error) {
+	return billing.ListProfilesResult{}, nil
+}
+
+func (n NoopBillingService) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateProfile(ctx context.Context, input billing.UpdateProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (n NoopBillingService) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
+	return false, nil
+}
+
+// CustomerOverrideService methods
+func (n NoopBillingService) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopBillingService) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
+	return nil
+}
+
+func (n NoopBillingService) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
+	return billing.ListCustomerOverridesResult{}, nil
+}
+
+// InvoiceLineService methods
+func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billing.Line, error) {
+	return []*billing.Line{}, nil
+}
+
+func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
+	return []*billing.Line{}, nil
+}
+
+func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
+	return &billing.Line{}, nil
+}
+
+// InvoiceService methods
+func (n NoopBillingService) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
+	return billing.ListInvoicesResponse{}, nil
+}
+
+func (n NoopBillingService) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.Invoice, error) {
+	return []billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) SimulateInvoice(ctx context.Context, input billing.SimulateInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) UpsertValidationIssues(ctx context.Context, input billing.UpsertValidationIssuesInput) error {
+	return nil
+}
+
+// SequenceService methods
+func (n NoopBillingService) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
+	return "", nil
+}
+
+// InvoiceAppService methods
+func (n NoopBillingService) TriggerInvoice(ctx context.Context, input billing.InvoiceTriggerServiceInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateInvoiceFields(ctx context.Context, input billing.UpdateInvoiceFieldsInput) error {
+	return nil
+}
+
+// ConfigIntrospectionService methods
+func (n NoopBillingService) GetAdvancementStrategy() billing.AdvancementStrategy {
+	return billing.ForegroundAdvancementStrategy
 }
