@@ -624,9 +624,7 @@ model CheckoutSessionCustomTextParams {
    * Custom text that should be displayed after the payment confirmation button.
    */
   afterSubmit?: {
-    /**
-     * Text may be up to 1200 characters in length.
-     */
+    @maxLength(1200)
     message?: string;
   };
 
@@ -634,9 +632,7 @@ model CheckoutSessionCustomTextParams {
    * Custom text that should be displayed alongside shipping address collection.
    */
   shippingAddress?: {
-    /**
-     * Text may be up to 1200 characters in length.
-     */
+    @maxLength(1200)
     message?: string;
   };
 
@@ -644,9 +640,7 @@ model CheckoutSessionCustomTextParams {
    * Custom text that should be displayed alongside the payment confirmation button.
    */
   submit?: {
-    /**
-     * Text may be up to 1200 characters in length.
-     */
+    @maxLength(1200)
     message?: string;
   };
 
@@ -654,9 +648,7 @@ model CheckoutSessionCustomTextParams {
    * Custom text that should be displayed in place of the default terms of service agreement text.
    */
   termsOfServiceAcceptance?: {
-    /**
-     * Text may be up to 1200 characters in length.
-     */
+    @maxLength(1200)
     message?: string;
   };
 }

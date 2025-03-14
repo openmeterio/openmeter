@@ -2344,22 +2344,18 @@ export interface components {
     CheckoutSessionCustomTextAfterSubmitParams: {
       /** @description Custom text that should be displayed after the payment confirmation button. */
       afterSubmit?: {
-        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
       /** @description Custom text that should be displayed alongside shipping address collection. */
       shippingAddress?: {
-        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
       /** @description Custom text that should be displayed alongside the payment confirmation button. */
       submit?: {
-        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
       /** @description Custom text that should be displayed in place of the default terms of service agreement text. */
       termsOfServiceAcceptance?: {
-        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
     }

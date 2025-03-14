@@ -9027,28 +9027,28 @@ components:
           properties:
             message:
               type: string
-              description: Text may be up to 1200 characters in length.
+              maxLength: 1200
           description: Custom text that should be displayed after the payment confirmation button.
         shippingAddress:
           type: object
           properties:
             message:
               type: string
-              description: Text may be up to 1200 characters in length.
+              maxLength: 1200
           description: Custom text that should be displayed alongside shipping address collection.
         submit:
           type: object
           properties:
             message:
               type: string
-              description: Text may be up to 1200 characters in length.
+              maxLength: 1200
           description: Custom text that should be displayed alongside the payment confirmation button.
         termsOfServiceAcceptance:
           type: object
           properties:
             message:
               type: string
-              description: Text may be up to 1200 characters in length.
+              maxLength: 1200
           description: Custom text that should be displayed in place of the default terms of service agreement text.
       description: Stripe CheckoutSession.custom_text
     CheckoutSessionUIMode:
