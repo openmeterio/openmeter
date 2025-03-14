@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
@@ -360,34 +361,25 @@ type CreateCheckoutSessionOutput struct {
 	CustomerID       customer.CustomerID
 	StripeCustomerID string
 
-	SessionID     string
-	SetupIntentID string
-	URL           *string
-	Mode          stripe.CheckoutSessionMode
-
-	CancelURL  *string
-	SuccessURL *string
-	ReturnURL  *string
+	client.StripeCheckoutSession
 }
 
 func (o CreateCheckoutSessionOutput) Validate() error {
+	var errs []error
+
 	if err := o.CustomerID.Validate(); err != nil {
-		return fmt.Errorf("error validating customer id: %w", err)
+		errs = append(errs, fmt.Errorf("error validating customer id: %w", err))
 	}
 
 	if o.StripeCustomerID == "" {
-		return errors.New("stripe customer id is required")
+		errs = append(errs, errors.New("stripe customer id is required"))
 	}
 
-	if o.SessionID == "" {
-		return errors.New("session id is required")
+	if err := o.StripeCheckoutSession.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("error validating stripe checkout session: %w", err))
 	}
 
-	if o.SetupIntentID == "" {
-		return errors.New("setup intent id is required")
-	}
-
-	return nil
+	return errors.Join(errs...)
 }
 
 type AppBase struct {

@@ -639,10 +639,12 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
 		CustomerID:       testCustomer.GetID(),
 		StripeCustomerID: "cus_123",
-		SessionID:        "cs_123",
-		SetupIntentID:    "seti_123",
-		Mode:             stripe.CheckoutSessionModeSetup,
-		URL:              lo.ToPtr("https://checkout.stripe.com/cs_123/test"),
+		StripeCheckoutSession: stripeclient.StripeCheckoutSession{
+			SessionID:     "cs_123",
+			SetupIntentID: "seti_123",
+			Mode:          stripe.CheckoutSessionModeSetup,
+			URL:           lo.ToPtr("https://checkout.stripe.com/cs_123/test"),
+		},
 	}, checkoutSession, "Create checkout session must match")
 
 	// Test app 404 error
