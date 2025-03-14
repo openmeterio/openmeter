@@ -19,6 +19,16 @@ using TypeSpec.Versioning;
 namespace OpenMeter.ProductCatalog;
 
 /**
+ * List subscriptions response
+ */
+@oneOf
+@friendlyName("ListSubscriptionsResponse")
+union ListSubscriptionsResponse {
+  PaginatedResponse<Subscription>,
+  PaginatedResponse<SubscriptionExpanded>,
+}
+
+/**
  * Expanded subscription
  */
 @friendlyName("SubscriptionExpanded")

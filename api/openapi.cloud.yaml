@@ -2260,7 +2260,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubscriptionPaginatedResponse'
+                $ref: '#/components/schemas/ListSubscriptionsResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -13087,6 +13087,11 @@ components:
             $ref: '#/components/schemas/Feature'
         - $ref: '#/components/schemas/FeaturePaginatedResponse'
       description: List features result
+    ListSubscriptionsResponse:
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionPaginatedResponse'
+        - $ref: '#/components/schemas/SubscriptionExpandedPaginatedResponse'
+      description: List subscriptions response
     MarketplaceInstallResponse:
       type: object
       required:
@@ -15925,6 +15930,32 @@ components:
             $ref: '#/components/schemas/SubscriptionPhaseExpanded'
           description: The phases of the subscription.
       description: Expanded subscription
+    SubscriptionExpandedPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: The items in the current page.
+          example: 500
+        page:
+          type: integer
+          description: The items in the current page.
+          example: 1
+        pageSize:
+          type: integer
+          description: The items in the current page.
+          example: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionExpanded'
+          description: The items in the current page.
+      description: Paginated response
     SubscriptionItem:
       type: object
       required:

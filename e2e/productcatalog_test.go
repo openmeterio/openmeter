@@ -396,11 +396,14 @@ func TestPlan(t *testing.T) {
 		body := apiRes.JSON200
 		require.NotNil(t, body)
 
-		require.Equal(t, 1, len(body.Items))
-		require.Equal(t, customSubscriptionId, *body.Items[0].Id)
-		require.Equal(t, 1, body.Page)
-		require.Equal(t, 10, body.PageSize)
-		require.Equal(t, 1, body.TotalCount)
+		res, err := body.AsSubscriptionPaginatedResponse()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, len(res.Items))
+		require.Equal(t, customSubscriptionId, *res.Items[0].Id)
+		require.Equal(t, 1, res.Page)
+		require.Equal(t, 10, res.PageSize)
+		require.Equal(t, 1, res.TotalCount)
 	})
 
 	t.Run("Should create a subscription based on the plan", func(t *testing.T) {

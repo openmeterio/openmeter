@@ -5141,6 +5141,10 @@ export interface components {
     ListFeaturesResult:
       | components['schemas']['Feature'][]
       | components['schemas']['FeaturePaginatedResponse']
+    /** @description List subscriptions response */
+    ListSubscriptionsResponse:
+      | components['schemas']['SubscriptionPaginatedResponse']
+      | components['schemas']['SubscriptionExpandedPaginatedResponse']
     /** @description Marketplace install response. */
     MarketplaceInstallResponse: {
       app: components['schemas']['App']
@@ -7293,6 +7297,26 @@ export interface components {
       /** @description The phases of the subscription. */
       phases: components['schemas']['SubscriptionPhaseExpanded'][]
     }
+    /** @description Paginated response */
+    SubscriptionExpandedPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
+      items: components['schemas']['SubscriptionExpanded'][]
+    }
     /** @description The actual contents of the Subscription, what the user gets, what they pay, etc... */
     SubscriptionItem: {
       /**
@@ -8275,6 +8299,8 @@ export type InvoiceWorkflowSettingsReplaceUpdate =
 export type ListEntitlementsResult =
   components['schemas']['ListEntitlementsResult']
 export type ListFeaturesResult = components['schemas']['ListFeaturesResult']
+export type ListSubscriptionsResponse =
+  components['schemas']['ListSubscriptionsResponse']
 export type MarketplaceInstallResponse =
   components['schemas']['MarketplaceInstallResponse']
 export type MarketplaceListing = components['schemas']['MarketplaceListing']
@@ -8422,6 +8448,8 @@ export type SubscriptionEdit = components['schemas']['SubscriptionEdit']
 export type SubscriptionEditOperation =
   components['schemas']['SubscriptionEditOperation']
 export type SubscriptionExpanded = components['schemas']['SubscriptionExpanded']
+export type SubscriptionExpandedPaginatedResponse =
+  components['schemas']['SubscriptionExpandedPaginatedResponse']
 export type SubscriptionItem = components['schemas']['SubscriptionItem']
 export type SubscriptionItemIncluded =
   components['schemas']['SubscriptionItemIncluded']
@@ -11474,7 +11502,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['SubscriptionPaginatedResponse']
+          'application/json': components['schemas']['ListSubscriptionsResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
