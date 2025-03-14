@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -134,7 +135,11 @@ type testResponse struct {
 }
 
 func TestRoutes(t *testing.T) {
-	testServer := getTestServer(t)
+	// Initialize postgres driver
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	testServer := getTestServer(t, dbDeps.DBClient)
 
 	tests := []struct {
 		name string
@@ -433,10 +438,7 @@ func TestRoutes(t *testing.T) {
 }
 
 // getTestServer returns a test server
-func getTestServer(t *testing.T) *Server {
-	// Initialize postgres driver
-	dbDeps := subscriptiontestutils.SetupDBDeps(t)
-
+func getTestServer(t *testing.T, db *db.Client) *Server {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		DefaultNamespace: DefaultNamespace,
 	})
@@ -482,7 +484,7 @@ func getTestServer(t *testing.T) *Server {
 
 	// Create billing service
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
-		Client: dbDeps.DBClient,
+		Client: db,
 		Logger: logger,
 	})
 	assert.NoError(t, err, "failed to create billing adapter")
