@@ -18,17 +18,11 @@ type PaymentSetupAppData interface {
 
 type CustomerPaymentSetupResult struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
-	// AppData is the app specific data for the payment setup (the root object's App specifies the app type)
-	AppData PaymentSetupAppData `json:"appData,omitempty"`
+	// Add additional fields here as needed. Keep in mind that this event is app neutral, so please create abstractions on top of app specific data if needed.
+	// The consumer can always query the specific app data. (If this does not cut it on the long run, we need to have per app event types, which is an overkill)
 }
 
 func (r CustomerPaymentSetupResult) Validate() error {
-	if r.AppData != nil {
-		if err := r.AppData.Validate(); err != nil {
-			return fmt.Errorf("app data: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -44,7 +38,7 @@ var (
 	appCustomerDefaultPaymentMethodChangedEventName = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystemAppCustomer,
 		Name:      "payment_setup_succeeded",
-		Version:   "v1",
+		Version:   "v2",
 	})
 )
 
