@@ -8856,6 +8856,9 @@ type ClientInterface interface {
 
 	CreateSubscription(ctx context.Context, body CreateSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DeleteSubscription request
+	DeleteSubscription(ctx context.Context, subscriptionId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSubscription request
 	GetSubscription(ctx context.Context, subscriptionId string, params *GetSubscriptionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -10568,6 +10571,18 @@ func (c *Client) CreateSubscriptionWithBody(ctx context.Context, contentType str
 
 func (c *Client) CreateSubscription(ctx context.Context, body CreateSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateSubscriptionRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteSubscription(ctx context.Context, subscriptionId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteSubscriptionRequest(c.Server, subscriptionId)
 	if err != nil {
 		return nil, err
 	}
@@ -17118,6 +17133,40 @@ func NewCreateSubscriptionRequestWithBody(server string, contentType string, bod
 	return req, nil
 }
 
+// NewDeleteSubscriptionRequest generates requests for DeleteSubscription
+func NewDeleteSubscriptionRequest(server string, subscriptionId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subscriptionId", runtime.ParamLocationPath, subscriptionId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subscriptions/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetSubscriptionRequest generates requests for GetSubscription
 func NewGetSubscriptionRequest(server string, subscriptionId string, params *GetSubscriptionParams) (*http.Request, error) {
 	var err error
@@ -17858,6 +17907,9 @@ type ClientWithResponsesInterface interface {
 	CreateSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSubscriptionResponse, error)
 
 	CreateSubscriptionWithResponse(ctx context.Context, body CreateSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSubscriptionResponse, error)
+
+	// DeleteSubscriptionWithResponse request
+	DeleteSubscriptionWithResponse(ctx context.Context, subscriptionId string, reqEditors ...RequestEditorFn) (*DeleteSubscriptionResponse, error)
 
 	// GetSubscriptionWithResponse request
 	GetSubscriptionWithResponse(ctx context.Context, subscriptionId string, params *GetSubscriptionParams, reqEditors ...RequestEditorFn) (*GetSubscriptionResponse, error)
@@ -20844,6 +20896,34 @@ func (r CreateSubscriptionResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteSubscriptionResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON403     *ForbiddenProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSON500     *InternalServerErrorProblemResponse
+	ApplicationproblemJSON503     *ServiceUnavailableProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteSubscriptionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteSubscriptionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetSubscriptionResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
@@ -22282,6 +22362,15 @@ func (c *ClientWithResponses) CreateSubscriptionWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseCreateSubscriptionResponse(rsp)
+}
+
+// DeleteSubscriptionWithResponse request returning *DeleteSubscriptionResponse
+func (c *ClientWithResponses) DeleteSubscriptionWithResponse(ctx context.Context, subscriptionId string, reqEditors ...RequestEditorFn) (*DeleteSubscriptionResponse, error) {
+	rsp, err := c.DeleteSubscription(ctx, subscriptionId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteSubscriptionResponse(rsp)
 }
 
 // GetSubscriptionWithResponse request returning *GetSubscriptionResponse
@@ -29739,6 +29828,74 @@ func ParseCreateSubscriptionResponse(rsp *http.Response) (*CreateSubscriptionRes
 	return response, nil
 }
 
+// ParseDeleteSubscriptionResponse parses an HTTP response from a DeleteSubscriptionWithResponse call
+func ParseDeleteSubscriptionResponse(rsp *http.Response) (*DeleteSubscriptionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteSubscriptionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ForbiddenProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetSubscriptionResponse parses an HTTP response from a GetSubscriptionWithResponse call
 func ParseGetSubscriptionResponse(rsp *http.Response) (*GetSubscriptionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -31113,39 +31270,40 @@ var swaggerSpec = []string{
 	"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",
-	"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",
-	"t+zq7td1Bx/ffvz/AwAA//9vvhqmi+UHAA==",
+	"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",
+	"wce3H///AAAA//8/wx51Pu4HAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
