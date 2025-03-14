@@ -198,6 +198,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		SecretService:  secretService,
 		BillingService: billingService,
 		Logger:         logger,
+		Publisher:      eventbus.NewMock(t),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe service: %w", err)

@@ -824,8 +824,8 @@ func (n NoopAppStripeService) GetStripeAppData(ctx context.Context, input appstr
 	return appstripeentity.AppData{}, nil
 }
 
-func (n NoopAppStripeService) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
-	return appstripeentity.SetCustomerDefaultPaymentMethodOutput{}, nil
+func (n NoopAppStripeService) HandleSetupIntentSucceeded(ctx context.Context, input appstripeentity.HandleSetupIntentSucceededInput) (appstripeentity.HandleSetupIntentSucceededOutput, error) {
+	return appstripeentity.HandleSetupIntentSucceededOutput{}, nil
 }
 
 func (n NoopAppStripeService) GetStripeCustomerData(ctx context.Context, input appstripeentity.GetStripeCustomerDataInput) (appstripeentity.CustomerData, error) {

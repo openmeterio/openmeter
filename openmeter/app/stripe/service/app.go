@@ -2,8 +2,13 @@ package appservice
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -53,9 +58,37 @@ func (s *Service) DeleteStripeCustomerData(ctx context.Context, input appstripee
 	})
 }
 
-func (s *Service) SetCustomerDefaultPaymentMethod(ctx context.Context, input appstripeentity.SetCustomerDefaultPaymentMethodInput) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.SetCustomerDefaultPaymentMethodOutput, error) {
-		return s.adapter.SetCustomerDefaultPaymentMethod(ctx, input)
+func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstripeentity.HandleSetupIntentSucceededInput) (appstripeentity.HandleSetupIntentSucceededOutput, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripeentity.HandleSetupIntentSucceededOutput, error) {
+		def := appstripeentity.HandleSetupIntentSucceededOutput{}
+
+		res, err := s.adapter.SetCustomerDefaultPaymentMethod(ctx, input.SetCustomerDefaultPaymentMethodInput)
+		if err != nil {
+			return def, fmt.Errorf("failed to set customer default payment method: %w", err)
+		}
+
+		handlingApp, err := s.appService.GetApp(ctx, input.AppID)
+		if err != nil {
+			return def, fmt.Errorf("failed to get app: %w", err)
+		}
+
+		event := app.CustomerPaymentSetupSucceededEvent{
+			App:      handlingApp.GetAppBase(),
+			Customer: res.CustomerID,
+			Result: app.CustomerPaymentSetupResult{
+				Metadata: lo.OmitByKeys(input.PaymentIntentMetadata, stripeclient.SetupIntentReservedMetadataKeys),
+				AppData: appstripeentity.CustomerPaymentSetupSucceededEventAppData{
+					StripeCustomerID: input.StripeCustomerID,
+					PaymentMethodID:  input.PaymentMethodID,
+				},
+			},
+		}
+
+		if err := s.publisher.Publish(ctx, event); err != nil {
+			return def, fmt.Errorf("failed to publish event: %w", err)
+		}
+
+		return appstripeentity.HandleSetupIntentSucceededOutput(res), nil
 	})
 }
 

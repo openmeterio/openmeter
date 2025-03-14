@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -86,6 +87,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		SecretService:  secretService,
 		BillingService: s.BillingService,
 		Logger:         slog.Default(),
+		Publisher:      eventbus.NewMock(s.T()),
 	})
 	s.Require().NoError(err, "failed to create app stripe service")
 

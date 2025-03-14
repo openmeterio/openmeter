@@ -13,6 +13,7 @@ const (
 	EntityCustomer     = "customer"
 	EntitySubjectKey   = "subjectKey"
 	EntityGrant        = "grant"
+	EntityApp          = "app"
 )
 
 // Ingestion/Events
