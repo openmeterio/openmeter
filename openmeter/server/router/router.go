@@ -73,10 +73,8 @@ type IngestHandler interface {
 
 type Config struct {
 	App                         app.Service
-	AppsEnabled                 bool
 	AppStripe                   appstripe.Service
 	Billing                     billing.Service
-	BillingEnabled              bool
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	EntitlementConnector        entitlement.Connector
@@ -92,7 +90,6 @@ type Config struct {
 	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
 	Plan                        plan.Service
-	ProductCatalogEnabled       bool
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
 	PortalCORSEnabled           bool
 	Portal                      portal.Service
@@ -116,23 +113,19 @@ func (c Config) Validate() error {
 	}
 
 	// Validate connectors
-	if c.AppsEnabled {
-		if c.App == nil {
-			return errors.New("app service is required")
-		}
-
-		if c.AppStripe == nil {
-			return errors.New("app stripe service is required")
-		}
+	if c.App == nil {
+		return errors.New("app service is required")
 	}
 
-	if c.BillingEnabled || c.AppsEnabled {
-		if c.Customer == nil {
-			return errors.New("customer service is required")
-		}
+	if c.AppStripe == nil {
+		return errors.New("app stripe service is required")
 	}
 
-	if c.BillingEnabled && c.Billing == nil {
+	if c.Customer == nil {
+		return errors.New("customer service is required")
+	}
+
+	if c.Billing == nil {
 		return errors.New("billing service is required")
 	}
 
@@ -296,47 +289,46 @@ func NewRouter(config Config) (*Router, error) {
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
-	if config.BillingEnabled {
-		router.billingHandler = billinghttpdriver.New(
-			config.Logger,
-			staticNamespaceDecoder,
-			config.Billing,
-			config.AppStripe,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
+	// Billing
+	router.billingHandler = billinghttpdriver.New(
+		config.Logger,
+		staticNamespaceDecoder,
+		config.Billing,
+		config.AppStripe,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// Product Catalog
+	if config.Plan == nil {
+		return nil, errors.New("plan service is required")
 	}
 
-	if config.ProductCatalogEnabled {
-		if config.Plan == nil {
-			return nil, errors.New("plan service is required when productcatalog is enabled")
-		}
+	router.planHandler = planhttpdriver.New(
+		staticNamespaceDecoder,
+		config.Plan,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
-		router.planHandler = planhttpdriver.New(
-			staticNamespaceDecoder,
-			config.Plan,
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
-
-		if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.PlanSubscriptionService == nil {
-			return nil, errors.New("subscription services are required when productcatalog is enabled")
-		}
-
-		if config.Logger == nil {
-			return nil, errors.New("logger is required when productcatalog is enabled")
-		}
-
-		router.subscriptionHandler = subscriptionhttpdriver.NewHandler(
-			subscriptionhttpdriver.HandlerConfig{
-				SubscriptionWorkflowService: config.SubscriptionWorkflowService,
-				SubscriptionService:         config.SubscriptionService,
-				PlanSubscriptionService:     config.PlanSubscriptionService,
-				NamespaceDecoder:            staticNamespaceDecoder,
-				CustomerService:             config.Customer,
-				Logger:                      config.Logger,
-			},
-			httptransport.WithErrorHandler(config.ErrorHandler),
-		)
+	if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.PlanSubscriptionService == nil {
+		return nil, errors.New("subscription services are required")
 	}
+
+	if config.Logger == nil {
+		return nil, errors.New("logger is required")
+	}
+
+	// Subscription
+	router.subscriptionHandler = subscriptionhttpdriver.NewHandler(
+		subscriptionhttpdriver.HandlerConfig{
+			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
+			SubscriptionService:         config.SubscriptionService,
+			PlanSubscriptionService:     config.PlanSubscriptionService,
+			NamespaceDecoder:            staticNamespaceDecoder,
+			CustomerService:             config.Customer,
+			Logger:                      config.Logger,
+		},
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
 	// Portal
 	router.portalHandler = portalhttphandler.New(

@@ -57,16 +57,14 @@ termination:
 # entitlements:
 #   gracePeriod: P1D
 
-productcatalog:
-  enabled: true
-
 billing:
-  enabled: true
   # for production deployments it's recommended to use queued for server only
   # advancementStrategy: foreground
 
 apps:
-  enabled: true
+  baseURL: https://example.com
+  # stripe:
+  #   disableWebhookRegistration: true
 
 # System event generation
 events:

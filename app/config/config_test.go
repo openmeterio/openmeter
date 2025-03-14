@@ -139,7 +139,6 @@ func TestComplete(t *testing.T) {
 			GracePeriod: isodate.String("P1D"),
 		},
 		Billing: BillingConfiguration{
-			Enabled:             false,
 			AdvancementStrategy: billing.ForegroundAdvancementStrategy,
 			Worker: BillingWorkerConfiguration{
 				ConsumerConfiguration: ConsumerConfiguration{

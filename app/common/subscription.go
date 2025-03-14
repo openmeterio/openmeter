@@ -48,10 +48,6 @@ func NewSubscriptionServices(
 	eventPublisher eventbus.Publisher,
 	billingSubscriptionValidator *billingsubscription.Validator,
 ) (SubscriptionServiceWithWorkflow, error) {
-	if !productcatalogConfig.Enabled {
-		return SubscriptionServiceWithWorkflow{}, nil
-	}
-
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
 	subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(db)
 	subscriptionItemRepo := subscriptionrepo.NewSubscriptionItemRepo(db)

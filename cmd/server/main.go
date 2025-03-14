@@ -127,20 +127,16 @@ func main() {
 	}
 
 	// Provision sandbox app
-	if conf.Apps.Enabled {
-		err = app.AppSandboxProvisioner()
-		if err != nil {
-			logger.Error("failed to provision sandbox app", "error", err)
-			os.Exit(1)
-		}
+	err = app.AppSandboxProvisioner()
+	if err != nil {
+		logger.Error("failed to provision sandbox app", "error", err)
+		os.Exit(1)
 	}
 
-	if conf.Billing.Enabled {
-		err = app.Billing.ProvisionDefaultBillingProfile(ctx, app.NamespaceManager.GetDefaultNamespace())
-		if err != nil {
-			logger.Error("failed to provision default billing profile", "error", err)
-			os.Exit(1)
-		}
+	err = app.Billing.ProvisionDefaultBillingProfile(ctx, app.NamespaceManager.GetDefaultNamespace())
+	if err != nil {
+		logger.Error("failed to provision default billing profile", "error", err)
+		os.Exit(1)
 	}
 
 	// Create meters from config
@@ -153,10 +149,8 @@ func main() {
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			App:                         app.App,
-			AppsEnabled:                 conf.Apps.Enabled,
 			AppStripe:                   app.AppStripe,
 			Billing:                     app.Billing,
-			BillingEnabled:              conf.Billing.Enabled,
 			Customer:                    app.Customer,
 			DebugConnector:              debugConnector,
 			ErrorHandler:                errorsx.NewSlogHandler(logger),
@@ -175,7 +169,6 @@ func main() {
 			PlanSubscriptionService:     app.Subscription.PlanSubscriptionService,
 			Portal:                      app.Portal,
 			PortalCORSEnabled:           conf.Portal.CORS.Enabled,
-			ProductCatalogEnabled:       conf.ProductCatalog.Enabled,
 			ProgressManager:             app.ProgressManager,
 			SubscriptionService:         app.Subscription.Service,
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,

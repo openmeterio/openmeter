@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -40,11 +41,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	progressmanageradapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/log"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
@@ -102,127 +111,10 @@ var (
 	}
 )
 
-type MockStreamingConnector struct{}
-
-func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
-	return []streaming.CountEventRow{}, nil
-}
-
-func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	events := []api.IngestedEvent{
-		{
-			Event: mockEvent,
-		},
-	}
-	return events, nil
-}
-
-func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
-	value := mockQueryValue
-
-	if params.FilterSubject == nil {
-		value.Subject = nil
-	}
-
-	return []meter.MeterQueryRow{value}, nil
-}
-
-func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
-	return []string{"s1"}, nil
-}
-
-func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
-	return true, nil
-}
-
-type MockDebugHandler struct{}
-
-func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
-	return `openmeter_events_total{subject="customer-1",error="true"} 2.0`, nil
-}
-
 type MockHandler struct{}
 
 func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string) {
 	w.WriteHeader(http.StatusOK)
-}
-
-func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
-	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
-		DefaultNamespace: DefaultNamespace,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	portal, err := portaladapter.New(portaladapter.Config{
-		Secret: "12345",
-		Expire: time.Hour,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	mockStreamingConnector := &MockStreamingConnector{}
-
-	meterManageService, err := meteradapter.NewManage(mockMeters)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meter service: %w", err)
-	}
-
-	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
-
-	server, _ := NewServer(&Config{
-		RouterConfig: router.Config{
-			EntitlementConnector:        &NoopEntitlementConnector{},
-			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
-			FeatureConnector:            &NoopFeatureConnector{},
-			GrantConnector:              &NoopGrantConnector{},
-			MeterManageService:          meterManageService,
-			MeterEventService:           meterEventService,
-			StreamingConnector:          mockStreamingConnector,
-			DebugConnector:              MockDebugHandler{},
-			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
-				return true, nil
-			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
-			NamespaceManager: namespaceManager,
-			Portal:           portal,
-			ProgressManager:  progressmanageradapter.NewNoop(),
-			ErrorHandler:     errorsx.NopHandler{},
-			Notification:     &NoopNotificationService{},
-			App:              &NoopAppService{},
-			AppStripe:        &NoopAppStripeService{},
-			Customer:         &NoopCustomerService{},
-		},
-		RouterHook: func(r chi.Router) {},
-	})
-	writer := httptest.NewRecorder()
-	server.ServeHTTP(writer, r)
-	return writer, nil
 }
 
 type testRequest struct {
@@ -239,6 +131,9 @@ type testResponse struct {
 }
 
 func TestRoutes(t *testing.T) {
+	// No need for DB setup with NoopBillingService
+	testServer := getTestServer(t)
+
 	tests := []struct {
 		name string
 		req  testRequest
@@ -485,7 +380,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodGet,
 				path:        "/api/v1/debug/metrics",
 				contentType: "text/plain",
-				body:        `openmeter_events_total{subject="customer-1",error="true"} 2.0`,
+				body:        `openmeter_events_total{subject="customer-1"} 2.0`,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -507,14 +402,16 @@ func TestRoutes(t *testing.T) {
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
-			w, err := makeRequest(req)
-			assert.NoError(t, err)
-			res := w.Result()
+
+			// Make request
+			writer := httptest.NewRecorder()
+			testServer.ServeHTTP(writer, req)
+			res := writer.Result()
 
 			defer res.Body.Close()
 
 			// status
-			assert.Equal(t, tt.res.status, res.StatusCode, w.Body.String())
+			assert.Equal(t, tt.res.status, res.StatusCode, writer.Body.String())
 
 			// body
 			if tt.res.body == nil {
@@ -523,14 +420,209 @@ func TestRoutes(t *testing.T) {
 
 			switch tt.req.accept {
 			case "text/csv":
-				assert.Equal(t, tt.res.body, w.Body.String())
+				assert.Equal(t, tt.res.body, writer.Body.String())
 			default:
 				// Handle default as "application/json"
 				resBody, _ := json.Marshal(tt.res.body)
-				assert.JSONEq(t, string(resBody), w.Body.String())
+				assert.JSONEq(t, string(resBody), writer.Body.String())
 			}
 		})
 	}
+}
+
+// getTestServer returns a test server
+func getTestServer(t *testing.T) *Server {
+	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		DefaultNamespace: DefaultNamespace,
+	})
+	assert.NoError(t, err, "failed to create namespace manager")
+
+	portal, err := portaladapter.New(portaladapter.Config{
+		Secret: "12345",
+		Expire: time.Hour,
+	})
+	assert.NoError(t, err, "failed to create portal")
+
+	mockStreamingConnector := &MockStreamingConnector{}
+
+	meterManageService, err := meteradapter.NewManage(mockMeters)
+	assert.NoError(t, err, "failed to create meter service")
+
+	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
+
+	logger := slog.New(log.NewMockHandler())
+
+	// Create feature service
+	featureService := &NoopFeatureConnector{}
+
+	// Create app service
+	appService := &NoopAppService{}
+	appStripeService := &NoopAppStripeService{}
+
+	// Create customer service
+	customerService := &NoopCustomerService{}
+
+	// Create plan service
+	planService := &NoopPlanService{}
+
+	// Create plan subscription service
+	planSubscriptionService := &NoopPlanSubscriptionService{}
+
+	// Create subscription services
+	subscriptionService := &NoopSubscriptionService{}
+	subscriptionWorkflowService := &NoopSubscriptionWorkflowService{}
+
+	// Create grant repo
+	grantRepo := &NoopGrantRepo{}
+
+	// Create billing service
+	billingService := &NoopBillingService{}
+
+	config := &Config{
+		RouterConfig: router.Config{
+			App:                         appService,
+			AppStripe:                   appStripeService,
+			Billing:                     billingService,
+			Customer:                    customerService,
+			DebugConnector:              MockDebugHandler{},
+			EntitlementConnector:        &NoopEntitlementConnector{},
+			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
+			ErrorHandler:                errorsx.NopHandler{},
+			FeatureConnector:            featureService,
+			GrantConnector:              &NoopGrantConnector{},
+			// Use the grant repo
+			GrantRepo: grantRepo,
+			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
+				return true, nil
+			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
+			Logger:             logger,
+			MeterManageService: meterManageService,
+			MeterEventService:  meterEventService,
+			NamespaceManager:   namespaceManager,
+			Notification:       &NoopNotificationService{},
+			// Use the plan service
+			Plan: planService,
+			// Use the plan subscription service
+			PlanSubscriptionService: planSubscriptionService,
+			Portal:                  portal,
+			ProgressManager:         progressmanageradapter.NewNoop(),
+			StreamingConnector:      mockStreamingConnector,
+			// Use the subscription service
+			SubscriptionService: subscriptionService,
+			// Use the subscription workflow service
+			SubscriptionWorkflowService: subscriptionWorkflowService,
+		},
+		RouterHook: func(r chi.Router) {},
+	}
+
+	// Create server
+	server, err := NewServer(config)
+	assert.NoError(t, err, "failed to create server")
+	return server
+}
+
+// NoopPublisher is a publisher that does nothing (no-operation)
+// Useful for testing or when publishing needs to be disabled
+type NoopPublisher struct {
+	marshaler marshaler.Marshaler
+}
+
+// NewNoopPublisher creates a new NoopPublisher
+func NewNoopPublisher() *NoopPublisher {
+	return &NoopPublisher{
+		marshaler: marshaler.New(nil),
+	}
+}
+
+// Publish implements Publisher.Publish but does nothing and always returns nil
+func (p *NoopPublisher) Publish(ctx context.Context, event marshaler.Event) error {
+	return nil
+}
+
+// Marshaler returns the marshaler associated with this publisher
+func (p *NoopPublisher) Marshaler() marshaler.Marshaler {
+	return p.marshaler
+}
+
+// WithContext returns a no-op context publisher
+func (p *NoopPublisher) WithContext(ctx context.Context) eventbus.ContextPublisher {
+	return noopContextPublisher{ctx: ctx}
+}
+
+// noopContextPublisher is a no-op implementation of ContextPublisher
+type noopContextPublisher struct {
+	ctx context.Context
+}
+
+// PublishIfNoError implements ContextPublisher.PublishIfNoError
+// It returns the provided error if not nil, otherwise returns nil
+func (p noopContextPublisher) PublishIfNoError(event marshaler.Event, err error) error {
+	return err
+}
+
+// MockDebugHandler
+type MockDebugHandler struct{}
+
+func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
+	return `openmeter_events_total{subject="customer-1"} 2.0`, nil
+}
+
+// MockStreamingConnector
+type MockStreamingConnector struct{}
+
+func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	return []streaming.CountEventRow{}, nil
+}
+
+func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+	events := []api.IngestedEvent{
+		{
+			Event: mockEvent,
+		},
+	}
+	return events, nil
+}
+
+func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	value := mockQueryValue
+
+	if params.FilterSubject == nil {
+		value.Subject = nil
+	}
+
+	return []meter.MeterQueryRow{value}, nil
+}
+
+func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+	return []string{"s1"}, nil
+}
+
+func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return true, nil
 }
 
 // NoopFeatureConnector
@@ -907,4 +999,309 @@ func (n NoopCustomerService) RegisterRequestValidator(validator customer.Request
 
 func (n NoopCustomerService) CustomerExists(ctx context.Context, customer customer.CustomerID) error {
 	return nil
+}
+
+// NoopPlanService implements plan.Service interface with no-op operations
+// for use in testing
+type NoopPlanService struct{}
+
+func (n NoopPlanService) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[plan.Plan], error) {
+	return pagination.PagedResponse[plan.Plan]{}, nil
+}
+
+func (n NoopPlanService) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) DeletePlan(ctx context.Context, params plan.DeletePlanInput) error {
+	return nil
+}
+
+func (n NoopPlanService) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) PublishPlan(ctx context.Context, params plan.PublishPlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+var _ plansubscription.PlanSubscriptionService = (*NoopPlanSubscriptionService)(nil)
+
+// NoopPlanSubscriptionService implements plansubscription.PlanSubscriptionService with no-op operations
+// for use in testing
+type NoopPlanSubscriptionService struct{}
+
+func (n NoopPlanSubscriptionService) Create(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopPlanSubscriptionService) Migrate(ctx context.Context, request plansubscription.MigrateSubscriptionRequest) (plansubscription.SubscriptionChangeResponse, error) {
+	return plansubscription.SubscriptionChangeResponse{
+		Current: subscription.Subscription{},
+		Next:    subscription.SubscriptionView{},
+	}, nil
+}
+
+func (n NoopPlanSubscriptionService) Change(ctx context.Context, request plansubscription.ChangeSubscriptionRequest) (plansubscription.SubscriptionChangeResponse, error) {
+	return plansubscription.SubscriptionChangeResponse{
+		Current: subscription.Subscription{},
+		Next:    subscription.SubscriptionView{},
+	}, nil
+}
+
+var _ subscription.Service = (*NoopSubscriptionService)(nil)
+
+// NoopSubscriptionService implements subscription.Service with no-op operations
+// for use in testing
+type NoopSubscriptionService struct{}
+
+func (n NoopSubscriptionService) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
+	return nil
+}
+
+func (n NoopSubscriptionService) Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing subscription.Timing) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Continue(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) GetView(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	return pagination.PagedResponse[subscription.Subscription]{}, nil
+}
+
+func (n NoopSubscriptionService) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
+	return []subscription.Subscription{}, nil
+}
+
+var _ subscription.WorkflowService = (*NoopSubscriptionWorkflowService)(nil)
+
+// NoopSubscriptionWorkflowService implements subscription.WorkflowService with no-op operations
+// for use in testing
+type NoopSubscriptionWorkflowService struct{}
+
+func (n NoopSubscriptionWorkflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
+	return subscription.Subscription{}, subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+var _ grant.Repo = (*NoopGrantRepo)(nil)
+
+// NoopGrantRepo implements grant.Repo with no-op operations
+// for use in testing
+type NoopGrantRepo struct{}
+
+func (n NoopGrantRepo) CreateGrant(ctx context.Context, input grant.RepoCreateInput) (*grant.Grant, error) {
+	return &grant.Grant{}, nil
+}
+
+func (n NoopGrantRepo) VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error {
+	return nil
+}
+
+func (n NoopGrantRepo) ListGrants(ctx context.Context, params grant.ListParams) (pagination.PagedResponse[grant.Grant], error) {
+	return pagination.PagedResponse[grant.Grant]{}, nil
+}
+
+func (n NoopGrantRepo) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {
+	return []grant.Grant{}, nil
+}
+
+func (n NoopGrantRepo) GetGrant(ctx context.Context, grantID models.NamespacedID) (grant.Grant, error) {
+	return grant.Grant{}, nil
+}
+
+// NoopTransactionDriver is a no-op implementation of transaction.Driver
+type NoopTransactionDriver struct{}
+
+func (d NoopTransactionDriver) Commit() error {
+	return nil
+}
+
+func (d NoopTransactionDriver) Rollback() error {
+	return nil
+}
+
+func (d NoopTransactionDriver) SavePoint() error {
+	return nil
+}
+
+func (n NoopGrantRepo) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, NoopTransactionDriver{}, nil
+}
+
+func (n NoopGrantRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.Repo {
+	return n
+}
+
+func (n NoopGrantRepo) Self() grant.Repo {
+	return n
+}
+
+var _ billing.Service = (*NoopBillingService)(nil)
+
+// NoopBillingService implements billing.Service with no-op operations
+type NoopBillingService struct{}
+
+// ProfileService methods
+func (n NoopBillingService) CreateProfile(ctx context.Context, param billing.CreateProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) GetDefaultProfile(ctx context.Context, input billing.GetDefaultProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (billing.ListProfilesResult, error) {
+	return billing.ListProfilesResult{}, nil
+}
+
+func (n NoopBillingService) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateProfile(ctx context.Context, input billing.UpdateProfileInput) (*billing.Profile, error) {
+	return &billing.Profile{}, nil
+}
+
+func (n NoopBillingService) ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (n NoopBillingService) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
+	return false, nil
+}
+
+// CustomerOverrideService methods
+func (n NoopBillingService) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopBillingService) DeleteCustomerOverride(ctx context.Context, input billing.DeleteCustomerOverrideInput) error {
+	return nil
+}
+
+func (n NoopBillingService) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
+	return billing.CustomerOverrideWithDetails{}, nil
+}
+
+func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
+	return billing.ListCustomerOverridesResult{}, nil
+}
+
+// InvoiceLineService methods
+func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input billing.CreateInvoiceLinesInput) ([]*billing.Line, error) {
+	return []*billing.Line{}, nil
+}
+
+func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]*billing.Line, error) {
+	return []*billing.Line{}, nil
+}
+
+func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
+	return &billing.Line{}, nil
+}
+
+// InvoiceService methods
+func (n NoopBillingService) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
+	return billing.ListInvoicesResponse{}, nil
+}
+
+func (n NoopBillingService) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.Invoice, error) {
+	return []billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) SimulateInvoice(ctx context.Context, input billing.SimulateInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) UpsertValidationIssues(ctx context.Context, input billing.UpsertValidationIssuesInput) error {
+	return nil
+}
+
+// SequenceService methods
+func (n NoopBillingService) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
+	return "", nil
+}
+
+// InvoiceAppService methods
+func (n NoopBillingService) TriggerInvoice(ctx context.Context, input billing.InvoiceTriggerServiceInput) error {
+	return nil
+}
+
+func (n NoopBillingService) UpdateInvoiceFields(ctx context.Context, input billing.UpdateInvoiceFieldsInput) error {
+	return nil
+}
+
+// ConfigIntrospectionService methods
+func (n NoopBillingService) GetAdvancementStrategy() billing.AdvancementStrategy {
+	return billing.ForegroundAdvancementStrategy
 }

@@ -50,10 +50,6 @@ func BillingService(
 	eventPublisher eventbus.Publisher,
 	advancementStrategy billing.AdvancementStrategy,
 ) (billing.Service, error) {
-	if !billingConfig.Enabled {
-		return nil, nil
-	}
-
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:             billingAdapter,
 		AppService:          appService,
@@ -83,10 +79,6 @@ func BillingSubscriptionValidator(
 	billingService billing.Service,
 	billingConfig config.BillingConfiguration,
 ) (*billingsubscription.Validator, error) {
-	if !billingConfig.Enabled {
-		return nil, nil
-	}
-
 	return billingsubscription.NewValidator(billingService)
 }
 

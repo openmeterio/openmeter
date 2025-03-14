@@ -32,11 +32,6 @@ var App = wire.NewSet(
 type AppSandboxProvisioner func() error
 
 func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration) (app.Service, error) {
-	// TODO: remove this check after enabled by default
-	if !appsConfig.Enabled || db == nil {
-		return nil, nil
-	}
-
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client:  db,
 		BaseURL: appsConfig.BaseURL,
@@ -51,11 +46,6 @@ func NewAppService(logger *slog.Logger, db *entdb.Client, appsConfig config.Apps
 }
 
 func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingService billing.Service, publisher eventbus.Publisher) (appstripe.Service, error) {
-	// TODO: remove this check after enabled by default
-	if !appsConfig.Enabled || db == nil {
-		return nil, nil
-	}
-
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          db,
 		AppService:      appService,
@@ -79,10 +69,6 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 }
 
 func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConfig config.AppsConfiguration, appService app.Service, namespaceManager *namespace.Manager, billingService billing.Service) (AppSandboxProvisioner, error) {
-	if !appsConfig.Enabled {
-		return nil, nil
-	}
-
 	_, err := appsandbox.NewFactory(appsandbox.Config{
 		AppService:     appService,
 		BillingService: billingService,

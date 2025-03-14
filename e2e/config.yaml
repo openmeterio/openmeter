@@ -34,15 +34,6 @@ sink:
     brokers: kafka:9092
     brokerAddressFamily: v4
 
-apps:
-  enabled: true
-
-productcatalog:
-  enabled: true
-
-billing:
-  enabled: true
-
 postgres:
   url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
 

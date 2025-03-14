@@ -10,16 +10,11 @@ import (
 )
 
 type BillingConfiguration struct {
-	Enabled             bool
 	AdvancementStrategy billing.AdvancementStrategy
 	Worker              BillingWorkerConfiguration
 }
 
 func (c BillingConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
 	var errs []error
 	if err := c.Worker.Validate(); err != nil {
 		errs = append(errs, err)
@@ -33,8 +28,6 @@ func (c BillingConfiguration) Validate() error {
 }
 
 func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
-	v.SetDefault("billing.enabled", false)
-
 	ConfigureBillingWorker(v)
 
 	// Allow overriding the advancement strategy for local development purposes where we are

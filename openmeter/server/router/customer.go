@@ -77,11 +77,6 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 // List customer subscriptions
 // (GET /api/v1/customer/customers/{customerId}/subscriptions)
 func (a *Router) ListCustomerSubscriptions(w http.ResponseWriter, r *http.Request, customerID string, params api.ListCustomerSubscriptionsParams) {
-	if !a.config.ProductCatalogEnabled {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
-
 	a.subscriptionHandler.ListCustomerSubscriptions().With(subscriptionhttpdriver.ListCustomerSubscriptionsParams{
 		CustomerID: customerID,
 		Params:     params,
