@@ -43,10 +43,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	progressmanageradapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
@@ -462,6 +465,16 @@ func getTestServer(t *testing.T) *Server {
 	// Create customer service
 	customerService := &NoopCustomerService{}
 
+	// Create plan service
+	planService := &NoopPlanService{}
+
+	// Create plan subscription service
+	planSubscriptionService := &NoopPlanSubscriptionService{}
+
+	// Create subscription services
+	subscriptionService := &NoopSubscriptionService{}
+	subscriptionWorkflowService := &NoopSubscriptionWorkflowService{}
+
 	// Create billing service
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbDeps.DBClient,
@@ -494,6 +507,8 @@ func getTestServer(t *testing.T) *Server {
 			ErrorHandler:                errorsx.NopHandler{},
 			FeatureConnector:            featureService,
 			GrantConnector:              &NoopGrantConnector{},
+			// FIXME: pass in a real grant repo
+			GrantRepo: nil,
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
@@ -501,9 +516,17 @@ func getTestServer(t *testing.T) *Server {
 			MeterEventService:  meterEventService,
 			NamespaceManager:   namespaceManager,
 			Notification:       &NoopNotificationService{},
-			Portal:             portal,
-			ProgressManager:    progressmanageradapter.NewNoop(),
-			StreamingConnector: mockStreamingConnector,
+			// Use the plan service
+			Plan: planService,
+			// Use the plan subscription service
+			PlanSubscriptionService: planSubscriptionService,
+			Portal:                  portal,
+			ProgressManager:         progressmanageradapter.NewNoop(),
+			StreamingConnector:      mockStreamingConnector,
+			// Use the subscription service
+			SubscriptionService: subscriptionService,
+			// Use the subscription workflow service
+			SubscriptionWorkflowService: subscriptionWorkflowService,
 		},
 		RouterHook: func(r chi.Router) {},
 	}
@@ -992,4 +1015,128 @@ func (n NoopCustomerService) RegisterRequestValidator(validator customer.Request
 
 func (n NoopCustomerService) CustomerExists(ctx context.Context, customer customer.CustomerID) error {
 	return nil
+}
+
+// NoopPlanService implements plan.Service interface with no-op operations
+// for use in testing
+type NoopPlanService struct{}
+
+func (n NoopPlanService) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.PagedResponse[plan.Plan], error) {
+	return pagination.PagedResponse[plan.Plan]{}, nil
+}
+
+func (n NoopPlanService) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) DeletePlan(ctx context.Context, params plan.DeletePlanInput) error {
+	return nil
+}
+
+func (n NoopPlanService) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) PublishPlan(ctx context.Context, params plan.PublishPlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+func (n NoopPlanService) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan.Plan, error) {
+	return &plan.Plan{}, nil
+}
+
+var _ plansubscription.PlanSubscriptionService = (*NoopPlanSubscriptionService)(nil)
+
+// NoopPlanSubscriptionService implements plansubscription.PlanSubscriptionService with no-op operations
+// for use in testing
+type NoopPlanSubscriptionService struct{}
+
+func (n NoopPlanSubscriptionService) Create(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopPlanSubscriptionService) Migrate(ctx context.Context, request plansubscription.MigrateSubscriptionRequest) (plansubscription.SubscriptionChangeResponse, error) {
+	return plansubscription.SubscriptionChangeResponse{
+		Current: subscription.Subscription{},
+		Next:    subscription.SubscriptionView{},
+	}, nil
+}
+
+func (n NoopPlanSubscriptionService) Change(ctx context.Context, request plansubscription.ChangeSubscriptionRequest) (plansubscription.SubscriptionChangeResponse, error) {
+	return plansubscription.SubscriptionChangeResponse{
+		Current: subscription.Subscription{},
+		Next:    subscription.SubscriptionView{},
+	}, nil
+}
+
+var _ subscription.Service = (*NoopSubscriptionService)(nil)
+
+// NoopSubscriptionService implements subscription.Service with no-op operations
+// for use in testing
+type NoopSubscriptionService struct{}
+
+func (n NoopSubscriptionService) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
+	return nil
+}
+
+func (n NoopSubscriptionService) Cancel(ctx context.Context, subscriptionID models.NamespacedID, timing subscription.Timing) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Continue(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) Get(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
+}
+
+func (n NoopSubscriptionService) GetView(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionService) List(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	return pagination.PagedResponse[subscription.Subscription]{}, nil
+}
+
+func (n NoopSubscriptionService) GetAllForCustomerSince(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error) {
+	return []subscription.Subscription{}, nil
+}
+
+var _ subscription.WorkflowService = (*NoopSubscriptionWorkflowService)(nil)
+
+// NoopSubscriptionWorkflowService implements subscription.WorkflowService with no-op operations
+// for use in testing
+type NoopSubscriptionWorkflowService struct{}
+
+func (n NoopSubscriptionWorkflowService) CreateFromPlan(ctx context.Context, inp subscription.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscription.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
+	return subscription.Subscription{}, subscription.SubscriptionView{}, nil
+}
+
+func (n NoopSubscriptionWorkflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
+	return subscription.Subscription{}, nil
 }
