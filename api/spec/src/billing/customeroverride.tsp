@@ -239,7 +239,7 @@ model BillingProfileCustomerOverrideCreate {
    *
    * If not provided, the default billing profile is chosen if available.
    */
-  billingProfile?: ULID;
+  billingProfileId?: ULID;
 }
 
 /**
