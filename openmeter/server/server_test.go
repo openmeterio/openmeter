@@ -107,149 +107,10 @@ var (
 	}
 )
 
-type MockStreamingConnector struct{}
-
-func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
-	return []streaming.CountEventRow{}, nil
-}
-
-func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	events := []api.IngestedEvent{
-		{
-			Event: mockEvent,
-		},
-	}
-	return events, nil
-}
-
-func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
-	value := mockQueryValue
-
-	if params.FilterSubject == nil {
-		value.Subject = nil
-	}
-
-	return []meter.MeterQueryRow{value}, nil
-}
-
-func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
-	return []string{"s1"}, nil
-}
-
-func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
-	return nil
-}
-
-func (c *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
-	return true, nil
-}
-
-type MockDebugHandler struct{}
-
-func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
-	return `openmeter_events_total{subject="customer-1",error="true"} 2.0`, nil
-}
-
 type MockHandler struct{}
 
 func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string) {
 	w.WriteHeader(http.StatusOK)
-}
-
-func makeRequest(t *testing.T, r *http.Request) (*httptest.ResponseRecorder, error) {
-	// Initialize postgres driver
-	dbDeps := subscriptiontestutils.SetupDBDeps(t)
-
-	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
-		DefaultNamespace: DefaultNamespace,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	portal, err := portaladapter.New(portaladapter.Config{
-		Secret: "12345",
-		Expire: time.Hour,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	mockStreamingConnector := &MockStreamingConnector{}
-
-	meterManageService, err := meteradapter.NewManage(mockMeters)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meter service: %w", err)
-	}
-
-	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
-
-	logger := slog.New(log.NewMockHandler())
-
-	billingAdapter, err := billingadapter.New(billingadapter.Config{
-		Client: dbDeps.DBClient,
-		Logger: logger,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create billing service: %w", err)
-	}
-
-	billingService, err := billingservice.New(billingservice.Config{
-		Adapter: billingAdapter,
-		Logger:  logger,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create billing service: %w", err)
-	}
-
-	server, _ := NewServer(&Config{
-		RouterConfig: router.Config{
-			Billing:                     billingService,
-			EntitlementConnector:        &NoopEntitlementConnector{},
-			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
-			FeatureConnector:            &NoopFeatureConnector{},
-			GrantConnector:              &NoopGrantConnector{},
-			MeterManageService:          meterManageService,
-			MeterEventService:           meterEventService,
-			StreamingConnector:          mockStreamingConnector,
-			DebugConnector:              MockDebugHandler{},
-			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
-				return true, nil
-			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
-			NamespaceManager: namespaceManager,
-			Portal:           portal,
-			ProgressManager:  progressmanageradapter.NewNoop(),
-			ErrorHandler:     errorsx.NopHandler{},
-			Notification:     &NoopNotificationService{},
-			App:              &NoopAppService{},
-			AppStripe:        &NoopAppStripeService{},
-			Customer:         &NoopCustomerService{},
-		},
-		RouterHook: func(r chi.Router) {},
-	})
-	writer := httptest.NewRecorder()
-	server.ServeHTTP(writer, r)
-	return writer, nil
 }
 
 type testRequest struct {
@@ -266,6 +127,8 @@ type testResponse struct {
 }
 
 func TestRoutes(t *testing.T) {
+	testServer := getTestServer(t)
+
 	tests := []struct {
 		name string
 		req  testRequest
@@ -512,7 +375,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodGet,
 				path:        "/api/v1/debug/metrics",
 				contentType: "text/plain",
-				body:        `openmeter_events_total{subject="customer-1",error="true"} 2.0`,
+				body:        `openmeter_events_total{subject="customer-1"} 2.0`,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -534,14 +397,16 @@ func TestRoutes(t *testing.T) {
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
-			w, err := makeRequest(t, req)
-			assert.NoError(t, err)
-			res := w.Result()
+
+			// Make request
+			writer := httptest.NewRecorder()
+			testServer.ServeHTTP(writer, req)
+			res := writer.Result()
 
 			defer res.Body.Close()
 
 			// status
-			assert.Equal(t, tt.res.status, res.StatusCode, w.Body.String())
+			assert.Equal(t, tt.res.status, res.StatusCode, writer.Body.String())
 
 			// body
 			if tt.res.body == nil {
@@ -550,14 +415,146 @@ func TestRoutes(t *testing.T) {
 
 			switch tt.req.accept {
 			case "text/csv":
-				assert.Equal(t, tt.res.body, w.Body.String())
+				assert.Equal(t, tt.res.body, writer.Body.String())
 			default:
 				// Handle default as "application/json"
 				resBody, _ := json.Marshal(tt.res.body)
-				assert.JSONEq(t, string(resBody), w.Body.String())
+				assert.JSONEq(t, string(resBody), writer.Body.String())
 			}
 		})
 	}
+}
+
+// getTestServer returns a test server
+func getTestServer(t *testing.T) *Server {
+	// Initialize postgres driver
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+
+	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		DefaultNamespace: DefaultNamespace,
+	})
+	assert.NoError(t, err, "failed to create namespace manager")
+
+	portal, err := portaladapter.New(portaladapter.Config{
+		Secret: "12345",
+		Expire: time.Hour,
+	})
+	assert.NoError(t, err, "failed to create portal")
+
+	mockStreamingConnector := &MockStreamingConnector{}
+
+	meterManageService, err := meteradapter.NewManage(mockMeters)
+	assert.NoError(t, err, "failed to create meter service")
+
+	meterEventService := metereventadapter.New(mockStreamingConnector, meterManageService)
+
+	logger := slog.New(log.NewMockHandler())
+
+	billingAdapter, err := billingadapter.New(billingadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	assert.NoError(t, err, "failed to create billing adapter")
+
+	billingService, err := billingservice.New(billingservice.Config{
+		Adapter: billingAdapter,
+		Logger:  logger,
+	})
+	assert.NoError(t, err, "failed to create billing service")
+
+	config := &Config{
+		RouterConfig: router.Config{
+			App:                         &NoopAppService{},
+			AppStripe:                   &NoopAppStripeService{},
+			Billing:                     billingService,
+			Customer:                    &NoopCustomerService{},
+			DebugConnector:              MockDebugHandler{},
+			EntitlementConnector:        &NoopEntitlementConnector{},
+			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
+			ErrorHandler:                errorsx.NopHandler{},
+			FeatureConnector:            &NoopFeatureConnector{},
+			GrantConnector:              &NoopGrantConnector{},
+			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
+				return true, nil
+			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
+			MeterManageService: meterManageService,
+			MeterEventService:  meterEventService,
+			NamespaceManager:   namespaceManager,
+			Notification:       &NoopNotificationService{},
+			Portal:             portal,
+			ProgressManager:    progressmanageradapter.NewNoop(),
+			StreamingConnector: mockStreamingConnector,
+		},
+		RouterHook: func(r chi.Router) {},
+	}
+
+	// Create server
+	server, err := NewServer(config)
+	assert.NoError(t, err, "failed to create server")
+	return server
+}
+
+type MockDebugHandler struct{}
+
+func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
+	return `openmeter_events_total{subject="customer-1"} 2.0`, nil
+}
+
+type MockStreamingConnector struct{}
+
+func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteNamespace(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	return []streaming.CountEventRow{}, nil
+}
+
+func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+	events := []api.IngestedEvent{
+		{
+			Event: mockEvent,
+		},
+	}
+	return events, nil
+}
+
+func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	value := mockQueryValue
+
+	if params.FilterSubject == nil {
+		value.Subject = nil
+	}
+
+	return []meter.MeterQueryRow{value}, nil
+}
+
+func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meter meter.Meter, params streaming.ListMeterSubjectsParams) ([]string, error) {
+	return []string{"s1"}, nil
+}
+
+func (c *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
+	return nil
+}
+
+func (c *MockStreamingConnector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error) {
+	return true, nil
 }
 
 // NoopFeatureConnector
