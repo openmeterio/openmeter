@@ -11454,7 +11454,7 @@ export interface operations {
   listCustomerSubscriptions: {
     parameters: {
       query?: {
-        expand?: boolean
+        expandToView?: boolean
         /** @description The page number. */
         page?: components['parameters']['PaginatedQuery.page']
         /** @description The number of items in the page. */

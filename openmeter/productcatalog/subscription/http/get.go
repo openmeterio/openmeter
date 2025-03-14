@@ -96,7 +96,7 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 					ID:        params.CustomerID,
 				},
 				Page:   pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
-				Expand: lo.FromPtrOr(params.Params.Expand, false),
+				Expand: lo.FromPtrOr(params.Params.ExpandToView, false),
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerSubscriptionsRequest) (ListCustomerSubscriptionsResponse, error) {
