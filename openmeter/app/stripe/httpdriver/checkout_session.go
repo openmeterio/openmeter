@@ -106,7 +106,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				Url:              out.URL,
 			}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[CreateAppStripeCheckoutSessionResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[CreateAppStripeCheckoutSessionResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createAppStripeCheckoutSession"),
