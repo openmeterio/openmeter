@@ -2130,7 +2130,7 @@ export interface components {
        *     If not provided, the default billing profile is chosen if available.
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
-      billingProfile?: string
+      billingProfileId?: string
     }
     /**
      * @description CustomerOverrideExpand specifies the parts of the profile to expand.

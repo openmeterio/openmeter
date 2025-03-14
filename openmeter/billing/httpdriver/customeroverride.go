@@ -160,7 +160,7 @@ func (h *handler) UpsertCustomerOverride() UpsertCustomerOverrideHandler {
 				return UpsertCustomerOverrideRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := api.BillingProfileCustomerOverride{}
+			body := api.BillingProfileCustomerOverrideCreate{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpsertCustomerOverrideRequest{}, err
