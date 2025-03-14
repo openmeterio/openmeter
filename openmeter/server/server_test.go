@@ -48,6 +48,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/log"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -450,6 +452,17 @@ func getTestServer(t *testing.T) *Server {
 
 	logger := slog.New(log.NewMockHandler())
 
+	// Create feature service
+	featureService := &NoopFeatureConnector{}
+
+	// Create app service
+	appService := &NoopAppService{}
+	appStripeService := &NoopAppStripeService{}
+
+	// Create customer service
+	customerService := &NoopCustomerService{}
+
+	// Create billing service
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbDeps.DBClient,
 		Logger: logger,
@@ -457,22 +470,29 @@ func getTestServer(t *testing.T) *Server {
 	assert.NoError(t, err, "failed to create billing adapter")
 
 	billingService, err := billingservice.New(billingservice.Config{
-		Adapter: billingAdapter,
-		Logger:  logger,
+		Adapter:             billingAdapter,
+		AppService:          appService,
+		AdvancementStrategy: billing.ForegroundAdvancementStrategy,
+		CustomerService:     customerService,
+		Logger:              logger,
+		FeatureService:      featureService,
+		MeterService:        meterManageService,
+		StreamingConnector:  mockStreamingConnector,
+		Publisher:           NewNoopPublisher(),
 	})
 	assert.NoError(t, err, "failed to create billing service")
 
 	config := &Config{
 		RouterConfig: router.Config{
-			App:                         &NoopAppService{},
-			AppStripe:                   &NoopAppStripeService{},
+			App:                         appService,
+			AppStripe:                   appStripeService,
 			Billing:                     billingService,
-			Customer:                    &NoopCustomerService{},
+			Customer:                    customerService,
 			DebugConnector:              MockDebugHandler{},
 			EntitlementConnector:        &NoopEntitlementConnector{},
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			ErrorHandler:                errorsx.NopHandler{},
-			FeatureConnector:            &NoopFeatureConnector{},
+			FeatureConnector:            featureService,
 			GrantConnector:              &NoopGrantConnector{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
@@ -494,12 +514,53 @@ func getTestServer(t *testing.T) *Server {
 	return server
 }
 
+// NoopPublisher is a publisher that does nothing (no-operation)
+// Useful for testing or when publishing needs to be disabled
+type NoopPublisher struct {
+	marshaler marshaler.Marshaler
+}
+
+// NewNoopPublisher creates a new NoopPublisher
+func NewNoopPublisher() *NoopPublisher {
+	return &NoopPublisher{
+		marshaler: marshaler.New(nil),
+	}
+}
+
+// Publish implements Publisher.Publish but does nothing and always returns nil
+func (p *NoopPublisher) Publish(ctx context.Context, event marshaler.Event) error {
+	return nil
+}
+
+// Marshaler returns the marshaler associated with this publisher
+func (p *NoopPublisher) Marshaler() marshaler.Marshaler {
+	return p.marshaler
+}
+
+// WithContext returns a no-op context publisher
+func (p *NoopPublisher) WithContext(ctx context.Context) eventbus.ContextPublisher {
+	return noopContextPublisher{ctx: ctx}
+}
+
+// noopContextPublisher is a no-op implementation of ContextPublisher
+type noopContextPublisher struct {
+	ctx context.Context
+}
+
+// PublishIfNoError implements ContextPublisher.PublishIfNoError
+// It returns the provided error if not nil, otherwise returns nil
+func (p noopContextPublisher) PublishIfNoError(event marshaler.Event, err error) error {
+	return err
+}
+
+// MockDebugHandler
 type MockDebugHandler struct{}
 
 func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
 	return `openmeter_events_total{subject="customer-1"} 2.0`, nil
 }
 
+// MockStreamingConnector
 type MockStreamingConnector struct{}
 
 func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
