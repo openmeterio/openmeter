@@ -30,11 +30,7 @@ using TypeSpec.OpenAPI;
 @server("https://127.0.0.1:8888", "Local")
 @server("https://openmeter.cloud", "Cloud")
 @useAuth(CloudTokenAuth | CloudCookieAuth)
-// Tags will appear in reverse order in the API documentation
-@tagMetadata(
-  "Lookup Information",
-  #{ description: "Lookup information for static data like currencies" }
-)
+// Tags will appear in alphabetical order in the API documentation
 @tagMetadata(
   "Apps (Beta)",
   #{
@@ -51,41 +47,11 @@ using TypeSpec.OpenAPI;
     description: "Manage customer subscription lifecycles and plan assignments. ",
   }
 )
-@tagMetadata(
-  "Subscriptions (Beta)",
-  #{
-    description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
-  }
-)
-@tagMetadata(
-  "Product Catalog (Beta)",
-  #{
-    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. ",
-  }
-)
-@tagMetadata(
-  "Notifications (Beta)",
-  #{
-    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
-  }
-)
+@tagMetadata("Debug", #{ description: "Debugging and testing endpoints." })
 @tagMetadata(
   "Entitlements (Beta)",
   #{
     description: "With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.",
-  }
-)
-@tagMetadata("Debug", #{ description: "Debugging and testing endpoints." })
-@tagMetadata(
-  "Portal",
-  #{
-    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.",
-  }
-)
-@tagMetadata(
-  "Subjects",
-  #{
-    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
   }
 )
 @tagMetadata(
@@ -95,9 +61,43 @@ using TypeSpec.OpenAPI;
   }
 )
 @tagMetadata(
+  "Lookup Information",
+  #{ description: "Lookup information for static data like currencies" }
+)
+@tagMetadata(
   "Meters",
   #{
     description: "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.",
+  }
+)
+@tagMetadata(
+  "Notifications (Beta)",
+  #{
+    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
+  }
+)
+@tagMetadata(
+  "Portal",
+  #{
+    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.",
+  }
+)
+@tagMetadata(
+  "Product Catalog (Beta)",
+  #{
+    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. ",
+  }
+)
+@tagMetadata(
+  "Subjects",
+  #{
+    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
+  }
+)
+@tagMetadata(
+  "Subscriptions (Beta)",
+  #{
+    description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
   }
 )
 namespace OpenMeterCloud;
