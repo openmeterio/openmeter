@@ -120,15 +120,13 @@ func TestEditRunning(t *testing.T) {
 			},
 		},
 		{
-			Name: "Should do nothing if no patches are provided",
+			Name: "Should error if no patches are provided",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 
-				subView, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, nil, immediate)
-				assert.Nil(t, err)
-
-				assert.Equal(t, deps.SubView, subView)
+				_, err := deps.WorkflowService.EditRunning(ctx, deps.SubView.Subscription.NamespacedID, nil, immediate)
+				assert.ErrorContains(t, err, "no customizations provided")
 			},
 		},
 		{

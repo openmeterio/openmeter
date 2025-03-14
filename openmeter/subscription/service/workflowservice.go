@@ -87,6 +87,10 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	}
 
 	// Let's validate the patches
+	if len(customizations) == 0 {
+		return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("no customizations provided"))
+	}
+
 	for i, patch := range customizations {
 		if err := patch.Validate(); err != nil {
 			return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("invalid patch at index %d: %s", i, err.Error()))

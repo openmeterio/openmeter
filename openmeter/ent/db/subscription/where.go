@@ -127,6 +127,11 @@ func Currency(v currencyx.Code) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
 }
 
+// LastEditedAt applies equality check predicate on the "last_edited_at" field. It's identical to LastEditedAtEQ.
+func LastEditedAt(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldLastEditedAt, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldNamespace, v))
@@ -794,6 +799,56 @@ func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// LastEditedAtEQ applies the EQ predicate on the "last_edited_at" field.
+func LastEditedAtEQ(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldLastEditedAt, v))
+}
+
+// LastEditedAtNEQ applies the NEQ predicate on the "last_edited_at" field.
+func LastEditedAtNEQ(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldLastEditedAt, v))
+}
+
+// LastEditedAtIn applies the In predicate on the "last_edited_at" field.
+func LastEditedAtIn(vs ...time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldIn(FieldLastEditedAt, vs...))
+}
+
+// LastEditedAtNotIn applies the NotIn predicate on the "last_edited_at" field.
+func LastEditedAtNotIn(vs ...time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotIn(FieldLastEditedAt, vs...))
+}
+
+// LastEditedAtGT applies the GT predicate on the "last_edited_at" field.
+func LastEditedAtGT(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGT(FieldLastEditedAt, v))
+}
+
+// LastEditedAtGTE applies the GTE predicate on the "last_edited_at" field.
+func LastEditedAtGTE(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGTE(FieldLastEditedAt, v))
+}
+
+// LastEditedAtLT applies the LT predicate on the "last_edited_at" field.
+func LastEditedAtLT(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLT(FieldLastEditedAt, v))
+}
+
+// LastEditedAtLTE applies the LTE predicate on the "last_edited_at" field.
+func LastEditedAtLTE(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLTE(FieldLastEditedAt, v))
+}
+
+// LastEditedAtIsNil applies the IsNil predicate on the "last_edited_at" field.
+func LastEditedAtIsNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldIsNull(FieldLastEditedAt))
+}
+
+// LastEditedAtNotNil applies the NotNil predicate on the "last_edited_at" field.
+func LastEditedAtNotNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotNull(FieldLastEditedAt))
 }
 
 // HasPlan applies the HasEdge predicate on the "plan" edge.

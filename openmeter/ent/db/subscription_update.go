@@ -157,6 +157,26 @@ func (su *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
 	return su
 }
 
+// SetLastEditedAt sets the "last_edited_at" field.
+func (su *SubscriptionUpdate) SetLastEditedAt(t time.Time) *SubscriptionUpdate {
+	su.mutation.SetLastEditedAt(t)
+	return su
+}
+
+// SetNillableLastEditedAt sets the "last_edited_at" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillableLastEditedAt(t *time.Time) *SubscriptionUpdate {
+	if t != nil {
+		su.SetLastEditedAt(*t)
+	}
+	return su
+}
+
+// ClearLastEditedAt clears the value of the "last_edited_at" field.
+func (su *SubscriptionUpdate) ClearLastEditedAt() *SubscriptionUpdate {
+	su.mutation.ClearLastEditedAt()
+	return su
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (su *SubscriptionUpdate) SetPlan(p *Plan) *SubscriptionUpdate {
 	return su.SetPlanID(p.ID)
@@ -338,6 +358,12 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := su.mutation.LastEditedAt(); ok {
+		_spec.SetField(subscription.FieldLastEditedAt, field.TypeTime, value)
+	}
+	if su.mutation.LastEditedAtCleared() {
+		_spec.ClearField(subscription.FieldLastEditedAt, field.TypeTime)
 	}
 	if su.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -604,6 +630,26 @@ func (suo *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
 	return suo
 }
 
+// SetLastEditedAt sets the "last_edited_at" field.
+func (suo *SubscriptionUpdateOne) SetLastEditedAt(t time.Time) *SubscriptionUpdateOne {
+	suo.mutation.SetLastEditedAt(t)
+	return suo
+}
+
+// SetNillableLastEditedAt sets the "last_edited_at" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillableLastEditedAt(t *time.Time) *SubscriptionUpdateOne {
+	if t != nil {
+		suo.SetLastEditedAt(*t)
+	}
+	return suo
+}
+
+// ClearLastEditedAt clears the value of the "last_edited_at" field.
+func (suo *SubscriptionUpdateOne) ClearLastEditedAt() *SubscriptionUpdateOne {
+	suo.mutation.ClearLastEditedAt()
+	return suo
+}
+
 // SetPlan sets the "plan" edge to the Plan entity.
 func (suo *SubscriptionUpdateOne) SetPlan(p *Plan) *SubscriptionUpdateOne {
 	return suo.SetPlanID(p.ID)
@@ -815,6 +861,12 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := suo.mutation.LastEditedAt(); ok {
+		_spec.SetField(subscription.FieldLastEditedAt, field.TypeTime, value)
+	}
+	if suo.mutation.LastEditedAtCleared() {
+		_spec.ClearField(subscription.FieldLastEditedAt, field.TypeTime)
 	}
 	if suo.mutation.PlanCleared() {
 		edge := &sqlgraph.EdgeSpec{

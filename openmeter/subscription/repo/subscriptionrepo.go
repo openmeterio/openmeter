@@ -30,6 +30,23 @@ func NewSubscriptionRepo(db *db.Client) *subscriptionRepo {
 	}
 }
 
+func (r *subscriptionRepo) MarkEdited(ctx context.Context, id models.NamespacedID, at time.Time) (subscription.Subscription, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
+		ent, err := repo.db.Subscription.UpdateOneID(id.ID).SetLastEditedAt(at.UTC()).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return subscription.Subscription{}, &subscription.NotFoundError{
+					ID: id.ID,
+				}
+			}
+
+			return subscription.Subscription{}, err
+		}
+
+		return MapDBSubscription(ent)
+	})
+}
+
 func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.NamespacedID, at *time.Time) (*subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
 		ent, err := repo.db.Subscription.UpdateOneID(id.ID).SetOrClearActiveTo(at).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)

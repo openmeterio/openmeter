@@ -15656,6 +15656,7 @@ components:
         - activeFrom
         - status
         - customerId
+        - isCustom
         - currency
       properties:
         id:
@@ -15732,6 +15733,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
           description: The plan of the subscription.
+        isCustom:
+          type: boolean
+          description: |-
+            Whether the subscription is custom. A subscription is custom if
+            - it was customized at creation (not based on a plan, has no PlanReference)
+            - or if it has been edited (even if eventually edited back to it's original form)
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -15827,6 +15834,7 @@ components:
         - activeFrom
         - status
         - customerId
+        - isCustom
         - currency
         - phases
       properties:
@@ -15900,6 +15908,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/PlanReference'
           description: The plan of the subscription.
+        isCustom:
+          type: boolean
+          description: |-
+            Whether the subscription is custom. A subscription is custom if
+            - it was customized at creation (not based on a plan, has no PlanReference)
+            - or if it has been edited (even if eventually edited back to it's original form)
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'

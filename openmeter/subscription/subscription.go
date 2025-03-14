@@ -24,6 +24,9 @@ type Subscription struct {
 
 	CustomerId string         `json:"customerId,omitempty"`
 	Currency   currencyx.Code `json:"currency,omitempty"`
+
+	// The time the subscription was last edited
+	LastEditedAt *time.Time `json:"lastEditedAt,omitempty"`
 }
 
 func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
@@ -69,4 +72,8 @@ func (s Subscription) GetStatusAt(at time.Time) SubscriptionStatus {
 
 	// The default status is inactive
 	return SubscriptionStatusInactive
+}
+
+func (s Subscription) IsCustom() bool {
+	return s.LastEditedAt != nil || s.PlanRef == nil
 }
