@@ -9,32 +9,39 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
+  - name: Apps (Beta)
+  - name: Notifications (Beta)
+  - name: Entitlements (Beta)
+  - name: Billing (Beta)
+  - name: Product Catalog (Beta)
   - name: Subscriptions (Beta)
-    description: With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).
+  - name: Customers (Beta)
+  - name: Subscriptions
+    description: (Beta) With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).
   - name: Subjects
     description: Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.
-  - name: Product Catalog (Beta)
-    description: 'Configure and manage your product plans, pricing tiers, and subscription offerings. '
+  - name: Product Catalog
+    description: '(Beta) Configure and manage your product plans, pricing tiers, and subscription offerings. '
   - name: Portal
     description: With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.
-  - name: Notifications (Beta)
-    description: Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).
+  - name: Notifications
+    description: (Beta) Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).
   - name: Meters
     description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
   - name: Lookup Information
     description: Lookup information for static data like currencies
   - name: Events
     description: Events are used to track usage of your product or service. Events are processed asynchronously by the meters, so they may not be immediately available for querying.
-  - name: Entitlements (Beta)
-    description: With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.
+  - name: Entitlements
+    description: (Beta) With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.
   - name: Debug
     description: Debugging and testing endpoints.
-  - name: Customers (Beta)
-    description: 'Manage customer subscription lifecycles and plan assignments. '
-  - name: Billing (Beta)
-    description: 'Manage your billing profiles and invoices. '
-  - name: Apps (Beta)
-    description: "Manage integrations for extending OpenMeter's functionality. "
+  - name: Customers
+    description: '(Beta) Manage customer subscription lifecycles and plan assignments. '
+  - name: Billing
+    description: '(Beta) Manage your billing profiles and invoices. '
+  - name: Apps
+    description: "(Beta) Manage integrations for extending OpenMeter's functionality. "
 paths:
   /api/v1/apps:
     get:

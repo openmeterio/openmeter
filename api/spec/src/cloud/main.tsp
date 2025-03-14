@@ -32,26 +32,26 @@ using TypeSpec.OpenAPI;
 @useAuth(CloudTokenAuth | CloudCookieAuth)
 // Tags will appear in alphabetical order in the API documentation
 @tagMetadata(
-  "Apps (Beta)",
+  "Apps",
   #{
-    description: "Manage integrations for extending OpenMeter's functionality. ",
+    description: "(Beta) Manage integrations for extending OpenMeter's functionality. ",
   }
 )
 @tagMetadata(
-  "Billing (Beta)",
-  #{ description: "Manage your billing profiles and invoices. " }
+  "Billing",
+  #{ description: "(Beta) Manage your billing profiles and invoices. " }
 )
 @tagMetadata(
-  "Customers (Beta)",
+  "Customers",
   #{
-    description: "Manage customer subscription lifecycles and plan assignments. ",
+    description: "(Beta) Manage customer subscription lifecycles and plan assignments. ",
   }
 )
 @tagMetadata("Debug", #{ description: "Debugging and testing endpoints." })
 @tagMetadata(
-  "Entitlements (Beta)",
+  "Entitlements",
   #{
-    description: "With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.",
+    description: "(Beta) With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.",
   }
 )
 @tagMetadata(
@@ -71,9 +71,9 @@ using TypeSpec.OpenAPI;
   }
 )
 @tagMetadata(
-  "Notifications (Beta)",
+  "Notifications",
   #{
-    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
+    description: "(Beta) Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
   }
 )
 @tagMetadata(
@@ -83,9 +83,9 @@ using TypeSpec.OpenAPI;
   }
 )
 @tagMetadata(
-  "Product Catalog (Beta)",
+  "Product Catalog",
   #{
-    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. ",
+    description: "(Beta) Configure and manage your product plans, pricing tiers, and subscription offerings. ",
   }
 )
 @tagMetadata(
@@ -95,9 +95,9 @@ using TypeSpec.OpenAPI;
   }
 )
 @tagMetadata(
-  "Subscriptions (Beta)",
+  "Subscriptions",
   #{
-    description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
+    description: "(Beta) With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
   }
 )
 namespace OpenMeterCloud;
