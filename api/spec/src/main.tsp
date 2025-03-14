@@ -43,62 +43,28 @@ using TypeSpec.Versioning;
   },
 })
 @server("https://127.0.0.1", "Local")
-// Tags will appear in reverse order in the API documentation
+// Tags will appear in alphabetical order in the API documentation
 @tagMetadata(
-  "Lookup Information",
-  #{ description: "Lookup information for static data like currencies" }
-)
-@tagMetadata(
-  "Apps (Beta)",
+  "Apps",
   #{
-    description: "Manage integrations for extending OpenMeter's functionality. ",
+    description: "(Beta) Manage integrations for extending OpenMeter's functionality. ",
   }
 )
 @tagMetadata(
-  "Billing (Beta)",
-  #{ description: "Manage your billing profiles and invoices. " }
+  "Billing",
+  #{ description: "(Beta) Manage your billing profiles and invoices. " }
 )
 @tagMetadata(
-  "Customers (Beta)",
+  "Customers",
   #{
-    description: "Manage customer subscription lifecycles and plan assignments. ",
-  }
-)
-@tagMetadata(
-  "Subscriptions (Beta)",
-  #{
-    description: "With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
-  }
-)
-@tagMetadata(
-  "Product Catalog (Beta)",
-  #{
-    description: "Configure and manage your product plans, pricing tiers, and subscription offerings. ",
-  }
-)
-@tagMetadata(
-  "Notifications (Beta)",
-  #{
-    description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
-  }
-)
-@tagMetadata(
-  "Entitlements (Beta)",
-  #{
-    description: "With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.",
+    description: "(Beta) Manage customer subscription lifecycles and plan assignments. ",
   }
 )
 @tagMetadata("Debug", #{ description: "Debugging and testing endpoints." })
 @tagMetadata(
-  "Portal",
+  "Entitlements",
   #{
-    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.",
-  }
-)
-@tagMetadata(
-  "Subjects",
-  #{
-    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
+    description: "(Beta) With Entitlements, you can define and enforce usage limits, implement quota-based pricing, and manage access to features in your application.",
   }
 )
 @tagMetadata(
@@ -108,9 +74,37 @@ using TypeSpec.Versioning;
   }
 )
 @tagMetadata(
-  "Meters",
+  "Lookup Information",
+  #{ description: "Lookup information for static data like currencies" }
+)
+@tagMetadata(
+  "Notifications",
   #{
-    description: "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.",
+    description: "(Beta) Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",
+  }
+)
+@tagMetadata(
+  "Portal",
+  #{
+    description: "With the Consumer Portal, you can build in-app user-facing dashboards where your users can track their usage in real-time. Subject scoped portal tokens can be generated on your behalf to allow restricted access to the OpenMeter API.",
+  }
+)
+@tagMetadata(
+  "Product Catalog",
+  #{
+    description: "(Beta) Configure and manage your product plans, pricing tiers, and subscription offerings. ",
+  }
+)
+@tagMetadata(
+  "Subjects",
+  #{
+    description: "Subjects are entities that consume resources you wish to meter. These can range from users, servers, and services to devices. The design of subjects is intentionally generic, enabling flexible application across various metering scenarios. Typically, a subject acts as a unique identifier within your system for a user or customer. Meters are aggregating events for each subject.",
+  }
+)
+@tagMetadata(
+  "Subscriptions",
+  #{
+    description: "(Beta) With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).",
   }
 )
 namespace OpenMeter;

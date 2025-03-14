@@ -16,7 +16,7 @@ namespace OpenMeter.App;
  * Marketplace API.
  */
 @route("/api/v1/marketplace")
-@tag("Apps (Beta)")
+@tag("Apps")
 interface Marketplace {
   /**
    * List available apps of the app marketplace.
