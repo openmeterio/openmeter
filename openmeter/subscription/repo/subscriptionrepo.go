@@ -162,7 +162,8 @@ func (r *subscriptionRepo) Delete(ctx context.Context, id models.NamespacedID) e
 func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.SubscriptionList, error) {
 		query := repo.db.Subscription.Query().
-			Where(dbsubscription.NamespaceIn(in.Namespaces...))
+			Where(dbsubscription.NamespaceIn(in.Namespaces...)).
+			Where(SubscriptionNotDeletedAt(clock.Now())...)
 
 		if len(in.Customers) > 0 {
 			query = query.Where(dbsubscription.CustomerIDIn(in.Customers...))
