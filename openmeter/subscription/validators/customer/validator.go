@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
@@ -48,9 +50,12 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 		return err
 	}
 
-	hasSub := len(subscriptions.Items) > 0
+	hasSub := mo.Fold(subscriptions, func(list pagination.PagedResponse[subscription.SubscriptionView]) bool {
+		return len(list.Items) > 0
+	}, func(list pagination.PagedResponse[subscription.Subscription]) bool {
+		return len(list.Items) > 0
+	})
 
-	// If there's an update to the subject keys we need additional checks
 	if input.CustomerMutate.UsageAttribution.SubjectKeys != nil {
 		currentCustomer, err := v.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 			Namespace: input.CustomerID.Namespace,
@@ -93,7 +98,13 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 		return err
 	}
 
-	if len(subscriptions.Items) > 0 {
+	hasSub := mo.Fold(subscriptions, func(list pagination.PagedResponse[subscription.SubscriptionView]) bool {
+		return len(list.Items) > 0
+	}, func(list pagination.PagedResponse[subscription.Subscription]) bool {
+		return len(list.Items) > 0
+	})
+
+	if hasSub {
 		return fmt.Errorf("customer %s still have active subscriptions, please cancel them before deleting the customer", input.ID)
 	}
 

@@ -4,12 +4,17 @@ import (
 	"errors"
 	"time"
 
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type ListSubscriptionsInput struct {
 	pagination.Page
+
+	// If set to true, all subscriptions will be expanded by the service to their full view in process, making the response larger and slower
+	ExpandToView bool
 
 	Namespaces []string
 	Customers  []string
@@ -24,4 +29,8 @@ func (i ListSubscriptionsInput) Validate() error {
 	return nil
 }
 
-type SubscriptionList = pagination.PagedResponse[Subscription]
+type (
+	PagedSubscriptions     = pagination.PagedResponse[Subscription]
+	PagedSubscriptionViews = pagination.PagedResponse[SubscriptionView]
+	SubscriptionList       = mo.Either[PagedSubscriptions, PagedSubscriptionViews]
+)

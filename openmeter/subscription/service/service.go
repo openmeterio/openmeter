@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -374,11 +375,43 @@ func (s *service) GetAllForCustomerSince(ctx context.Context, customerID models.
 }
 
 func (s *service) List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
-	if err := input.Validate(); err != nil {
-		return subscription.SubscriptionList{}, fmt.Errorf("input is invalid: %w", err)
+	// As expanding is really terrible for performance, let's add an arbitrary limit to the pagesize to prevent abuse
+	limit := 10
+
+	var def subscription.SubscriptionList
+
+	if input.ExpandToView && input.PageSize > limit {
+		return def, models.NewGenericValidationError(fmt.Errorf("pagesize %d cannot be over %d when expanding results", input.PageSize, limit))
 	}
 
-	return s.SubscriptionRepo.List(ctx, input)
+	if err := input.Validate(); err != nil {
+		return def, fmt.Errorf("input is invalid: %w", err)
+	}
+
+	res, err := s.SubscriptionRepo.List(ctx, input)
+	if err != nil {
+		return def, fmt.Errorf("failed to list subscriptions: %w", err)
+	}
+
+	if !input.ExpandToView {
+		return mo.Left[subscription.PagedSubscriptions, subscription.PagedSubscriptionViews](res), nil
+	}
+
+	// This is really terrible for performance
+	subs := make([]subscription.SubscriptionView, len(res.Items))
+	for i, sub := range res.Items {
+		view, err := s.GetView(ctx, sub.NamespacedID)
+		if err != nil {
+			return def, fmt.Errorf("failed to get view: %w", err)
+		}
+		subs[i] = view
+	}
+
+	return mo.Right[subscription.PagedSubscriptions, subscription.PagedSubscriptionViews](subscription.PagedSubscriptionViews{
+		Items:      subs,
+		TotalCount: res.TotalCount,
+		Page:       res.Page,
+	}), nil
 }
 
 func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscription.Subscription, currentSpec subscription.SubscriptionSpec) error {

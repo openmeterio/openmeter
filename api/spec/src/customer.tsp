@@ -113,6 +113,7 @@ interface Customers {
   @summary("List customer subscriptions")
   listCustomerSubscriptions(
     @path customerId: ULID,
+    @query expand?: boolean = false,
     ...PaginatedQuery,
   ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
 

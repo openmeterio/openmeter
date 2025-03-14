@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type CreateSubscriptionEntityInput struct {
@@ -46,7 +47,7 @@ type SubscriptionRepository interface {
 	Delete(ctx context.Context, id models.NamespacedID) error
 
 	// List subscriptions
-	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
+	List(ctx context.Context, params ListSubscriptionsInput) (pagination.PagedResponse[Subscription], error)
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

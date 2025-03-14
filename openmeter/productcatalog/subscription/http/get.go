@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -73,8 +76,9 @@ type (
 	ListCustomerSubscriptionsRequest = struct {
 		CustomerID models.NamespacedID
 		Page       pagination.Page
+		Expand     bool
 	}
-	ListCustomerSubscriptionsResponse = pagination.PagedResponse[api.Subscription]
+	ListCustomerSubscriptionsResponse = commonhttp.Either[pagination.PagedResponse[api.Subscription], pagination.PagedResponse[api.SubscriptionExpanded]]
 	ListCustomerSubscriptionsHandler  = httptransport.HandlerWithArgs[ListCustomerSubscriptionsRequest, ListCustomerSubscriptionsResponse, ListCustomerSubscriptionsParams]
 )
 
@@ -91,32 +95,59 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 					Namespace: ns,
 					ID:        params.CustomerID,
 				},
-				Page: pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
+				Page:   pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
+				Expand: lo.FromPtrOr(params.Params.Expand, false),
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerSubscriptionsRequest) (ListCustomerSubscriptionsResponse, error) {
 			var def ListCustomerSubscriptionsResponse
 
 			subs, err := h.SubscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-				Page:       req.Page,
-				Namespaces: []string{req.CustomerID.Namespace},
-				Customers:  []string{req.CustomerID.ID},
+				Page:         req.Page,
+				Namespaces:   []string{req.CustomerID.Namespace},
+				Customers:    []string{req.CustomerID.ID},
+				ExpandToView: req.Expand,
 			})
 			if err != nil {
 				return def, err
 			}
 
-			apiSubs := make([]api.Subscription, len(subs.Items))
+			mapped := mo.Fold[subscription.PagedSubscriptions, subscription.PagedSubscriptionViews, mo.Result[ListCustomerSubscriptionsResponse]](subs, func(subs subscription.PagedSubscriptionViews) mo.Result[ListCustomerSubscriptionsResponse] {
+				apiSubs := make([]api.SubscriptionExpanded, len(subs.Items))
+				for i, sub := range subs.Items {
+					apiSubs[i], err = MapSubscriptionViewToAPI(sub)
+					if err != nil {
+						return mo.Err[ListCustomerSubscriptionsResponse](err)
+					}
+				}
 
-			for i, sub := range subs.Items {
-				apiSubs[i] = MapSubscriptionToAPI(sub)
+				return mo.Ok[ListCustomerSubscriptionsResponse](ListCustomerSubscriptionsResponse{
+					Either: mo.Right[pagination.PagedResponse[api.Subscription], pagination.PagedResponse[api.SubscriptionExpanded]](pagination.PagedResponse[api.SubscriptionExpanded]{
+						Page:       subs.Page,
+						TotalCount: subs.TotalCount,
+						Items:      apiSubs,
+					}),
+				})
+			}, func(subs subscription.PagedSubscriptions) mo.Result[ListCustomerSubscriptionsResponse] {
+				apiSubs := make([]api.Subscription, len(subs.Items))
+				for i, sub := range subs.Items {
+					apiSubs[i] = MapSubscriptionToAPI(sub)
+				}
+
+				return mo.Ok[ListCustomerSubscriptionsResponse](ListCustomerSubscriptionsResponse{
+					Either: mo.Left[pagination.PagedResponse[api.Subscription], pagination.PagedResponse[api.SubscriptionExpanded]](pagination.PagedResponse[api.Subscription]{
+						Page:       subs.Page,
+						TotalCount: subs.TotalCount,
+						Items:      apiSubs,
+					}),
+				})
+			})
+
+			if mapped.IsError() {
+				return def, mapped.Error()
 			}
 
-			return ListCustomerSubscriptionsResponse{
-				Page:       req.Page,
-				TotalCount: subs.TotalCount,
-				Items:      apiSubs,
-			}, nil
+			return mapped.MustGet(), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListCustomerSubscriptionsResponse](http.StatusOK),
 		httptransport.AppendOptions(
