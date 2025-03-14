@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -182,17 +184,34 @@ func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input Creat
 	}
 
 	stripeCheckoutSession := StripeCheckoutSession{
+		Mode:          session.Mode,
 		SessionID:     session.ID,
 		SetupIntentID: session.SetupIntent.ID,
-		Mode:          session.Mode,
-	}
-
-	if session.URL != "" {
-		stripeCheckoutSession.URL = &session.URL
+		CreatedAt:     time.Unix(session.Created, 0),
 	}
 
 	if session.CancelURL != "" {
 		stripeCheckoutSession.CancelURL = &session.CancelURL
+	}
+
+	if session.ClientSecret != "" {
+		stripeCheckoutSession.ClientSecret = &session.ClientSecret
+	}
+
+	if session.ClientReferenceID != "" {
+		stripeCheckoutSession.ClientReferenceID = &session.ClientReferenceID
+	}
+
+	if session.Currency != "" {
+		stripeCheckoutSession.Currency = lo.ToPtr(FromStripeCurrency(session.Currency))
+	}
+
+	if session.CustomerEmail != "" {
+		stripeCheckoutSession.CustomerEmail = &session.CustomerEmail
+	}
+
+	if session.Metadata != nil {
+		stripeCheckoutSession.Metadata = &session.Metadata
 	}
 
 	if session.ReturnURL != "" {
@@ -203,18 +222,39 @@ func (c *stripeAppClient) CreateCheckoutSession(ctx context.Context, input Creat
 		stripeCheckoutSession.SuccessURL = &session.SuccessURL
 	}
 
+	if session.Status != "" {
+		stripeCheckoutSession.Status = &session.Status
+	}
+
+	if session.URL != "" {
+		stripeCheckoutSession.URL = &session.URL
+	}
+
+	if session.ExpiresAt != 0 {
+		stripeCheckoutSession.ExpiresAt = lo.ToPtr(time.Unix(session.ExpiresAt, 0))
+	}
+
 	return stripeCheckoutSession, nil
 }
 
 type StripeCheckoutSession struct {
-	SessionID     string
-	SetupIntentID string
-	Mode          stripe.CheckoutSessionMode
+	CancelURL         *string
+	ClientSecret      *string
+	ClientReferenceID *string
+	CustomerEmail     *string
+	Currency          *currencyx.Code
+	CreatedAt         time.Time
+	ExpiresAt         *time.Time
+	Mode              stripe.CheckoutSessionMode
+	Metadata          *map[string]string
+	ReturnURL         *string
+	SessionID         string
+	SetupIntentID     string
+	Status            *stripe.CheckoutSessionStatus
+	SuccessURL        *string
+	URL               *string
 
-	URL        *string
-	CancelURL  *string
-	SuccessURL *string
-	ReturnURL  *string
+	// We don't add payment intent and status here because we always use setup mode
 }
 
 func (o StripeCheckoutSession) Validate() error {

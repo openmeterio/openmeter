@@ -200,7 +200,8 @@ model CreateStripeCheckoutSessionRequestOptions {
    */
   billingAddressCollection?: CreateStripeCheckoutSessionBillingAddressCollection;
 
-  /** If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
+  /**
+   * If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
    * This parameter is not allowed if ui_mode is embedded.
    */
   cancelURL?: string;
@@ -236,7 +237,9 @@ model CreateStripeCheckoutSessionRequestOptions {
    */
   expiresAt?: int64;
 
-  /* The IETF language tag of the locale Checkout is displayed in. If blank or auto, the browser’s locale is used. */
+  /*
+   * The IETF language tag of the locale Checkout is displayed in. If blank or auto, the browser’s locale is used.
+   */
   locale?: string;
 
   /** Set of key-value pairs that you can attach to an object.
@@ -246,8 +249,10 @@ model CreateStripeCheckoutSessionRequestOptions {
    */
   metadata?: Record<string>;
 
-  /* The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
-   This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session. */
+  /**
+   * The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
+   * This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session.
+   */
   returnURL?: string;
 
   /**
@@ -514,6 +519,50 @@ model CreateStripeCheckoutSessionResult {
   setupIntentId: string;
 
   /**
+   * The client secret of the checkout session.
+   * This can be used to initialize Stripe.js for your client-side implementation.
+   * @see https://docs.stripe.com/payments/checkout/custom-success-page
+   */
+  clientSecret?: string;
+
+  /**
+   * A unique string to reference the Checkout Session.
+   * This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems.
+   */
+  clientReferenceId?: string;
+
+  /**
+   * Customer's email address provided to Stripe.
+   */
+  customerEmail?: string;
+
+  /**
+   * Three-letter ISO currency code, in lowercase.
+   */
+  currency?: CurrencyCode;
+
+  /**
+   * Timestamp at which the checkout session was created.
+   */
+  createdAt: DateTime;
+
+  /**
+   * Timestamp at which the checkout session will expire.
+   */
+  expiresAt?: DateTime;
+
+  /**
+   * Set of key-value pairs attached to the checkout session.
+   */
+  metadata?: Record<string>;
+
+  /**
+   * The status of the checkout session.
+   * @see https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+   */
+  status?: string;
+
+  /**
    * URL to show the checkout session.
    */
   url?: string;
@@ -571,27 +620,43 @@ enum CheckoutSessionUIMode {
  */
 @friendlyName("CheckoutSessionCustomTextAfterSubmitParams")
 model CheckoutSessionCustomTextParams {
-  // Custom text that should be displayed after the payment confirmation button.
+  /**
+   * Custom text that should be displayed after the payment confirmation button.
+   */
   afterSubmit?: {
-    // Text may be up to 1200 characters in length.
+    /**
+     * Text may be up to 1200 characters in length.
+     */
     message?: string;
   };
 
-  // Custom text that should be displayed alongside shipping address collection.
+  /**
+   * Custom text that should be displayed alongside shipping address collection.
+   */
   shippingAddress?: {
-    // Text may be up to 1200 characters in length.
+    /**
+     * Text may be up to 1200 characters in length.
+     */
     message?: string;
   };
 
-  // Custom text that should be displayed alongside the payment confirmation button.
+  /**
+   * Custom text that should be displayed alongside the payment confirmation button.
+   */
   submit?: {
-    // Text may be up to 1200 characters in length.
+    /**
+     * Text may be up to 1200 characters in length.
+     */
     message?: string;
   };
 
-  // Custom text that should be displayed in place of the default terms of service agreement text.
+  /**
+   * Custom text that should be displayed in place of the default terms of service agreement text.
+   */
   termsOfServiceAcceptance?: {
-    // Text may be up to 1200 characters in length.
+    /**
+     * Text may be up to 1200 characters in length.
+     */
     message?: string;
   };
 }

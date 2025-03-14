@@ -2342,16 +2342,24 @@ export interface components {
     }
     /** @description Stripe CheckoutSession.custom_text */
     CheckoutSessionCustomTextAfterSubmitParams: {
+      /** @description Custom text that should be displayed after the payment confirmation button. */
       afterSubmit?: {
+        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
+      /** @description Custom text that should be displayed alongside shipping address collection. */
       shippingAddress?: {
+        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
+      /** @description Custom text that should be displayed alongside the payment confirmation button. */
       submit?: {
+        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
+      /** @description Custom text that should be displayed in place of the default terms of service agreement text. */
       termsOfServiceAcceptance?: {
+        /** @description Text may be up to 1200 characters in length. */
         message?: string
       }
     }
@@ -2538,6 +2546,8 @@ export interface components {
       metadata?: {
         [key: string]: string
       }
+      /** @description The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
+       *     This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session. */
       returnURL?: string
       /** @description The URL to which Stripe should send customers when payment or setup is complete.
        *     This parameter is not allowed if ui_mode is embedded.
@@ -2568,6 +2578,34 @@ export interface components {
       sessionId: string
       /** @description The checkout session setup intent ID. */
       setupIntentId: string
+      /** @description The client secret of the checkout session.
+       *     This can be used to initialize Stripe.js for your client-side implementation. */
+      clientSecret?: string
+      /** @description A unique string to reference the Checkout Session.
+       *     This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems. */
+      clientReferenceId?: string
+      /** @description Customer's email address provided to Stripe. */
+      customerEmail?: string
+      /** @description Three-letter ISO currency code, in lowercase. */
+      currency?: components['schemas']['CurrencyCode']
+      /**
+       * Format: date-time
+       * @description Timestamp at which the checkout session was created.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      createdAt: Date
+      /**
+       * Format: date-time
+       * @description Timestamp at which the checkout session will expire.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      expiresAt?: Date
+      /** @description Set of key-value pairs attached to the checkout session. */
+      metadata?: {
+        [key: string]: string
+      }
+      /** @description The status of the checkout session. */
+      status?: string
       /** @description URL to show the checkout session. */
       url?: string
       /** @description Mode

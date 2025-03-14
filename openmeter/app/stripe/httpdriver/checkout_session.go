@@ -94,7 +94,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				return CreateAppStripeCheckoutSessionResponse{}, fmt.Errorf("failed to create app stripe checkout session: %w", err)
 			}
 
-			return CreateAppStripeCheckoutSessionResponse{
+			response := CreateAppStripeCheckoutSessionResponse{
 				CancelURL:        out.CancelURL,
 				CustomerId:       out.CustomerID.ID,
 				Mode:             api.StripeCheckoutSessionMode(out.Mode),
@@ -104,7 +104,19 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 				StripeCustomerId: out.StripeCustomerID,
 				SuccessURL:       out.SuccessURL,
 				Url:              out.URL,
-			}, nil
+
+				// Add new fields from the CreateCheckoutSessionOutput
+				ClientSecret:      out.ClientSecret,
+				ClientReferenceId: out.ClientReferenceID,
+				CustomerEmail:     out.CustomerEmail,
+				Currency:          (*api.CurrencyCode)(out.Currency),
+				CreatedAt:         out.CreatedAt,
+				Metadata:          out.Metadata,
+				Status:            (*string)(out.Status),
+				ExpiresAt:         out.ExpiresAt,
+			}
+
+			return response, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateAppStripeCheckoutSessionResponse](http.StatusCreated),
 		httptransport.AppendOptions(

@@ -177,3 +177,8 @@ func Currency(c currencyx.Code) string {
 func CurrencyPtr(c *currencyx.Code) *string {
 	return lo.ToPtr(Currency(*c))
 }
+
+// FromStripeCurrency converts a stripe currency code to a currencyx code.
+func FromStripeCurrency(c stripe.Currency) currencyx.Code {
+	return currencyx.Code(strings.ToUpper(string(c)))
+}

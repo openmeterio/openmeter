@@ -521,16 +521,9 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 		}
 
 		return appstripeentity.CreateCheckoutSessionOutput{
-			CustomerID:       customerID,
-			StripeCustomerID: stripeCustomerId,
-
-			SessionID:     checkoutSession.SessionID,
-			SetupIntentID: checkoutSession.SetupIntentID,
-			URL:           checkoutSession.URL,
-			Mode:          checkoutSession.Mode,
-			CancelURL:     checkoutSession.CancelURL,
-			SuccessURL:    checkoutSession.SuccessURL,
-			ReturnURL:     checkoutSession.ReturnURL,
+			CustomerID:            customerID,
+			StripeCustomerID:      stripeCustomerId,
+			StripeCheckoutSession: checkoutSession,
 		}, nil
 	})
 }
