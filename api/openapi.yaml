@@ -9,13 +9,6 @@ info:
     OpenMeter is a cloud native usage metering service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 tags:
-  - name: Apps (Beta)
-  - name: Notifications (Beta)
-  - name: Entitlements (Beta)
-  - name: Billing (Beta)
-  - name: Product Catalog (Beta)
-  - name: Subscriptions (Beta)
-  - name: Customers (Beta)
   - name: Subscriptions
     description: (Beta) With Subscriptions, you can manage your customers' subscriptions. Request access by [contacting us](mailto:contact@openmeter.cloud).
   - name: Subjects
@@ -95,7 +88,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
   /api/v1/apps/{id}:
     get:
       operationId: getApp
@@ -159,7 +152,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
     put:
       operationId: updateApp
       summary: Update app
@@ -222,7 +215,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
       requestBody:
         required: true
         content:
@@ -287,7 +280,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
   /api/v1/apps/{id}/stripe/api-key:
     put:
       operationId: updateStripeAPIKey
@@ -341,7 +334,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
       requestBody:
         required: true
         content:
@@ -411,7 +404,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
       requestBody:
         required: true
         content:
@@ -481,7 +474,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/customers/{customerId}:
     put:
       operationId: upsertBillingProfileCustomerOverride
@@ -545,7 +538,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -621,7 +614,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
     delete:
       operationId: deleteBillingProfileCustomerOverride
       summary: Delete a customer override
@@ -680,7 +673,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/customers/{customerId}/invoices/simulate:
     post:
       operationId: simulateInvoice
@@ -743,7 +736,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -811,7 +804,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/invoices/invoice:
     post:
       operationId: invoicePendingLinesAction
@@ -873,7 +866,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -940,7 +933,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -1028,7 +1021,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
     delete:
       operationId: deleteInvoice
       summary: Delete an invoice
@@ -1090,7 +1083,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
     put:
       operationId: updateInvoice
       summary: Update an invoice
@@ -1156,7 +1149,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -1231,7 +1224,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approveInvoiceAction
@@ -1302,7 +1295,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/invoices/{invoiceId}/retry:
     post:
       operationId: retryInvoiceAction
@@ -1369,7 +1362,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/invoices/{invoiceId}/taxes/recalculate:
     post:
       operationId: recalculateInvoiceTaxAction
@@ -1436,7 +1429,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
   /api/v1/billing/invoices/{invoiceId}/void:
     post:
       operationId: voidInvoiceAction
@@ -1505,7 +1498,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -1580,7 +1573,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
     post:
       operationId: createBillingProfile
       summary: Create a new billing profile
@@ -1634,7 +1627,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -1700,7 +1693,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
     get:
       operationId: getBillingProfile
       summary: Get a billing profile
@@ -1770,7 +1763,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
     put:
       operationId: updateBillingProfile
       summary: Update a billing profile
@@ -1833,7 +1826,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Billing (Beta)
+        - Billing
       requestBody:
         required: true
         content:
@@ -1890,7 +1883,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
       requestBody:
         required: true
         content:
@@ -1956,7 +1949,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
   /api/v1/customers/{customerId}/apps:
     get:
       operationId: listCustomerAppData
@@ -2023,7 +2016,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
     put:
       operationId: upsertCustomerAppData
       summary: Upsert customer app data
@@ -2088,7 +2081,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
       requestBody:
         required: true
         content:
@@ -2163,7 +2156,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
   /api/v1/customers/{customerId}/entitlements/{featureKey}/value:
     get:
       operationId: getCustomerEntitlementValue
@@ -2237,7 +2230,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
   /api/v1/customers/{customerId}/subscriptions:
     get:
       operationId: listCustomerSubscriptions
@@ -2303,7 +2296,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
   /api/v1/customers/{id}:
     get:
       operationId: getCustomer
@@ -2367,7 +2360,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
     put:
       operationId: updateCustomer
       summary: Update customer
@@ -2430,7 +2423,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
       requestBody:
         required: true
         content:
@@ -2495,7 +2488,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Customers (Beta)
+        - Customers
   /api/v1/debug/metrics:
     get:
       operationId: getDebugMetrics
@@ -2650,7 +2643,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/entitlements/{entitlementId}:
     get:
       operationId: getEntitlementById
@@ -2714,7 +2707,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/events:
     get:
       operationId: listEvents
@@ -2984,7 +2977,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
     post:
       operationId: createFeature
       summary: Create feature
@@ -3038,7 +3031,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
       requestBody:
         required: true
         content:
@@ -3106,7 +3099,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
     delete:
       operationId: deleteFeature
       summary: Delete feature
@@ -3167,7 +3160,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/grants:
     get:
       operationId: listGrants
@@ -3261,7 +3254,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/grants/{grantId}:
     delete:
       operationId: voidGrant
@@ -3327,7 +3320,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/info/currencies:
     get:
       operationId: listCurrencies
@@ -3495,7 +3488,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
   /api/v1/marketplace/listings/{type}:
     get:
       operationId: getMarketplaceListing
@@ -3551,7 +3544,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
   /api/v1/marketplace/listings/{type}/install/apikey:
     post:
       operationId: marketplaceAppAPIKeyInstall
@@ -3603,7 +3596,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
       requestBody:
         required: true
         content:
@@ -3681,7 +3674,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
   /api/v1/marketplace/listings/{type}/install/oauth2/authorize:
     get:
       operationId: marketplaceOAuth2InstallAuthorize
@@ -3736,7 +3729,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
   /api/v1/meters:
     get:
       operationId: listMeters
@@ -4242,7 +4235,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
     post:
       operationId: createNotificationChannel
       summary: Create a notification channel
@@ -4292,7 +4285,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
       requestBody:
         required: true
         content:
@@ -4362,7 +4355,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
       requestBody:
         required: true
         content:
@@ -4431,7 +4424,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
     delete:
       operationId: deleteNotificationChannel
       summary: Delete a notification channel
@@ -4493,7 +4486,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
   /api/v1/notification/events:
     get:
       operationId: listNotificationEvents
@@ -4618,7 +4611,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
   /api/v1/notification/events/{eventId}:
     get:
       operationId: getNotificationEvent
@@ -4680,7 +4673,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
   /api/v1/notification/rules:
     get:
       operationId: listNotificationRules
@@ -4787,7 +4780,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
     post:
       operationId: createNotificationRule
       summary: Create a notification rule
@@ -4837,7 +4830,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
       requestBody:
         required: true
         content:
@@ -4907,7 +4900,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
       requestBody:
         required: true
         content:
@@ -4976,7 +4969,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
     delete:
       operationId: deleteNotificationRule
       summary: Delete a notification rule
@@ -5038,7 +5031,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
   /api/v1/notification/rules/{ruleId}/test:
     post:
       operationId: testNotificationRule
@@ -5102,7 +5095,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
   /api/v1/notification/webhook/svix:
     post:
       operationId: receiveSvixOperationalEvent
@@ -5149,7 +5142,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Notifications (Beta)
+        - Notifications
       requestBody:
         required: true
         content:
@@ -5264,7 +5257,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
     post:
       operationId: createPlan
       summary: Create a plan
@@ -5314,7 +5307,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
       requestBody:
         required: true
         content:
@@ -5395,7 +5388,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
   /api/v1/plans/{planId}:
     put:
       operationId: updatePlan
@@ -5459,7 +5452,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
       requestBody:
         required: true
         content:
@@ -5548,7 +5541,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
     delete:
       operationId: deletePlan
       summary: Delete plan
@@ -5610,7 +5603,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
   /api/v1/plans/{planId}/archive:
     post:
       operationId: archivePlan
@@ -5674,7 +5667,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
   /api/v1/plans/{planId}/publish:
     post:
       operationId: publishPlan
@@ -5738,7 +5731,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Product Catalog (Beta)
+        - Product Catalog
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
@@ -6050,7 +6043,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Apps (Beta)
+        - Apps
       requestBody:
         required: true
         content:
@@ -6127,7 +6120,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
       requestBody:
         required: true
         content:
@@ -6197,7 +6190,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
@@ -6274,7 +6267,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
     post:
       operationId: createGrant
       summary: Create grant
@@ -6351,7 +6344,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
       requestBody:
         required: true
         content:
@@ -6433,7 +6426,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
       requestBody:
         required: true
         content:
@@ -6516,7 +6509,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
     get:
       operationId: getEntitlement
@@ -6583,7 +6576,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
     delete:
       operationId: deleteEntitlement
       summary: Delete entitlement
@@ -6647,7 +6640,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
@@ -6752,7 +6745,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
       operationId: resetEntitlementUsage
@@ -6818,7 +6811,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Entitlements (Beta)
+        - Entitlements
       requestBody:
         required: true
         content:
@@ -6880,7 +6873,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
       requestBody:
         required: true
         content:
@@ -6957,7 +6950,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
     patch:
       operationId: editSubscription
       summary: Edit subscription
@@ -7028,7 +7021,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
       requestBody:
         required: true
         content:
@@ -7106,7 +7099,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
       requestBody:
         required: true
         content:
@@ -7189,7 +7182,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
       requestBody:
         required: true
         content:
@@ -7268,7 +7261,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
       requestBody:
         required: true
         content:
@@ -7344,7 +7337,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
   /api/v1/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unscheduleCancelation
@@ -7414,7 +7407,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
-        - Subscriptions (Beta)
+        - Subscriptions
 components:
   parameters:
     BillingProfileCustomerOverrideOrderByOrdering.order:

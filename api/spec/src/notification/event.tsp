@@ -205,7 +205,7 @@ enum NotificationEventOrderBy {
 }
 
 @route("/api/v1/notification/events")
-@tag("Notifications (Beta)")
+@tag("Notifications")
 interface Events {
   /**
    * List all notification events.

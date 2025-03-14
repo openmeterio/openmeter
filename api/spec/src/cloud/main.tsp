@@ -127,88 +127,88 @@ interface Debug extends OpenMeter.Debug {}
 
 namespace OpenMeterCloud.App {
   @route("/api/v1/marketplace")
-  @tag("Apps (Beta)")
+  @tag("Apps")
   interface Marketplace extends OpenMeter.App.Marketplace {}
 
   @route("/api/v1/apps")
-  @tag("Apps (Beta)")
+  @tag("Apps")
   interface Apps extends OpenMeter.App.Apps {}
 
-  @tag("Apps (Beta)")
+  @tag("Apps")
   interface AppStripe extends OpenMeter.App.AppStripe {}
 }
 
 namespace OpenMeterCloud.Notification {
   @route("/api/v1/notification/channels")
-  @tag("Notifications (Beta)")
+  @tag("Notifications")
   interface Channels extends OpenMeter.Notification.Channels {}
 
   @route("/api/v1/notification/rules")
-  @tag("Notifications (Beta)")
+  @tag("Notifications")
   interface Rules extends OpenMeter.Notification.Rules {}
 
   @route("/api/v1/notification/events")
-  @tag("Notifications (Beta)")
+  @tag("Notifications")
   interface Events extends OpenMeter.Notification.Events {}
 
   @route("/api/v1/notification/webhook/svix")
-  @tag("Notifications (Beta)")
+  @tag("Notifications")
   interface SvixOperationalWebhooks
     extends OpenMeter.Notification.SvixOperationalWebhooks {}
 }
 
 namespace OpenMeterCloud.Entitlements {
   @route("/api/v1/entitlements")
-  @tag("Entitlements (Beta)")
+  @tag("Entitlements")
   interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
 
   @route("/api/v1/features")
-  @tag("Entitlements (Beta)")
+  @tag("Entitlements")
   interface Features extends OpenMeter.Entitlements.Features {}
 
   @route("/api/v1/grants")
-  @tag("Entitlements (Beta)")
+  @tag("Entitlements")
   interface Grants extends OpenMeter.Entitlements.Grants {}
 
   @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
-  @tag("Entitlements (Beta)")
+  @tag("Entitlements")
   interface Subjects extends OpenMeter.Entitlements.Subjects {}
 }
 
 namespace OpenMeterCloud.Billing {
   @route("/api/v1/customers")
-  @tag("Customers (Beta)")
+  @tag("Customers")
   interface Customers extends OpenMeter.Customers {}
 
   @route("/api/v1/billing/customers")
-  @tag("Billing (Beta)")
+  @tag("Billing")
   interface CustomerOverrides extends OpenMeter.Billing.CustomerOverrides {}
 
   @route("/api/v1/billing/profiles")
-  @tag("Billing (Beta)")
+  @tag("Billing")
   interface BillingProfiles extends OpenMeter.Billing.Profiles {}
 
   @route("/api/v1/billing/invoices")
-  @tag("Billing (Beta)")
+  @tag("Billing")
   interface InvoicesEndpoints extends OpenMeter.Billing.InvoicesEndpoints {}
 
   @route("/api/v1/billing/invoices/{invoiceId}")
-  @tag("Billing (Beta)")
+  @tag("Billing")
   interface InvoiceEndpoints extends OpenMeter.Billing.InvoiceEndpoints {}
 
   @route("/api/v1/billing/customers/{customerId}/invoices/simulate")
-  @tag("Billing (Beta)")
+  @tag("Billing")
   interface InvoiceSimulationEndpoints
     extends OpenMeter.Billing.InvoiceSimulationEndpoints {}
 }
 
 namespace OpenMeterCloud.ProductCatalog {
   @route("/api/v1/plans")
-  @tag("Product Catalog (Beta)")
+  @tag("Product Catalog")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}
 
   @route("/api/v1/subscriptions")
-  @tag("Subscriptions (Beta)")
+  @tag("Subscriptions")
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}
 }
 

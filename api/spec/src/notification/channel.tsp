@@ -148,7 +148,7 @@ enum NotificationChannelOrderBy {
 }
 
 @route("/api/v1/notification/channels")
-@tag("Notifications (Beta)")
+@tag("Notifications")
 interface Channels {
   /**
    * List all notification channels.

@@ -34,7 +34,7 @@ model SvixOperationalWebhookRequest {
 }
 
 @route("/api/v1/notification/webhook/svix")
-@tag("Notifications (Beta)")
+@tag("Notifications")
 interface SvixOperationalWebhooks {
   /**
    * Callback endpoint used by Svix to notify about operational events.
