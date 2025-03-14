@@ -77,6 +77,29 @@ func TestSubscriptionStatus(t *testing.T) {
 			QueryTime: testutils.GetRFC3339Time(t, "2020-01-01T00:00:06Z"),
 			Expected:  subscription.SubscriptionStatusInactive,
 		},
+		{
+			Name: "Should be inactive after deletion",
+			Sub: subscription.Subscription{
+				ManagedModel: models.ManagedModel{
+					DeletedAt: lo.ToPtr(testutils.GetRFC3339Time(t, "2020-01-01T00:00:02Z")),
+				},
+			},
+			QueryTime: testutils.GetRFC3339Time(t, "2020-01-01T00:00:06Z"),
+			Expected:  subscription.SubscriptionStatusInactive,
+		},
+		{
+			Name: "Should be inactive after deletion after being scheduled",
+			Sub: subscription.Subscription{
+				CadencedModel: models.CadencedModel{
+					ActiveFrom: testutils.GetRFC3339Time(t, "2020-01-01T00:00:00Z"),
+				},
+				ManagedModel: models.ManagedModel{
+					DeletedAt: lo.ToPtr(testutils.GetRFC3339Time(t, "2020-01-01T00:00:02Z")),
+				},
+			},
+			QueryTime: testutils.GetRFC3339Time(t, "2020-01-01T00:00:06Z"),
+			Expected:  subscription.SubscriptionStatusInactive,
+		},
 	}
 
 	for _, tc := range tt {
