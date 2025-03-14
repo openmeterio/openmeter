@@ -54,6 +54,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/log"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -475,6 +477,9 @@ func getTestServer(t *testing.T) *Server {
 	subscriptionService := &NoopSubscriptionService{}
 	subscriptionWorkflowService := &NoopSubscriptionWorkflowService{}
 
+	// Create grant repo
+	grantRepo := &NoopGrantRepo{}
+
 	// Create billing service
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbDeps.DBClient,
@@ -507,11 +512,12 @@ func getTestServer(t *testing.T) *Server {
 			ErrorHandler:                errorsx.NopHandler{},
 			FeatureConnector:            featureService,
 			GrantConnector:              &NoopGrantConnector{},
-			// FIXME: pass in a real grant repo
-			GrantRepo: nil,
+			// Use the grant repo
+			GrantRepo: grantRepo,
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewNopHandler()),
+			Logger:             logger,
 			MeterManageService: meterManageService,
 			MeterEventService:  meterEventService,
 			NamespaceManager:   namespaceManager,
@@ -1139,4 +1145,57 @@ func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subsc
 
 func (n NoopSubscriptionWorkflowService) Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return subscription.Subscription{}, nil
+}
+
+var _ grant.Repo = (*NoopGrantRepo)(nil)
+
+// NoopGrantRepo implements grant.Repo with no-op operations
+// for use in testing
+type NoopGrantRepo struct{}
+
+func (n NoopGrantRepo) CreateGrant(ctx context.Context, input grant.RepoCreateInput) (*grant.Grant, error) {
+	return &grant.Grant{}, nil
+}
+
+func (n NoopGrantRepo) VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error {
+	return nil
+}
+
+func (n NoopGrantRepo) ListGrants(ctx context.Context, params grant.ListParams) (pagination.PagedResponse[grant.Grant], error) {
+	return pagination.PagedResponse[grant.Grant]{}, nil
+}
+
+func (n NoopGrantRepo) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {
+	return []grant.Grant{}, nil
+}
+
+func (n NoopGrantRepo) GetGrant(ctx context.Context, grantID models.NamespacedID) (grant.Grant, error) {
+	return grant.Grant{}, nil
+}
+
+// NoopTransactionDriver is a no-op implementation of transaction.Driver
+type NoopTransactionDriver struct{}
+
+func (d NoopTransactionDriver) Commit() error {
+	return nil
+}
+
+func (d NoopTransactionDriver) Rollback() error {
+	return nil
+}
+
+func (d NoopTransactionDriver) SavePoint() error {
+	return nil
+}
+
+func (n NoopGrantRepo) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, NoopTransactionDriver{}, nil
+}
+
+func (n NoopGrantRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.Repo {
+	return n
+}
+
+func (n NoopGrantRepo) Self() grant.Repo {
+	return n
 }

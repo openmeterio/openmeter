@@ -300,7 +300,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	// Product Catalog
 	if config.Plan == nil {
-		return nil, errors.New("plan service is required when productcatalog is enabled")
+		return nil, errors.New("plan service is required")
 	}
 
 	router.planHandler = planhttpdriver.New(
@@ -310,11 +310,11 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.PlanSubscriptionService == nil {
-		return nil, errors.New("subscription services are required when productcatalog is enabled")
+		return nil, errors.New("subscription services are required")
 	}
 
 	if config.Logger == nil {
-		return nil, errors.New("logger is required when productcatalog is enabled")
+		return nil, errors.New("logger is required")
 	}
 
 	// Subscription
