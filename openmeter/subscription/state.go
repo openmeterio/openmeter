@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/qmuntal/stateless"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SubscriptionStatus string
