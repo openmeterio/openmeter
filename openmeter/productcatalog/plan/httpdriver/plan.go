@@ -36,6 +36,24 @@ func (h *handler) ListPlans() ListPlansHandler {
 				return ListPlansRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
+			var statusFilter *plan.ListPlansStatusFilter
+			if params.Status != nil {
+				statusFilter = &plan.ListPlansStatusFilter{}
+
+				for _, status := range *params.Status {
+					switch status {
+					case api.PlanStatusFilterEnumActive:
+						statusFilter.Active = true
+					case api.PlanStatusFilterEnumDraft:
+						statusFilter.Draft = true
+					case api.PlanStatusFilterEnumArchived:
+						statusFilter.Archived = true
+					default:
+						return ListPlansRequest{}, models.NewGenericValidationError(fmt.Errorf("invalid status filter: %s", status))
+					}
+				}
+			}
+
 			req := ListPlansRequest{
 				OrderBy: plan.OrderBy(lo.FromPtrOr(params.OrderBy, api.PlanOrderById)),
 				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
@@ -49,6 +67,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 				KeyVersions:    lo.FromPtrOr(params.KeyVersion, nil),
 				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
 				Currencies:     lo.FromPtrOr(params.Currency, nil),
+				Status:         statusFilter,
 			}
 
 			return req, nil

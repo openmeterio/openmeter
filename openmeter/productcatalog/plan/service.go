@@ -71,12 +71,26 @@ type ListPlansInput struct {
 	// IncludeDeleted defines whether to include deleted Plans.
 	IncludeDeleted bool
 
+	// Status filter
+	Status *ListPlansStatusFilter
+
 	// Currencies is the list of currencies to filter by.
 	Currencies []string
 }
 
 func (i ListPlansInput) Validate() error {
 	return nil
+}
+
+type ListPlansStatusFilter struct {
+	// Active signals that the active plans should be returned.
+	Active bool
+
+	// Draft signals that the draft plans should be returned.
+	Draft bool
+
+	// Archived signals that the archived plans should be returned.
+	Archived bool
 }
 
 var _ models.Validator = (*CreatePlanInput)(nil)

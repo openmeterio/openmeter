@@ -45,6 +45,14 @@ interface Plans {
     keyVersion?: Record<integer[]>,
 
     /**
+     * Only return the latest version of the plan for each key.
+     *
+     * Usage: `?status=latest`
+     */
+    @query(#{ explode: true })
+    status?: PlanStatusFilterEnum[],
+
+    /**
      * Filter by plan.currency attribute
      */
     @query(#{ explode: true })
