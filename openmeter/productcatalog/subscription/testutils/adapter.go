@@ -52,19 +52,13 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubs
 	})
 
 	if plan.IsNotFound(err) {
-		return nil, subscription.PlanNotFoundError{
-			Key:     planKey,
-			Version: version,
-		}
+		return nil, subscription.NewPlanNotFoundError(planKey, version)
 	} else if err != nil {
 		return nil, err
 	}
 
 	if p == nil {
-		return nil, subscription.PlanNotFoundError{
-			Key:     planKey,
-			Version: version,
-		}
+		return nil, subscription.NewPlanNotFoundError(planKey, version)
 	}
 
 	pp, err := p.AsProductCatalogPlan(clock.Now())
