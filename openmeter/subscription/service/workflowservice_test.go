@@ -116,7 +116,7 @@ func TestEditRunning(t *testing.T) {
 					Namespace: subscriptiontestutils.ExampleNamespace,
 				}, nil, immediate)
 
-				assert.ErrorAs(t, err, lo.ToPtr(&subscription.NotFoundError{}), "expected subscription not found error, got %T", err)
+				assert.ErrorAs(t, err, lo.ToPtr(&subscription.SubscriptionNotFoundError{}), "expected subscription not found error, got %T", err)
 			},
 		},
 		{
@@ -1202,7 +1202,7 @@ func TestRestore(t *testing.T) {
 			// Let's make sure the new sub was deleted
 			_, err = deps.Service.GetView(ctx, new.Subscription.NamespacedID)
 			require.Error(t, err)
-			require.ErrorAs(t, err, lo.ToPtr(&subscription.NotFoundError{}))
+			require.ErrorAs(t, err, lo.ToPtr(&subscription.SubscriptionNotFoundError{}))
 		})
 	})
 }

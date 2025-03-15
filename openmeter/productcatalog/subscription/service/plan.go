@@ -28,19 +28,13 @@ func (s *service) getPlanByVersion(ctx context.Context, namespace string, ref pl
 	})
 
 	if plan.IsNotFound(err) {
-		return nil, subscription.PlanNotFoundError{
-			Key:     planKey,
-			Version: version,
-		}
+		return nil, subscription.NewPlanNotFoundError(planKey, version)
 	} else if err != nil {
 		return nil, err
 	}
 
 	if p == nil {
-		return nil, subscription.PlanNotFoundError{
-			Key:     planKey,
-			Version: version,
-		}
+		return nil, subscription.NewPlanNotFoundError(planKey, version)
 	}
 
 	return p, nil

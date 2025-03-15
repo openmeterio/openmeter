@@ -1,9 +1,11 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type PlanRef struct {
@@ -62,11 +64,39 @@ type Plan interface {
 	Currency() currencyx.Code
 }
 
-type PlanNotFoundError struct {
-	Key     string
-	Version int
+// NewPlanNotFoundError returns a new PlanNotFoundError.
+func NewPlanNotFoundError(key string, version int) error {
+	return &PlanNotFoundError{
+		err: models.NewGenericNotFoundError(
+			fmt.Errorf("plan %s with version %d not found", key, version),
+		),
+	}
 }
 
-func (e PlanNotFoundError) Error() string {
-	return fmt.Sprintf("plan %s@%d not found", e.Key, e.Version)
+var _ models.GenericError = &PlanNotFoundError{}
+
+// PlanNotFoundError is returned when a meter is not found.
+type PlanNotFoundError struct {
+	err error
+}
+
+// Error returns the error message.
+func (e *PlanNotFoundError) Error() string {
+	return e.err.Error()
+}
+
+// Unwrap returns the wrapped error.
+func (e *PlanNotFoundError) Unwrap() error {
+	return e.err
+}
+
+// IsPlanNotFoundError returns true if the error is a PlanNotFoundError.
+func IsPlanNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *PlanNotFoundError
+
+	return errors.As(err, &e)
 }

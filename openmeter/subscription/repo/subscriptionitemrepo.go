@@ -73,7 +73,7 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 			Only(ctx)
 
 		if db.IsNotFound(err) {
-			return subscription.SubscriptionItem{}, &subscription.ItemNotFoundError{ID: id.ID}
+			return subscription.SubscriptionItem{}, subscription.NewItemNotFoundError(id.ID)
 		}
 
 		if err != nil {
@@ -140,7 +140,7 @@ func (r *subscriptionItemRepo) Delete(ctx context.Context, input models.Namespac
 			).SetDeletedAt(at).Exec(ctx)
 
 		if db.IsNotFound(err) {
-			return nil, &subscription.ItemNotFoundError{ID: input.ID}
+			return nil, subscription.NewItemNotFoundError(input.ID)
 		}
 
 		return nil, err

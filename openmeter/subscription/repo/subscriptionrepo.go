@@ -34,9 +34,9 @@ func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.Namesp
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
 		ent, err := repo.db.Subscription.UpdateOneID(id.ID).SetOrClearActiveTo(at).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
 		if db.IsNotFound(err) {
-			return nil, &subscription.NotFoundError{
-				ID: id.ID,
-			}
+			return nil, subscription.NewSubscriptionNotFoundError(
+				id.ID,
+			)
 		}
 		if err != nil {
 			return nil, err
@@ -84,9 +84,9 @@ func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.Na
 		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).Where(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)
 
 		if db.IsNotFound(err) {
-			return subscription.Subscription{}, &subscription.NotFoundError{
-				ID: subscriptionID.ID,
-			}
+			return subscription.Subscription{}, subscription.NewSubscriptionNotFoundError(
+				subscriptionID.ID,
+			)
 		} else if err != nil {
 			return subscription.Subscription{}, err
 		} else if res == nil {
@@ -147,9 +147,7 @@ func (r *subscriptionRepo) Delete(ctx context.Context, id models.NamespacedID) e
 	return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, repo *subscriptionRepo) error {
 		_, err := repo.db.Subscription.UpdateOneID(id.ID).SetDeletedAt(clock.Now()).Save(ctx)
 		if db.IsNotFound(err) {
-			return &subscription.NotFoundError{
-				ID: id.ID,
-			}
+			return subscription.NewSubscriptionNotFoundError(id.ID)
 		}
 		if err != nil {
 			return err
