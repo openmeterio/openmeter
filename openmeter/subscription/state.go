@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/qmuntal/stateless"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SubscriptionStatus string
@@ -66,7 +68,9 @@ func (sm SubscriptionStateMachine) CanTransitionOrErr(ctx context.Context, actio
 	}
 
 	if !can {
-		return &ForbiddenError{Msg: fmt.Sprintf("transition %s in state %s not allowed", action, state)}
+		return models.NewGenericForbiddenError(
+			fmt.Errorf("transition %s in state %s not allowed", action, state),
+		)
 	}
 
 	return nil

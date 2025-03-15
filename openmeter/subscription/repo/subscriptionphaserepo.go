@@ -85,7 +85,7 @@ func (r *subscriptionPhaseRepo) Delete(ctx context.Context, id models.Namespaced
 				),
 			).SetDeletedAt(at).Exec(ctx)
 		if db.IsNotFound(err) {
-			return nil, &subscription.PhaseNotFoundError{ID: id.ID}
+			return nil, subscription.NewPhaseNotFoundError(id.ID)
 		}
 
 		return nil, err
