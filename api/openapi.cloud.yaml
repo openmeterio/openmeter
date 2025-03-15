@@ -5202,6 +5202,17 @@ paths:
               items:
                 type: integer
           style: deepObject
+        - name: status
+          in: query
+          required: false
+          description: |-
+            Only return the latest version of the plan for each key.
+
+            Usage: `?status=latest`
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PlanStatusFilterEnum'
         - name: currency
           in: query
           required: false
@@ -14689,6 +14700,13 @@ components:
         - archived
         - scheduled
       description: The status of a plan.
+    PlanStatusFilterEnum:
+      type: string
+      enum:
+        - active
+        - draft
+        - archived
+      description: Filter by plan status.
     PlanSubscriptionChange:
       type: object
       required:

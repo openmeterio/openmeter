@@ -255,3 +255,13 @@ enum PlanOrderBy {
   createdAt: "create_at",
   updatedAt: "updated_at",
 }
+
+/**
+ * Filter by plan status.
+ */
+@friendlyName("PlanStatusFilterEnum")
+enum PlanStatusFilterEnum {
+  active: "active",
+  draft: "draft",
+  archived: "archived",
+}

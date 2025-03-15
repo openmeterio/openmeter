@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -332,5 +333,148 @@ func TestPostgresAdapter(t *testing.T) {
 
 			plan.AssertPlanEqual(t, *planV1, *getPlanV1)
 		})
+
+		t.Run("ListStatusFilter", func(t *testing.T) {
+			testListPlanStatusFilter(ctx, t, repo)
+		})
 	})
+}
+
+type createPlanVersionInput struct {
+	Namespace       string
+	Version         int
+	EffectivePeriod productcatalog.EffectivePeriod
+	Template        plan.CreatePlanInput
+}
+
+func createPlanVersion(ctx context.Context, repo *adapter, in createPlanVersionInput) error {
+	createInput := in.Template
+	createInput.Namespace = in.Namespace
+	createInput.Plan.PlanMeta.Version = in.Version
+
+	planVersion, err := repo.CreatePlan(ctx, createInput)
+	if err != nil {
+		return err
+	}
+
+	_, err = repo.UpdatePlan(ctx, plan.UpdatePlanInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: in.Namespace,
+			ID:        planVersion.ID,
+		},
+		EffectivePeriod: in.EffectivePeriod,
+	})
+
+	return err
+}
+
+func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) {
+	defer clock.ResetTime()
+
+	ns := "list-plan-status-filter"
+
+	err := createPlanVersion(ctx, repo, createPlanVersionInput{
+		Namespace: ns,
+		Version:   1,
+		Template:  planV1Input,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2025-03-15T00:00:00Z")),
+			EffectiveTo:   lo.ToPtr(testutils.GetRFC3339Time(t, "2025-03-15T12:00:00Z")),
+		},
+	})
+	require.NoError(t, err, "creating plan version must not fail")
+
+	err = createPlanVersion(ctx, repo, createPlanVersionInput{
+		Namespace: ns,
+		Version:   2,
+		Template:  planV1Input,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(testutils.GetRFC3339Time(t, "2025-03-15T12:00:00Z")),
+		},
+	})
+	require.NoErrorf(t, err, "creating plan version must not fail")
+
+	err = createPlanVersion(ctx, repo, createPlanVersionInput{
+		Namespace:       ns,
+		Version:         3,
+		Template:        planV1Input,
+		EffectivePeriod: productcatalog.EffectivePeriod{},
+	})
+	require.NoErrorf(t, err, "creating plan version must not fail")
+
+	tcs := []struct {
+		name          string
+		at            time.Time
+		filter        plan.ListPlansStatusFilter
+		expectVersion []int
+	}{
+		{
+			name: "list latest active",
+			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
+			filter: plan.ListPlansStatusFilter{
+				Active: true,
+			},
+			expectVersion: []int{2},
+		},
+		{
+			name: "list latest draft",
+			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
+			filter: plan.ListPlansStatusFilter{
+				Draft: true,
+			},
+			expectVersion: []int{3},
+		},
+		{
+			name: "list latest archived",
+			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
+			filter: plan.ListPlansStatusFilter{
+				Archived: true,
+			},
+			expectVersion: []int{1},
+		},
+		{
+			name: "list all",
+			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
+			filter: plan.ListPlansStatusFilter{
+				Active:   true,
+				Draft:    true,
+				Archived: true,
+			},
+			expectVersion: []int{1, 2, 3},
+		},
+		{
+			name: "plan schedule to be actived in the future - active filter",
+			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
+			filter: plan.ListPlansStatusFilter{
+				Active: true,
+			},
+			expectVersion: []int{1}, // 2 is not yet active
+		},
+		{
+			name: "plan schedule to be actived in the future - draft filter",
+			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
+			filter: plan.ListPlansStatusFilter{
+				Draft: true,
+			},
+			expectVersion: []int{2, 3}, // 2 is not yet active
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			clock.SetTime(tc.at)
+
+			list, err := repo.ListPlans(ctx, plan.ListPlansInput{
+				Namespaces: []string{ns},
+				Status:     &tc.filter,
+			})
+			require.NoError(t, err, "listing plans must not fail")
+
+			versions := lo.Map(list.Items, func(item plan.Plan, _ int) int {
+				return item.Version
+			})
+
+			require.ElementsMatch(t, tc.expectVersion, versions)
+		})
+	}
 }

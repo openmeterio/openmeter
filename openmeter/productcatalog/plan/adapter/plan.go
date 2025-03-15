@@ -58,6 +58,37 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Where(plandb.DeletedAtIsNil())
 		}
 
+		if params.Status != nil {
+			predicates := []predicate.Plan{}
+
+			now := clock.Now().UTC()
+
+			if params.Status.Active {
+				predicates = append(predicates, plandb.And(
+					plandb.EffectiveFromLTE(now),
+					plandb.Or(
+						plandb.EffectiveToGTE(now),
+						plandb.EffectiveToIsNil(),
+					),
+				))
+			}
+
+			if params.Status.Draft {
+				predicates = append(predicates, plandb.And(
+					plandb.Or(
+						plandb.EffectiveFromGT(now),
+						plandb.EffectiveFromIsNil(),
+					),
+				))
+			}
+
+			if params.Status.Archived {
+				predicates = append(predicates, plandb.EffectiveToLT(now))
+			}
+
+			query = query.Where(plandb.Or(predicates...))
+		}
+
 		// Eager load phases with
 		// * ordering by StartAfter
 		// * with eager load RateCards
