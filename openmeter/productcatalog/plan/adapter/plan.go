@@ -99,7 +99,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 
 			if slices.Contains(params.Status, productcatalog.InvalidStatus) {
 				predicates = append(predicates, func(s *sql.Selector) {
-					s.Where(sql.ColumnsLT(plandb.FieldEffectiveFrom, plandb.FieldEffectiveTo))
+					s.Where(sql.ColumnsLT(plandb.FieldEffectiveTo, plandb.FieldEffectiveFrom))
 				})
 			}
 
