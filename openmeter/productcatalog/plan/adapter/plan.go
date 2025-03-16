@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -58,12 +59,12 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Where(plandb.DeletedAtIsNil())
 		}
 
-		if params.Status != nil {
+		if len(params.Status) > 0 {
 			predicates := []predicate.Plan{}
 
 			now := clock.Now().UTC()
 
-			if params.Status.Active {
+			if slices.Contains(params.Status, productcatalog.ActiveStatus) {
 				predicates = append(predicates, plandb.And(
 					plandb.EffectiveFromLTE(now),
 					plandb.Or(
@@ -73,17 +74,33 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 				))
 			}
 
-			if params.Status.Draft {
+			if slices.Contains(params.Status, productcatalog.DraftStatus) {
+				predicates = append(predicates, plandb.And(
+					plandb.EffectiveFromIsNil(),
+					plandb.EffectiveToIsNil(),
+				))
+			}
+
+			if slices.Contains(params.Status, productcatalog.ScheduledStatus) {
 				predicates = append(predicates, plandb.And(
 					plandb.Or(
 						plandb.EffectiveFromGT(now),
-						plandb.EffectiveFromIsNil(),
 					),
 				))
 			}
 
-			if params.Status.Archived {
+			if slices.Contains(params.Status, productcatalog.ArchivedStatus) {
 				predicates = append(predicates, plandb.EffectiveToLT(now))
+			}
+
+			if slices.Contains(params.Status, productcatalog.ScheduledStatus) {
+				predicates = append(predicates, plandb.EffectiveFromGT(now))
+			}
+
+			if slices.Contains(params.Status, productcatalog.InvalidStatus) {
+				predicates = append(predicates, func(s *sql.Selector) {
+					s.Where(sql.ColumnsLT(plandb.FieldEffectiveFrom, plandb.FieldEffectiveTo))
+				})
 			}
 
 			query = query.Where(plandb.Or(predicates...))

@@ -405,58 +405,66 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 	tcs := []struct {
 		name          string
 		at            time.Time
-		filter        plan.ListPlansStatusFilter
+		filter        []productcatalog.PlanStatus
 		expectVersion []int
 	}{
 		{
 			name: "list latest active",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
-			filter: plan.ListPlansStatusFilter{
-				Active: true,
+			filter: []productcatalog.PlanStatus{
+				productcatalog.ActiveStatus,
 			},
 			expectVersion: []int{2},
 		},
 		{
 			name: "list latest draft",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
-			filter: plan.ListPlansStatusFilter{
-				Draft: true,
+			filter: []productcatalog.PlanStatus{
+				productcatalog.DraftStatus,
 			},
 			expectVersion: []int{3},
 		},
 		{
 			name: "list latest archived",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
-			filter: plan.ListPlansStatusFilter{
-				Archived: true,
+			filter: []productcatalog.PlanStatus{
+				productcatalog.ArchivedStatus,
 			},
 			expectVersion: []int{1},
 		},
 		{
 			name: "list all",
 			at:   testutils.GetRFC3339Time(t, "2025-03-16T00:00:00Z"),
-			filter: plan.ListPlansStatusFilter{
-				Active:   true,
-				Draft:    true,
-				Archived: true,
+			filter: []productcatalog.PlanStatus{
+				productcatalog.ActiveStatus,
+				productcatalog.DraftStatus,
+				productcatalog.ArchivedStatus,
 			},
 			expectVersion: []int{1, 2, 3},
 		},
 		{
 			name: "plan schedule to be actived in the future - active filter",
 			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
-			filter: plan.ListPlansStatusFilter{
-				Active: true,
+			filter: []productcatalog.PlanStatus{
+				productcatalog.ActiveStatus,
 			},
 			expectVersion: []int{1}, // 2 is not yet active
 		},
 		{
 			name: "plan schedule to be actived in the future - draft filter",
 			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
-			filter: plan.ListPlansStatusFilter{
-				Draft: true,
+			filter: []productcatalog.PlanStatus{
+				productcatalog.DraftStatus,
 			},
-			expectVersion: []int{2, 3}, // 2 is not yet active
+			expectVersion: []int{3},
+		},
+		{
+			name: "plan schedule to be actived in the future - scheduled filter",
+			at:   testutils.GetRFC3339Time(t, "2025-03-15T01:00:00Z"),
+			filter: []productcatalog.PlanStatus{
+				productcatalog.ScheduledStatus,
+			},
+			expectVersion: []int{2},
 		},
 	}
 
@@ -466,7 +474,7 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo *adapter) 
 
 			list, err := repo.ListPlans(ctx, plan.ListPlansInput{
 				Namespaces: []string{ns},
-				Status:     &tc.filter,
+				Status:     tc.filter,
 			})
 			require.NoError(t, err, "listing plans must not fail")
 

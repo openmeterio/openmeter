@@ -50,7 +50,7 @@ interface Plans {
      * Usage: `?status=latest`
      */
     @query(#{ explode: true })
-    status?: PlanStatusFilterEnum[],
+    status?: PlanStatus[],
 
     /**
      * Filter by plan.currency attribute
