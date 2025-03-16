@@ -340,10 +340,6 @@ func (i CreateCheckoutSessionInput) Validate() error {
 	if i.Options.UiMode != nil {
 		switch *i.Options.UiMode {
 		case api.CheckoutSessionUIModeEmbedded:
-			if i.Options.ReturnURL == nil {
-				return errors.New("return url is required for embedded ui mode")
-			}
-
 			if i.Options.CancelURL != nil {
 				return errors.New("cancel url is not allowed for embedded ui mode")
 			}
