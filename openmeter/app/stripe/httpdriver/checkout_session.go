@@ -12,7 +12,6 @@ import (
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -39,40 +38,41 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			var customerId *customer.CustomerID
 			var customerKey *string
 
-			// Try to parse customer field as customer ID first
-			apiCustomerId, err := body.Customer.AsCustomerId()
-			if err == nil && apiCustomerId.Id != "" {
-				customerId = &customer.CustomerID{
-					Namespace: namespace,
-					ID:        apiCustomerId.Id,
+			// Try to parse as customer create first
+			maybeCustomerCreate, asCustomerCreateErr := body.Customer.AsCustomerCreate()
+			if asCustomerCreateErr == nil && maybeCustomerCreate.Name != "" {
+				createCustomerInput = &customer.CreateCustomerInput{
+					Namespace:      namespace,
+					CustomerMutate: customerhttpdriver.MapCustomerCreate(maybeCustomerCreate),
 				}
 			}
 
-			// If no customerId found try to parse customer field as customer key
-			if customerId == nil {
-				maybeCustomerKey, err := body.Customer.AsCustomerKey()
+			// Try to parse as customer ID second
+			if createCustomerInput == nil {
+				apiCustomerId, asCustomerIdErr := body.Customer.AsCustomerId()
+				if asCustomerIdErr == nil && apiCustomerId.Id != "" {
+					customerId = &customer.CustomerID{
+						Namespace: namespace,
+						ID:        apiCustomerId.Id,
+					}
+				}
+			}
 
-				if err == nil && maybeCustomerKey.Key != "" {
+			// Try to parse as customer key third
+			if createCustomerInput == nil && customerId == nil {
+				maybeCustomerKey, asCustomerKeyErr := body.Customer.AsCustomerKey()
+
+				if asCustomerKeyErr == nil && maybeCustomerKey.Key != "" {
 					customerKey = &maybeCustomerKey.Key
 				}
 			}
 
-			// If no customerKey found try to parse customer field as customer input
-			if customerId == nil && customerKey == nil {
-				// If err try to parse customer field as customer input
-				customerCreate, err := body.Customer.AsCustomerCreate()
-				if err != nil {
-					return CreateAppStripeCheckoutSessionRequest{}, models.NewGenericValidationError(
-						fmt.Errorf("failed to decode customer: %w", err),
-					)
-				}
-
-				createCustomerInput = &customer.CreateCustomerInput{
-					Namespace:      namespace,
-					CustomerMutate: customerhttpdriver.MapCustomerCreate(customerCreate),
-				}
+			// One of the three must be provided
+			if createCustomerInput == nil && customerId == nil && customerKey == nil {
+				return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("customer is required")
 			}
 
+			// Create request
 			req := CreateAppStripeCheckoutSessionRequest{
 				Namespace:           namespace,
 				CustomerID:          customerId,
