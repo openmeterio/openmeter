@@ -5211,7 +5211,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/PlanStatusFilterEnum'
+              $ref: '#/components/schemas/PlanStatus'
         - name: currency
           in: query
           required: false
@@ -14903,13 +14903,6 @@ components:
         - archived
         - scheduled
       description: The status of a plan.
-    PlanStatusFilterEnum:
-      type: string
-      enum:
-        - active
-        - draft
-        - archived
-      description: Filter by plan status.
     PlanSubscriptionChange:
       type: object
       required:

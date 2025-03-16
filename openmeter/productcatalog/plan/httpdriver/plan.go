@@ -36,22 +36,11 @@ func (h *handler) ListPlans() ListPlansHandler {
 				return ListPlansRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var statusFilter *plan.ListPlansStatusFilter
+			var statusFilter []productcatalog.PlanStatus
 			if params.Status != nil {
-				statusFilter = &plan.ListPlansStatusFilter{}
-
-				for _, status := range *params.Status {
-					switch status {
-					case api.PlanStatusFilterEnumActive:
-						statusFilter.Active = true
-					case api.PlanStatusFilterEnumDraft:
-						statusFilter.Draft = true
-					case api.PlanStatusFilterEnumArchived:
-						statusFilter.Archived = true
-					default:
-						return ListPlansRequest{}, models.NewGenericValidationError(fmt.Errorf("invalid status filter: %s", status))
-					}
-				}
+				statusFilter = lo.Map(*params.Status, func(status api.PlanStatus, _ int) productcatalog.PlanStatus {
+					return productcatalog.PlanStatus(status)
+				})
 			}
 
 			req := ListPlansRequest{

@@ -72,7 +72,7 @@ type ListPlansInput struct {
 	IncludeDeleted bool
 
 	// Status filter
-	Status *ListPlansStatusFilter
+	Status []productcatalog.PlanStatus
 
 	// Currencies is the list of currencies to filter by.
 	Currencies []string
