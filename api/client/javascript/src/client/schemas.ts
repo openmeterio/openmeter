@@ -8686,6 +8686,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -8769,6 +8778,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -8860,6 +8878,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -8943,6 +8970,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -9019,6 +9055,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -9108,6 +9153,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -9215,6 +9269,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -9300,6 +9363,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -9391,6 +9463,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -9474,6 +9555,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -9552,6 +9642,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -9655,6 +9754,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -9733,6 +9841,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -9809,6 +9926,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -9897,6 +10023,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -9988,6 +10123,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -10069,6 +10213,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -10156,6 +10309,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -10239,6 +10401,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -10326,6 +10497,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -10409,6 +10589,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -10500,6 +10689,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -10589,6 +10787,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -10665,6 +10872,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -10752,6 +10968,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -10843,6 +11068,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -10924,6 +11158,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11025,6 +11268,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -11101,6 +11353,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11195,6 +11456,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -11284,6 +11554,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -11366,6 +11645,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11454,6 +11742,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11546,6 +11843,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -11629,6 +11935,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11720,6 +12035,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -11803,6 +12127,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -11875,6 +12208,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -11986,6 +12328,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -12069,6 +12420,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -12175,6 +12535,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -12251,6 +12620,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -12352,6 +12730,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -12428,6 +12815,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -12515,6 +12911,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -12596,6 +13001,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -12705,6 +13119,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -12797,6 +13220,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -12869,6 +13301,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -12956,6 +13397,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13035,6 +13485,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13109,6 +13568,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -13200,6 +13668,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13274,6 +13751,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -13371,6 +13857,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13443,6 +13938,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -13521,6 +14025,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -13608,6 +14121,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13688,6 +14210,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13760,6 +14291,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -13872,6 +14412,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -13946,6 +14495,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14043,6 +14601,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -14119,6 +14686,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14204,6 +14780,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14295,6 +14880,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -14376,6 +14970,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14487,6 +15090,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -14570,6 +15182,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14675,6 +15296,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -14751,6 +15381,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14836,6 +15475,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -14927,6 +15575,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -15008,6 +15665,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -15095,6 +15761,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -15169,6 +15844,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -15279,6 +15963,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -15355,6 +16048,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -15440,6 +16142,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -15532,6 +16243,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -15621,6 +16341,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -15702,6 +16431,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -15789,6 +16527,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -15872,6 +16619,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -15982,6 +16738,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -16056,6 +16821,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16134,6 +16908,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16215,6 +16998,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16304,6 +17096,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -16376,6 +17177,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16454,6 +17264,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16541,6 +17360,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -16613,6 +17441,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16691,6 +17528,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16782,6 +17628,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -16860,6 +17715,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -16950,6 +17814,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -17051,6 +17924,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -17139,6 +18021,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -17225,6 +18116,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -17307,6 +18207,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -17405,6 +18314,15 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -17491,6 +18409,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -17580,6 +18507,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -17666,6 +18602,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -17764,6 +18709,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -17867,6 +18821,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -17963,6 +18926,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -18065,6 +19037,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
         }
       }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
       500: {
         headers: {
@@ -18148,6 +19129,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
@@ -18242,6 +19232,15 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
         }
       }
       /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */

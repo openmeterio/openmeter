@@ -66,6 +66,7 @@ alias CommonErrors =
   | ForbiddenError
   | InternalServerErrorError
   | ServiceUnavailableError
+  | PreconditionFailedError
   | Error;
 
 /**

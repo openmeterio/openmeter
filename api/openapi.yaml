@@ -69,6 +69,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -133,6 +139,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -196,6 +208,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -261,6 +279,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -315,6 +339,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -385,6 +415,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -455,6 +491,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -519,6 +561,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -595,6 +643,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -654,6 +708,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -717,6 +777,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -785,6 +851,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -847,6 +919,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -914,6 +992,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1002,6 +1086,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1064,6 +1154,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1130,6 +1226,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1205,6 +1307,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1276,6 +1384,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1343,6 +1457,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1410,6 +1530,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1479,6 +1605,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1554,6 +1686,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1608,6 +1746,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1674,6 +1818,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1744,6 +1894,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1807,6 +1963,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1864,6 +2026,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1930,6 +2098,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -1997,6 +2171,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2062,6 +2242,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2137,6 +2323,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2211,6 +2403,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2277,6 +2475,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2341,6 +2545,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2404,6 +2614,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2469,6 +2685,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2523,6 +2745,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2624,6 +2852,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2688,6 +2922,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2825,6 +3065,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2871,6 +3117,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -2958,6 +3210,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3012,6 +3270,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3080,6 +3344,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3141,6 +3411,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3235,6 +3511,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3301,6 +3583,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3354,6 +3642,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3416,6 +3710,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3469,6 +3769,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3525,6 +3831,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3577,6 +3889,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3655,6 +3973,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3710,6 +4034,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3763,6 +4093,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3813,6 +4149,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3884,6 +4226,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -3942,6 +4290,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4002,6 +4356,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4078,6 +4438,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4139,6 +4505,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4216,6 +4588,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4266,6 +4644,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4336,6 +4720,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4405,6 +4795,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4467,6 +4863,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4592,6 +4994,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4654,6 +5062,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4761,6 +5175,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4811,6 +5231,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4881,6 +5307,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -4950,6 +5382,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5012,6 +5450,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5076,6 +5520,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5123,6 +5573,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5252,6 +5708,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5302,6 +5764,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5383,6 +5851,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5447,6 +5921,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5536,6 +6016,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5598,6 +6084,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5662,6 +6154,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5726,6 +6224,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5801,6 +6305,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5854,6 +6364,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5921,6 +6437,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -5968,6 +6490,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6038,6 +6566,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6115,6 +6649,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6185,6 +6725,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6262,6 +6808,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6339,6 +6891,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6421,6 +6979,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6504,6 +7068,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6571,6 +7141,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6635,6 +7211,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6740,6 +7322,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6806,6 +7394,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6868,6 +7462,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -6945,6 +7545,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -7016,6 +7622,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -7094,6 +7706,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -7177,6 +7795,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -7256,6 +7880,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -7332,6 +7962,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
@@ -7402,6 +8038,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ConflictProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
         '500':
           description: The server encountered an unexpected condition that prevented it from fulfilling the request.
           content:
