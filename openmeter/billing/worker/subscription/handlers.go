@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -98,6 +101,79 @@ func (h *Handler) HandleInvoiceCreation(ctx context.Context, invoice billing.Eve
 		// we might want to provision more lines
 		if err := h.SyncronizeSubscription(ctx, subsView, clock.Now()); err != nil {
 			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
+		}
+	}
+
+	return nil
+}
+
+func (h *Handler) HandleSubscriptionCreated(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+	if err := h.SyncronizeSubscription(ctx, subs, asOf); err != nil {
+		return err
+	}
+
+	if subs.Spec.HasBillables() {
+		// Let's check if there are any pending lines that we can invoice now (those will be in-advance fees, so we don't have to wait
+		// for the collection period)
+
+		gatheringInvoices, err := h.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespaces:       []string{subs.Subscription.Namespace},
+			Customers:        []string{subs.Customer.ID},
+			ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+			Currencies:       []currencyx.Code{subs.Spec.Currency},
+			Expand: billing.InvoiceExpand{
+				Lines: true,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list gathering invoices: %w", err)
+		}
+
+		now := clock.Now()
+
+		invoicableLines := []string{}
+
+		for _, invoice := range gatheringInvoices.Items {
+			inScopeLines := lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+				if line.Subscription.SubscriptionID != subs.Subscription.ID {
+					return false
+				}
+
+				if line.Status != billing.InvoiceLineStatusValid {
+					return false
+				}
+
+				return !line.InvoiceAt.After(now)
+			})
+
+			if len(inScopeLines) == 0 {
+				continue
+			}
+
+			invoicableLines = append(invoicableLines, lo.Map(inScopeLines, func(line *billing.Line, _ int) string {
+				return line.ID
+			})...)
+		}
+
+		if len(invoicableLines) > 0 {
+			invoices, err := h.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: customer.CustomerID{
+					Namespace: subs.Subscription.Namespace,
+					ID:        subs.Customer.ID,
+				},
+
+				IncludePendingLines: mo.Some(invoicableLines),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create invoice: %w", err)
+			}
+
+			h.logger.Info("created invoice on subscription creation trigger",
+				"customer_id", subs.Customer.ID,
+				"invoice_ids", lo.Map(invoices, func(inv billing.Invoice, _ int) string {
+					return fmt.Sprintf("%s/%s", inv.Number, inv.ID)
+				}),
+			)
 		}
 	}
 

@@ -2804,6 +2804,114 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 	}
 }
 
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreation() {
+	ctx := s.Context
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a subscription with a single phase with an in advance fee
+	// When
+	//  we start the subscription
+	// Then
+	//  the gathering invoice will automatically be invoiced so that the in advance fee is billed (those are always flat fees)
+
+	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
+		{
+			PhaseMeta: s.phaseMeta("first-phase", ""),
+			RateCards: productcatalog.RateCards{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  "in-advance",
+						Name: "in-advance",
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(6),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				},
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:     s.APIRequestsTotalFeature.Key,
+						Name:    s.APIRequestsTotalFeature.Key,
+						Feature: &s.APIRequestsTotalFeature,
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(10),
+						}),
+					},
+					BillingCadence: isodate.MustParse(s.T(), "P1D"),
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Handler.HandleSubscriptionCreated(ctx, subsView, clock.Now()))
+
+	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Customers: []string{s.Customer.ID},
+		Expand:    billing.InvoiceExpandAll,
+	})
+	s.NoError(err)
+	s.Len(invoices.Items, 2)
+
+	var gatheringInvoice *billing.Invoice
+	var instantInvoice *billing.Invoice
+
+	for _, invoice := range invoices.Items {
+		if invoice.Status == billing.InvoiceStatusGathering {
+			gatheringInvoice = &invoice
+			continue
+		}
+
+		instantInvoice = &invoice
+	}
+
+	s.NotNil(gatheringInvoice, "gathering invoice should be present")
+	s.NotNil(instantInvoice, "instant invoice should be present")
+
+	s.DebugDumpInvoice("gathering invoice", *gatheringInvoice)
+	s.DebugDumpInvoice("instant invoice", *instantInvoice)
+
+	// Gathering invoice should have the UBP line
+	s.expectLines(*gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			})),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-02T00:00:00Z")},
+		},
+	})
+
+	// Instant invoice should have the in advance fee
+	s.expectLines(*instantInvoice, subsView.Subscription.ID, []expectedLine{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Qty:       mo.Some[float64](1),
+			UnitPrice: mo.Some[float64](6),
+			Periods: []billing.Period{
+				{
+					Start: s.mustParseTime("2024-01-01T00:00:00Z"),
+					End:   s.mustParseTime("2024-01-02T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []time.Time{s.mustParseTime("2024-01-01T00:00:00Z")},
+		},
+	})
+}
+
 func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billing.Line, issue billing.ValidationIssue) {
 	s.Equal(billing.ValidationIssueSeverityWarning, issue.Severity)
 	s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, issue.Code)

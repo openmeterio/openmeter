@@ -142,7 +142,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 		opts.Router.MetricMeter,
 
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CreatedEvent) error {
-			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionHandler.HandleSubscriptionCreated(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
 			return w.subscriptionHandler.HandleCancelledEvent(ctx, event)
