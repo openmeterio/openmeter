@@ -413,8 +413,10 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 	return nil
 }
 
-func (s *Service) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
-	return s.adapter.IsAppUsed(ctx, appID)
+func (s *Service) IsAppUsed(ctx context.Context, appID app.AppID) error {
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		return s.adapter.IsAppUsed(ctx, appID)
+	})
 }
 
 func (s *Service) resolveProfileApps(ctx context.Context, input *billing.BaseProfile) (*billing.Profile, error) {

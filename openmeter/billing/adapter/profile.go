@@ -3,6 +3,7 @@ package billingadapter
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -327,12 +328,12 @@ func (a *adapter) GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context
 }
 
 // isBillingProfileUsed checks if the app is used in any billing profile
-func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) (bool, error) {
+func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) error {
 	if err := appID.Validate(); err != nil {
-		return false, fmt.Errorf("invalid app id: %w", err)
+		return fmt.Errorf("invalid app id: %w", err)
 	}
 
-	count, err := a.db.BillingProfile.Query().
+	profiles, err := a.db.BillingProfile.Query().
 		Where(
 
 			billingprofile.Namespace(appID.Namespace),
@@ -343,12 +344,18 @@ func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) (bo
 			),
 			billingprofile.DeletedAtIsNil(),
 		).
-		Count(ctx)
+		All(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return count > 0, nil
+	if len(profiles) > 0 {
+		return models.NewGenericConflictError(fmt.Errorf("app is used in %d billing profiles: %s", len(profiles), strings.Join(lo.Map(profiles, func(profile *db.BillingProfile, _ int) string {
+			return fmt.Sprintf("%s[%s]", profile.Name, profile.ID)
+		}), ",")))
+	}
+
+	return nil
 }
 
 func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {

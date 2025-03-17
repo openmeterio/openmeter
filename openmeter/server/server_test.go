@@ -1212,8 +1212,8 @@ func (n NoopBillingService) ProvisionDefaultBillingProfile(ctx context.Context, 
 	return nil
 }
 
-func (n NoopBillingService) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
-	return false, nil
+func (n NoopBillingService) IsAppUsed(ctx context.Context, appID app.AppID) error {
+	return nil
 }
 
 // CustomerOverrideService methods
