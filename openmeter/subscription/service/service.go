@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -22,6 +23,7 @@ type ServiceConfig struct {
 	SubscriptionItemRepo  subscription.SubscriptionItemRepository
 	// connectors
 	CustomerService customer.Service
+	FeatureService  feature.FeatureConnector
 	// adapters
 	EntitlementAdapter subscription.EntitlementAdapter
 	// framework
@@ -351,12 +353,39 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		return def, err
 	}
 
+	entitlementFeatureIDs := lo.Map(ents, func(ent subscription.SubscriptionEntitlement, _ int) string {
+		return ent.Entitlement.FeatureID
+	})
+
+	itemFeatureKeys := lo.Map(lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
+		return i.RateCard.FeatureKey != nil
+	}), func(item subscription.SubscriptionItem, _ int) string {
+		return *item.RateCard.FeatureKey
+	})
+
+	featsOfEntsPaged, err := s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
+		Namespace:       sub.Namespace,
+		IncludeArchived: true, // We match by ID, so those exact features might since have been archived
+		IDsOrKeys:       lo.Uniq(entitlementFeatureIDs),
+	})
+	if err != nil {
+		return def, err
+	}
+
+	featsOfItemsPaged, err := s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
+		Namespace:       sub.Namespace,
+		IncludeArchived: false,
+		IDsOrKeys:       lo.Uniq(itemFeatureKeys),
+	})
+
 	view, err := subscription.NewSubscriptionView(
 		sub,
 		*cust,
 		phases,
 		items,
 		ents,
+		featsOfEntsPaged.Items,
+		featsOfItemsPaged.Items,
 	)
 	if err != nil {
 		return def, err

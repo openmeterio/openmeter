@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -228,6 +229,11 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		pr = prc
 	}
 
+	var feature *api.Feature
+	if item.Feature != nil {
+		feature = lo.ToPtr(productcatalogdriver.MapFeatureToResponse(*item.Feature))
+	}
+
 	return api.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
@@ -239,6 +245,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		Included:       included,
 		Key:            item.SubscriptionItem.Key,
 		FeatureKey:     item.SubscriptionItem.RateCard.FeatureKey,
+		Feature:        feature,
 		Metadata:       &item.SubscriptionItem.Metadata,
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,

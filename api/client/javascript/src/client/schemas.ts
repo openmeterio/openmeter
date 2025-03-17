@@ -7396,6 +7396,8 @@ export interface components {
       key: string
       /** @description The feature's key (if present). */
       featureKey?: string
+      /** @description The feature of the SubscriptionItem if present. */
+      feature?: components['schemas']['Feature']
       /**
        * Billing cadence
        * Format: duration

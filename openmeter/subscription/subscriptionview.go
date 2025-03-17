@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -100,6 +101,7 @@ type SubscriptionItemView struct {
 	Spec             SubscriptionItemSpec `json:"spec"`
 
 	Entitlement *SubscriptionEntitlement `json:"entitlement,omitempty"`
+	Feature     *feature.Feature         `json:"feature,omitempty"`
 }
 
 func (s *SubscriptionItemView) AsSpec() SubscriptionItemSpec {
@@ -205,6 +207,24 @@ func (s *SubscriptionItemView) Validate() error {
 		}
 	}
 
+	// Let's validate the Feature
+	if s.Feature != nil {
+		if s.SubscriptionItem.RateCard.FeatureKey == nil {
+			return fmt.Errorf("item %s has a feature, but no feature key", s.Spec.ItemKey)
+		}
+
+		// If it has an entitlement lets compare to the ID, otherwise let's compare the key
+		if s.Entitlement != nil {
+			if s.Entitlement.Entitlement.FeatureID != s.Feature.ID {
+				return fmt.Errorf("entitlement %s feature id %s does not match item %s feature id %s", s.Entitlement.Entitlement.ID, s.Entitlement.Entitlement.FeatureID, s.Spec.ItemKey, s.Feature.ID)
+			}
+		} else {
+			if *s.SubscriptionItem.RateCard.FeatureKey != s.Feature.Key {
+				return fmt.Errorf("item %s feature key %s does not match feature key %s", s.Spec.ItemKey, *s.SubscriptionItem.RateCard.FeatureKey, s.Feature.Key)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -214,6 +234,8 @@ func NewSubscriptionView(
 	phases []SubscriptionPhase,
 	items []SubscriptionItem,
 	ents []SubscriptionEntitlement,
+	entFeats []feature.Feature,
+	itemFeats []feature.Feature,
 ) (*SubscriptionView, error) {
 	spec := SubscriptionSpec{
 		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef, Alignment: sub.Alignment},
@@ -358,9 +380,26 @@ func NewSubscriptionView(
 					delete(unvisitedEnts, ent.Entitlement.ID)
 				}
 
+				var itemFeat *feature.Feature
+				// If entitlement is present, we use the entitlement's feature, otherwise we use the item's feature
+				if subEnt != nil {
+					if feat, ok := lo.Find(entFeats, func(i feature.Feature) bool {
+						return i.ID == subEnt.Entitlement.FeatureID
+					}); ok {
+						itemFeat = &feat
+					}
+				} else if item.RateCard.FeatureKey != nil {
+					if feat, ok := lo.Find(itemFeats, func(i feature.Feature) bool {
+						return i.Key == *item.RateCard.FeatureKey
+					}); ok {
+						itemFeat = &feat
+					}
+				}
+
 				itemView := SubscriptionItemView{
 					SubscriptionItem: item,
 					Entitlement:      subEnt,
+					Feature:          itemFeat,
 					Spec:             itemSpec,
 				}
 

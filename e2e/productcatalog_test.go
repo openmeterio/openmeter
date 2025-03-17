@@ -457,6 +457,18 @@ func TestPlan(t *testing.T) {
 		assert.NotNil(t, subscription.Alignment.CurrentAlignedBillingPeriod)
 		assert.NotEmpty(t, subscription.Alignment.CurrentAlignedBillingPeriod.From)
 		assert.NotEmpty(t, subscription.Alignment.CurrentAlignedBillingPeriod.To)
+
+		// Should have item features filled
+		require.GreaterOrEqual(t, len(subscription.Phases), 1)
+		phase := subscription.Phases[0]
+		require.GreaterOrEqual(t, len(phase.Items), 2)
+
+		item, ok := lo.Find(phase.Items, func(i api.SubscriptionItem) bool {
+			return i.Key == PlanFeatureKey
+		})
+		require.True(t, ok)
+		require.NotNil(t, item.Feature)
+		assert.Equal(t, PlanFeatureKey, item.Feature.Key)
 	})
 
 	t.Run("Should edit the subscription", func(t *testing.T) {

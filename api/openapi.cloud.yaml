@@ -16735,6 +16735,10 @@ components:
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: The feature's key (if present).
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/Feature'
+          description: The feature of the SubscriptionItem if present.
         billingCadence:
           type: string
           format: duration
