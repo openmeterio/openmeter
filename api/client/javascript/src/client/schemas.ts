@@ -7561,7 +7561,7 @@ export interface components {
      * @description Subscription status.
      * @enum {string}
      */
-    SubscriptionStatus: 'active' | 'inactive' | 'canceled'
+    SubscriptionStatus: 'active' | 'inactive' | 'canceled' | 'scheduled'
     /** @description Subscription edit timing defined when the changes should take effect.
      *     If the provided configuration is not supported by the subscription, an error will be returned. */
     SubscriptionTiming: components['schemas']['SubscriptionTimingEnum'] | Date

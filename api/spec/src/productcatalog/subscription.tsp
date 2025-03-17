@@ -45,13 +45,15 @@ model SubscriptionExpanded {
   [
     "SubscriptionStatusActive",
     "SubscriptionStatusInactive",
-    "SubscriptionStatusCanceled"
+    "SubscriptionStatusCanceled",
+    "SubscriptionStatusScheduled"
   ]
 )
 enum SubscriptionStatus {
   Active: "active",
   Inactive: "inactive",
   Canceled: "canceled",
+  Scheduled: "scheduled",
 }
 
 /**
