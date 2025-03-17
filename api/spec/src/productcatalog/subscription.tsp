@@ -239,11 +239,7 @@ model SubscriptionItem {
    */
   @summary("Price")
   @example(#{ type: PriceType.flat, amount: "100", paymentTerm: "in_arrears" })
-  price:
-    | FlatPriceWithPaymentTerm
-    | UnitPriceWithCommitments
-    | TieredPriceWithCommitments
-    | null;
+  price: SubscriptionItemPrice | null;
 
   /**
    * Describes what access is gained via the SubscriptionItem
@@ -257,6 +253,18 @@ model SubscriptionItem {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tax config")
   taxConfig?: TaxConfig;
+}
+
+/**
+ * The price of the Subscription Item.
+ */
+@friendlyName("SubscriptionItemPrice")
+@discriminator("type")
+@oneOf
+union SubscriptionItemPrice {
+  flat: FlatPriceWithPaymentTerm,
+  unit: UnitPriceWithCommitments,
+  tiered: TieredPriceWithCommitments,
 }
 
 /**
