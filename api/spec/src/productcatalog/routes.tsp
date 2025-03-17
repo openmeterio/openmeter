@@ -45,9 +45,12 @@ interface Plans {
     keyVersion?: Record<integer[]>,
 
     /**
-     * Only return the latest version of the plan for each key.
+     * Only return plans with the given status.
      *
-     * Usage: `?status=latest`
+     * Usage:
+     * - `?status=active`: return only the currently active plan
+     * - `?status=draft`: return only the draft plan
+     * - `?status=archived`: return only the archived plans
      */
     @query(#{ explode: true })
     status?: PlanStatus[],

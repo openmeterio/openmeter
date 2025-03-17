@@ -6360,11 +6360,6 @@ export interface components {
      * @enum {string}
      */
     PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
-    /**
-     * @description Filter by plan status.
-     * @enum {string}
-     */
-    PlanStatusFilterEnum: 'active' | 'draft' | 'archived'
     /** @description Change subscription based on plan. */
     PlanSubscriptionChange: {
       /** @description Timing configuration for the change, when the change should take effect.
@@ -8400,7 +8395,6 @@ export type PlanReference = components['schemas']['PlanReference']
 export type PlanReferenceInput = components['schemas']['PlanReferenceInput']
 export type PlanReplaceUpdate = components['schemas']['PlanReplaceUpdate']
 export type PlanStatus = components['schemas']['PlanStatus']
-export type PlanStatusFilterEnum = components['schemas']['PlanStatusFilterEnum']
 export type PlanSubscriptionChange =
   components['schemas']['PlanSubscriptionChange']
 export type PlanSubscriptionCreate =
@@ -15221,10 +15215,13 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
-        /** @description Only return the latest version of the plan for each key.
+        /** @description Only return plans with the given status.
          *
-         *     Usage: `?status=latest` */
-        status?: components['schemas']['PlanStatusFilterEnum'][]
+         *     Usage:
+         *     - `?status=active`: return only the currently active plan
+         *     - `?status=draft`: return only the draft plan
+         *     - `?status=archived`: return only the archived plans */
+        status?: components['schemas']['PlanStatus'][]
         /** @description Filter by plan.currency attribute */
         currency?: components['schemas']['CurrencyCode'][]
         /** @description Start date-time in RFC 3339 format.
