@@ -850,6 +850,7 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) error {
 				billing.InvoiceStatusPaymentProcessingActionRequired,
 				billing.InvoiceStatusOverdue,
 			),
+			billinginvoice.DeletedAtIsNil(),
 		).
 		Where(
 			billinginvoice.Or(
