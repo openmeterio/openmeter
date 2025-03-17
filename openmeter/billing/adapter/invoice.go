@@ -820,25 +820,21 @@ func mapPeriodFromDB(start, end *time.Time) *billing.Period {
 }
 
 // IsAppUsed checks if the app is used in any invoice.
-func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) {
+func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) error {
 	if err := appID.Validate(); err != nil {
-		return false, billing.ValidationError{
+		return billing.ValidationError{
 			Err: fmt.Errorf("invalid app ID: %w", err),
 		}
 	}
 
 	// Check if the app is used in any billing profile
-	isUsedInBillingProfile, err := a.isBillingProfileUsed(ctx, appID)
+	err := a.isBillingProfileUsed(ctx, appID)
 	if err != nil {
-		return false, err
-	}
-
-	if isUsedInBillingProfile {
-		return true, nil
+		return err
 	}
 
 	// Check if the app is used in any invoice in gathering or issued states
-	count, err := a.db.BillingInvoice.
+	usedInInvoices, err := a.db.BillingInvoice.
 		Query().
 		Where(billinginvoice.Namespace(appID.Namespace)).
 		Where(
@@ -854,6 +850,7 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) 
 				billing.InvoiceStatusPaymentProcessingActionRequired,
 				billing.InvoiceStatusOverdue,
 			),
+			billinginvoice.DeletedAtIsNil(),
 		).
 		Where(
 			billinginvoice.Or(
@@ -862,10 +859,16 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) (bool, error) 
 				billinginvoice.TaxAppID(appID.ID),
 			),
 		).
-		Count(ctx)
+		All(ctx)
 	if err != nil {
-		return false, fmt.Errorf("failed to check if invoices are correctly associated with apps: %w", err)
+		return err
 	}
 
-	return count > 0, nil
+	if len(usedInInvoices) > 0 {
+		return models.NewGenericConflictError(fmt.Errorf("app is used in %d non-finalized invoices: %s", len(usedInInvoices), strings.Join(lo.Map(usedInInvoices, func(invoice *db.BillingInvoice, _ int) string {
+			return fmt.Sprintf("%s[%s]", invoice.Number, invoice.ID)
+		}), ",")))
+	}
+
+	return nil
 }

@@ -26,7 +26,7 @@ type ProfileService interface {
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*Profile, error)
 	ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error
-	IsAppUsed(ctx context.Context, appID app.AppID) (bool, error)
+	IsAppUsed(ctx context.Context, appID app.AppID) error
 }
 
 type CustomerOverrideService interface {

@@ -31,7 +31,7 @@ type ProfileAdapter interface {
 	DeleteProfile(ctx context.Context, input DeleteProfileInput) error
 	UpdateProfile(ctx context.Context, input UpdateProfileAdapterInput) (*BaseProfile, error)
 
-	IsAppUsed(ctx context.Context, appID app.AppID) (bool, error)
+	IsAppUsed(ctx context.Context, appID app.AppID) error
 
 	GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context, input GetUnpinnedCustomerIDsWithPaidSubscriptionInput) ([]customer.CustomerID, error)
 }
