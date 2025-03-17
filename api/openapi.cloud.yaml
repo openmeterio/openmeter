@@ -16964,11 +16964,13 @@ components:
         - active
         - inactive
         - canceled
+        - scheduled
       description: Subscription status.
       x-enum-varnames:
         - SubscriptionStatusActive
         - SubscriptionStatusInactive
         - SubscriptionStatusCanceled
+        - SubscriptionStatusScheduled
     SubscriptionTiming:
       oneOf:
         - $ref: '#/components/schemas/SubscriptionTimingEnum'
