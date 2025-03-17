@@ -123,9 +123,10 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 			profile := s.createProfileFixture(true)
 			require.NotNil(t, profile)
 
-			ok, err := s.BillingService.IsAppUsed(ctx, profile.Apps.Invoicing.GetID())
-			require.NoError(t, err)
-			require.True(t, ok)
+			err := s.BillingService.IsAppUsed(ctx, profile.Apps.Invoicing.GetID())
+
+			var conflictErr *models.GenericConflictError
+			require.ErrorAs(t, err, &conflictErr)
 		})
 
 		s.T().Run("app should not be used", func(t *testing.T) {
@@ -137,9 +138,8 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 				ID:        ulid.Make().String(),
 			}
 
-			ok, err := s.BillingService.IsAppUsed(ctx, anotherAppID)
+			err := s.BillingService.IsAppUsed(ctx, anotherAppID)
 			require.NoError(t, err)
-			require.False(t, ok)
 		})
 	})
 
