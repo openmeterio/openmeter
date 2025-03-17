@@ -226,11 +226,6 @@ model SubscriptionItem {
   featureKey?: Key;
 
   /**
-   * The feature of the SubscriptionItem if present.
-   */
-  feature?: Entitlements.Feature;
-
-  /**
    * The billing cadence of the rate card.
    * When null, the rate card is a one-time purchase.
    */

@@ -467,8 +467,8 @@ func TestPlan(t *testing.T) {
 			return i.Key == PlanFeatureKey
 		})
 		require.True(t, ok)
-		require.NotNil(t, item.Feature)
-		assert.Equal(t, PlanFeatureKey, item.Feature.Key)
+		require.NotNil(t, item.Included.Feature)
+		assert.Equal(t, PlanFeatureKey, item.Included.Feature.Key)
 	})
 
 	t.Run("Should edit the subscription", func(t *testing.T) {

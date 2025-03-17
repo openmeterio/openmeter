@@ -198,17 +198,20 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.SubscriptionItem, error) {
 	var included *api.SubscriptionItemIncluded
 
-	// TODO: add feature to view
+	if item.Feature != nil {
+		feature := productcatalogdriver.MapFeatureToResponse(*item.Feature)
+		included = &api.SubscriptionItemIncluded{
+			Feature: feature,
+		}
+	}
 
-	if item.Entitlement != nil {
+	if included != nil && item.Entitlement != nil {
 		apiEnt, err := entitlementdriver.Parser.ToAPIGeneric(&item.Entitlement.Entitlement)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
 
-		included = &api.SubscriptionItemIncluded{
-			Entitlement: apiEnt,
-		}
+		included.Entitlement = apiEnt
 	}
 
 	var tx *api.TaxConfig
@@ -229,11 +232,6 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		pr = prc
 	}
 
-	var feature *api.Feature
-	if item.Feature != nil {
-		feature = lo.ToPtr(productcatalogdriver.MapFeatureToResponse(*item.Feature))
-	}
-
 	return api.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
@@ -245,7 +243,6 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		Included:       included,
 		Key:            item.SubscriptionItem.Key,
 		FeatureKey:     item.SubscriptionItem.RateCard.FeatureKey,
-		Feature:        feature,
 		Metadata:       &item.SubscriptionItem.Metadata,
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,

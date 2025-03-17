@@ -377,6 +377,9 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 		IncludeArchived: false,
 		IDsOrKeys:       lo.Uniq(itemFeatureKeys),
 	})
+	if err != nil {
+		return def, err
+	}
 
 	view, err := subscription.NewSubscriptionView(
 		sub,
