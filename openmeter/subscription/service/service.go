@@ -432,6 +432,7 @@ func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscr
 			CustomerID: cust.GetID(),
 			CustomerMutate: customer.CustomerMutate{
 				Name:             cust.Name,
+				Key:              cust.Key,
 				Description:      cust.Description,
 				UsageAttribution: cust.UsageAttribution,
 				PrimaryEmail:     cust.PrimaryEmail,
