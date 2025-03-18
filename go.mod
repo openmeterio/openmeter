@@ -86,7 +86,7 @@ require (
 	golang.org/x/net v0.37.0
 	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.5
-	gotest.tools/gotestsum v1.12.0
+	gotest.tools/gotestsum v1.12.1
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
