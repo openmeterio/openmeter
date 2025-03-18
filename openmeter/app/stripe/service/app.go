@@ -23,7 +23,10 @@ func (s *Service) GetWebhookSecret(ctx context.Context, input appstripeentity.Ge
 
 func (s *Service) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		return s.adapter.UpdateAPIKey(ctx, input)
+		return s.adapter.UpdateAPIKey(ctx, appstripeentity.UpdateAPIKeyAdapterInput{
+			UpdateAPIKeyInput: input,
+			MaskedAPIKey:      s.generateMaskedSecretAPIKey(input.APIKey),
+		})
 	})
 }
 

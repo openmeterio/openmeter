@@ -82,7 +82,7 @@ func (a *adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Cre
 }
 
 // UpdateAPIKey replaces the API key
-func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyAdapterInput) error {
 	// Validate the input
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(

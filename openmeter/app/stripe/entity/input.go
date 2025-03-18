@@ -249,9 +249,8 @@ func (i GetWebhookSecretInput) Validate() error {
 type GetWebhookSecretOutput = secretentity.Secret
 
 type UpdateAPIKeyInput struct {
-	AppID        app.AppID
-	APIKey       string
-	MaskedAPIKey string
+	AppID  app.AppID
+	APIKey string
 }
 
 func (i UpdateAPIKeyInput) Validate() error {
@@ -261,6 +260,20 @@ func (i UpdateAPIKeyInput) Validate() error {
 
 	if i.APIKey == "" {
 		return errors.New("api key is required")
+	}
+
+	return nil
+}
+
+type UpdateAPIKeyAdapterInput struct {
+	UpdateAPIKeyInput
+
+	MaskedAPIKey string
+}
+
+func (i UpdateAPIKeyAdapterInput) Validate() error {
+	if err := i.UpdateAPIKeyInput.Validate(); err != nil {
+		return fmt.Errorf("error validating update api key input: %w", err)
 	}
 
 	if i.MaskedAPIKey == "" {
