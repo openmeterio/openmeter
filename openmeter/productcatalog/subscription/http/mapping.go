@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	plandriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -197,17 +198,20 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.SubscriptionItem, error) {
 	var included *api.SubscriptionItemIncluded
 
-	// TODO: add feature to view
+	if item.Feature != nil {
+		feature := productcatalogdriver.MapFeatureToResponse(*item.Feature)
+		included = &api.SubscriptionItemIncluded{
+			Feature: feature,
+		}
+	}
 
-	if item.Entitlement != nil {
+	if included != nil && item.Entitlement != nil {
 		apiEnt, err := entitlementdriver.Parser.ToAPIGeneric(&item.Entitlement.Entitlement)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
 
-		included = &api.SubscriptionItemIncluded{
-			Entitlement: apiEnt,
-		}
+		included.Entitlement = apiEnt
 	}
 
 	var tx *api.TaxConfig

@@ -114,6 +114,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) (services, ExposedServiceDeps) {
 		SubscriptionItemRepo:  subItemRepo,
 		CustomerService:       customer,
 		EntitlementAdapter:    entitlementAdapter,
+		FeatureService:        entitlementRegistry.Feature,
 		TransactionManager:    subItemRepo,
 		Publisher:             eventbus.NewMock(t),
 	})

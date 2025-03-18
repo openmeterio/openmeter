@@ -108,6 +108,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		SubscriptionItemRepo:  subsItemRepo,
 		// connectors
 		CustomerService: deps.CustomerService,
+		FeatureService:  deps.FeatureService,
 		// adapters
 		EntitlementAdapter: subscriptionentitlementadatapter.NewSubscriptionEntitlementAdapter(
 			s.SetupEntitlements(t, deps),

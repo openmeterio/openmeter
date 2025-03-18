@@ -69,6 +69,7 @@ func NewSubscriptionServices(
 		SubscriptionItemRepo:  subscriptionItemRepo,
 		CustomerService:       customerService,
 		EntitlementAdapter:    subscriptionEntitlementAdapter,
+		FeatureService:        featureConnector,
 		TransactionManager:    subscriptionRepo,
 		Publisher:             eventPublisher,
 		Validators:            validators,
