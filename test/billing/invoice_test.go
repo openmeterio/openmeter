@@ -922,6 +922,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 						Approve: &billing.InvoiceAvailableActionDetails{
 							ResultingState: billing.InvoiceStatusPaymentProcessingPending,
 						},
+						Delete: &billing.InvoiceAvailableActionDetails{
+							ResultingState: billing.InvoiceStatusDeleted,
+						},
 					},
 				}, invoice.StatusDetails)
 

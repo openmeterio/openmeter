@@ -147,7 +147,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 			billing.InvoiceStatusDraftReadyToIssue,
 			boolFn(out.noCriticalValidationErrors),
 		).
-		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating)
+		Permit(billing.TriggerUpdated, billing.InvoiceStatusDraftUpdating).
+		Permit(billing.TriggerDelete, billing.InvoiceStatusDeleteInProgress)
 
 	// Deletion state
 	stateMachine.Configure(billing.InvoiceStatusDeleteInProgress).
