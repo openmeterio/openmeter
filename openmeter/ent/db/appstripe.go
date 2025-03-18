@@ -32,6 +32,8 @@ type AppStripe struct {
 	StripeLivemode bool `json:"stripe_livemode,omitempty"`
 	// APIKey holds the value of the "api_key" field.
 	APIKey string `json:"-"`
+	// MaskedAPIKey holds the value of the "masked_api_key" field.
+	MaskedAPIKey string `json:"masked_api_key,omitempty"`
 	// StripeWebhookID holds the value of the "stripe_webhook_id" field.
 	StripeWebhookID string `json:"stripe_webhook_id,omitempty"`
 	// WebhookSecret holds the value of the "webhook_secret" field.
@@ -80,7 +82,7 @@ func (*AppStripe) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appstripe.FieldStripeLivemode:
 			values[i] = new(sql.NullBool)
-		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldStripeAccountID, appstripe.FieldAPIKey, appstripe.FieldStripeWebhookID, appstripe.FieldWebhookSecret:
+		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldStripeAccountID, appstripe.FieldAPIKey, appstripe.FieldMaskedAPIKey, appstripe.FieldStripeWebhookID, appstripe.FieldWebhookSecret:
 			values[i] = new(sql.NullString)
 		case appstripe.FieldCreatedAt, appstripe.FieldUpdatedAt, appstripe.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -147,6 +149,12 @@ func (as *AppStripe) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field api_key", values[i])
 			} else if value.Valid {
 				as.APIKey = value.String
+			}
+		case appstripe.FieldMaskedAPIKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field masked_api_key", values[i])
+			} else if value.Valid {
+				as.MaskedAPIKey = value.String
 			}
 		case appstripe.FieldStripeWebhookID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -227,6 +235,9 @@ func (as *AppStripe) String() string {
 	builder.WriteString(fmt.Sprintf("%v", as.StripeLivemode))
 	builder.WriteString(", ")
 	builder.WriteString("api_key=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("masked_api_key=")
+	builder.WriteString(as.MaskedAPIKey)
 	builder.WriteString(", ")
 	builder.WriteString("stripe_webhook_id=")
 	builder.WriteString(as.StripeWebhookID)

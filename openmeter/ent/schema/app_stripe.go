@@ -29,6 +29,7 @@ func (AppStripe) Fields() []ent.Field {
 		field.String("stripe_account_id").Immutable(),
 		field.Bool("stripe_livemode").Immutable(),
 		field.String("api_key").NotEmpty().Sensitive(),
+		field.String("masked_api_key").NotEmpty(),
 		field.String("stripe_webhook_id").NotEmpty(),
 		field.String("webhook_secret").NotEmpty().Sensitive(),
 	}

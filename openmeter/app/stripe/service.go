@@ -6,7 +6,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 type Service interface {
@@ -27,7 +26,6 @@ type AppFactoryService interface {
 // StripeAppService contains methods for managing stripe app
 type StripeAppService interface {
 	UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error
-	GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error)
 	GetStripeAppData(ctx context.Context, input appstripeentity.GetStripeAppDataInput) (appstripeentity.AppData, error)
 	GetWebhookSecret(ctx context.Context, input appstripeentity.GetWebhookSecretInput) (appstripeentity.GetWebhookSecretOutput, error)
 }

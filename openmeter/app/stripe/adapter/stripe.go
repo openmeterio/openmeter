@@ -57,7 +57,8 @@ func (a *adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Cre
 			SetStripeLivemode(input.Livemode).
 			SetAPIKey(input.APIKey.ID).
 			SetStripeWebhookID(input.StripeWebhookID).
-			SetWebhookSecret(input.WebhookSecret.ID)
+			SetWebhookSecret(input.WebhookSecret.ID).
+			SetMaskedAPIKey(input.MaskedAPIKey)
 
 		dbApp, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
@@ -81,7 +82,7 @@ func (a *adapter) CreateStripeApp(ctx context.Context, input appstripeentity.Cre
 }
 
 // UpdateAPIKey replaces the API key
-func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyInput) error {
+func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.UpdateAPIKeyAdapterInput) error {
 	// Validate the input
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
@@ -156,6 +157,7 @@ func (a *adapter) UpdateAPIKey(ctx context.Context, input appstripeentity.Update
 				Where(appstripedb.Namespace(input.AppID.Namespace)).
 				Where(appstripedb.ID(input.AppID.ID)).
 				SetAPIKey(newApiKeySecretID.ID).
+				SetMaskedAPIKey(input.MaskedAPIKey).
 				Exec(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to update api key: %w", err)
@@ -610,27 +612,6 @@ func (a adapter) GetStripeInvoice(ctx context.Context, input appstripeentity.Get
 	})
 }
 
-// GetMaskedSecretAPIKey returns a masked secret API key
-func (a adapter) GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error) {
-	// Validate input
-	if err := secretAPIKeyID.Validate(); err != nil {
-		return "", models.NewGenericValidationError(
-			fmt.Errorf("error validate input: %w", err),
-		)
-	}
-
-	// Get the secret API key
-	secretAPIKey, err := a.secretService.GetAppSecret(ctx, secretAPIKeyID)
-	if err != nil {
-		return "", fmt.Errorf("failed to get secret api key: %w", err)
-	}
-
-	// Mask the secret API key
-	maskedAPIKey := fmt.Sprintf("%s***%s", secretAPIKey.Value[:8], secretAPIKey.Value[len(secretAPIKey.Value)-3:])
-
-	return maskedAPIKey, nil
-}
-
 // getStripeAppClient returns a Stripe App Client based on App ID
 func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID, logOperation string, logFields ...any) (appstripeentity.AppData, stripeclient.StripeAppClient, error) {
 	// Validate app id
@@ -672,6 +653,7 @@ func mapAppStripeData(appID app.AppID, dbApp *entdb.AppStripe) appstripeentity.A
 		StripeAccountID: dbApp.StripeAccountID,
 		Livemode:        dbApp.StripeLivemode,
 		APIKey:          secretentity.NewSecretID(appID, dbApp.APIKey, appstripeentity.APIKeySecretKey),
+		MaskedAPIKey:    dbApp.MaskedAPIKey,
 		StripeWebhookID: dbApp.StripeWebhookID,
 		WebhookSecret:   secretentity.NewSecretID(appID, dbApp.WebhookSecret, appstripeentity.WebhookSecretKey),
 	}
