@@ -69,6 +69,20 @@ func (asu *AppStripeUpdate) SetNillableAPIKey(s *string) *AppStripeUpdate {
 	return asu
 }
 
+// SetMaskedAPIKey sets the "masked_api_key" field.
+func (asu *AppStripeUpdate) SetMaskedAPIKey(s string) *AppStripeUpdate {
+	asu.mutation.SetMaskedAPIKey(s)
+	return asu
+}
+
+// SetNillableMaskedAPIKey sets the "masked_api_key" field if the given value is not nil.
+func (asu *AppStripeUpdate) SetNillableMaskedAPIKey(s *string) *AppStripeUpdate {
+	if s != nil {
+		asu.SetMaskedAPIKey(*s)
+	}
+	return asu
+}
+
 // SetStripeWebhookID sets the "stripe_webhook_id" field.
 func (asu *AppStripeUpdate) SetStripeWebhookID(s string) *AppStripeUpdate {
 	asu.mutation.SetStripeWebhookID(s)
@@ -181,6 +195,11 @@ func (asu *AppStripeUpdate) check() error {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
+	if v, ok := asu.mutation.MaskedAPIKey(); ok {
+		if err := appstripe.MaskedAPIKeyValidator(v); err != nil {
+			return &ValidationError{Name: "masked_api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.masked_api_key": %w`, err)}
+		}
+	}
 	if v, ok := asu.mutation.StripeWebhookID(); ok {
 		if err := appstripe.StripeWebhookIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_webhook_id", err: fmt.Errorf(`db: validator failed for field "AppStripe.stripe_webhook_id": %w`, err)}
@@ -217,6 +236,9 @@ func (asu *AppStripeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := asu.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
+	}
+	if value, ok := asu.mutation.MaskedAPIKey(); ok {
+		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
 	}
 	if value, ok := asu.mutation.StripeWebhookID(); ok {
 		_spec.SetField(appstripe.FieldStripeWebhookID, field.TypeString, value)
@@ -325,6 +347,20 @@ func (asuo *AppStripeUpdateOne) SetAPIKey(s string) *AppStripeUpdateOne {
 func (asuo *AppStripeUpdateOne) SetNillableAPIKey(s *string) *AppStripeUpdateOne {
 	if s != nil {
 		asuo.SetAPIKey(*s)
+	}
+	return asuo
+}
+
+// SetMaskedAPIKey sets the "masked_api_key" field.
+func (asuo *AppStripeUpdateOne) SetMaskedAPIKey(s string) *AppStripeUpdateOne {
+	asuo.mutation.SetMaskedAPIKey(s)
+	return asuo
+}
+
+// SetNillableMaskedAPIKey sets the "masked_api_key" field if the given value is not nil.
+func (asuo *AppStripeUpdateOne) SetNillableMaskedAPIKey(s *string) *AppStripeUpdateOne {
+	if s != nil {
+		asuo.SetMaskedAPIKey(*s)
 	}
 	return asuo
 }
@@ -454,6 +490,11 @@ func (asuo *AppStripeUpdateOne) check() error {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
 		}
 	}
+	if v, ok := asuo.mutation.MaskedAPIKey(); ok {
+		if err := appstripe.MaskedAPIKeyValidator(v); err != nil {
+			return &ValidationError{Name: "masked_api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.masked_api_key": %w`, err)}
+		}
+	}
 	if v, ok := asuo.mutation.StripeWebhookID(); ok {
 		if err := appstripe.StripeWebhookIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_webhook_id", err: fmt.Errorf(`db: validator failed for field "AppStripe.stripe_webhook_id": %w`, err)}
@@ -507,6 +548,9 @@ func (asuo *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, 
 	}
 	if value, ok := asuo.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
+	}
+	if value, ok := asuo.mutation.MaskedAPIKey(); ok {
+		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
 	}
 	if value, ok := asuo.mutation.StripeWebhookID(); ok {
 		_spec.SetField(appstripe.FieldStripeWebhookID, field.TypeString, value)

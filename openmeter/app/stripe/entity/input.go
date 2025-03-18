@@ -26,6 +26,7 @@ type CreateAppStripeInput struct {
 	StripeAccountID string
 	Livemode        bool
 	APIKey          secretentity.SecretID
+	MaskedAPIKey    string
 	StripeWebhookID string
 	WebhookSecret   secretentity.SecretID
 }
@@ -49,6 +50,10 @@ func (i CreateAppStripeInput) Validate() error {
 
 	if err := i.APIKey.Validate(); err != nil {
 		return fmt.Errorf("error validating api key: %w", err)
+	}
+
+	if i.MaskedAPIKey == "" {
+		return errors.New("masked api key is required")
 	}
 
 	if i.ID != nil && i.APIKey.Namespace != i.ID.Namespace {
@@ -244,8 +249,9 @@ func (i GetWebhookSecretInput) Validate() error {
 type GetWebhookSecretOutput = secretentity.Secret
 
 type UpdateAPIKeyInput struct {
-	AppID  app.AppID
-	APIKey string
+	AppID        app.AppID
+	APIKey       string
+	MaskedAPIKey string
 }
 
 func (i UpdateAPIKeyInput) Validate() error {
@@ -255,6 +261,10 @@ func (i UpdateAPIKeyInput) Validate() error {
 
 	if i.APIKey == "" {
 		return errors.New("api key is required")
+	}
+
+	if i.MaskedAPIKey == "" {
+		return errors.New("masked api key is required")
 	}
 
 	return nil
@@ -388,6 +398,7 @@ type AppData struct {
 	StripeAccountID string
 	Livemode        bool
 	APIKey          secretentity.SecretID
+	MaskedAPIKey    string
 	StripeWebhookID string
 	WebhookSecret   secretentity.SecretID
 }

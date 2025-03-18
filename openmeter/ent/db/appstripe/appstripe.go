@@ -28,6 +28,8 @@ const (
 	FieldStripeLivemode = "stripe_livemode"
 	// FieldAPIKey holds the string denoting the api_key field in the database.
 	FieldAPIKey = "api_key"
+	// FieldMaskedAPIKey holds the string denoting the masked_api_key field in the database.
+	FieldMaskedAPIKey = "masked_api_key"
 	// FieldStripeWebhookID holds the string denoting the stripe_webhook_id field in the database.
 	FieldStripeWebhookID = "stripe_webhook_id"
 	// FieldWebhookSecret holds the string denoting the webhook_secret field in the database.
@@ -64,6 +66,7 @@ var Columns = []string{
 	FieldStripeAccountID,
 	FieldStripeLivemode,
 	FieldAPIKey,
+	FieldMaskedAPIKey,
 	FieldStripeWebhookID,
 	FieldWebhookSecret,
 }
@@ -89,6 +92,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// APIKeyValidator is a validator for the "api_key" field. It is called by the builders before save.
 	APIKeyValidator func(string) error
+	// MaskedAPIKeyValidator is a validator for the "masked_api_key" field. It is called by the builders before save.
+	MaskedAPIKeyValidator func(string) error
 	// StripeWebhookIDValidator is a validator for the "stripe_webhook_id" field. It is called by the builders before save.
 	StripeWebhookIDValidator func(string) error
 	// WebhookSecretValidator is a validator for the "webhook_secret" field. It is called by the builders before save.
@@ -138,6 +143,11 @@ func ByStripeLivemode(opts ...sql.OrderTermOption) OrderOption {
 // ByAPIKey orders the results by the api_key field.
 func ByAPIKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAPIKey, opts...).ToFunc()
+}
+
+// ByMaskedAPIKey orders the results by the masked_api_key field.
+func ByMaskedAPIKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMaskedAPIKey, opts...).ToFunc()
 }
 
 // ByStripeWebhookID orders the results by the stripe_webhook_id field.

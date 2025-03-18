@@ -100,6 +100,11 @@ func APIKey(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldAPIKey, v))
 }
 
+// MaskedAPIKey applies equality check predicate on the "masked_api_key" field. It's identical to MaskedAPIKeyEQ.
+func MaskedAPIKey(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldMaskedAPIKey, v))
+}
+
 // StripeWebhookID applies equality check predicate on the "stripe_webhook_id" field. It's identical to StripeWebhookIDEQ.
 func StripeWebhookID(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldStripeWebhookID, v))
@@ -443,6 +448,71 @@ func APIKeyEqualFold(v string) predicate.AppStripe {
 // APIKeyContainsFold applies the ContainsFold predicate on the "api_key" field.
 func APIKeyContainsFold(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldContainsFold(FieldAPIKey, v))
+}
+
+// MaskedAPIKeyEQ applies the EQ predicate on the "masked_api_key" field.
+func MaskedAPIKeyEQ(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyNEQ applies the NEQ predicate on the "masked_api_key" field.
+func MaskedAPIKeyNEQ(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNEQ(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyIn applies the In predicate on the "masked_api_key" field.
+func MaskedAPIKeyIn(vs ...string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldIn(FieldMaskedAPIKey, vs...))
+}
+
+// MaskedAPIKeyNotIn applies the NotIn predicate on the "masked_api_key" field.
+func MaskedAPIKeyNotIn(vs ...string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNotIn(FieldMaskedAPIKey, vs...))
+}
+
+// MaskedAPIKeyGT applies the GT predicate on the "masked_api_key" field.
+func MaskedAPIKeyGT(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGT(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyGTE applies the GTE predicate on the "masked_api_key" field.
+func MaskedAPIKeyGTE(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGTE(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyLT applies the LT predicate on the "masked_api_key" field.
+func MaskedAPIKeyLT(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLT(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyLTE applies the LTE predicate on the "masked_api_key" field.
+func MaskedAPIKeyLTE(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLTE(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyContains applies the Contains predicate on the "masked_api_key" field.
+func MaskedAPIKeyContains(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldContains(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyHasPrefix applies the HasPrefix predicate on the "masked_api_key" field.
+func MaskedAPIKeyHasPrefix(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldHasPrefix(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyHasSuffix applies the HasSuffix predicate on the "masked_api_key" field.
+func MaskedAPIKeyHasSuffix(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldHasSuffix(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyEqualFold applies the EqualFold predicate on the "masked_api_key" field.
+func MaskedAPIKeyEqualFold(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEqualFold(FieldMaskedAPIKey, v))
+}
+
+// MaskedAPIKeyContainsFold applies the ContainsFold predicate on the "masked_api_key" field.
+func MaskedAPIKeyContainsFold(v string) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldContainsFold(FieldMaskedAPIKey, v))
 }
 
 // StripeWebhookIDEQ applies the EQ predicate on the "stripe_webhook_id" field.

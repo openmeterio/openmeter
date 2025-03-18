@@ -66,7 +66,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 			items := make([]api.CustomerAppData, 0, len(resp.Items))
 
 			for _, customerApp := range resp.Items {
-				item, err := h.customerAppToAPI(ctx, customerApp)
+				item, err := h.customerAppToAPI(customerApp)
 				if err != nil {
 					return ListCustomerDataResponse{}, fmt.Errorf("failed to cast app customer data: %w", err)
 				}
@@ -290,7 +290,7 @@ func (h *handler) getApp(ctx context.Context, namespace string, appID *string, a
 }
 
 // customerAppToAPI converts a CustomerApp to an API CustomerAppData
-func (h *handler) customerAppToAPI(ctx context.Context, a app.CustomerApp) (api.CustomerAppData, error) {
+func (h *handler) customerAppToAPI(a app.CustomerApp) (api.CustomerAppData, error) {
 	apiCustomerAppData := api.CustomerAppData{}
 	appId := a.App.GetID().ID
 
@@ -301,20 +301,15 @@ func (h *handler) customerAppToAPI(ctx context.Context, a app.CustomerApp) (api.
 			return apiCustomerAppData, fmt.Errorf("error casting app to stripe app")
 		}
 
-		apiApp, err := h.appMapper.mapStripeAppToAPI(ctx, stripeApp)
-		if err != nil {
-			return apiCustomerAppData, fmt.Errorf("error mapping stripe app to api: %w", err)
-		}
-
 		apiStripeCustomerAppData := api.StripeCustomerAppData{
 			Id:                           &appId,
 			Type:                         api.StripeCustomerAppDataTypeStripe,
-			App:                          &apiApp,
+			App:                          lo.ToPtr(h.appMapper.mapStripeAppToAPI(stripeApp)),
 			StripeCustomerId:             customerApp.StripeCustomerID,
 			StripeDefaultPaymentMethodId: customerApp.StripeDefaultPaymentMethodID,
 		}
 
-		err = apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
+		err := apiCustomerAppData.FromStripeCustomerAppData(apiStripeCustomerAppData)
 		if err != nil {
 			return apiCustomerAppData, fmt.Errorf("error converting to stripe customer app: %w", err)
 		}

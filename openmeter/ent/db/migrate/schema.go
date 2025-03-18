@@ -111,6 +111,7 @@ var (
 		{Name: "stripe_account_id", Type: field.TypeString},
 		{Name: "stripe_livemode", Type: field.TypeBool},
 		{Name: "api_key", Type: field.TypeString},
+		{Name: "masked_api_key", Type: field.TypeString},
 		{Name: "stripe_webhook_id", Type: field.TypeString},
 		{Name: "webhook_secret", Type: field.TypeString},
 	}

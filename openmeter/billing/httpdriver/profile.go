@@ -436,7 +436,7 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	}
 
 	if p.Apps != nil {
-		apps, err := h.mapProfileAppsToAPI(ctx, p.Apps)
+		apps, err := h.mapProfileAppsToAPI(p.Apps)
 		if err != nil {
 			return api.BillingProfile{}, fmt.Errorf("failed to map profile apps: %w", err)
 		}
@@ -458,22 +458,22 @@ func (h *handler) MapProfileToApi(ctx context.Context, p *billing.Profile) (api.
 	return out, nil
 }
 
-func (h *handler) mapProfileAppsToAPI(ctx context.Context, a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
+func (h *handler) mapProfileAppsToAPI(a *billing.ProfileApps) (*api.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}
 
-	tax, err := h.appMapper.MapAppToAPI(ctx, a.Tax)
+	tax, err := h.appMapper.MapAppToAPI(a.Tax)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map tax app: %w", err)
 	}
 
-	invoicing, err := h.appMapper.MapAppToAPI(ctx, a.Invoicing)
+	invoicing, err := h.appMapper.MapAppToAPI(a.Invoicing)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map invoicing app: %w", err)
 	}
 
-	payment, err := h.appMapper.MapAppToAPI(ctx, a.Payment)
+	payment, err := h.appMapper.MapAppToAPI(a.Payment)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map payment app: %w", err)
 	}

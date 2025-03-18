@@ -115,6 +115,7 @@ func (s *Service) InstallAppWithAPIKey(ctx context.Context, input app.AppFactory
 		StripeAccountID: stripeAccount.StripeAccountID,
 		Livemode:        livemode,
 		APIKey:          apiKeySecretID,
+		MaskedAPIKey:    s.generateMaskedSecretAPIKey(input.APIKey),
 		StripeWebhookID: stripeWebhookEndpoint.EndpointID,
 		WebhookSecret:   webhookSecretID,
 	}

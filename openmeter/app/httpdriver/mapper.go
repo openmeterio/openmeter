@@ -1,8 +1,6 @@
 package httpdriver
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -13,7 +11,6 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
-	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 )
 
 // NewAppMapper creates a new app mapper
@@ -34,18 +31,13 @@ type AppMapper struct {
 }
 
 // MapAppToAPI maps an app to an API app
-func (a *AppMapper) MapAppToAPI(ctx context.Context, item app.App) (api.App, error) {
+func (a *AppMapper) MapAppToAPI(item app.App) (api.App, error) {
 	switch item.GetType() {
 	case app.AppTypeStripe:
 		stripeApp := item.(appstripeentityapp.App)
 
-		stripeAPIApp, err := a.mapStripeAppToAPI(ctx, stripeApp)
-		if err != nil {
-			return api.App{}, fmt.Errorf("failed to map stripe app to api: %w", err)
-		}
-
 		app := api.App{}
-		if err := app.FromStripeApp(stripeAPIApp); err != nil {
+		if err := app.FromStripeApp(a.mapStripeAppToAPI(stripeApp)); err != nil {
 			return app, err
 		}
 
@@ -79,24 +71,8 @@ func (a *AppMapper) mapSandboxAppToAPI(app appsandbox.App) api.SandboxApp {
 }
 
 func (a *AppMapper) mapStripeAppToAPI(
-	ctx context.Context,
 	stripeApp appstripeentityapp.App,
-) (api.StripeApp, error) {
-	// Get masked API key
-	maskedAPIKey, err := a.stripeAppService.GetMaskedSecretAPIKey(ctx, stripeApp.APIKey)
-	if err != nil {
-		var secretNotFoundError *secretentity.SecretNotFoundError
-
-		if !errors.As(err, &secretNotFoundError) {
-			return api.StripeApp{}, fmt.Errorf("failed to get stripe app masked api key: %w", err)
-		}
-
-		a.logger.Debug("stripe api key not found", "id", stripeApp.GetID())
-
-		// Fallback to empty string
-		maskedAPIKey = ""
-	}
-
+) api.StripeApp {
 	apiStripeApp := api.StripeApp{
 		Id:              stripeApp.GetID().ID,
 		Type:            api.StripeAppType(stripeApp.GetType()),
@@ -104,7 +80,7 @@ func (a *AppMapper) mapStripeAppToAPI(
 		Status:          api.AppStatus(stripeApp.GetStatus()),
 		Default:         stripeApp.Default,
 		Listing:         mapMarketplaceListing(stripeApp.GetListing()),
-		MaskedAPIKey:    maskedAPIKey,
+		MaskedAPIKey:    stripeApp.MaskedAPIKey,
 		CreatedAt:       stripeApp.CreatedAt,
 		UpdatedAt:       stripeApp.UpdatedAt,
 		DeletedAt:       stripeApp.DeletedAt,
@@ -118,5 +94,5 @@ func (a *AppMapper) mapStripeAppToAPI(
 		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())
 	}
 
-	return apiStripeApp, nil
+	return apiStripeApp
 }

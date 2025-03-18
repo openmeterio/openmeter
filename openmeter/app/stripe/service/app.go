@@ -10,7 +10,6 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -88,8 +87,6 @@ func (s *Service) HandleSetupIntentSucceeded(ctx context.Context, input appstrip
 	})
 }
 
-func (s *Service) GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (string, error) {
-		return s.adapter.GetMaskedSecretAPIKey(ctx, secretAPIKeyID)
-	})
+func (s *Service) generateMaskedSecretAPIKey(secretAPIKey string) string {
+	return fmt.Sprintf("%s***%s", secretAPIKey[:8], secretAPIKey[len(secretAPIKey)-3:])
 }
