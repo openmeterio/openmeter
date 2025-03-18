@@ -3425,3 +3425,268 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		}, gatheringInvoice.Totals)
 	})
 }
+
+func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
+	// Given we have a test customer and an UBP line without usage priced at 0
+	// we can create the invoice and even if there are no detailed lines the validation
+	// errors should be empty
+
+	namespace := "ns-empty-invoice-generation"
+	ctx := context.Background()
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	clock.SetTime(periodStart)
+	defer clock.ResetTime()
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	meterSlug := "flat-per-unit"
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	})
+	s.NoError(err, "failed to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.NoError(err, "failed to replace meters")
+	}()
+
+	// Let's initialize the mock streaming connector with data that is out of the period so that we
+	// can start with empty values
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+
+	defer s.MockStreamingConnector.Reset()
+
+	flatPerUnitFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "flat-per-unit",
+		Key:       "flat-per-unit",
+		MeterSlug: lo.ToPtr("flat-per-unit"),
+	}))
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:     "Test Customer",
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"test"},
+			},
+		},
+	})
+	s.NoError(err)
+	s.NotNil(customerEntity)
+	s.NotEmpty(customerEntity.ID)
+
+	// Given we have a default profile for the namespace
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	s.NoError(err)
+	s.NotNil(profile)
+
+	// Given we have pending invoice items without usage
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreateInvoiceLinesInput{
+			Namespace: namespace,
+			Lines: []billing.LineWithCustomer{
+				{
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							Currency:  currencyx.Code(currency.USD),
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - FLAT per unit",
+						},
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: flatPerUnitFeature.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(0),
+							}),
+						},
+					},
+					CustomerID: customerEntity.ID,
+				},
+			},
+		},
+	)
+	s.NoError(err)
+	s.Len(pendingLines, 1)
+
+	clock.SetTime(periodEnd.Add(time.Minute))
+
+	// When we generate the invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	invoice := invoices[0]
+
+	// Then the invoice should have the UBP line with 0 amount
+	lines := invoice.Lines.OrEmpty()
+	s.Len(lines, 1)
+	line := lines[0]
+	s.Equal(line.Name, "UBP - FLAT per unit")
+	s.Equal(float64(0), lines[0].Totals.Total.InexactFloat64())
+	s.Len(invoice.ValidationIssues, 0)
+}
+
+func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
+	// Given we have a test customer and an UBP line with usage priced at 0
+	// we can create the invoice and there should be one detailed line with 0 total
+	// amount and no validation issues
+
+	namespace := "ns-empty-invoice-generation-zero-price"
+	ctx := context.Background()
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	clock.SetTime(periodStart)
+	defer clock.ResetTime()
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	meterSlug := "flat-per-unit"
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	})
+	s.NoError(err, "failed to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.NoError(err, "failed to replace meters")
+	}()
+
+	// Let's initialize the mock streaming connector with data that is out of the period so that we
+	// can start with empty values
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))
+
+	defer s.MockStreamingConnector.Reset()
+
+	flatPerUnitFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "flat-per-unit",
+		Key:       "flat-per-unit",
+		MeterSlug: lo.ToPtr("flat-per-unit"),
+	}))
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:     "Test Customer",
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"test"},
+			},
+		},
+	})
+	s.NoError(err)
+	s.NotNil(customerEntity)
+	s.NotEmpty(customerEntity.ID)
+
+	// Given we have a default profile for the namespace
+	minimalCreateProfileInput := MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	s.NoError(err)
+	s.NotNil(profile)
+
+	// Given we have pending invoice items without usage
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreateInvoiceLinesInput{
+			Namespace: namespace,
+			Lines: []billing.LineWithCustomer{
+				{
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							Currency:  currencyx.Code(currency.USD),
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - FLAT per unit",
+						},
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: flatPerUnitFeature.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(0),
+							}),
+						},
+					},
+					CustomerID: customerEntity.ID,
+				},
+			},
+		},
+	)
+	s.NoError(err)
+	s.Len(pendingLines, 1)
+
+	clock.SetTime(periodEnd.Add(time.Minute))
+
+	// When we generate the invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	invoice := invoices[0]
+
+	// Then the invoice should have the UBP line with 0 amount
+	lines := invoice.Lines.OrEmpty()
+	s.Len(lines, 1)
+	line := lines[0]
+	s.Equal(line.Name, "UBP - FLAT per unit")
+	s.Equal(float64(0), line.Totals.Total.InexactFloat64())
+	s.Equal(float64(10), line.UsageBased.Quantity.InexactFloat64())
+
+	// And there should be a detailed line with 0 total
+	detailedLines := line.Children.OrEmpty()
+	s.Len(detailedLines, 1)
+	detailedLine := detailedLines[0]
+	s.Equal(float64(0), detailedLine.Totals.Total.InexactFloat64())
+	s.Equal(float64(10), detailedLine.FlatFee.Quantity.InexactFloat64())
+
+	s.Len(invoice.ValidationIssues, 0)
+}
