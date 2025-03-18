@@ -68,7 +68,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res), nil
+			return mapEntitlementEntity(res, true), nil
 		},
 	)
 }
@@ -99,7 +99,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res), nil
+			return mapEntitlementEntity(res, true), nil
 		},
 	)
 }
@@ -147,7 +147,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res), nil
+			return mapEntitlementEntity(res, true), nil
 		},
 	)
 }
@@ -261,7 +261,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e))
+				result = append(result, *mapEntitlementEntity(e, true))
 			}
 
 			return result, nil
@@ -383,7 +383,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 				mapped := make([]entitlement.Entitlement, 0, len(entities))
 				for _, entity := range entities {
-					mapped = append(mapped, *mapEntitlementEntity(entity))
+					mapped = append(mapped, *mapEntitlementEntity(entity, true))
 				}
 
 				response.Items = mapped
@@ -397,7 +397,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 			result := make([]entitlement.Entitlement, 0, len(paged.Items))
 			for _, e := range paged.Items {
-				result = append(result, *mapEntitlementEntity(e))
+				result = append(result, *mapEntitlementEntity(e, true))
 			}
 
 			response.TotalCount = paged.TotalCount
@@ -408,7 +408,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	)
 }
 
-func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
+func mapEntitlementEntity(e *db.Entitlement, calculateUsagePeriod bool) *entitlement.Entitlement {
 	ent := &entitlement.Entitlement{
 		GenericProperties: entitlement.GenericProperties{
 			NamespacedModel: models.NamespacedModel{
@@ -474,7 +474,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	// Let's update the current usage period
-	if ent.UsagePeriod != nil {
+	if calculateUsagePeriod && ent.UsagePeriod != nil {
 		cp, ok := ent.CalculateCurrentUsagePeriodAt(lo.FromPtrOr(ent.LastReset, time.Time{}), clock.Now())
 		if ok {
 			ent.CurrentUsagePeriod = &cp
@@ -501,21 +501,128 @@ func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context,
 	return err
 }
 
-func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, expiredBefore time.Time) ([]entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Context, updates []entitlement.UpsertEntitlementCurrentPeriodElement) error {
+	return entutils.TransactingRepoWithNoValue(
+		ctx,
+		a,
+		func(ctx context.Context, repo *entitlementDBAdapter) error {
+			// Let's make sure there aren't any duplicate updates
+			uniqueUpdates := lo.UniqBy(updates, func(u entitlement.UpsertEntitlementCurrentPeriodElement) string {
+				return fmt.Sprintf("%s:%s", u.ID, u.Namespace)
+			})
+
+			if len(uniqueUpdates) != len(updates) {
+				return fmt.Errorf("%d duplicate entitlement updates provided", len(updates)-len(uniqueUpdates))
+			}
+
+			// We will check that all provided entitlements exist as we don't want to create any, just update the current usage period
+			entitlements, err := repo.db.Entitlement.Query().
+				// We're ignoring namespace here but as IDs are globally unique this should be fine
+				Where(db_entitlement.IDIn(slicesx.Map(updates, func(u entitlement.UpsertEntitlementCurrentPeriodElement) string {
+					return u.ID
+				})...),
+				).
+				All(ctx)
+			if err != nil {
+				return err
+			}
+
+			if len(entitlements) != len(updates) {
+				return fmt.Errorf("%d entitlement updates provided do not exist", len(updates)-len(entitlements))
+			}
+
+			// Create a map of entitlements for faster lookup
+			entMap := make(map[string]*db.Entitlement)
+			for _, ent := range entitlements {
+				entMap[ent.ID] = ent
+			}
+
+			// Now we will proceed with the update
+			dbUpdates := make([]*db.EntitlementCreate, 0, len(updates))
+			for _, update := range updates {
+				ent, ok := entMap[update.ID]
+				if !ok {
+					return fmt.Errorf("inconsistency error: entitlement %s not found", update.ID)
+				}
+
+				create := repo.db.Entitlement.Create().
+					// These fields will be ignored in the custom update
+					SetID(update.ID).
+					// These fields are safe to set to custom values as we know all rows will conflict on ID
+					SetNamespace(ent.Namespace).
+					SetEntitlementType(ent.EntitlementType).
+					SetFeatureID(ent.FeatureID).
+					SetFeatureKey(ent.FeatureKey).
+					SetSubjectKey(ent.SubjectKey).
+					SetCurrentUsagePeriodStart(update.CurrentUsagePeriod.From).
+					SetCurrentUsagePeriodEnd(update.CurrentUsagePeriod.To)
+
+				dbUpdates = append(dbUpdates, create)
+			}
+
+			// Let's do a batch insert with on conflict do update
+			err = repo.db.Entitlement.CreateBulk(dbUpdates...).
+				OnConflict(
+					sql.ConflictColumns(db_entitlement.FieldID),
+					sql.ResolveWith(func(u *sql.UpdateSet) {
+						u.SetExcluded(db_entitlement.FieldCurrentUsagePeriodStart).
+							SetExcluded(db_entitlement.FieldCurrentUsagePeriodEnd)
+					})).Exec(ctx)
+
+			return err
+		},
+	)
+}
+
+func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx context.Context, params entitlement.ListExpiredEntitlementsParams) ([]entitlement.Entitlement, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
-			query := withLatestUsageReset(repo.db.Entitlement.Query(), namespaces).
-				Where(EntitlementActiveAt(expiredBefore)...).
+			query := withLatestUsageReset(repo.db.Entitlement.Query(), params.Namespaces).
+				Where(EntitlementActiveAt(params.Highwatermark)...).
 				Where(
 					db_entitlement.CurrentUsagePeriodEndNotNil(),
-					db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
+					db_entitlement.CurrentUsagePeriodEndLTE(params.Highwatermark),
 					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
 				)
 
-			if len(namespaces) > 0 {
-				query = query.Where(db_entitlement.NamespaceIn(namespaces...))
+			if len(params.Namespaces) > 0 {
+				query = query.Where(db_entitlement.NamespaceIn(params.Namespaces...))
+			}
+
+			// Let's order by cursor
+			query = query.Order(
+				db_entitlement.ByCreatedAt(sql.OrderAsc()),
+				db_entitlement.ByID(sql.OrderAsc()),
+			)
+
+			// Let's handle cursoring for the given order
+			if params.Cursor != "" {
+				// Let's fetch the element at the cursor
+				// And then lets add a where clause that filter for it in the correct order
+				cursorEnt, err := repo.db.Entitlement.Get(ctx, params.Cursor)
+				if err != nil {
+					return nil, fmt.Errorf("failed to fetch cursor entitlement: %w", err)
+				}
+
+				predicates := []predicate.Entitlement{}
+
+				// If the cursor entitlement doesn't have a current usage period end, we'll effectively ignore the cursor
+				if cursorEnt.CurrentUsagePeriodEnd != nil {
+					predicates = append(predicates, db_entitlement.CreatedAtGT(cursorEnt.CreatedAt))
+					predicates = append(predicates, db_entitlement.And(
+						db_entitlement.CreatedAt(cursorEnt.CreatedAt),
+						db_entitlement.IDGT(cursorEnt.ID),
+					))
+				}
+
+				query = query.Where(db_entitlement.Or(predicates...))
+			}
+
+			// Let's handle limit
+			if params.Limit != 0 {
+				query = query.Limit(params.Limit)
 			}
 
 			res, err := query.All(ctx)
@@ -525,7 +632,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e))
+				result = append(result, *mapEntitlementEntity(e, false))
 			}
 
 			return result, nil
@@ -626,7 +733,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e))
+				result = append(result, *mapEntitlementEntity(e, true))
 			}
 
 			return &result, nil
