@@ -338,13 +338,8 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					SetName(input.Name).
 					SetOrClearDescription(input.Description).
 					SetNillablePrimaryEmail(input.PrimaryEmail).
-					SetNillableCurrency(input.Currency)
-
-				if input.Key != nil {
-					query = query.SetKey(*input.Key)
-				} else {
-					query = query.ClearKey()
-				}
+					SetNillableCurrency(input.Currency).
+					SetOrClearKey(input.Key)
 
 				if input.BillingAddress != nil {
 					query = query.
