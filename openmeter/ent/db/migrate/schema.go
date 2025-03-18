@@ -1139,6 +1139,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{EntitlementsColumns[20], EntitlementsColumns[5]},
 			},
+			{
+				Name:    "entitlement_created_at_id",
+				Unique:  true,
+				Columns: []*schema.Column{EntitlementsColumns[3], EntitlementsColumns[0]},
+			},
 		},
 	}
 	// FeaturesColumns holds the columns for the "features" table.
