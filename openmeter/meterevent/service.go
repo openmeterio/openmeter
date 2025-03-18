@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/openmeterio/openmeter/api"
 )
 
 const (
@@ -15,11 +13,11 @@ const (
 )
 
 type Service interface {
-	ListEvents(ctx context.Context, input ListEventsInput) ([]api.IngestedEvent, error)
+	ListEvents(ctx context.Context, params ListEventsParams) ([]Event, error)
 }
 
-// ListEventsInput represents the input for ListEvents method.
-type ListEventsInput struct {
+// ListEventsParams represents the input for ListEvents method.
+type ListEventsParams struct {
 	// The namespace.
 	Namespace string
 	// The client ID.
@@ -40,8 +38,30 @@ type ListEventsInput struct {
 	Limit int
 }
 
+// Event represents a single event.
+type Event struct {
+	// The event ID.
+	ID string
+	// The event type.
+	Type string
+	// The event source.
+	Source string
+	// The event subject.
+	Subject string
+	// The event time.
+	Time time.Time
+	// The event data as a JSON string.
+	Data string
+	// The time the event was ingested.
+	IngestedAt time.Time
+	// The time the event was stored.
+	StoredAt time.Time
+	// Validation errors.
+	ValidationErrors []error
+}
+
 // Validate validates the input.
-func (i ListEventsInput) Validate() error {
+func (i ListEventsParams) Validate() error {
 	var errs []error
 
 	minimumFrom := time.Now().Add(-MaximumFromDuration)

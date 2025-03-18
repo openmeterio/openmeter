@@ -1,21 +1,21 @@
 package meter
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
-	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oliveagle/jsonpath"
 )
 
 // ParseEvent validates and parses an event against a meter.
-func ParseEvent(meter Meter, ev event.Event) (*float64, *string, map[string]string, error) {
+func ParseEvent(meter Meter, dataStr string) (*float64, *string, map[string]string, error) {
 	// Parse CloudEvents data
 	var data interface{}
 
-	if len(ev.Data()) > 0 {
-		err := ev.DataAs(&data)
+	if len(dataStr) > 0 {
+		err := json.Unmarshal([]byte(dataStr), &data)
 		if err != nil {
 			return nil, nil, map[string]string{}, errors.New("cannot unmarshal event data")
 		}

@@ -1,8 +1,7 @@
-package raw_events
+package clickhouse
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -10,11 +9,10 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/cloudevents/sdk-go/v2/event"
 	"golang.org/x/exp/constraints"
 
-	"github.com/openmeterio/openmeter/api"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -80,7 +78,7 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 	return connector, nil
 }
 
-func (c *Connector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+func (c *Connector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -263,7 +261,7 @@ func (c *Connector) ValidateJSONPath(ctx context.Context, jsonPath string) (bool
 	return true, nil
 }
 
-func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+func (c *Connector) queryEventsTable(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
 	var err error
 
 	table := queryEventsTable{
@@ -304,53 +302,15 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 
 	defer rows.Close()
 
-	events := []api.IngestedEvent{}
+	events := []streaming.RawEvent{}
 
 	for rows.Next() {
-		var id string
-		var eventType string
-		var subject string
-		var source string
-		var eventTime time.Time
-		var dataStr string
-		var ingestedAt time.Time
-		var storedAt time.Time
-
-		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &ingestedAt, &storedAt); err != nil {
+		var rawEvent streaming.RawEvent
+		if err = rows.ScanStruct(&rawEvent); err != nil {
 			return nil, err
 		}
 
-		ev := event.New()
-		ev.SetID(id)
-		ev.SetType(eventType)
-		ev.SetSubject(subject)
-		ev.SetSource(source)
-		ev.SetTime(eventTime)
-
-		// Parse data, data is optional on CloudEvents.
-		// For now we only support application/json.
-		// TODO (pmarton): store data content type in the database
-		if dataStr != "" {
-			var data interface{}
-			err := json.Unmarshal([]byte(dataStr), &data)
-			if err != nil {
-				return nil, fmt.Errorf("parse cloudevents data as json: %w", err)
-			}
-
-			err = ev.SetData(event.ApplicationJSON, data)
-			if err != nil {
-				return nil, fmt.Errorf("set cloudevents data: %w", err)
-			}
-		}
-
-		ingestedEvent := api.IngestedEvent{
-			Event: ev,
-		}
-
-		ingestedEvent.IngestedAt = ingestedAt
-		ingestedEvent.StoredAt = storedAt
-
-		events = append(events, ingestedEvent)
+		events = append(events, rawEvent)
 	}
 
 	if err = rows.Err(); err != nil {

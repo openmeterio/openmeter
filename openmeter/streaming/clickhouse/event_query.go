@@ -1,4 +1,4 @@
-package raw_events
+package clickhouse
 
 import (
 	_ "embed"
