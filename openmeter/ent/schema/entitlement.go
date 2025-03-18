@@ -74,7 +74,7 @@ func (Entitlement) Indexes() []ent.Index {
 		index.Fields("namespace", "id", "subject_key"),
 		index.Fields("namespace", "feature_id", "id"),
 		index.Fields("namespace", "current_usage_period_end"),
-		// Index for collecting entitlements with due rsets
+		// Index for collecting entitlements with due resets
 		index.Fields("current_usage_period_end", "deleted_at"),
 		index.Fields("created_at", "id").Unique(),
 	}
