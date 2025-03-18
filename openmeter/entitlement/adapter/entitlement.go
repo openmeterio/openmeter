@@ -548,7 +548,6 @@ func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Conte
 				create := repo.db.Entitlement.Create().
 					// These fields will be ignored in the custom update
 					SetID(update.ID).
-					// These fields are safe to set to custom values as we know all rows will conflict on ID
 					SetNamespace(ent.Namespace).
 					SetEntitlementType(ent.EntitlementType).
 					SetFeatureID(ent.FeatureID).
