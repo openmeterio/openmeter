@@ -99,10 +99,6 @@ func (i AddInvoiceLinesInput) Validate() error {
 		return errors.New("stripe invoice id is required")
 	}
 
-	if len(i.Lines) == 0 {
-		return errors.New("at least one line is required")
-	}
-
 	return nil
 }
 
