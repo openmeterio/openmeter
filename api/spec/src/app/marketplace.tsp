@@ -4,7 +4,6 @@ import "@typespec/openapi3";
 
 import "../errors.tsp";
 import "./oauth.tsp";
-import "../pagination.tsp";
 import "../types.tsp";
 
 using TypeSpec.Http;
@@ -25,7 +24,9 @@ interface Marketplace {
   @route("/listings")
   @operationId("listMarketplaceListings")
   @summary("List available apps")
-  list(...PaginatedQuery): Paginated<MarketplaceListing> | CommonErrors;
+  list(
+    ...QueryPagination,
+  ): PaginatedResponse<MarketplaceListing> | CommonErrors;
 
   /**
    * Get a marketplace listing by type.
