@@ -19,7 +19,7 @@ var DefaultWorkflowConfig = WorkflowConfig{
 	},
 	Invoicing: InvoicingConfig{
 		AutoAdvance:        true,
-		DraftPeriod:        lo.Must(isodate.String("P1D").Parse()),
+		DraftPeriod:        lo.Must(isodate.String("P0D").Parse()),
 		DueAfter:           lo.Must(isodate.String("P1W").Parse()),
 		ProgressiveBilling: false,
 		DefaultTaxConfig:   nil,
