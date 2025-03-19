@@ -2283,7 +2283,7 @@ export interface components {
        *     alignment.
        *
        *     This is useful, in case of multiple subscriptions having slightly different billing periods.
-       * @default PT1H
+       * @default PT2H
        * @example P1D
        */
       interval?: string
@@ -2310,14 +2310,14 @@ export interface components {
       /**
        * Format: ISO8601
        * @description The period for the invoice to be kept in draft status for manual reviews.
-       * @default P1D
+       * @default P0D
        * @example P1D
        */
       draftPeriod?: string
       /**
        * Format: ISO8601
        * @description The period after which the invoice is due.
-       * @default P7D
+       * @default P1W
        * @example P1D
        */
       dueAfter?: string
@@ -5118,14 +5118,14 @@ export interface components {
       /**
        * Format: ISO8601
        * @description The period for the invoice to be kept in draft status for manual reviews.
-       * @default P1D
+       * @default P0D
        * @example P1D
        */
       draftPeriod?: string
       /**
        * Format: ISO8601
        * @description The period after which the invoice is due.
-       * @default P7D
+       * @default P1W
        * @example P1D
        */
       dueAfter?: string
