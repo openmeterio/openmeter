@@ -4,7 +4,6 @@ import "@typespec/openapi3";
 
 import "./rest.tsp";
 import "./errors.tsp";
-import "./pagination.tsp";
 import "./types.tsp";
 
 using TypeSpec.Http;
@@ -113,7 +112,7 @@ interface Customers {
   @summary("List customer subscriptions")
   listCustomerSubscriptions(
     @path customerId: ULID,
-    ...PaginatedQuery,
+    ...QueryPagination,
   ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
 
   /**
@@ -135,7 +134,7 @@ interface Customers {
  */
 @friendlyName("queryCustomerList")
 model ListCustomersParams {
-  ...PaginatedQuery;
+  ...QueryPagination;
 
   /**
    * Order customers by.
@@ -193,7 +192,7 @@ model ListCustomersParams {
  */
 @friendlyName("queryCustomerList")
 model ListCustomerAppDataParams {
-  ...PaginatedQuery;
+  ...QueryPagination;
 
   /**
    * Filter customer data by app type.

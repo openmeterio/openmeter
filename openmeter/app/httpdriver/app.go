@@ -17,7 +17,7 @@ import (
 // ListAppsHandler is a handler for listing apps
 type (
 	ListAppsRequest  = app.ListAppInput
-	ListAppsResponse = api.AppList
+	ListAppsResponse = api.AppPaginatedResponse
 	ListAppsParams   = api.ListAppsParams
 	ListAppsHandler  httptransport.HandlerWithArgs[ListAppsRequest, ListAppsResponse, ListAppsParams]
 )

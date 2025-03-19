@@ -6,7 +6,6 @@ import "@typespec/openapi3";
 import "./app.tsp";
 import "./capability.tsp";
 import "../errors.tsp";
-import "../pagination.tsp";
 import "./stripe.tsp";
 import "../types.tsp";
 
@@ -29,7 +28,7 @@ interface Apps {
   @get
   @operationId("listApps")
   @summary("List apps")
-  list(...ListAppsRequest): Paginated<App> | CommonErrors;
+  list(...ListAppsRequest): PaginatedResponse<App> | CommonErrors;
 
   /**
    * Get the app.
@@ -69,7 +68,7 @@ interface Apps {
  */
 @friendlyName("ListAppsRequest")
 model ListAppsRequest {
-  ...PaginatedQuery;
+  ...QueryPagination;
 }
 
 /**

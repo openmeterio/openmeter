@@ -1852,15 +1852,24 @@ export interface components {
       | 'calculateTax'
       | 'invoiceCustomers'
       | 'collectPayments'
-    /** @description A page of results. */
-    AppList: {
-      /** @description The page number. */
-      page: number
-      /** @description The number of items in the page. */
-      pageSize: number
-      /** @description The total number of items. */
+    /** @description Paginated response */
+    AppPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
       totalCount: number
-      /** @description The items in the page. */
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
       items: components['schemas']['App'][]
     }
     /** @description App reference
@@ -5222,15 +5231,24 @@ export interface components {
       /** @description The app's capabilities. */
       capabilities: components['schemas']['AppCapability'][]
     }
-    /** @description A page of results. */
-    MarketplaceListingList: {
-      /** @description The page number. */
-      page: number
-      /** @description The number of items in the page. */
-      pageSize: number
-      /** @description The total number of items. */
+    /** @description Paginated response */
+    MarketplaceListingPaginatedResponse: {
+      /**
+       * @description The items in the current page.
+       * @example 500
+       */
       totalCount: number
-      /** @description The items in the page. */
+      /**
+       * @description The items in the current page.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description The items in the current page.
+       * @example 100
+       */
+      pageSize: number
+      /** @description The items in the current page. */
       items: components['schemas']['MarketplaceListing'][]
     }
     /** @description Measure usage from */
@@ -8008,10 +8026,6 @@ export interface components {
      *     Unique, randomly generated, opaque, and non-guessable string that is sent
      *     when starting an authentication request and validated when processing the response. */
     'OAuth2AuthorizationCodeGrantSuccessParams.state': string
-    /** @description The page number. */
-    'PaginatedQuery.page': number
-    /** @description The number of items in the page. */
-    'PaginatedQuery.pageSize': number
     /** @description Start date-time in RFC 3339 format.
      *
      *     Inclusive. */
@@ -8054,7 +8068,7 @@ export type App = components['schemas']['App']
 export type AppBaseReplaceUpdate = components['schemas']['AppBaseReplaceUpdate']
 export type AppCapability = components['schemas']['AppCapability']
 export type AppCapabilityType = components['schemas']['AppCapabilityType']
-export type AppList = components['schemas']['AppList']
+export type AppPaginatedResponse = components['schemas']['AppPaginatedResponse']
 export type AppReference = components['schemas']['AppReference']
 export type AppStatus = components['schemas']['AppStatus']
 export type AppType = components['schemas']['AppType']
@@ -8316,8 +8330,8 @@ export type ListFeaturesResult = components['schemas']['ListFeaturesResult']
 export type MarketplaceInstallResponse =
   components['schemas']['MarketplaceInstallResponse']
 export type MarketplaceListing = components['schemas']['MarketplaceListing']
-export type MarketplaceListingList =
-  components['schemas']['MarketplaceListingList']
+export type MarketplaceListingPaginatedResponse =
+  components['schemas']['MarketplaceListingPaginatedResponse']
 export type MeasureUsageFrom = components['schemas']['MeasureUsageFrom']
 export type MeasureUsageFromPreset =
   components['schemas']['MeasureUsageFromPreset']
@@ -8614,10 +8628,6 @@ export type ParameterOAuth2AuthorizationCodeGrantSuccessParamsCode =
   components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.code']
 export type ParameterOAuth2AuthorizationCodeGrantSuccessParamsState =
   components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.state']
-export type ParameterPaginatedQueryPage =
-  components['parameters']['PaginatedQuery.page']
-export type ParameterPaginatedQueryPageSize =
-  components['parameters']['PaginatedQuery.pageSize']
 export type ParameterPaginationPage =
   components['parameters']['Pagination.page']
 export type ParameterPaginationPageSize =
@@ -8645,10 +8655,14 @@ export interface operations {
   listApps: {
     parameters: {
       query?: {
-        /** @description The page number. */
-        page?: components['parameters']['PaginatedQuery.page']
-        /** @description The number of items in the page. */
-        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
+        page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
       path?: never
@@ -8662,7 +8676,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['AppList']
+          'application/json': components['schemas']['AppPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -11207,10 +11221,14 @@ export interface operations {
   listCustomers: {
     parameters: {
       query?: {
-        /** @description The page number. */
-        page?: components['parameters']['PaginatedQuery.page']
-        /** @description The number of items in the page. */
-        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
+        page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['CustomerOrderByOrdering.order']
         /** @description The order by field. */
@@ -11402,10 +11420,14 @@ export interface operations {
   listCustomerAppData: {
     parameters: {
       query?: {
-        /** @description The page number. */
-        page?: components['parameters']['PaginatedQuery.page']
-        /** @description The number of items in the page. */
-        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
+        page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
         /** @description Filter customer data by app type. */
         type?: components['parameters']['queryCustomerList.type']
       }
@@ -11791,10 +11813,14 @@ export interface operations {
   listCustomerSubscriptions: {
     parameters: {
       query?: {
-        /** @description The page number. */
-        page?: components['parameters']['PaginatedQuery.page']
-        /** @description The number of items in the page. */
-        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
+        page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
       path: {
@@ -13444,10 +13470,14 @@ export interface operations {
   listMarketplaceListings: {
     parameters: {
       query?: {
-        /** @description The page number. */
-        page?: components['parameters']['PaginatedQuery.page']
-        /** @description The number of items in the page. */
-        pageSize?: components['parameters']['PaginatedQuery.pageSize']
+        /** @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive. */
+        page?: components['parameters']['Pagination.page']
+        /** @description Number of items per page.
+         *
+         *     Default is 100. */
+        pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
       path?: never
@@ -13461,7 +13491,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['MarketplaceListingList']
+          'application/json': components['schemas']['MarketplaceListingPaginatedResponse']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
