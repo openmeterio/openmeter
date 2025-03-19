@@ -636,9 +636,15 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 	return res, nil
 }
 
+type ToScheduleSubscriptionEntitlementInputOptions struct {
+	Customer     customer.Customer
+	Cadence      models.CadencedModel
+	PhaseCadence models.CadencedModel
+	IsAligned    bool
+}
+
 func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
-	cust customer.Customer,
-	cadence models.CadencedModel,
+	opts ToScheduleSubscriptionEntitlementInputOptions,
 ) (ScheduleSubscriptionEntitlementInput, bool, error) {
 	var def ScheduleSubscriptionEntitlementInput
 
@@ -653,16 +659,16 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 	}
 
 	t := meta.EntitlementTemplate.Type()
-	subjectKey, err := cust.UsageAttribution.GetSubjectKey()
+	subjectKey, err := opts.Customer.UsageAttribution.GetSubjectKey()
 	if err != nil {
-		return def, true, fmt.Errorf("failed to get subject key for customer %s: %w", cust.ID, err)
+		return def, true, fmt.Errorf("failed to get subject key for customer %s: %w", opts.Customer.ID, err)
 	}
 
 	scheduleInput := entitlement.CreateEntitlementInputs{
 		EntitlementType: t,
-		Namespace:       cust.Namespace,
-		ActiveFrom:      lo.ToPtr(cadence.ActiveFrom),
-		ActiveTo:        cadence.ActiveTo,
+		Namespace:       opts.Customer.Namespace,
+		ActiveFrom:      lo.ToPtr(opts.Cadence.ActiveFrom),
+		ActiveTo:        opts.Cadence.ActiveTo,
 		FeatureKey:      meta.FeatureKey,
 		SubjectKey:      subjectKey,
 	}
@@ -686,7 +692,11 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		if err != nil {
 			return def, true, fmt.Errorf("failed to get metered entitlement template: %w", err)
 		}
-		truncatedStartTime := cadence.ActiveFrom.Truncate(time.Minute)
+		truncatedStartTime := opts.Cadence.ActiveFrom.Truncate(time.Minute)
+
+		if opts.IsAligned {
+			truncatedStartTime = opts.PhaseCadence.ActiveFrom.Truncate(time.Minute)
+		}
 
 		scheduleInput.Metadata = tpl.Metadata
 		scheduleInput.IsSoftLimit = &tpl.IsSoftLimit

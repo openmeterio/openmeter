@@ -259,13 +259,13 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 
 					// If the item got deleted, we can create it as a whole
 					if dirty.isTouched(NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx)) {
-						if _, err := s.createItem(
-							ctx,
-							view.Customer,
-							*matchingItemFromNewSpec,
-							currentPhaseView.SubscriptionPhase,
-							newPhaseCadence,
-						); err != nil {
+						if _, err := s.createItem(ctx, createItemOptions{
+							cust:         view.Customer,
+							sub:          view.Subscription,
+							phase:        currentPhaseView.SubscriptionPhase,
+							phaseCadence: newPhaseCadence,
+							itemSpec:     *matchingItemFromNewSpec,
+						}); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
 
@@ -312,13 +312,13 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 
 					// If we didn't find a matching key in the current view, we need to create the item
 					if !foundMatchingItemsByKeyInCurrentView {
-						if _, err := s.createItem(
-							ctx,
-							view.Customer,
-							*item,
-							matchingPhaseInCurrentView.SubscriptionPhase,
-							phaseCadence,
-						); err != nil {
+						if _, err := s.createItem(ctx, createItemOptions{
+							cust:         view.Customer,
+							sub:          view.Subscription,
+							phase:        matchingPhaseInCurrentView.SubscriptionPhase,
+							phaseCadence: phaseCadence,
+							itemSpec:     *item,
+						}); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
 
@@ -329,13 +329,13 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						// present in the current phase
 
 						// The rest we create
-						if _, err := s.createItem(
-							ctx,
-							view.Customer,
-							*item,
-							matchingPhaseInCurrentView.SubscriptionPhase,
-							phaseCadence,
-						); err != nil {
+						if _, err := s.createItem(ctx, createItemOptions{
+							cust:         view.Customer,
+							sub:          view.Subscription,
+							phase:        matchingPhaseInCurrentView.SubscriptionPhase,
+							phaseCadence: phaseCadence,
+							itemSpec:     *item,
+						}); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
 					}
