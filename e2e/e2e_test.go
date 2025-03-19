@@ -333,16 +333,16 @@ func TestInvalidIngest(t *testing.T) {
 
 	// null data should have processing error
 	require.NotNil(t, events[0].ValidationError)
-	require.Equal(t, `event data is null and missing value property`, *events[0].ValidationError)
+	require.Equal(t, `invalid event: null and missing value property`, *events[0].ValidationError)
 
 	// missing data should have processing error
 	// we only validate events against meters in the processing pipeline so this is an async error
 	require.NotNil(t, events[1].ValidationError)
-	require.Equal(t, `event data is null and missing value property`, *events[1].ValidationError)
+	require.Equal(t, `invalid event: null and missing value property`, *events[1].ValidationError)
 
 	// empty data should have processing error as it does not have the required value property
 	require.NotNil(t, events[2].ValidationError)
-	require.Equal(t, `event data is missing value property at "$.duration_ms"`, *events[2].ValidationError)
+	require.Equal(t, `invalid event: missing value property: "$.duration_ms"`, *events[2].ValidationError)
 }
 
 func TestDedupe(t *testing.T) {
