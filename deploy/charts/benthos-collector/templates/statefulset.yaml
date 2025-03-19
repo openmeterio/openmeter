@@ -40,7 +40,7 @@ spec:
           command: ["/entrypoint.sh", "/usr/local/bin/benthos"]
           args: {{ include "benthos-collector.args" . }}
           ports:
-            - name: http
+            - name: metrics
               containerPort: 4195
               protocol: TCP
           env:
