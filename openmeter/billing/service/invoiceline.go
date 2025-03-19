@@ -78,6 +78,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 						},
 						Expand: billing.CustomerOverrideExpand{
 							Customer: true,
+							Apps:     true,
 						},
 					})
 					if err != nil {
