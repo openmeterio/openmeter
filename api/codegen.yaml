@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
 package: api
 generate:
   chi-server: true
@@ -9,3 +10,5 @@ compatibility:
   disable-required-readonly-as-pointer: true
   always-prefix-enum-values: true
 output: ./api.gen.go
+output-options:
+  skip-prune: true

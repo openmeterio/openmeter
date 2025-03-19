@@ -127,3 +127,41 @@ model PaginatedResponse<T> {
   @pageItems
   items: T[];
 }
+
+/**
+ * Paginated cursor query parameters.
+ */
+@friendlyName("CursorPagination")
+model QueryCursorPagination {
+  /**
+   * The cursor after which to start the pagination.
+   */
+  @query
+  cursor?: string;
+
+  /**
+   * The limit of the pagination.
+   */
+  @query
+  @minValue(1)
+  @maxValue(1000)
+  limit?: integer = 100;
+}
+
+/**
+ * A response for cursor pagination.
+ */
+@friendlyName("{name}CursorPaginatedResponse", T)
+model CursorPaginatedResponse<T> {
+  /**
+   * The items in the response.
+   */
+  @pageItems
+  @maxItems(1000)
+  items: T[];
+
+  /**
+   * The cursor of the last item in the list.
+   */
+  nextCursor: string;
+}
