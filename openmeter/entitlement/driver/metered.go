@@ -120,19 +120,6 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreateGrantHandlerRequest) (api.EntitlementGrant, error) {
-			ent, err := h.entitlementConnector.GetEntitlementOfSubjectAt(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, clock.Now())
-			if err != nil {
-				return api.EntitlementGrant{}, err
-			}
-
-			if ent == nil {
-				return api.EntitlementGrant{}, fmt.Errorf("unexpected nil entitlement")
-			}
-
-			if ent.SubscriptionManaged {
-				return api.EntitlementGrant{}, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
-			}
-
 			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.GrantInput)
 			if err != nil {
 				return api.EntitlementGrant{}, err
