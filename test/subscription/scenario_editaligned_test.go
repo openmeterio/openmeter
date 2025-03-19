@@ -363,6 +363,6 @@ func TestEditingEntitlementOfUnalignedSub(t *testing.T) {
 	// Finally, let's check that the period of the entitlement is shifted (by activeFrom)
 	require.NotEqual(t, sView.Phases[0].ItemsByKey["test_feature_1"][0].Entitlement.Entitlement.CurrentUsagePeriod.From, sUpdated.Phases[0].ItemsByKey["test_feature_1"][1].Entitlement.Entitlement.CurrentUsagePeriod.From)
 	require.NotEqual(t, sView.Phases[0].ItemsByKey["test_feature_1"][0].Entitlement.Entitlement.CurrentUsagePeriod.To, sUpdated.Phases[0].ItemsByKey["test_feature_1"][1].Entitlement.Entitlement.CurrentUsagePeriod.To)
-	// It should strat with item activeFrom time
+	// It should start with item activeFrom time
 	require.Equal(t, sUpdated.Phases[0].ItemsByKey["test_feature_1"][1].Entitlement.Entitlement.ActiveFrom.UTC().Truncate(time.Minute), sUpdated.Phases[0].ItemsByKey["test_feature_1"][1].Entitlement.Entitlement.CurrentUsagePeriod.From.UTC().Truncate(time.Minute))
 }
