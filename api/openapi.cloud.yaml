@@ -16744,27 +16744,14 @@ components:
             When null, the rate card is a one-time purchase.
           title: Billing cadence
         price:
-          anyOf:
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/UnitPriceWithCommitments'
-              nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/TieredPriceWithCommitments'
-              nullable: true
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionItemPrice'
+          nullable: true
           description: |-
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
-          example:
-            type: flat
-            amount: '100'
-            paymentTerm: in_arrears
+          example: {}
         included:
           allOf:
             - $ref: '#/components/schemas/SubscriptionItemIncluded'
@@ -16791,6 +16778,18 @@ components:
             - $ref: '#/components/schemas/Entitlement'
           description: The entitlement of the Subscription Item.
       description: Included contents like Entitlement, or the Feature.
+    SubscriptionItemPrice:
+      oneOf:
+        - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
+        - $ref: '#/components/schemas/UnitPriceWithCommitments'
+        - $ref: '#/components/schemas/TieredPriceWithCommitments'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat: '#/components/schemas/FlatPriceWithPaymentTerm'
+          unit: '#/components/schemas/UnitPriceWithCommitments'
+          tiered: '#/components/schemas/TieredPriceWithCommitments'
+      description: The price of the Subscription Item.
     SubscriptionPaginatedResponse:
       type: object
       required:

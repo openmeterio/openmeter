@@ -221,7 +221,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		tx = &txv
 	}
 
-	var pr api.SubscriptionItem_Price
+	var pr *api.SubscriptionItemPrice
 
 	if item.SubscriptionItem.RateCard.Price != nil {
 		prc, err := MapPriceToAPI(*item.SubscriptionItem.RateCard.Price)
@@ -229,7 +229,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 			return api.SubscriptionItem{}, err
 		}
 
-		pr = prc
+		pr = &prc
 	}
 
 	return api.SubscriptionItem{
@@ -251,8 +251,8 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	}, nil
 }
 
-func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, error) {
-	var res api.SubscriptionItem_Price
+func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItemPrice, error) {
+	var res api.SubscriptionItemPrice
 
 	switch price.Type() {
 	case productcatalog.FlatPriceType:
@@ -261,7 +261,7 @@ func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, erro
 			return res, fmt.Errorf("failed to cast FlatPrice: %w", err)
 		}
 
-		err = res.FromSubscriptionItemPrice0(api.FlatPriceWithPaymentTerm{
+		err = res.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
 			Amount:      flatPrice.Amount.String(),
 			PaymentTerm: lo.ToPtr(planhttpdriver.FromPaymentTerm(flatPrice.PaymentTerm)),
 			Type:        api.FlatPriceWithPaymentTermTypeFlat,
@@ -285,7 +285,7 @@ func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, erro
 			maximumAmount = lo.ToPtr(unitPrice.MaximumAmount.String())
 		}
 
-		err = res.FromSubscriptionItemPrice1(api.UnitPriceWithCommitments{
+		err = res.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
 			Amount:        unitPrice.Amount.String(),
 			MinimumAmount: minimumAmount,
 			MaximumAmount: maximumAmount,
@@ -310,7 +310,7 @@ func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItem_Price, erro
 			maximumAmount = lo.ToPtr(tieredPrice.MaximumAmount.String())
 		}
 
-		err = res.FromSubscriptionItemPrice2(api.TieredPriceWithCommitments{
+		err = res.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
 			Type:          api.TieredPriceWithCommitmentsTypeTiered,
 			Mode:          api.TieredPriceMode(tieredPrice.Mode),
 			MinimumAmount: minimumAmount,
