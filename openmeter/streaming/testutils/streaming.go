@@ -9,8 +9,8 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
@@ -70,8 +70,8 @@ func (m *MockStreamingConnector) CountEvents(ctx context.Context, namespace stri
 	return []streaming.CountEventRow{}, nil
 }
 
-func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	return []api.IngestedEvent{}, nil
+func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
+	return []streaming.RawEvent{}, nil
 }
 
 func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {

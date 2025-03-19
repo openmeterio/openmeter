@@ -1,55 +1,122 @@
 package meter
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
-	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oliveagle/jsonpath"
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ParseEvent validates and parses an event against a meter.
-func ParseEvent(meter Meter, ev event.Event) (*float64, *string, map[string]string, error) {
-	// Parse CloudEvents data
-	var data interface{}
+var _ models.GenericError = (*ErrInvalidEvent)(nil)
 
-	if len(ev.Data()) > 0 {
-		err := ev.DataAs(&data)
+type ErrInvalidEvent struct {
+	err error
+}
+
+func (e ErrInvalidEvent) Error() string {
+	s := "invalid event"
+	if e.err != nil {
+		return s + ": " + e.err.Error()
+	}
+
+	return s
+}
+
+func (e ErrInvalidEvent) Unwrap() error {
+	return e.err
+}
+
+func NewErrInvalidEvent(err error) error {
+	return ErrInvalidEvent{err: err}
+}
+
+var _ models.GenericError = (*ErrInvalidMeter)(nil)
+
+type ErrInvalidMeter struct {
+	err error
+}
+
+func (e ErrInvalidMeter) Error() string {
+	s := "invalid meter"
+	if e.err != nil {
+		return s + ": " + e.err.Error()
+	}
+
+	return s
+}
+
+func (e ErrInvalidMeter) Unwrap() error {
+	return e.err
+}
+
+func NewErrInvalidMeter(err error) error {
+	return &ErrInvalidMeter{err: err}
+}
+
+type ParsedEvent struct {
+	Value       *float64
+	ValueString *string
+	GroupBy     map[string]string
+}
+
+func ParseEventString(meter Meter, data string) (*ParsedEvent, error) {
+	return ParseEvent(meter, []byte(data))
+}
+
+// ParseEvent validates and parses an event against a meter.
+func ParseEvent(meter Meter, data []byte) (*ParsedEvent, error) {
+	// Parse CloudEvents data
+	var (
+		event interface{}
+		err   error
+	)
+
+	parsedEvent := &ParsedEvent{
+		GroupBy: map[string]string{},
+	}
+
+	if len(data) > 0 {
+		err = json.Unmarshal(data, &event)
 		if err != nil {
-			return nil, nil, map[string]string{}, errors.New("cannot unmarshal event data")
+			return parsedEvent, NewErrInvalidEvent(fmt.Errorf("failed to parse event data: %w", err))
 		}
 	}
 
 	// Parse group by fields
-	groupBy := parseGroupBy(meter, data)
+	parsedEvent.GroupBy = parseGroupBy(meter, event)
 
 	// We can skip count events as they don't have value property
 	if meter.Aggregation == MeterAggregationCount {
-		value := 1.0
-		return &value, nil, groupBy, nil
+		parsedEvent.Value = lo.ToPtr(1.0)
+
+		return parsedEvent, nil
 	}
 
 	// Non count events require value property to be present
 	// If the event data is null, we return an error as value property is missing
-	if data == nil {
-		return nil, nil, groupBy, errors.New("event data is null and missing value property")
+	if event == nil {
+		return parsedEvent, NewErrInvalidEvent(errors.New("null and missing value property"))
 	}
 
-	var rawValue interface{}
-
 	if meter.ValueProperty == nil {
-		return nil, nil, groupBy, errors.New("non count meter value property is missing")
+		return parsedEvent, NewErrInvalidEvent(errors.New("non count meter value property is missing"))
 	}
 
 	// Get value from event data by value property
-	rawValue, err := jsonpath.JsonPathLookup(data, *meter.ValueProperty)
+	var rawValue interface{}
+
+	rawValue, err = jsonpath.JsonPathLookup(event, *meter.ValueProperty)
 	if err != nil {
-		return nil, nil, groupBy, fmt.Errorf("event data is missing value property at %q", *meter.ValueProperty)
+		return parsedEvent, NewErrInvalidEvent(fmt.Errorf("missing value property: %q", *meter.ValueProperty))
 	}
 
 	if rawValue == nil {
-		return nil, nil, groupBy, errors.New("event data value cannot be null")
+		return parsedEvent, NewErrInvalidEvent(errors.New("value cannot be null"))
 	}
 
 	// Aggregation specific value validation
@@ -57,30 +124,32 @@ func ParseEvent(meter Meter, ev event.Event) (*float64, *string, map[string]stri
 	// UNIQUE_COUNT aggregation requires string property value
 	case MeterAggregationUniqueCount:
 		// We convert the value to string
-		val := fmt.Sprintf("%v", rawValue)
-		return nil, &val, groupBy, nil
+		parsedEvent.ValueString = lo.ToPtr(fmt.Sprintf("%v", rawValue))
 
+		return parsedEvent, nil
 	// SUM, AVG, MIN, MAX aggregations require float64 parsable value property value
 	case MeterAggregationSum, MeterAggregationAvg, MeterAggregationMin, MeterAggregationMax:
-		switch value := rawValue.(type) {
+		switch v := rawValue.(type) {
 		case string:
-			val, err := strconv.ParseFloat(value, 64)
+			parsedValue, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				// TODO: omit value or make sure it's length is not too long
-				return nil, nil, groupBy, fmt.Errorf("event data value cannot be parsed as float64: %s", value)
+				return parsedEvent, NewErrInvalidEvent(fmt.Errorf("value cannot be parsed as float64: %s", v))
 			}
 
-			return &val, nil, groupBy, nil
+			parsedEvent.Value = lo.ToPtr(parsedValue)
 
+			return parsedEvent, nil
 		case float64:
-			return &value, nil, groupBy, nil
+			parsedEvent.Value = lo.ToPtr(v)
 
+			return parsedEvent, nil
 		default:
-			return nil, nil, groupBy, errors.New("event data value property cannot be parsed")
+			return parsedEvent, NewErrInvalidEvent(fmt.Errorf("unsupported value property type: %T", v))
 		}
 	}
 
-	return nil, nil, groupBy, fmt.Errorf("unknown meter aggregation: %s", meter.Aggregation)
+	return parsedEvent, NewErrInvalidMeter(fmt.Errorf("unknown meter aggregation: %s", meter.Aggregation))
 }
 
 // parseGroupBy parses the group by fields from the event data

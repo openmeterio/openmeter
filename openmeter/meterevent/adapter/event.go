@@ -4,57 +4,59 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (a *adapter) ListEvents(ctx context.Context, input meterevent.ListEventsInput) ([]api.IngestedEvent, error) {
+func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsParams) ([]meterevent.Event, error) {
 	// Validate input
-	if err := input.Validate(); err != nil {
+	if err := params.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(
 			fmt.Errorf("validate input: %w", err),
 		)
 	}
 
 	// Get all events
-	events, err := a.streamingConnector.ListEvents(ctx, input.Namespace, streaming.ListEventsParams{
-		ClientID:       input.ClientID,
-		From:           input.From,
-		To:             input.To,
-		IngestedAtFrom: input.IngestedAtFrom,
-		IngestedAtTo:   input.IngestedAtTo,
-		ID:             input.ID,
-		Subject:        input.Subject,
-		Limit:          input.Limit,
-	})
+	events, err := a.streamingConnector.ListEvents(ctx, params.Namespace, params)
 	if err != nil {
 		return nil, fmt.Errorf("query events: %w", err)
 	}
 
 	// Get all meters
 	meters, err := meter.ListAll(ctx, a.meterService, meter.ListMetersParams{
-		Namespace: input.Namespace,
+		Namespace: params.Namespace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("get meters: %w", err)
 	}
 
 	// Validate events against meters
+	validatedEvents := make([]meterevent.Event, len(events))
 	for idx, event := range events {
+		validatedEvent := meterevent.Event{
+			ID:               event.ID,
+			Type:             event.Type,
+			Source:           event.Source,
+			Subject:          event.Subject,
+			Time:             event.Time,
+			Data:             event.Data,
+			IngestedAt:       event.IngestedAt,
+			StoredAt:         event.StoredAt,
+			ValidationErrors: make([]error, 0),
+		}
+
 		for _, m := range meters {
-			if event.Event.Type() == m.EventType {
-				_, _, _, err := meter.ParseEvent(m, event.Event)
+			if event.Type == m.EventType {
+				_, err = meter.ParseEventString(m, event.Data)
 				if err != nil {
-					events[idx].ValidationError = lo.ToPtr(err.Error())
+					validatedEvent.ValidationErrors = append(validatedEvent.ValidationErrors, err)
 				}
 			}
 		}
+
+		validatedEvents[idx] = validatedEvent
 	}
 
-	return events, nil
+	return validatedEvents, nil
 }

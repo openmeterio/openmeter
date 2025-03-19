@@ -35,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -582,10 +583,17 @@ func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace stri
 	return []streaming.CountEventRow{}, nil
 }
 
-func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	events := []api.IngestedEvent{
+func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]streaming.RawEvent, error) {
+	events := []streaming.RawEvent{
 		{
-			Event: mockEvent,
+			ID:         mockEvent.ID(),
+			Type:       mockEvent.Type(),
+			Source:     mockEvent.Source(),
+			Subject:    mockEvent.Subject(),
+			Time:       mockEvent.Time(),
+			Data:       string(mockEvent.Data()),
+			IngestedAt: time.Time{},
+			StoredAt:   time.Time{},
 		},
 	}
 	return events, nil

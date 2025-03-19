@@ -5,22 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-type ListEventsParams struct {
-	ClientID       *string
-	From           time.Time
-	To             *time.Time
-	IngestedAtFrom *time.Time
-	IngestedAtTo   *time.Time
-	ID             *string
-	Subject        *string
-	Limit          int
-}
 
 type CountEventsParams struct {
 	From time.Time
@@ -34,22 +23,22 @@ type CountEventRow struct {
 
 // RawEvent represents a single raw event
 type RawEvent struct {
-	Namespace  string
-	ID         string
-	Type       string
-	Source     string
-	Subject    string
-	Time       time.Time
-	Data       string
-	IngestedAt time.Time
-	StoredAt   time.Time
+	Namespace  string    `ch:"namespace"`
+	ID         string    `ch:"id"`
+	Type       string    `ch:"type"`
+	Source     string    `ch:"source"`
+	Subject    string    `ch:"subject"`
+	Time       time.Time `ch:"time"`
+	Data       string    `ch:"data"`
+	IngestedAt time.Time `ch:"ingested_at"`
+	StoredAt   time.Time `ch:"stored_at"`
 }
 
 type Connector interface {
 	namespace.Handler
 
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
-	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
+	ListEvents(ctx context.Context, namespace string, params meterevent.ListEventsParams) ([]RawEvent, error)
 	CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error
 	UpdateMeter(ctx context.Context, namespace string, meter meter.Meter) error
 	DeleteMeter(ctx context.Context, namespace string, meter meter.Meter) error
