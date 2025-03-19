@@ -312,7 +312,7 @@ model BillingWorkflowCollectionSettings {
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  interval?: string = "PT1H";
+  interval?: string = "PT2H";
 }
 
 /**
@@ -384,7 +384,7 @@ model BillingWorkflowInvoicingSettings {
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  draftPeriod?: string = "P1D";
+  draftPeriod?: string = "P0D";
 
   /**
    * The period after which the invoice is due.
@@ -392,7 +392,7 @@ model BillingWorkflowInvoicingSettings {
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  dueAfter?: string = "P7D";
+  dueAfter?: string = "P1W";
 
   /**
    * Should progressive billing be allowed for this workflow?
