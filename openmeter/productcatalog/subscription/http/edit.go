@@ -2,6 +2,7 @@ package httpdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -42,7 +43,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 			}
 
 			if len(body.Customizations) == 0 {
-				return EditSubscriptionRequest{}, fmt.Errorf("missing customizations")
+				return EditSubscriptionRequest{}, models.NewGenericValidationError(errors.New("missing customizations"))
 			}
 
 			patches := make([]subscription.Patch, 0, len(body.Customizations))

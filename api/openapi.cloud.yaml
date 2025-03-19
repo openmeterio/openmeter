@@ -16524,6 +16524,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionEditOperation'
+          minItems: 1
           maxItems: 100
           description: |-
             Batch processing commands for manipulating running subscriptions.
