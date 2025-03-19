@@ -950,6 +950,8 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 			ID: app.GetID().ID,
 		},
 	}
+	// manual advancement for testing the update invoice flow
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.AutoAdvance = false
 
 	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
 
@@ -1035,11 +1037,6 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 				Data: []*stripe.InvoiceLineItem{},
 			},
 		}, nil)
-	s.StripeAppClient.
-		On("AddInvoiceLines", stripeclient.AddInvoiceLinesInput{
-			StripeInvoiceID: "stripe-invoice-id",
-		}).
-		Return([]stripeclient.StripeInvoiceItemWithLineID{}, nil)
 
 	// When we generate the invoice
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -1056,6 +1053,34 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.Equal(line.Name, "UBP - FLAT per unit")
 	s.Equal(float64(0), lines[0].Totals.Total.InexactFloat64())
 	s.Len(invoice.ValidationIssues, 0)
+
+	// Editing the invoice should also work
+	s.StripeAppClient.
+		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
+			StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+		}).
+		Return(&stripe.Invoice{
+			ID: "stripe-invoice-id",
+			Customer: &stripe.Customer{
+				ID: customerData.StripeCustomerID,
+			},
+			Currency: "USD",
+			Lines: &stripe.InvoiceLineItemList{
+				Data: []*stripe.InvoiceLineItem{},
+			},
+		}, nil)
+
+	invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		Invoice: invoice.InvoiceID(),
+		EditFn: func(i *billing.Invoice) error {
+			i.Supplier.Name = "ACME Inc. (updated)"
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	s.Equal("ACME Inc. (updated)", invoice.Supplier.Name)
+	s.Equal(billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 }
 
 func mapInvoiceItemParamsToInvoiceItem(id string, i *stripe.InvoiceItemParams) stripeclient.StripeInvoiceItemWithLineID {
