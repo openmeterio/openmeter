@@ -1,7 +1,6 @@
 package meter_test
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -74,8 +73,9 @@ func TestParseEvent(t *testing.T) {
 	tests := []struct {
 		description string
 		meter       meter.Meter
-		data        string
+		data        []byte
 		err         error
+		errString   string
 		value       *float64
 		valueStr    *string
 		groupBy     map[string]string
@@ -83,7 +83,7 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should parse event",
 			meter:       meterSum,
-			data:        `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+			data:        []byte(`{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`),
 			value:       lo.ToPtr(100.0),
 			groupBy: map[string]string{
 				"method": "GET",
@@ -93,7 +93,7 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should parse event with numeric string value",
 			meter:       meterSum,
-			data:        `{"duration_ms": "100", "method": "GET", "path": "/api/v1"}`,
+			data:        []byte(`{"duration_ms": "100", "method": "GET", "path": "/api/v1"}`),
 			value:       lo.ToPtr(100.0),
 			groupBy: map[string]string{
 				"method": "GET",
@@ -103,21 +103,21 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should parse count as value one",
 			meter:       meterCount,
-			data:        `{}`,
+			data:        []byte(`{}`),
 			value:       lo.ToPtr(1.0),
 			groupBy:     map[string]string{},
 		},
 		{
 			description: "should parse unique count as string",
 			meter:       meterUniqueCount,
-			data:        `{"trace_id": "test_trace_id"}`,
+			data:        []byte(`{"trace_id": "test_trace_id"}`),
 			valueStr:    lo.ToPtr("test_trace_id"),
 			groupBy:     map[string]string{},
 		},
 		{
 			description: "should parse event with missing group by properties",
 			meter:       meterSum,
-			data:        `{"duration_ms": 100}`,
+			data:        []byte(`{"duration_ms": 100}`),
 			value:       lo.ToPtr(100.0),
 			groupBy: map[string]string{
 				"method": "",
@@ -127,15 +127,17 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should return error with invalid json",
 			meter:       meterSum,
-			data:        `{`,
-			err:         errors.New("cannot unmarshal event data"),
+			data:        []byte(`{`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: failed to parse event data: unexpected end of JSON input",
 			groupBy:     map[string]string{},
 		},
 		{
 			description: "should return error with data missing",
 			meter:       meterSum,
-			data:        `null`,
-			err:         errors.New("event data is null and missing value property"),
+			data:        []byte(`null`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: null and missing value property",
 			groupBy: map[string]string{
 				"method": "",
 				"path":   "",
@@ -144,8 +146,9 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should return error with data null",
 			meter:       meterSum,
-			data:        `null`,
-			err:         errors.New("event data is null and missing value property"),
+			data:        []byte(`null`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: null and missing value property",
 			groupBy: map[string]string{
 				"method": "",
 				"path":   "",
@@ -154,8 +157,9 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should return error with value property not found",
 			meter:       meterSum,
-			data:        `{"method": "GET", "path": "/api/v1"}`,
-			err:         errors.New("event data is missing value property at \"$.duration_ms\""),
+			data:        []byte(`{"method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   `invalid event: missing value property: "$.duration_ms"`,
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -164,8 +168,9 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should return error when value property is null",
 			meter:       meterSum,
-			data:        `{"duration_ms": null, "method": "GET", "path": "/api/v1"}`,
-			err:         errors.New("event data value cannot be null"),
+			data:        []byte(`{"duration_ms": null, "method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidEvent{},
+			errString:   "invalid event: value cannot be null",
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -174,8 +179,9 @@ func TestParseEvent(t *testing.T) {
 		{
 			description: "should return error when value property cannot be parsed as number",
 			meter:       meterSum,
-			data:        `{"duration_ms": "not a number", "method": "GET", "path": "/api/v1"}`,
-			err:         errors.New("event data value cannot be parsed as float64: not a number"),
+			data:        []byte(`{"duration_ms": "not a number", "method": "GET", "path": "/api/v1"}`),
+			err:         meter.ErrInvalidMeter{},
+			errString:   "invalid event: value cannot be parsed as float64: not a number",
 			groupBy: map[string]string{
 				"method": "GET",
 				"path":   "/api/v1",
@@ -184,15 +190,19 @@ func TestParseEvent(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
-
 		t.Run(test.description, func(t *testing.T) {
-			value, valueStr, groupBy, err := meter.ParseEvent(test.meter, test.data)
+			parsedEvent, err := meter.ParseEvent(test.meter, test.data)
 
-			assert.Equal(t, test.err, err)
-			assert.Equal(t, test.value, value)
-			assert.Equal(t, test.valueStr, valueStr)
-			assert.Equal(t, test.groupBy, groupBy)
+			if test.err == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorAs(t, err, &test.err)
+				assert.EqualError(t, err, test.errString)
+			}
+
+			assert.Equal(t, test.value, parsedEvent.Value)
+			assert.Equal(t, test.valueStr, parsedEvent.ValueString)
+			assert.Equal(t, test.groupBy, parsedEvent.GroupBy)
 		})
 	}
 }

@@ -48,7 +48,7 @@ func (a *adapter) ListEvents(ctx context.Context, params meterevent.ListEventsPa
 
 		for _, m := range meters {
 			if event.Type == m.EventType {
-				_, _, _, err := meter.ParseEvent(m, event.Data)
+				_, err = meter.ParseEventString(m, event.Data)
 				if err != nil {
 					validatedEvent.ValidationErrors = append(validatedEvent.ValidationErrors, err)
 				}
