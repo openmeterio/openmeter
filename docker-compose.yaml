@@ -114,13 +114,14 @@ services:
   # Credit
   # docker compose --profile postgres up
   postgres:
-    image: postgres:14.9-alpine
+    image: postgres:14-alpine
     ports:
       - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST_AUTH_METHOD=md5
     configs:
       - source: svix_sql
         target: /docker-entrypoint-initdb.d/svix.sql
