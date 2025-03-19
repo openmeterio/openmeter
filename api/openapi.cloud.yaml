@@ -43,15 +43,15 @@ paths:
       summary: List apps
       description: List apps.
       parameters:
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AppList'
+                $ref: '#/components/schemas/AppPaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -2064,8 +2064,8 @@ paths:
       summary: List customers
       description: List customers.
       parameters:
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.order'
         - $ref: '#/components/parameters/CustomerOrderByOrdering.orderBy'
         - $ref: '#/components/parameters/queryCustomerList.includeDeleted'
@@ -2138,8 +2138,8 @@ paths:
             type: string
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             example: 01G65Z755AFWAKHE12NY0CQ9FH
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/queryCustomerList.type'
       responses:
         '200':
@@ -2443,8 +2443,8 @@ paths:
             type: string
             pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             example: 01G65Z755AFWAKHE12NY0CQ9FH
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
       responses:
         '200':
           description: The request has succeeded.
@@ -3743,15 +3743,15 @@ paths:
       summary: List available apps
       description: List available apps of the app marketplace.
       parameters:
-        - $ref: '#/components/parameters/PaginatedQuery.page'
-        - $ref: '#/components/parameters/PaginatedQuery.pageSize'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
       responses:
         '200':
           description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MarketplaceListingList'
+                $ref: '#/components/schemas/MarketplaceListingPaginatedResponse'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -8809,24 +8809,6 @@ components:
       schema:
         type: string
       explode: false
-    PaginatedQuery.page:
-      name: page
-      in: query
-      required: false
-      description: The page number.
-      schema:
-        type: integer
-        default: 1
-      explode: false
-    PaginatedQuery.pageSize:
-      name: pageSize
-      in: query
-      required: false
-      description: The number of items in the page.
-      schema:
-        type: integer
-        default: 100
-      explode: false
     Pagination.page:
       name: page
       in: query
@@ -9062,32 +9044,32 @@ components:
         - invoiceCustomers
         - collectPayments
       description: App capability type.
-    AppList:
+    AppPaginatedResponse:
       type: object
       required:
+        - totalCount
         - page
         - pageSize
-        - totalCount
         - items
       properties:
-        page:
-          type: integer
-          description: The page number.
-        pageSize:
-          type: integer
-          minimum: 1
-          maximum: 1000
-          description: The number of items in the page.
         totalCount:
           type: integer
-          description: The total number of items.
+          description: The items in the current page.
+          example: 500
+        page:
+          type: integer
+          description: The items in the current page.
+          example: 1
+        pageSize:
+          type: integer
+          description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
             $ref: '#/components/schemas/App'
-          maxItems: 1000
-          description: The items in the page.
-      description: A page of results.
+          description: The items in the current page.
+      description: Paginated response
     AppReference:
       type: object
       required:
@@ -13867,32 +13849,32 @@ components:
             key: stripe_collect_payments
             name: Collect Payments
             description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
-    MarketplaceListingList:
+    MarketplaceListingPaginatedResponse:
       type: object
       required:
+        - totalCount
         - page
         - pageSize
-        - totalCount
         - items
       properties:
-        page:
-          type: integer
-          description: The page number.
-        pageSize:
-          type: integer
-          minimum: 1
-          maximum: 1000
-          description: The number of items in the page.
         totalCount:
           type: integer
-          description: The total number of items.
+          description: The items in the current page.
+          example: 500
+        page:
+          type: integer
+          description: The items in the current page.
+          example: 1
+        pageSize:
+          type: integer
+          description: The items in the current page.
+          example: 100
         items:
           type: array
           items:
             $ref: '#/components/schemas/MarketplaceListing'
-          maxItems: 1000
-          description: The items in the page.
-      description: A page of results.
+          description: The items in the current page.
+      description: Paginated response
     MeasureUsageFrom:
       oneOf:
         - $ref: '#/components/schemas/MeasureUsageFromPreset'
