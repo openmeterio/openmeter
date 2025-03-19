@@ -27,7 +27,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		return nil, err
 	}
 
-	return &api.EntitlementMetered{
+	apiRes := &api.EntitlementMetered{
 		ActiveFrom:  metered.ActiveFromTime(),
 		ActiveTo:    metered.ActiveToTime(),
 		CreatedAt:   metered.CreatedAt,
@@ -54,7 +54,13 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		CurrentUsagePeriod:     *mapPeriod(e.CurrentUsagePeriod),
 		LastReset:              metered.LastReset,
 		PreserveOverageAtReset: convert.ToPointer(metered.PreserveOverageAtReset),
-	}, nil
+	}
+
+	if e.SubscriptionManaged {
+		(*apiRes.Metadata)["om_subscription_managed"] = "true"
+	}
+
+	return apiRes, nil
 }
 
 func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, error) {
@@ -80,6 +86,10 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
 
+	if e.SubscriptionManaged {
+		(*apiRes.Metadata)["om_subscription_managed"] = "true"
+	}
+
 	return apiRes, nil
 }
 
@@ -103,6 +113,10 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		UpdatedAt:          boolean.UpdatedAt,
 		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
+	}
+
+	if e.SubscriptionManaged {
+		(*apiRes.Metadata)["om_subscription_managed"] = "true"
 	}
 
 	return apiRes, nil
