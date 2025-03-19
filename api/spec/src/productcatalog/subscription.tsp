@@ -281,6 +281,7 @@ model SubscriptionEdit {
    * The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
    */
   @maxItems(100)
+  @minItems(1)
   customizations: SubscriptionEditOperation[];
 
   /**
