@@ -85,7 +85,7 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 
 			d := api.Discount{
 				RateCards:  lo.EmptyableToPtr(percentage.RateCards),
-				Percentage: float32(percentage.Percentage.InexactFloat64()),
+				Percentage: percentage.Percentage,
 				Type:       api.DiscountPercentageTypePercentage,
 			}
 
@@ -472,7 +472,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 			switch discount.Type {
 			case api.DiscountPercentageTypePercentage:
 				percentageDiscount := productcatalog.PercentageDiscount{
-					Percentage: decimal.NewFromFloat(float64(discount.Percentage)),
+					Percentage: discount.Percentage,
 					RateCards:  lo.FromPtrOr(discount.RateCards, nil),
 				}
 

@@ -2988,7 +2988,7 @@ export interface components {
        * Percentage
        * @description The percentage of the discount.
        */
-      percentage: number
+      percentage: components['schemas']['Percentage']
       /**
        * Discounted RateCards
        * @description The rate cards that the discount applies to.
@@ -6097,8 +6097,14 @@ export interface components {
     PaymentTerms:
       | components['schemas']['PaymentTermInstant']
       | components['schemas']['PaymentTermDueDate']
-    /** @description Numeric representation of a percentage */
-    Percentage: string
+    /**
+     * Format: double
+     * @description Numeric representation of a percentage
+     *
+     *     50% is represented as 50
+     * @example 50
+     */
+    Percentage: number
     /** @description A period with a start and end time. */
     Period: {
       /**

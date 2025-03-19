@@ -46,7 +46,7 @@ model DiscountPercentage {
   @summary("Percentage")
   @minValue(0)
   @maxValue(100)
-  percentage: float;
+  percentage: Percentage;
 
   /**
    * The rate cards that the discount applies to.

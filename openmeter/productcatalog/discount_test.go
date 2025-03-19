@@ -3,10 +3,11 @@ package productcatalog
 import (
 	"testing"
 
-	decimal "github.com/alpacahq/alpacadecimal"
 	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestDiscount_JSON(t *testing.T) {
@@ -18,7 +19,7 @@ func TestDiscount_JSON(t *testing.T) {
 		{
 			Name: "Valid",
 			Discount: NewDiscountFrom(PercentageDiscount{
-				Percentage: decimal.NewFromFloat(99.9),
+				Percentage: models.NewPercentage(99.9),
 				RateCards: []string{
 					"ratecard-1",
 					"ratecard-2",
@@ -56,14 +57,14 @@ func TestDiscountsEqual(t *testing.T) {
 			Name: "Equal",
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
 					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(200),
+					Percentage: models.NewPercentage(200),
 					RateCards: []string{
 						"ratecard3",
 						"ratecard4",
@@ -72,14 +73,14 @@ func TestDiscountsEqual(t *testing.T) {
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
 					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(200),
+					Percentage: models.NewPercentage(200),
 					RateCards: []string{
 						"ratecard3",
 						"ratecard4",
@@ -92,14 +93,14 @@ func TestDiscountsEqual(t *testing.T) {
 			Name: "Left diff",
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
 					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(200),
+					Percentage: models.NewPercentage(200),
 					RateCards: []string{
 						"ratecard3",
 						"ratecard4",
@@ -108,7 +109,7 @@ func TestDiscountsEqual(t *testing.T) {
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
@@ -121,7 +122,7 @@ func TestDiscountsEqual(t *testing.T) {
 			Name: "Right diff",
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
@@ -130,14 +131,14 @@ func TestDiscountsEqual(t *testing.T) {
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
 					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(200),
+					Percentage: models.NewPercentage(200),
 					RateCards: []string{
 						"ratecard3",
 						"ratecard4",
@@ -150,14 +151,14 @@ func TestDiscountsEqual(t *testing.T) {
 			Name: "Complete diff",
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard1",
 						"ratecard2",
 					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(100),
+					Percentage: models.NewPercentage(100),
 					RateCards: []string{
 						"ratecard3",
 						"ratecard4",
@@ -166,14 +167,14 @@ func TestDiscountsEqual(t *testing.T) {
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(200),
+					Percentage: models.NewPercentage(200),
 					RateCards: []string{
 						"ratecard5",
 						"ratecard6",
 					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
-					Percentage: decimal.NewFromInt(200),
+					Percentage: models.NewPercentage(200),
 					RateCards: []string{
 						"ratecard7",
 						"ratecard8",

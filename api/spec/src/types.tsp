@@ -384,10 +384,14 @@ alias Money = Numeric;
 
 /**
  * Numeric representation of a percentage
+ *
+ * 50% is represented as 50
  */
+@example(50)
 @friendlyName("Percentage")
-@pattern("^\\-?[0-9]+(\\.[0-9]+)?%$")
-scalar Percentage extends Numeric;
+@extension("x-go-type", "models.Percentage")
+@extension("x-go-package", "github.com/openmeterio/openmeter/pkg/models")
+scalar Percentage extends float64;
 
 /**
  * Unit describes how the quantity of the product should be interpreted.
