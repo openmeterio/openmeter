@@ -39,6 +39,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/entrypoint.sh", "/usr/local/bin/benthos"]
           args: {{ include "benthos-collector.args" . }}
+          ports:
+            - name: http
+              containerPort: 4195
+              protocol: TCP
           env:
             - name: K8S_POD_NAME
               valueFrom:
