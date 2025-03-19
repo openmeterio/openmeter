@@ -37,9 +37,11 @@ func (p PaymentTermType) StringValues() []string {
 }
 
 const (
-	FlatPriceType   PriceType = "flat"
-	UnitPriceType   PriceType = "unit"
-	TieredPriceType PriceType = "tiered"
+	FlatPriceType       PriceType = "flat"
+	UnitPriceType       PriceType = "unit"
+	TieredPriceType     PriceType = "tiered"
+	PercentagePriceType PriceType = "percentage"
+	PackagePriceType    PriceType = "package"
 )
 
 type PriceType string
@@ -49,6 +51,8 @@ func (p PriceType) Values() []string {
 		string(FlatPriceType),
 		string(UnitPriceType),
 		string(TieredPriceType),
+		string(PercentagePriceType),
+		string(PackagePriceType),
 	}
 }
 
@@ -61,18 +65,24 @@ type pricer interface {
 	AsFlat() (FlatPrice, error)
 	AsUnit() (UnitPrice, error)
 	AsTiered() (TieredPrice, error)
+	AsPercentage() (PercentagePrice, error)
+	AsPackage() (PackagePrice, error)
 	FromFlat(FlatPrice)
 	FromUnit(UnitPrice)
 	FromTiered(TieredPrice)
+	FromPercentage(PercentagePrice)
+	FromPackage(PackagePrice)
 }
 
 var _ pricer = (*Price)(nil)
 
 type Price struct {
-	t      PriceType
-	flat   *FlatPrice
-	unit   *UnitPrice
-	tiered *TieredPrice
+	t            PriceType
+	flat         *FlatPrice
+	unit         *UnitPrice
+	tiered       *TieredPrice
+	percentage   *PercentagePrice
+	packagePrice *PackagePrice
 }
 
 func (p *Price) MarshalJSON() ([]byte, error) {
@@ -104,6 +114,22 @@ func (p *Price) MarshalJSON() ([]byte, error) {
 		}{
 			Type:        p.t,
 			TieredPrice: p.tiered,
+		}
+	case PercentagePriceType:
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*PercentagePrice
+		}{
+			Type:            p.t,
+			PercentagePrice: p.percentage,
+		}
+	case PackagePriceType:
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*PackagePrice
+		}{
+			Type:         p.t,
+			PackagePrice: p.packagePrice,
 		}
 	default:
 		return nil, fmt.Errorf("invalid Price type: %s", p.t)
@@ -151,6 +177,22 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 
 		p.tiered = v
 		p.t = TieredPriceType
+	case PercentagePriceType:
+		v := &PercentagePrice{}
+		if err := json.Unmarshal(bytes, v); err != nil {
+			return fmt.Errorf("failed to json unmarshal PercentagePrice: %w", err)
+		}
+
+		p.percentage = v
+		p.t = PercentagePriceType
+	case PackagePriceType:
+		v := &PackagePrice{}
+		if err := json.Unmarshal(bytes, v); err != nil {
+			return fmt.Errorf("failed to json unmarshal PackagePrice: %w", err)
+		}
+
+		p.packagePrice = v
+		p.t = PackagePriceType
 	default:
 		return fmt.Errorf("invalid Price type: %s", serde.Type)
 	}
@@ -166,6 +208,10 @@ func (p *Price) Validate() error {
 		return p.unit.Validate()
 	case TieredPriceType:
 		return p.tiered.Validate()
+	case PercentagePriceType:
+		return p.percentage.Validate()
+	case PackagePriceType:
+		return p.packagePrice.Validate()
 	default:
 		return errors.New("invalid Price: not initialized")
 	}
@@ -190,6 +236,10 @@ func (p *Price) Equal(v *Price) bool {
 		return p.unit.Equal(v.unit)
 	case TieredPriceType:
 		return p.tiered.Equal(v.tiered)
+	case PercentagePriceType:
+		return p.percentage.Equal(v.percentage)
+	case PackagePriceType:
+		return p.packagePrice.Equal(v.packagePrice)
 	default:
 		return false
 	}
@@ -235,6 +285,30 @@ func (p *Price) AsTiered() (TieredPrice, error) {
 	return *p.tiered, nil
 }
 
+func (p *Price) AsPercentage() (PercentagePrice, error) {
+	if p.t == "" || p.percentage == nil {
+		return PercentagePrice{}, errors.New("invalid PercentagePrice: not initialized")
+	}
+
+	if p.t != PercentagePriceType {
+		return PercentagePrice{}, fmt.Errorf("type mismatch: %s", p.t)
+	}
+
+	return *p.percentage, nil
+}
+
+func (p *Price) AsPackage() (PackagePrice, error) {
+	if p.t == "" || p.packagePrice == nil {
+		return PackagePrice{}, errors.New("invalid PackagePrice: not initialized")
+	}
+
+	if p.t != PackagePriceType {
+		return PackagePrice{}, fmt.Errorf("type mismatch: %s", p.t)
+	}
+
+	return *p.packagePrice, nil
+}
+
 func (p *Price) FromFlat(price FlatPrice) {
 	p.flat = &price
 	p.t = FlatPriceType
@@ -250,7 +324,17 @@ func (p *Price) FromTiered(price TieredPrice) {
 	p.t = TieredPriceType
 }
 
-func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) *Price {
+func (p *Price) FromPercentage(price PercentagePrice) {
+	p.percentage = &price
+	p.t = PercentagePriceType
+}
+
+func (p *Price) FromPackage(price PackagePrice) {
+	p.packagePrice = &price
+	p.t = PackagePriceType
+}
+
+func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | PercentagePrice | PackagePrice](v T) *Price {
 	p := &Price{}
 
 	switch any(v).(type) {
@@ -263,6 +347,12 @@ func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) *Price {
 	case TieredPrice:
 		tiered := any(v).(TieredPrice)
 		p.FromTiered(tiered)
+	case PercentagePrice:
+		percentage := any(v).(PercentagePrice)
+		p.FromPercentage(percentage)
+	case PackagePrice:
+		packagePrice := any(v).(PackagePrice)
+		p.FromPackage(packagePrice)
 	}
 
 	return p
@@ -629,4 +719,66 @@ func (u PriceTierUnitPrice) Validate() error {
 	}
 
 	return nil
+}
+
+var _ models.Validator = (*PercentagePrice)(nil)
+
+type PercentagePrice struct {
+	// MarkupPercentage defines the percentage of the markup of the price.
+	MarkupPercentage models.Percentage `json:"markupPercentage"`
+}
+
+func (p PercentagePrice) Validate() error {
+	if p.MarkupPercentage.LessThan(decimal.NewFromInt(-100)) {
+		return models.NewGenericValidationError(errors.New("the markup percentage must not be less than -100%"))
+	}
+
+	return nil
+}
+
+func (p *PercentagePrice) Equal(v *PercentagePrice) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	return p.MarkupPercentage.Equal(v.MarkupPercentage)
+}
+
+var _ models.Validator = (*PackagePrice)(nil)
+
+type PackagePrice struct {
+	Amount             decimal.Decimal `json:"amount"`
+	QuantityPerPackage decimal.Decimal `json:"quantityPerPackage"`
+}
+
+func (p PackagePrice) Validate() error {
+	if p.Amount.IsNegative() {
+		return models.NewGenericValidationError(errors.New("the Amount must not be negative"))
+	}
+
+	if p.QuantityPerPackage.IsNegative() {
+		return models.NewGenericValidationError(errors.New("the QuantityPerPackage must not be negative"))
+	}
+
+	if p.QuantityPerPackage.IsZero() {
+		return models.NewGenericValidationError(errors.New("the QuantityPerPackage must not be zero"))
+	}
+
+	return nil
+}
+
+func (p *PackagePrice) Equal(v *PackagePrice) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	return p.Amount.Equal(v.Amount) && p.QuantityPerPackage.Equal(v.QuantityPerPackage)
 }

@@ -6050,6 +6050,34 @@ export interface components {
       | 'invalid_scope'
       | 'server_error'
       | 'temporarily_unavailable'
+    /** @description Package price with spend commitments. */
+    PackagePriceWithCommitments: {
+      /**
+       * @description The type of the price. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'package'
+      /**
+       * Amount
+       * @description The price of one package.
+       */
+      amount: components['schemas']['Numeric']
+      /**
+       * Quantity per package
+       * @description The quantity per package.
+       */
+      quantityPerPackage: components['schemas']['Numeric']
+      /**
+       * Minimum amount
+       * @description The customer is committed to spend at least the amount.
+       */
+      minimumAmount?: components['schemas']['Numeric']
+      /**
+       * Maximum amount
+       * @description The customer is limited to spend at most the amount.
+       */
+      maximumAmount?: components['schemas']['Numeric']
+    }
     /** @description PaymentDueDate contains an amount that should be paid by the given date. */
     PaymentDueDate: {
       /**
@@ -6105,6 +6133,34 @@ export interface components {
      * @example 50
      */
     Percentage: number
+    /** @description Percentage price with spend commitments. */
+    PercentagePriceWithCommitments: {
+      /**
+       * @description The type of the price. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'percentage'
+      /**
+       * Percentage
+       * @description The percentage of the markup of the price.
+       *
+       *     Examples:
+       *     - 0: the price is the same as the base price
+       *     - 100: the price is 2x the base price
+       *     - -50: the price is half of the base price
+       */
+      markupPercentage: components['schemas']['Percentage']
+      /**
+       * Minimum amount
+       * @description The customer is committed to spend at least the amount.
+       */
+      minimumAmount?: components['schemas']['Numeric']
+      /**
+       * Maximum amount
+       * @description The customer is limited to spend at most the amount.
+       */
+      maximumAmount?: components['schemas']['Numeric']
+    }
     /** @description A period with a start and end time. */
     Period: {
       /**
@@ -6686,6 +6742,8 @@ export interface components {
       | components['schemas']['FlatPriceWithPaymentTerm']
       | components['schemas']['UnitPriceWithCommitments']
       | components['schemas']['TieredPriceWithCommitments']
+      | components['schemas']['PercentagePriceWithCommitments']
+      | components['schemas']['PackagePriceWithCommitments']
     /**
      * @description Recurring period with an interval and an anchor.
      * @example {
@@ -8378,11 +8436,15 @@ export type NotificationRulePaginatedResponse =
 export type Numeric = components['schemas']['Numeric']
 export type OAuth2AuthorizationCodeGrantErrorType =
   components['schemas']['OAuth2AuthorizationCodeGrantErrorType']
+export type PackagePriceWithCommitments =
+  components['schemas']['PackagePriceWithCommitments']
 export type PaymentDueDate = components['schemas']['PaymentDueDate']
 export type PaymentTermDueDate = components['schemas']['PaymentTermDueDate']
 export type PaymentTermInstant = components['schemas']['PaymentTermInstant']
 export type PaymentTerms = components['schemas']['PaymentTerms']
 export type Percentage = components['schemas']['Percentage']
+export type PercentagePriceWithCommitments =
+  components['schemas']['PercentagePriceWithCommitments']
 export type Period = components['schemas']['Period']
 export type Plan = components['schemas']['Plan']
 export type PlanCreate = components['schemas']['PlanCreate']

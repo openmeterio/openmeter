@@ -8,6 +8,8 @@ enum PriceType {
   flat: "flat",
   unit: "unit",
   tiered: "tiered",
+  percentage: "percentage",
+  package: "package",
 }
 
 /**
@@ -25,6 +27,12 @@ union Price {
 
   @summary("Tiered price")
   tiered: TieredPrice,
+
+  @summary("Percentage price")
+  percentage: PercentagePrice,
+
+  @summary("Package price")
+  package: PackagePrice,
 }
 
 /**
@@ -172,6 +180,66 @@ model PriceTier {
 }
 
 /**
+ * Percentage price.
+ *
+ * The quantity is expected to contain amounts in the customer's currency.
+ *
+ * The percentage specifies the markup over the price.
+ */
+@friendlyName("PercentagePrice")
+model PercentagePrice {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.percentage;
+
+  /**
+   * The percentage of the markup of the price.
+   *
+   * Examples:
+   * - 0: the price is the same as the base price
+   * - 100: the price is 2x the base price
+   * - -50: the price is half of the base price
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Percentage")
+  @minValue(-100) // We allow to sell cheaper, but only until we are not going negative
+  markupPercentage: Percentage;
+}
+
+/**
+ * Package price.
+ *
+ * The item is sold in packages. Each package contains quantityPerPackage items, and has a price
+ * of amount.
+ *
+ * For example, if the amount $10, and the quantity per package is 20, then the price of 98 items will be 5*$10.
+ */
+@friendlyName("PackagePrice")
+model PackagePrice {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.package;
+
+  /**
+   * The price of one package.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Amount")
+  amount: Money;
+
+  /**
+   * The quantity per package.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Quantity per package")
+  quantityPerPackage: Numeric;
+}
+
+/**
  * Spending commitments.
  * The customer is committed to spend at least the minimum amount and at most the maximum amount.
  */
@@ -207,5 +275,23 @@ model UnitPriceWithCommitments {
 @friendlyName("TieredPriceWithCommitments")
 model TieredPriceWithCommitments {
   ...TieredPrice;
+  ...SpendCommitments;
+}
+
+/**
+ * Percentage price with spend commitments.
+ */
+@friendlyName("PercentagePriceWithCommitments")
+model PercentagePriceWithCommitments {
+  ...PercentagePrice;
+  ...SpendCommitments;
+}
+
+/**
+ * Package price with spend commitments.
+ */
+@friendlyName("PackagePriceWithCommitments")
+model PackagePriceWithCommitments {
+  ...PackagePrice;
   ...SpendCommitments;
 }

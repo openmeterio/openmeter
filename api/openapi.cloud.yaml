@@ -14923,6 +14923,39 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
+    PackagePriceWithCommitments:
+      type: object
+      required:
+        - type
+        - amount
+        - quantityPerPackage
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The price of one package.
+          title: Amount
+        quantityPerPackage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity per package.
+          title: Quantity per package
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Package price with spend commitments.
     PaymentDueDate:
       type: object
       required:
@@ -15016,6 +15049,40 @@ components:
       example: 50
       x-go-package: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.Percentage
+    PercentagePriceWithCommitments:
+      type: object
+      required:
+        - type
+        - markupPercentage
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the price.
+        markupPercentage:
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
+          minimum: -100
+          description: |-
+            The percentage of the markup of the price.
+
+            Examples:
+            - 0: the price is the same as the base price
+            - 100: the price is 2x the base price
+            - -50: the price is half of the base price
+          title: Percentage
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Percentage price with spend commitments.
     Period:
       type: object
       required:
@@ -15830,12 +15897,16 @@ components:
         - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
         - $ref: '#/components/schemas/UnitPriceWithCommitments'
         - $ref: '#/components/schemas/TieredPriceWithCommitments'
+        - $ref: '#/components/schemas/PercentagePriceWithCommitments'
+        - $ref: '#/components/schemas/PackagePriceWithCommitments'
       discriminator:
         propertyName: type
         mapping:
           flat: '#/components/schemas/FlatPriceWithPaymentTerm'
           unit: '#/components/schemas/UnitPriceWithCommitments'
           tiered: '#/components/schemas/TieredPriceWithCommitments'
+          percentage: '#/components/schemas/PercentagePriceWithCommitments'
+          package: '#/components/schemas/PackagePriceWithCommitments'
       description: The price of the usage based rate card.
     RecurringPeriod:
       type: object

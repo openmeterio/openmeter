@@ -130,6 +130,8 @@ union RateCardUsageBasedPrice {
   flat: FlatPriceWithPaymentTerm,
   unit: UnitPriceWithCommitments,
   tiered: TieredPriceWithCommitments,
+  percentage: PercentagePriceWithCommitments,
+  package: PackagePriceWithCommitments,
 }
 
 /**
