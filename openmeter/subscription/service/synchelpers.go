@@ -36,7 +36,13 @@ func (s *service) createPhase(
 		for key, itemSpecs := range phaseSpec.ItemsByKey {
 			itemsByKey := make([]subscription.SubscriptionItemView, 0, len(itemSpecs))
 			for _, itemSpec := range itemSpecs {
-				item, err := s.createItem(ctx, cust, *itemSpec, phase, cadence)
+				item, err := s.createItem(ctx, createItemOptions{
+					cust:         cust,
+					sub:          sub,
+					phase:        phase,
+					phaseCadence: cadence,
+					itemSpec:     *itemSpec,
+				})
 				if err != nil {
 					return res, fmt.Errorf("failed to create item: %w", err)
 				}
@@ -54,27 +60,36 @@ func (s *service) createPhase(
 	})
 }
 
+type createItemOptions struct {
+	cust         customer.Customer
+	sub          subscription.Subscription
+	phase        subscription.SubscriptionPhase
+	phaseCadence models.CadencedModel
+	itemSpec     subscription.SubscriptionItemSpec
+}
+
 func (s *service) createItem(
 	ctx context.Context,
-	cust customer.Customer,
-	itemSpec subscription.SubscriptionItemSpec,
-	phase subscription.SubscriptionPhase,
-	phaseCadence models.CadencedModel,
+	opts createItemOptions,
 ) (subscription.SubscriptionItemView, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionItemView, error) {
 		res := subscription.SubscriptionItemView{
-			Spec: itemSpec,
+			Spec: opts.itemSpec,
 		}
 
-		itemCadence := itemSpec.GetCadence(phaseCadence)
+		itemCadence := opts.itemSpec.GetCadence(opts.phaseCadence)
 
 		// First, let's see if we need to create an entitlement
-		entInput, hasEnt, err := itemSpec.ToScheduleSubscriptionEntitlementInput(
-			cust,
-			itemCadence,
+		entInput, hasEnt, err := opts.itemSpec.ToScheduleSubscriptionEntitlementInput(
+			subscription.ToScheduleSubscriptionEntitlementInputOptions{
+				Customer:     opts.cust,
+				Cadence:      itemCadence,
+				PhaseCadence: opts.phaseCadence,
+				IsAligned:    opts.sub.BillablesMustAlign,
+			},
 		)
 		if err != nil {
-			return res, fmt.Errorf("failed to determine entitlement input for item %s: %w", itemSpec.ItemKey, err)
+			return res, fmt.Errorf("failed to determine entitlement input for item %s: %w", opts.itemSpec.ItemKey, err)
 		}
 
 		var newEnt *entitlement.Entitlement
@@ -90,9 +105,9 @@ func (s *service) createItem(
 		}
 
 		// Second, let's create the item itself
-		itemEntityInput, err := itemSpec.ToCreateSubscriptionItemEntityInput(
-			phase.NamespacedID,
-			phaseCadence,
+		itemEntityInput, err := opts.itemSpec.ToCreateSubscriptionItemEntityInput(
+			opts.phase.NamespacedID,
+			opts.phaseCadence,
 			newEnt,
 		)
 		if err != nil {
