@@ -10685,7 +10685,8 @@ components:
           description: The type of the discount.
           title: Type
         percentage:
-          type: number
+          allOf:
+            - $ref: '#/components/schemas/Percentage'
           minimum: 0
           maximum: 100
           description: The percentage of the discount.
@@ -15006,9 +15007,15 @@ components:
         - $ref: '#/components/schemas/PaymentTermDueDate'
       description: PaymentTerms defines the terms for payment.
     Percentage:
-      type: string
-      pattern: ^\-?[0-9]+(\.[0-9]+)?%$
-      description: Numeric representation of a percentage
+      type: number
+      format: double
+      description: |-
+        Numeric representation of a percentage
+
+        50% is represented as 50
+      example: 50
+      x-go-package: github.com/openmeterio/openmeter/pkg/models
+      x-go-type: models.Percentage
     Period:
       type: object
       required:

@@ -167,7 +167,7 @@ var (
 
 type PercentageDiscount struct {
 	// Percentage defines percentage of the discount.
-	Percentage decimal.Decimal `json:"percentage"`
+	Percentage models.Percentage `json:"percentage"`
 
 	// RateCards is the list of specific RateCard Keys the discount is applied to.
 	// If not provided the discount applies to all RateCards in Phase.
