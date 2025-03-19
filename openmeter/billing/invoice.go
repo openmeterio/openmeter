@@ -793,6 +793,10 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 		return fmt.Errorf("profile: %w", err)
 	}
 
+	if c.Profile.Apps == nil {
+		return errors.New("profile: apps must be expanded")
+	}
+
 	if err := c.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
 	}
