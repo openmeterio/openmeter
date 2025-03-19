@@ -14,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
+const defaultStripeCustomerID = "cus_123"
+
 func NewFixture(
 	app app.Service,
 	customer customer.Service,
@@ -106,7 +108,7 @@ func (s *Fixture) setupCustomer(ctx context.Context, namespace string) (*custome
 // Add customer data to the app
 func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App, customer *customer.Customer) (appstripeentity.CustomerData, error) {
 	data := appstripeentity.CustomerData{
-		StripeCustomerID: "cus_123",
+		StripeCustomerID: defaultStripeCustomerID,
 	}
 
 	s.stripeAppClient.
@@ -115,7 +117,6 @@ func (s *Fixture) setupAppCustomerData(ctx context.Context, customerApp app.App,
 			StripeCustomerID: data.StripeCustomerID,
 		}, nil)
 
-	// TODO: do not share env between tests
 	defer s.stripeAppClient.Restore()
 
 	err := customerApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{

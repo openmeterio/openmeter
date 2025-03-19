@@ -28,6 +28,7 @@ import (
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -95,6 +96,10 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 
 	// Fixture
 	s.Fixture = NewFixture(s.AppService, s.CustomerService, stripeClient, stripeAppClient)
+}
+
+func (s *StripeInvoiceTestSuite) TearDownTest() {
+	s.StripeAppClient.Restore()
 }
 
 type ubpFeatures struct {
@@ -856,6 +861,226 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// Assert invoice is created in stripe.
 		s.StripeAppClient.AssertExpectations(s.T())
 	})
+}
+
+func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
+	// Given we have a test customer and an UBP line without usage priced at 0
+	// we can create the invoice and even if there are no detailed lines the validation
+	// errors should be empty
+
+	namespace := "ns-empty-invoice-generation"
+	ctx := context.Background()
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z"))
+	clock.SetTime(periodStart)
+	defer clock.ResetTime()
+
+	_ = s.InstallSandboxApp(s.T(), namespace)
+
+	meterSlug := "flat-per-unit"
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+		{
+			ManagedResource: models.ManagedResource{
+				ID: ulid.Make().String(),
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Flat per unit",
+			},
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		},
+	})
+	s.NoError(err, "failed to replace meters")
+
+	defer func() {
+		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.NoError(err, "failed to replace meters")
+	}()
+
+	// Let's initialize the mock streaming connector with data that is out of the period so that we
+	// can start with empty values
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+
+	defer s.MockStreamingConnector.Reset()
+
+	flatPerUnitFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "flat-per-unit",
+		Key:       "flat-per-unit",
+		MeterSlug: lo.ToPtr("flat-per-unit"),
+	}))
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:     "Test Customer",
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"test"},
+			},
+		},
+	})
+	s.NoError(err)
+	s.NotNil(customerEntity)
+	s.NotEmpty(customerEntity.ID)
+
+	app, err := s.Fixture.setupApp(ctx, namespace)
+	s.NoError(err)
+
+	// Given we have a default profile for the namespace
+	minimalCreateProfileInput := billingtest.MinimalCreateProfileInputTemplate
+	minimalCreateProfileInput.Namespace = namespace
+	minimalCreateProfileInput.Apps = billing.CreateProfileAppsInput{
+		Tax: billing.AppReference{
+			ID: app.GetID().ID,
+		},
+		Invoicing: billing.AppReference{
+			ID: app.GetID().ID,
+		},
+		Payment: billing.AppReference{
+			ID: app.GetID().ID,
+		},
+	}
+	// manual advancement for testing the update invoice flow
+	minimalCreateProfileInput.WorkflowConfig.Invoicing.AutoAdvance = false
+
+	profile, err := s.BillingService.CreateProfile(ctx, minimalCreateProfileInput)
+
+	s.NoError(err)
+	s.NotNil(profile)
+
+	// Setup the app with the customer
+
+	customerData, err := s.Fixture.setupAppCustomerData(ctx, app, customerEntity)
+	s.NoError(err)
+	s.NotNil(customerData)
+
+	s.StripeAppClient.
+		On("GetCustomer", defaultStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+				ID:    "pm_123",
+				Name:  "ACME Inc.",
+				Email: "acme@test.com",
+				BillingAddress: &models.Address{
+					City:       lo.ToPtr("San Francisco"),
+					PostalCode: lo.ToPtr("94103"),
+					State:      lo.ToPtr("CA"),
+					Country:    lo.ToPtr(models.CountryCode("US")),
+					Line1:      lo.ToPtr("123 Market St"),
+				},
+			},
+		}, nil)
+
+	defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: namespace,
+	})
+	s.NoError(err)
+	// The default profile should be the same as the app
+	s.Equal(defaultProfile.Apps.Invoicing.GetType(), app.GetType())
+
+	// Given we have pending invoice items without usage
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreateInvoiceLinesInput{
+			Namespace: namespace,
+			Lines: []billing.LineWithCustomer{
+				{
+					Line: billing.Line{
+						LineBase: billing.LineBase{
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							Currency:  currencyx.Code(currency.USD),
+							ManagedBy: billing.ManuallyManagedLine,
+							Type:      billing.InvoiceLineTypeUsageBased,
+							Name:      "UBP - FLAT per unit",
+						},
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: flatPerUnitFeature.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(0),
+							}),
+						},
+					},
+					CustomerID: customerEntity.ID,
+				},
+			},
+		},
+	)
+	s.NoError(err)
+	s.Len(pendingLines, 1)
+
+	clock.SetTime(periodEnd.Add(time.Minute))
+
+	s.StripeAppClient.
+		On("CreateInvoice", stripeclient.CreateInvoiceInput{
+			AutomaticTaxEnabled: true,
+			StripeCustomerID:    customerData.StripeCustomerID,
+			Currency:            "USD",
+		}).
+		Return(&stripe.Invoice{
+			ID: "stripe-invoice-id",
+			Customer: &stripe.Customer{
+				ID: customerData.StripeCustomerID,
+			},
+			Currency: "USD",
+			Lines: &stripe.InvoiceLineItemList{
+				Data: []*stripe.InvoiceLineItem{},
+			},
+		}, nil)
+
+	// When we generate the invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	invoice := invoices[0]
+
+	// Then the invoice should have the UBP line with 0 amount
+	lines := invoice.Lines.OrEmpty()
+	s.Len(lines, 1)
+	line := lines[0]
+	s.Equal(line.Name, "UBP - FLAT per unit")
+	s.Equal(float64(0), lines[0].Totals.Total.InexactFloat64())
+	s.Len(invoice.ValidationIssues, 0)
+
+	// Editing the invoice should also work
+	s.StripeAppClient.
+		On("UpdateInvoice", stripeclient.UpdateInvoiceInput{
+			StripeInvoiceID: invoice.ExternalIDs.Invoicing,
+		}).
+		Return(&stripe.Invoice{
+			ID: "stripe-invoice-id",
+			Customer: &stripe.Customer{
+				ID: customerData.StripeCustomerID,
+			},
+			Currency: "USD",
+			Lines: &stripe.InvoiceLineItemList{
+				Data: []*stripe.InvoiceLineItem{},
+			},
+		}, nil)
+
+	invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		Invoice: invoice.InvoiceID(),
+		EditFn: func(i *billing.Invoice) error {
+			i.Supplier.Name = "ACME Inc. (updated)"
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	s.Equal("ACME Inc. (updated)", invoice.Supplier.Name)
+	s.Equal(billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 }
 
 func mapInvoiceItemParamsToInvoiceItem(id string, i *stripe.InvoiceItemParams) stripeclient.StripeInvoiceItemWithLineID {

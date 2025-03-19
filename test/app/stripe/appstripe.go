@@ -563,9 +563,9 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 
 	// Mocks
 	s.Env.StripeAppClient().
-		On("GetCustomer", "cus_123").
+		On("GetCustomer", defaultStripeCustomerID).
 		Return(stripeclient.StripeCustomer{
-			StripeCustomerID: "cus_123",
+			StripeCustomerID: defaultStripeCustomerID,
 			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
 				ID:    "pm_123",
 				Name:  "ACME Inc.",
@@ -614,7 +614,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		On("CreateCheckoutSession", stripeclient.CreateCheckoutSessionInput{
 			AppID:            appID,
 			CustomerID:       customerID,
-			StripeCustomerID: "cus_123",
+			StripeCustomerID: defaultStripeCustomerID,
 			Options:          api.CreateStripeCheckoutSessionRequestOptions{},
 		}).
 		Return(stripeclient.StripeCheckoutSession{
@@ -638,7 +638,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 
 	require.Equal(t, appstripeentity.CreateCheckoutSessionOutput{
 		CustomerID:       testCustomer.GetID(),
-		StripeCustomerID: "cus_123",
+		StripeCustomerID: defaultStripeCustomerID,
 		StripeCheckoutSession: stripeclient.StripeCheckoutSession{
 			SessionID:     "cs_123",
 			SetupIntentID: "seti_123",
@@ -684,7 +684,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		On("CreateCheckoutSession", stripeclient.CreateCheckoutSessionInput{
 			AppID:            appID,
 			CustomerID:       customerID,
-			StripeCustomerID: "cus_123",
+			StripeCustomerID: defaultStripeCustomerID,
 			Options: api.CreateStripeCheckoutSessionRequestOptions{
 				Currency: lo.ToPtr("usd"),
 			},

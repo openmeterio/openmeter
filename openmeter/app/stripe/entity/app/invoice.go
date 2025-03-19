@@ -193,13 +193,19 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	// TODO: use invoice summaries to group lines when Stripe supports it
 	sortInvoiceLines(stripeLineAdd)
 
-	// Add Stripe line items to the Stripe invoice
-	newLines, err := stripeClient.AddInvoiceLines(ctx, stripeclient.AddInvoiceLinesInput{
-		StripeInvoiceID: stripeInvoice.ID,
-		Lines:           stripeLineAdd,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to add line items to invoice in stripe: %w", err)
+	newLines := []stripeclient.StripeInvoiceItemWithLineID{}
+
+	// It is valid to have an invoice with no lines: this signifies that the customer has no outstanding
+	// charges.
+	if len(stripeLineAdd) > 0 {
+		// Add Stripe line items to the Stripe invoice
+		newLines, err = stripeClient.AddInvoiceLines(ctx, stripeclient.AddInvoiceLinesInput{
+			StripeInvoiceID: stripeInvoice.ID,
+			Lines:           stripeLineAdd,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to add line items to invoice in stripe: %w", err)
+		}
 	}
 
 	// Add external line IDs
