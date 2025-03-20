@@ -10704,6 +10704,40 @@ components:
             When not specified, the discount applies to all rate cards.
           title: Discounted RateCards
       description: Percentage discount.
+    DynamicPriceWithCommitments:
+      type: object
+      required:
+        - type
+        - markupRate
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the price.
+        markupRate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The rate to apply to the base price to get the dynamic price.
+
+            Examples:
+            - 0.0: the price is zero
+            - 0.5: the price is 50% of the base price
+            - 1.0: the price is the same as the base price
+            - 1.5: the price is 150% of the base price
+          title: The rate to apply to the base price to get the dynamic price
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Dynamic price with spend commitments.
     EditSubscriptionAddItem:
       type: object
       required:
@@ -15049,40 +15083,6 @@ components:
       example: 50
       x-go-package: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.Percentage
-    PercentagePriceWithCommitments:
-      type: object
-      required:
-        - type
-        - markupPercentage
-      properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the price.
-        markupPercentage:
-          allOf:
-            - $ref: '#/components/schemas/Percentage'
-          minimum: -100
-          description: |-
-            The percentage of the markup of the price.
-
-            Examples:
-            - 0: the price is the same as the base price
-            - 100: the price is 2x the base price
-            - -50: the price is half of the base price
-          title: Percentage
-        minimumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is committed to spend at least the amount.
-          title: Minimum amount
-        maximumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is limited to spend at most the amount.
-          title: Maximum amount
-      description: Percentage price with spend commitments.
     Period:
       type: object
       required:
@@ -15897,7 +15897,7 @@ components:
         - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
         - $ref: '#/components/schemas/UnitPriceWithCommitments'
         - $ref: '#/components/schemas/TieredPriceWithCommitments'
-        - $ref: '#/components/schemas/PercentagePriceWithCommitments'
+        - $ref: '#/components/schemas/DynamicPriceWithCommitments'
         - $ref: '#/components/schemas/PackagePriceWithCommitments'
       discriminator:
         propertyName: type
@@ -15905,7 +15905,7 @@ components:
           flat: '#/components/schemas/FlatPriceWithPaymentTerm'
           unit: '#/components/schemas/UnitPriceWithCommitments'
           tiered: '#/components/schemas/TieredPriceWithCommitments'
-          percentage: '#/components/schemas/PercentagePriceWithCommitments'
+          percentage: '#/components/schemas/DynamicPriceWithCommitments'
           package: '#/components/schemas/PackagePriceWithCommitments'
       description: The price of the usage based rate card.
     RecurringPeriod:

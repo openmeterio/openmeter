@@ -37,11 +37,11 @@ func (p PaymentTermType) StringValues() []string {
 }
 
 const (
-	FlatPriceType       PriceType = "flat"
-	UnitPriceType       PriceType = "unit"
-	TieredPriceType     PriceType = "tiered"
-	PercentagePriceType PriceType = "percentage"
-	PackagePriceType    PriceType = "package"
+	FlatPriceType    PriceType = "flat"
+	UnitPriceType    PriceType = "unit"
+	TieredPriceType  PriceType = "tiered"
+	DynamicPriceType PriceType = "dynamic"
+	PackagePriceType PriceType = "package"
 )
 
 type PriceType string
@@ -51,7 +51,7 @@ func (p PriceType) Values() []string {
 		string(FlatPriceType),
 		string(UnitPriceType),
 		string(TieredPriceType),
-		string(PercentagePriceType),
+		string(DynamicPriceType),
 		string(PackagePriceType),
 	}
 }
@@ -65,12 +65,12 @@ type pricer interface {
 	AsFlat() (FlatPrice, error)
 	AsUnit() (UnitPrice, error)
 	AsTiered() (TieredPrice, error)
-	AsPercentage() (PercentagePrice, error)
+	AsDynamic() (DynamicPrice, error)
 	AsPackage() (PackagePrice, error)
 	FromFlat(FlatPrice)
 	FromUnit(UnitPrice)
 	FromTiered(TieredPrice)
-	FromPercentage(PercentagePrice)
+	FromDynamic(DynamicPrice)
 	FromPackage(PackagePrice)
 }
 
@@ -81,7 +81,7 @@ type Price struct {
 	flat         *FlatPrice
 	unit         *UnitPrice
 	tiered       *TieredPrice
-	percentage   *PercentagePrice
+	dynamic      *DynamicPrice
 	packagePrice *PackagePrice
 }
 
@@ -115,13 +115,13 @@ func (p *Price) MarshalJSON() ([]byte, error) {
 			Type:        p.t,
 			TieredPrice: p.tiered,
 		}
-	case PercentagePriceType:
+	case DynamicPriceType:
 		serde = &struct {
 			Type PriceType `json:"type"`
-			*PercentagePrice
+			*DynamicPrice
 		}{
-			Type:            p.t,
-			PercentagePrice: p.percentage,
+			Type:         p.t,
+			DynamicPrice: p.dynamic,
 		}
 	case PackagePriceType:
 		serde = &struct {
@@ -177,14 +177,14 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 
 		p.tiered = v
 		p.t = TieredPriceType
-	case PercentagePriceType:
-		v := &PercentagePrice{}
+	case DynamicPriceType:
+		v := &DynamicPrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to json unmarshal PercentagePrice: %w", err)
+			return fmt.Errorf("failed to json unmarshal DynamicPrice: %w", err)
 		}
 
-		p.percentage = v
-		p.t = PercentagePriceType
+		p.dynamic = v
+		p.t = DynamicPriceType
 	case PackagePriceType:
 		v := &PackagePrice{}
 		if err := json.Unmarshal(bytes, v); err != nil {
@@ -208,8 +208,8 @@ func (p *Price) Validate() error {
 		return p.unit.Validate()
 	case TieredPriceType:
 		return p.tiered.Validate()
-	case PercentagePriceType:
-		return p.percentage.Validate()
+	case DynamicPriceType:
+		return p.dynamic.Validate()
 	case PackagePriceType:
 		return p.packagePrice.Validate()
 	default:
@@ -236,8 +236,8 @@ func (p *Price) Equal(v *Price) bool {
 		return p.unit.Equal(v.unit)
 	case TieredPriceType:
 		return p.tiered.Equal(v.tiered)
-	case PercentagePriceType:
-		return p.percentage.Equal(v.percentage)
+	case DynamicPriceType:
+		return p.dynamic.Equal(v.dynamic)
 	case PackagePriceType:
 		return p.packagePrice.Equal(v.packagePrice)
 	default:
@@ -285,16 +285,16 @@ func (p *Price) AsTiered() (TieredPrice, error) {
 	return *p.tiered, nil
 }
 
-func (p *Price) AsPercentage() (PercentagePrice, error) {
-	if p.t == "" || p.percentage == nil {
-		return PercentagePrice{}, errors.New("invalid PercentagePrice: not initialized")
+func (p *Price) AsDynamic() (DynamicPrice, error) {
+	if p.t == "" || p.dynamic == nil {
+		return DynamicPrice{}, errors.New("invalid DynamicPrice: not initialized")
 	}
 
-	if p.t != PercentagePriceType {
-		return PercentagePrice{}, fmt.Errorf("type mismatch: %s", p.t)
+	if p.t != DynamicPriceType {
+		return DynamicPrice{}, fmt.Errorf("type mismatch: %s", p.t)
 	}
 
-	return *p.percentage, nil
+	return *p.dynamic, nil
 }
 
 func (p *Price) AsPackage() (PackagePrice, error) {
@@ -324,9 +324,9 @@ func (p *Price) FromTiered(price TieredPrice) {
 	p.t = TieredPriceType
 }
 
-func (p *Price) FromPercentage(price PercentagePrice) {
-	p.percentage = &price
-	p.t = PercentagePriceType
+func (p *Price) FromDynamic(price DynamicPrice) {
+	p.dynamic = &price
+	p.t = DynamicPriceType
 }
 
 func (p *Price) FromPackage(price PackagePrice) {
@@ -334,7 +334,7 @@ func (p *Price) FromPackage(price PackagePrice) {
 	p.t = PackagePriceType
 }
 
-func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | PercentagePrice | PackagePrice](v T) *Price {
+func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | DynamicPrice | PackagePrice](v T) *Price {
 	p := &Price{}
 
 	switch any(v).(type) {
@@ -347,9 +347,9 @@ func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | PercentagePrice | Pack
 	case TieredPrice:
 		tiered := any(v).(TieredPrice)
 		p.FromTiered(tiered)
-	case PercentagePrice:
-		percentage := any(v).(PercentagePrice)
-		p.FromPercentage(percentage)
+	case DynamicPrice:
+		dynamic := any(v).(DynamicPrice)
+		p.FromDynamic(dynamic)
 	case PackagePrice:
 		packagePrice := any(v).(PackagePrice)
 		p.FromPackage(packagePrice)
@@ -721,22 +721,22 @@ func (u PriceTierUnitPrice) Validate() error {
 	return nil
 }
 
-var _ models.Validator = (*PercentagePrice)(nil)
+var _ models.Validator = (*DynamicPrice)(nil)
 
-type PercentagePrice struct {
-	// MarkupPercentage defines the percentage of the markup of the price.
-	MarkupPercentage models.Percentage `json:"markupPercentage"`
+type DynamicPrice struct {
+	// MarkupRate defines the rate of the markup of the price.
+	MarkupRate decimal.Decimal `json:"markupRate"`
 }
 
-func (p PercentagePrice) Validate() error {
-	if p.MarkupPercentage.LessThan(decimal.NewFromInt(-100)) {
-		return models.NewGenericValidationError(errors.New("the markup percentage must not be less than -100%"))
+func (p DynamicPrice) Validate() error {
+	if p.MarkupRate.LessThan(decimal.Zero) {
+		return models.NewGenericValidationError(errors.New("the markup rate must not be less than 0"))
 	}
 
 	return nil
 }
 
-func (p *PercentagePrice) Equal(v *PercentagePrice) bool {
+func (p *DynamicPrice) Equal(v *DynamicPrice) bool {
 	if p == nil && v == nil {
 		return true
 	}
@@ -745,7 +745,7 @@ func (p *PercentagePrice) Equal(v *PercentagePrice) bool {
 		return false
 	}
 
-	return p.MarkupPercentage.Equal(v.MarkupPercentage)
+	return p.MarkupRate.Equal(v.MarkupRate)
 }
 
 var _ models.Validator = (*PackagePrice)(nil)

@@ -513,9 +513,9 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					})
 				case NoPriceType:
 					pp = nil
-				case productcatalog.PercentagePriceType:
-					pp = productcatalog.NewPriceFrom(productcatalog.PercentagePrice{
-						MarkupPercentage: models.NewPercentage(100),
+				case productcatalog.DynamicPriceType:
+					pp = productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+						MarkupRate: alpacadecimal.NewFromInt(2),
 					})
 				case productcatalog.PackagePriceType:
 					pp = productcatalog.NewPriceFrom(productcatalog.PackagePrice{

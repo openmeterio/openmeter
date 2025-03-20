@@ -28,8 +28,8 @@ union Price {
   @summary("Tiered price")
   tiered: TieredPrice,
 
-  @summary("Percentage price")
-  percentage: PercentagePrice,
+  @summary("Dynamic price")
+  dynamic: DynamicPrice,
 
   @summary("Package price")
   package: PackagePrice,
@@ -180,14 +180,14 @@ model PriceTier {
 }
 
 /**
- * Percentage price.
+ * Dynamic price.
  *
  * The quantity is expected to contain amounts in the customer's currency.
  *
  * The percentage specifies the markup over the price.
  */
-@friendlyName("PercentagePrice")
-model PercentagePrice {
+@friendlyName("DynamicPrice")
+model DynamicPrice {
   /**
    * The type of the price.
    */
@@ -195,17 +195,17 @@ model PercentagePrice {
   type: PriceType.percentage;
 
   /**
-   * The percentage of the markup of the price.
+   * The rate to apply to the base price to get the dynamic price.
    *
    * Examples:
-   * - 0: the price is the same as the base price
-   * - 100: the price is 2x the base price
-   * - -50: the price is half of the base price
+   * - 0.0: the price is zero
+   * - 0.5: the price is 50% of the base price
+   * - 1.0: the price is the same as the base price
+   * - 1.5: the price is 150% of the base price
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Percentage")
-  @minValue(-100) // We allow to sell cheaper, but only until we are not going negative
-  markupPercentage: Percentage;
+  @summary("The rate to apply to the base price to get the dynamic price")
+  markupRate: Numeric;
 }
 
 /**
@@ -279,11 +279,11 @@ model TieredPriceWithCommitments {
 }
 
 /**
- * Percentage price with spend commitments.
+ * Dynamic price with spend commitments.
  */
-@friendlyName("PercentagePriceWithCommitments")
-model PercentagePriceWithCommitments {
-  ...PercentagePrice;
+@friendlyName("DynamicPriceWithCommitments")
+model DynamicPriceWithCommitments {
+  ...DynamicPrice;
   ...SpendCommitments;
 }
 

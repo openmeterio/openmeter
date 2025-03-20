@@ -2996,6 +2996,35 @@ export interface components {
        */
       rateCards?: string[]
     }
+    /** @description Dynamic price with spend commitments. */
+    DynamicPriceWithCommitments: {
+      /**
+       * @description The type of the price. (enum property replaced by openapi-typescript)
+       * @enum {string}
+       */
+      type: 'percentage'
+      /**
+       * The rate to apply to the base price to get the dynamic price
+       * @description The rate to apply to the base price to get the dynamic price.
+       *
+       *     Examples:
+       *     - 0.0: the price is zero
+       *     - 0.5: the price is 50% of the base price
+       *     - 1.0: the price is the same as the base price
+       *     - 1.5: the price is 150% of the base price
+       */
+      markupRate: components['schemas']['Numeric']
+      /**
+       * Minimum amount
+       * @description The customer is committed to spend at least the amount.
+       */
+      minimumAmount?: components['schemas']['Numeric']
+      /**
+       * Maximum amount
+       * @description The customer is limited to spend at most the amount.
+       */
+      maximumAmount?: components['schemas']['Numeric']
+    }
     /** @description Add a new item to a phase. */
     EditSubscriptionAddItem: {
       /**
@@ -6133,34 +6162,6 @@ export interface components {
      * @example 50
      */
     Percentage: number
-    /** @description Percentage price with spend commitments. */
-    PercentagePriceWithCommitments: {
-      /**
-       * @description The type of the price. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      type: 'percentage'
-      /**
-       * Percentage
-       * @description The percentage of the markup of the price.
-       *
-       *     Examples:
-       *     - 0: the price is the same as the base price
-       *     - 100: the price is 2x the base price
-       *     - -50: the price is half of the base price
-       */
-      markupPercentage: components['schemas']['Percentage']
-      /**
-       * Minimum amount
-       * @description The customer is committed to spend at least the amount.
-       */
-      minimumAmount?: components['schemas']['Numeric']
-      /**
-       * Maximum amount
-       * @description The customer is limited to spend at most the amount.
-       */
-      maximumAmount?: components['schemas']['Numeric']
-    }
     /** @description A period with a start and end time. */
     Period: {
       /**
@@ -6742,7 +6743,7 @@ export interface components {
       | components['schemas']['FlatPriceWithPaymentTerm']
       | components['schemas']['UnitPriceWithCommitments']
       | components['schemas']['TieredPriceWithCommitments']
-      | components['schemas']['PercentagePriceWithCommitments']
+      | components['schemas']['DynamicPriceWithCommitments']
       | components['schemas']['PackagePriceWithCommitments']
     /**
      * @description Recurring period with an interval and an anchor.
@@ -8228,6 +8229,8 @@ export type CustomerUsageAttribution =
   components['schemas']['CustomerUsageAttribution']
 export type Discount = components['schemas']['Discount']
 export type DiscountPercentage = components['schemas']['DiscountPercentage']
+export type DynamicPriceWithCommitments =
+  components['schemas']['DynamicPriceWithCommitments']
 export type EditSubscriptionAddItem =
   components['schemas']['EditSubscriptionAddItem']
 export type EditSubscriptionAddPhase =
@@ -8443,8 +8446,6 @@ export type PaymentTermDueDate = components['schemas']['PaymentTermDueDate']
 export type PaymentTermInstant = components['schemas']['PaymentTermInstant']
 export type PaymentTerms = components['schemas']['PaymentTerms']
 export type Percentage = components['schemas']['Percentage']
-export type PercentagePriceWithCommitments =
-  components['schemas']['PercentagePriceWithCommitments']
 export type Period = components['schemas']['Period']
 export type Plan = components['schemas']['Plan']
 export type PlanCreate = components['schemas']['PlanCreate']

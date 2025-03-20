@@ -10584,6 +10584,69 @@ components:
       enum:
         - percentage
       description: The type of the discount.
+    DynamicPrice:
+      type: object
+      required:
+        - type
+        - markupRate
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the price.
+        markupRate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The rate to apply to the base price to get the dynamic price.
+
+            Examples:
+            - 0.0: the price is zero
+            - 0.5: the price is 50% of the base price
+            - 1.0: the price is the same as the base price
+            - 1.5: the price is 150% of the base price
+          title: The rate to apply to the base price to get the dynamic price
+      description: |-
+        Dynamic price.
+
+        The quantity is expected to contain amounts in the customer's currency.
+
+        The percentage specifies the markup over the price.
+    DynamicPriceWithCommitments:
+      type: object
+      required:
+        - type
+        - markupRate
+      properties:
+        type:
+          type: string
+          enum:
+            - percentage
+          description: The type of the price.
+        markupRate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The rate to apply to the base price to get the dynamic price.
+
+            Examples:
+            - 0.0: the price is zero
+            - 0.5: the price is 50% of the base price
+            - 1.0: the price is the same as the base price
+            - 1.5: the price is 150% of the base price
+          title: The rate to apply to the base price to get the dynamic price
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Dynamic price with spend commitments.
     EditOp:
       type: string
       enum:
@@ -15257,69 +15320,6 @@ components:
       example: 50
       x-go-package: github.com/openmeterio/openmeter/pkg/models
       x-go-type: models.Percentage
-    PercentagePrice:
-      type: object
-      required:
-        - type
-        - markupPercentage
-      properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the price.
-        markupPercentage:
-          allOf:
-            - $ref: '#/components/schemas/Percentage'
-          minimum: -100
-          description: |-
-            The percentage of the markup of the price.
-
-            Examples:
-            - 0: the price is the same as the base price
-            - 100: the price is 2x the base price
-            - -50: the price is half of the base price
-          title: Percentage
-      description: |-
-        Percentage price.
-
-        The quantity is expected to contain amounts in the customer's currency.
-
-        The percentage specifies the markup over the price.
-    PercentagePriceWithCommitments:
-      type: object
-      required:
-        - type
-        - markupPercentage
-      properties:
-        type:
-          type: string
-          enum:
-            - percentage
-          description: The type of the price.
-        markupPercentage:
-          allOf:
-            - $ref: '#/components/schemas/Percentage'
-          minimum: -100
-          description: |-
-            The percentage of the markup of the price.
-
-            Examples:
-            - 0: the price is the same as the base price
-            - 100: the price is 2x the base price
-            - -50: the price is half of the base price
-          title: Percentage
-        minimumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is committed to spend at least the amount.
-          title: Minimum amount
-        maximumAmount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The customer is limited to spend at most the amount.
-          title: Maximum amount
-      description: Percentage price with spend commitments.
     Period:
       type: object
       required:
@@ -15864,7 +15864,7 @@ components:
         - $ref: '#/components/schemas/FlatPrice'
         - $ref: '#/components/schemas/UnitPrice'
         - $ref: '#/components/schemas/TieredPrice'
-        - $ref: '#/components/schemas/PercentagePrice'
+        - $ref: '#/components/schemas/DynamicPrice'
         - $ref: '#/components/schemas/PackagePrice'
       discriminator:
         propertyName: type
@@ -15872,7 +15872,7 @@ components:
           flat: '#/components/schemas/FlatPrice'
           unit: '#/components/schemas/UnitPrice'
           tiered: '#/components/schemas/TieredPrice'
-          percentage: '#/components/schemas/PercentagePrice'
+          percentage: '#/components/schemas/DynamicPrice'
           package: '#/components/schemas/PackagePrice'
       description: |-
         Price.
@@ -16279,7 +16279,7 @@ components:
         - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
         - $ref: '#/components/schemas/UnitPriceWithCommitments'
         - $ref: '#/components/schemas/TieredPriceWithCommitments'
-        - $ref: '#/components/schemas/PercentagePriceWithCommitments'
+        - $ref: '#/components/schemas/DynamicPriceWithCommitments'
         - $ref: '#/components/schemas/PackagePriceWithCommitments'
       discriminator:
         propertyName: type
@@ -16287,7 +16287,7 @@ components:
           flat: '#/components/schemas/FlatPriceWithPaymentTerm'
           unit: '#/components/schemas/UnitPriceWithCommitments'
           tiered: '#/components/schemas/TieredPriceWithCommitments'
-          percentage: '#/components/schemas/PercentagePriceWithCommitments'
+          percentage: '#/components/schemas/DynamicPriceWithCommitments'
           package: '#/components/schemas/PackagePriceWithCommitments'
       description: The price of the usage based rate card.
     RecurringPeriod:
