@@ -65,7 +65,7 @@ var (
 // PriceTypeValidator is a validator for the "price_type" field enum values. It is called by the builders before save.
 func PriceTypeValidator(pt productcatalog.PriceType) error {
 	switch pt {
-	case "flat", "unit", "tiered":
+	case "flat", "unit", "tiered", "dynamic", "package":
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceusagebasedlineconfig: invalid enum value for price_type field: %q", pt)

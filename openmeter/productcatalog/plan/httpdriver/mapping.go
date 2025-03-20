@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -252,20 +253,10 @@ func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageB
 			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
 		}
 
-		var minimumAmount *string
-		if unitPrice.MinimumAmount != nil {
-			minimumAmount = lo.ToPtr(unitPrice.MinimumAmount.String())
-		}
-
-		var maximumAmount *string
-		if unitPrice.MaximumAmount != nil {
-			maximumAmount = lo.ToPtr(unitPrice.MaximumAmount.String())
-		}
-
 		err = resp.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
 			Amount:        unitPrice.Amount.String(),
-			MinimumAmount: minimumAmount,
-			MaximumAmount: maximumAmount,
+			MinimumAmount: convert.StringerPtrToStringPtr(unitPrice.MinimumAmount),
+			MaximumAmount: convert.StringerPtrToStringPtr(unitPrice.MaximumAmount),
 			Type:          api.UnitPriceWithCommitmentsTypeUnit,
 		})
 		if err != nil {
@@ -277,21 +268,11 @@ func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageB
 			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
 		}
 
-		var minimumAmount *string
-		if tieredPrice.MinimumAmount != nil {
-			minimumAmount = lo.ToPtr(tieredPrice.MinimumAmount.String())
-		}
-
-		var maximumAmount *string
-		if tieredPrice.MaximumAmount != nil {
-			maximumAmount = lo.ToPtr(tieredPrice.MaximumAmount.String())
-		}
-
 		err = resp.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
 			Type:          api.TieredPriceWithCommitmentsTypeTiered,
 			Mode:          api.TieredPriceMode(tieredPrice.Mode),
-			MinimumAmount: minimumAmount,
-			MaximumAmount: maximumAmount,
+			MinimumAmount: convert.StringerPtrToStringPtr(tieredPrice.MinimumAmount),
+			MaximumAmount: convert.StringerPtrToStringPtr(tieredPrice.MaximumAmount),
 			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
 				var upToAmount *api.Numeric
 				if t.UpToAmount != nil {
@@ -323,6 +304,42 @@ func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageB
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
+		}
+	case productcatalog.DynamicPriceType:
+		dynamicPrice, err := price.AsDynamic()
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
+		}
+
+		var markupRate *string
+		if !dynamicPrice.MarkupRate.Equal(productcatalog.DynamicPriceDefaultMarkupRate) {
+			markupRate = lo.ToPtr(dynamicPrice.MarkupRate.String())
+		}
+
+		err = resp.FromDynamicPriceWithCommitments(api.DynamicPriceWithCommitments{
+			Type:          api.DynamicPriceWithCommitmentsTypeDynamic,
+			MinimumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MinimumAmount),
+			MaximumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MaximumAmount),
+			MarkupRate:    markupRate,
+		})
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
+		}
+	case productcatalog.PackagePriceType:
+		packagePrice, err := price.AsPackage()
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast PackagePrice: %w", err)
+		}
+
+		err = resp.FromPackagePriceWithCommitments(api.PackagePriceWithCommitments{
+			Type:               api.PackagePriceWithCommitmentsTypePackage,
+			Amount:             packagePrice.Amount.String(),
+			QuantityPerPackage: packagePrice.QuantityPerPackage.String(),
+			MinimumAmount:      convert.StringerPtrToStringPtr(packagePrice.MinimumAmount),
+			MaximumAmount:      convert.StringerPtrToStringPtr(packagePrice.MaximumAmount),
+		})
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast PackagePrice: %w", err)
 		}
 	default:
 		return resp, fmt.Errorf("invalid Price type: %s", price.Type())
@@ -782,6 +799,83 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 		}
 
 		price = productcatalog.NewPriceFrom(tieredPrice)
+	case string(api.DynamicPriceWithCommitmentsTypeDynamic):
+		dynamic, err := p.AsDynamicPriceWithCommitments()
+		if err != nil {
+			return price, fmt.Errorf("failed to cast DynamicPrice: %w", err)
+		}
+
+		dynamicPrice := productcatalog.DynamicPrice{}
+
+		if dynamic.MarkupRate != nil {
+			markupRate, err := decimal.NewFromString(*dynamic.MarkupRate)
+			if err != nil {
+				return price, fmt.Errorf("failed to cast MarkupRate of DynamicPrice to decimal: %w", err)
+			}
+
+			dynamicPrice.MarkupRate = markupRate
+		} else {
+			dynamicPrice.MarkupRate = decimal.NewFromInt(1)
+		}
+
+		// Commitments
+		if dynamic.MinimumAmount != nil {
+			minimumAmount, err := decimal.NewFromString(*dynamic.MinimumAmount)
+			if err != nil {
+				return price, fmt.Errorf("failed to cast MinimumAmount of DynamicPrice to decimal: %w", err)
+			}
+
+			dynamicPrice.MinimumAmount = &minimumAmount
+		}
+
+		if dynamic.MaximumAmount != nil {
+			maximumAmount, err := decimal.NewFromString(*dynamic.MaximumAmount)
+			if err != nil {
+				return price, fmt.Errorf("failed to cast MaximumAmount of DynamicPrice to decimal: %w", err)
+			}
+
+			dynamicPrice.MaximumAmount = &maximumAmount
+		}
+
+		price = productcatalog.NewPriceFrom(dynamicPrice)
+	case string(api.PackagePriceWithCommitmentsTypePackage):
+		packagePriceAPI, err := p.AsPackagePriceWithCommitments()
+		if err != nil {
+			return price, fmt.Errorf("failed to cast PackagePrice: %w", err)
+		}
+
+		packagePrice := productcatalog.PackagePrice{}
+
+		packagePrice.Amount, err = decimal.NewFromString(packagePriceAPI.Amount)
+		if err != nil {
+			return price, fmt.Errorf("failed to cast Amount of PackagePrice to decimal: %w", err)
+		}
+
+		packagePrice.QuantityPerPackage, err = decimal.NewFromString(packagePriceAPI.QuantityPerPackage)
+		if err != nil {
+			return price, fmt.Errorf("failed to cast QuantityPerPackage of PackagePrice to decimal: %w", err)
+		}
+
+		// Commitments
+		if packagePriceAPI.MinimumAmount != nil {
+			minimumAmount, err := decimal.NewFromString(*packagePriceAPI.MinimumAmount)
+			if err != nil {
+				return price, fmt.Errorf("failed to cast MinimumAmount of PackagePrice to decimal: %w", err)
+			}
+
+			packagePrice.MinimumAmount = &minimumAmount
+		}
+
+		if packagePriceAPI.MaximumAmount != nil {
+			maximumAmount, err := decimal.NewFromString(*packagePriceAPI.MaximumAmount)
+			if err != nil {
+				return price, fmt.Errorf("failed to cast MaximumAmount of PackagePrice to decimal: %w", err)
+			}
+
+			packagePrice.MaximumAmount = &maximumAmount
+		}
+
+		price = productcatalog.NewPriceFrom(packagePrice)
 	default:
 		return price, fmt.Errorf("invalid Price type for UsageBasedRateCard: %s", usagePriceType)
 	}

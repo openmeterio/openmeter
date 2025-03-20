@@ -734,7 +734,7 @@ var (
 	BillingInvoiceUsageBasedLineConfigsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "price_type", Type: field.TypeEnum, Enums: []string{"flat", "unit", "tiered"}},
+		{Name: "price_type", Type: field.TypeEnum, Enums: []string{"flat", "unit", "tiered", "dynamic", "package"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},

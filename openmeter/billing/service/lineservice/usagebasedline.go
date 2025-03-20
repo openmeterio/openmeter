@@ -17,10 +17,18 @@ import (
 var _ Line = (*usageBasedLine)(nil)
 
 const (
-	FlatPriceChildUniqueReferenceID         = "flat-price"
+	UsageChildUniqueReferenceID    = "usage"
+	MinSpendChildUniqueReferenceID = "min-spend"
+
+	// TODO[later]: Per type unique reference IDs are to be deprecated, we should use the generic names for
+	// lines with one child. (e.g. graduated can stay for now, as it has multiple children)
+	FlatPriceChildUniqueReferenceID = "flat-price"
+
 	UnitPriceUsageChildUniqueReferenceID    = "unit-price-usage"
 	UnitPriceMinSpendChildUniqueReferenceID = "unit-price-min-spend"
 	UnitPriceMaxSpendChildUniqueReferenceID = "unit-price-max-spend"
+
+	DynamicPriceUsageChildUniqueReferenceID = "dynamic-price-usage"
 
 	VolumeFlatPriceChildUniqueReferenceID = "volume-flat-price"
 	VolumeUnitPriceChildUniqueReferenceID = "volume-tiered-price"
@@ -30,6 +38,8 @@ const (
 	GraduatedTieredFlatPriceChildUniqueReferenceID  = "graduated-tiered-%d-flat-price"
 	GraduatedMinSpendChildUniqueReferenceID         = "graduated-tiered-min-spend"
 )
+
+var DecimalOne = alpacadecimal.NewFromInt(1)
 
 type usageBasedLine struct {
 	lineBase
@@ -242,6 +252,18 @@ func (l usageBasedLine) calculateDetailedLines(usage *featureUsageResponse) (new
 		}
 
 		return l.calculateUnitPriceDetailedLines(usage, unitPrice)
+	case productcatalog.DynamicPriceType:
+		dynamicPrice, err := l.line.UsageBased.Price.AsDynamic()
+		if err != nil {
+			return nil, fmt.Errorf("converting price to dynamic price: %w", err)
+		}
+		return l.calculateDynamicPriceDetailedLines(usage, dynamicPrice)
+	case productcatalog.PackagePriceType:
+		packagePrice, err := l.line.UsageBased.Price.AsPackage()
+		if err != nil {
+			return nil, fmt.Errorf("converting price to package price: %w", err)
+		}
+		return l.calculatePackagePriceDetailedLines(usage, packagePrice)
 	case productcatalog.TieredPriceType:
 		tieredPrice, err := l.line.UsageBased.Price.AsTiered()
 		if err != nil {
@@ -290,56 +312,195 @@ func (l usageBasedLine) calculateFlatPriceDetailedLines(_ *featureUsageResponse,
 	return nil, nil
 }
 
-func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageResponse, unitPrice productcatalog.UnitPrice) (newDetailedLinesInput, error) {
-	out := make(newDetailedLinesInput, 0, 2)
-	totalPreUsageAmount := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(unitPrice.Amount))
-	totalUsageAmount := l.currency.RoundToPrecision(usage.LinePeriodQty.Add(usage.PreLinePeriodQty).Mul(unitPrice.Amount))
+type applyCommitmentsInput struct {
+	Commitments productcatalog.Commitments
 
-	if usage.LinePeriodQty.IsPositive() {
-		usageLine := newDetailedLineInput{
-			Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
-			Quantity:               usage.LinePeriodQty,
-			PerUnitAmount:          unitPrice.Amount,
-			ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
-			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-		}
+	DetailedLines newDetailedLinesInput
 
-		if unitPrice.MaximumAmount != nil {
-			// We need to apply the discount for the usage that is over the maximum spend
-			usageLine = usageLine.AddDiscountForOverage(addDiscountInput{
-				BilledAmountBeforeLine: totalPreUsageAmount,
-				MaxSpend:               *unitPrice.MaximumAmount,
-				Currency:               l.currency,
-			})
-		}
+	AmountBilledInPreviousPeriods alpacadecimal.Decimal
 
-		out = append(out, usageLine)
+	MinimumSpendReferenceID string
+}
+
+func (i applyCommitmentsInput) Validate() error {
+	if i.MinimumSpendReferenceID == "" {
+		return fmt.Errorf("minimum spend reference ID is required")
 	}
 
-	// Minimum spend is always billed arrears
-	if l.IsLastInPeriod() && unitPrice.MinimumAmount != nil {
-		normalizedMinimumAmount := l.currency.RoundToPrecision(*unitPrice.MinimumAmount)
+	return nil
+}
 
-		if totalUsageAmount.LessThan(normalizedMinimumAmount) {
+func (l usageBasedLine) applyCommitments(in applyCommitmentsInput) (newDetailedLinesInput, error) {
+	if err := in.Validate(); err != nil {
+		return nil, err
+	}
+
+	// let's add maximum spend discounts if needed
+
+	if in.Commitments.MaximumAmount != nil {
+		currentSpendAmount := in.AmountBilledInPreviousPeriods
+		maxSpend := l.currency.RoundToPrecision(*in.Commitments.MaximumAmount)
+
+		for idx, line := range in.DetailedLines {
+			// Total spends after adding the line's amount
+			in.DetailedLines[idx] = line.AddDiscountForOverage(addDiscountInput{
+				BilledAmountBeforeLine: currentSpendAmount,
+				MaxSpend:               maxSpend,
+				Currency:               l.currency,
+			})
+
+			currentSpendAmount = currentSpendAmount.Add(line.TotalAmount(l.currency))
+		}
+	}
+
+	if l.IsLastInPeriod() && in.Commitments.MinimumAmount != nil {
+		toBeBilledAmount := in.AmountBilledInPreviousPeriods.Add(
+			in.DetailedLines.Sum(l.currency),
+		)
+
+		if toBeBilledAmount.LessThan(*in.Commitments.MinimumAmount) {
 			period := l.line.Period
 			if l.line.ParentLine != nil {
 				period = l.line.ParentLine.Period
 			}
 
-			out = append(out, newDetailedLineInput{
-				Name:          fmt.Sprintf("%s: minimum spend", l.line.Name),
-				Quantity:      alpacadecimal.NewFromFloat(1),
-				PerUnitAmount: normalizedMinimumAmount.Sub(totalUsageAmount),
-				// Min spend is always billed for the whole period
-				Period:                 &period,
-				ChildUniqueReferenceID: UnitPriceMinSpendChildUniqueReferenceID,
-				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				Category:               billing.FlatFeeCategoryCommitment,
-			})
+			minSpendAmount := l.currency.RoundToPrecision(in.Commitments.MinimumAmount.Sub(toBeBilledAmount))
+
+			if minSpendAmount.IsPositive() {
+				in.DetailedLines = append(in.DetailedLines, newDetailedLineInput{
+					Name:          fmt.Sprintf("%s: minimum spend", l.line.Name),
+					Quantity:      alpacadecimal.NewFromFloat(1),
+					PerUnitAmount: minSpendAmount,
+					// Minimum spend is always billed for the whole period
+					Period: &period,
+
+					ChildUniqueReferenceID: in.MinimumSpendReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Category:               billing.FlatFeeCategoryCommitment,
+				})
+			}
 		}
 	}
 
-	return out, nil
+	return in.DetailedLines, nil
+}
+
+func (l usageBasedLine) calculateUnitPriceDetailedLines(usage *featureUsageResponse, unitPrice productcatalog.UnitPrice) (newDetailedLinesInput, error) {
+	var out newDetailedLinesInput
+
+	if usage.LinePeriodQty.IsPositive() {
+		out = newDetailedLinesInput{
+			{
+				Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
+				Quantity:               usage.LinePeriodQty,
+				PerUnitAmount:          unitPrice.Amount,
+				ChildUniqueReferenceID: UnitPriceUsageChildUniqueReferenceID,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+			},
+		}
+	}
+
+	amountBilledInPreviousPeriods := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(unitPrice.Amount))
+
+	detailedLines, err := l.applyCommitments(applyCommitmentsInput{
+		Commitments:                   unitPrice.Commitments,
+		DetailedLines:                 out,
+		AmountBilledInPreviousPeriods: amountBilledInPreviousPeriods,
+		MinimumSpendReferenceID:       UnitPriceMinSpendChildUniqueReferenceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return detailedLines, nil
+}
+
+func (l usageBasedLine) calculateDynamicPriceDetailedLines(usage *featureUsageResponse, dynamicPrice productcatalog.DynamicPrice) (newDetailedLinesInput, error) {
+	var out newDetailedLinesInput
+
+	if usage.LinePeriodQty.IsPositive() {
+		amountInPeriod := l.currency.RoundToPrecision(
+			usage.LinePeriodQty.Mul(dynamicPrice.MarkupRate),
+		)
+
+		out = newDetailedLinesInput{
+			{
+				Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
+				Quantity:               alpacadecimal.NewFromInt(1),
+				PerUnitAmount:          amountInPeriod,
+				ChildUniqueReferenceID: UsageChildUniqueReferenceID,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+			},
+		}
+	}
+
+	amountBilledInPreviousPeriods := l.currency.RoundToPrecision(usage.PreLinePeriodQty.Mul(dynamicPrice.MarkupRate))
+
+	detailedLines, err := l.applyCommitments(applyCommitmentsInput{
+		Commitments:                   dynamicPrice.Commitments,
+		DetailedLines:                 out,
+		AmountBilledInPreviousPeriods: amountBilledInPreviousPeriods,
+		MinimumSpendReferenceID:       MinSpendChildUniqueReferenceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return detailedLines, nil
+}
+
+func (l usageBasedLine) getNumberOfPackages(qty alpacadecimal.Decimal, packageSize alpacadecimal.Decimal) alpacadecimal.Decimal {
+	if qty.IsZero() {
+		// Corner case: we always bill at least one package even if the quantity is zero
+		return DecimalOne
+	}
+
+	requiredPackages := qty.Div(packageSize).Floor()
+
+	if qty.Mod(packageSize).IsZero() {
+		return requiredPackages
+	}
+
+	return requiredPackages.Add(DecimalOne)
+}
+
+func (l usageBasedLine) calculatePackagePriceDetailedLines(usage *featureUsageResponse, packagePrice productcatalog.PackagePrice) (newDetailedLinesInput, error) {
+	var out newDetailedLinesInput
+
+	totalUsage := usage.LinePeriodQty.Add(usage.PreLinePeriodQty)
+
+	preLinePeriodPackages := l.getNumberOfPackages(usage.PreLinePeriodQty, packagePrice.QuantityPerPackage)
+	if l.IsFirstInPeriod() {
+		preLinePeriodPackages = alpacadecimal.Zero
+	}
+
+	postLinePeriodPackages := l.getNumberOfPackages(totalUsage, packagePrice.QuantityPerPackage)
+
+	toBeBilledPackages := postLinePeriodPackages.Sub(preLinePeriodPackages)
+
+	if !toBeBilledPackages.IsZero() {
+		out = newDetailedLinesInput{
+			{
+				Name:                   fmt.Sprintf("%s: usage in period", l.line.Name),
+				Quantity:               toBeBilledPackages,
+				PerUnitAmount:          packagePrice.Amount,
+				ChildUniqueReferenceID: UsageChildUniqueReferenceID,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+			},
+		}
+	}
+
+	detailedLines, err := l.applyCommitments(applyCommitmentsInput{
+		Commitments:                   packagePrice.Commitments,
+		DetailedLines:                 out,
+		AmountBilledInPreviousPeriods: l.currency.RoundToPrecision(preLinePeriodPackages.Mul(packagePrice.Amount)),
+		MinimumSpendReferenceID:       MinSpendChildUniqueReferenceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return detailedLines, nil
 }
 
 func (l usageBasedLine) calculateVolumeTieredPriceDetailedLines(usage *featureUsageResponse, price productcatalog.TieredPrice) (newDetailedLinesInput, error) {
@@ -746,11 +907,7 @@ func (i newDetailedLinesInput) Sum(currency currencyx.Calculator) alpacadecimal.
 	sum := alpacadecimal.Zero
 
 	for _, in := range i {
-		sum = sum.Add(currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity)))
-
-		for _, discount := range in.Discounts {
-			sum = sum.Sub(discount.Amount)
-		}
+		sum = sum.Add(in.TotalAmount(currency))
 	}
 
 	return sum
@@ -789,6 +946,16 @@ func (i newDetailedLineInput) Validate() error {
 	return nil
 }
 
+func (i newDetailedLineInput) TotalAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
+	total := currency.RoundToPrecision(i.PerUnitAmount.Mul(i.Quantity))
+
+	for _, discount := range i.Discounts {
+		total = total.Sub(currency.RoundToPrecision(discount.Amount))
+	}
+
+	return total
+}
+
 type addDiscountInput struct {
 	BilledAmountBeforeLine alpacadecimal.Decimal
 	MaxSpend               alpacadecimal.Decimal
@@ -797,7 +964,9 @@ type addDiscountInput struct {
 
 func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDetailedLineInput {
 	normalizedPreUsage := in.Currency.RoundToPrecision(in.BilledAmountBeforeLine)
-	lineTotal := in.Currency.RoundToPrecision(i.PerUnitAmount.Mul(i.Quantity))
+
+	lineTotal := i.TotalAmount(in.Currency)
+
 	totalBillableAmount := normalizedPreUsage.Add(lineTotal)
 
 	normalizedMaxSpend := in.Currency.RoundToPrecision(in.MaxSpend)

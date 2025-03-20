@@ -8,6 +8,8 @@ enum PriceType {
   flat: "flat",
   unit: "unit",
   tiered: "tiered",
+  dynamic: "dynamic",
+  package: "package",
 }
 
 /**
@@ -25,6 +27,12 @@ union Price {
 
   @summary("Tiered price")
   tiered: TieredPrice,
+
+  @summary("Dynamic price")
+  dynamic: DynamicPrice,
+
+  @summary("Package price")
+  package: PackagePrice,
 }
 
 /**
@@ -172,6 +180,84 @@ model PriceTier {
 }
 
 /**
+ * Dynamic price.
+ *
+ * The underlying meter's value is considered the base price in the
+ * customer's currency.
+ *
+ * The rate specifies the markup over the price.
+ */
+@friendlyName("DynamicPrice")
+model DynamicPrice {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.dynamic;
+
+  /**
+   * The rate to apply to the base price to get the dynamic price.
+   *
+   * Examples:
+   * - 0.0: the price is zero
+   * - 0.5: the price is 50% of the base price
+   * - 1.0: the price is the same as the base price
+   * - 1.5: the price is 150% of the base price
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("The rate to apply to the base price to get the dynamic price")
+  markupRate?: Numeric = "1";
+}
+
+/**
+ * Package price.
+ *
+ * The item is sold in packages. Each package contains quantityPerPackage items, the price of the
+ * package is set in amount.
+ *
+ * For example, if the amount $10, and the quantity per package is 20, then the price of 98 items will
+ * be 5*$10.
+ *
+ * As with tiered prices if there's no usage for a specific period, the user is still expected to buy the
+ * first package.
+ *
+ * Example:
+ * If the item is billed monthy, with quantity per pacakge being 20, amount being 10, even if there's no
+ * usage for a given month $10 will be billed.
+ *
+ * Later new pacakge is only billed when the usage is greater than the allowed quantity indicated by the
+ * quantityPerPackage.
+ *
+ * Example:
+ * If the item is billed monthy, with quantity per pacakge being 20, amount being 10, and the usage is 20,
+ * then $10 will be billed.
+ *
+ * If the usage increases to 20.1, then $20 will be billed (2 packages).
+ */
+@friendlyName("PackagePrice")
+model PackagePrice {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.package;
+
+  /**
+   * The price of one package.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Amount")
+  amount: Money;
+
+  /**
+   * The quantity per package.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Quantity per package")
+  quantityPerPackage: Numeric;
+}
+
+/**
  * Spending commitments.
  * The customer is committed to spend at least the minimum amount and at most the maximum amount.
  */
@@ -207,5 +293,23 @@ model UnitPriceWithCommitments {
 @friendlyName("TieredPriceWithCommitments")
 model TieredPriceWithCommitments {
   ...TieredPrice;
+  ...SpendCommitments;
+}
+
+/**
+ * Dynamic price with spend commitments.
+ */
+@friendlyName("DynamicPriceWithCommitments")
+model DynamicPriceWithCommitments {
+  ...DynamicPrice;
+  ...SpendCommitments;
+}
+
+/**
+ * Package price with spend commitments.
+ */
+@friendlyName("PackagePriceWithCommitments")
+model PackagePriceWithCommitments {
+  ...PackagePrice;
   ...SpendCommitments;
 }
