@@ -2,6 +2,7 @@ package subscriptiontestutils
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -18,6 +19,17 @@ type MockService struct {
 	GetViewFn                func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
 	ListFn                   func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
 	GetAllForCustomerSinceFn func(ctx context.Context, customerID models.NamespacedID, at time.Time) ([]subscription.Subscription, error)
+	Validators               []subscription.SubscriptionValidator
+}
+
+func (s *MockService) RegisterValidator(validator subscription.SubscriptionValidator) error {
+	if validator == nil {
+		return errors.New("invalid subscription validator: nil")
+	}
+
+	s.Validators = append(s.Validators, validator)
+
+	return nil
 }
 
 var _ subscription.Service = &MockService{}

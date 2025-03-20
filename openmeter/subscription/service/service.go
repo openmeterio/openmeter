@@ -40,10 +40,7 @@ func New(conf ServiceConfig) subscription.Service {
 	}
 }
 
-var (
-	_ subscription.Service          = &service{}
-	_ subscription.ValidatorService = &service{}
-)
+var _ subscription.Service = &service{}
 
 type service struct {
 	ServiceConfig
@@ -325,7 +322,7 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 
 		s.mu.RLock()
 		defer s.mu.RUnlock()
-		
+
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateContinue(ctx, view)
 		})...)
