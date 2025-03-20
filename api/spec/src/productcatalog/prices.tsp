@@ -205,7 +205,7 @@ model DynamicPrice {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("The rate to apply to the base price to get the dynamic price")
-  markupRate: Numeric;
+  markupRate?: Numeric = "1";
 }
 
 /**

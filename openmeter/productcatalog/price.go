@@ -402,14 +402,10 @@ func (f *FlatPrice) Validate() error {
 }
 
 type UnitPrice struct {
+	Commitments `json:",inline"`
+
 	// Amount of the unit price.
 	Amount decimal.Decimal `json:"amount"`
-
-	// MinimumAmount defines the least amount the customer committed to spend.
-	MinimumAmount *decimal.Decimal `json:"minimumAmount,omitempty"`
-
-	// MaximumAmount defines the upper limit of amount the customer entitled to spend.
-	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
 }
 
 func (u *UnitPrice) Equal(v *UnitPrice) bool {
@@ -425,27 +421,7 @@ func (u *UnitPrice) Equal(v *UnitPrice) bool {
 		return false
 	}
 
-	if u.MinimumAmount != nil && v.MinimumAmount == nil {
-		return false
-	}
-
-	if u.MinimumAmount == nil && v.MinimumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(u.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
-		return false
-	}
-
-	if u.MaximumAmount != nil && v.MaximumAmount == nil {
-		return false
-	}
-
-	if u.MaximumAmount == nil && v.MaximumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(u.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+	if !u.Commitments.Equal(v.Commitments) {
 		return false
 	}
 
@@ -459,20 +435,8 @@ func (u *UnitPrice) Validate() error {
 		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
-	minAmount := lo.FromPtrOr(u.MinimumAmount, decimal.Zero)
-	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
-	}
-
-	maxAmount := lo.FromPtrOr(u.MaximumAmount, decimal.Zero)
-	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
-	}
-
-	if !minAmount.IsZero() && !maxAmount.IsZero() {
-		if minAmount.GreaterThan(maxAmount) {
-			errs = append(errs, errors.New("the MinimumAmount must not be greater than MaximumAmount"))
-		}
+	if err := u.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -513,6 +477,8 @@ func NewTieredPriceMode(s string) (TieredPriceMode, error) {
 }
 
 type TieredPrice struct {
+	Commitments `json:",inline"`
+
 	// Mode defines whether the tier is volume-based or graduated.
 	// * VolumeTieredPrice: the maximum quantity within a period determines the per-unit price
 	// * GraduatedTieredPrice: pricing can change as the quantity grows
@@ -520,12 +486,6 @@ type TieredPrice struct {
 
 	// Tiers defines the list of PriceTier.
 	Tiers []PriceTier `json:"tiers"`
-
-	// MinimumAmount defines the least amount the customer committed to spend.
-	MinimumAmount *decimal.Decimal `json:"minimumAmount,omitempty"`
-
-	// MaximumAmount defines the upper limit of amount the customer entitled to spend.
-	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
 }
 
 func (t *TieredPrice) Equal(v *TieredPrice) bool {
@@ -545,23 +505,7 @@ func (t *TieredPrice) Equal(v *TieredPrice) bool {
 		return false
 	}
 
-	if t.MinimumAmount == nil && v.MinimumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(t.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
-		return false
-	}
-
-	if t.MaximumAmount != nil && v.MaximumAmount == nil {
-		return false
-	}
-
-	if t.MaximumAmount == nil && v.MaximumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(t.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+	if !t.Commitments.Equal(v.Commitments) {
 		return false
 	}
 
@@ -605,20 +549,8 @@ func (t *TieredPrice) Validate() error {
 		errs = append(errs, errors.New("at least one PriceTier must be open-ended"))
 	}
 
-	minAmount := lo.FromPtrOr(t.MinimumAmount, decimal.Zero)
-	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
-	}
-
-	maxAmount := lo.FromPtrOr(t.MaximumAmount, decimal.Zero)
-	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
-	}
-
-	if !minAmount.IsZero() && !maxAmount.IsZero() {
-		if minAmount.GreaterThan(maxAmount) {
-			errs = append(errs, errors.New("minimum amount must not be greater than maximum amount"))
-		}
+	if err := t.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -723,17 +655,27 @@ func (u PriceTierUnitPrice) Validate() error {
 
 var _ models.Validator = (*DynamicPrice)(nil)
 
+var DynamicPriceDefaultMarkupRate = decimal.NewFromFloat(1)
+
 type DynamicPrice struct {
+	Commitments `json:",inline"`
+
 	// MarkupRate defines the rate of the markup of the price.
 	MarkupRate decimal.Decimal `json:"markupRate"`
 }
 
 func (p DynamicPrice) Validate() error {
+	var errs []error
+
 	if p.MarkupRate.LessThan(decimal.Zero) {
-		return models.NewGenericValidationError(errors.New("the markup rate must not be less than 0"))
+		errs = append(errs, errors.New("the markup rate must not be less than 0"))
 	}
 
-	return nil
+	if err := p.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (p *DynamicPrice) Equal(v *DynamicPrice) bool {
@@ -745,30 +687,38 @@ func (p *DynamicPrice) Equal(v *DynamicPrice) bool {
 		return false
 	}
 
-	return p.MarkupRate.Equal(v.MarkupRate)
+	return p.MarkupRate.Equal(v.MarkupRate) && p.Commitments.Equal(v.Commitments)
 }
 
 var _ models.Validator = (*PackagePrice)(nil)
 
 type PackagePrice struct {
+	Commitments `json:",inline"`
+
 	Amount             decimal.Decimal `json:"amount"`
 	QuantityPerPackage decimal.Decimal `json:"quantityPerPackage"`
 }
 
 func (p PackagePrice) Validate() error {
+	var errs []error
+
 	if p.Amount.IsNegative() {
-		return models.NewGenericValidationError(errors.New("the Amount must not be negative"))
+		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
 	if p.QuantityPerPackage.IsNegative() {
-		return models.NewGenericValidationError(errors.New("the QuantityPerPackage must not be negative"))
+		errs = append(errs, errors.New("the QuantityPerPackage must not be negative"))
 	}
 
 	if p.QuantityPerPackage.IsZero() {
-		return models.NewGenericValidationError(errors.New("the QuantityPerPackage must not be zero"))
+		errs = append(errs, errors.New("the QuantityPerPackage must not be zero"))
 	}
 
-	return nil
+	if err := p.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (p *PackagePrice) Equal(v *PackagePrice) bool {
@@ -780,5 +730,59 @@ func (p *PackagePrice) Equal(v *PackagePrice) bool {
 		return false
 	}
 
-	return p.Amount.Equal(v.Amount) && p.QuantityPerPackage.Equal(v.QuantityPerPackage)
+	return p.Amount.Equal(v.Amount) && p.QuantityPerPackage.Equal(v.QuantityPerPackage) && p.Commitments.Equal(v.Commitments)
+}
+
+type Commitments struct {
+	// MinimumAmount defines the least amount the customer committed to spend.
+	MinimumAmount *decimal.Decimal `json:"minimumAmount,omitempty"`
+
+	// MaximumAmount defines the upper limit of amount the customer entitled to spend.
+	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
+}
+
+func (c *Commitments) Validate() error {
+	var errs []error
+
+	if c.MinimumAmount != nil && c.MinimumAmount.IsNegative() {
+		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
+	}
+
+	if c.MaximumAmount != nil && c.MaximumAmount.IsNegative() {
+		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
+	}
+
+	if c.MinimumAmount != nil && c.MaximumAmount != nil && c.MinimumAmount.GreaterThan(*c.MaximumAmount) {
+		errs = append(errs, errors.New("the MinimumAmount must not be greater than the MaximumAmount"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (c *Commitments) Equal(v Commitments) bool {
+	if c.MinimumAmount != nil && v.MinimumAmount == nil {
+		return false
+	}
+
+	if c.MinimumAmount == nil && v.MinimumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(c.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
+		return false
+	}
+
+	if c.MaximumAmount != nil && v.MaximumAmount == nil {
+		return false
+	}
+
+	if c.MaximumAmount == nil && v.MaximumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(c.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+		return false
+	}
+
+	return true
 }

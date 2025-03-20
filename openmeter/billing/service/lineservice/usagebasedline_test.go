@@ -245,8 +245,10 @@ func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("unit price, no usage, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount:        alpacadecimal.NewFromFloat(10),
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Amount: alpacadecimal.NewFromFloat(10),
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{
@@ -270,8 +272,10 @@ func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("no usage, not the last line in period, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount:        alpacadecimal.NewFromFloat(10),
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Amount: alpacadecimal.NewFromFloat(10),
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -285,8 +289,10 @@ func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("no usage, last line in period, min spend set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount:        alpacadecimal.NewFromFloat(10),
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Amount: alpacadecimal.NewFromFloat(10),
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -353,8 +359,10 @@ func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("usage present, max spend set, but not hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount:        alpacadecimal.NewFromFloat(10),
-				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Amount: alpacadecimal.NewFromFloat(10),
+				Commitments: productcatalog.Commitments{
+					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -375,8 +383,10 @@ func TestUnitPriceCalculation(t *testing.T) {
 	t.Run("usage present, max spend set and hit", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount:        alpacadecimal.NewFromFloat(10),
-				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Amount: alpacadecimal.NewFromFloat(10),
+				Commitments: productcatalog.Commitments{
+					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -625,9 +635,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	t.Run("tiered volume, last price, no usage, min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
+				Mode:  productcatalog.VolumeTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -656,9 +668,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	t.Run("tiered volume, last price, usage over, min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Mode:  productcatalog.VolumeTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -679,9 +693,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	t.Run("tiered volume, last price, usage less than min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
+				Mode:  productcatalog.VolumeTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(150)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -710,9 +726,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	t.Run("tiered volume, last price, usage less equals min spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Mode:  productcatalog.VolumeTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -734,9 +752,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	t.Run("tiered volume, first price, usage eq max spend", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				Mode:  productcatalog.VolumeTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(100)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -757,9 +777,11 @@ func TestTieredVolumeCalculation(t *testing.T) {
 	t.Run("tiered volume, first price, usage above max spend, max spend is not at tier boundary ", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.VolumeTieredPrice,
-				Tiers:         testTiers,
-				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(125)),
+				Mode:  productcatalog.VolumeTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(125)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -921,9 +943,11 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 	t.Run("tiered graduated, last line, no usage, minimum price set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.GraduatedTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+				Mode:  productcatalog.GraduatedTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -948,9 +972,11 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 	t.Run("tiered graduated, last line, no usage, minimum price set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.GraduatedTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+				Mode:  productcatalog.GraduatedTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+				},
 			}),
 			lineMode: lastInPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -973,9 +999,11 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 	t.Run("tiered graduated, mid line, no usage, minimum price set", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.GraduatedTieredPrice,
-				Tiers:         testTiers,
-				MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+				Mode:  productcatalog.GraduatedTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(1000)),
+				},
 			}),
 			lineMode: midPeriodSplitLineMode,
 			usage: featureUsageResponse{
@@ -990,9 +1018,11 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 	t.Run("tiered graduated, mid period, multiple tier usage, maximum spend set mid tier 2/3", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-				Mode:          productcatalog.GraduatedTieredPrice,
-				Tiers:         testTiers,
-				MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(170)),
+				Mode:  productcatalog.GraduatedTieredPrice,
+				Tiers: testTiers,
+				Commitments: productcatalog.Commitments{
+					MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(170)),
+				},
 			}),
 			lineMode: singlePerPeriodLineMode,
 			usage: featureUsageResponse{

@@ -175,9 +175,11 @@ func TestUsageBasedRateCard(t *testing.T) {
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
-								Amount:        decimal.NewFromInt(1000),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+								Amount: decimal.NewFromInt(1000),
+								Commitments: Commitments{
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+								},
 							}),
 					},
 					BillingCadence: isodate.MustParse(t, "P1M"),
@@ -226,9 +228,11 @@ func TestUsageBasedRateCard(t *testing.T) {
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
-								Amount:        decimal.NewFromInt(-1000),
-								MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
-								MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+								Amount: decimal.NewFromInt(-1000),
+								Commitments: Commitments{
+									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+								},
 							}),
 					},
 					BillingCadence: isodate.MustParse(t, "P0M"),
@@ -302,9 +306,11 @@ func TestRateCardsEqual(t *testing.T) {
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
-									Amount:        decimal.NewFromInt(1000),
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									Amount: decimal.NewFromInt(1000),
+									Commitments: Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									},
 								}),
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),
@@ -351,9 +357,11 @@ func TestRateCardsEqual(t *testing.T) {
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
-									Amount:        decimal.NewFromInt(1000),
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									Amount: decimal.NewFromInt(1000),
+									Commitments: Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									},
 								}),
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),
@@ -404,9 +412,11 @@ func TestRateCardsEqual(t *testing.T) {
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
-									Amount:        decimal.NewFromInt(1000),
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
-									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									Amount: decimal.NewFromInt(1000),
+									Commitments: Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
+										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
+									},
 								}),
 						},
 						BillingCadence: isodate.MustParse(t, "P1M"),

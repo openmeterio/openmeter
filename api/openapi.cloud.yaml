@@ -10708,7 +10708,6 @@ components:
       type: object
       required:
         - type
-        - markupRate
       properties:
         type:
           type: string
@@ -10727,6 +10726,7 @@ components:
             - 1.0: the price is the same as the base price
             - 1.5: the price is 150% of the base price
           title: The rate to apply to the base price to get the dynamic price
+          default: '1'
         minimumAmount:
           allOf:
             - $ref: '#/components/schemas/Numeric'

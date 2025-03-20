@@ -26,9 +26,11 @@ func TestPrice_JSON(t *testing.T) {
 		{
 			Name: "Unit",
 			Price: NewPriceFrom(UnitPrice{
-				Amount:        decimal.NewFromInt(1000),
-				MinimumAmount: lo.ToPtr(decimal.NewFromInt(10)),
-				MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+				Amount: decimal.NewFromInt(1000),
+				Commitments: Commitments{
+					MinimumAmount: lo.ToPtr(decimal.NewFromInt(10)),
+					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+				},
 			}),
 		},
 		{
@@ -55,8 +57,10 @@ func TestPrice_JSON(t *testing.T) {
 						},
 					},
 				},
-				MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-				MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+				Commitments: Commitments{
+					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+				},
 			}),
 		},
 	}
@@ -126,36 +130,44 @@ func TestUnitPrice(t *testing.T) {
 			{
 				Name: "valid with min,max",
 				Price: UnitPrice{
-					Amount:        decimal.NewFromInt(1000),
-					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+					Amount: decimal.NewFromInt(1000),
+					Commitments: Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+					},
 				},
 				ExpectedError: false,
 			},
 			{
 				Name: "valid with min only",
 				Price: UnitPrice{
-					Amount:        decimal.NewFromInt(1000),
-					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-					MaximumAmount: nil,
+					Amount: decimal.NewFromInt(1000),
+					Commitments: Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						MaximumAmount: nil,
+					},
 				},
 				ExpectedError: false,
 			},
 			{
 				Name: "valid with max only",
 				Price: UnitPrice{
-					Amount:        decimal.NewFromInt(1000),
-					MinimumAmount: nil,
-					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+					Amount: decimal.NewFromInt(1000),
+					Commitments: Commitments{
+						MinimumAmount: nil,
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+					},
 				},
 				ExpectedError: false,
 			},
 			{
 				Name: "invalid",
 				Price: UnitPrice{
-					Amount:        decimal.NewFromInt(-1000),
-					MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
-					MaximumAmount: lo.ToPtr(decimal.NewFromInt(-2000)),
+					Amount: decimal.NewFromInt(-1000),
+					Commitments: Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(-2000)),
+					},
 				},
 				ExpectedError: true,
 			},
@@ -212,8 +224,10 @@ func TestTieredPrice(t *testing.T) {
 							},
 						},
 					},
-					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-					MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+					Commitments: Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(5000)),
+					},
 				},
 				ExpectedError: false,
 			},
@@ -268,8 +282,10 @@ func TestTieredPrice(t *testing.T) {
 							},
 						},
 					},
-					MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-					MaximumAmount: nil,
+					Commitments: Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+						MaximumAmount: nil,
+					},
 				},
 				ExpectedError: false,
 			},
@@ -306,8 +322,10 @@ func TestTieredPrice(t *testing.T) {
 							},
 						},
 					},
-					MinimumAmount: nil,
-					MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+					Commitments: Commitments{
+						MinimumAmount: nil,
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+					},
 				},
 				ExpectedError: false,
 			},
@@ -335,8 +353,10 @@ func TestTieredPrice(t *testing.T) {
 							},
 						},
 					},
-					MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
-					MaximumAmount: lo.ToPtr(decimal.NewFromInt(-5000)),
+					Commitments: Commitments{
+						MinimumAmount: lo.ToPtr(decimal.NewFromInt(-1000)),
+						MaximumAmount: lo.ToPtr(decimal.NewFromInt(-5000)),
+					},
 				},
 				ExpectedError: true,
 			},

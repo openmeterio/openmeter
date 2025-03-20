@@ -3012,8 +3012,9 @@ export interface components {
        *     - 0.5: the price is 50% of the base price
        *     - 1.0: the price is the same as the base price
        *     - 1.5: the price is 150% of the base price
+       * @default 1
        */
-      markupRate: components['schemas']['Numeric']
+      markupRate?: components['schemas']['Numeric']
       /**
        * Minimum amount
        * @description The customer is committed to spend at least the amount.
