@@ -16,3 +16,15 @@ func IfZero[T comparable](val T, def T) T {
 
 	return val
 }
+
+func PtrEqual[T any](a, b *T, compareFn func(T, T) bool) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	return compareFn(*a, *b)
+}
