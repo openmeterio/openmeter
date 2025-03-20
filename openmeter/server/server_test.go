@@ -1075,6 +1075,10 @@ var _ subscription.Service = (*NoopSubscriptionService)(nil)
 // for use in testing
 type NoopSubscriptionService struct{}
 
+func (n NoopSubscriptionService) RegisterValidator(validator subscription.SubscriptionValidator) error {
+	return nil
+}
+
 func (n NoopSubscriptionService) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	return subscription.Subscription{}, nil
 }

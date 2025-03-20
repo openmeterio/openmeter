@@ -216,16 +216,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	featureConnector := common.NewFeatureConnector(logger, client, meterService)
 	advancementStrategy := billingConfiguration.AdvancementStrategy
-	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	productCatalogConfiguration := conf.ProductCatalog
 	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
 	if err != nil {
@@ -237,7 +227,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	validator, err := common.BillingSubscriptionValidator(billingService, billingConfiguration)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -247,7 +237,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService, eventbusPublisher, validator)
+	billingService, err := common.BillingService(logger, service, adapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
 	if err != nil {
 		cleanup6()
 		cleanup5()

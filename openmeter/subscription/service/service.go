@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -39,11 +40,26 @@ func New(conf ServiceConfig) subscription.Service {
 	}
 }
 
+var _ subscription.Service = &service{}
+
 type service struct {
 	ServiceConfig
+
+	mu sync.RWMutex
 }
 
-var _ subscription.Service = &service{}
+func (s *service) RegisterValidator(validator subscription.SubscriptionValidator) error {
+	if validator == nil {
+		return errors.New("invalid subscription validator: nil")
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.Validators = append(s.Validators, validator)
+
+	return nil
+}
 
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	def := subscription.Subscription{}
@@ -99,6 +115,9 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, err
 		}
 
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateCreate(ctx, view)
 		})...)
@@ -143,6 +162,9 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, err
 		}
 
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateUpdate(ctx, view)
 		})...)
@@ -176,6 +198,9 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 	).CanTransitionOrErr(ctx, subscription.SubscriptionActionDelete); err != nil {
 		return err
 	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 		return v.ValidateDelete(ctx, view)
@@ -244,6 +269,9 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return sub, err
 		}
 
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateCancel(ctx, view)
 		})...)
@@ -291,6 +319,9 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 		if err != nil {
 			return sub, err
 		}
+
+		s.mu.RLock()
+		defer s.mu.RUnlock()
 
 		err = errors.Join(lo.Map(s.Validators, func(v subscription.SubscriptionValidator, _ int) error {
 			return v.ValidateContinue(ctx, view)

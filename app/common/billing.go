@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/wire"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
@@ -40,16 +39,15 @@ func BillingAdapter(
 
 func BillingService(
 	logger *slog.Logger,
-	db *entdb.Client,
 	appService app.Service,
 	billingAdapter billing.Adapter,
-	billingConfig config.BillingConfiguration,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
 	streamingConnector streaming.Connector,
 	eventPublisher eventbus.Publisher,
 	advancementStrategy billing.AdvancementStrategy,
+	subscriptionServices SubscriptionServiceWithWorkflow,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:             billingAdapter,
@@ -66,21 +64,28 @@ func BillingService(
 		return nil, err
 	}
 
-	validator, err := billingcustomer.NewValidator(service)
+	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	validator, err := billingcustomer.NewValidator(service, handler, subscriptionServices.Service)
 	if err != nil {
 		return nil, err
 	}
 
 	customerService.RegisterRequestValidator(validator)
 
-	return service, nil
-}
+	subscriptionValidator, err := billingsubscription.NewValidator(service)
+	if err != nil {
+		return nil, err
+	}
 
-func BillingSubscriptionValidator(
-	billingService billing.Service,
-	billingConfig config.BillingConfiguration,
-) (*billingsubscription.Validator, error) {
-	return billingsubscription.NewValidator(billingService)
+	if err = subscriptionServices.Service.RegisterValidator(subscriptionValidator); err != nil {
+		return nil, err
+	}
+
+	return service, nil
 }
 
 func NewBillingAutoAdvancer(logger *slog.Logger, service billing.Service) (*billingworkerautoadvance.AutoAdvancer, error) {
