@@ -68,7 +68,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res, true), nil
+			return mapEntitlementEntity(res), nil
 		},
 	)
 }
@@ -99,7 +99,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res, true), nil
+			return mapEntitlementEntity(res), nil
 		},
 	)
 }
@@ -147,7 +147,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				return nil, err
 			}
 
-			return mapEntitlementEntity(res, true), nil
+			return mapEntitlementEntity(res), nil
 		},
 	)
 }
@@ -261,7 +261,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Contex
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e, true))
+				result = append(result, *mapEntitlementEntity(e))
 			}
 
 			return result, nil
@@ -383,7 +383,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 				mapped := make([]entitlement.Entitlement, 0, len(entities))
 				for _, entity := range entities {
-					mapped = append(mapped, *mapEntitlementEntity(entity, true))
+					mapped = append(mapped, *mapEntitlementEntity(entity))
 				}
 
 				response.Items = mapped
@@ -397,7 +397,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 			result := make([]entitlement.Entitlement, 0, len(paged.Items))
 			for _, e := range paged.Items {
-				result = append(result, *mapEntitlementEntity(e, true))
+				result = append(result, *mapEntitlementEntity(e))
 			}
 
 			response.TotalCount = paged.TotalCount
@@ -408,7 +408,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	)
 }
 
-func mapEntitlementEntity(e *db.Entitlement, calculateUsagePeriod bool) *entitlement.Entitlement {
+func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	ent := &entitlement.Entitlement{
 		GenericProperties: entitlement.GenericProperties{
 			NamespacedModel: models.NamespacedModel{
@@ -474,7 +474,7 @@ func mapEntitlementEntity(e *db.Entitlement, calculateUsagePeriod bool) *entitle
 	}
 
 	// Let's update the current usage period
-	if calculateUsagePeriod && ent.UsagePeriod != nil {
+	if ent.UsagePeriod != nil {
 		cp, ok := ent.CalculateCurrentUsagePeriodAt(lo.FromPtrOr(ent.LastReset, time.Time{}), clock.Now())
 		if ok {
 			ent.CurrentUsagePeriod = &cp
@@ -631,7 +631,17 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e, false))
+				mapped := mapEntitlementEntity(e)
+
+				// Let's set back the original current usage period
+				if e.CurrentUsagePeriodStart != nil && e.CurrentUsagePeriodEnd != nil {
+					mapped.CurrentUsagePeriod = &timeutil.Period{
+						From: e.CurrentUsagePeriodStart.In(time.UTC),
+						To:   e.CurrentUsagePeriodEnd.In(time.UTC),
+					}
+				}
+
+				result = append(result, *mapped)
 			}
 
 			return result, nil
@@ -732,7 +742,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 
 			result := make([]entitlement.Entitlement, 0, len(res))
 			for _, e := range res {
-				result = append(result, *mapEntitlementEntity(e, true))
+				result = append(result, *mapEntitlementEntity(e))
 			}
 
 			return &result, nil
