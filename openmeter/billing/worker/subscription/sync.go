@@ -80,6 +80,11 @@ func New(config Config) (*Handler, error) {
 }
 
 func (h *Handler) SyncronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+	if !subs.Spec.HasBillables() {
+		h.logger.Info("subscription has no billables, skipping sync", "subscription_id", subs.Subscription.ID)
+		return nil
+	}
+
 	// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 	// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
 	_, err := h.billingService.GetCustomerOverride(
