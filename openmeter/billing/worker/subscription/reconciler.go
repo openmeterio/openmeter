@@ -80,7 +80,7 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 	subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
 		Namespaces: in.Namespaces,
 		Customers:  in.Customers,
-		ActiveAt:   lo.ToPtr(time.Now().Add(in.Lookback)),
+		ActiveAt:   lo.ToPtr(time.Now().Add(-in.Lookback)),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list subscriptions: %w", err)
