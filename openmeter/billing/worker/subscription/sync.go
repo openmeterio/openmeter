@@ -725,6 +725,11 @@ func (h *Handler) updateMutableInvoice(ctx context.Context, invoice billing.Invo
 	}
 
 	if updatedInvoice.Lines.NonDeletedLineCount() == 0 {
+		if updatedInvoice.Status == billing.InvoiceStatusGathering {
+			// Gathering invoice deletion is handled by the service layer if they are empty
+			return nil
+		}
+
 		// The invoice has no lines, so let's just delete it
 		if err := h.billingService.DeleteInvoice(ctx, updatedInvoice.InvoiceID()); err != nil {
 			return fmt.Errorf("deleting empty invoice: %w", err)

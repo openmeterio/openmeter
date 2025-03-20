@@ -794,7 +794,15 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 		}
 	}
 
-	invoice, err := s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
+	// Let's see if we are talking about a gathering invoice
+	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: input,
+	})
+	if err != nil {
+		return err
+	}
+
+	invoice, err = s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
 	if err != nil {
 		return err
 	}
@@ -840,7 +848,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			return billing.Invoice{}, fmt.Errorf("fetching profile: %w", err)
 		}
 
-		return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
+		return TranscationForGatheringInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.Invoice, error) {
 			// let's lock the invoice for update, we are using the dedicated call, so that
 			// edges won't end up having SELECT FOR UPDATE locks
 			if err := s.adapter.LockInvoicesForUpdate(ctx, billing.LockInvoicesForUpdateInput{
@@ -888,7 +896,24 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.Invoice{}, err
 			}
 
-			return s.updateInvoice(ctx, invoice)
+			invoice, err = s.updateInvoice(ctx, invoice)
+			if err != nil {
+				return billing.Invoice{}, fmt.Errorf("updating invoice: %w", err)
+			}
+
+			// Auto delete the invoice if it has no lines, this needs to happen here, as we are in a
+			// TranscationForGatheringInvoiceManipulation
+
+			if invoice.Lines.NonDeletedLineCount() == 0 {
+				if err := s.adapter.DeleteInvoices(ctx, billing.DeleteInvoicesAdapterInput{
+					Namespace:  input.Invoice.Namespace,
+					InvoiceIDs: []string{invoice.ID},
+				}); err != nil {
+					return billing.Invoice{}, fmt.Errorf("deleting invoice: %w", err)
+				}
+			}
+
+			return invoice, nil
 		})
 	}
 
