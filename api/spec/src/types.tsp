@@ -380,7 +380,12 @@ model Annotations {
 @pattern("^\\-?[0-9]+(\\.[0-9]+)?$")
 @friendlyName("Numeric")
 scalar Numeric extends string;
-alias Money = Numeric;
+
+/**
+ * Money represents an arbitrary precision monetary amount.
+ */
+@friendlyName("Money")
+scalar Money extends Numeric;
 
 /**
  * Numeric representation of a percentage
