@@ -8682,9 +8682,9 @@ components:
       in: query
       required: false
       description: |-
-        Start date-time in RFC 3339 format.
+        Page index.
 
-        Inclusive.
+        Default is 1.
       schema:
         type: integer
         minimum: 1
@@ -8695,7 +8695,7 @@ components:
       in: query
       required: false
       description: |-
-        Number of items per page.
+        The maximum number of items per page.
 
         Default is 100.
       schema:
@@ -8999,15 +8999,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -9519,15 +9519,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -9593,15 +9593,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -10449,15 +10449,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -10558,15 +10558,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -11484,15 +11484,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -11940,15 +11940,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -12288,15 +12288,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -12382,7 +12382,6 @@ components:
       type: object
       required:
         - items
-        - nextCursor
       properties:
         items:
           type: array
@@ -13237,15 +13236,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -14072,9 +14071,9 @@ components:
           type: integer
           minimum: 1
           description: |-
-            Start date-time in RFC 3339 format.
+            Page index.
 
-            Inclusive.
+            Default is 1.
           example: 1
           default: 1
         pageSize:
@@ -14082,7 +14081,7 @@ components:
           minimum: 1
           maximum: 1000
           description: |-
-            Number of items per page.
+            The maximum number of items per page.
 
             Default is 100.
           example: 100
@@ -14171,15 +14170,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -14634,15 +14633,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -14967,15 +14966,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -15206,15 +15205,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -15538,15 +15537,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array
@@ -17221,15 +17220,15 @@ components:
       properties:
         totalCount:
           type: integer
-          description: The items in the current page.
+          description: The total number of items.
           example: 500
         page:
           type: integer
-          description: The items in the current page.
+          description: The page index.
           example: 1
         pageSize:
           type: integer
-          description: The items in the current page.
+          description: The maximum number of items per page.
           example: 100
         items:
           type: array

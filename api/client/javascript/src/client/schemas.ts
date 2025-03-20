@@ -1855,17 +1855,17 @@ export interface components {
     /** @description Paginated response */
     AppPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -2178,17 +2178,17 @@ export interface components {
     /** @description Paginated response */
     BillingProfileCustomerOverrideWithDetailsPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -2208,17 +2208,17 @@ export interface components {
     /** @description Paginated response */
     BillingProfilePaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -2824,17 +2824,17 @@ export interface components {
     /** @description Paginated response */
     CustomerAppDataPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -2908,17 +2908,17 @@ export interface components {
     /** @description Paginated response */
     CustomerPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -3567,17 +3567,17 @@ export interface components {
     /** @description Paginated response */
     EntitlementPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -3930,17 +3930,17 @@ export interface components {
     /** @description Paginated response */
     FeaturePaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -4036,17 +4036,17 @@ export interface components {
     /** @description Paginated response */
     GrantPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -4652,17 +4652,17 @@ export interface components {
     /** @description Paginated response */
     InvoicePaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -5234,17 +5234,17 @@ export interface components {
     /** @description Paginated response */
     MarketplaceListingPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -5625,17 +5625,17 @@ export interface components {
     /** @description Paginated response */
     NotificationChannelPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -5879,17 +5879,17 @@ export interface components {
     /** @description Paginated response */
     NotificationEventPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -6037,17 +6037,17 @@ export interface components {
     /** @description Paginated response */
     NotificationRulePaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -6277,17 +6277,17 @@ export interface components {
     /** @description Paginated response */
     PlanPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -7453,17 +7453,17 @@ export interface components {
     /** @description Paginated response */
     SubscriptionPaginatedResponse: {
       /**
-       * @description The items in the current page.
+       * @description The total number of items.
        * @example 500
        */
       totalCount: number
       /**
-       * @description The items in the current page.
+       * @description The page index.
        * @example 1
        */
       page: number
       /**
-       * @description The items in the current page.
+       * @description The maximum number of items per page.
        * @example 100
        */
       pageSize: number
@@ -8021,11 +8021,11 @@ export interface components {
      *     Unique, randomly generated, opaque, and non-guessable string that is sent
      *     when starting an authentication request and validated when processing the response. */
     'OAuth2AuthorizationCodeGrantSuccessParams.state': string
-    /** @description Start date-time in RFC 3339 format.
+    /** @description Page index.
      *
-     *     Inclusive. */
+     *     Default is 1. */
     'Pagination.page': number
-    /** @description Number of items per page.
+    /** @description The maximum number of items per page.
      *
      *     Default is 100. */
     'Pagination.pageSize': number
@@ -8648,11 +8648,11 @@ export interface operations {
   listApps: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -9231,11 +9231,11 @@ export interface operations {
         order?: components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.order']
         /** @description The order by field. */
         orderBy?: components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.orderBy']
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -9712,11 +9712,11 @@ export interface operations {
         customers?: components['parameters']['InvoiceListParams.customers']
         /** @description Include deleted invoices */
         includeDeleted?: components['parameters']['InvoiceListParams.includeDeleted']
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -10745,11 +10745,11 @@ export interface operations {
       query?: {
         includeArchived?: boolean
         expand?: components['schemas']['BillingProfileExpand'][]
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -11214,11 +11214,11 @@ export interface operations {
   listCustomers: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -11413,11 +11413,11 @@ export interface operations {
   listCustomerAppData: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -11806,11 +11806,11 @@ export interface operations {
   listCustomerSubscriptions: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -12290,11 +12290,11 @@ export interface operations {
         entitlementType?: components['schemas']['EntitlementType'][]
         /** @description Exclude inactive entitlements in the response (those scheduled for later or earlier) */
         excludeInactive?: boolean
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -12692,11 +12692,11 @@ export interface operations {
         meterSlug?: string[]
         /** @description Filter by meterGroupByFilters */
         includeArchived?: boolean
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -13079,11 +13079,11 @@ export interface operations {
         subject?: string[]
         /** @description Include deleted */
         includeDeleted?: boolean
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -13463,11 +13463,11 @@ export interface operations {
   listMarketplaceListings: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -14575,11 +14575,11 @@ export interface operations {
          *
          *     Usage: `?includeDisabled=false` */
         includeDisabled?: boolean
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -15064,11 +15064,11 @@ export interface operations {
          *
          *     Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J` */
         channel?: string[]
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -15270,11 +15270,11 @@ export interface operations {
          *
          *     Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3` */
         channel?: string[]
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']
@@ -15937,11 +15937,11 @@ export interface operations {
         status?: components['schemas']['PlanStatus'][]
         /** @description Filter by plan.currency attribute */
         currency?: components['schemas']['CurrencyCode'][]
-        /** @description Start date-time in RFC 3339 format.
+        /** @description Page index.
          *
-         *     Inclusive. */
+         *     Default is 1. */
         page?: components['parameters']['Pagination.page']
-        /** @description Number of items per page.
+        /** @description The maximum number of items per page.
          *
          *     Default is 100. */
         pageSize?: components['parameters']['Pagination.pageSize']

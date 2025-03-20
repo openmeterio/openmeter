@@ -14,9 +14,9 @@ namespace OpenMeter;
 @friendlyName("Pagination")
 model QueryPagination {
   /**
-   * Start date-time in RFC 3339 format.
+   * Page index.
    *
-   * Inclusive.
+   * Default is 1.
    */
   @query
   @minValue(1)
@@ -25,7 +25,7 @@ model QueryPagination {
   page?: integer = 1;
 
   /**
-   * Number of items per page.
+   * The maximum number of items per page.
    *
    * Default is 100.
    */
@@ -104,19 +104,19 @@ enum SortOrder {
 @friendlyName("{name}PaginatedResponse", T)
 model PaginatedResponse<T> {
   /**
-   * The items in the current page.
+   * The total number of items.
    */
   @example(500)
   totalCount: integer;
 
   /**
-   * The items in the current page.
+   * The page index.
    */
   @example(1)
   page: integer;
 
   /**
-   * The items in the current page.
+   * The maximum number of items per page.
    */
   @example(100)
   pageSize: integer;
@@ -163,5 +163,5 @@ model CursorPaginatedResponse<T> {
   /**
    * The cursor of the last item in the list.
    */
-  nextCursor: string;
+  nextCursor?: string;
 }

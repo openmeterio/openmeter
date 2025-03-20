@@ -18,5 +18,5 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 
 // GET /api/v2/events
 func (a *Router) ListEventsV2(w http.ResponseWriter, r *http.Request, params api.ListEventsV2Params) {
-	unimplemented.ListEventsV2(w, r, params)
+	a.meterEventHandler.ListEventsV2().With(params).ServeHTTP(w, r)
 }
