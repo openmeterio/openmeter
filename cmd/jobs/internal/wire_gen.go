@@ -214,10 +214,31 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingConfiguration := conf.Billing
 	featureConnector := common.NewFeatureConnector(logger, client, meterService)
+	billingConfiguration := conf.Billing
 	advancementStrategy := billingConfiguration.AdvancementStrategy
-	billingService, err := common.BillingService(logger, client, service, adapter, billingConfiguration, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy)
+	productCatalogConfiguration := conf.ProductCatalog
+	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, eventbusPublisher)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	billingService, err := common.BillingService(logger, service, adapter, customerService, featureConnector, meterService, connector, eventbusPublisher, advancementStrategy, subscriptionServiceWithWorkflow)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -290,37 +311,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	invoiceCollector, err := common.NewBillingCollector(logger, billingService)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	productCatalogConfiguration := conf.ProductCatalog
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	validator, err := common.BillingSubscriptionValidator(billingService, billingConfiguration)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, productCatalogConfiguration, entitlementsConfiguration, featureConnector, entitlement, customerService, planService, eventbusPublisher, validator)
 	if err != nil {
 		cleanup6()
 		cleanup5()

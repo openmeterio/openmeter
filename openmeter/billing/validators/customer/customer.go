@@ -24,8 +24,9 @@ func NewValidator(billingService billing.Service, syncService *billingworkersubs
 	}
 
 	return &Validator{
-		billingService: billingService,
-		syncService:    syncService,
+		billingService:      billingService,
+		syncService:         syncService,
+		subscriptionService: subscriptionService,
 	}, nil
 }
 
