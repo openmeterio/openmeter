@@ -14,6 +14,7 @@ import (
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
+	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -93,5 +94,22 @@ func NewBillingCollector(logger *slog.Logger, service billing.Service) (*billing
 	return billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{
 		BillingService: service,
 		Logger:         logger,
+	})
+}
+
+func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, subscriptionSync *billingworkersubscription.Handler) (*billingworkersubscription.Reconciler, error) {
+	return billingworkersubscription.NewReconciler(billingworkersubscription.ReconcilerConfig{
+		SubscriptionService: subsServices.Service,
+		SubscriptionSync:    subscriptionSync,
+		Logger:              logger,
+	})
+}
+
+func NewBillingSubscriptionHandler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingService billing.Service, billingAdapter billing.Adapter) (*billingworkersubscription.Handler, error) {
+	return billingworkersubscription.New(billingworkersubscription.Config{
+		SubscriptionService: subsServices.Service,
+		BillingService:      billingService,
+		TxCreator:           billingAdapter,
+		Logger:              logger,
 	})
 }
