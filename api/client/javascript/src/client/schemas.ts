@@ -7415,7 +7415,7 @@ export interface components {
        *     When null, the feature or service is free.
        * @example {}
        */
-      price: components['schemas']['SubscriptionItemPrice'] | null
+      price: components['schemas']['RateCardUsageBasedPrice'] | null
       /** @description Describes what access is gained via the SubscriptionItem */
       included?: components['schemas']['SubscriptionItemIncluded']
       /**
@@ -7432,11 +7432,6 @@ export interface components {
       /** @description The entitlement of the Subscription Item. */
       entitlement?: components['schemas']['Entitlement']
     }
-    /** @description The price of the Subscription Item. */
-    SubscriptionItemPrice:
-      | components['schemas']['FlatPriceWithPaymentTerm']
-      | components['schemas']['UnitPriceWithCommitments']
-      | components['schemas']['TieredPriceWithCommitments']
     /** @description Paginated response */
     SubscriptionPaginatedResponse: {
       /**
@@ -8463,8 +8458,6 @@ export type SubscriptionExpanded = components['schemas']['SubscriptionExpanded']
 export type SubscriptionItem = components['schemas']['SubscriptionItem']
 export type SubscriptionItemIncluded =
   components['schemas']['SubscriptionItemIncluded']
-export type SubscriptionItemPrice =
-  components['schemas']['SubscriptionItemPrice']
 export type SubscriptionPaginatedResponse =
   components['schemas']['SubscriptionPaginatedResponse']
 export type SubscriptionPhaseCreate =

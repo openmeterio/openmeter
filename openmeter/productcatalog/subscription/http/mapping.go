@@ -221,10 +221,10 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		tx = &txv
 	}
 
-	var pr *api.SubscriptionItemPrice
+	var pr *api.RateCardUsageBasedPrice
 
 	if item.SubscriptionItem.RateCard.Price != nil {
-		prc, err := MapPriceToAPI(*item.SubscriptionItem.RateCard.Price)
+		prc, err := planhttpdriver.FromRateCardUsageBasedPrice(*item.SubscriptionItem.RateCard.Price)
 		if err != nil {
 			return api.SubscriptionItem{}, err
 		}
@@ -249,109 +249,6 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		TaxConfig:      tx,
 		UpdatedAt:      item.SubscriptionItem.UpdatedAt,
 	}, nil
-}
-
-func MapPriceToAPI(price productcatalog.Price) (api.SubscriptionItemPrice, error) {
-	var res api.SubscriptionItemPrice
-
-	switch price.Type() {
-	case productcatalog.FlatPriceType:
-		flatPrice, err := price.AsFlat()
-		if err != nil {
-			return res, fmt.Errorf("failed to cast FlatPrice: %w", err)
-		}
-
-		err = res.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      flatPrice.Amount.String(),
-			PaymentTerm: lo.ToPtr(planhttpdriver.FromPaymentTerm(flatPrice.PaymentTerm)),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-		})
-		if err != nil {
-			return res, fmt.Errorf("failed to cast FlatPrice: %w", err)
-		}
-	case productcatalog.UnitPriceType:
-		unitPrice, err := price.AsUnit()
-		if err != nil {
-			return res, fmt.Errorf("failed to cast UnitPrice: %w", err)
-		}
-
-		var minimumAmount *string
-		if unitPrice.MinimumAmount != nil {
-			minimumAmount = lo.ToPtr(unitPrice.MinimumAmount.String())
-		}
-
-		var maximumAmount *string
-		if unitPrice.MaximumAmount != nil {
-			maximumAmount = lo.ToPtr(unitPrice.MaximumAmount.String())
-		}
-
-		err = res.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
-			Amount:        unitPrice.Amount.String(),
-			MinimumAmount: minimumAmount,
-			MaximumAmount: maximumAmount,
-			Type:          api.UnitPriceWithCommitmentsTypeUnit,
-		})
-		if err != nil {
-			return res, fmt.Errorf("failed to cast UnitPrice: %w", err)
-		}
-	case productcatalog.TieredPriceType:
-		tieredPrice, err := price.AsTiered()
-		if err != nil {
-			return res, fmt.Errorf("failed to cast TieredPrice: %w", err)
-		}
-
-		var minimumAmount *string
-		if tieredPrice.MinimumAmount != nil {
-			minimumAmount = lo.ToPtr(tieredPrice.MinimumAmount.String())
-		}
-
-		var maximumAmount *string
-		if tieredPrice.MaximumAmount != nil {
-			maximumAmount = lo.ToPtr(tieredPrice.MaximumAmount.String())
-		}
-
-		err = res.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
-			Type:          api.TieredPriceWithCommitmentsTypeTiered,
-			Mode:          api.TieredPriceMode(tieredPrice.Mode),
-			MinimumAmount: minimumAmount,
-			MaximumAmount: maximumAmount,
-			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
-				var upToAmount *string
-				if t.UpToAmount != nil {
-					upToAmount = lo.ToPtr(t.UpToAmount.String())
-				}
-
-				var unitPrice *api.UnitPrice
-				if t.UnitPrice != nil {
-					unitPrice = &api.UnitPrice{
-						Type:   api.UnitPriceTypeUnit,
-						Amount: t.UnitPrice.Amount.String(),
-					}
-				}
-
-				var flatPrice *api.FlatPrice
-				if t.FlatPrice != nil {
-					flatPrice = &api.FlatPrice{
-						Type:   api.FlatPriceTypeFlat,
-						Amount: t.FlatPrice.Amount.String(),
-					}
-				}
-
-				return api.PriceTier{
-					UpToAmount: upToAmount,
-					UnitPrice:  unitPrice,
-					FlatPrice:  flatPrice,
-				}
-			}),
-		})
-		if err != nil {
-			return res, fmt.Errorf("failed to cast TieredPrice: %w", err)
-		}
-	default:
-		return res, fmt.Errorf("unknown price type: %s", price.Type())
-	}
-
-	return res, nil
 }
 
 func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing, error) {

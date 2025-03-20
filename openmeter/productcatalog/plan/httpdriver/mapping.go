@@ -191,102 +191,14 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			featureKey = &rc.Feature().Key
 		}
 
-		var price api.RateCardUsageBasedPrice
+		var price *api.RateCardUsageBasedPrice
 		if rc.Price != nil {
-			switch rc.Price.Type() {
-			case productcatalog.FlatPriceType:
-				flatPrice, err := rc.Price.AsFlat()
-				if err != nil {
-					return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
-				}
-
-				err = price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-					Amount:      flatPrice.Amount.String(),
-					PaymentTerm: lo.ToPtr(FromPaymentTerm(flatPrice.PaymentTerm)),
-					Type:        api.FlatPriceWithPaymentTermTypeFlat,
-				})
-				if err != nil {
-					return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
-				}
-			case productcatalog.UnitPriceType:
-				unitPrice, err := rc.Price.AsUnit()
-				if err != nil {
-					return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
-				}
-
-				var minimumAmount *string
-				if unitPrice.MinimumAmount != nil {
-					minimumAmount = lo.ToPtr(unitPrice.MinimumAmount.String())
-				}
-
-				var maximumAmount *string
-				if unitPrice.MaximumAmount != nil {
-					maximumAmount = lo.ToPtr(unitPrice.MaximumAmount.String())
-				}
-
-				err = price.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
-					Amount:        unitPrice.Amount.String(),
-					MinimumAmount: minimumAmount,
-					MaximumAmount: maximumAmount,
-					Type:          api.UnitPriceWithCommitmentsTypeUnit,
-				})
-				if err != nil {
-					return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
-				}
-			case productcatalog.TieredPriceType:
-				tieredPrice, err := rc.Price.AsTiered()
-				if err != nil {
-					return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
-				}
-
-				var minimumAmount *string
-				if tieredPrice.MinimumAmount != nil {
-					minimumAmount = lo.ToPtr(tieredPrice.MinimumAmount.String())
-				}
-
-				var maximumAmount *string
-				if tieredPrice.MaximumAmount != nil {
-					maximumAmount = lo.ToPtr(tieredPrice.MaximumAmount.String())
-				}
-
-				err = price.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
-					Type:          api.TieredPriceWithCommitmentsTypeTiered,
-					Mode:          api.TieredPriceMode(tieredPrice.Mode),
-					MinimumAmount: minimumAmount,
-					MaximumAmount: maximumAmount,
-					Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
-						var upToAmount *api.Numeric
-						if t.UpToAmount != nil {
-							upToAmount = lo.ToPtr(t.UpToAmount.String())
-						}
-
-						var unitPrice *api.UnitPrice
-						if t.UnitPrice != nil {
-							unitPrice = &api.UnitPrice{
-								Type:   api.UnitPriceTypeUnit,
-								Amount: t.UnitPrice.Amount.String(),
-							}
-						}
-
-						var flatPrice *api.FlatPrice
-						if t.FlatPrice != nil {
-							flatPrice = &api.FlatPrice{
-								Type:   api.FlatPriceTypeFlat,
-								Amount: t.FlatPrice.Amount.String(),
-							}
-						}
-
-						return api.PriceTier{
-							UpToAmount: upToAmount,
-							UnitPrice:  unitPrice,
-							FlatPrice:  flatPrice,
-						}
-					}),
-				})
-				if err != nil {
-					return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
-				}
+			ubpPrice, err := FromRateCardUsageBasedPrice(*rc.Price)
+			if err != nil {
+				return resp, fmt.Errorf("failed to cast UsageBasedPrice: %w", err)
 			}
+
+			price = &ubpPrice
 		}
 
 		var taxConfig *api.TaxConfig
@@ -303,7 +215,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			Key:                 rc.Key(),
 			Metadata:            lo.EmptyableToPtr(api.Metadata(rc.Metadata)),
 			Name:                rc.Name,
-			Price:               &price,
+			Price:               price,
 			TaxConfig:           taxConfig,
 		})
 		if err != nil {
@@ -311,6 +223,109 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 		}
 	default:
 		return resp, fmt.Errorf("invalid RateCard type: %s", r.Type())
+	}
+
+	return resp, nil
+}
+
+func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
+	var resp api.RateCardUsageBasedPrice
+
+	switch price.Type() {
+	case productcatalog.FlatPriceType:
+		flatPrice, err := price.AsFlat()
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
+		}
+
+		err = resp.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      flatPrice.Amount.String(),
+			PaymentTerm: lo.ToPtr(FromPaymentTerm(flatPrice.PaymentTerm)),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+		})
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
+		}
+	case productcatalog.UnitPriceType:
+		unitPrice, err := price.AsUnit()
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
+		}
+
+		var minimumAmount *string
+		if unitPrice.MinimumAmount != nil {
+			minimumAmount = lo.ToPtr(unitPrice.MinimumAmount.String())
+		}
+
+		var maximumAmount *string
+		if unitPrice.MaximumAmount != nil {
+			maximumAmount = lo.ToPtr(unitPrice.MaximumAmount.String())
+		}
+
+		err = resp.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
+			Amount:        unitPrice.Amount.String(),
+			MinimumAmount: minimumAmount,
+			MaximumAmount: maximumAmount,
+			Type:          api.UnitPriceWithCommitmentsTypeUnit,
+		})
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
+		}
+	case productcatalog.TieredPriceType:
+		tieredPrice, err := price.AsTiered()
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
+		}
+
+		var minimumAmount *string
+		if tieredPrice.MinimumAmount != nil {
+			minimumAmount = lo.ToPtr(tieredPrice.MinimumAmount.String())
+		}
+
+		var maximumAmount *string
+		if tieredPrice.MaximumAmount != nil {
+			maximumAmount = lo.ToPtr(tieredPrice.MaximumAmount.String())
+		}
+
+		err = resp.FromTieredPriceWithCommitments(api.TieredPriceWithCommitments{
+			Type:          api.TieredPriceWithCommitmentsTypeTiered,
+			Mode:          api.TieredPriceMode(tieredPrice.Mode),
+			MinimumAmount: minimumAmount,
+			MaximumAmount: maximumAmount,
+			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) api.PriceTier {
+				var upToAmount *api.Numeric
+				if t.UpToAmount != nil {
+					upToAmount = lo.ToPtr(t.UpToAmount.String())
+				}
+
+				var unitPrice *api.UnitPrice
+				if t.UnitPrice != nil {
+					unitPrice = &api.UnitPrice{
+						Type:   api.UnitPriceTypeUnit,
+						Amount: t.UnitPrice.Amount.String(),
+					}
+				}
+
+				var flatPrice *api.FlatPrice
+				if t.FlatPrice != nil {
+					flatPrice = &api.FlatPrice{
+						Type:   api.FlatPriceTypeFlat,
+						Amount: t.FlatPrice.Amount.String(),
+					}
+				}
+
+				return api.PriceTier{
+					UpToAmount: upToAmount,
+					UnitPrice:  unitPrice,
+					FlatPrice:  flatPrice,
+				}
+			}),
+		})
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
+		}
+	default:
+		return resp, fmt.Errorf("invalid Price type: %s", price.Type())
 	}
 
 	return resp, nil
