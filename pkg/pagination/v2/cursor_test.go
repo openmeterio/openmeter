@@ -186,3 +186,54 @@ func TestTextMarshalUnmarshal(t *testing.T) {
 	err = nilCursor.UnmarshalText(nil)
 	assert.Error(t, err, "UnmarshalText should return an error for nil text")
 }
+
+func TestCursorValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		cursor      Cursor
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "Valid cursor",
+			cursor: Cursor{
+				Time: time.Now().UTC(),
+				ID:   "valid-id",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Zero time",
+			cursor: Cursor{
+				Time: time.Time{},
+				ID:   "test-id",
+			},
+			wantErr:     true,
+			errContains: "time is zero",
+		},
+		{
+			name: "Empty ID",
+			cursor: Cursor{
+				Time: time.Now().UTC(),
+				ID:   "",
+			},
+			wantErr:     true,
+			errContains: "id is empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cursor.Validate()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

@@ -599,6 +599,22 @@ func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return events, nil
 }
 
+func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+	events := []streaming.RawEvent{
+		{
+			ID:         mockEvent.ID(),
+			Type:       mockEvent.Type(),
+			Source:     mockEvent.Source(),
+			Subject:    mockEvent.Subject(),
+			Time:       mockEvent.Time(),
+			Data:       string(mockEvent.Data()),
+			IngestedAt: time.Time{},
+			StoredAt:   time.Time{},
+		},
+	}
+	return events, nil
+}
+
 func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }

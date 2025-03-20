@@ -23,6 +23,18 @@ func NewCursor(t time.Time, id string) Cursor {
 	}
 }
 
+func (c Cursor) Validate() error {
+	if c.Time.IsZero() {
+		return fmt.Errorf("time is zero")
+	}
+
+	if c.ID == "" {
+		return fmt.Errorf("id is empty")
+	}
+
+	return nil
+}
+
 // DecodeCursor decodes a base64-encoded cursor string into a Cursor object.
 func DecodeCursor(s string) (*Cursor, error) {
 	var cursor Cursor

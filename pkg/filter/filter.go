@@ -12,6 +12,8 @@ import (
 type Filter interface {
 	// Validate validates the filter.
 	Validate() error
+	// ValidateWithComplexity validates the complexity of the filter.
+	ValidateWithComplexity(maxDepth int) error
 	// SelectWhereExpr converts the filter to a SQL WHERE expression.
 	SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string
 }
@@ -67,6 +69,42 @@ func (f FilterString) Validate() error {
 	})
 	if err := errors.Join(errs...); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ValidateWithComplexity validates the filter complexity.
+func (f FilterString) ValidateWithComplexity(maxDepth int) error {
+	// First validate the filter itself
+	if err := f.Validate(); err != nil {
+		return err
+	}
+
+	// Check if we're at a logical operator and need to validate the depth
+	if f.And != nil || f.Or != nil {
+		if maxDepth <= 0 {
+			return errors.New("filter complexity exceeds maximum allowed depth")
+		}
+
+		// Validate nested filters with decremented depth
+		if f.And != nil {
+			errs := lo.Map(lo.FromPtr(f.And), func(f FilterString, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
+
+		if f.Or != nil {
+			errs := lo.Map(lo.FromPtr(f.Or), func(f FilterString, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -152,6 +190,42 @@ func (f FilterInteger) Validate() error {
 	return nil
 }
 
+// ValidateWithComplexity validates the filter complexity.
+func (f FilterInteger) ValidateWithComplexity(maxDepth int) error {
+	// First validate the filter itself
+	if err := f.Validate(); err != nil {
+		return err
+	}
+
+	// Check if we're at a logical operator and need to validate the depth
+	if f.And != nil || f.Or != nil {
+		if maxDepth <= 0 {
+			return errors.New("filter complexity exceeds maximum allowed depth")
+		}
+
+		// Validate nested filters with decremented depth
+		if f.And != nil {
+			errs := lo.Map(lo.FromPtr(f.And), func(f FilterInteger, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
+
+		if f.Or != nil {
+			errs := lo.Map(lo.FromPtr(f.Or), func(f FilterInteger, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
 func (f FilterInteger) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
@@ -214,6 +288,42 @@ func (f FilterFloat) Validate() error {
 	})
 	if err := errors.Join(errs...); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ValidateWithComplexity validates the filter complexity.
+func (f FilterFloat) ValidateWithComplexity(maxDepth int) error {
+	// First validate the filter itself
+	if err := f.Validate(); err != nil {
+		return err
+	}
+
+	// Check if we're at a logical operator and need to validate the depth
+	if f.And != nil || f.Or != nil {
+		if maxDepth <= 0 {
+			return errors.New("filter complexity exceeds maximum allowed depth")
+		}
+
+		// Validate nested filters with decremented depth
+		if f.And != nil {
+			errs := lo.Map(lo.FromPtr(f.And), func(f FilterFloat, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
+
+		if f.Or != nil {
+			errs := lo.Map(lo.FromPtr(f.Or), func(f FilterFloat, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -285,6 +395,42 @@ func (f FilterTime) Validate() error {
 	return nil
 }
 
+// ValidateWithComplexity validates the filter complexity.
+func (f FilterTime) ValidateWithComplexity(maxDepth int) error {
+	// First validate the filter itself
+	if err := f.Validate(); err != nil {
+		return err
+	}
+
+	// Check if we're at a logical operator and need to validate the depth
+	if f.And != nil || f.Or != nil {
+		if maxDepth <= 0 {
+			return errors.New("filter complexity exceeds maximum allowed depth")
+		}
+
+		// Validate nested filters with decremented depth
+		if f.And != nil {
+			errs := lo.Map(lo.FromPtr(f.And), func(f FilterTime, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
+
+		if f.Or != nil {
+			errs := lo.Map(lo.FromPtr(f.Or), func(f FilterTime, _ int) error {
+				return f.ValidateWithComplexity(maxDepth - 1)
+			})
+			if err := errors.Join(errs...); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
 func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
 	switch {
@@ -317,6 +463,12 @@ type FilterBoolean struct {
 // Validate validates the filter.
 func (f FilterBoolean) Validate() error {
 	return nil
+}
+
+// ValidateWithComplexity validates the filter complexity.
+func (f FilterBoolean) ValidateWithComplexity(maxDepth int) error {
+	// Boolean filter has no nested filters, so just validate normally
+	return f.Validate()
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.

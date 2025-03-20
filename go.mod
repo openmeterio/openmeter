@@ -37,6 +37,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.34.0
 	github.com/invopop/gobl v0.212.1
 	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jmattheis/goverter v1.8.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
@@ -113,6 +114,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
 	github.com/cncf/xds/go v0.0.0-20250121191232-2f005788dc42 // indirect
+	github.com/dave/jennifer v1.6.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.0.1 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.6.0 // indirect

@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 const (
@@ -14,6 +17,7 @@ const (
 
 type Service interface {
 	ListEvents(ctx context.Context, params ListEventsParams) ([]Event, error)
+	ListEventsV2(ctx context.Context, params ListEventsV2Params) (pagination.Result[Event], error)
 }
 
 // ListEventsParams represents the input for ListEvents method.
@@ -60,6 +64,14 @@ type Event struct {
 	ValidationErrors []error
 }
 
+// Cursor returns the cursor for the event.
+func (e Event) Cursor() pagination.Cursor {
+	return pagination.Cursor{
+		ID:   e.ID,
+		Time: e.Time,
+	}
+}
+
 // Validate validates the input.
 func (i ListEventsParams) Validate() error {
 	var errs []error
@@ -100,6 +112,87 @@ func (i ListEventsParams) Validate() error {
 
 	if i.Limit > MaximumLimit {
 		errs = append(errs, fmt.Errorf("limit must be less than or equal to %d", MaximumLimit))
+	}
+
+	return errors.Join(errs...)
+}
+
+// ListEventsV2Params is a parameter object for listing events.
+type ListEventsV2Params struct {
+	// The namespace.
+	Namespace string
+	// The client ID.
+	ClientID *string
+	// The cursor.
+	Cursor *pagination.Cursor
+	// The limit.
+	Limit *int
+	// The ID filter.
+	ID *filter.FilterString
+	// The source filter.
+	Source *filter.FilterString
+	// The subject filter.
+	Subject *filter.FilterString
+	// The type filter.
+	Type *filter.FilterString
+	// The time filter.
+	Time *filter.FilterTime
+	// The ingested at filter.
+	IngestedAt *filter.FilterTime
+}
+
+// Validate validates the list events parameters.
+func (p ListEventsV2Params) Validate() error {
+	var errs []error
+
+	if p.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if p.Cursor != nil {
+		if err := p.Cursor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cursor: %w", err))
+		}
+	}
+
+	if p.ID != nil {
+		if err := p.ID.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("id: %w", err))
+		}
+	}
+
+	if p.Source != nil {
+		if err := p.Source.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("source: %w", err))
+		}
+	}
+
+	if p.Subject != nil {
+		if err := p.Subject.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("subject: %w", err))
+		}
+	}
+
+	if p.Type != nil {
+		if err := p.Type.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("type: %w", err))
+		}
+	}
+
+	if p.Time != nil && p.IngestedAt != nil {
+		errs = append(errs, errors.New("time and ingested_at cannot both be set"))
+	}
+
+	if p.Time != nil {
+		if err := p.Time.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("time: %w", err))
+		}
+	}
+
+	if p.IngestedAt != nil {
+		if err := p.IngestedAt.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("ingested_at: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)

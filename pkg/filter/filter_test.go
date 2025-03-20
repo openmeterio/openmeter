@@ -1006,3 +1006,504 @@ func TestFilterTime_SelectWhereExpr(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterString_ValidateWithComplexity(t *testing.T) {
+	tests := []struct {
+		name       string
+		filter     filter.FilterString
+		maxDepth   int
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name:     "nil filter",
+			filter:   filter.FilterString{},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "simple filter within depth limit",
+			filter: filter.FilterString{
+				Eq: lo.ToPtr("test"),
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "one level nested AND filter within depth limit",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{Eq: lo.ToPtr("test1")},
+					{Eq: lo.ToPtr("test2")},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "one level nested OR filter within depth limit",
+			filter: filter.FilterString{
+				Or: &[]filter.FilterString{
+					{Eq: lo.ToPtr("test1")},
+					{Eq: lo.ToPtr("test2")},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "two level nested AND filter within depth limit",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						And: &[]filter.FilterString{
+							{Eq: lo.ToPtr("test1")},
+							{Eq: lo.ToPtr("test2")},
+						},
+					},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "deep nested filter exceeding depth limit",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						And: &[]filter.FilterString{
+							{
+								And: &[]filter.FilterString{
+									{
+										And: &[]filter.FilterString{
+											{Eq: lo.ToPtr("test1")},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			maxDepth:   2,
+			wantErr:    true,
+			errMessage: "filter complexity exceeds maximum allowed depth",
+		},
+		{
+			name: "mixed nested AND/OR filter within depth limit",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						Or: &[]filter.FilterString{
+							{Eq: lo.ToPtr("test1")},
+							{Eq: lo.ToPtr("test2")},
+						},
+					},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "mixed nested AND/OR filter exceeding depth limit",
+			filter: filter.FilterString{
+				And: &[]filter.FilterString{
+					{
+						Or: &[]filter.FilterString{
+							{
+								And: &[]filter.FilterString{
+									{Eq: lo.ToPtr("test1")},
+									{Eq: lo.ToPtr("test2")},
+								},
+							},
+						},
+					},
+				},
+			},
+			maxDepth:   2,
+			wantErr:    true,
+			errMessage: "filter complexity exceeds maximum allowed depth",
+		},
+		{
+			name: "filter with validation error",
+			filter: filter.FilterString{
+				Eq: lo.ToPtr("test"),
+				Ne: lo.ToPtr("test"),
+			},
+			maxDepth:   3,
+			wantErr:    true,
+			errMessage: "only one filter can be set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMessage != "" {
+					assert.ErrorContains(t, err, tt.errMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterInteger_ValidateWithComplexity(t *testing.T) {
+	tests := []struct {
+		name       string
+		filter     filter.FilterInteger
+		maxDepth   int
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name:     "nil filter",
+			filter:   filter.FilterInteger{},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "simple filter within depth limit",
+			filter: filter.FilterInteger{
+				Eq: lo.ToPtr(42),
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "one level nested AND filter within depth limit",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{Eq: lo.ToPtr(42)},
+					{Gt: lo.ToPtr(10)},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "one level nested OR filter within depth limit",
+			filter: filter.FilterInteger{
+				Or: &[]filter.FilterInteger{
+					{Eq: lo.ToPtr(42)},
+					{Lt: lo.ToPtr(100)},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "two level nested AND filter within depth limit",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{
+						And: &[]filter.FilterInteger{
+							{Eq: lo.ToPtr(42)},
+							{Gt: lo.ToPtr(10)},
+						},
+					},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "deep nested filter exceeding depth limit",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{
+						And: &[]filter.FilterInteger{
+							{
+								And: &[]filter.FilterInteger{
+									{
+										And: &[]filter.FilterInteger{
+											{Eq: lo.ToPtr(42)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			maxDepth:   2,
+			wantErr:    true,
+			errMessage: "filter complexity exceeds maximum allowed depth",
+		},
+		{
+			name: "mixed nested AND/OR filter within depth limit",
+			filter: filter.FilterInteger{
+				And: &[]filter.FilterInteger{
+					{
+						Or: &[]filter.FilterInteger{
+							{Eq: lo.ToPtr(42)},
+							{Gt: lo.ToPtr(10)},
+						},
+					},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "filter with validation error",
+			filter: filter.FilterInteger{
+				Eq: lo.ToPtr(42),
+				Ne: lo.ToPtr(42),
+			},
+			maxDepth:   3,
+			wantErr:    true,
+			errMessage: "only one filter can be set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMessage != "" {
+					assert.ErrorContains(t, err, tt.errMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterFloat_ValidateWithComplexity(t *testing.T) {
+	tests := []struct {
+		name       string
+		filter     filter.FilterFloat
+		maxDepth   int
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name:     "nil filter",
+			filter:   filter.FilterFloat{},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "simple filter within depth limit",
+			filter: filter.FilterFloat{
+				Eq: lo.ToPtr(42.5),
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "one level nested AND filter within depth limit",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{Eq: lo.ToPtr(42.5)},
+					{Gt: lo.ToPtr(10.5)},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "two level nested AND filter within depth limit",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{
+						And: &[]filter.FilterFloat{
+							{Eq: lo.ToPtr(42.5)},
+							{Gt: lo.ToPtr(10.5)},
+						},
+					},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "deep nested filter exceeding depth limit",
+			filter: filter.FilterFloat{
+				And: &[]filter.FilterFloat{
+					{
+						And: &[]filter.FilterFloat{
+							{
+								And: &[]filter.FilterFloat{
+									{
+										And: &[]filter.FilterFloat{
+											{Eq: lo.ToPtr(42.5)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			maxDepth:   2,
+			wantErr:    true,
+			errMessage: "filter complexity exceeds maximum allowed depth",
+		},
+		{
+			name: "filter with validation error",
+			filter: filter.FilterFloat{
+				Eq: lo.ToPtr(42.5),
+				Ne: lo.ToPtr(42.5),
+			},
+			maxDepth:   3,
+			wantErr:    true,
+			errMessage: "only one filter can be set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMessage != "" {
+					assert.ErrorContains(t, err, tt.errMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterBoolean_ValidateWithComplexity(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   filter.FilterBoolean
+		maxDepth int
+		wantErr  bool
+	}{
+		{
+			name:     "nil filter",
+			filter:   filter.FilterBoolean{},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "simple filter",
+			filter: filter.FilterBoolean{
+				Eq: lo.ToPtr(true),
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFilterTime_ValidateWithComplexity(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name       string
+		filter     filter.FilterTime
+		maxDepth   int
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name:     "nil filter",
+			filter:   filter.FilterTime{},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "simple filter within depth limit",
+			filter: filter.FilterTime{
+				Gt: lo.ToPtr(now),
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "one level nested AND filter within depth limit",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{Gt: lo.ToPtr(now)},
+					{Lt: lo.ToPtr(now.Add(24 * time.Hour))},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "two level nested AND filter within depth limit",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{
+						And: &[]filter.FilterTime{
+							{Gt: lo.ToPtr(now)},
+							{Lt: lo.ToPtr(now.Add(24 * time.Hour))},
+						},
+					},
+				},
+			},
+			maxDepth: 3,
+			wantErr:  false,
+		},
+		{
+			name: "deep nested filter exceeding depth limit",
+			filter: filter.FilterTime{
+				And: &[]filter.FilterTime{
+					{
+						And: &[]filter.FilterTime{
+							{
+								And: &[]filter.FilterTime{
+									{
+										And: &[]filter.FilterTime{
+											{Gt: lo.ToPtr(now)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			maxDepth:   2,
+			wantErr:    true,
+			errMessage: "filter complexity exceeds maximum allowed depth",
+		},
+		{
+			name: "filter with validation error",
+			filter: filter.FilterTime{
+				Gt:  lo.ToPtr(now),
+				Gte: lo.ToPtr(now),
+			},
+			maxDepth:   3,
+			wantErr:    true,
+			errMessage: "only one filter can be set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.ValidateWithComplexity(tt.maxDepth)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMessage != "" {
+					assert.ErrorContains(t, err, tt.errMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
