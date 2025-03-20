@@ -31,6 +31,8 @@ type Subscription struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations map[string]string `json:"annotations,omitempty"`
 	// ActiveFrom holds the value of the "active_from" field.
 	ActiveFrom time.Time `json:"active_from,omitempty"`
 	// ActiveTo holds the value of the "active_to" field.
@@ -113,7 +115,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscription.FieldMetadata:
+		case subscription.FieldMetadata, subscription.FieldAnnotations:
 			values[i] = new([]byte)
 		case subscription.FieldBillablesMustAlign:
 			values[i] = new(sql.NullBool)
@@ -173,6 +175,14 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &s.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
+		case subscription.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &s.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
 		case subscription.FieldActiveFrom:
@@ -298,6 +308,9 @@ func (s *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", s.Metadata))
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", s.Annotations))
 	builder.WriteString(", ")
 	builder.WriteString("active_from=")
 	builder.WriteString(s.ActiveFrom.Format(time.ANSIC))

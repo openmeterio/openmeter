@@ -1674,6 +1674,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "active_from", Type: field.TypeTime},
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
 		{Name: "billables_must_align", Type: field.TypeBool, Default: false},
@@ -1691,13 +1692,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[12]},
+				Columns:    []*schema.Column{SubscriptionsColumns[13]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscriptions_plans_subscriptions",
-				Columns:    []*schema.Column{SubscriptionsColumns[13]},
+				Columns:    []*schema.Column{SubscriptionsColumns[14]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1721,7 +1722,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[12]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[13]},
 			},
 		},
 	}

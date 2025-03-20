@@ -23,6 +23,7 @@ func (Subscription) Mixin() []ent.Mixin {
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 		entutils.MetadataAnnotationsMixin{},
+		entutils.AnnotationsMixin{},
 		entutils.CadencedMixin{},
 		AlignmentMixin{},
 	}

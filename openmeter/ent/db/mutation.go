@@ -36987,6 +36987,7 @@ type SubscriptionMutation struct {
 	updated_at           *time.Time
 	deleted_at           *time.Time
 	metadata             *map[string]string
+	annotations          *map[string]string
 	active_from          *time.Time
 	active_to            *time.Time
 	billables_must_align *bool
@@ -37317,6 +37318,55 @@ func (m *SubscriptionMutation) MetadataCleared() bool {
 func (m *SubscriptionMutation) ResetMetadata() {
 	m.metadata = nil
 	delete(m.clearedFields, subscription.FieldMetadata)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *SubscriptionMutation) SetAnnotations(value map[string]string) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *SubscriptionMutation) Annotations() (r map[string]string, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldAnnotations(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *SubscriptionMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[subscription.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *SubscriptionMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *SubscriptionMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, subscription.FieldAnnotations)
 }
 
 // SetActiveFrom sets the "active_from" field.
@@ -37842,7 +37892,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -37857,6 +37907,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.metadata != nil {
 		fields = append(fields, subscription.FieldMetadata)
+	}
+	if m.annotations != nil {
+		fields = append(fields, subscription.FieldAnnotations)
 	}
 	if m.active_from != nil {
 		fields = append(fields, subscription.FieldActiveFrom)
@@ -37900,6 +37953,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case subscription.FieldMetadata:
 		return m.Metadata()
+	case subscription.FieldAnnotations:
+		return m.Annotations()
 	case subscription.FieldActiveFrom:
 		return m.ActiveFrom()
 	case subscription.FieldActiveTo:
@@ -37935,6 +37990,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDeletedAt(ctx)
 	case subscription.FieldMetadata:
 		return m.OldMetadata(ctx)
+	case subscription.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case subscription.FieldActiveFrom:
 		return m.OldActiveFrom(ctx)
 	case subscription.FieldActiveTo:
@@ -37994,6 +38051,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
+		return nil
+	case subscription.FieldAnnotations:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
 		return nil
 	case subscription.FieldActiveFrom:
 		v, ok := value.(time.Time)
@@ -38087,6 +38151,9 @@ func (m *SubscriptionMutation) ClearedFields() []string {
 	if m.FieldCleared(subscription.FieldMetadata) {
 		fields = append(fields, subscription.FieldMetadata)
 	}
+	if m.FieldCleared(subscription.FieldAnnotations) {
+		fields = append(fields, subscription.FieldAnnotations)
+	}
 	if m.FieldCleared(subscription.FieldActiveTo) {
 		fields = append(fields, subscription.FieldActiveTo)
 	}
@@ -38115,6 +38182,9 @@ func (m *SubscriptionMutation) ClearField(name string) error {
 		return nil
 	case subscription.FieldMetadata:
 		m.ClearMetadata()
+		return nil
+	case subscription.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case subscription.FieldActiveTo:
 		m.ClearActiveTo()
@@ -38147,6 +38217,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldMetadata:
 		m.ResetMetadata()
+		return nil
+	case subscription.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case subscription.FieldActiveFrom:
 		m.ResetActiveFrom()

@@ -171,18 +171,32 @@ type VersionedModel struct {
 }
 
 type (
-	annotatedMarker bool // marker is used so only AnnotatedModel can implement Annotated
-	Annotated       interface {
-		annotated() annotatedMarker
+	metadataMarker bool // marker is used so only MetadataModel can implement Annotated
+	HasMetadata    interface {
+		metadata() metadataMarker
 	}
 )
 
-type AnnotatedModel struct {
+type MetadataModel struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-var _ Annotated = AnnotatedModel{}
+var _ HasMetadata = MetadataModel{}
 
-func (a AnnotatedModel) annotated() annotatedMarker {
+func (a MetadataModel) metadata() metadataMarker {
 	return true
+}
+
+type AnnotatedModel struct {
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+type AnnotationKeyValue struct {
+	Key   string
+	Value string
+}
+
+func (a AnnotatedModel) HasAnnotation(kv AnnotationKeyValue) bool {
+	v, ok := a.Annotations[kv.Key]
+	return ok && v == kv.Value
 }

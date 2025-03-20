@@ -1,4 +1,4 @@
-h1:4J/84Eh1zbOTLoIo/oyE2mjHT2l9rLcwtUKJ4Lap/dI=
+h1:FA8/F7uyB0Kjmmyeaj46l8vF1BI9HAT3g01ddcEO7xw=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -133,3 +133,5 @@ h1:4J/84Eh1zbOTLoIo/oyE2mjHT2l9rLcwtUKJ4Lap/dI=
 20250311193204_balance-snapshot-indexes.up.sql h1:pOm1/hjT5JNIKY6HGoE9cKdm7sEktvGoe70aXIXdtas=
 20250318123842_app-stripe-store-masked-key.down.sql h1:5qtoEQDhImUZlDa8UZctf537UlLByNFldG4mve/85MA=
 20250318123842_app-stripe-store-masked-key.up.sql h1:0FdVfvwRrXul3yotzfXN1hoI3UqYueVR0osAFXoakeg=
+20250320193637_subs-annotations.down.sql h1:W2koRW7PeKCvoS2ws1oRcEvCf/AbeLQDbY7DeetgPdU=
+20250320193637_subs-annotations.up.sql h1:/FIjMBDCxmKcq9iJfQNdcV5bgfNQR7Fa33H2qf2Kjbw=

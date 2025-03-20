@@ -16,6 +16,7 @@ import (
 type CreateSubscriptionEntityInput struct {
 	models.CadencedModel
 	models.NamespacedModel
+	models.MetadataModel
 	models.AnnotatedModel
 
 	productcatalog.Alignment
@@ -51,7 +52,7 @@ type SubscriptionRepository interface {
 
 type CreateSubscriptionPhaseEntityInput struct {
 	models.NamespacedModel
-	models.AnnotatedModel
+	models.MetadataModel
 
 	// ActiveFrom is the time the phase becomes active.
 	ActiveFrom time.Time
@@ -89,7 +90,7 @@ type SubscriptionPhaseRepository interface {
 
 type CreateSubscriptionItemEntityInput struct {
 	models.NamespacedModel
-	models.AnnotatedModel
+	models.MetadataModel
 
 	ActiveFromOverrideRelativeToPhaseStart *isodate.Period
 	ActiveToOverrideRelativeToPhaseStart   *isodate.Period
@@ -113,9 +114,9 @@ type CreateSubscriptionItemEntityInput struct {
 
 func (i CreateSubscriptionItemEntityInput) Equal(other CreateSubscriptionItemEntityInput) bool {
 	a := i
-	a.AnnotatedModel = models.AnnotatedModel{}
+	a.MetadataModel = models.MetadataModel{}
 	b := other
-	b.AnnotatedModel = models.AnnotatedModel{}
+	b.MetadataModel = models.MetadataModel{}
 
 	return reflect.DeepEqual(a, b) && maps.Equal(i.Metadata, other.Metadata)
 }

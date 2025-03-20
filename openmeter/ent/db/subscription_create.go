@@ -82,6 +82,12 @@ func (sc *SubscriptionCreate) SetMetadata(m map[string]string) *SubscriptionCrea
 	return sc
 }
 
+// SetAnnotations sets the "annotations" field.
+func (sc *SubscriptionCreate) SetAnnotations(m map[string]string) *SubscriptionCreate {
+	sc.mutation.SetAnnotations(m)
+	return sc
+}
+
 // SetActiveFrom sets the "active_from" field.
 func (sc *SubscriptionCreate) SetActiveFrom(t time.Time) *SubscriptionCreate {
 	sc.mutation.SetActiveFrom(t)
@@ -386,6 +392,10 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 		_spec.SetField(subscription.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
+	if value, ok := sc.mutation.Annotations(); ok {
+		_spec.SetField(subscription.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := sc.mutation.ActiveFrom(); ok {
 		_spec.SetField(subscription.FieldActiveFrom, field.TypeTime, value)
 		_node.ActiveFrom = value
@@ -573,6 +583,24 @@ func (u *SubscriptionUpsert) UpdateMetadata() *SubscriptionUpsert {
 // ClearMetadata clears the value of the "metadata" field.
 func (u *SubscriptionUpsert) ClearMetadata() *SubscriptionUpsert {
 	u.SetNull(subscription.FieldMetadata)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionUpsert) SetAnnotations(v map[string]string) *SubscriptionUpsert {
+	u.Set(subscription.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdateAnnotations() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionUpsert) ClearAnnotations() *SubscriptionUpsert {
+	u.SetNull(subscription.FieldAnnotations)
 	return u
 }
 
@@ -770,6 +798,27 @@ func (u *SubscriptionUpsertOne) UpdateMetadata() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearMetadata() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionUpsertOne) SetAnnotations(v map[string]string) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdateAnnotations() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionUpsertOne) ClearAnnotations() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1147,6 +1196,27 @@ func (u *SubscriptionUpsertBulk) UpdateMetadata() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearMetadata() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *SubscriptionUpsertBulk) SetAnnotations(v map[string]string) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdateAnnotations() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *SubscriptionUpsertBulk) ClearAnnotations() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

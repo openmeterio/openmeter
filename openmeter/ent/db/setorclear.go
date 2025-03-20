@@ -2043,6 +2043,20 @@ func (u *SubscriptionUpdateOne) SetOrClearMetadata(value *map[string]string) *Su
 	return u.SetMetadata(*value)
 }
 
+func (u *SubscriptionUpdate) SetOrClearAnnotations(value *map[string]string) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearAnnotations(value *map[string]string) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *SubscriptionUpdate) SetOrClearActiveTo(value *time.Time) *SubscriptionUpdate {
 	if value == nil {
 		return u.ClearActiveTo()

@@ -6,9 +6,9 @@ import (
 )
 
 type SubscriptionItem struct {
-	models.NamespacedID   `json:",inline"`
-	models.ManagedModel   `json:",inline"`
-	models.AnnotatedModel `json:",inline"`
+	models.NamespacedID  `json:",inline"`
+	models.ManagedModel  `json:",inline"`
+	models.MetadataModel `json:",inline"`
 
 	// SubscriptionItem doesn't have a separate Cadence, only one relative to the phase, denoting if it's intentionally different from the phase's cadence.
 	// The durations are relative to phase start.
@@ -65,7 +65,7 @@ func (i SubscriptionItem) AsEntityInput() CreateSubscriptionItemEntityInput {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: i.Namespace,
 		},
-		AnnotatedModel:                         i.AnnotatedModel,
+		MetadataModel:                          i.MetadataModel,
 		CadencedModel:                          i.CadencedModel,
 		ActiveFromOverrideRelativeToPhaseStart: i.ActiveFromOverrideRelativeToPhaseStart,
 		ActiveToOverrideRelativeToPhaseStart:   i.ActiveToOverrideRelativeToPhaseStart,

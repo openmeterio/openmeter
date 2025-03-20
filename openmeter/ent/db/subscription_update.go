@@ -69,6 +69,18 @@ func (su *SubscriptionUpdate) ClearMetadata() *SubscriptionUpdate {
 	return su
 }
 
+// SetAnnotations sets the "annotations" field.
+func (su *SubscriptionUpdate) SetAnnotations(m map[string]string) *SubscriptionUpdate {
+	su.mutation.SetAnnotations(m)
+	return su
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (su *SubscriptionUpdate) ClearAnnotations() *SubscriptionUpdate {
+	su.mutation.ClearAnnotations()
+	return su
+}
+
 // SetActiveTo sets the "active_to" field.
 func (su *SubscriptionUpdate) SetActiveTo(t time.Time) *SubscriptionUpdate {
 	su.mutation.SetActiveTo(t)
@@ -321,6 +333,12 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if su.mutation.MetadataCleared() {
 		_spec.ClearField(subscription.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := su.mutation.Annotations(); ok {
+		_spec.SetField(subscription.FieldAnnotations, field.TypeJSON, value)
+	}
+	if su.mutation.AnnotationsCleared() {
+		_spec.ClearField(subscription.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := su.mutation.ActiveTo(); ok {
 		_spec.SetField(subscription.FieldActiveTo, field.TypeTime, value)
 	}
@@ -513,6 +531,18 @@ func (suo *SubscriptionUpdateOne) SetMetadata(m map[string]string) *Subscription
 // ClearMetadata clears the value of the "metadata" field.
 func (suo *SubscriptionUpdateOne) ClearMetadata() *SubscriptionUpdateOne {
 	suo.mutation.ClearMetadata()
+	return suo
+}
+
+// SetAnnotations sets the "annotations" field.
+func (suo *SubscriptionUpdateOne) SetAnnotations(m map[string]string) *SubscriptionUpdateOne {
+	suo.mutation.SetAnnotations(m)
+	return suo
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (suo *SubscriptionUpdateOne) ClearAnnotations() *SubscriptionUpdateOne {
+	suo.mutation.ClearAnnotations()
 	return suo
 }
 
@@ -797,6 +827,12 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.MetadataCleared() {
 		_spec.ClearField(subscription.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := suo.mutation.Annotations(); ok {
+		_spec.SetField(subscription.FieldAnnotations, field.TypeJSON, value)
+	}
+	if suo.mutation.AnnotationsCleared() {
+		_spec.ClearField(subscription.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := suo.mutation.ActiveTo(); ok {
 		_spec.SetField(subscription.FieldActiveTo, field.TypeTime, value)

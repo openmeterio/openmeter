@@ -137,7 +137,7 @@ func (NamespaceMixin) Indexes() []ent.Index {
 }
 
 // MetadataAnnotationsMixin adds metadata to the schema
-type MetadataAnnotationsMixin struct {
+type MetadataAnnotationsMixin struct { // TODO: rename to MetadataMixin
 	mixin.Schema
 }
 
@@ -145,6 +145,22 @@ type MetadataAnnotationsMixin struct {
 func (MetadataAnnotationsMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.JSON("metadata", map[string]string{}).
+			Optional().
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+	}
+}
+
+// AnnotationsMixin adds metadata to the schema
+type AnnotationsMixin struct { // TODO: rename to MetadataMixin
+	mixin.Schema
+}
+
+// Fields of the IDMixin.
+func (AnnotationsMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.JSON("annotations", map[string]string{}).
 			Optional().
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",

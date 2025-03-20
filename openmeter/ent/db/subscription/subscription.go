@@ -24,6 +24,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldActiveFrom holds the string denoting the active_from field in the database.
 	FieldActiveFrom = "active_from"
 	// FieldActiveTo holds the string denoting the active_to field in the database.
@@ -88,6 +90,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldMetadata,
+	FieldAnnotations,
 	FieldActiveFrom,
 	FieldActiveTo,
 	FieldBillablesMustAlign,

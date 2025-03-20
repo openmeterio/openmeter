@@ -43,7 +43,7 @@ type CreateSubscriptionWorkflowInput struct {
 
 type ChangeSubscriptionWorkflowInput struct {
 	Timing
-	models.AnnotatedModel
+	models.MetadataModel
 	Name        string
 	Description *string
 }
