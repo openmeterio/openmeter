@@ -257,7 +257,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, adapter, subscriptionServiceWithWorkflow, logger)
+	handler, err := common.NewBillingSubscriptionHandler(logger, subscriptionServiceWithWorkflow, billingService, adapter)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingService, adapter, subscriptionServiceWithWorkflow, handler, logger)
 	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup6()
