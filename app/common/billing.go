@@ -50,6 +50,8 @@ func BillingService(
 	streamingConnector streaming.Connector,
 	eventPublisher eventbus.Publisher,
 	advancementStrategy billing.AdvancementStrategy,
+	subscriptionServices SubscriptionServiceWithWorkflow,
+	subscriptionSync *billingworkersubscription.Handler,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:             billingAdapter,
@@ -66,7 +68,12 @@ func BillingService(
 		return nil, err
 	}
 
-	validator, err := billingcustomer.NewValidator(service)
+	handler, err := NewBillingSubscriptionHandler(logger, subscriptionServices, service, billingAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	validator, err := billingcustomer.NewValidator(service, handler, subscriptionServices.Service)
 	if err != nil {
 		return nil, err
 	}
