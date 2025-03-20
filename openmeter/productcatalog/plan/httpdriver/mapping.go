@@ -324,6 +324,35 @@ func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageB
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
 		}
+	case productcatalog.DynamicPriceType:
+		dynamicPrice, err := price.AsDynamic()
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
+		}
+
+		var minimumAmount *string
+		if dynamicPrice.MinimumAmount != nil {
+			minimumAmount = lo.ToPtr(dynamicPrice.MinimumAmount.String())
+		}
+
+		var maximumAmount *string
+		if dynamicPrice.MaximumAmount != nil {
+			maximumAmount = lo.ToPtr(dynamicPrice.MaximumAmount.String())
+		}
+
+		var markupRate *string
+		if !dynamicPrice.MarkupRate.Equal(productcatalog.DynamicPriceDefaultMarkupRate) {
+			markupRate = lo.ToPtr(dynamicPrice.MarkupRate.String())
+		}
+
+		err = resp.FromDynamicPriceWithCommitments(api.DynamicPriceWithCommitments{
+			MinimumAmount: minimumAmount,
+			MaximumAmount: maximumAmount,
+			MarkupRate:    markupRate,
+		})
+		if err != nil {
+			return resp, fmt.Errorf("failed to cast DynamicPrice: %w", err)
+		}
 	default:
 		return resp, fmt.Errorf("invalid Price type: %s", price.Type())
 	}

@@ -238,8 +238,10 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: flatPerUnitFeature.Key,
 							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-								Amount:        alpacadecimal.NewFromFloat(100),
-								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+								Amount: alpacadecimal.NewFromFloat(100),
+								Commitments: productcatalog.Commitments{
+									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+								},
 							}),
 						},
 					},

@@ -52,3 +52,7 @@ func (p Percentage) ApplyTo(value alpacadecimal.Decimal) alpacadecimal.Decimal {
 func (p Percentage) ApplyMarkupTo(value alpacadecimal.Decimal) alpacadecimal.Decimal {
 	return value.Mul(p.Decimal.Add(alpacadecimal.NewFromInt(100))).Div(alpacadecimal.NewFromInt(100))
 }
+
+func (p Percentage) Equal(v Percentage) bool {
+	return p.Decimal.Equal(v.Decimal)
+}

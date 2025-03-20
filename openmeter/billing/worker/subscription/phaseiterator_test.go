@@ -513,6 +513,15 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					})
 				case NoPriceType:
 					pp = nil
+				case productcatalog.DynamicPriceType:
+					pp = productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+						MarkupRate: alpacadecimal.NewFromInt(2),
+					})
+				case productcatalog.PackagePriceType:
+					pp = productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+						Amount:             alpacadecimal.NewFromInt(10),
+						QuantityPerPackage: alpacadecimal.NewFromInt(20),
+					})
 				default:
 					pp = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(1),

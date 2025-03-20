@@ -37,9 +37,11 @@ func (p PaymentTermType) StringValues() []string {
 }
 
 const (
-	FlatPriceType   PriceType = "flat"
-	UnitPriceType   PriceType = "unit"
-	TieredPriceType PriceType = "tiered"
+	FlatPriceType    PriceType = "flat"
+	UnitPriceType    PriceType = "unit"
+	TieredPriceType  PriceType = "tiered"
+	DynamicPriceType PriceType = "dynamic"
+	PackagePriceType PriceType = "package"
 )
 
 type PriceType string
@@ -49,6 +51,8 @@ func (p PriceType) Values() []string {
 		string(FlatPriceType),
 		string(UnitPriceType),
 		string(TieredPriceType),
+		string(DynamicPriceType),
+		string(PackagePriceType),
 	}
 }
 
@@ -61,18 +65,24 @@ type pricer interface {
 	AsFlat() (FlatPrice, error)
 	AsUnit() (UnitPrice, error)
 	AsTiered() (TieredPrice, error)
+	AsDynamic() (DynamicPrice, error)
+	AsPackage() (PackagePrice, error)
 	FromFlat(FlatPrice)
 	FromUnit(UnitPrice)
 	FromTiered(TieredPrice)
+	FromDynamic(DynamicPrice)
+	FromPackage(PackagePrice)
 }
 
 var _ pricer = (*Price)(nil)
 
 type Price struct {
-	t      PriceType
-	flat   *FlatPrice
-	unit   *UnitPrice
-	tiered *TieredPrice
+	t            PriceType
+	flat         *FlatPrice
+	unit         *UnitPrice
+	tiered       *TieredPrice
+	dynamic      *DynamicPrice
+	packagePrice *PackagePrice
 }
 
 func (p *Price) MarshalJSON() ([]byte, error) {
@@ -104,6 +114,22 @@ func (p *Price) MarshalJSON() ([]byte, error) {
 		}{
 			Type:        p.t,
 			TieredPrice: p.tiered,
+		}
+	case DynamicPriceType:
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*DynamicPrice
+		}{
+			Type:         p.t,
+			DynamicPrice: p.dynamic,
+		}
+	case PackagePriceType:
+		serde = &struct {
+			Type PriceType `json:"type"`
+			*PackagePrice
+		}{
+			Type:         p.t,
+			PackagePrice: p.packagePrice,
 		}
 	default:
 		return nil, fmt.Errorf("invalid Price type: %s", p.t)
@@ -151,6 +177,22 @@ func (p *Price) UnmarshalJSON(bytes []byte) error {
 
 		p.tiered = v
 		p.t = TieredPriceType
+	case DynamicPriceType:
+		v := &DynamicPrice{}
+		if err := json.Unmarshal(bytes, v); err != nil {
+			return fmt.Errorf("failed to json unmarshal DynamicPrice: %w", err)
+		}
+
+		p.dynamic = v
+		p.t = DynamicPriceType
+	case PackagePriceType:
+		v := &PackagePrice{}
+		if err := json.Unmarshal(bytes, v); err != nil {
+			return fmt.Errorf("failed to json unmarshal PackagePrice: %w", err)
+		}
+
+		p.packagePrice = v
+		p.t = PackagePriceType
 	default:
 		return fmt.Errorf("invalid Price type: %s", serde.Type)
 	}
@@ -166,6 +208,10 @@ func (p *Price) Validate() error {
 		return p.unit.Validate()
 	case TieredPriceType:
 		return p.tiered.Validate()
+	case DynamicPriceType:
+		return p.dynamic.Validate()
+	case PackagePriceType:
+		return p.packagePrice.Validate()
 	default:
 		return errors.New("invalid Price: not initialized")
 	}
@@ -190,6 +236,10 @@ func (p *Price) Equal(v *Price) bool {
 		return p.unit.Equal(v.unit)
 	case TieredPriceType:
 		return p.tiered.Equal(v.tiered)
+	case DynamicPriceType:
+		return p.dynamic.Equal(v.dynamic)
+	case PackagePriceType:
+		return p.packagePrice.Equal(v.packagePrice)
 	default:
 		return false
 	}
@@ -235,6 +285,30 @@ func (p *Price) AsTiered() (TieredPrice, error) {
 	return *p.tiered, nil
 }
 
+func (p *Price) AsDynamic() (DynamicPrice, error) {
+	if p.t == "" || p.dynamic == nil {
+		return DynamicPrice{}, errors.New("invalid DynamicPrice: not initialized")
+	}
+
+	if p.t != DynamicPriceType {
+		return DynamicPrice{}, fmt.Errorf("type mismatch: %s", p.t)
+	}
+
+	return *p.dynamic, nil
+}
+
+func (p *Price) AsPackage() (PackagePrice, error) {
+	if p.t == "" || p.packagePrice == nil {
+		return PackagePrice{}, errors.New("invalid PackagePrice: not initialized")
+	}
+
+	if p.t != PackagePriceType {
+		return PackagePrice{}, fmt.Errorf("type mismatch: %s", p.t)
+	}
+
+	return *p.packagePrice, nil
+}
+
 func (p *Price) FromFlat(price FlatPrice) {
 	p.flat = &price
 	p.t = FlatPriceType
@@ -250,7 +324,17 @@ func (p *Price) FromTiered(price TieredPrice) {
 	p.t = TieredPriceType
 }
 
-func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) *Price {
+func (p *Price) FromDynamic(price DynamicPrice) {
+	p.dynamic = &price
+	p.t = DynamicPriceType
+}
+
+func (p *Price) FromPackage(price PackagePrice) {
+	p.packagePrice = &price
+	p.t = PackagePriceType
+}
+
+func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | DynamicPrice | PackagePrice](v T) *Price {
 	p := &Price{}
 
 	switch any(v).(type) {
@@ -263,6 +347,12 @@ func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice](v T) *Price {
 	case TieredPrice:
 		tiered := any(v).(TieredPrice)
 		p.FromTiered(tiered)
+	case DynamicPrice:
+		dynamic := any(v).(DynamicPrice)
+		p.FromDynamic(dynamic)
+	case PackagePrice:
+		packagePrice := any(v).(PackagePrice)
+		p.FromPackage(packagePrice)
 	}
 
 	return p
@@ -312,14 +402,10 @@ func (f *FlatPrice) Validate() error {
 }
 
 type UnitPrice struct {
+	Commitments `json:",inline"`
+
 	// Amount of the unit price.
 	Amount decimal.Decimal `json:"amount"`
-
-	// MinimumAmount defines the least amount the customer committed to spend.
-	MinimumAmount *decimal.Decimal `json:"minimumAmount,omitempty"`
-
-	// MaximumAmount defines the upper limit of amount the customer entitled to spend.
-	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
 }
 
 func (u *UnitPrice) Equal(v *UnitPrice) bool {
@@ -335,27 +421,7 @@ func (u *UnitPrice) Equal(v *UnitPrice) bool {
 		return false
 	}
 
-	if u.MinimumAmount != nil && v.MinimumAmount == nil {
-		return false
-	}
-
-	if u.MinimumAmount == nil && v.MinimumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(u.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
-		return false
-	}
-
-	if u.MaximumAmount != nil && v.MaximumAmount == nil {
-		return false
-	}
-
-	if u.MaximumAmount == nil && v.MaximumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(u.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+	if !u.Commitments.Equal(v.Commitments) {
 		return false
 	}
 
@@ -369,20 +435,8 @@ func (u *UnitPrice) Validate() error {
 		errs = append(errs, errors.New("the Amount must not be negative"))
 	}
 
-	minAmount := lo.FromPtrOr(u.MinimumAmount, decimal.Zero)
-	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
-	}
-
-	maxAmount := lo.FromPtrOr(u.MaximumAmount, decimal.Zero)
-	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
-	}
-
-	if !minAmount.IsZero() && !maxAmount.IsZero() {
-		if minAmount.GreaterThan(maxAmount) {
-			errs = append(errs, errors.New("the MinimumAmount must not be greater than MaximumAmount"))
-		}
+	if err := u.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -423,6 +477,8 @@ func NewTieredPriceMode(s string) (TieredPriceMode, error) {
 }
 
 type TieredPrice struct {
+	Commitments `json:",inline"`
+
 	// Mode defines whether the tier is volume-based or graduated.
 	// * VolumeTieredPrice: the maximum quantity within a period determines the per-unit price
 	// * GraduatedTieredPrice: pricing can change as the quantity grows
@@ -430,12 +486,6 @@ type TieredPrice struct {
 
 	// Tiers defines the list of PriceTier.
 	Tiers []PriceTier `json:"tiers"`
-
-	// MinimumAmount defines the least amount the customer committed to spend.
-	MinimumAmount *decimal.Decimal `json:"minimumAmount,omitempty"`
-
-	// MaximumAmount defines the upper limit of amount the customer entitled to spend.
-	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
 }
 
 func (t *TieredPrice) Equal(v *TieredPrice) bool {
@@ -455,23 +505,7 @@ func (t *TieredPrice) Equal(v *TieredPrice) bool {
 		return false
 	}
 
-	if t.MinimumAmount == nil && v.MinimumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(t.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
-		return false
-	}
-
-	if t.MaximumAmount != nil && v.MaximumAmount == nil {
-		return false
-	}
-
-	if t.MaximumAmount == nil && v.MaximumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(t.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+	if !t.Commitments.Equal(v.Commitments) {
 		return false
 	}
 
@@ -515,20 +549,8 @@ func (t *TieredPrice) Validate() error {
 		errs = append(errs, errors.New("at least one PriceTier must be open-ended"))
 	}
 
-	minAmount := lo.FromPtrOr(t.MinimumAmount, decimal.Zero)
-	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
-	}
-
-	maxAmount := lo.FromPtrOr(t.MaximumAmount, decimal.Zero)
-	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
-	}
-
-	if !minAmount.IsZero() && !maxAmount.IsZero() {
-		if minAmount.GreaterThan(maxAmount) {
-			errs = append(errs, errors.New("minimum amount must not be greater than maximum amount"))
-		}
+	if err := t.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -629,4 +651,138 @@ func (u PriceTierUnitPrice) Validate() error {
 	}
 
 	return nil
+}
+
+var _ models.Validator = (*DynamicPrice)(nil)
+
+var DynamicPriceDefaultMarkupRate = decimal.NewFromFloat(1)
+
+type DynamicPrice struct {
+	Commitments `json:",inline"`
+
+	// MarkupRate defines the rate of the markup of the price.
+	MarkupRate decimal.Decimal `json:"markupRate"`
+}
+
+func (p DynamicPrice) Validate() error {
+	var errs []error
+
+	if p.MarkupRate.LessThan(decimal.Zero) {
+		errs = append(errs, errors.New("the markup rate must not be less than 0"))
+	}
+
+	if err := p.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (p *DynamicPrice) Equal(v *DynamicPrice) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	return p.MarkupRate.Equal(v.MarkupRate) && p.Commitments.Equal(v.Commitments)
+}
+
+var _ models.Validator = (*PackagePrice)(nil)
+
+type PackagePrice struct {
+	Commitments `json:",inline"`
+
+	Amount             decimal.Decimal `json:"amount"`
+	QuantityPerPackage decimal.Decimal `json:"quantityPerPackage"`
+}
+
+func (p PackagePrice) Validate() error {
+	var errs []error
+
+	if p.Amount.IsNegative() {
+		errs = append(errs, errors.New("the Amount must not be negative"))
+	}
+
+	if p.QuantityPerPackage.IsNegative() {
+		errs = append(errs, errors.New("the QuantityPerPackage must not be negative"))
+	}
+
+	if p.QuantityPerPackage.IsZero() {
+		errs = append(errs, errors.New("the QuantityPerPackage must not be zero"))
+	}
+
+	if err := p.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (p *PackagePrice) Equal(v *PackagePrice) bool {
+	if p == nil && v == nil {
+		return true
+	}
+
+	if p == nil || v == nil {
+		return false
+	}
+
+	return p.Amount.Equal(v.Amount) && p.QuantityPerPackage.Equal(v.QuantityPerPackage) && p.Commitments.Equal(v.Commitments)
+}
+
+type Commitments struct {
+	// MinimumAmount defines the least amount the customer committed to spend.
+	MinimumAmount *decimal.Decimal `json:"minimumAmount,omitempty"`
+
+	// MaximumAmount defines the upper limit of amount the customer entitled to spend.
+	MaximumAmount *decimal.Decimal `json:"maximumAmount,omitempty"`
+}
+
+func (c *Commitments) Validate() error {
+	var errs []error
+
+	if c.MinimumAmount != nil && c.MinimumAmount.IsNegative() {
+		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
+	}
+
+	if c.MaximumAmount != nil && c.MaximumAmount.IsNegative() {
+		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
+	}
+
+	if c.MinimumAmount != nil && c.MaximumAmount != nil && c.MinimumAmount.GreaterThan(*c.MaximumAmount) {
+		errs = append(errs, errors.New("the MinimumAmount must not be greater than the MaximumAmount"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (c *Commitments) Equal(v Commitments) bool {
+	if c.MinimumAmount != nil && v.MinimumAmount == nil {
+		return false
+	}
+
+	if c.MinimumAmount == nil && v.MinimumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(c.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
+		return false
+	}
+
+	if c.MaximumAmount != nil && v.MaximumAmount == nil {
+		return false
+	}
+
+	if c.MaximumAmount == nil && v.MaximumAmount != nil {
+		return false
+	}
+
+	if !lo.FromPtr(c.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+		return false
+	}
+
+	return true
 }
