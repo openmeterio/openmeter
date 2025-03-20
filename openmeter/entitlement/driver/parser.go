@@ -57,7 +57,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}
 
 	if e.SubscriptionManaged {
-		(*apiRes.Metadata)["om_subscription_managed"] = "true"
+		Annotate(apiRes.Metadata, AnnotationEntitlementManaged, "subscription")
 	}
 
 	return apiRes, nil
@@ -87,7 +87,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	}
 
 	if e.SubscriptionManaged {
-		(*apiRes.Metadata)["om_subscription_managed"] = "true"
+		Annotate(apiRes.Metadata, AnnotationEntitlementManaged, "subscription")
 	}
 
 	return apiRes, nil
@@ -116,7 +116,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	}
 
 	if e.SubscriptionManaged {
-		(*apiRes.Metadata)["om_subscription_managed"] = "true"
+		Annotate(apiRes.Metadata, AnnotationEntitlementManaged, "subscription")
 	}
 
 	return apiRes, nil
