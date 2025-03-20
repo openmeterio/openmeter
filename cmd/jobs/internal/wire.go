@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
+	billingworkersubscription "github.com/openmeterio/openmeter/openmeter/billing/worker/subscription"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -35,28 +36,29 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	App                   app.Service
-	AppStripe             appstripe.Service
-	AppSandboxProvisioner common.AppSandboxProvisioner
-	Customer              customer.Service
-	Billing               billing.Service
-	BillingAutoAdvancer   *billingworkerautoadvance.AutoAdvancer
-	BillingCollector      *billingworkercollect.InvoiceCollector
-	EntClient             *db.Client
-	EventPublisher        eventbus.Publisher
-	EntitlementRegistry   *registry.Entitlement
-	FeatureConnector      feature.FeatureConnector
-	KafkaProducer         *kafka.Producer
-	KafkaMetrics          *kafkametrics.Metrics
-	Logger                *slog.Logger
-	MeterService          meter.Service
-	NamespaceHandlers     []namespace.Handler
-	NamespaceManager      *namespace.Manager
-	Meter                 metric.Meter
-	Plan                  plan.Service
-	Secret                secret.Service
-	Subscription          common.SubscriptionServiceWithWorkflow
-	StreamingConnector    streaming.Connector
+	App                           app.Service
+	AppStripe                     appstripe.Service
+	AppSandboxProvisioner         common.AppSandboxProvisioner
+	Customer                      customer.Service
+	Billing                       billing.Service
+	BillingAutoAdvancer           *billingworkerautoadvance.AutoAdvancer
+	BillingCollector              *billingworkercollect.InvoiceCollector
+	BillingSubscriptionReconciler *billingworkersubscription.Reconciler
+	EntClient                     *db.Client
+	EventPublisher                eventbus.Publisher
+	EntitlementRegistry           *registry.Entitlement
+	FeatureConnector              feature.FeatureConnector
+	KafkaProducer                 *kafka.Producer
+	KafkaMetrics                  *kafkametrics.Metrics
+	Logger                        *slog.Logger
+	MeterService                  meter.Service
+	NamespaceHandlers             []namespace.Handler
+	NamespaceManager              *namespace.Manager
+	Meter                         metric.Meter
+	Plan                          plan.Service
+	Secret                        secret.Service
+	Subscription                  common.SubscriptionServiceWithWorkflow
+	StreamingConnector            streaming.Connector
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -76,6 +78,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Namespace,
 		common.NewBillingAutoAdvancer,
 		common.NewBillingCollector,
+		common.NewBillingSubscriptionHandler,
+		common.NewBillingSubscriptionReconciler,
 		common.NewDefaultTextMapPropagator,
 		common.NewServerPublisher,
 		common.Streaming,

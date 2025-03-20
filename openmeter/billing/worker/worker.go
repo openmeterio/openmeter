@@ -25,8 +25,9 @@ type WorkerOptions struct {
 
 	Logger *slog.Logger
 
-	BillingAdapter billing.Adapter
-	BillingService billing.Service
+	BillingAdapter                 billing.Adapter
+	BillingService                 billing.Service
+	BillingSubscriptionSyncHandler *billingworkersubscription.Handler
 	// External connectors
 
 	SubscriptionService subscription.Service
@@ -61,32 +62,25 @@ func (w WorkerOptions) Validate() error {
 		return fmt.Errorf("subscription service is required")
 	}
 
+	if w.BillingSubscriptionSyncHandler == nil {
+		return fmt.Errorf("billing subscription sync handler is required")
+	}
+
 	return nil
 }
 
 type Worker struct {
 	router *message.Router
 
-	billingService      billing.Service
-	subscriptionHandler *billingworkersubscription.Handler
-	asyncAdvanceHandler *asyncadvance.Handler
+	billingService          billing.Service
+	subscriptionSyncHandler *billingworkersubscription.Handler
+	asyncAdvanceHandler     *asyncadvance.Handler
 
 	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
 	if err := opts.Validate(); err != nil {
-		return nil, err
-	}
-
-	// handlers
-	subsHandler, err := billingworkersubscription.New(billingworkersubscription.Config{
-		BillingService:      opts.BillingService,
-		Logger:              opts.Logger,
-		TxCreator:           opts.BillingAdapter,
-		SubscriptionService: opts.SubscriptionService,
-	})
-	if err != nil {
 		return nil, err
 	}
 
@@ -100,9 +94,9 @@ func New(opts WorkerOptions) (*Worker, error) {
 	}
 
 	worker := &Worker{
-		billingService:      opts.BillingService,
-		subscriptionHandler: subsHandler,
-		asyncAdvanceHandler: asyncAdvancer,
+		billingService:          opts.BillingService,
+		subscriptionSyncHandler: opts.BillingSubscriptionSyncHandler,
+		asyncAdvanceHandler:     asyncAdvancer,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -142,19 +136,19 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 		opts.Router.MetricMeter,
 
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CreatedEvent) error {
-			return w.subscriptionHandler.HandleSubscriptionCreated(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSyncHandler.HandleSubscriptionCreated(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
-			return w.subscriptionHandler.HandleCancelledEvent(ctx, event)
+			return w.subscriptionSyncHandler.HandleCancelledEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
-			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSyncHandler.SyncronizeSubscription(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
-			return w.subscriptionHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
+			return w.subscriptionSyncHandler.SyncronizeSubscription(ctx, event.UpdatedView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
-			return w.subscriptionHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
+			return w.subscriptionSyncHandler.HandleInvoiceCreation(ctx, event.EventInvoice)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
 			return w.asyncAdvanceHandler.Handle(ctx, event)
