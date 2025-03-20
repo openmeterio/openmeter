@@ -195,5 +195,13 @@ func (p ListEventsV2Params) Validate() error {
 		}
 	}
 
+	if p.Limit != nil && *p.Limit < 1 {
+		errs = append(errs, errors.New("limit must be greater than 0"))
+	}
+
+	if p.Limit != nil && *p.Limit > MaximumLimit {
+		errs = append(errs, fmt.Errorf("limit must be less than or equal to %d", MaximumLimit))
+	}
+
 	return errors.Join(errs...)
 }

@@ -8319,6 +8319,131 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Subscriptions
+  /api/v2/events:
+    get:
+      operationId: listEventsV2
+      summary: List ingested events
+      description: List ingested events with advanced filtering and cursor pagination.
+      parameters:
+        - $ref: '#/components/parameters/CursorPagination.cursor'
+        - $ref: '#/components/parameters/CursorPagination.limit'
+        - name: clientId
+          in: query
+          required: false
+          description: |-
+            Client ID
+            Useful to track progress of a query.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 36
+          explode: false
+        - name: id
+          in: query
+          required: false
+          description: |-
+            The event ID filter.
+            Example: `?id[$eq]=my-event-id`
+          schema:
+            $ref: '#/components/schemas/FilterString'
+          style: deepObject
+        - name: source
+          in: query
+          required: false
+          description: |-
+            The event source filter.
+            Example: `?source[$eq]=my-event-source`
+          schema:
+            $ref: '#/components/schemas/FilterString'
+          style: deepObject
+        - name: subject
+          in: query
+          required: false
+          description: |-
+            The event subject filter.
+            Example: `?subject[$eq]=my-event-subject`
+          schema:
+            $ref: '#/components/schemas/FilterString'
+          style: deepObject
+        - name: type
+          in: query
+          required: false
+          description: |-
+            The event type filter.
+            Example: `?type[$eq]=my-event-type`
+          schema:
+            $ref: '#/components/schemas/FilterString'
+          style: deepObject
+        - name: time
+          in: query
+          required: false
+          description: |-
+            The event time filter.
+            Example: `?time[$and][0][$gte]=2025-01-01T00:00:00Z&time[$and][1][$lte]=2025-01-02T00:00:00Z`
+          schema:
+            $ref: '#/components/schemas/FilterTime'
+          style: deepObject
+        - name: ingestedAt
+          in: query
+          required: false
+          description: |-
+            The ingested at filter.
+            Example: `?ingestedAt[$and][0][$gte]=2025-01-01T00:00:00Z&ingestedAt[$and][1][$lte]=2025-01-02T00:00:00Z`
+          schema:
+            $ref: '#/components/schemas/FilterTime'
+          style: deepObject
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestedEventCursorPaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Events
+      x-internal: true
 security:
   - CloudTokenAuth: []
   - CloudCookieAuth: []
@@ -8427,6 +8552,25 @@ components:
       description: The order by field.
       schema:
         $ref: '#/components/schemas/BillingProfileOrderBy'
+      explode: false
+    CursorPagination.cursor:
+      name: cursor
+      in: query
+      required: false
+      description: The cursor after which to start the pagination.
+      schema:
+        type: string
+      explode: false
+    CursorPagination.limit:
+      name: limit
+      in: query
+      required: false
+      description: The limit of the pagination.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 100
       explode: false
     CustomerOrderByOrdering.order:
       name: order
@@ -11881,6 +12025,110 @@ components:
             $ref: '#/components/schemas/Feature'
           description: The items in the current page.
       description: Paginated response
+    FilterString:
+      type: object
+      properties:
+        $eq:
+          type: string
+          nullable: true
+          description: The field must be equal to the provided value.
+        $ne:
+          type: string
+          nullable: true
+          description: The field must not be equal to the provided value.
+        $in:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: The field must be in the provided list of values.
+        $nin:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: The field must not be in the provided list of values.
+        $like:
+          type: string
+          nullable: true
+          description: The field must match the provided value.
+        $nlike:
+          type: string
+          nullable: true
+          description: The field must not match the provided value.
+        $ilike:
+          type: string
+          nullable: true
+          description: The field must match the provided value, ignoring case.
+        $nilike:
+          type: string
+          nullable: true
+          description: The field must not match the provided value, ignoring case.
+        $gt:
+          type: string
+          nullable: true
+          description: The field must be greater than the provided value.
+        $gte:
+          type: string
+          nullable: true
+          description: The field must be greater than or equal to the provided value.
+        $lt:
+          type: string
+          nullable: true
+          description: The field must be less than the provided value.
+        $lte:
+          type: string
+          nullable: true
+          description: The field must be less than or equal to the provided value.
+        $and:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterString'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical AND.
+        $or:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterString'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical OR.
+      description: A filter for a string field.
+    FilterTime:
+      type: object
+      properties:
+        $gt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be greater than the provided value.
+        $gte:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be greater than or equal to the provided value.
+        $lt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be less than the provided value.
+        $lte:
+          type: string
+          format: date-time
+          nullable: true
+          description: The field must be less than or equal to the provided value.
+        $and:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterTime'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical AND.
+        $or:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterTime'
+          nullable: true
+          description: Provide a list of filters to be combined with a logical OR.
+      description: A filter for a time field.
     FlatPrice:
       type: object
       required:
@@ -12105,6 +12353,21 @@ components:
           time: '2023-01-01T01:01:01.001Z'
         ingestedAt: '2023-01-01T01:01:01.001Z'
         storedAt: '2023-01-01T01:01:02.001Z'
+    IngestedEventCursorPaginatedResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngestedEvent'
+          maxItems: 100
+          description: The items in the response.
+        nextCursor:
+          type: string
+          description: The cursor of the last item in the list.
+      description: A response for cursor pagination.
     InternalServerErrorProblemResponse:
       type: object
       allOf:

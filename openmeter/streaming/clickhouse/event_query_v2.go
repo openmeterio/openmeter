@@ -8,6 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 )
 
+const eventQueryV2DefaultLimit = 100
+
 // queryEventsTableV2 struct holds the parameters for v2 event queries
 type queryEventsTableV2 struct {
 	Database        string
@@ -89,11 +91,7 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 	query.OrderBy(fmt.Sprintf("%s DESC", timeColumn)).OrderBy("id DESC")
 
 	// Apply limit
-	limit := 100
-	if q.Params.Limit != nil {
-		limit = *q.Params.Limit
-	}
-	query.Limit(limit)
+	query.Limit(lo.FromPtrOr(q.Params.Limit, eventQueryV2DefaultLimit))
 
 	return query.Build()
 }

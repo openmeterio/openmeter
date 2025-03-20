@@ -144,7 +144,7 @@ model QueryCursorPagination {
    */
   @query
   @minValue(1)
-  @maxValue(1000)
+  @maxValue(100)
   limit?: integer = 100;
 }
 
@@ -157,7 +157,7 @@ model CursorPaginatedResponse<T> {
    * The items in the response.
    */
   @pageItems
-  @maxItems(1000)
+  @maxItems(100)
   items: T[];
 
   /**

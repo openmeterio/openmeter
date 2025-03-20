@@ -1759,6 +1759,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v2/events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List ingested events
+     * @description List ingested events with advanced filtering and cursor pagination.
+     */
+    get: operations['listEventsV2']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -3947,6 +3967,64 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Feature'][]
     }
+    /** @description A filter for a string field. */
+    FilterString: {
+      /** @description The field must be equal to the provided value. */
+      $eq?: string | null
+      /** @description The field must not be equal to the provided value. */
+      $ne?: string | null
+      /** @description The field must be in the provided list of values. */
+      $in?: string[] | null
+      /** @description The field must not be in the provided list of values. */
+      $nin?: string[] | null
+      /** @description The field must match the provided value. */
+      $like?: string | null
+      /** @description The field must not match the provided value. */
+      $nlike?: string | null
+      /** @description The field must match the provided value, ignoring case. */
+      $ilike?: string | null
+      /** @description The field must not match the provided value, ignoring case. */
+      $nilike?: string | null
+      /** @description The field must be greater than the provided value. */
+      $gt?: string | null
+      /** @description The field must be greater than or equal to the provided value. */
+      $gte?: string | null
+      /** @description The field must be less than the provided value. */
+      $lt?: string | null
+      /** @description The field must be less than or equal to the provided value. */
+      $lte?: string | null
+      /** @description Provide a list of filters to be combined with a logical AND. */
+      $and?: components['schemas']['FilterString'][] | null
+      /** @description Provide a list of filters to be combined with a logical OR. */
+      $or?: components['schemas']['FilterString'][] | null
+    }
+    /** @description A filter for a time field. */
+    FilterTime: {
+      /**
+       * Format: date-time
+       * @description The field must be greater than the provided value.
+       */
+      $gt?: Date | null
+      /**
+       * Format: date-time
+       * @description The field must be greater than or equal to the provided value.
+       */
+      $gte?: Date | null
+      /**
+       * Format: date-time
+       * @description The field must be less than the provided value.
+       */
+      $lt?: Date | null
+      /**
+       * Format: date-time
+       * @description The field must be less than or equal to the provided value.
+       */
+      $lte?: Date | null
+      /** @description Provide a list of filters to be combined with a logical AND. */
+      $and?: components['schemas']['FilterTime'][] | null
+      /** @description Provide a list of filters to be combined with a logical OR. */
+      $or?: components['schemas']['FilterTime'][] | null
+    }
     /** @description Flat price. */
     FlatPrice: {
       /**
@@ -4113,6 +4191,13 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       storedAt: Date
+    }
+    /** @description A response for cursor pagination. */
+    IngestedEventCursorPaginatedResponse: {
+      /** @description The items in the response. */
+      items: components['schemas']['IngestedEvent'][]
+      /** @description The cursor of the last item in the list. */
+      nextCursor?: string
     }
     /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
     InternalServerErrorProblemResponse: components['schemas']['UnexpectedProblemResponse']
@@ -7919,6 +8004,10 @@ export interface components {
     'BillingProfileOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'BillingProfileOrderByOrdering.orderBy': components['schemas']['BillingProfileOrderBy']
+    /** @description The cursor after which to start the pagination. */
+    'CursorPagination.cursor': string
+    /** @description The limit of the pagination. */
+    'CursorPagination.limit': number
     /** @description The order direction. */
     'CustomerOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
@@ -8227,6 +8316,8 @@ export type FeatureMeta = components['schemas']['FeatureMeta']
 export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
 export type FeaturePaginatedResponse =
   components['schemas']['FeaturePaginatedResponse']
+export type FilterString = components['schemas']['FilterString']
+export type FilterTime = components['schemas']['FilterTime']
 export type FlatPrice = components['schemas']['FlatPrice']
 export type FlatPriceWithPaymentTerm =
   components['schemas']['FlatPriceWithPaymentTerm']
@@ -8243,6 +8334,8 @@ export type GrantUsageRecord = components['schemas']['GrantUsageRecord']
 export type IdResource = components['schemas']['IDResource']
 export type IngestEventsBody = components['schemas']['IngestEventsBody']
 export type IngestedEvent = components['schemas']['IngestedEvent']
+export type IngestedEventCursorPaginatedResponse =
+  components['schemas']['IngestedEventCursorPaginatedResponse']
 export type InternalServerErrorProblemResponse =
   components['schemas']['InternalServerErrorProblemResponse']
 export type Invoice = components['schemas']['Invoice']
@@ -8542,6 +8635,10 @@ export type ParameterBillingProfileOrderByOrderingOrder =
   components['parameters']['BillingProfileOrderByOrdering.order']
 export type ParameterBillingProfileOrderByOrderingOrderBy =
   components['parameters']['BillingProfileOrderByOrdering.orderBy']
+export type ParameterCursorPaginationCursor =
+  components['parameters']['CursorPagination.cursor']
+export type ParameterCursorPaginationLimit =
+  components['parameters']['CursorPagination.limit']
 export type ParameterCustomerOrderByOrderingOrder =
   components['parameters']['CustomerOrderByOrdering.order']
 export type ParameterCustomerOrderByOrderingOrderBy =
@@ -19261,6 +19358,115 @@ export interface operations {
         }
         content: {
           'application/problem+json': components['schemas']['ConflictProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  listEventsV2: {
+    parameters: {
+      query?: {
+        /** @description The cursor after which to start the pagination. */
+        cursor?: components['parameters']['CursorPagination.cursor']
+        /** @description The limit of the pagination. */
+        limit?: components['parameters']['CursorPagination.limit']
+        /** @description Client ID
+         *     Useful to track progress of a query. */
+        clientId?: string
+        /** @description The event ID filter.
+         *     Example: `?id[$eq]=my-event-id` */
+        id?: components['schemas']['FilterString']
+        /** @description The event source filter.
+         *     Example: `?source[$eq]=my-event-source` */
+        source?: components['schemas']['FilterString']
+        /** @description The event subject filter.
+         *     Example: `?subject[$eq]=my-event-subject` */
+        subject?: components['schemas']['FilterString']
+        /** @description The event type filter.
+         *     Example: `?type[$eq]=my-event-type` */
+        type?: components['schemas']['FilterString']
+        /** @description The event time filter.
+         *     Example: `?time[$and][0][$gte]=2025-01-01T00:00:00Z&time[$and][1][$lte]=2025-01-02T00:00:00Z` */
+        time?: components['schemas']['FilterTime']
+        /** @description The ingested at filter.
+         *     Example: `?ingestedAt[$and][0][$gte]=2025-01-01T00:00:00Z&ingestedAt[$and][1][$lte]=2025-01-02T00:00:00Z` */
+        ingestedAt?: components['schemas']['FilterTime']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IngestedEventCursorPaginatedResponse']
+        }
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
       /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */

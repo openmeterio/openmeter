@@ -2,6 +2,7 @@ package pagination
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -24,15 +25,17 @@ func NewCursor(t time.Time, id string) Cursor {
 }
 
 func (c Cursor) Validate() error {
+	var errs []error
+
 	if c.Time.IsZero() {
-		return fmt.Errorf("time is zero")
+		errs = append(errs, fmt.Errorf("cursor time is zero"))
 	}
 
 	if c.ID == "" {
-		return fmt.Errorf("id is empty")
+		errs = append(errs, fmt.Errorf("cursor id is empty"))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // DecodeCursor decodes a base64-encoded cursor string into a Cursor object.
