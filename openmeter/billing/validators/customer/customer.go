@@ -56,7 +56,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	watermark := time.Now().Add(-24 * time.Hour)
 
 	for _, sub := range subs.Items {
-		if sub.ActiveTo != nil || watermark.Before(*sub.ActiveTo) {
+		if sub.ActiveTo == nil || watermark.Before(*sub.ActiveTo) {
 			view, err := v.subscriptionService.GetView(ctx, sub.NamespacedID)
 			if err != nil {
 				return err
