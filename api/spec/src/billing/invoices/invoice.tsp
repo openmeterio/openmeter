@@ -416,7 +416,7 @@ model InvoiceDiscount {
    * Base represents the value used as a base for percent calculations instead of the invoice's sum of lines.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  base?: Numeric;
+  base?: Money;
 
   /**
    * Percentage to apply to the base or invoice's sum.
@@ -428,7 +428,7 @@ model InvoiceDiscount {
    * Fixed discount amount to apply (calculated if percent present).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  amount: Numeric;
+  amount: Money;
 
   /**
    * Text description as to why the discount was applied.
@@ -859,7 +859,7 @@ model InvoiceGenericCharge {
    * Fixed discount amount to apply (calculated if percent present).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  amount: Numeric;
+  amount: Money;
 
   /**
    * Reason code.
@@ -910,43 +910,43 @@ model InvoiceTotals {
    * The total value of the line before taxes, discounts and commitments.
    */
   @visibility(Lifecycle.Read)
-  amount: Numeric;
+  amount: Money;
 
   /**
    * The amount of value of the line that are due to additional charges.
    */
   @visibility(Lifecycle.Read)
-  chargesTotal: Numeric;
+  chargesTotal: Money;
 
   /**
    * The amount of value of the line that are due to discounts.
    */
   @visibility(Lifecycle.Read)
-  discountsTotal: Numeric;
+  discountsTotal: Money;
 
   /**
    * The total amount of taxes that are included in the line.
    */
   @visibility(Lifecycle.Read)
-  taxesInclusiveTotal: Numeric;
+  taxesInclusiveTotal: Money;
 
   /**
    * The total amount of taxes that are added on top of amount from the line.
    */
   @visibility(Lifecycle.Read)
-  taxesExclusiveTotal: Numeric;
+  taxesExclusiveTotal: Money;
 
   /**
    * The total amount of taxes for this line.
    */
   @visibility(Lifecycle.Read)
-  taxesTotal: Numeric;
+  taxesTotal: Money;
 
   /**
    * The total amount value of the line after taxes, discounts and commitments.
    */
   @visibility(Lifecycle.Read)
-  total: Numeric;
+  total: Money;
 }
 
 /*

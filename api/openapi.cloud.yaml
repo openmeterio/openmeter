@@ -9213,7 +9213,7 @@ components:
           description: Percentage if fixed amount not applied
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: Fixed discount amount to apply (calculated if percent present).
         code:
           type: string
@@ -11912,7 +11912,7 @@ components:
           description: The type of the price.
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The amount of the flat price.
       description: Flat price.
     FlatPriceWithPaymentTerm:
@@ -11928,7 +11928,7 @@ components:
           description: The type of the price.
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The amount of the flat price.
         paymentTerm:
           allOf:
@@ -12578,7 +12578,7 @@ components:
           description: Type of the line.
         perUnitAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: Price of the item being sold.
         paymentTerm:
           allOf:
@@ -12646,7 +12646,7 @@ components:
           description: Type of the line.
         perUnitAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: Price of the item being sold.
         paymentTerm:
           allOf:
@@ -12728,7 +12728,7 @@ components:
           description: Type of the line.
         perUnitAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: Price of the item being sold.
         paymentTerm:
           allOf:
@@ -12837,7 +12837,7 @@ components:
           description: Percentage if fixed amount not applied
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: Fixed discount amount to apply (calculated if percent present).
         code:
           type: string
@@ -13161,7 +13161,7 @@ components:
           description: Type of the line.
         perUnitAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: Price of the item being sold.
         paymentTerm:
           allOf:
@@ -13351,37 +13351,37 @@ components:
       properties:
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The total value of the line before taxes, discounts and commitments.
           readOnly: true
         chargesTotal:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The amount of value of the line that are due to additional charges.
           readOnly: true
         discountsTotal:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The amount of value of the line that are due to discounts.
           readOnly: true
         taxesInclusiveTotal:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The total amount of taxes that are included in the line.
           readOnly: true
         taxesExclusiveTotal:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The total amount of taxes that are added on top of amount from the line.
           readOnly: true
         taxesTotal:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The total amount of taxes for this line.
           readOnly: true
         total:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The total amount value of the line after taxes, discounts and commitments.
           readOnly: true
       description: Totals contains the summaries of all calculations for the invoice.
@@ -14282,6 +14282,10 @@ components:
         groupBy:
           model: $.model
           type: $.type
+    Money:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?$
+      description: Money represents an arbitrary precision monetary amount.
     NotFoundProblemResponse:
       type: object
       allOf:
@@ -14941,7 +14945,7 @@ components:
           readOnly: true
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: How much needs to be paid by the date.
           readOnly: true
         percent:
@@ -17076,12 +17080,12 @@ components:
           title: Tiers
         minimumAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The customer is committed to spend at least the amount.
           title: Minimum amount
         maximumAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
       description: Tiered price with spend commitments.
@@ -17147,7 +17151,7 @@ components:
           description: The type of the price.
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The amount of the unit price.
       description: Unit price.
     UnitPriceWithCommitments:
@@ -17163,16 +17167,16 @@ components:
           description: The type of the price.
         amount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The amount of the unit price.
         minimumAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The customer is committed to spend at least the amount.
           title: Minimum amount
         maximumAmount:
           allOf:
-            - $ref: '#/components/schemas/Numeric'
+            - $ref: '#/components/schemas/Money'
           description: The customer is limited to spend at most the amount.
           title: Maximum amount
       description: Unit price with spend commitments.

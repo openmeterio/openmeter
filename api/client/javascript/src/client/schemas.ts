@@ -1947,7 +1947,7 @@ export interface components {
       /** @description Percentage if fixed amount not applied */
       percent?: components['schemas']['Percentage']
       /** @description Fixed discount amount to apply (calculated if percent present). */
-      amount: components['schemas']['Numeric']
+      amount: components['schemas']['Money']
       /** @description Reason code. */
       code?: string
       /** @description Text description as to why the discount was applied. */
@@ -3946,7 +3946,7 @@ export interface components {
        */
       type: 'flat'
       /** @description The amount of the flat price. */
-      amount: components['schemas']['Numeric']
+      amount: components['schemas']['Money']
     }
     /** @description Flat price with payment term. */
     FlatPriceWithPaymentTerm: {
@@ -3956,7 +3956,7 @@ export interface components {
        */
       type: 'flat'
       /** @description The amount of the flat price. */
-      amount: components['schemas']['Numeric']
+      amount: components['schemas']['Money']
       /**
        * @description The payment term of the flat price.
        *     Defaults to in advance.
@@ -4385,7 +4385,7 @@ export interface components {
        */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
+      perUnitAmount: components['schemas']['Money']
       /**
        * @description Payment term of the line.
        * @default in_advance
@@ -4436,7 +4436,7 @@ export interface components {
        */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
+      perUnitAmount: components['schemas']['Money']
       /**
        * @description Payment term of the line.
        * @default in_advance
@@ -4492,7 +4492,7 @@ export interface components {
        */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
+      perUnitAmount: components['schemas']['Money']
       /**
        * @description Payment term of the line.
        * @default in_advance
@@ -4568,7 +4568,7 @@ export interface components {
       /** @description Percentage if fixed amount not applied */
       percent?: components['schemas']['Percentage']
       /** @description Fixed discount amount to apply (calculated if percent present). */
-      amount: components['schemas']['Numeric']
+      amount: components['schemas']['Money']
       /** @description Reason code. */
       code?: string
       /** @description Text description as to why the discount was applied. */
@@ -4776,7 +4776,7 @@ export interface components {
        */
       type: 'flat_fee'
       /** @description Price of the item being sold. */
-      perUnitAmount: components['schemas']['Numeric']
+      perUnitAmount: components['schemas']['Money']
       /**
        * @description Payment term of the line.
        * @default in_advance
@@ -4893,19 +4893,19 @@ export interface components {
     /** @description Totals contains the summaries of all calculations for the invoice. */
     InvoiceTotals: {
       /** @description The total value of the line before taxes, discounts and commitments. */
-      readonly amount: components['schemas']['Numeric']
+      readonly amount: components['schemas']['Money']
       /** @description The amount of value of the line that are due to additional charges. */
-      readonly chargesTotal: components['schemas']['Numeric']
+      readonly chargesTotal: components['schemas']['Money']
       /** @description The amount of value of the line that are due to discounts. */
-      readonly discountsTotal: components['schemas']['Numeric']
+      readonly discountsTotal: components['schemas']['Money']
       /** @description The total amount of taxes that are included in the line. */
-      readonly taxesInclusiveTotal: components['schemas']['Numeric']
+      readonly taxesInclusiveTotal: components['schemas']['Money']
       /** @description The total amount of taxes that are added on top of amount from the line. */
-      readonly taxesExclusiveTotal: components['schemas']['Numeric']
+      readonly taxesExclusiveTotal: components['schemas']['Money']
       /** @description The total amount of taxes for this line. */
-      readonly taxesTotal: components['schemas']['Numeric']
+      readonly taxesTotal: components['schemas']['Money']
       /** @description The total amount value of the line after taxes, discounts and commitments. */
-      readonly total: components['schemas']['Numeric']
+      readonly total: components['schemas']['Money']
     }
     /**
      * @description InvoiceType represents the type of invoice.
@@ -5577,6 +5577,8 @@ export interface components {
         [key: string]: string
       }
     }
+    /** @description Money represents an arbitrary precision monetary amount. */
+    Money: string
     /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
     NotFoundProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The server does not support the functionality required to fulfill the request. */
@@ -6061,7 +6063,7 @@ export interface components {
       /** @description Other details to take into account for the due date. */
       readonly notes?: string
       /** @description How much needs to be paid by the date. */
-      readonly amount: components['schemas']['Numeric']
+      readonly amount: components['schemas']['Money']
       /** @description Percentage of the total that should be paid by the date. */
       readonly percent?: components['schemas']['Percentage']
       /** @description If different from the parent document's base currency. */
@@ -7648,12 +7650,12 @@ export interface components {
        * Minimum amount
        * @description The customer is committed to spend at least the amount.
        */
-      minimumAmount?: components['schemas']['Numeric']
+      minimumAmount?: components['schemas']['Money']
       /**
        * Maximum amount
        * @description The customer is limited to spend at most the amount.
        */
-      maximumAmount?: components['schemas']['Numeric']
+      maximumAmount?: components['schemas']['Money']
     }
     /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
     UnauthorizedProblemResponse: components['schemas']['UnexpectedProblemResponse']
@@ -7700,7 +7702,7 @@ export interface components {
        */
       type: 'unit'
       /** @description The amount of the unit price. */
-      amount: components['schemas']['Numeric']
+      amount: components['schemas']['Money']
     }
     /** @description Unit price with spend commitments. */
     UnitPriceWithCommitments: {
@@ -7710,17 +7712,17 @@ export interface components {
        */
       type: 'unit'
       /** @description The amount of the unit price. */
-      amount: components['schemas']['Numeric']
+      amount: components['schemas']['Money']
       /**
        * Minimum amount
        * @description The customer is committed to spend at least the amount.
        */
-      minimumAmount?: components['schemas']['Numeric']
+      minimumAmount?: components['schemas']['Money']
       /**
        * Maximum amount
        * @description The customer is limited to spend at most the amount.
        */
-      maximumAmount?: components['schemas']['Numeric']
+      maximumAmount?: components['schemas']['Money']
     }
     /** @description ValidationIssue captures any validation issues related to the invoice.
      *
@@ -8324,6 +8326,7 @@ export type MeterCreate = components['schemas']['MeterCreate']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
 export type MeterUpdate = components['schemas']['MeterUpdate']
+export type Money = components['schemas']['Money']
 export type NotFoundProblemResponse =
   components['schemas']['NotFoundProblemResponse']
 export type NotImplementedProblemResponse =
