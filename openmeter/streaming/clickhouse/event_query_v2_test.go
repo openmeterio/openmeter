@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestQueryEventsTableV2_ToSQL(t *testing.T) {

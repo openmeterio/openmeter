@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/huandu/go-sqlbuilder"
+
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 )
 
