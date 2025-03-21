@@ -24,10 +24,11 @@ import (
 func TestIngestEvents(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
-		Collector: collector,
-		Logger:    slog.Default(),
-	}
+	service := ingest.NewService(
+		collector,
+		slog.Default(),
+		1000,
+	)
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
@@ -74,10 +75,11 @@ func TestIngestEvents(t *testing.T) {
 func TestIngestEvents_InvalidEvent(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
-		Collector: collector,
-		Logger:    slog.Default(),
-	}
+	service := ingest.NewService(
+		collector,
+		slog.Default(),
+		1000,
+	)
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
@@ -100,10 +102,11 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 func TestBatchHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
-	service := ingest.Service{
-		Collector: collector,
-		Logger:    slog.Default(),
-	}
+	service := ingest.NewService(
+		collector,
+		slog.Default(),
+		1000,
+	)
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,

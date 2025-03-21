@@ -334,6 +334,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	ingestService := common.NewIngestService(ingestCollector, logger, ingestConfiguration)
 	metrics, err := common.NewKafkaMetrics(meter)
 	if err != nil {
 		cleanup7()
@@ -425,6 +426,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		EntitlementRegistry:     entitlement,
 		FeatureConnector:        featureConnector,
 		IngestCollector:         ingestCollector,
+		IngestService:           ingestService,
 		KafkaProducer:           producer,
 		KafkaMetrics:            metrics,
 		Logger:                  logger,
@@ -475,6 +477,7 @@ type Application struct {
 	EntitlementRegistry     *registry.Entitlement
 	FeatureConnector        feature.FeatureConnector
 	IngestCollector         ingest.Collector
+	IngestService           ingest.Service
 	KafkaProducer           *kafka2.Producer
 	KafkaMetrics            *metrics.Metrics
 	Logger                  *slog.Logger
