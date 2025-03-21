@@ -41,10 +41,7 @@
       "description": "Content type of the data value. Must adhere to RFC 2046 format.",
       "$ref": "#/definitions/datacontenttypedef",
       "examples": [
-        "text/xml",
-        "application/json",
-        "image/png",
-        "multipart/form-data"
+        "application/json"
       ]
     },
     "dataschema": {
@@ -67,10 +64,7 @@
     },
     "data": {
       "description": "The event payload.",
-      "$ref": "#/definitions/datadef",
-      "examples": [
-        "<much wow=\"xml\"/>"
-      ]
+      "$ref": "#/definitions/datadef"
     },
     "data_base64": {
       "description": "Base64 encoded event payload. Must adhere to RFC4648.",
@@ -80,7 +74,7 @@
       ]
     }
   },
-  "required": ["id", "source", "specversion", "type"],
+  "required": ["id", "source", "specversion", "type", "subject"],
   "definitions": {
     "iddef": {
       "type": "string",
@@ -118,7 +112,8 @@
       "minLength": 1
     },
     "datadef": {
-      "type": ["object", "string", "number", "array", "boolean", "null"]
+      "type": ["object", "null"],
+      "additionalProperties": true
     },
     "data_base64def": {
       "type": ["string", "null"],
