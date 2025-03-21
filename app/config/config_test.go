@@ -88,6 +88,7 @@ func TestComplete(t *testing.T) {
 			DisableManagement: false,
 		},
 		Ingest: IngestConfiguration{
+			ProcessBatchSize: 20,
 			Kafka: KafkaIngestConfiguration{
 				KafkaConfiguration: KafkaConfiguration{
 					Broker:           "127.0.0.1:9092",

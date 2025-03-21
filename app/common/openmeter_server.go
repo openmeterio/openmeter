@@ -20,6 +20,10 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
+func NewIngestService(collector ingest.Collector, logger *slog.Logger, conf config.IngestConfiguration) ingest.Service {
+	return ingest.NewService(collector, logger, conf.ProcessBatchSize)
+}
+
 func NewKafkaIngestCollector(
 	config config.KafkaIngestConfiguration,
 	producer *kafka.Producer,
