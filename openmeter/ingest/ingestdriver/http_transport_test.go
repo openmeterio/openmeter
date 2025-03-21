@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -145,12 +146,19 @@ func TestBatchHandler(t *testing.T) {
 
 	collectedEvents := collector.Events("test")
 
+	eventsByID := lo.KeyBy(events, func(event event.Event) string {
+		return event.ID()
+	})
+
 	require.Len(t, collectedEvents, 10)
-	for i, event := range collectedEvents {
+	for _, event := range collectedEvents {
+		expectedEvent, ok := eventsByID[event.ID()]
+		require.True(t, ok, "expected event %s not found", event.ID())
+
 		event := event
-		assert.Equal(t, events[i].ID(), event.ID())
-		assert.Equal(t, events[i].Subject(), event.Subject())
-		assert.Equal(t, events[i].Source(), event.Source())
-		assert.Equal(t, event.Time(), events[i].Time())
+		assert.Equal(t, expectedEvent.ID(), event.ID())
+		assert.Equal(t, expectedEvent.Subject(), event.Subject())
+		assert.Equal(t, expectedEvent.Source(), event.Source())
+		assert.Equal(t, event.Time(), expectedEvent.Time())
 	}
 }
