@@ -49,12 +49,14 @@ func (s service) IngestEvents(ctx context.Context, request IngestEventsRequest) 
 		chErr := make(chan error, len(chunk))
 
 		for _, ev := range chunk {
-			go func(ev event.Event) {
+			go func(ev event.Event, wg *sync.WaitGroup) {
+				defer wg.Done()
+
 				err := s.processEvent(ctx, ev, request.Namespace)
 				if err != nil {
 					chErr <- err
 				}
-			}(ev)
+			}(ev, &wg)
 		}
 
 		wg.Wait()
