@@ -159,9 +159,7 @@ interface EventsV2 {
      * Example: `?id[$eq]=my-event-id`
      */
     @query(#{ explode: true, style: "deepObject" })
-    @example(#{
-      $eq: "my-event-id",
-    })
+    @example(#{ $eq: "my-event-id" })
     id?: OpenMeter.FilterString,
 
     /**
@@ -169,9 +167,7 @@ interface EventsV2 {
      * Example: `?source[$eq]=my-event-source`
      */
     @query(#{ explode: true, style: "deepObject" })
-    @example(#{
-      $eq: "my-event-source",
-    })
+    @example(#{ $eq: "my-event-source" })
     source?: OpenMeter.FilterString,
 
     /**
@@ -179,9 +175,7 @@ interface EventsV2 {
      * Example: `?subject[$eq]=my-event-subject`
      */
     @query(#{ explode: true, style: "deepObject" })
-    @example(#{
-      $eq: "my-event-subject",
-    })
+    @example(#{ $eq: "my-event-subject" })
     subject?: OpenMeter.FilterString,
 
     /**
@@ -189,9 +183,7 @@ interface EventsV2 {
      * Example: `?type[$eq]=my-event-type`
      */
     @query(#{ explode: true, style: "deepObject" })
-    @example(#{
-      $eq: "my-event-type",
-    })
+    @example(#{ $eq: "my-event-type" })
     type?: OpenMeter.FilterString,
 
     /**
@@ -202,7 +194,7 @@ interface EventsV2 {
     @example(#{
       $and: #[
         #{ $gte: DateTime.fromISO("2025-01-01T00:00:00Z") },
-        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") },
+        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") }
       ],
     })
     time?: OpenMeter.FilterTime,
@@ -215,7 +207,7 @@ interface EventsV2 {
     @example(#{
       $and: #[
         #{ $gte: DateTime.fromISO("2025-01-01T00:00:00Z") },
-        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") },
+        #{ $lte: DateTime.fromISO("2025-01-02T00:00:00Z") }
       ],
     })
     ingestedAt?: OpenMeter.FilterTime,
