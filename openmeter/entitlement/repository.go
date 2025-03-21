@@ -14,6 +14,20 @@ type UpdateEntitlementUsagePeriodParams struct {
 	CurrentUsagePeriod timeutil.Period
 }
 
+type ListExpiredEntitlementsParams struct {
+	Namespaces    []string
+	Highwatermark time.Time
+	Limit         int
+	// Cursor is the ID of the last entitlement in the previous page
+	// If not provided, the query will return the first page of results
+	Cursor string
+}
+
+type UpsertEntitlementCurrentPeriodElement struct {
+	models.NamespacedID
+	CurrentUsagePeriod timeutil.Period
+}
+
 type EntitlementRepo interface {
 	// GetActiveEntitlementsOfSubject returns all active entitlements of a subject at a given time
 	GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]Entitlement, error)
@@ -44,10 +58,19 @@ type EntitlementRepo interface {
 
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params UpdateEntitlementUsagePeriodParams) error
 
+	// Methods for entitlement batch reset
+
 	// ListActiveEntitlementsWithExpiredUsagePeriod returns a list of active entitlements with usage period that expired before the highwatermark
-	//
-	// Only entitlements active at the highwatermark are considered. FIXME: this implementation might be incorrect
-	ListActiveEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, highwatermark time.Time) ([]Entitlement, error)
+	// - Only entitlements active at the highwatermark are considered.
+	// - The list is sorted by the current usage period end, then by created at, then by id.
+	// - The list is paginated by the cursor & limit.
+	// - CurrentUsagePeriod won't be mapped to the calculated values
+	ListActiveEntitlementsWithExpiredUsagePeriod(ctx context.Context, params ListExpiredEntitlementsParams) ([]Entitlement, error)
+
+	// UpsertEntitlementCurrentPeriods upserts the current usage period for a list of entitlements
+	// - If an entitlement is found, it will be updated
+	// - If any update fails, the entire operation will fail
+	UpsertEntitlementCurrentPeriods(ctx context.Context, updates []UpsertEntitlementCurrentPeriodElement) error
 
 	LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID) error
 
