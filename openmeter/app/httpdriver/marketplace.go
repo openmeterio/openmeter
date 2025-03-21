@@ -20,7 +20,7 @@ import (
 // ListMarketplaceListingsHandler is a handler for listing marketplace listings
 type (
 	ListMarketplaceListingsRequest  = app.MarketplaceListInput
-	ListMarketplaceListingsResponse = api.MarketplaceListingList
+	ListMarketplaceListingsResponse = api.MarketplaceListingPaginatedResponse
 	ListMarketplaceListingsParams   = api.ListMarketplaceListingsParams
 	ListMarketplaceListingsHandler  httptransport.HandlerWithArgs[ListMarketplaceListingsRequest, ListMarketplaceListingsResponse, ListMarketplaceListingsParams]
 )

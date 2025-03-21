@@ -1,4 +1,4 @@
-package httpdriver
+package httphandler
 
 import (
 	"context"
@@ -17,6 +17,7 @@ type Handler interface {
 
 type EventHandler interface {
 	ListEvents() ListEventsHandler
+	ListEventsV2() ListEventsV2Handler
 }
 
 var _ Handler = (*handler)(nil)

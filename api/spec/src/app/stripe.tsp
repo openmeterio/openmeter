@@ -7,7 +7,6 @@ import "./app.tsp";
 import "./capability.tsp";
 import "../errors.tsp";
 import "../customer.tsp";
-import "../pagination.tsp";
 import "../types.tsp";
 
 using OpenMeter.App;

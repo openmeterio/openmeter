@@ -74,6 +74,10 @@ func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace strin
 	return []streaming.RawEvent{}, nil
 }
 
+func (m *MockStreamingConnector) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+	return []streaming.RawEvent{}, nil
+}
+
 func (m *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter meter.Meter) error {
 	return nil
 }

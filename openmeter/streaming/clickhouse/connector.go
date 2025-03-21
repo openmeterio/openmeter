@@ -95,6 +95,23 @@ func (c *Connector) ListEvents(ctx context.Context, namespace string, params met
 	return events, nil
 }
 
+func (c *Connector) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+	if err := params.Validate(); err != nil {
+		return nil, err
+	}
+
+	events, err := c.queryEventsTableV2(ctx, params)
+	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("query events: %w", err)
+	}
+
+	return events, nil
+}
+
 func (c *Connector) CreateMeter(ctx context.Context, namespace string, meter meterpkg.Meter) error {
 	// Do nothing
 	return nil
@@ -311,6 +328,58 @@ func (c *Connector) queryEventsTable(ctx context.Context, namespace string, para
 		}
 
 		events = append(events, rawEvent)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return events, nil
+}
+
+// queryEventsTableV2 is similar to queryEventsTable but with advanced filtering options.
+func (c *Connector) queryEventsTableV2(ctx context.Context, params meterevent.ListEventsV2Params) ([]streaming.RawEvent, error) {
+	var err error
+
+	// Create query struct
+	queryBuilder := queryEventsTableV2{
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Params:          params,
+	}
+
+	// If a client ID is provided, track progress
+	if params.ClientID != nil {
+		// Build SQL query to count the total number of rows
+		countSQL, countArgs := queryBuilder.toCountRowSQL()
+
+		ctx, err = c.withProgressContext(ctx, params.Namespace, *params.ClientID, countSQL, countArgs)
+		// Log error but don't return it
+		if err != nil {
+			c.config.Logger.Error("failed track progress", "error", err, "clientId", *params.ClientID)
+		}
+	}
+
+	sql, args := queryBuilder.toSQL()
+
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query events table query: %w", err)
+	}
+
+	defer rows.Close()
+
+	events := []streaming.RawEvent{}
+
+	for rows.Next() {
+		var event streaming.RawEvent
+
+		err = rows.ScanStruct(&event)
+		if err != nil {
+			return nil, fmt.Errorf("scan raw event: %w", err)
+		}
+
+		events = append(events, event)
 	}
 
 	if err = rows.Err(); err != nil {
