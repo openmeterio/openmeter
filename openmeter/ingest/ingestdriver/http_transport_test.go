@@ -144,15 +144,16 @@ func TestBatchHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
-	collectedEvents := collector.Events("test")
-
-	eventsByID := lo.KeyBy(events, func(event event.Event) string {
+	// We lookup by ID because the order of events is not guaranteed in the batch
+	expectedEvents := lo.KeyBy(events, func(event event.Event) string {
 		return event.ID()
 	})
 
+	collectedEvents := collector.Events("test")
+
 	require.Len(t, collectedEvents, 10)
 	for _, event := range collectedEvents {
-		expectedEvent, ok := eventsByID[event.ID()]
+		expectedEvent, ok := expectedEvents[event.ID()]
 		require.True(t, ok, "expected event %s not found", event.ID())
 
 		event := event
