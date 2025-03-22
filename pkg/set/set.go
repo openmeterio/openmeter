@@ -50,7 +50,7 @@ func (s *Set[T]) IsEmpty() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return len(s.content) > 0
+	return len(s.content) == 0
 }
 
 // Subtract removes all items from a that are also in b
