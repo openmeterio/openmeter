@@ -179,7 +179,7 @@ func (p ListEventsV2Params) Validate() error {
 		}
 	}
 
-	if p.Time != nil && p.IngestedAt != nil {
+	if p.Time != nil && p.IngestedAt != nil && !p.Time.IsEmpty() && !p.IngestedAt.IsEmpty() {
 		errs = append(errs, errors.New("time and ingested_at cannot both be set"))
 	}
 
