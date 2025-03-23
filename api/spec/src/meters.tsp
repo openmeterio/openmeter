@@ -86,13 +86,10 @@ interface Meters {
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
 
-  /**
-   * Query meter for usage.
-   */
+  #suppress "@openmeter/api-spec/operationSummary" "Avoid duplicating the summary in OpenAPI yaml"
   @get
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
-  @summary("Query meter")
   @sharedRoute
   queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "text/csv";
@@ -287,6 +284,8 @@ model MeterQuery {
    * Start date-time in RFC 3339 format.
    *
    * Inclusive.
+   *
+   * For example: ?from=2025-01-01T00%3A00%3A00.000Z
    */
   @query(#{ explode: true })
   from?: DateTime;
@@ -295,12 +294,16 @@ model MeterQuery {
    * End date-time in RFC 3339 format.
    *
    * Inclusive.
+   *
+   * For example: ?to=2025-02-01T00%3A00%3A00.000Z
    */
   @query(#{ explode: true })
   to?: DateTime;
 
   /**
    * If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+   *
+   * For example: ?windowSize=DAY
    */
   @query
   windowSize?: WindowSize;
@@ -308,6 +311,8 @@ model MeterQuery {
   /**
    * The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
    * If not specified, the UTC timezone will be used.
+   *
+   * For example: ?windowTimeZone=UTC
    */
   @query
   @example("America/New_York")
@@ -315,6 +320,8 @@ model MeterQuery {
 
   /**
    * Filtering by multiple subjects.
+   *
+   * For example: ?subject=customer-1&subject=customer-2
    */
   @query(#{ explode: true })
   @example(#["customer-1", "customer-2"])
@@ -322,6 +329,8 @@ model MeterQuery {
 
   /**
    * Simple filter for group bys with exact match.
+   *
+   * For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
    */
   @query(#{ explode: true, style: "deepObject" })
   @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
@@ -330,6 +339,8 @@ model MeterQuery {
   /**
    * If not specified a single aggregate will be returned for each subject and time window.
    * `subject` is a reserved group by value.
+   *
+   * For example: ?groupBy=subject&groupBy=model
    */
   @query(#{ explode: true })
   @example(#["model", "type"])
