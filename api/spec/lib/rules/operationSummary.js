@@ -2,7 +2,7 @@ import { createRule, paramMessage } from '@typespec/compiler'
 
 export const operationSummaryRule = createRule({
   name: 'operationSummary',
-  severity: 'error',
+  severity: 'warning',
   description: 'Ensure operation summary.',
   messages: {
     default: paramMessage`The ${'type'} ${'name'} must have a summary decorator.`,

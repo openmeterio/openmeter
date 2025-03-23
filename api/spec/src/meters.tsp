@@ -86,7 +86,6 @@ interface Meters {
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
 
-
   #suppress "@openmeter/api-spec/operationSummary" "Avoid duplicating the summary in OpenAPI yaml"
   @get
   @route("/{meterIdOrSlug}/query")

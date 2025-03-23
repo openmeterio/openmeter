@@ -4403,7 +4403,7 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
       description: Query meter for usage.
-      summary: 'Query meter '
+      summary: Query meter
       responses:
         '200':
           description: The request has succeeded.
