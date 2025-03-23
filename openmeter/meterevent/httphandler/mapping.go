@@ -1,4 +1,3 @@
-//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./
 package httphandler
 
 import (
@@ -10,27 +9,34 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	apiconverter "github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-// goverter:variables
-// goverter:skipCopySameType
-// goverter:output:file ./mapping.gen.go
-// goverter:extend github.com/openmeterio/openmeter/openmeter/apiconverter:ConvertStringPtr
-// goverter:extend github.com/openmeterio/openmeter/openmeter/apiconverter:ConvertTimePtr
-// goverter:extend github.com/openmeterio/openmeter/openmeter/apiconverter:ConvertCursorPtr
-// goverter:extend convertEvent
-var (
-	// goverter:matchIgnoreCase
-	// goverter:context namespace
-	// goverter:map namespace Namespace | convertNamespace
-	convertListEventsV2Params func(params api.ListEventsV2Params, namespace string) (meterevent.ListEventsV2Params, error)
-)
+func convertListEventsV2Params(params api.ListEventsV2Params, namespace string) (meterevent.ListEventsV2Params, error) {
+	cursor, err := apiconverter.ConvertCursorPtr(params.Cursor)
+	if err != nil {
+		return meterevent.ListEventsV2Params{}, err
+	}
 
-// goverter:context namespace
-func convertNamespace(namespace string) string {
-	return namespace
+	p := meterevent.ListEventsV2Params{
+		Namespace: namespace,
+		ClientID:  params.ClientId,
+		Cursor:    cursor,
+		Limit:     params.Limit,
+	}
+
+	if params.Filter != nil {
+		p.ID = apiconverter.ConvertStringPtr(params.Filter.Id)
+		p.Source = apiconverter.ConvertStringPtr(params.Filter.Source)
+		p.Subject = apiconverter.ConvertStringPtr(params.Filter.Subject)
+		p.Type = apiconverter.ConvertStringPtr(params.Filter.Type)
+		p.Time = apiconverter.ConvertTimePtr(params.Filter.Time)
+		p.IngestedAt = apiconverter.ConvertTimePtr(params.Filter.IngestedAt)
+	}
+
+	return p, nil
 }
 
 func convertEvent(e meterevent.Event) (api.IngestedEvent, error) {

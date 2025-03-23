@@ -20688,24 +20688,8 @@ export interface operations {
         /** @description Client ID
          *     Useful to track progress of a query. */
         clientId?: string
-        /** @description The event ID filter.
-         *     Example: `?id[$eq]=my-event-id` */
-        id?: components['schemas']['FilterString']
-        /** @description The event source filter.
-         *     Example: `?source[$eq]=my-event-source` */
-        source?: components['schemas']['FilterString']
-        /** @description The event subject filter.
-         *     Example: `?subject[$eq]=my-event-subject` */
-        subject?: components['schemas']['FilterString']
-        /** @description The event type filter.
-         *     Example: `?type[$eq]=my-event-type` */
-        type?: components['schemas']['FilterString']
-        /** @description The event time filter.
-         *     Example: `?time[$and][0][$gte]=2025-01-01T00:00:00Z&time[$and][1][$lte]=2025-01-02T00:00:00Z` */
-        time?: components['schemas']['FilterTime']
-        /** @description The ingested at filter.
-         *     Example: `?ingestedAt[$and][0][$gte]=2025-01-01T00:00:00Z&ingestedAt[$and][1][$lte]=2025-01-02T00:00:00Z` */
-        ingestedAt?: components['schemas']['FilterTime']
+        /** @description The filter for the events encoded as JSON string. */
+        filter?: string
       }
       header?: never
       path?: never
