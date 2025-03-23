@@ -4402,8 +4402,8 @@ paths:
         - $ref: '#/components/parameters/MeterQuery.subject'
         - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
         - $ref: '#/components/parameters/MeterQuery.groupBy'
-      description: Query meter for usage. Query meter for usage.
-      summary: Query meter Query meter
+      description: Query meter for usage.
+      summary: 'Query meter '
       responses:
         '200':
           description: The request has succeeded.
@@ -8521,7 +8521,10 @@ components:
       name: filterGroupBy
       in: query
       required: false
-      description: Simple filter for group bys with exact match.
+      description: |-
+        Simple filter for group bys with exact match.
+
+        For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
       schema:
         type: object
         additionalProperties:
@@ -8535,6 +8538,8 @@ components:
         Start date-time in RFC 3339 format.
 
         Inclusive.
+
+        For example: ?from=2025-01-01T00%3A00%3A00.000Z
       schema:
         type: string
         format: date-time
@@ -8546,6 +8551,8 @@ components:
       description: |-
         If not specified a single aggregate will be returned for each subject and time window.
         `subject` is a reserved group by value.
+
+        For example: ?groupBy=subject&groupBy=model
       schema:
         type: array
         items:
@@ -8554,7 +8561,10 @@ components:
       name: subject
       in: query
       required: false
-      description: Filtering by multiple subjects.
+      description: |-
+        Filtering by multiple subjects.
+
+        For example: ?subject=customer-1&subject=customer-2
       schema:
         type: array
         items:
@@ -8567,6 +8577,8 @@ components:
         End date-time in RFC 3339 format.
 
         Inclusive.
+
+        For example: ?to=2025-02-01T00%3A00%3A00.000Z
       schema:
         type: string
         format: date-time
@@ -8575,7 +8587,10 @@ components:
       name: windowSize
       in: query
       required: false
-      description: If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+      description: |-
+        If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+
+        For example: ?windowSize=DAY
       schema:
         $ref: '#/components/schemas/WindowSize'
       explode: false
@@ -8586,6 +8601,8 @@ components:
       description: |-
         The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
         If not specified, the UTC timezone will be used.
+
+        For example: ?windowTimeZone=UTC
       schema:
         type: string
         default: UTC
