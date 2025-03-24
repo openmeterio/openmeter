@@ -5,7 +5,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type PlanSubscriptionService interface {
@@ -34,5 +33,4 @@ type ChangeSubscriptionRequest struct {
 type CreateSubscriptionRequest struct {
 	WorkflowInput subscription.CreateSubscriptionWorkflowInput
 	PlanInput     PlanInput
-	CustomerRef   ref.IDOrKey
 }

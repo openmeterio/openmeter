@@ -9,13 +9,13 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type (
@@ -81,11 +81,10 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					}
 				}
 
-				ref := ref.IDOrKey{
-					ID: lo.FromPtrOr(parsedBody.CustomerId, ""),
-				}
-				if ref.ID == "" {
-					ref.Key = lo.FromPtrOr(parsedBody.CustomerKey, "")
+				// Get the customer
+				customer, err := h.getCustomer(ctx, ns, parsedBody.CustomerId, parsedBody.CustomerKey)
+				if err != nil {
+					return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 				}
 
 				return CreateSubscriptionRequest{
@@ -98,10 +97,10 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
 						},
-						Namespace: ns,
+						Namespace:  ns,
+						CustomerID: customer.ID,
 					},
-					PlanInput:   plan,
-					CustomerRef: ref,
+					PlanInput: plan,
 				}, nil
 			} else {
 				// Plan subscription creation
@@ -125,11 +124,10 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					}
 				}
 
-				ref := ref.IDOrKey{
-					ID: lo.FromPtrOr(parsedBody.CustomerId, ""),
-				}
-				if ref.ID == "" {
-					ref.Key = lo.FromPtrOr(parsedBody.CustomerKey, "")
+				// Get the customer
+				customer, err := h.getCustomer(ctx, ns, parsedBody.CustomerId, parsedBody.CustomerKey)
+				if err != nil {
+					return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 				}
 
 				return CreateSubscriptionRequest{
@@ -142,22 +140,14 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
 						},
-						Namespace: ns,
+						Namespace:  ns,
+						CustomerID: customer.ID,
 					},
-					PlanInput:   plan,
-					CustomerRef: ref,
+					PlanInput: plan,
 				}, nil
 			}
 		},
 		func(ctx context.Context, request CreateSubscriptionRequest) (CreateSubscriptionResponse, error) {
-			// Let's resolve the customer
-			// We resolve it in the handler as we don't want to introduce the IdOrKey abstraction to the package internal code
-			if err := request.CustomerRef.Validate(); err != nil {
-				return CreateSubscriptionResponse{}, models.NewGenericValidationError(
-					fmt.Errorf("invalid customer ref: %w", err),
-				)
-			}
-
 			res, err := h.PlanSubscriptionService.Create(ctx, request)
 			if err != nil {
 				return CreateSubscriptionResponse{}, err
@@ -172,4 +162,44 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+// getCustomer gets a customer by ID or key.
+func (h *handler) getCustomer(ctx context.Context, namespace string, id *string, key *string) (*customer.Customer, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	if id == nil && key == nil {
+		return nil, fmt.Errorf("id or key is required")
+	}
+
+	var (
+		cus *customer.Customer
+		err error
+	)
+
+	if id != nil {
+		cus, err = h.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				ID:        *id,
+				Namespace: namespace,
+			},
+		})
+	}
+
+	if key != nil {
+		cus, err = h.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerKey: &customer.CustomerKey{
+				Key:       *key,
+				Namespace: namespace,
+			},
+		})
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return cus, nil
 }
