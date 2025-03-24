@@ -37,13 +37,13 @@ interface Customers {
   list(...ListCustomersParams): PaginatedResponse<Customer> | CommonErrors;
 
   /**
-   * Get a customer by ID.
+   * Get a customer by ID or key.
    */
   @get
-  @route("/{id}")
+  @route("/{idOrKey}")
   @operationId("getCustomer")
   @summary("Get customer")
-  get(@path id: ULID): Customer | NotFoundError | CommonErrors;
+  get(@path idOrKey: ULIDOrKey): Customer | NotFoundError | CommonErrors;
 
   /**
    * Update a customer by ID.

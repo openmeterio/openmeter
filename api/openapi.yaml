@@ -3066,19 +3066,20 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
-  /api/v1/customers/{id}:
+  /api/v1/customers/{idOrKey}:
     get:
       operationId: getCustomer
       summary: Get customer
-      description: Get a customer by ID.
+      description: Get a customer by ID or key.
       parameters:
-        - name: id
+        - name: idOrKey
           in: path
           required: true
           schema:
             type: string
-            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            example: 01G65Z755AFWAKHE12NY0CQ9FH
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
       responses:
         '200':
           description: The request has succeeded.
@@ -3136,6 +3137,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Customers
+  /api/v1/customers/{id}:
     put:
       operationId: updateCustomer
       summary: Update customer

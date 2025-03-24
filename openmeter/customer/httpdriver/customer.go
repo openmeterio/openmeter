@@ -256,15 +256,17 @@ type (
 // GetCustomer returns a handler for getting a customer.
 func (h *handler) GetCustomer() GetCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID string) (GetCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerIDOrKey string) (GetCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetCustomerRequest{}, err
 			}
 
 			return GetCustomerRequest{
-				Namespace: ns,
-				ID:        customerID,
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: ns,
+					IDOrKey:   customerIDOrKey,
+				},
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerRequest) (GetCustomerResponse, error) {

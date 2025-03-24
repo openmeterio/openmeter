@@ -170,8 +170,10 @@ func TestCreation(t *testing.T) {
 		require.NoError(t, err)
 
 		c, err := deps.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-			Namespace: cust.Namespace,
-			ID:        cust.ID,
+			CustomerID: &customer.CustomerID{
+				Namespace: cust.Namespace,
+				ID:        cust.ID,
+			},
 		})
 		require.NoError(t, err)
 

@@ -66,8 +66,10 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 
 	// Fetch the customer & validate the customer
 	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: namespace,
-		ID:        spec.CustomerId,
+		CustomerID: &customer.CustomerID{
+			Namespace: namespace,
+			ID:        spec.CustomerId,
+		},
 	})
 	if err != nil {
 		return def, err
@@ -359,8 +361,10 @@ func (s *service) GetView(ctx context.Context, subscriptionID models.NamespacedI
 	}
 
 	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: sub.Namespace,
-		ID:        sub.CustomerId,
+		CustomerID: &customer.CustomerID{
+			Namespace: sub.Namespace,
+			ID:        sub.CustomerId,
+		},
 	})
 	if err != nil {
 		return def, err
@@ -446,8 +450,10 @@ func (s *service) List(ctx context.Context, input subscription.ListSubscriptions
 
 func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscription.Subscription, currentSpec subscription.SubscriptionSpec) error {
 	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: sub.Namespace,
-		ID:        sub.CustomerId,
+		CustomerID: &customer.CustomerID{
+			Namespace: sub.Namespace,
+			ID:        sub.CustomerId,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get customer: %w", err)

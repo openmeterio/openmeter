@@ -675,7 +675,7 @@ func (s *AppHandlerTestSuite) TestCreateCheckoutSession(ctx context.Context, t *
 		Options:    api.CreateStripeCheckoutSessionRequestOptions{},
 	})
 
-	require.True(t, customer.IsNotFoundError(err), "Create checkout session must return customer not found error")
+	require.True(t, models.IsGenericNotFoundError(err), "Create checkout session must return customer not found error")
 
 	// Test if we pass down customer currency if set
 	s.Env.StripeAppClient().Restore()

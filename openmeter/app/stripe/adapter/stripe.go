@@ -387,7 +387,9 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripeenti
 		var targetCustomer *customer.Customer
 
 		if input.CustomerID != nil {
-			targetCustomer, err = repo.customerService.GetCustomer(ctx, customer.GetCustomerInput(*input.CustomerID))
+			targetCustomer, err = repo.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerID: input.CustomerID,
+			})
 			if err != nil {
 				return appstripeentity.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get customer: %w", err)
 			}

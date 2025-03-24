@@ -29,8 +29,8 @@ func (a *Router) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 
 // Get customer
 // (GET /api/v1/customer/customers/{customerId})
-func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerID string) {
-	a.customerHandler.GetCustomer().With(customerID).ServeHTTP(w, r)
+func (a *Router) GetCustomer(w http.ResponseWriter, r *http.Request, customerIDOrKey string) {
+	a.customerHandler.GetCustomer().With(customerIDOrKey).ServeHTTP(w, r)
 }
 
 // Update customer

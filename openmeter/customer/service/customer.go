@@ -50,8 +50,10 @@ func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 
 func (s *Service) GetEntitlementValue(ctx context.Context, input customer.GetEntitlementValueInput) (entitlement.EntitlementValue, error) {
 	cust, err := s.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: input.ID.Namespace,
-		ID:        input.ID.ID,
+		CustomerID: &customer.CustomerID{
+			Namespace: input.ID.Namespace,
+			ID:        input.ID.ID,
+		},
 	})
 	if err != nil {
 		return nil, err

@@ -433,10 +433,11 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Customer()
 
 	// Create a customer
-	originalCustomer, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+	createdCustomer, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
 			Name: TestName,
+			Key:  lo.ToPtr(TestKey),
 			UsageAttribution: customer.CustomerUsageAttribution{
 				SubjectKeys: TestSubjectKeys,
 			},
@@ -444,20 +445,47 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	})
 
 	require.NoError(t, err, "Creating customer must not return error")
-	require.NotNil(t, originalCustomer, "Customer must not be nil")
+	require.NotNil(t, createdCustomer, "Customer must not be nil")
 
-	// Get the customer
-	customer, err := service.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: s.namespace,
-		ID:        originalCustomer.ID,
+	// Get the customer by ID
+	cus, err := service.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customer.CustomerID{
+			Namespace: s.namespace,
+			ID:        createdCustomer.ID,
+		},
 	})
 
 	require.NoError(t, err, "Fetching customer must not return error")
-	require.NotNil(t, customer, "Customer must not be nil")
-	require.Equal(t, s.namespace, customer.Namespace, "Customer namespace must match")
-	require.NotNil(t, customer.ID, "Customer ID must not be nil")
-	require.Equal(t, TestName, customer.Name, "Customer name must match")
-	require.Equal(t, TestSubjectKeys, customer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+	require.NotNil(t, cus.ID, "Customer ID must not be nil")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
+	require.Equal(t, TestName, cus.Name, "Customer name must match")
+	require.Equal(t, TestSubjectKeys, cus.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
+
+	// Get the customer by key
+	cus, err = service.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerKey: &customer.CustomerKey{
+			Namespace: s.namespace,
+			Key:       TestKey,
+		},
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+
+	// Test not found
+	_, err = service.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerKey: &customer.CustomerKey{
+			Namespace: s.namespace,
+			Key:       "non-existent-key",
+		},
+	})
+
+	require.True(t, models.IsGenericNotFoundError(err), "Fetching non-existent customer must return not found error")
+	require.Nil(t, cus, "Customer must be nil")
 }
 
 // TestDelete tests the deletion of a customer
@@ -553,14 +581,16 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	require.NoError(t, err, "Deleting customer must not return error")
 
 	// Get the customer
-	getCustomer, err := custService.GetCustomer(ctx, customer.GetCustomerInput(customerId))
+	getCustomer, err := custService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customerId,
+	})
 
 	require.NoError(t, err, "Getting a deleted customer must not return error")
 	require.NotNil(t, getCustomer.DeletedAt, "DeletedAt must not be nil")
 
 	// Delete the customer again should return not found error
 	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
-	require.True(t, customer.IsNotFoundError(err), "Deleting customer again must return not found error")
+	require.True(t, models.IsGenericNotFoundError(err), "Deleting customer again must return not found error")
 
 	// Should allow to create a customer with the same subject keys
 	_, err = custService.CreateCustomer(ctx, input)

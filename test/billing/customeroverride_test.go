@@ -44,7 +44,7 @@ func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	})
 
 	// Then we get a customer not found error
-	require.True(s.T(), customer.IsNotFoundError(err), "expect a customer not found error")
+	require.True(s.T(), models.IsGenericNotFoundError(err), "expect a customer not found error")
 	require.Empty(s.T(), customerEntity)
 }
 
@@ -347,8 +347,10 @@ func (s *CustomerOverrideTestSuite) TestCustomerIntegration() {
 
 	// Let's fetch the customer again to make sure we have truncated timestamps
 	cust, err = s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: ns,
-		ID:        cust.ID,
+		CustomerID: &customer.CustomerID{
+			Namespace: ns,
+			ID:        cust.ID,
+		},
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), cust)
