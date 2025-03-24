@@ -36,6 +36,571 @@ tags:
   - name: Apps
     description: "(Beta) Manage integrations for extending OpenMeter's functionality. "
 paths:
+  /api/v1/addons:
+    get:
+      operationId: listAddons
+      summary: List addons
+      description: List all addons.
+      parameters:
+        - name: includeDeleted
+          in: query
+          required: false
+          description: |-
+            Include deleted addons in response.
+
+            Usage: `?includeDeleted=true`
+          schema:
+            type: boolean
+            default: false
+          explode: false
+        - name: id
+          in: query
+          required: false
+          description: Filter by addon.id attribute
+          schema:
+            type: array
+            items:
+              type: string
+              pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+              description: ULID (Universally Unique Lexicographically Sortable Identifier).
+              example: 01G65Z755AFWAKHE12NY0CQ9FH
+        - name: key
+          in: query
+          required: false
+          description: Filter by addon.key attribute
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+              description: A key is a unique string that is used to identify a resource.
+        - name: keyVersion
+          in: query
+          required: false
+          description: Filter by addon.key and addon.version attributes
+          schema:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: integer
+          style: deepObject
+        - name: status
+          in: query
+          required: false
+          description: |-
+            Only return addons with the given status.
+
+            Usage:
+            - `?status=active`: return only the currently active addon
+            - `?status=draft`: return only the draft addon
+            - `?status=archived`: return only the archived addons
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/AddonStatus'
+        - name: currency
+          in: query
+          required: false
+          description: Filter by addon.currency attribute
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/parameters/Pagination.page'
+        - $ref: '#/components/parameters/Pagination.pageSize'
+        - $ref: '#/components/parameters/AddonOrderByOrdering.order'
+        - $ref: '#/components/parameters/AddonOrderByOrdering.orderBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddonPaginatedResponse'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
+    post:
+      operationId: createAddon
+      summary: Create an addon
+      description: Create a new addon.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddonCreate'
+      x-internal: true
+  /api/v1/addons/{addonIdOrKey}:
+    get:
+      operationId: getAddon
+      summary: Get addon
+      description: Get addon by id or key. The latest published version is returned if latter is used.
+      parameters:
+        - name: addonIdOrKey
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            x-go-type: string
+          x-go-type: string
+        - name: includeLatest
+          in: query
+          required: false
+          description: |-
+            Include latest version of the addon instead of the version in active state.
+
+            Usage: `?includeLatest=true`
+          schema:
+            type: boolean
+            default: false
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
+  /api/v1/addons/{addonId}:
+    put:
+      operationId: updateAddon
+      summary: Update addon
+      description: Update addon by id.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddonReplaceUpdate'
+      x-internal: true
+    delete:
+      operationId: deleteAddon
+      summary: Delete addon
+      description: |-
+        Soft delete addon by id.
+
+        Once a addon is deleted it cannot be undeleted.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
+  /api/v1/addons/{addonId}/archive:
+    post:
+      operationId: archiveAddon
+      summary: Archive addon version
+      description: Archive a addon version.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
+  /api/v1/addons/{addonId}/publish:
+    post:
+      operationId: publishAddon
+      summary: Publish addon
+      description: Publish a addon version.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+            example: 01G65Z755AFWAKHE12NY0CQ9FH
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
+      x-internal: true
   /api/v1/apps:
     get:
       operationId: listApps
@@ -8191,6 +8756,23 @@ paths:
       x-internal: true
 components:
   parameters:
+    AddonOrderByOrdering.order:
+      name: order
+      in: query
+      required: false
+      description: The order direction.
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+        default: ASC
+      explode: false
+    AddonOrderByOrdering.orderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: The order by field.
+      schema:
+        $ref: '#/components/schemas/AddonOrderBy'
+      explode: false
     BillingProfileCustomerOverrideOrderByOrdering.order:
       name: order
       in: query
@@ -8822,6 +9404,262 @@ components:
         $ref: '#/components/schemas/AppType'
       explode: false
   schemas:
+    Addon:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+        - key
+        - version
+        - instanceType
+        - currency
+        - status
+        - rateCards
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          title: ID
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Creation Time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Last Update Time
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          example: '2024-01-01T01:01:01.001Z'
+          title: Deletion Time
+          readOnly: true
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
+        version:
+          type: integer
+          minimum: 1
+          description: Version of the addon. Incremented when the addon is updated.
+          title: Version
+          default: 1
+          readOnly: true
+        instanceType:
+          allOf:
+            - $ref: '#/components/schemas/AddonInstanceType'
+          description: The instanceType of the addons. Can be "single" or "multiple".
+          title: InstanceType
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the addon.
+          title: Currency
+          default: USD
+        effectiveFrom:
+          type: string
+          format: date-time
+          description: The date and time when the addon becomes effective. When not specified, the addon is a draft.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Effective start date
+          readOnly: true
+        effectiveTo:
+          type: string
+          format: date-time
+          description: The date and time when the addon is no longer effective. When not specified, the addon is effective indefinitely.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Effective end date
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/AddonStatus'
+          description: |-
+            The status of the addon.
+            Computed based on the effective start and end dates:
+            - draft = no effectiveFrom
+            - active = effectiveFrom <= now < effectiveTo
+            - archived  = effectiveTo <= now
+          title: Status
+          readOnly: true
+        rateCards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateCard'
+          description: The rate cards of the addon.
+          title: Rate cards
+      description: Addon allows extending subscriptions with compatible plans with additional ratecards.
+    AddonCreate:
+      type: object
+      required:
+        - name
+        - key
+        - instanceType
+        - currency
+        - rateCards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A semi-unique identifier for the resource.
+          title: Key
+        instanceType:
+          allOf:
+            - $ref: '#/components/schemas/AddonInstanceType'
+          description: The instanceType of the addons. Can be "single" or "multiple".
+          title: InstanceType
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the addon.
+          title: Currency
+          default: USD
+        rateCards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateCard'
+          description: The rate cards of the addon.
+          title: Rate cards
+      description: Resource create operation model.
+    AddonInstanceType:
+      type: string
+      enum:
+        - single
+        - multiple
+      description: |-
+        The type of the addon.
+        Single instance addons can be added to subscription only once while addons with multiple type can be added more then once.
+    AddonOrderBy:
+      type: string
+      enum:
+        - id
+        - key
+        - version
+        - created_at
+        - updated_at
+      description: Order by options for addons.
+    AddonPaginatedResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: The total number of items.
+          example: 500
+        page:
+          type: integer
+          description: The page index.
+          example: 1
+        pageSize:
+          type: integer
+          description: The maximum number of items per page.
+          example: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Addon'
+          description: The items in the current page.
+      description: Paginated response
+    AddonReplaceUpdate:
+      type: object
+      required:
+        - name
+        - instanceType
+        - rateCards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Human-readable name for the resource. Between 1 and 256 characters.
+          title: Display name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        instanceType:
+          allOf:
+            - $ref: '#/components/schemas/AddonInstanceType'
+          description: The instanceType of the addons. Can be "single" or "multiple".
+          title: InstanceType
+        rateCards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateCard'
+          description: The rate cards of the addon.
+          title: Rate cards
+      description: Resource update operation model.
+    AddonStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+      description: The status of the addon defined by the effectiveFrom and effectiveTo properties.
     Address:
       type: object
       properties:
@@ -15559,7 +16397,7 @@ components:
         - id
         - key
         - version
-        - create_at
+        - created_at
         - updated_at
       description: Order by options for plans.
     PlanPaginatedResponse:
