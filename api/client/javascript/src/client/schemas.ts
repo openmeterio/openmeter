@@ -964,8 +964,8 @@ export interface paths {
       cookie?: never
     }
     /**
-     * Query meter Query meter
-     * @description Query meter for usage. Query meter for usage.
+     * Query meter
+     * @description Query meter for usage.
      */
     get: operations['queryMeter']
     put?: never
@@ -8057,27 +8057,41 @@ export interface components {
     /** @description Client ID
      *     Useful to track progress of a query. */
     'MeterQuery.clientId': string
-    /** @description Simple filter for group bys with exact match. */
+    /** @description Simple filter for group bys with exact match.
+     *
+     *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
     'MeterQuery.filterGroupBy': {
       [key: string]: string
     }
     /** @description Start date-time in RFC 3339 format.
      *
-     *     Inclusive. */
+     *     Inclusive.
+     *
+     *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
     'MeterQuery.from': Date | string
     /** @description If not specified a single aggregate will be returned for each subject and time window.
-     *     `subject` is a reserved group by value. */
+     *     `subject` is a reserved group by value.
+     *
+     *     For example: ?groupBy=subject&groupBy=model */
     'MeterQuery.groupBy': string[]
-    /** @description Filtering by multiple subjects. */
+    /** @description Filtering by multiple subjects.
+     *
+     *     For example: ?subject=customer-1&subject=customer-2 */
     'MeterQuery.subject': string[]
     /** @description End date-time in RFC 3339 format.
      *
-     *     Inclusive. */
+     *     Inclusive.
+     *
+     *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
     'MeterQuery.to': Date | string
-    /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
+    /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+     *
+     *     For example: ?windowSize=DAY */
     'MeterQuery.windowSize': components['schemas']['WindowSize']
     /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-     *     If not specified, the UTC timezone will be used. */
+     *     If not specified, the UTC timezone will be used.
+     *
+     *     For example: ?windowTimeZone=UTC */
     'MeterQuery.windowTimeZone': string
     /** @description The order direction. */
     'NotificationChannelOrderByOrdering.order': components['schemas']['SortOrder']
@@ -14465,23 +14479,37 @@ export interface operations {
         clientId?: components['parameters']['MeterQuery.clientId']
         /** @description Start date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         *
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
         from?: components['parameters']['MeterQuery.from']
         /** @description End date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         *
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
         to?: components['parameters']['MeterQuery.to']
-        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
+        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+         *
+         *     For example: ?windowSize=DAY */
         windowSize?: components['parameters']['MeterQuery.windowSize']
         /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-         *     If not specified, the UTC timezone will be used. */
+         *     If not specified, the UTC timezone will be used.
+         *
+         *     For example: ?windowTimeZone=UTC */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
-        /** @description Filtering by multiple subjects. */
+        /** @description Filtering by multiple subjects.
+         *
+         *     For example: ?subject=customer-1&subject=customer-2 */
         subject?: components['parameters']['MeterQuery.subject']
-        /** @description Simple filter for group bys with exact match. */
+        /** @description Simple filter for group bys with exact match.
+         *
+         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
         /** @description If not specified a single aggregate will be returned for each subject and time window.
-         *     `subject` is a reserved group by value. */
+         *     `subject` is a reserved group by value.
+         *
+         *     For example: ?groupBy=subject&groupBy=model */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
       header?: never
@@ -16793,21 +16821,33 @@ export interface operations {
         clientId?: components['parameters']['MeterQuery.clientId']
         /** @description Start date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         *
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
         from?: components['parameters']['MeterQuery.from']
         /** @description End date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         *
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
         to?: components['parameters']['MeterQuery.to']
-        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
+        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+         *
+         *     For example: ?windowSize=DAY */
         windowSize?: components['parameters']['MeterQuery.windowSize']
         /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-         *     If not specified, the UTC timezone will be used. */
+         *     If not specified, the UTC timezone will be used.
+         *
+         *     For example: ?windowTimeZone=UTC */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
-        /** @description Simple filter for group bys with exact match. */
+        /** @description Simple filter for group bys with exact match.
+         *
+         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
         /** @description If not specified a single aggregate will be returned for each subject and time window.
-         *     `subject` is a reserved group by value. */
+         *     `subject` is a reserved group by value.
+         *
+         *     For example: ?groupBy=subject&groupBy=model */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
       header?: never
