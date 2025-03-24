@@ -55,7 +55,7 @@ func (ResourceMixin) Fields() []ent.Field {
 	var fields []ent.Field
 	fields = append(fields, IDMixin{}.Fields()...)
 	fields = append(fields, NamespaceMixin{}.Fields()...)
-	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
+	fields = append(fields, MetadataMixin{}.Fields()...)
 	fields = append(fields, TimeMixin{}.Fields()...)
 	fields = append(fields,
 		field.String("name"),
@@ -69,7 +69,7 @@ func (ResourceMixin) Indexes() []ent.Index {
 	var indexes []ent.Index
 	indexes = append(indexes, IDMixin{}.Indexes()...)
 	indexes = append(indexes, NamespaceMixin{}.Indexes()...)
-	indexes = append(indexes, MetadataAnnotationsMixin{}.Indexes()...)
+	indexes = append(indexes, MetadataMixin{}.Indexes()...)
 	indexes = append(indexes, TimeMixin{}.Indexes()...)
 	indexes = append(indexes, index.Fields("namespace", "id").Unique())
 
@@ -136,13 +136,13 @@ func (NamespaceMixin) Indexes() []ent.Index {
 	}
 }
 
-// MetadataAnnotationsMixin adds metadata to the schema
-type MetadataAnnotationsMixin struct {
+// MetadataMixin adds metadata to the schema
+type MetadataMixin struct {
 	mixin.Schema
 }
 
 // Fields of the IDMixin.
-func (MetadataAnnotationsMixin) Fields() []ent.Field {
+func (MetadataMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.JSON("metadata", map[string]string{}).
 			Optional().
