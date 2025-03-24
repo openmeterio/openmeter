@@ -559,16 +559,30 @@ func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Conte
 				dbUpdates = append(dbUpdates, create)
 			}
 
-			// Let's do a batch insert with on conflict do update
-			err = repo.db.Entitlement.CreateBulk(dbUpdates...).
-				OnConflict(
-					sql.ConflictColumns(db_entitlement.FieldID),
-					sql.ResolveWith(func(u *sql.UpdateSet) {
-						u.SetExcluded(db_entitlement.FieldCurrentUsagePeriodStart).
-							SetExcluded(db_entitlement.FieldCurrentUsagePeriodEnd)
-					})).Exec(ctx)
+			// Let's try to come up with a sensible limiting to avoid hitting PG's limit on max number of parameters
+			// We'll assume each upsert contributing len(Columns) parameters
+			// Let's also subtract 4 for the ON CONFLICT columns
+			dbUpdatesChunks := lo.Chunk(dbUpdates, (MAX_POSTGRES_QUERY_PARAMS-4)/len(db_entitlement.Columns))
 
-			return err
+			// Let's preserve the atomic nature of the operation by running inside a transaction
+			return transaction.RunWithNoValue(ctx, repo, func(ctx context.Context) error {
+				for _, chunk := range dbUpdatesChunks {
+					// Let's do a batch insert with on conflict do update
+					// Let's do a batch insert with on conflict do update
+					err = repo.db.Entitlement.CreateBulk(chunk...).
+						OnConflict(
+							sql.ConflictColumns(db_entitlement.FieldID),
+							sql.ResolveWith(func(u *sql.UpdateSet) {
+								u.SetExcluded(db_entitlement.FieldCurrentUsagePeriodStart).
+									SetExcluded(db_entitlement.FieldCurrentUsagePeriodEnd)
+							})).Exec(ctx)
+					if err != nil {
+						return err
+					}
+				}
+
+				return nil
+			})
 		},
 	)
 }
@@ -790,3 +804,7 @@ func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.Entit
 		}
 	})
 }
+
+const (
+	MAX_POSTGRES_QUERY_PARAMS = 65535
+)
