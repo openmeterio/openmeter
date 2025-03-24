@@ -7,9 +7,9 @@ import (
 )
 
 type SubscriptionPhase struct {
-	models.NamespacedID   `json:",inline"`
-	models.ManagedModel   `json:",inline"`
-	models.AnnotatedModel `json:",inline"`
+	models.NamespacedID  `json:",inline"`
+	models.ManagedModel  `json:",inline"`
+	models.MetadataModel `json:",inline"`
 
 	ActiveFrom time.Time `json:"activeFrom"`
 

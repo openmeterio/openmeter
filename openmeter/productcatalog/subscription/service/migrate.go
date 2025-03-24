@@ -65,10 +65,10 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	// Then let's create the subscription from the plan
 	workflowInput := subscription.ChangeSubscriptionWorkflowInput{
-		Timing:         timing,
-		AnnotatedModel: sub.AnnotatedModel,
-		Name:           sub.Name,
-		Description:    sub.Description,
+		Timing:        timing,
+		MetadataModel: sub.MetadataModel,
+		Name:          sub.Name,
+		Description:   sub.Description,
 	}
 	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, workflowInput, pp)
 	if err != nil {

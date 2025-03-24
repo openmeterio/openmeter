@@ -40,7 +40,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 			ActiveFrom: sub.ActiveFrom.UTC(),
 			ActiveTo:   convert.SafeToUTC(sub.ActiveTo),
 		},
-		AnnotatedModel: models.AnnotatedModel{
+		MetadataModel: models.MetadataModel{
 			Metadata: sub.Metadata,
 		},
 		Alignment: productcatalog.Alignment{
@@ -69,7 +69,7 @@ func MapDBSubscripitonPhase(phase *db.SubscriptionPhase) (subscription.Subscript
 			UpdatedAt: phase.UpdatedAt.UTC(),
 			DeletedAt: convert.SafeToUTC(phase.DeletedAt),
 		},
-		AnnotatedModel: models.AnnotatedModel{
+		MetadataModel: models.MetadataModel{
 			Metadata: phase.Metadata,
 		},
 		ActiveFrom:     phase.ActiveFrom.UTC(),
@@ -123,7 +123,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 			ActiveFrom: item.ActiveFrom.UTC(),
 			ActiveTo:   convert.SafeToUTC(item.ActiveTo),
 		},
-		AnnotatedModel: models.AnnotatedModel{
+		MetadataModel: models.MetadataModel{
 			Metadata: item.Metadata,
 		},
 		BillingBehaviorOverride: subscription.BillingBehaviorOverride{

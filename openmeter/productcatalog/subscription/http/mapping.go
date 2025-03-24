@@ -185,7 +185,7 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		Name:        sub.Name,
 		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
 		Plan:        ref,
-		Metadata:    &sub.Metadata,
+		Metadata:    lo.EmptyableToPtr(api.Metadata(sub.Metadata)),
 		CreatedAt:   sub.CreatedAt,
 		UpdatedAt:   sub.UpdatedAt,
 		DeletedAt:   sub.DeletedAt,
@@ -243,7 +243,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		Included:       included,
 		Key:            item.SubscriptionItem.Key,
 		FeatureKey:     item.SubscriptionItem.RateCard.FeatureKey,
-		Metadata:       &item.SubscriptionItem.Metadata,
+		Metadata:       lo.EmptyableToPtr(api.Metadata(item.SubscriptionItem.Metadata)),
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,
 		TaxConfig:      tx,
@@ -374,7 +374,7 @@ func MapSubscriptionPhaseToAPI(subView subscription.SubscriptionView, phaseView 
 		Items:         apiItems,
 		ItemTimelines: apiItemTimelines,
 		Key:           phaseView.SubscriptionPhase.Key,
-		Metadata:      &phaseView.SubscriptionPhase.Metadata,
+		Metadata:      lo.EmptyableToPtr(api.Metadata(phaseView.SubscriptionPhase.Metadata)),
 		Name:          phaseView.SubscriptionPhase.Name,
 	}, nil
 }

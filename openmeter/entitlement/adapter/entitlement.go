@@ -416,7 +416,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 				UpdatedAt: e.UpdatedAt.UTC(),
 				DeletedAt: convert.SafeToUTC(e.DeletedAt),
 			},
-			AnnotatedModel: models.AnnotatedModel{
+			MetadataModel: models.MetadataModel{
 				Metadata: e.Metadata,
 			},
 			ID:              e.ID,

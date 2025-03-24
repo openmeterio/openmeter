@@ -169,20 +169,3 @@ type VersionedModel struct {
 	// Version is the integer sequential version of the entity, starting from 1.
 	Version int `json:"version,omitempty"`
 }
-
-type (
-	annotatedMarker bool // marker is used so only AnnotatedModel can implement Annotated
-	Annotated       interface {
-		annotated() annotatedMarker
-	}
-)
-
-type AnnotatedModel struct {
-	Metadata map[string]string `json:"metadata,omitempty"`
-}
-
-var _ Annotated = AnnotatedModel{}
-
-func (a AnnotatedModel) annotated() annotatedMarker {
-	return true
-}

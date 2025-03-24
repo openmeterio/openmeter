@@ -33,13 +33,13 @@ type CreateSubscriptionPlanInput struct {
 }
 
 type CreateSubscriptionCustomerInput struct {
-	models.AnnotatedModel `json:",inline"`
-	Name                  string         `json:"name"`
-	Description           *string        `json:"description,omitempty"`
-	CustomerId            string         `json:"customerId"`
-	Currency              currencyx.Code `json:"currency"`
-	ActiveFrom            time.Time      `json:"activeFrom,omitempty"`
-	ActiveTo              *time.Time     `json:"activeTo,omitempty"`
+	models.MetadataModel `json:",inline"`
+	Name                 string         `json:"name"`
+	Description          *string        `json:"description,omitempty"`
+	CustomerId           string         `json:"customerId"`
+	Currency             currencyx.Code `json:"currency"`
+	ActiveFrom           time.Time      `json:"activeFrom,omitempty"`
+	ActiveTo             *time.Time     `json:"activeTo,omitempty"`
 }
 
 type SubscriptionSpec struct {
@@ -55,13 +55,13 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
-		Alignment:      s.Alignment,
-		Plan:           s.Plan,
-		CustomerId:     s.CustomerId,
-		Currency:       s.Currency,
-		AnnotatedModel: s.AnnotatedModel,
-		Name:           s.Name,
-		Description:    s.Description,
+		Alignment:     s.Alignment,
+		Plan:          s.Plan,
+		CustomerId:    s.CustomerId,
+		Currency:      s.Currency,
+		MetadataModel: s.MetadataModel,
+		Name:          s.Name,
+		Description:   s.Description,
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: s.ActiveFrom,
 			ActiveTo:   s.ActiveTo,
@@ -309,7 +309,7 @@ func (i CreateSubscriptionPhasePlanInput) Validate() error {
 }
 
 type CreateSubscriptionPhaseCustomerInput struct {
-	models.AnnotatedModel `json:",inline"`
+	models.MetadataModel `json:",inline"`
 }
 
 type RemoveSubscriptionPhaseShifting int
@@ -363,7 +363,7 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 		NamespacedModel: models.NamespacedModel{
 			Namespace: subscription.Namespace,
 		},
-		AnnotatedModel: s.AnnotatedModel,
+		MetadataModel:  s.MetadataModel,
 		SubscriptionID: subscription.ID,
 		Key:            s.PhaseKey,
 		Name:           s.Name,
@@ -816,7 +816,7 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 		phase := &SubscriptionPhaseSpec{
 			CreateSubscriptionPhasePlanInput: createSubscriptionPhasePlanInput,
 			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
-				AnnotatedModel: models.AnnotatedModel{}, // TODO: where should we source this from? inherit from PlanPhase, or Subscription?
+				MetadataModel: models.MetadataModel{}, // TODO: where should we source this from? inherit from PlanPhase, or Subscription?
 			},
 			ItemsByKey: make(map[string][]*SubscriptionItemSpec),
 		}
