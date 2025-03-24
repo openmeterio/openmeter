@@ -11,5 +11,3 @@ const (
 
 	AnnotationEventDedupeHash = "event.balance.dedupe.hash"
 )
-
-type Annotations = map[string]interface{}
