@@ -10,7 +10,7 @@ import (
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -466,20 +466,8 @@ func (t *TieredPrice) Validate() error {
 		errs = append(errs, errors.New("at least one PriceTier must be open-ended"))
 	}
 
-	minAmount := lo.FromPtrOr(t.MinimumAmount, decimal.Zero)
-	if minAmount.IsNegative() {
-		errs = append(errs, errors.New("the MinimumAmount must not be negative"))
-	}
-
-	maxAmount := lo.FromPtrOr(t.MaximumAmount, decimal.Zero)
-	if maxAmount.IsNegative() {
-		errs = append(errs, errors.New("the MaximumAmount must not be negative"))
-	}
-
-	if !minAmount.IsZero() && !maxAmount.IsZero() {
-		if minAmount.GreaterThan(maxAmount) {
-			errs = append(errs, errors.New("minimum amount must not be greater than maximum amount"))
-		}
+	if err := t.Commitments.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -553,6 +541,19 @@ func (p PriceTier) Validate() error {
 }
 
 func (p PriceTier) Equal(v PriceTier) bool {
+	if !equal.PtrEqual(p.UpToAmount, v.UpToAmount) {
+		return false
+	}
+
+	if !equal.PtrEqual(p.FlatPrice, v.FlatPrice) {
+		return false
+	}
+
+	if !equal.PtrEqual(p.UnitPrice, v.UnitPrice) {
+		return false
+	}
+
+	return true
 }
 
 var _ models.Validator = (*PriceTierFlatPrice)(nil)
@@ -570,6 +571,10 @@ func (f PriceTierFlatPrice) Validate() error {
 	return nil
 }
 
+func (f PriceTierFlatPrice) Equal(v PriceTierFlatPrice) bool {
+	return f.Amount.Equal(v.Amount)
+}
+
 var _ models.Validator = (*PriceTierUnitPrice)(nil)
 
 type PriceTierUnitPrice struct {
@@ -583,6 +588,10 @@ func (u PriceTierUnitPrice) Validate() error {
 	}
 
 	return nil
+}
+
+func (u PriceTierUnitPrice) Equal(v PriceTierUnitPrice) bool {
+	return u.Amount.Equal(v.Amount)
 }
 
 type Commitments struct {
@@ -616,30 +625,11 @@ func (c Commitments) Validate() error {
 }
 
 func (c Commitments) Equal(v Commitments) bool {
-	if defaultx.PtrEqual(c.MinimumAmount, v.MinimumAmount, decimal.Equal) {
-		return true
-	}
-	if c.MinimumAmount != nil && v.MinimumAmount == nil {
+	if !equal.PtrEqual(c.MinimumAmount, v.MinimumAmount) {
 		return false
 	}
 
-	if c.MinimumAmount == nil && v.MinimumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(c.MinimumAmount).Equal(lo.FromPtr(v.MinimumAmount)) {
-		return false
-	}
-
-	if c.MaximumAmount != nil && v.MaximumAmount == nil {
-		return false
-	}
-
-	if c.MaximumAmount == nil && v.MaximumAmount != nil {
-		return false
-	}
-
-	if !lo.FromPtr(c.MaximumAmount).Equal(lo.FromPtr(v.MaximumAmount)) {
+	if !equal.PtrEqual(c.MaximumAmount, v.MaximumAmount) {
 		return false
 	}
 

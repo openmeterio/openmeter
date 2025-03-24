@@ -1637,8 +1637,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: features.flatPerUnit.Key,
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-									Amount:        alpacadecimal.NewFromFloat(100),
-									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									Amount: alpacadecimal.NewFromFloat(100),
+									Commitments: productcatalog.Commitments{
+										MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									},
 								}),
 							},
 						},
@@ -1735,7 +1737,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 											},
 										},
 									},
-									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+									Commitments: productcatalog.Commitments{
+										MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+									},
 								}),
 							},
 						},
@@ -2815,8 +2819,10 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: features.flatPerUnit.Key,
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-									Amount:        alpacadecimal.NewFromFloat(100),
-									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									Amount: alpacadecimal.NewFromFloat(100),
+									Commitments: productcatalog.Commitments{
+										MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									},
 								}),
 							},
 						},
@@ -2913,7 +2919,9 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 											},
 										},
 									},
-									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+									Commitments: productcatalog.Commitments{
+										MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
+									},
 								}),
 							},
 						},
@@ -3353,8 +3361,10 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 							UsageBased: &billing.UsageBasedLine{
 								FeatureKey: flatPerUnitFeature.Key,
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-									Amount:        alpacadecimal.NewFromFloat(100),
-									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									Amount: alpacadecimal.NewFromFloat(100),
+									Commitments: productcatalog.Commitments{
+										MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
+									},
 								}),
 							},
 						},
