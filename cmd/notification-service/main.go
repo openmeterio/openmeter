@@ -146,7 +146,7 @@ func main() {
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
 	// Run the group
-	err = group.Run()
+	err = group.Run(run.WithReverseShutdownOrder())
 	if e := &(run.SignalError{}); errors.As(err, &e) {
 		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
