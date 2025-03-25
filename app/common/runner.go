@@ -15,7 +15,7 @@ type Runner struct {
 }
 
 func (r Runner) Run() {
-	err := r.Group.Run()
+	err := r.Group.Run(run.WithReverseShutdownOrder())
 	if e := &(run.SignalError{}); errors.As(err, &e) {
 		r.Logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
