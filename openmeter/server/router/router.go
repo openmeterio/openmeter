@@ -41,7 +41,7 @@ import (
 	portalhttphandler "github.com/openmeterio/openmeter/openmeter/portal/httphandler"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	plan "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
