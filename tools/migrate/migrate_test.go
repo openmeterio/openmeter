@@ -76,7 +76,7 @@ func (s stops) downs() stops {
 	}
 
 	slices.SortStableFunc(downs, func(i, j stop) int {
-		return int(i.version) - int(j.version)
+		return int(j.version) - int(i.version)
 	})
 
 	return downs

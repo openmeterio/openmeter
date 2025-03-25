@@ -258,7 +258,6 @@ func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 		UsagePeriod:             e.UsagePeriod,
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 		Annotations:             e.Annotations,
-		SubscriptionManaged:     e.SubscriptionManaged,
 	}
 
 	if e.MeasureUsageFrom != nil {
@@ -385,8 +384,6 @@ type GenericProperties struct {
 	UsagePeriod               *UsagePeriod     `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod        *timeutil.Period `json:"currentUsagePeriod,omitempty"`
 	OriginalUsagePeriodAnchor *time.Time       `json:"originalUsagePeriodAnchor,omitempty"`
-
-	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }
 
 // ActiveFromTime returns the time the entitlement is active from. Its either the ActiveFrom field or the CreatedAt field

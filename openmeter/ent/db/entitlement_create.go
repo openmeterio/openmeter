@@ -267,20 +267,6 @@ func (ec *EntitlementCreate) SetNillableCurrentUsagePeriodEnd(t *time.Time) *Ent
 	return ec
 }
 
-// SetSubscriptionManaged sets the "subscription_managed" field.
-func (ec *EntitlementCreate) SetSubscriptionManaged(b bool) *EntitlementCreate {
-	ec.mutation.SetSubscriptionManaged(b)
-	return ec
-}
-
-// SetNillableSubscriptionManaged sets the "subscription_managed" field if the given value is not nil.
-func (ec *EntitlementCreate) SetNillableSubscriptionManaged(b *bool) *EntitlementCreate {
-	if b != nil {
-		ec.SetSubscriptionManaged(*b)
-	}
-	return ec
-}
-
 // SetAnnotations sets the "annotations" field.
 func (ec *EntitlementCreate) SetAnnotations(m map[string]interface{}) *EntitlementCreate {
 	ec.mutation.SetAnnotations(m)
@@ -579,10 +565,6 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 	if value, ok := ec.mutation.CurrentUsagePeriodEnd(); ok {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
 		_node.CurrentUsagePeriodEnd = &value
-	}
-	if value, ok := ec.mutation.SubscriptionManaged(); ok {
-		_spec.SetField(entitlement.FieldSubscriptionManaged, field.TypeBool, value)
-		_node.SubscriptionManaged = value
 	}
 	if value, ok := ec.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)
@@ -936,9 +918,6 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
-		}
-		if _, exists := u.create.mutation.SubscriptionManaged(); exists {
-			s.SetIgnore(entitlement.FieldSubscriptionManaged)
 		}
 	}))
 	return u
@@ -1377,9 +1356,6 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
-			}
-			if _, exists := b.mutation.SubscriptionManaged(); exists {
-				s.SetIgnore(entitlement.FieldSubscriptionManaged)
 			}
 		}
 	}))

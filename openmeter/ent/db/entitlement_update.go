@@ -457,9 +457,6 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
-	if eu.mutation.SubscriptionManagedCleared() {
-		_spec.ClearField(entitlement.FieldSubscriptionManaged, field.TypeBool)
-	}
 	if value, ok := eu.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)
 		if err != nil {
@@ -1123,9 +1120,6 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
-	}
-	if euo.mutation.SubscriptionManagedCleared() {
-		_spec.ClearField(entitlement.FieldSubscriptionManaged, field.TypeBool)
 	}
 	if value, ok := euo.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)

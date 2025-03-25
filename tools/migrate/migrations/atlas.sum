@@ -1,4 +1,4 @@
-h1:3zhCRIJ9F0BRVSn19NOmvrdgw8EbElkiUOvjqIS8mkE=
+h1:1092VgrOVicQYY++tdI3IApZ3ZGaTKUq3nvR73IrXyw=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -137,3 +137,5 @@ h1:3zhCRIJ9F0BRVSn19NOmvrdgw8EbElkiUOvjqIS8mkE=
 20250325114848_annotations.up.sql h1:tMYz44rEPmY7ylCP+CfnR1S89yZiltz8dfA1KfCrAco=
 20250325115141_ent-subs-annotation.down.sql h1:UBxohEBVeLayvZjlf60iFa3XXHRpKifUKDOzhldhZcE=
 20250325115141_ent-subs-annotation.up.sql h1:Pe+5K6seErcLNurwf3pbdTexPpppyH+8o2mDlE3Lt+Q=
+20250325124631_remove-subscription-managed-flag.down.sql h1:TZY9XvVfHdVWkkKFDPJ5vRdDZD4g/CqPk9qv3qfDkuU=
+20250325124631_remove-subscription-managed-flag.up.sql h1:4hw7y1UrCoD8gnJyTFbWAIduWsnnpVeqPHouGveEaDI=

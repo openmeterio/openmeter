@@ -74,6 +74,4 @@ type CreateEntitlementRepoInputs struct {
 	UsagePeriod             *UsagePeriod     `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod      *timeutil.Period `json:"currentUsagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool            `json:"preserveOverageAtReset,omitempty"`
-
-	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }

@@ -58,8 +58,6 @@ const (
 	FieldCurrentUsagePeriodStart = "current_usage_period_start"
 	// FieldCurrentUsagePeriodEnd holds the string denoting the current_usage_period_end field in the database.
 	FieldCurrentUsagePeriodEnd = "current_usage_period_end"
-	// FieldSubscriptionManaged holds the string denoting the subscription_managed field in the database.
-	FieldSubscriptionManaged = "subscription_managed"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
@@ -135,7 +133,6 @@ var Columns = []string{
 	FieldUsagePeriodAnchor,
 	FieldCurrentUsagePeriodStart,
 	FieldCurrentUsagePeriodEnd,
-	FieldSubscriptionManaged,
 	FieldAnnotations,
 }
 
@@ -295,11 +292,6 @@ func ByCurrentUsagePeriodStart(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrentUsagePeriodEnd orders the results by the current_usage_period_end field.
 func ByCurrentUsagePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentUsagePeriodEnd, opts...).ToFunc()
-}
-
-// BySubscriptionManaged orders the results by the subscription_managed field.
-func BySubscriptionManaged(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSubscriptionManaged, opts...).ToFunc()
 }
 
 // ByAnnotations orders the results by the annotations field.

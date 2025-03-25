@@ -371,5 +371,19 @@ func TestEntitlementSubscriptionAnnotationMigration(t *testing.T) {
 				// If annotations is NULL, no need to check further as there's definitely no subscription.id
 			},
 		},
+		{
+			// We need to add back the subscription_managed=true to our entitlement as the column gets removed in later migration
+			version:   20250325115141,
+			direction: directionDown,
+			action: func(t *testing.T, db *sql.DB) {
+				// Update the subscription_managed value is set to true
+				_, err := db.Exec(`
+					UPDATE entitlements
+					SET subscription_managed = TRUE
+					WHERE id = $1
+				`, entId.String())
+				require.NoError(t, err)
+			},
+		},
 	}}.Test(t)
 }
