@@ -129,6 +129,10 @@ func TestEntitlementSubscriptionAnnotationMigration(t *testing.T) {
 	itemId := ulid.Make()
 	planId := ulid.Make()
 
+	// Add IDs for the additional entitlements
+	nonSubManagedEntId := ulid.Make()
+	noItemEntId := ulid.Make()
+
 	runner{stops{
 		{
 			// before: 20250325115141_ent-subs-annotation.up.sql
@@ -288,7 +292,65 @@ func TestEntitlementSubscriptionAnnotationMigration(t *testing.T) {
 				)
 				require.NoError(t, err)
 
-				// 7. Create a subscription item linked to the entitlement
+				// 7. Create a non-subscription-managed entitlement
+				_, err = db.Exec(`
+					INSERT INTO entitlements (
+						namespace,
+						id,
+						created_at,
+						updated_at,
+						entitlement_type,
+						feature_key,
+						feature_id,
+						subject_key,
+						subscription_managed
+					)
+					VALUES (
+						'default',
+						$1,
+						NOW(),
+						NOW(),
+						'METERED',
+						'feature_1',
+						$2,
+						'subject_2',
+						FALSE
+					)`,
+					nonSubManagedEntId.String(),
+					featId.String(),
+				)
+				require.NoError(t, err)
+
+				// 8. Create a subscription-managed entitlement without subscription item
+				_, err = db.Exec(`
+					INSERT INTO entitlements (
+						namespace,
+						id,
+						created_at,
+						updated_at,
+						entitlement_type,
+						feature_key,
+						feature_id,
+						subject_key,
+						subscription_managed
+					)
+					VALUES (
+						'default',
+						$1,
+						NOW(),
+						NOW(),
+						'METERED',
+						'feature_1',
+						$2,
+						'subject_3',
+						TRUE
+					)`,
+					noItemEntId.String(),
+					featId.String(),
+				)
+				require.NoError(t, err)
+
+				// 9. Create a subscription item linked to the entitlement
 				_, err = db.Exec(`
 					INSERT INTO subscription_items (
 						namespace,
@@ -342,6 +404,26 @@ func TestEntitlementSubscriptionAnnotationMigration(t *testing.T) {
 				subscriptionID, ok := annotations["subscription.id"]
 				require.True(t, ok, "subscription.id annotation not found")
 				require.Equal(t, subId.String(), subscriptionID)
+
+				// Check that non-subscription-managed entitlement doesn't have annotations
+				var nonSubManagedAnnotations sql.NullString
+				err = db.QueryRow(`
+					SELECT annotations::text
+					FROM entitlements
+					WHERE id = $1
+				`, nonSubManagedEntId.String()).Scan(&nonSubManagedAnnotations)
+				require.NoError(t, err)
+				require.False(t, nonSubManagedAnnotations.Valid, "non-subscription-managed entitlement should not have annotations")
+
+				// Check that subscription-managed entitlement without item doesn't have annotations
+				var noItemAnnotations sql.NullString
+				err = db.QueryRow(`
+					SELECT annotations::text
+					FROM entitlements
+					WHERE id = $1
+				`, noItemEntId.String()).Scan(&noItemAnnotations)
+				require.NoError(t, err)
+				require.False(t, noItemAnnotations.Valid, "subscription-managed entitlement without item should not have annotations")
 			},
 		},
 		{
@@ -376,12 +458,12 @@ func TestEntitlementSubscriptionAnnotationMigration(t *testing.T) {
 			version:   20250325115141,
 			direction: directionDown,
 			action: func(t *testing.T, db *sql.DB) {
-				// Update the subscription_managed value is set to true
+				// Update the subscription_managed value is set to true for all relevant entitlements
 				_, err := db.Exec(`
 					UPDATE entitlements
 					SET subscription_managed = TRUE
-					WHERE id = $1
-				`, entId.String())
+					WHERE id IN ($1, $2)
+				`, entId.String(), noItemEntId.String())
 				require.NoError(t, err)
 			},
 		},
