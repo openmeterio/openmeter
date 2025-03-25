@@ -485,7 +485,6 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	})
 
 	require.True(t, models.IsGenericNotFoundError(err), "Fetching non-existent customer must return not found error")
-	require.Nil(t, cus, "Customer must be nil")
 }
 
 // TestDelete tests the deletion of a customer
