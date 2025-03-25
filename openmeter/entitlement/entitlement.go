@@ -359,7 +359,7 @@ func (e EntitlementType) String() string {
 type GenericProperties struct {
 	models.NamespacedModel
 	models.ManagedModel
-	models.AnnotatedModel
+	models.MetadataModel
 
 	// ActiveFrom allows entitlements to be scheduled for future activation.
 	// If not set, the entitlement is active immediately.

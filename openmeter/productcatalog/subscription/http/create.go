@@ -94,7 +94,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 							Timing:      timing,
 							Name:        req.Name,        // We map the plan name to the subscription name
 							Description: req.Description, // We map the plan description to the subscription description
-							AnnotatedModel: models.AnnotatedModel{
+							MetadataModel: models.MetadataModel{
 								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
 						},
@@ -138,7 +138,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 							Timing:      timing,
 							Name:        lo.FromPtrOr(parsedBody.Name, ""),
 							Description: parsedBody.Description,
-							AnnotatedModel: models.AnnotatedModel{
+							MetadataModel: models.MetadataModel{
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
 						},

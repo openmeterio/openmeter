@@ -601,7 +601,7 @@ func (BillingInvoice) Mixin() []ent.Mixin {
 		// This cannot be a resource mixin as the invoice doesn't have a name field
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
-		entutils.MetadataAnnotationsMixin{},
+		entutils.MetadataMixin{},
 		entutils.TimeMixin{},
 		entutils.CustomerAddressMixin{
 			FieldPrefix: "supplier",

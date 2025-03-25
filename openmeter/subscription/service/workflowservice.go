@@ -57,12 +57,12 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 
 	// Let's create the new Spec
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:     cust.ID,
-		Currency:       plan.Currency(),
-		ActiveFrom:     activeFrom,
-		AnnotatedModel: inp.AnnotatedModel,
-		Name:           lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
-		Description:    inp.Description,
+		CustomerId:    cust.ID,
+		Currency:      plan.Currency(),
+		ActiveFrom:    activeFrom,
+		MetadataModel: inp.MetadataModel,
+		Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
+		Description:   inp.Description,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to create spec from plan: %w", err)

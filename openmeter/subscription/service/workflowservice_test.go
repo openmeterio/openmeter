@@ -921,13 +921,13 @@ func TestChangeToPlan(t *testing.T) {
 
 			// Let's check that the new plan looks as we expect
 			targetSpec, err := subscription.NewSpecFromPlan(deps.Plan2, subscription.CreateSubscriptionCustomerInput{
-				Name:           changeInput.Name,
-				Description:    changeInput.Description,
-				AnnotatedModel: changeInput.AnnotatedModel,
-				CustomerId:     curr.CustomerId,
-				Currency:       deps.Plan2.Currency(),
-				ActiveFrom:     *changeInput.Custom,
-				ActiveTo:       nil,
+				Name:          changeInput.Name,
+				Description:   changeInput.Description,
+				MetadataModel: changeInput.MetadataModel,
+				CustomerId:    curr.CustomerId,
+				Currency:      deps.Plan2.Currency(),
+				ActiveFrom:    *changeInput.Custom,
+				ActiveTo:      nil,
 			})
 			require.Nil(t, err)
 

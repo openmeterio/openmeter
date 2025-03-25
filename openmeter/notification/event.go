@@ -22,7 +22,7 @@ var _ payloadObjectMapper = (*Event)(nil)
 
 type Event struct {
 	models.NamespacedModel
-	Annotations
+	models.Annotations
 
 	// ID is the unique identifier for Event.
 	ID string `json:"id"`
@@ -300,7 +300,7 @@ var _ validator = (*CreateEventInput)(nil)
 
 type CreateEventInput struct {
 	models.NamespacedModel
-	Annotations Annotations `json:"annotations,omitempty"`
+	Annotations models.Annotations `json:"annotations,omitempty"`
 
 	// Type of the notification Event (e.g. entitlements.balance.threshold)
 	Type EventType `json:"type"`

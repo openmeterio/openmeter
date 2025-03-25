@@ -84,7 +84,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						Timing:      timing,
 						Name:        req.Name,
 						Description: req.Description,
-						AnnotatedModel: models.AnnotatedModel{
+						MetadataModel: models.MetadataModel{
 							Metadata: req.Metadata,
 						},
 					},
@@ -112,7 +112,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					PlanInput: planInp,
 					WorkflowInput: subscription.ChangeSubscriptionWorkflowInput{
 						Timing: timing,
-						AnnotatedModel: models.AnnotatedModel{
+						MetadataModel: models.MetadataModel{
 							Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 						},
 						Name:        lo.FromPtrOr(parsedBody.Name, ""),

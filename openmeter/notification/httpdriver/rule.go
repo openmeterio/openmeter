@@ -293,7 +293,7 @@ func (h *handler) TestRule() TestRuleHandler {
 				Type:            notification.EventType(rule.Type),
 				Payload:         payload,
 				RuleID:          rule.ID,
-				Annotations: notification.Annotations{
+				Annotations: models.Annotations{
 					notification.AnnotationRuleTestEvent: true,
 				},
 			})

@@ -240,13 +240,13 @@ func NewSubscriptionView(
 	spec := SubscriptionSpec{
 		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.PlanRef, Alignment: sub.Alignment},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
-			CustomerId:     sub.CustomerId,
-			Currency:       sub.Currency,
-			ActiveFrom:     sub.ActiveFrom,
-			ActiveTo:       sub.ActiveTo,
-			AnnotatedModel: sub.AnnotatedModel,
-			Name:           sub.Name,
-			Description:    sub.Description,
+			CustomerId:    sub.CustomerId,
+			Currency:      sub.Currency,
+			ActiveFrom:    sub.ActiveFrom,
+			ActiveTo:      sub.ActiveTo,
+			MetadataModel: sub.MetadataModel,
+			Name:          sub.Name,
+			Description:   sub.Description,
 		},
 		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}
@@ -306,7 +306,7 @@ func NewSubscriptionView(
 				Description: phase.Description,
 			},
 			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
-				AnnotatedModel: phase.AnnotatedModel,
+				MetadataModel: phase.MetadataModel,
 			},
 			ItemsByKey: make(map[string][]*SubscriptionItemSpec),
 		}

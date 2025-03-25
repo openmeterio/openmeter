@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type NotificationChannel struct {
@@ -140,7 +141,7 @@ func (NotificationEvent) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}),
 		field.String("annotations").
-			GoType(notification.Annotations{}).
+			GoType(models.Annotations{}).
 			ValueScanner(AnnotationsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -343,8 +344,8 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 	},
 }
 
-var AnnotationsValueScanner = field.ValueScannerFunc[notification.Annotations, *sql.NullString]{
-	V: func(annotations notification.Annotations) (driver.Value, error) {
+var AnnotationsValueScanner = field.ValueScannerFunc[models.Annotations, *sql.NullString]{
+	V: func(annotations models.Annotations) (driver.Value, error) {
 		b, err := json.Marshal(annotations)
 		if err != nil {
 			return nil, err
@@ -352,8 +353,8 @@ var AnnotationsValueScanner = field.ValueScannerFunc[notification.Annotations, *
 
 		return string(b), nil
 	},
-	S: func(ns *sql.NullString) (notification.Annotations, error) {
-		var annotations notification.Annotations
+	S: func(ns *sql.NullString) (models.Annotations, error) {
+		var annotations models.Annotations
 		if ns == nil || !ns.Valid {
 			return annotations, nil
 		}

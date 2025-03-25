@@ -170,7 +170,7 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 		return fmt.Errorf("failed to map entitlement value to API: %w", err)
 	}
 
-	annotations := notification.Annotations{
+	annotations := models.Annotations{
 		notification.AnnotationEventSubjectKey: in.Snapshot.Subject.Key,
 		notification.AnnotationEventFeatureKey: in.Snapshot.Feature.Key,
 		notification.AnnotationEventDedupeHash: in.DedupeHash,

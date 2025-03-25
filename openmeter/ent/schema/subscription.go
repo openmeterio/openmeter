@@ -22,7 +22,7 @@ func (Subscription) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
-		entutils.MetadataAnnotationsMixin{},
+		entutils.MetadataMixin{},
 		entutils.CadencedMixin{},
 		AlignmentMixin{},
 	}
@@ -63,7 +63,7 @@ func (SubscriptionPhase) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
-		entutils.MetadataAnnotationsMixin{},
+		entutils.MetadataMixin{},
 	}
 }
 
@@ -102,7 +102,7 @@ func (SubscriptionItem) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
-		entutils.MetadataAnnotationsMixin{},
+		entutils.MetadataMixin{},
 	}
 }
 

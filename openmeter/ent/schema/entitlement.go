@@ -23,7 +23,7 @@ func (Entitlement) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
-		entutils.MetadataAnnotationsMixin{},
+		entutils.MetadataMixin{},
 		entutils.TimeMixin{},
 	}
 }

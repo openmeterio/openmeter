@@ -12,7 +12,7 @@ type Subscription struct {
 	models.NamespacedID
 	models.ManagedModel
 	models.CadencedModel
-	models.AnnotatedModel
+	models.MetadataModel
 
 	productcatalog.Alignment
 
@@ -32,13 +32,13 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
 		},
-		Alignment:      s.Alignment,
-		AnnotatedModel: s.AnnotatedModel,
-		Plan:           s.PlanRef,
-		Name:           s.Name,
-		Description:    s.Description,
-		CustomerId:     s.CustomerId,
-		Currency:       s.Currency,
+		Alignment:     s.Alignment,
+		MetadataModel: s.MetadataModel,
+		Plan:          s.PlanRef,
+		Name:          s.Name,
+		Description:   s.Description,
+		CustomerId:    s.CustomerId,
+		Currency:      s.Currency,
 	}
 }
 
