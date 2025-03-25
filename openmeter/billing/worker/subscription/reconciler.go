@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -19,15 +20,15 @@ import (
 type Reconciler struct {
 	subscriptionSync    *Handler
 	subscriptionService subscription.Service
-
-	logger *slog.Logger
+	customerService     customer.Service
+	logger              *slog.Logger
 }
 
 type ReconcilerConfig struct {
 	SubscriptionSync    *Handler
 	SubscriptionService subscription.Service
-
-	Logger *slog.Logger
+	CustomerService     customer.Service
+	Logger              *slog.Logger
 }
 
 func (c ReconcilerConfig) Validate() error {
@@ -37,6 +38,10 @@ func (c ReconcilerConfig) Validate() error {
 
 	if c.SubscriptionService == nil {
 		return errors.New("subscriptionService is required")
+	}
+
+	if c.CustomerService == nil {
+		return errors.New("customerService is required")
 	}
 
 	if c.Logger == nil {
@@ -93,6 +98,19 @@ func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.Na
 	subsView, err := r.subscriptionService.GetView(ctx, subsID)
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	customer, err := r.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+		Namespace: subsID.Namespace,
+		ID:        subsView.Customer.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get customer: %w", err)
+	}
+
+	if customer.DeletedAt != nil {
+		r.logger.WarnContext(ctx, "customer is deleted, skipping reconciliation", "customer_id", subsView.Customer.ID)
+		return nil
 	}
 
 	return r.subscriptionSync.SyncronizeSubscription(ctx, subsView, time.Now())
