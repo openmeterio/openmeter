@@ -17,7 +17,12 @@ func (a annotationParser) GetSubscriptionID(annotations models.Annotations) (str
 		return "", false
 	}
 
-	return subId.(string), true
+	subIdStr, ok := subId.(string)
+	if !ok {
+		return "", false
+	}
+
+	return subIdStr, true
 }
 
 func (a annotationParser) HasSubscription(annotations models.Annotations) bool {
