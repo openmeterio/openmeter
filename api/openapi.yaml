@@ -16662,62 +16662,6 @@ components:
           maxLength: 256
           description: The key of the customer. Provide either the key or ID.
       description: Create subscription based on plan.
-    PlanVariant:
-      type: object
-      required:
-        - currency
-      properties:
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency code in ISO 4217 format.
-      description: |-
-        A plan variant.
-        A set of properties that can be used to select a specific configuration of a plan.
-    PlanVariantOverridePreset:
-      type: object
-      required:
-        - variant
-      properties:
-        variant:
-          allOf:
-            - $ref: '#/components/schemas/PlanVariant'
-          description: The variant of the plan.
-          title: Variant
-          example:
-            currency: USD
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency code.
-          title: Currency
-        rateCards:
-          type: object
-          properties:
-            add:
-              type: array
-              items:
-                $ref: '#/components/schemas/RateCard'
-              description: Add rate cards to the plan.
-              title: Add rate card
-            remove:
-              type: array
-              items:
-                type: string
-                minLength: 1
-                maxLength: 64
-                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-                description: A key is a unique string that is used to identify a resource.
-              description: Remove rate cards from the plan.
-              title: Remove rate card
-          description: The rate card overrides.
-          title: Rate card overrides
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
-          description: The discounts on the plan.
-      description: Plan variant override preset.
     PortalToken:
       type: object
       required:
