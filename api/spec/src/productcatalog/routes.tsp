@@ -5,8 +5,6 @@ namespace OpenMeter.ProductCatalog;
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-alias PlanIdOrKey = ULID | Key;
-
 @route("/api/v1/plans")
 @tag("Product Catalog")
 interface Plans {
@@ -96,7 +94,7 @@ interface Plans {
   get(
     @extension("x-go-type", "string")
     @path
-    planId: PlanIdOrKey,
+    planId: ULIDOrKey,
 
     /**
      * Include latest version of the Plan instead of the version in active state.
@@ -146,6 +144,7 @@ interface Plans {
    * Create a new draft version from plan.
    * It returns error if there is already a plan in draft or planId does not reference the latest published version.
    */
+  #deprecated "Use createPlan instead"
   @post
   @route("/{planIdOrKey}/next")
   @operationId("nextPlan")
@@ -153,7 +152,7 @@ interface Plans {
   next(
     @extension("x-go-type", "string")
     @path
-    planIdOrKey: PlanIdOrKey,
+    planIdOrKey: ULIDOrKey,
   ): {
     @statusCode _: 201;
     @body body: Plan;
