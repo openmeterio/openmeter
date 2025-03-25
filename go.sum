@@ -2076,8 +2076,8 @@ github.com/redis/go-redis/extra/redisotel/v9 v9.7.1 h1:LJF39lvUagUpKfL2/gZIp5vHv
 github.com/redis/go-redis/extra/redisotel/v9 v9.7.1/go.mod h1:VAY1vDpD/dLwfw/wU5SsexXNhCO9DjhRoGkmJeFONoE=
 github.com/redis/go-redis/v9 v9.7.3 h1:YpPyAayJV+XErNsatSElgRZZVCwXX9QzkKYNvO7x0wM=
 github.com/redis/go-redis/v9 v9.7.3/go.mod h1:bGUrSggJ9X9GUmZpZNEOQKaANxSGgOEBRltRTZHSvrA=
-github.com/redpanda-data/benthos/v4 v4.45.1 h1:x5jldj7+rXARP8GNN7txEK4j3SbOMUtxBuFfUcr1X6U=
-github.com/redpanda-data/benthos/v4 v4.45.1/go.mod h1:YU9FTVkYBXi1Qz6FmPvszHm6zGV12UGQXnn3/H6FmFI=
+github.com/redpanda-data/benthos/v4 v4.46.0 h1:HAtyCcmRNo5wxPDkX0C/68awuf2VlD4wvcBr5Ko1Q8o=
+github.com/redpanda-data/benthos/v4 v4.46.0/go.mod h1:YU9FTVkYBXi1Qz6FmPvszHm6zGV12UGQXnn3/H6FmFI=
 github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1 h1:P/DyC50Z22nNOByc7L6btlQ1LuaNNDVUIWzv2fpn4PU=
 github.com/redpanda-data/connect/public/bundle/free/v4 v4.49.1/go.mod h1:+59jDrBszHGElD66rZ9Bo6Ge4L/QGDWUznwC4JpG/Xk=
 github.com/redpanda-data/connect/v4 v4.49.1 h1:tzd0DAxWPDIwmupwSfDRxvjsfVhgLoojp1rDHhMAFfg=
