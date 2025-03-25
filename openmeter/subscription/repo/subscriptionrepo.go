@@ -172,9 +172,12 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 
 		if in.ActiveAt != nil {
 			query = query.Where(
-				dbsubscription.Or(
-					dbsubscription.ActiveToIsNil(),
-					dbsubscription.ActiveToGT(*in.ActiveAt),
+				dbsubscription.And(
+					dbsubscription.ActiveFromLT(*in.ActiveAt),
+					dbsubscription.Or(
+						dbsubscription.ActiveToIsNil(),
+						dbsubscription.ActiveToGT(*in.ActiveAt),
+					),
 				),
 			)
 		}
