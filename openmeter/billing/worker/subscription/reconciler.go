@@ -59,6 +59,7 @@ func NewReconciler(config ReconcilerConfig) (*Reconciler, error) {
 	return &Reconciler{
 		subscriptionSync:    config.SubscriptionSync,
 		subscriptionService: config.SubscriptionService,
+		customerService:     config.CustomerService,
 		logger:              config.Logger,
 	}, nil
 }
