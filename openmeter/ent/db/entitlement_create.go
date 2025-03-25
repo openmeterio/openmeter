@@ -267,17 +267,9 @@ func (ec *EntitlementCreate) SetNillableCurrentUsagePeriodEnd(t *time.Time) *Ent
 	return ec
 }
 
-// SetSubscriptionManaged sets the "subscription_managed" field.
-func (ec *EntitlementCreate) SetSubscriptionManaged(b bool) *EntitlementCreate {
-	ec.mutation.SetSubscriptionManaged(b)
-	return ec
-}
-
-// SetNillableSubscriptionManaged sets the "subscription_managed" field if the given value is not nil.
-func (ec *EntitlementCreate) SetNillableSubscriptionManaged(b *bool) *EntitlementCreate {
-	if b != nil {
-		ec.SetSubscriptionManaged(*b)
-	}
+// SetAnnotations sets the "annotations" field.
+func (ec *EntitlementCreate) SetAnnotations(m map[string]interface{}) *EntitlementCreate {
+	ec.mutation.SetAnnotations(m)
 	return ec
 }
 
@@ -462,7 +454,10 @@ func (ec *EntitlementCreate) sqlSave(ctx context.Context) (*Entitlement, error) 
 	if err := ec.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := ec.createSpec()
+	_node, _spec, err := ec.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, ec.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -481,7 +476,7 @@ func (ec *EntitlementCreate) sqlSave(ctx context.Context) (*Entitlement, error) 
 	return _node, nil
 }
 
-func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
+func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Entitlement{config: ec.config}
 		_spec = sqlgraph.NewCreateSpec(entitlement.Table, sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString))
@@ -571,9 +566,13 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
 		_node.CurrentUsagePeriodEnd = &value
 	}
-	if value, ok := ec.mutation.SubscriptionManaged(); ok {
-		_spec.SetField(entitlement.FieldSubscriptionManaged, field.TypeBool, value)
-		_node.SubscriptionManaged = value
+	if value, ok := ec.mutation.Annotations(); ok {
+		vv, err := entitlement.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(entitlement.FieldAnnotations, field.TypeString, vv)
+		_node.Annotations = value
 	}
 	if nodes := ec.mutation.UsageResetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -656,7 +655,7 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_node.FeatureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -846,6 +845,24 @@ func (u *EntitlementUpsert) ClearCurrentUsagePeriodEnd() *EntitlementUpsert {
 	return u
 }
 
+// SetAnnotations sets the "annotations" field.
+func (u *EntitlementUpsert) SetAnnotations(v map[string]interface{}) *EntitlementUpsert {
+	u.Set(entitlement.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateAnnotations() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *EntitlementUpsert) ClearAnnotations() *EntitlementUpsert {
+	u.SetNull(entitlement.FieldAnnotations)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -901,9 +918,6 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
-		}
-		if _, exists := u.create.mutation.SubscriptionManaged(); exists {
-			s.SetIgnore(entitlement.FieldSubscriptionManaged)
 		}
 	}))
 	return u
@@ -1097,6 +1111,27 @@ func (u *EntitlementUpsertOne) ClearCurrentUsagePeriodEnd() *EntitlementUpsertOn
 	})
 }
 
+// SetAnnotations sets the "annotations" field.
+func (u *EntitlementUpsertOne) SetAnnotations(v map[string]interface{}) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateAnnotations() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *EntitlementUpsertOne) ClearAnnotations() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
 // Exec executes the query.
 func (u *EntitlementUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -1165,7 +1200,10 @@ func (ecb *EntitlementCreateBulk) Save(ctx context.Context) ([]*Entitlement, err
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, ecb.builders[i+1].mutation)
 				} else {
@@ -1318,9 +1356,6 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
-			}
-			if _, exists := b.mutation.SubscriptionManaged(); exists {
-				s.SetIgnore(entitlement.FieldSubscriptionManaged)
 			}
 		}
 	}))
@@ -1512,6 +1547,27 @@ func (u *EntitlementUpsertBulk) UpdateCurrentUsagePeriodEnd() *EntitlementUpsert
 func (u *EntitlementUpsertBulk) ClearCurrentUsagePeriodEnd() *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearCurrentUsagePeriodEnd()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *EntitlementUpsertBulk) SetAnnotations(v map[string]interface{}) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateAnnotations() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *EntitlementUpsertBulk) ClearAnnotations() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

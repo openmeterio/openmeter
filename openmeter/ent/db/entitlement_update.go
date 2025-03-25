@@ -169,6 +169,18 @@ func (eu *EntitlementUpdate) ClearCurrentUsagePeriodEnd() *EntitlementUpdate {
 	return eu
 }
 
+// SetAnnotations sets the "annotations" field.
+func (eu *EntitlementUpdate) SetAnnotations(m map[string]interface{}) *EntitlementUpdate {
+	eu.mutation.SetAnnotations(m)
+	return eu
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (eu *EntitlementUpdate) ClearAnnotations() *EntitlementUpdate {
+	eu.mutation.ClearAnnotations()
+	return eu
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
 func (eu *EntitlementUpdate) AddUsageResetIDs(ids ...string) *EntitlementUpdate {
 	eu.mutation.AddUsageResetIDs(ids...)
@@ -445,8 +457,15 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
-	if eu.mutation.SubscriptionManagedCleared() {
-		_spec.ClearField(entitlement.FieldSubscriptionManaged, field.TypeBool)
+	if value, ok := eu.mutation.Annotations(); ok {
+		vv, err := entitlement.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(entitlement.FieldAnnotations, field.TypeString, vv)
+	}
+	if eu.mutation.AnnotationsCleared() {
+		_spec.ClearField(entitlement.FieldAnnotations, field.TypeString)
 	}
 	if eu.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -784,6 +803,18 @@ func (euo *EntitlementUpdateOne) ClearCurrentUsagePeriodEnd() *EntitlementUpdate
 	return euo
 }
 
+// SetAnnotations sets the "annotations" field.
+func (euo *EntitlementUpdateOne) SetAnnotations(m map[string]interface{}) *EntitlementUpdateOne {
+	euo.mutation.SetAnnotations(m)
+	return euo
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (euo *EntitlementUpdateOne) ClearAnnotations() *EntitlementUpdateOne {
+	euo.mutation.ClearAnnotations()
+	return euo
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
 func (euo *EntitlementUpdateOne) AddUsageResetIDs(ids ...string) *EntitlementUpdateOne {
 	euo.mutation.AddUsageResetIDs(ids...)
@@ -1090,8 +1121,15 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	if euo.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
-	if euo.mutation.SubscriptionManagedCleared() {
-		_spec.ClearField(entitlement.FieldSubscriptionManaged, field.TypeBool)
+	if value, ok := euo.mutation.Annotations(); ok {
+		vv, err := entitlement.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(entitlement.FieldAnnotations, field.TypeString, vv)
+	}
+	if euo.mutation.AnnotationsCleared() {
+		_spec.ClearField(entitlement.FieldAnnotations, field.TypeString)
 	}
 	if euo.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{

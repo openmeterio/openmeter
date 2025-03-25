@@ -12,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestScheduling(t *testing.T) {
@@ -311,6 +313,87 @@ func TestScheduling(t *testing.T) {
 				var conflictErr *entitlement.AlreadyExistsError
 				assert.ErrorAsf(t, err, &conflictErr, "expected error to be of type %T", conflictErr)
 				assert.Equal(t, ent1.ID, conflictErr.EntitlementID)
+			},
+		},
+		{
+			name: "Should save annotations for all entitlement types",
+			fn: func(t *testing.T, conn entitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+
+				// Create feature
+				_, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+					Name:      "feature1",
+					Key:       "feature1",
+					Namespace: "ns1",
+					MeterSlug: lo.ToPtr("meter1"),
+				})
+
+				assert.Nil(t, err)
+
+				t.Run("Boolean entitlement", func(t *testing.T) {
+					ent, err := conn.ScheduleEntitlement(
+						ctx,
+						entitlement.CreateEntitlementInputs{
+							Namespace:       "ns1",
+							FeatureKey:      lo.ToPtr("feature1"),
+							SubjectKey:      "subject1",
+							EntitlementType: entitlement.EntitlementTypeBoolean,
+							Annotations: models.Annotations{
+								"subscription.id": "sub_123",
+							},
+						},
+					)
+					assert.Nil(t, err)
+					assert.NotNil(t, ent)
+					assert.Equal(t, models.Annotations{
+						"subscription.id": "sub_123",
+					}, ent.Annotations)
+				})
+
+				t.Run("Static entitlement", func(t *testing.T) {
+					ent, err := conn.ScheduleEntitlement(
+						ctx,
+						entitlement.CreateEntitlementInputs{
+							Namespace:       "ns1",
+							FeatureKey:      lo.ToPtr("feature1"),
+							SubjectKey:      "subject2",
+							EntitlementType: entitlement.EntitlementTypeStatic,
+							Annotations: models.Annotations{
+								"subscription.id": "sub_123",
+							},
+							Config: []byte(`{"value": "100"}`),
+						},
+					)
+					assert.Nil(t, err)
+					assert.NotNil(t, ent)
+					assert.Equal(t, models.Annotations{
+						"subscription.id": "sub_123",
+					}, ent.Annotations)
+				})
+
+				t.Run("Metered entitlement", func(t *testing.T) {
+					ent, err := conn.ScheduleEntitlement(
+						ctx,
+						entitlement.CreateEntitlementInputs{
+							Namespace:       "ns1",
+							FeatureKey:      lo.ToPtr("feature1"),
+							SubjectKey:      "subject3",
+							EntitlementType: entitlement.EntitlementTypeMetered,
+							Annotations: models.Annotations{
+								"subscription.id": "sub_123",
+							},
+							UsagePeriod: &entitlement.UsagePeriod{
+								Interval: timeutil.RecurrencePeriodDaily,
+								Anchor:   time.Now(),
+							},
+						},
+					)
+					assert.Nil(t, err)
+					assert.NotNil(t, ent)
+					assert.Equal(t, models.Annotations{
+						"subscription.id": "sub_123",
+					}, ent.Annotations)
+				})
 			},
 		},
 	}

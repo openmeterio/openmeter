@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -129,7 +130,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 				return api.EntitlementGrant{}, fmt.Errorf("unexpected nil entitlement")
 			}
 
-			if ent.SubscriptionManaged {
+			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 				return api.EntitlementGrant{}, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 
@@ -252,7 +253,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				return nil, fmt.Errorf("unexpected nil entitlement")
 			}
 
-			if ent.SubscriptionManaged {
+			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 

@@ -122,8 +122,11 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				SetNillablePreserveOverageAtReset(ent.PreserveOverageAtReset).
 				SetNillableIsSoftLimit(ent.IsSoftLimit).
 				SetNillableActiveFrom(ent.ActiveFrom).
-				SetNillableActiveTo(ent.ActiveTo).
-				SetSubscriptionManaged(ent.SubscriptionManaged)
+				SetNillableActiveTo(ent.ActiveTo)
+
+			if ent.Annotations != nil {
+				cmd.SetAnnotations(ent.Annotations)
+			}
 
 			if ent.UsagePeriod != nil {
 				cmd.SetNillableUsagePeriodAnchor(&ent.UsagePeriod.Anchor).
@@ -419,6 +422,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			MetadataModel: models.MetadataModel{
 				Metadata: e.Metadata,
 			},
+			Annotations:     e.Annotations,
 			ID:              e.ID,
 			SubjectKey:      e.SubjectKey,
 			FeatureID:       e.FeatureID,
@@ -426,8 +430,6 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
 			ActiveFrom:      convert.SafeToUTC(e.ActiveFrom),
 			ActiveTo:        convert.SafeToUTC(e.ActiveTo),
-
-			SubscriptionManaged: e.SubscriptionManaged,
 		},
 		MeasureUsageFrom:        e.MeasureUsageFrom,
 		IssueAfterReset:         e.IssueAfterReset,

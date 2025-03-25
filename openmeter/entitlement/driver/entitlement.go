@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -141,7 +142,7 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 				return nil, fmt.Errorf("unexpected nil entitlement")
 			}
 
-			if ent.SubscriptionManaged {
+			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 
@@ -488,7 +489,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 				return nil, fmt.Errorf("unexpected nil entitlement")
 			}
 
-			if ent.SubscriptionManaged {
+			if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 				return nil, models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 			}
 

@@ -3,7 +3,9 @@ package migrate_test
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -74,7 +76,7 @@ func (s stops) downs() stops {
 	}
 
 	slices.SortStableFunc(downs, func(i, j stop) int {
-		return int(i.version) - int(j.version)
+		return int(j.version) - int(i.version)
 	})
 
 	return downs
@@ -118,12 +120,18 @@ func (r runner) Test(t *testing.T) {
 
 	for _, stop := range r.stops.downs() {
 		if err := migrator.Migrate(stop.version); err != nil {
-			t.Fatal(err)
+			if err != migrate.ErrNoChange {
+				t.Fatal(err)
+			}
 		}
 
 		stop.action(t, testDB.PGDriver.DB())
 	}
 
+	// After all stops, let's purge the db
+	r.purgeDB(t, testDB)
+
+	// Now let's run the rest of the migrations
 	if err := migrator.Down(); err != nil {
 		t.Fatal(err)
 	}
@@ -132,4 +140,76 @@ func (r runner) Test(t *testing.T) {
 	if err := migrator.Up(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// PurgeDB truncates all tables in the database
+// This is needed after data migrations as unfortunately either
+// - data migrations are missing for some previous schema changes
+// - proper data migrations are not possible as the schemas are not compatible
+func (r runner) purgeDB(t *testing.T, db *testutils.TestDB) {
+	// First, get the current search path to identify the schema
+	var searchPath string
+	err := db.PGDriver.DB().QueryRow(`SHOW search_path`).Scan(&searchPath)
+	require.NoError(t, err)
+
+	// Get the first schema from the search path (typically the one that's used by default)
+	// The search path is usually in the format: "$user", public
+	schemas := strings.Split(searchPath, ",")
+	var schema string
+	for _, s := range schemas {
+		s = strings.TrimSpace(s)
+		if s != "" && s != `"$user"` && !strings.Contains(s, "$") {
+			schema = strings.Trim(s, `"`)
+			break
+		}
+	}
+
+	// If no valid schema found, default to public as a fallback
+	if schema == "" {
+		schema = "public"
+	}
+
+	t.Logf("Purging database tables in schema: %s", schema)
+
+	// Get all tables in the identified schema
+	rows, err := db.PGDriver.DB().Query(`
+		SELECT tablename
+		FROM pg_tables
+		WHERE schemaname = $1
+		AND tablename != 'schema_migrations'
+	`, schema)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var tableName string
+		err := rows.Scan(&tableName)
+		require.NoError(t, err)
+		tables = append(tables, tableName)
+	}
+
+	if len(tables) == 0 {
+		t.Logf("No tables found in schema %s", schema)
+		return
+	}
+
+	// Truncate all tables in one transaction
+	tx, err := db.PGDriver.DB().Begin()
+	require.NoError(t, err)
+
+	// Disable foreign key constraints during the truncation
+	_, err = tx.Exec("SET CONSTRAINTS ALL DEFERRED")
+	require.NoError(t, err)
+
+	for _, table := range tables {
+		// Quote the table name and schema for safety
+		quotedTable := fmt.Sprintf(`"%s"."%s"`, schema, table)
+		// Use TRUNCATE with CASCADE to remove dependent data
+		_, err = tx.Exec(fmt.Sprintf("TRUNCATE TABLE %s CASCADE", quotedTable))
+		require.NoError(t, err)
+	}
+
+	err = tx.Commit()
+	require.NoError(t, err)
 }

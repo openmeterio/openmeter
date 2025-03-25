@@ -157,11 +157,6 @@ func CurrentUsagePeriodEnd(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodEnd, v))
 }
 
-// SubscriptionManaged applies equality check predicate on the "subscription_managed" field. It's identical to SubscriptionManagedEQ.
-func SubscriptionManaged(v bool) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldEQ(FieldSubscriptionManaged, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldNamespace, v))
@@ -1126,24 +1121,14 @@ func CurrentUsagePeriodEndNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldCurrentUsagePeriodEnd))
 }
 
-// SubscriptionManagedEQ applies the EQ predicate on the "subscription_managed" field.
-func SubscriptionManagedEQ(v bool) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldEQ(FieldSubscriptionManaged, v))
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldAnnotations))
 }
 
-// SubscriptionManagedNEQ applies the NEQ predicate on the "subscription_managed" field.
-func SubscriptionManagedNEQ(v bool) predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldNEQ(FieldSubscriptionManaged, v))
-}
-
-// SubscriptionManagedIsNil applies the IsNil predicate on the "subscription_managed" field.
-func SubscriptionManagedIsNil() predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldIsNull(FieldSubscriptionManaged))
-}
-
-// SubscriptionManagedNotNil applies the NotNil predicate on the "subscription_managed" field.
-func SubscriptionManagedNotNil() predicate.Entitlement {
-	return predicate.Entitlement(sql.FieldNotNull(FieldSubscriptionManaged))
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldAnnotations))
 }
 
 // HasUsageReset applies the HasEdge predicate on the "usage_reset" edge.

@@ -95,7 +95,9 @@ func (s *service) createItem(
 		var newEnt *entitlement.Entitlement
 
 		if hasEnt {
-			ent, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, entInput)
+			ent, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, entInput, models.Annotations{
+				subscription.AnnotationSubscriptionID: opts.sub.NamespacedID.ID,
+			})
 			if err != nil {
 				return res, fmt.Errorf("failed to create entitlement: %w", err)
 			}

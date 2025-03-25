@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 )
 
 const (
@@ -57,8 +58,8 @@ const (
 	FieldCurrentUsagePeriodStart = "current_usage_period_start"
 	// FieldCurrentUsagePeriodEnd holds the string denoting the current_usage_period_end field in the database.
 	FieldCurrentUsagePeriodEnd = "current_usage_period_end"
-	// FieldSubscriptionManaged holds the string denoting the subscription_managed field in the database.
-	FieldSubscriptionManaged = "subscription_managed"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// EdgeGrant holds the string denoting the grant edge name in mutations.
@@ -132,7 +133,7 @@ var Columns = []string{
 	FieldUsagePeriodAnchor,
 	FieldCurrentUsagePeriodStart,
 	FieldCurrentUsagePeriodEnd,
-	FieldSubscriptionManaged,
+	FieldAnnotations,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -160,6 +161,10 @@ var (
 	SubjectKeyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Entitlement fields.
+	ValueScanner struct {
+		Annotations field.TypeValueScanner[map[string]interface{}]
+	}
 )
 
 // EntitlementType defines the type for the "entitlement_type" enum field.
@@ -289,9 +294,9 @@ func ByCurrentUsagePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentUsagePeriodEnd, opts...).ToFunc()
 }
 
-// BySubscriptionManaged orders the results by the subscription_managed field.
-func BySubscriptionManaged(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSubscriptionManaged, opts...).ToFunc()
+// ByAnnotations orders the results by the annotations field.
+func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
 }
 
 // ByUsageResetCount orders the results by usage_reset count.

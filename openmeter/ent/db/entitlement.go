@@ -62,8 +62,8 @@ type Entitlement struct {
 	CurrentUsagePeriodStart *time.Time `json:"current_usage_period_start,omitempty"`
 	// CurrentUsagePeriodEnd holds the value of the "current_usage_period_end" field.
 	CurrentUsagePeriodEnd *time.Time `json:"current_usage_period_end,omitempty"`
-	// SubscriptionManaged holds the value of the "subscription_managed" field.
-	SubscriptionManaged bool `json:"subscription_managed,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations map[string]interface{} `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EntitlementQuery when eager-loading is set.
 	Edges        EntitlementEdges `json:"edges"`
@@ -141,7 +141,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case entitlement.FieldMetadata, entitlement.FieldConfig:
 			values[i] = new([]byte)
-		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset, entitlement.FieldSubscriptionManaged:
+		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset:
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
@@ -151,6 +151,8 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
+		case entitlement.FieldAnnotations:
+			values[i] = entitlement.ValueScanner.Annotations.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -314,11 +316,11 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				e.CurrentUsagePeriodEnd = new(time.Time)
 				*e.CurrentUsagePeriodEnd = value.Time
 			}
-		case entitlement.FieldSubscriptionManaged:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field subscription_managed", values[i])
-			} else if value.Valid {
-				e.SubscriptionManaged = value.Bool
+		case entitlement.FieldAnnotations:
+			if value, err := entitlement.ValueScanner.Annotations.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				e.Annotations = value
 			}
 		default:
 			e.selectValues.Set(columns[i], values[i])
@@ -468,8 +470,8 @@ func (e *Entitlement) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("subscription_managed=")
-	builder.WriteString(fmt.Sprintf("%v", e.SubscriptionManaged))
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", e.Annotations))
 	builder.WriteByte(')')
 	return builder.String()
 }

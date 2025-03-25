@@ -57,17 +57,17 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	}
 
 	return &entitlement.CreateEntitlementRepoInputs{
-		Namespace:           model.Namespace,
-		FeatureID:           feature.ID,
-		FeatureKey:          feature.Key,
-		SubjectKey:          model.SubjectKey,
-		EntitlementType:     model.EntitlementType,
-		Metadata:            model.Metadata,
-		UsagePeriod:         model.UsagePeriod,
-		CurrentUsagePeriod:  currentUsagePeriod,
-		ActiveFrom:          model.ActiveFrom,
-		ActiveTo:            model.ActiveTo,
-		SubscriptionManaged: model.SubscriptionManaged,
+		Namespace:          model.Namespace,
+		FeatureID:          feature.ID,
+		FeatureKey:         feature.Key,
+		SubjectKey:         model.SubjectKey,
+		EntitlementType:    model.EntitlementType,
+		Metadata:           model.Metadata,
+		Annotations:        model.Annotations,
+		UsagePeriod:        model.UsagePeriod,
+		CurrentUsagePeriod: currentUsagePeriod,
+		ActiveFrom:         model.ActiveFrom,
+		ActiveTo:           model.ActiveTo,
 	}, nil
 }
 

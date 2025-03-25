@@ -11,6 +11,8 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
+var ErrNoChange = migrate.ErrNoChange
+
 const (
 	MigrationsTable = "schema_om"
 )

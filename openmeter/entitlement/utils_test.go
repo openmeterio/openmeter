@@ -8,18 +8,21 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
-	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -102,36 +105,32 @@ func setupDependecies(t *testing.T) (entitlement.Connector, *dependencies) {
 	pgDriver := testdb.PGDriver
 	entDriver := testdb.EntDriver
 
-	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger)
-	entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(dbClient)
-
 	m.Lock()
 	defer m.Unlock()
+
 	// migrate db via ent schema upsert
 	if err := dbClient.Schema.Create(context.Background()); err != nil {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter)
-
-	mockPublisher := eventbus.NewMock(t)
-
-	conn := entitlement.NewEntitlementConnector(
-		entitlementRepo,
-		featureConnector,
-		meterAdapter,
-		&mockTypeConnector{},
-		&mockTypeConnector{},
-		&mockTypeConnector{},
-		mockPublisher,
-	)
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbClient,
+		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		Logger:             testLogger,
+		Tracer:             noop.NewTracerProvider().Tracer("test"),
+		MeterService:       meterAdapter,
+		Publisher:          eventbus.NewMock(t),
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: isodate.String("P1D"),
+		},
+	})
 
 	deps := &dependencies{
 		dbClient:    dbClient,
 		pgDriver:    pgDriver,
 		entDriver:   entDriver,
-		featureRepo: featureRepo,
+		featureRepo: entitlementRegistry.FeatureRepo,
 	}
 
-	return conn, deps
+	return entitlementRegistry.Entitlement, deps
 }

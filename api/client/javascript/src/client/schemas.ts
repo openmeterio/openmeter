@@ -3127,6 +3127,13 @@ export interface components {
        */
       activeTo?: Date
       /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
@@ -3195,6 +3202,13 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
       /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
@@ -3486,6 +3500,13 @@ export interface components {
        */
       activeTo?: Date
       /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
+      /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
@@ -3649,6 +3670,13 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
+      /**
+       * @description The annotations of the entitlement.
+       * @example {
+       *       "subscription.id": "sub_123"
+       *     }
+       */
+      readonly annotations?: components['schemas']['Annotations']
       /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV

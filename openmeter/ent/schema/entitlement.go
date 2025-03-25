@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/isodate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Entitlement struct {
@@ -56,7 +57,13 @@ func (Entitlement) Fields() []ent.Field {
 		// TODO: get rid of current_usage_period in the db and make it calculated
 		field.Time("current_usage_period_start").Optional().Nillable(),
 		field.Time("current_usage_period_end").Optional().Nillable(),
-		field.Bool("subscription_managed").Optional().Immutable(),
+		field.String("annotations").
+			GoType(models.Annotations{}).
+			ValueScanner(entutils.JSONStringValueScanner[models.Annotations]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 	}
 }
 
