@@ -15473,7 +15473,7 @@ components:
         - id
         - key
         - version
-        - create_at
+        - created_at
         - updated_at
       description: Order by options for plans.
     PlanPaginatedResponse:

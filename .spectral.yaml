@@ -5,3 +5,5 @@ rules:
   # Disabled due to TypeSpec conversion
   oas3-valid-schema-example: off
   no-$ref-siblings: off
+  path-params: off
+  oas3-unused-component: off

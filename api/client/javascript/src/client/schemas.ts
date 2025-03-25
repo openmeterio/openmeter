@@ -6358,7 +6358,7 @@ export interface components {
      * @description Order by options for plans.
      * @enum {string}
      */
-    PlanOrderBy: 'id' | 'key' | 'version' | 'create_at' | 'updated_at'
+    PlanOrderBy: 'id' | 'key' | 'version' | 'created_at' | 'updated_at'
     /** @description Paginated response */
     PlanPaginatedResponse: {
       /**
