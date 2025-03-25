@@ -42,7 +42,7 @@ func (h *handler) EditSubscription() EditSubscriptionHandler {
 			}
 
 			if len(body.Customizations) == 0 {
-				return EditSubscriptionRequest{}, fmt.Errorf("missing customizations")
+				return EditSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("missing customizations"))
 			}
 
 			patches := make([]subscription.Patch, 0, len(body.Customizations))
