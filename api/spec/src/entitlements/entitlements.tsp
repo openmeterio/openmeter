@@ -250,6 +250,13 @@ model EntitlementSharedFields {
   ...CadencedResource;
 
   /**
+   * The annotations of the entitlement.
+   */
+  @example(#{ `subscription.id`: "sub_123" })
+  @visibility(Lifecycle.Read)
+  annotations?: Annotations;
+
+  /**
    * Readonly unique ULID identifier.
    */
   @example("01ARZ3NDEKTSV4RRFFQ69G5FAV")

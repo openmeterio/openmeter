@@ -125,6 +125,10 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				SetNillableActiveTo(ent.ActiveTo).
 				SetSubscriptionManaged(ent.SubscriptionManaged)
 
+			if ent.Annotations != nil {
+				cmd.SetAnnotations(ent.Annotations)
+			}
+
 			if ent.UsagePeriod != nil {
 				cmd.SetNillableUsagePeriodAnchor(&ent.UsagePeriod.Anchor).
 					SetNillableUsagePeriodInterval(ent.UsagePeriod.Interval.ISOStringPtrOrNil())
@@ -419,6 +423,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			MetadataModel: models.MetadataModel{
 				Metadata: e.Metadata,
 			},
+			Annotations:     e.Annotations,
 			ID:              e.ID,
 			SubjectKey:      e.SubjectKey,
 			FeatureID:       e.FeatureID,

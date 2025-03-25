@@ -77,6 +77,17 @@ type CustomerSubjects func(*sql.Selector)
 // Entitlement is the predicate function for entitlement builders.
 type Entitlement func(*sql.Selector)
 
+// EntitlementOrErr calls the predicate only if the error is not nit.
+func EntitlementOrErr(p Entitlement, err error) Entitlement {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Feature is the predicate function for feature builders.
 type Feature func(*sql.Selector)
 

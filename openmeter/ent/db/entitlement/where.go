@@ -1146,6 +1146,16 @@ func SubscriptionManagedNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldSubscriptionManaged))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldAnnotations))
+}
+
 // HasUsageReset applies the HasEdge predicate on the "usage_reset" edge.
 func HasUsageReset() predicate.Entitlement {
 	return predicate.Entitlement(func(s *sql.Selector) {

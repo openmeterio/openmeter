@@ -36,13 +36,24 @@ func NewSubscriptionEntitlementAdapter(
 }
 
 // TODO: implement usageMigration as needed
-func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context, input subscription.ScheduleSubscriptionEntitlementInput) (*subscription.SubscriptionEntitlement, error) {
+func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context, input subscription.ScheduleSubscriptionEntitlementInput, annotations models.Annotations) (*subscription.SubscriptionEntitlement, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
 	return transaction.Run(ctx, a.txCreator, func(ctx context.Context) (*subscription.SubscriptionEntitlement, error) {
 		input.CreateEntitlementInputs.SubscriptionManaged = true
+
+		// Initialize annotations if not already set
+		if input.CreateEntitlementInputs.Annotations == nil {
+			input.CreateEntitlementInputs.Annotations = models.Annotations{}
+		}
+
+		// Add subscription annotations
+		for k, v := range annotations {
+			input.CreateEntitlementInputs.Annotations[k] = v
+		}
+
 		ent, err := a.entitlementConnector.ScheduleEntitlement(ctx, input.CreateEntitlementInputs)
 		if err != nil {
 			return nil, err

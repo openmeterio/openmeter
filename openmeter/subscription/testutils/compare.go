@@ -93,6 +93,9 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 					// Let's validate that the Entitlement is marked as SubscriptionManaged
 					assert.True(t, foundItem.Entitlement.Entitlement.SubscriptionManaged)
 
+					// Let's validate that subscriptionID annotation is present
+					assert.Equal(t, foundItem.Entitlement.Entitlement.Annotations[subscription.AnnotationSubscriptionID], found.Subscription.NamespacedID.ID)
+
 					// Let's validate that the UsagePeriod is aligned
 					require.NotNil(t, specItem.RateCard.EntitlementTemplate)
 					period := GetEntitlementTemplateUsagePeriod(t, *specItem.RateCard.EntitlementTemplate)

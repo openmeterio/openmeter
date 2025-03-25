@@ -184,6 +184,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		SubjectKey:              model.SubjectKey,
 		EntitlementType:         model.EntitlementType,
 		Metadata:                model.Metadata,
+		Annotations:             model.Annotations,
 		MeasureUsageFrom:        measureUsageFrom,
 		IssueAfterReset:         model.IssueAfterReset,
 		IssueAfterResetPriority: model.IssueAfterResetPriority,

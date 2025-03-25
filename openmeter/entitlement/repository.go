@@ -64,6 +64,8 @@ type CreateEntitlementRepoInputs struct {
 	ActiveFrom      *time.Time        `json:"activeFrom,omitempty"`
 	ActiveTo        *time.Time        `json:"activeTo,omitempty"`
 
+	Annotations models.Annotations `json:"annotations,omitempty"`
+
 	MeasureUsageFrom        *time.Time       `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset         *float64         `json:"issueAfterReset,omitempty"`
 	IssueAfterResetPriority *uint8           `json:"issueAfterResetPriority,omitempty"`

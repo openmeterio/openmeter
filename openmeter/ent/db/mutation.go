@@ -23909,6 +23909,7 @@ type EntitlementMutation struct {
 	current_usage_period_start    *time.Time
 	current_usage_period_end      *time.Time
 	subscription_managed          *bool
+	annotations                   *map[string]interface{}
 	clearedFields                 map[string]struct{}
 	usage_reset                   map[string]struct{}
 	removedusage_reset            map[string]struct{}
@@ -25078,6 +25079,55 @@ func (m *EntitlementMutation) ResetSubscriptionManaged() {
 	delete(m.clearedFields, entitlement.FieldSubscriptionManaged)
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *EntitlementMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *EntitlementMutation) Annotations() (r map[string]interface{}, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *EntitlementMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[entitlement.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *EntitlementMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *EntitlementMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, entitlement.FieldAnnotations)
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by ids.
 func (m *EntitlementMutation) AddUsageResetIDs(ids ...string) {
 	if m.usage_reset == nil {
@@ -25355,7 +25405,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -25422,6 +25472,9 @@ func (m *EntitlementMutation) Fields() []string {
 	if m.subscription_managed != nil {
 		fields = append(fields, entitlement.FieldSubscriptionManaged)
 	}
+	if m.annotations != nil {
+		fields = append(fields, entitlement.FieldAnnotations)
+	}
 	return fields
 }
 
@@ -25474,6 +25527,8 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.CurrentUsagePeriodEnd()
 	case entitlement.FieldSubscriptionManaged:
 		return m.SubscriptionManaged()
+	case entitlement.FieldAnnotations:
+		return m.Annotations()
 	}
 	return nil, false
 }
@@ -25527,6 +25582,8 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldCurrentUsagePeriodEnd(ctx)
 	case entitlement.FieldSubscriptionManaged:
 		return m.OldSubscriptionManaged(ctx)
+	case entitlement.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	}
 	return nil, fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -25690,6 +25747,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSubscriptionManaged(v)
 		return nil
+	case entitlement.FieldAnnotations:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -25792,6 +25856,9 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldSubscriptionManaged) {
 		fields = append(fields, entitlement.FieldSubscriptionManaged)
 	}
+	if m.FieldCleared(entitlement.FieldAnnotations) {
+		fields = append(fields, entitlement.FieldAnnotations)
+	}
 	return fields
 }
 
@@ -25850,6 +25917,9 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldSubscriptionManaged:
 		m.ClearSubscriptionManaged()
+		return nil
+	case entitlement.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement nullable field %s", name)
@@ -25924,6 +25994,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldSubscriptionManaged:
 		m.ResetSubscriptionManaged()
+		return nil
+	case entitlement.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)

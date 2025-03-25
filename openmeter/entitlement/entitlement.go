@@ -78,12 +78,13 @@ func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod, 
 }
 
 type CreateEntitlementInputs struct {
-	Namespace       string            `json:"namespace"`
-	FeatureID       *string           `json:"featureId"`
-	FeatureKey      *string           `json:"featureKey"`
-	SubjectKey      string            `json:"subjectKey"`
-	EntitlementType EntitlementType   `json:"type"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
+	Namespace       string             `json:"namespace"`
+	FeatureID       *string            `json:"featureId"`
+	FeatureKey      *string            `json:"featureKey"`
+	SubjectKey      string             `json:"subjectKey"`
+	EntitlementType EntitlementType    `json:"type"`
+	Metadata        map[string]string  `json:"metadata,omitempty"`
+	Annotations     models.Annotations `json:"annotations,omitempty"`
 
 	// ActiveFrom allows entitlements to be scheduled for future activation.
 	// If not set, the entitlement is active immediately.
@@ -125,6 +126,10 @@ func (c CreateEntitlementInputs) Equal(other CreateEntitlementInputs) bool {
 	}
 
 	if !reflect.DeepEqual(c.Metadata, other.Metadata) {
+		return false
+	}
+
+	if !reflect.DeepEqual(c.Annotations, other.Annotations) {
 		return false
 	}
 
@@ -252,6 +257,8 @@ func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
 		Config:                  e.Config,
 		UsagePeriod:             e.UsagePeriod,
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
+		Annotations:             e.Annotations,
+		SubscriptionManaged:     e.SubscriptionManaged,
 	}
 
 	if e.MeasureUsageFrom != nil {
@@ -360,6 +367,7 @@ type GenericProperties struct {
 	models.NamespacedModel
 	models.ManagedModel
 	models.MetadataModel
+	models.Annotations
 
 	// ActiveFrom allows entitlements to be scheduled for future activation.
 	// If not set, the entitlement is active immediately.

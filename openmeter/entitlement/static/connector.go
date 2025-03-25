@@ -79,6 +79,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		SubjectKey:          model.SubjectKey,
 		EntitlementType:     model.EntitlementType,
 		Metadata:            model.Metadata,
+		Annotations:         model.Annotations,
 		UsagePeriod:         model.UsagePeriod,
 		CurrentUsagePeriod:  currentUsagePeriod,
 		Config:              model.Config,

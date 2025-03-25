@@ -1083,6 +1083,7 @@ var (
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
 		{Name: "subscription_managed", Type: field.TypeBool, Nullable: true},
+		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
@@ -1093,7 +1094,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[22]},
+				Columns:    []*schema.Column{EntitlementsColumns[23]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1127,7 +1128,7 @@ var (
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[22], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[23], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",

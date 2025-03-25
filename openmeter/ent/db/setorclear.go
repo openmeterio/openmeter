@@ -1483,6 +1483,20 @@ func (u *EntitlementUpdateOne) SetOrClearCurrentUsagePeriodEnd(value *time.Time)
 	return u.SetCurrentUsagePeriodEnd(*value)
 }
 
+func (u *EntitlementUpdate) SetOrClearAnnotations(value *map[string]interface{}) *EntitlementUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *EntitlementUpdateOne) SetOrClearAnnotations(value *map[string]interface{}) *EntitlementUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *FeatureUpdate) SetOrClearDeletedAt(value *time.Time) *FeatureUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

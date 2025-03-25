@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
@@ -47,6 +49,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		}),
 		MeasureUsageFrom:       metered.MeasureUsageFrom,
 		Metadata:               convert.MapToPointer(metered.Metadata),
+		Annotations:            lo.EmptyableToPtr(api.Annotations(metered.Annotations)),
 		SubjectKey:             metered.SubjectKey,
 		Type:                   api.EntitlementMeteredType(metered.EntitlementType),
 		UpdatedAt:              metered.UpdatedAt,
@@ -72,6 +75,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		FeatureKey:         static.FeatureKey,
 		Id:                 static.ID,
 		Metadata:           convert.MapToPointer(static.Metadata),
+		Annotations:        lo.EmptyableToPtr(api.Annotations(static.Annotations)),
 		SubjectKey:         static.SubjectKey,
 		Type:               api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          static.UpdatedAt,
@@ -98,6 +102,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		FeatureKey:         boolean.FeatureKey,
 		Id:                 boolean.ID,
 		Metadata:           convert.MapToPointer(boolean.Metadata),
+		Annotations:        lo.EmptyableToPtr(api.Annotations(boolean.Annotations)),
 		SubjectKey:         boolean.SubjectKey,
 		Type:               string(boolean.EntitlementType),
 		UpdatedAt:          boolean.UpdatedAt,
