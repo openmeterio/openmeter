@@ -1,4 +1,4 @@
-h1:bz35nt6pl0OnjOV99vK3YZTqk6Q5n88GS5jotMycDkQ=
+h1:3zhCRIJ9F0BRVSn19NOmvrdgw8EbElkiUOvjqIS8mkE=
 20240826120919_init.down.sql h1:AIbgwwngjkJEYa3yRZsIXQyBa2+qoZttwMXHxXEbHLI=
 20240826120919_init.up.sql h1:/hYHWF3Z3dab8SMKnw99ixVktCuJe2bAw5wstCZIEN8=
 20240903155435_entitlement-expired-index.down.sql h1:np2xgYs3KQ2z7qPBcobtGNhqWQ3V8NwEP9E5U3TmpSA=
@@ -135,3 +135,5 @@ h1:bz35nt6pl0OnjOV99vK3YZTqk6Q5n88GS5jotMycDkQ=
 20250318123842_app-stripe-store-masked-key.up.sql h1:0FdVfvwRrXul3yotzfXN1hoI3UqYueVR0osAFXoakeg=
 20250325114848_annotations.down.sql h1:PkbaqKvmpnIpNzkH2g2IVRtMlGQc/ROq1RCWrE1QVZ8=
 20250325114848_annotations.up.sql h1:tMYz44rEPmY7ylCP+CfnR1S89yZiltz8dfA1KfCrAco=
+20250325115141_ent-subs-annotation.down.sql h1:UBxohEBVeLayvZjlf60iFa3XXHRpKifUKDOzhldhZcE=
+20250325115141_ent-subs-annotation.up.sql h1:Pe+5K6seErcLNurwf3pbdTexPpppyH+8o2mDlE3Lt+Q=
