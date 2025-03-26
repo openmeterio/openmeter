@@ -5809,16 +5809,10 @@ paths:
           in: path
           required: true
           schema:
-            anyOf:
-              - type: string
-                pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-                description: ULID (Universally Unique Lexicographically Sortable Identifier).
-                example: 01G65Z755AFWAKHE12NY0CQ9FH
-              - type: string
-                minLength: 1
-                maxLength: 64
-                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-                description: A key is a unique string that is used to identify a resource.
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             x-go-type: string
           x-go-type: string
       responses:
@@ -5878,6 +5872,7 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
+      deprecated: true
   /api/v1/plans/{planId}:
     put:
       operationId: updatePlan
@@ -5963,16 +5958,10 @@ paths:
           in: path
           required: true
           schema:
-            anyOf:
-              - type: string
-                pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-                description: ULID (Universally Unique Lexicographically Sortable Identifier).
-                example: 01G65Z755AFWAKHE12NY0CQ9FH
-              - type: string
-                minLength: 1
-                maxLength: 64
-                pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-                description: A key is a unique string that is used to identify a resource.
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
             x-go-type: string
           x-go-type: string
         - name: includeLatest
