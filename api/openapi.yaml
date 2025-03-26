@@ -9460,6 +9460,12 @@ components:
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A semi-unique identifier for the resource.
           title: Key
+        annotations:
+          allOf:
+            - $ref: '#/components/schemas/Annotations'
+          description: Set of key-value pairs managed by the system. Cannot be modified by user.
+          title: Annotations
+          readOnly: true
         version:
           type: integer
           minimum: 1
@@ -9506,7 +9512,7 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/RateCard'
+            $ref: '#/components/schemas/AddonRateCard'
           description: The rate cards of the addon.
           title: Rate cards
       description: Addon allows extending subscriptions with compatible plans with additional ratecards.
@@ -9558,7 +9564,7 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/RateCard'
+            $ref: '#/components/schemas/AddonRateCard'
           description: The rate cards of the addon.
           title: Rate cards
       description: Resource create operation model.
@@ -9568,7 +9574,7 @@ components:
         - single
         - multiple
       description: |-
-        The type of the addon.
+        The instanceType of the addon.
         Single instance addons can be added to subscription only once while addons with multiple type can be added more then once.
     AddonOrderBy:
       type: string
@@ -9605,6 +9611,26 @@ components:
             $ref: '#/components/schemas/Addon'
           description: The items in the current page.
       description: Paginated response
+    AddonRateCard:
+      type: object
+      required:
+        - rateCard
+        - mode
+      properties:
+        rateCard:
+          $ref: '#/components/schemas/RateCard'
+        mode:
+          $ref: '#/components/schemas/AddonRateCardMode'
+      description: AddonRateCard defines the ratecard itself and how it needs to be applied to plan/subscription.
+    AddonRateCardMode:
+      type: string
+      enum:
+        - override
+        - extend
+      description: |-
+        The addon mode defines how the ratecards included in the addon are applied in a subscription.
+        Override mode means that the ratecards in addon take precedence over the ones which are defined in a plan with for the same feature.
+        While the extend mode extends the ratecards from plan for the same feature.
     AddonReplaceUpdate:
       type: object
       required:
@@ -9638,7 +9664,7 @@ components:
         rateCards:
           type: array
           items:
-            $ref: '#/components/schemas/RateCard'
+            $ref: '#/components/schemas/AddonRateCard'
           description: The rate cards of the addon.
           title: Rate cards
       description: Resource update operation model.
