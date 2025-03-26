@@ -1219,6 +1219,7 @@ export interface paths {
     put?: never
     /**
      * New draft plan
+     * @deprecated
      * @description Create a new draft version from plan.
      *     It returns error if there is already a plan in draft or planId does not reference the latest published version.
      */
