@@ -211,6 +211,10 @@ namespace OpenMeterCloud.ProductCatalog {
   @tag("Product Catalog")
   interface PlansById extends OpenMeter.ProductCatalog.Plans {}
 
+  @route("/api/v1/addons")
+  @tag("Product Catalog")
+  interface Addons extends OpenMeter.ProductCatalog.Addons {}
+
   @route("/api/v1/subscriptions")
   @tag("Subscriptions")
   interface Subscriptions extends OpenMeter.ProductCatalog.Subscriptions {}

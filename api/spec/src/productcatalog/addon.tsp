@@ -18,7 +18,7 @@ enum AddonStatus {
 }
 
 /**
- * The type of the addon.
+ * The instanceType of the addon.
  * Single instance addons can be added to subscription only once while addons with multiple type can be added more then once.
  */
 @friendlyName("AddonInstanceType")
@@ -33,6 +33,13 @@ enum AddonInstanceType {
 @friendlyName("Addon")
 model Addon {
   ...UniqueResource;
+
+  /**
+   * Set of key-value pairs managed by the system. Cannot be modified by user.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Annotations")
+  annotations?: Annotations;
 
   /**
    * Version of the addon. Incremented when the addon is updated.
@@ -86,7 +93,7 @@ model Addon {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rate cards")
-  rateCards: RateCard[];
+  rateCards: AddonRateCard[];
 }
 
 /**
@@ -99,4 +106,33 @@ enum AddonOrderBy {
   version: "version",
   createdAt: "created_at",
   updatedAt: "updated_at",
+}
+
+/**
+ * The addon mode defines how the ratecards included in the addon are applied in a subscription.
+ * Override mode means that the ratecards in addon take precedence over the ones which are defined in a plan with for the same feature.
+ * While the extend mode extends the ratecards from plan for the same feature.
+ */
+@friendlyName("AddonRateCardMode")
+enum AddonRateCardMode {
+  override: "override",
+  extend: "extend",
+}
+
+/**
+ * AddonRateCard defines the ratecard itself and how it needs to be applied to plan/subscription.
+ */
+@friendlyName("AddonRateCard")
+model AddonRateCard {
+  /*
+   * The ratecard definition.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  rateCard: RateCard;
+
+  /*
+   * The mode of the addon ratecard. Can be "override" or "extend".
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  mode: AddonRateCardMode;
 }
