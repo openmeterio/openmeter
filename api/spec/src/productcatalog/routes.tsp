@@ -1,4 +1,5 @@
 import "../rest.tsp";
+import "./subscriptionaddon.tsp";
 
 namespace OpenMeter.ProductCatalog;
 
@@ -446,4 +447,72 @@ interface Subscriptions {
   delete(@path subscriptionId: ULID): {
     @statusCode _: 204;
   } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+}
+
+@route("/api/v1/subscriptions/{subscriptionId}/addons")
+@tag("Subscriptions")
+interface SubscriptionAddons {
+  /**
+   * Create a new subscription addon, either providing the key or the id of the addon.
+   */
+  @post
+  @operationId("createSubscriptionAddon")
+  @summary("Create subscription addon")
+  @extension("x-internal", true)
+  create(
+    @path subscriptionId: ULID,
+
+    @body
+    request: TypeSpec.Rest.Resource.ResourceCreateModel<SubscriptionAddon>,
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: SubscriptionAddon;
+      }
+    | OpenMeter.ConflictError
+    | OpenMeter.NotFoundError
+    | OpenMeter.CommonErrors;
+
+  /**
+   * List all addons of a subscription.
+   */
+  @get
+  @operationId("listSubscriptionAddons")
+  @summary("List subscription addons")
+  @extension("x-internal", true)
+  list(
+    @path subscriptionId: ULID, // Should we implement pagination? This should never be a large list.
+  ): SubscriptionAddon[] | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Get a subscription addon by id.
+   */
+  @get
+  @route("/{subscriptionAddonId}")
+  @operationId("getSubscriptionAddon")
+  @summary("Get subscription addon")
+  @extension("x-internal", true)
+  get(
+    @path subscriptionId: ULID,
+    @path subscriptionAddonId: ULID,
+  ): SubscriptionAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
+
+  /**
+   * Cancels a subscription addon (effectively unsubscribing from it) by the given time.
+   */
+  @post
+  @route("/{subscriptionAddonId}/cancel")
+  @operationId("cancelSubscriptionAddon")
+  @summary("Cancel subscription addon")
+  @extension("x-internal", true)
+  cancel(
+    @path subscriptionId: ULID,
+    @path subscriptionAddonId: ULID,
+    @body body: {
+      /**
+       * If not provided, the addon will be canceled immediately.
+       */
+      timing?: SubscriptionTiming;
+    },
+  ): SubscriptionAddon | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }

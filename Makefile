@@ -14,17 +14,11 @@ down: ## Stop the dependencies via docker compose
 update-openapi: ## Update OpenAPI spec
 	$(call print-target)
 	dagger call --source .:default generate openapi -o ./api/openapi.yaml
-	go generate ./api/...
-
-
-.PHONY: update-openapi-cloud
-update-openapi-cloud: ## Update OpenAPI spec
-	$(call print-target)
 	dagger call --source .:default generate openapicloud -o ./api/openapi.cloud.yaml
 	go generate ./api/...
 
 .PHONY: gen-api
-gen-api: update-openapi update-openapi-cloud ## Generate API and SDKs
+gen-api: update-openapi ## Generate API and SDKs
 	$(call print-target)
 	dagger call generate javascript-sdk -o api/client/javascript
 	# dagger call generate python-sdk -o api/client/python
