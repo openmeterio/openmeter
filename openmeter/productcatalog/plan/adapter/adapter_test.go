@@ -144,8 +144,10 @@ var planV1Input = plan.CreatePlanInput{
 											},
 										},
 									},
-									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
-									MaximumAmount: nil,
+									Commitments: productcatalog.Commitments{
+										MinimumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+										MaximumAmount: nil,
+									},
 								}),
 							},
 							BillingCadence: MonthPeriod,
