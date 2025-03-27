@@ -7,8 +7,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -38,8 +36,6 @@ const (
 	FieldIndex = "index"
 	// FieldDuration holds the string denoting the duration field in the database.
 	FieldDuration = "duration"
-	// FieldDiscounts holds the string denoting the discounts field in the database.
-	FieldDiscounts = "discounts"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeRatecards holds the string denoting the ratecards edge name in mutations.
@@ -76,7 +72,6 @@ var Columns = []string{
 	FieldPlanID,
 	FieldIndex,
 	FieldDuration,
-	FieldDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -104,10 +99,6 @@ var (
 	PlanIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all PlanPhase fields.
-	ValueScanner struct {
-		Discounts field.TypeValueScanner[[]productcatalog.Discount]
-	}
 )
 
 // OrderOption defines the ordering options for the PlanPhase queries.
@@ -166,11 +157,6 @@ func ByIndex(opts ...sql.OrderTermOption) OrderOption {
 // ByDuration orders the results by the duration field.
 func ByDuration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDuration, opts...).ToFunc()
-}
-
-// ByDiscounts orders the results by the discounts field.
-func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.

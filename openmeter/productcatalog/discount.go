@@ -13,6 +13,7 @@ import (
 
 const (
 	PercentageDiscountType DiscountType = "percentage"
+	UsageDiscountType      DiscountType = "usage"
 )
 
 type DiscountType string
@@ -20,12 +21,14 @@ type DiscountType string
 func (p DiscountType) Values() []DiscountType {
 	return []DiscountType{
 		PercentageDiscountType,
+		UsageDiscountType,
 	}
 }
 
 func (p DiscountType) StringValues() []string {
 	return []string{
 		string(PercentageDiscountType),
+		string(UsageDiscountType),
 	}
 }
 
@@ -37,7 +40,6 @@ type discounter interface {
 	hasher.Hasher
 
 	Type() DiscountType
-	RateCardKeys() []string
 	AsPercentage() (PercentageDiscount, error)
 	FromPercentage(PercentageDiscount)
 }
@@ -47,23 +49,17 @@ var _ discounter = (*Discount)(nil)
 type Discount struct {
 	t          DiscountType
 	percentage *PercentageDiscount
+	usage      *UsageDiscount
 }
 
 func (d *Discount) Hash() hasher.Hash {
 	switch d.t {
 	case PercentageDiscountType:
 		return d.percentage.Hash()
+	case UsageDiscountType:
+		return d.usage.Hash()
 	default:
 		return 0
-	}
-}
-
-func (d *Discount) RateCardKeys() []string {
-	switch d.t {
-	case PercentageDiscountType:
-		return d.percentage.RateCards
-	default:
-		return nil
 	}
 }
 
@@ -80,6 +76,14 @@ func (d *Discount) MarshalJSON() ([]byte, error) {
 		}{
 			Type:               PercentageDiscountType,
 			PercentageDiscount: d.percentage,
+		}
+	case UsageDiscountType:
+		serde = struct {
+			Type DiscountType `json:"type"`
+			*UsageDiscount
+		}{
+			Type:          UsageDiscountType,
+			UsageDiscount: d.usage,
 		}
 	default:
 		return nil, fmt.Errorf("invalid Discount type: %s", d.t)
@@ -111,6 +115,14 @@ func (d *Discount) UnmarshalJSON(bytes []byte) error {
 
 		d.percentage = v
 		d.t = PercentageDiscountType
+	case UsageDiscountType:
+		v := &UsageDiscount{}
+		if err := json.Unmarshal(bytes, v); err != nil {
+			return fmt.Errorf("failed to JSON deserialize Discount: %w", err)
+		}
+
+		d.usage = v
+		d.t = UsageDiscountType
 	default:
 		return fmt.Errorf("invalid Discount type: %s", serde.Type)
 	}
@@ -122,6 +134,8 @@ func (d *Discount) Validate() error {
 	switch d.t {
 	case PercentageDiscountType:
 		return d.percentage.Validate()
+	case UsageDiscountType:
+		return d.usage.Validate()
 	default:
 		return errors.New("invalid discount: not initialized")
 	}
@@ -143,18 +157,38 @@ func (d *Discount) AsPercentage() (PercentageDiscount, error) {
 	return *d.percentage, nil
 }
 
+func (d *Discount) AsUsage() (UsageDiscount, error) {
+	if d.t == "" || d.usage == nil {
+		return UsageDiscount{}, errors.New("invalid discount: not initialized")
+	}
+
+	if d.t != UsageDiscountType {
+		return UsageDiscount{}, fmt.Errorf("discount type mismatch: %s", d.t)
+	}
+
+	return *d.usage, nil
+}
+
 func (d *Discount) FromPercentage(discount PercentageDiscount) {
 	d.percentage = &discount
 	d.t = PercentageDiscountType
 }
 
-func NewDiscountFrom[T PercentageDiscount](v T) Discount {
+func (d *Discount) FromUsage(discount UsageDiscount) {
+	d.usage = &discount
+	d.t = UsageDiscountType
+}
+
+func NewDiscountFrom[T PercentageDiscount | UsageDiscount](v T) Discount {
 	d := Discount{}
 
 	switch any(v).(type) {
 	case PercentageDiscount:
 		percentage := any(v).(PercentageDiscount)
 		d.FromPercentage(percentage)
+	case UsageDiscount:
+		usage := any(v).(UsageDiscount)
+		d.FromUsage(usage)
 	}
 
 	return d
@@ -168,20 +202,12 @@ var (
 type PercentageDiscount struct {
 	// Percentage defines percentage of the discount.
 	Percentage models.Percentage `json:"percentage"`
-
-	// RateCards is the list of specific RateCard Keys the discount is applied to.
-	// If not provided the discount applies to all RateCards in Phase.
-	RateCards []string `json:"rateCards,omitempty"`
 }
 
 func (f PercentageDiscount) Hash() hasher.Hash {
 	var content string
 
 	content += f.Percentage.String()
-
-	for _, rateCardName := range f.RateCards {
-		content += rateCardName
-	}
 
 	return hasher.NewHash([]byte(content))
 }
@@ -191,6 +217,33 @@ func (f PercentageDiscount) Validate() error {
 
 	if f.Percentage.LessThan(decimal.Zero) || f.Percentage.GreaterThan(decimal.NewFromInt(100)) {
 		errs = append(errs, errors.New("discount percentage must be between 0 and 100"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+var (
+	_ models.Validator = (*UsageDiscount)(nil)
+	_ hasher.Hasher    = (*UsageDiscount)(nil)
+)
+
+type UsageDiscount struct {
+	Usage decimal.Decimal `json:"usage"`
+}
+
+func (f UsageDiscount) Hash() hasher.Hash {
+	var content string
+
+	content += f.Usage.String()
+
+	return hasher.NewHash([]byte(content))
+}
+
+func (f UsageDiscount) Validate() error {
+	var errs []error
+
+	if f.Usage.LessThan(decimal.Zero) {
+		errs = append(errs, errors.New("usage must be greater than 0"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

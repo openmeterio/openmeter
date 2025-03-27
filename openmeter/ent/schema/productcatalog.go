@@ -84,13 +84,6 @@ func (PlanPhase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("The duration of the phase."),
-		field.String("discounts").
-			GoType([]productcatalog.Discount{}).
-			ValueScanner(DiscountsValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional(),
 	}
 }
 
@@ -177,6 +170,13 @@ func (PlanRateCard) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("The feature identifier the ratecard is related to."),
+		field.String("discounts").
+			GoType(productcatalog.Discounts{}).
+			ValueScanner(DiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 	}
 }
 

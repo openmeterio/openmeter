@@ -1889,20 +1889,6 @@ func (u *PlanPhaseUpdateOne) SetOrClearDuration(value *isodate.String) *PlanPhas
 	return u.SetDuration(*value)
 }
 
-func (u *PlanPhaseUpdate) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanPhaseUpdate {
-	if value == nil {
-		return u.ClearDiscounts()
-	}
-	return u.SetDiscounts(*value)
-}
-
-func (u *PlanPhaseUpdateOne) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanPhaseUpdateOne {
-	if value == nil {
-		return u.ClearDiscounts()
-	}
-	return u.SetDiscounts(*value)
-}
-
 func (u *PlanRateCardUpdate) SetOrClearMetadata(value *map[string]string) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -2027,6 +2013,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 		return u.ClearFeatureID()
 	}
 	return u.SetFeatureID(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
 }
 
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {

@@ -726,16 +726,6 @@ func DurationContainsFold(v isodate.String) predicate.PlanPhase {
 	return predicate.PlanPhase(sql.FieldContainsFold(FieldDuration, vc))
 }
 
-// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
-func DiscountsIsNil() predicate.PlanPhase {
-	return predicate.PlanPhase(sql.FieldIsNull(FieldDiscounts))
-}
-
-// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
-func DiscountsNotNil() predicate.PlanPhase {
-	return predicate.PlanPhase(sql.FieldNotNull(FieldDiscounts))
-}
-
 // HasPlan applies the HasEdge predicate on the "plan" edge.
 func HasPlan() predicate.PlanPhase {
 	return predicate.PlanPhase(func(s *sql.Selector) {

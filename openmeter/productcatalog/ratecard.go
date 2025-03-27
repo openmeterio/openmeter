@@ -71,6 +71,9 @@ type RateCardMeta struct {
 
 	// Price defines the price for the RateCard
 	Price *Price `json:"price"`
+
+	// Discounts defines a list of discounts for the RateCard
+	Discounts Discounts `json:"discounts,omitempty"`
 }
 
 func (r RateCardMeta) Equal(v RateCardMeta) bool {
@@ -110,6 +113,10 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
+	if !r.Discounts.Equal(v.Discounts) {
+		return false
+	}
+
 	return r.Price.Equal(v.Price)
 }
 
@@ -137,6 +144,18 @@ func (r RateCardMeta) Validate() error {
 	if r.Feature != nil {
 		if r.Key != r.Feature.Key {
 			errs = append(errs, errors.New("invalid Feature: key mismatch"))
+		}
+	}
+
+	if r.Price == nil && len(r.Discounts) > 0 {
+		errs = append(errs, errors.New("discounts are not allowed for rate cards with no price"))
+	}
+
+	if len(r.Discounts) > 0 {
+		for i, discount := range r.Discounts {
+			if err := discount.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("discounts[%d]: %w", i, err))
+			}
 		}
 	}
 
@@ -229,6 +248,13 @@ func (r *FlatFeeRateCard) Validate() error {
 		}
 	}
 
+	for _, discount := range r.Discounts {
+		if discount.Type() == UsageDiscountType {
+			errs = append(errs, errors.New("invalid Discount: usage discount is not allowed for flat fee rate card"))
+			continue
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -313,6 +339,14 @@ func (r *UsageBasedRateCard) Validate() error {
 	// Billing Cadence has to be at least 1 ohur
 	if per, err := r.BillingCadence.Subtract(isodate.NewPeriod(0, 0, 0, 0, 1, 0, 0)); err == nil && per.Sign() == -1 {
 		errs = append(errs, errors.New("invalid BillingCadence: must be at least 1 hour"))
+	}
+
+	if r.Price != nil && r.Price.Type() == FlatPriceType && len(r.Discounts) > 0 {
+		for i, discount := range r.Discounts {
+			if discount.Type() == UsageDiscountType {
+				errs = append(errs, fmt.Errorf("discounts[%d]: usage discount is not allowed for flat fee rate card", i))
+			}
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
