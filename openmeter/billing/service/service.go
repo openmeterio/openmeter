@@ -150,7 +150,9 @@ func TranscationForGatheringInvoiceManipulation[T any](ctx context.Context, svc 
 	}
 
 	// Let's try to resolve the customer to validate if it exists
-	dbCustomer, err := svc.customerService.GetCustomer(ctx, customer.GetCustomerInput(customerID))
+	dbCustomer, err := svc.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customerID,
+	})
 	if err != nil {
 		return empty, err
 	}

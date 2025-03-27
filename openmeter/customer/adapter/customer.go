@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -138,6 +139,23 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 					)
 				}
 
+				// Check if the key is not an ID of another customer
+				if input.Key != nil {
+					count, err := repo.db.Customer.Query().
+						Where(customerdb.ID(*input.Key)).
+						Where(customerdb.Namespace(input.Namespace)).
+						Count(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to check if key overlaps with id: %w", err)
+					}
+
+					if count > 0 {
+						return nil, models.NewGenericConflictError(
+							fmt.Errorf("key %s overlaps with id of another customer", *input.Key),
+						)
+					}
+				}
+
 				// Create the customer in the database
 				query := repo.db.Customer.Create().
 					SetNamespace(input.Namespace).
@@ -249,7 +267,9 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 				}
 
 				if rows == 0 {
-					return nil, customer.NewNotFoundError(customer.CustomerID(input))
+					return nil, models.NewGenericNotFoundError(
+						fmt.Errorf("customer with id %s not found in %s namespace", input.ID, input.Namespace),
+					)
 				}
 
 				// Soft delete the customer subjects
@@ -291,14 +311,45 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 				WithSubscription(func(query *entdb.SubscriptionQuery) {
 					applyActiveSubscriptionFilter(query, clock.Now().UTC())
 					query.WithPlan()
-				}).
-				Where(customerdb.ID(input.ID)).
-				Where(customerdb.Namespace(input.Namespace))
+				})
+
+			if input.CustomerID != nil {
+				query = query.Where(customerdb.Namespace(input.CustomerID.Namespace))
+				query = query.Where(customerdb.ID(input.CustomerID.ID))
+			} else if input.CustomerKey != nil {
+				query = query.Where(customerdb.Namespace(input.CustomerKey.Namespace))
+				query = query.Where(customerdb.Key(input.CustomerKey.Key))
+				query = query.Where(customerdb.DeletedAtIsNil())
+			} else if input.CustomerIDOrKey != nil {
+				query = query.Where(customerdb.Namespace(input.CustomerIDOrKey.Namespace))
+				query = query.Where(customerdb.Or(
+					customerdb.ID(input.CustomerIDOrKey.IDOrKey),
+					customerdb.Key(input.CustomerIDOrKey.IDOrKey),
+				))
+				query = query.Where(customerdb.DeletedAtIsNil())
+				query = query.Order(customerdb.ByID(sql.OrderAsc()))
+			} else {
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("customer id or key is required"),
+				)
+			}
 
 			entity, err := query.First(ctx)
 			if err != nil {
 				if entdb.IsNotFound(err) {
-					return nil, customer.NewNotFoundError(customer.CustomerID(input))
+					if input.CustomerID != nil {
+						return nil, models.NewGenericNotFoundError(
+							fmt.Errorf("customer with id %s not found in %s namespace", input.CustomerID.ID, input.CustomerID.Namespace),
+						)
+					} else if input.CustomerKey != nil {
+						return nil, models.NewGenericNotFoundError(
+							fmt.Errorf("customer with key %s not found in %s namespace", input.CustomerKey.Key, input.CustomerKey.Namespace),
+						)
+					} else if input.CustomerIDOrKey != nil {
+						return nil, models.NewGenericNotFoundError(
+							fmt.Errorf("customer with id or key %s not found in %s namespace", input.CustomerIDOrKey.IDOrKey, input.CustomerIDOrKey.Namespace),
+						)
+					}
 				}
 
 				return nil, fmt.Errorf("failed to fetch customer: %w", err)
@@ -327,7 +378,9 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				}
 
 				// Get the customer to diff the subjects
-				dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput(input.CustomerID))
+				dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
+					CustomerID: &input.CustomerID,
+				})
 				if err != nil {
 					return nil, err
 				}
@@ -365,7 +418,9 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				entity, err := query.Save(ctx)
 				if err != nil {
 					if entdb.IsNotFound(err) {
-						return nil, customer.NewNotFoundError(input.CustomerID)
+						return nil, models.NewGenericNotFoundError(
+							fmt.Errorf("customer with id %s not found in %s namespace", input.CustomerID.ID, input.CustomerID.Namespace),
+						)
 					}
 
 					if entdb.IsConstraintError(err) {
@@ -517,7 +572,9 @@ func (a *adapter) CustomerExists(ctx context.Context, customerID customer.Custom
 		}
 
 		if count == 0 {
-			return customer.NewNotFoundError(customerID)
+			return models.NewGenericNotFoundError(
+				fmt.Errorf("customer with id %s not found in %s namespace", customerID.ID, customerID.Namespace),
+			)
 		}
 
 		return nil

@@ -91,8 +91,10 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 
 	// Fetch the customer & validate the customer
 	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: currentView.Subscription.Namespace,
-		ID:        currentView.Subscription.CustomerId,
+		CustomerID: &customer.CustomerID{
+			Namespace: currentView.Subscription.Namespace,
+			ID:        currentView.Subscription.CustomerId,
+		},
 	})
 	if err != nil {
 		return err

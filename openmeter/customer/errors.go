@@ -8,39 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func NewNotFoundError(id CustomerID) *NotFoundError {
-	return &NotFoundError{
-		err: models.NewGenericNotFoundError(
-			fmt.Errorf("customer with id %s not found in %s namespace", id.ID, id.Namespace),
-		),
-	}
-}
-
-// NotFoundError represents an error when a resource is not found
-var _ models.GenericError = &NotFoundError{}
-
-type NotFoundError struct {
-	err error
-}
-
-func (e NotFoundError) Error() string {
-	return e.err.Error()
-}
-
-func (e NotFoundError) Unwrap() error {
-	return e.err
-}
-
-func IsNotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	var e *NotFoundError
-
-	return errors.As(err, &e)
-}
-
 // UpdateAfterDeleteError represents an error when an update is attempted after a delete
 var _ error = (*UpdateAfterDeleteError)(nil)
 

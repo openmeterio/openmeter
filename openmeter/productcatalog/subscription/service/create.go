@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -14,29 +11,6 @@ import (
 
 func (s *service) Create(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (subscription.Subscription, error) {
 	var def subscription.Subscription
-
-	// Let's resolve the customer
-	customerID := lo.CoalesceOrEmpty(request.WorkflowInput.CustomerID, request.CustomerRef.ID)
-	if customerID == "" {
-		cust, err := s.CustomerService.ListCustomers(ctx, customer.ListCustomersInput{
-			Key:            lo.ToPtr(request.CustomerRef.Key),
-			Namespace:      request.WorkflowInput.Namespace,
-			IncludeDeleted: false,
-		})
-		if err != nil {
-			return def, err
-		}
-
-		if cust.TotalCount != 1 {
-			return def, models.NewGenericConflictError(
-				fmt.Errorf("%d customers found with key %s", cust.TotalCount, request.CustomerRef.Key),
-			)
-		}
-
-		customerID = cust.Items[0].ID
-	}
-
-	request.WorkflowInput.CustomerID = customerID
 
 	// Let's build the plan input
 	var plan subscription.Plan

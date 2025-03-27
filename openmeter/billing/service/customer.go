@@ -14,7 +14,9 @@ func (s *Service) validateCustomerForUpdate(ctx context.Context, customerID cust
 		}
 	}
 
-	cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput(customerID))
+	cust, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customerID,
+	})
 	if err != nil {
 		return err
 	}

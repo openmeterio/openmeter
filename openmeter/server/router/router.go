@@ -277,8 +277,9 @@ func NewRouter(config Config) (*Router, error) {
 		config.Logger,
 		staticNamespaceDecoder,
 		config.App,
-		config.Billing,
 		config.AppStripe,
+		config.Billing,
+		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

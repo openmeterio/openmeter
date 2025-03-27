@@ -26,7 +26,7 @@ type (
 
 type ListCustomerDataParams struct {
 	api.ListCustomerAppDataParams
-	CustomerId string
+	CustomerIdOrKey string
 }
 
 // ListCustomerData returns a handler for listing customers app data.
@@ -38,11 +38,19 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 				return ListCustomerDataRequest{}, err
 			}
 
-			req := ListCustomerDataRequest{
-				CustomerID: customer.CustomerID{
+			// Get the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIdOrKey,
 					Namespace: ns,
-					ID:        params.CustomerId,
 				},
+			})
+			if err != nil {
+				return ListCustomerDataRequest{}, err
+			}
+
+			req := ListCustomerDataRequest{
+				CustomerID: cus.GetID(),
 
 				// Pagination
 				Page: pagination.Page{
@@ -95,7 +103,7 @@ type UpsertCustomerDataRequest struct {
 }
 
 type UpsertCustomerDataParams struct {
-	CustomerId string
+	CustomerIdOrKey string
 }
 
 type (
@@ -117,13 +125,19 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 				return UpsertCustomerDataRequest{}, err
 			}
 
-			customerId := customer.CustomerID{
-				Namespace: ns,
-				ID:        params.CustomerId,
+			// Get the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIdOrKey,
+					Namespace: ns,
+				},
+			})
+			if err != nil {
+				return UpsertCustomerDataRequest{}, err
 			}
 
 			return UpsertCustomerDataRequest{
-				CustomerId: customerId,
+				CustomerId: cus.GetID(),
 				Data:       body,
 			}, nil
 		},
@@ -154,8 +168,8 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 }
 
 type DeleteCustomerDataParams struct {
-	CustomerId string
-	AppId      string
+	CustomerIdOrKey string
+	AppId           string
 }
 
 type DeleteCustomerDataRequest struct {
@@ -177,11 +191,19 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 				return DeleteCustomerDataRequest{}, err
 			}
 
-			return DeleteCustomerDataRequest{
-				CustomerID: customer.CustomerID{
+			// Get the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIdOrKey,
 					Namespace: ns,
-					ID:        params.CustomerId,
 				},
+			})
+			if err != nil {
+				return DeleteCustomerDataRequest{}, err
+			}
+
+			return DeleteCustomerDataRequest{
+				CustomerID: cus.GetID(),
 				AppID: app.AppID{
 					Namespace: ns,
 					ID:        params.AppId,

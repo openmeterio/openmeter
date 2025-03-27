@@ -37,7 +37,12 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	var def subscription.SubscriptionView
 
 	// Let's find the customer
-	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{ID: inp.CustomerID, Namespace: inp.Namespace})
+	cust, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customer.CustomerID{
+			Namespace: inp.Namespace,
+			ID:        inp.CustomerID,
+		},
+	})
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch customer: %w", err)
 	}

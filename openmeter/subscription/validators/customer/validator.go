@@ -53,8 +53,10 @@ func (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.U
 	// If there's an update to the subject keys we need additional checks
 	if input.CustomerMutate.UsageAttribution.SubjectKeys != nil {
 		currentCustomer, err := v.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-			Namespace: input.CustomerID.Namespace,
-			ID:        input.CustomerID.ID,
+			CustomerID: &customer.CustomerID{
+				Namespace: input.CustomerID.Namespace,
+				ID:        input.CustomerID.ID,
+			},
 		})
 		if err != nil {
 			return err

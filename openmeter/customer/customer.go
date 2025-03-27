@@ -72,6 +72,7 @@ func (c CustomerMutate) Validate() error {
 	return nil
 }
 
+// CustomerID represents a customer id
 type CustomerID models.NamespacedID
 
 func (i CustomerID) Validate() error {
@@ -81,6 +82,42 @@ func (i CustomerID) Validate() error {
 
 	if i.ID == "" {
 		return models.NewGenericValidationError(errors.New("customer id is required"))
+	}
+
+	return nil
+}
+
+// CustomerKey represents a customer key
+type CustomerKey struct {
+	Namespace string
+	Key       string
+}
+
+func (i CustomerKey) Validate() error {
+	if i.Namespace == "" {
+		return models.NewGenericValidationError(errors.New("customer namespace is required"))
+	}
+
+	if i.Key == "" {
+		return models.NewGenericValidationError(errors.New("customer key is required"))
+	}
+
+	return nil
+}
+
+// CustomerIDOrKey represents a customer id or key
+type CustomerIDOrKey struct {
+	Namespace string
+	IDOrKey   string
+}
+
+func (i CustomerIDOrKey) Validate() error {
+	if i.Namespace == "" {
+		return models.NewGenericValidationError(errors.New("customer namespace is required"))
+	}
+
+	if i.IDOrKey == "" {
+		return models.NewGenericValidationError(errors.New("customer idOrKey is required"))
 	}
 
 	return nil
@@ -172,19 +209,56 @@ func (i DeleteCustomerInput) Validate() error {
 }
 
 // GetCustomerInput represents the input for the GetCustomer method
-type GetCustomerInput CustomerID
+type GetCustomerInput struct {
+	CustomerID      *CustomerID
+	CustomerKey     *CustomerKey
+	CustomerIDOrKey *CustomerIDOrKey
+}
 
 func (i GetCustomerInput) Validate() error {
-	return CustomerID(i).Validate()
+	var errs []error
+
+	// At least one of the three fields is required
+	if i.CustomerID == nil && i.CustomerKey == nil && i.CustomerIDOrKey == nil {
+		return models.NewGenericValidationError(errors.New("customer id or key is required"))
+	}
+
+	// Only one of the three fields can be provided
+	if i.CustomerID != nil && i.CustomerKey != nil {
+		return models.NewGenericValidationError(errors.New("customer id and key cannot be provided at the same time"))
+	}
+
+	if i.CustomerID != nil && i.CustomerIDOrKey != nil {
+		return models.NewGenericValidationError(errors.New("customer id and idOrKey cannot be provided at the same time"))
+	}
+
+	if i.CustomerKey != nil && i.CustomerIDOrKey != nil {
+		return models.NewGenericValidationError(errors.New("customer key and idOrKey cannot be provided at the same time"))
+	}
+
+	// Validate the fields
+	if i.CustomerID != nil {
+		errs = append(errs, i.CustomerID.Validate())
+	}
+
+	if i.CustomerKey != nil {
+		errs = append(errs, i.CustomerKey.Validate())
+	}
+
+	if i.CustomerIDOrKey != nil {
+		errs = append(errs, i.CustomerIDOrKey.Validate())
+	}
+
+	return errors.Join(errs...)
 }
 
 type GetEntitlementValueInput struct {
-	ID         models.NamespacedID
+	CustomerID CustomerID
 	FeatureKey string
 }
 
 func (i GetEntitlementValueInput) Validate() error {
-	if err := i.ID.Validate(); err != nil {
+	if err := i.CustomerID.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
 	}
 
