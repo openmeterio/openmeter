@@ -844,7 +844,7 @@ func TestPackagePriceCalculation(t *testing.T) {
 func TestGetNumberOfPackages(t *testing.T) {
 	l := usageBasedLine{}
 
-	require.Equal(t, float64(1), l.getNumberOfPackages(alpacadecimal.NewFromFloat(0), alpacadecimal.NewFromFloat(10)).InexactFloat64())
+	require.Equal(t, float64(0), l.getNumberOfPackages(alpacadecimal.NewFromFloat(0), alpacadecimal.NewFromFloat(10)).InexactFloat64())
 	require.Equal(t, float64(1), l.getNumberOfPackages(alpacadecimal.NewFromFloat(1), alpacadecimal.NewFromFloat(10)).InexactFloat64())
 	require.Equal(t, float64(1), l.getNumberOfPackages(alpacadecimal.NewFromFloat(9), alpacadecimal.NewFromFloat(10)).InexactFloat64())
 	require.Equal(t, float64(1), l.getNumberOfPackages(alpacadecimal.NewFromFloat(10), alpacadecimal.NewFromFloat(10)).InexactFloat64())
