@@ -377,6 +377,23 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					)
 				}
 
+				// Check if the key is not an ID of another customer
+				if input.Key != nil {
+					count, err := repo.db.Customer.Query().
+						Where(customerdb.ID(*input.Key)).
+						Where(customerdb.Namespace(input.CustomerID.Namespace)).
+						Count(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to check if key overlaps with id: %w", err)
+					}
+
+					if count > 0 {
+						return nil, models.NewGenericConflictError(
+							fmt.Errorf("key %s overlaps with id of another customer", *input.Key),
+						)
+					}
+				}
+
 				// Get the customer to diff the subjects
 				dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
 					CustomerID: &input.CustomerID,
