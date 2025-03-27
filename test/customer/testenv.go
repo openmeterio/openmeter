@@ -10,12 +10,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	entcustomervalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
@@ -97,7 +99,21 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, err
 	}
 
+	entValidator, err := entcustomervalidator.NewValidator(customerService, entitlementRegistry.EntitlementRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	customerService.RegisterRequestValidator(entValidator)
+
 	subsServices, _ := subscriptiontestutils.NewService(t, dbDeps)
+
+	subsCustValidator, err := subscriptioncustomer.NewValidator(subsServices.Service, customerService)
+	if err != nil {
+		return nil, err
+	}
+
+	customerService.RegisterRequestValidator(subsCustValidator)
 
 	closerFunc := func() error {
 		dbDeps.Cleanup(t)
