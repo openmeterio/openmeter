@@ -2,6 +2,7 @@ package customer
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -262,7 +263,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 		},
 	})
 
-	require.True(t, models.IsGenericForbiddenError(err), "Updating customer UsageAttribution with subscription must return forbidden error")
+	require.True(t, models.IsGenericValidationError(err), "Updating customer UsageAttribution with subscription must return validation error, got %T", err)
 
 	// Update the customer but not the UsageAttribution
 	updatedCustomer, err := cService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
@@ -463,7 +464,8 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
 
-	service := s.Env.Customer()
+	custService := s.Env.Customer()
+	subService := s.Env.Subscription()
 
 	// Create a customer
 	input := customer.CreateCustomerInput{
@@ -475,7 +477,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 			},
 		},
 	}
-	originalCustomer, err := service.CreateCustomer(ctx, input)
+	originalCustomer, err := custService.CreateCustomer(ctx, input)
 
 	require.NoError(t, err, "Creating customer must not return error")
 	require.NotNil(t, originalCustomer, "Customer must not be nil")
@@ -485,22 +487,82 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 		ID:        originalCustomer.ID,
 	}
 
+	// Let's create a subscription for the customer
+	emptyExamplePlan := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:     "Empty Plan",
+				Currency: currency.Code("USD"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:  "empty-phase",
+						Name: "Empty Phase",
+					},
+					RateCards: []productcatalog.RateCard{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "empty-rate-card",
+								Name: "Empty Rate Card",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)
+	require.Nil(t, err)
+
+	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
+		CustomerId: originalCustomer.ID,
+		Name:       "Test Subscription",
+		Currency:   currencyx.Code("USD"),
+		ActiveFrom: clock.Now(),
+	})
+	require.Nil(t, err)
+
+	clock.SetTime(clock.Now().Add(1 * time.Minute))
+
+	sub, err := subService.Create(ctx, s.namespace, spec)
+	require.Nil(t, err)
+
 	// Delete the customer
-	err = service.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	require.Equal(t, sub.CustomerId, customerId.ID, "Subscription customer ID must match")
+	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+
+	require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}), "Deleting customer with active subscription must return validation error, got %T", err)
+	require.EqualError(t, err, fmt.Sprintf("validation error: customer %s still have active subscriptions, please cancel them before deleting the customer", customerId.ID), "Deleting customer with active subscription must return error")
+
+	// Now let's delete the subscription
+	_, err = subService.Cancel(ctx, sub.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	require.NoError(t, err, "Canceling subscription must not return error")
+
+	clock.SetTime(clock.Now().Add(1 * time.Minute))
+
+	// Delete the customer again
+	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
 
 	require.NoError(t, err, "Deleting customer must not return error")
 
 	// Get the customer
-	getCustomer, err := service.GetCustomer(ctx, customer.GetCustomerInput(customerId))
+	getCustomer, err := custService.GetCustomer(ctx, customer.GetCustomerInput(customerId))
 
 	require.NoError(t, err, "Getting a deleted customer must not return error")
 	require.NotNil(t, getCustomer.DeletedAt, "DeletedAt must not be nil")
 
 	// Delete the customer again should return not found error
-	err = service.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
+	err = custService.DeleteCustomer(ctx, customer.DeleteCustomerInput(customerId))
 	require.True(t, customer.IsNotFoundError(err), "Deleting customer again must return not found error")
 
 	// Should allow to create a customer with the same subject keys
-	_, err = service.CreateCustomer(ctx, input)
+	_, err = custService.CreateCustomer(ctx, input)
 	require.NoError(t, err, "Creating a customer with the same subject keys must not return error")
 }

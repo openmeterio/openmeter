@@ -474,13 +474,6 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					return nil, fmt.Errorf("failed to fetch customer subscription: %w", err)
 				}
 
-				// Let's error if the UsageAttributions were to change with a Subscription present
-				if subsEnt != nil && (len(subjectsKeysToAdd) > 0 || len(subjectKeysToRemove) > 0) {
-					return nil, models.NewGenericForbiddenError(
-						fmt.Errorf("cannot update customer UsageAttribution with active subscription"),
-					)
-				}
-
 				// Final subject keys
 				entity.Edges.Subjects = []*entdb.CustomerSubjects{}
 
