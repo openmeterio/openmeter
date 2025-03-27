@@ -23,6 +23,7 @@ type Handler interface {
 	RestoreSubscription() RestoreSubscriptionHandler
 	MigrateSubscription() MigrateSubscriptionHandler
 	ChangeSubscription() ChangeSubscriptionHandler
+	DeleteSubscription() DeleteSubscriptionHandler
 	ListCustomerSubscriptions() ListCustomerSubscriptionsHandler
 }
 

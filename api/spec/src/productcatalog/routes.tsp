@@ -435,4 +435,15 @@ interface Subscriptions {
     | OpenMeter.ConflictError
     | OpenMeter.NotFoundError
     | OpenMeter.CommonErrors;
+
+  /**
+   * Deletes a subscription. Only scheduled subscriptions can be deleted.
+   */
+  @delete
+  @operationId("deleteSubscription")
+  @summary("Delete subscription")
+  @route("/{subscriptionId}")
+  delete(@path subscriptionId: ULID): {
+    @statusCode _: 204;
+  } | OpenMeter.NotFoundError | OpenMeter.CommonErrors;
 }
