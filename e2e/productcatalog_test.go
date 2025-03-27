@@ -230,10 +230,10 @@ func TestPlan(t *testing.T) {
 
 		assert.Equal(t, PlanKey, plan.Key)
 		require.NotNil(t, plan.Version)
-		assert.Equal(t, 1, *plan.Version)
+		assert.Equal(t, 1, plan.Version)
 
 		require.NotNil(t, plan.Id)
-		planId = *plan.Id
+		planId = plan.Id
 	})
 
 	t.Run("Should publish the plan", func(t *testing.T) {
@@ -318,19 +318,19 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, plan, "received the following body: %s", planAPIRes.Body)
 
 		require.NotNil(t, plan.Version)
-		assert.Equal(t, 1, *plan.Version)
+		assert.Equal(t, 1, plan.Version)
 
 		require.NotNil(t, plan.Id)
 
 		// Let's try to publish it and assert it fails
 		require.NotNil(t, plan.Id)
-		apiRes, err := client.PublishPlanWithResponse(ctx, *plan.Id)
+		apiRes, err := client.PublishPlanWithResponse(ctx, plan.Id)
 		require.Nil(t, err)
 
 		assert.Equal(t, 400, apiRes.StatusCode(), "should return 400, received the following body: %s", apiRes.Body)
 
 		// Now let's update the plan to remove the alignment requirement
-		updateRes, err := client.UpdatePlanWithResponse(ctx, *plan.Id, api.UpdatePlanJSONRequestBody{
+		updateRes, err := client.UpdatePlanWithResponse(ctx, plan.Id, api.UpdatePlanJSONRequestBody{
 			Name: plan.Name,
 			Alignment: &api.Alignment{
 				BillablesMustAlign: lo.ToPtr(false),
@@ -342,7 +342,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, updateRes.StatusCode(), "received the following body: %s", updateRes.Body)
 
 		// And let's try to publish it once again
-		publishRes, err := client.PublishPlanWithResponse(ctx, *plan.Id)
+		publishRes, err := client.PublishPlanWithResponse(ctx, plan.Id)
 		require.Nil(t, err)
 
 		assert.Equal(t, 200, publishRes.StatusCode(), "received the following body: %s", publishRes.Body)
@@ -376,17 +376,17 @@ func TestPlan(t *testing.T) {
 		subscription := apiRes.JSON201
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
-		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
+		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, subscription.Status)
 		assert.Nil(t, subscription.Plan)
 
-		customSubscriptionId = *subscription.Id
+		customSubscriptionId = subscription.Id
 	})
 
 	t.Run("Should list customer subscriptions", func(t *testing.T) {
 		require.NotNil(t, customer2)
 		require.NotNil(t, customer2.Id)
 
-		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, *customer2.Id, &api.ListCustomerSubscriptionsParams{
+		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, customer2.Id, &api.ListCustomerSubscriptionsParams{
 			Page:     lo.ToPtr(1),
 			PageSize: lo.ToPtr(10),
 		})
@@ -397,7 +397,7 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, body)
 
 		require.Equal(t, 1, len(body.Items))
-		require.Equal(t, customSubscriptionId, *body.Items[0].Id)
+		require.Equal(t, customSubscriptionId, body.Items[0].Id)
 		require.Equal(t, 1, body.Page)
 		require.Equal(t, 10, body.PageSize)
 		require.Equal(t, 1, body.TotalCount)
@@ -413,7 +413,7 @@ func TestPlan(t *testing.T) {
 		create := api.SubscriptionCreate{}
 		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
 			Timing:      ct,
-			CustomerId:  customer1.Id,
+			CustomerId:  &customer1.Id,
 			Name:        lo.ToPtr("Test Subscription"),
 			Description: lo.ToPtr("Test Subscription Description"),
 			Plan: api.PlanReferenceInput{
@@ -431,10 +431,10 @@ func TestPlan(t *testing.T) {
 		subscription := apiRes.JSON201
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
-		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
+		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, subscription.Status)
 		assert.Equal(t, planId, subscription.Plan.Id)
 
-		subscriptionId = *subscription.Id
+		subscriptionId = subscription.Id
 	})
 
 	t.Run("Should retrieve the subscription", func(t *testing.T) {
@@ -449,8 +449,8 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
 
-		assert.Equal(t, subscriptionId, *subscription.Id)
-		assert.Equal(t, api.SubscriptionStatusActive, *subscription.Status)
+		assert.Equal(t, subscriptionId, subscription.Id)
+		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, subscription.Status)
 
 		// Should have the current period info
 		assert.NotNil(t, subscription.Alignment)
@@ -540,7 +540,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 
 		require.NotNil(t, apiRes.JSON200)
-		assert.Equal(t, api.SubscriptionStatusCanceled, *apiRes.JSON200.Status)
+		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusCanceled, apiRes.JSON200.Status)
 	})
 
 	t.Run("Should unschedule cancellation", func(t *testing.T) {
@@ -552,7 +552,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 
 		require.NotNil(t, apiRes.JSON200)
-		assert.Equal(t, api.SubscriptionStatusActive, *apiRes.JSON200.Status)
+		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, apiRes.JSON200.Status)
 	})
 
 	t.Run("Should create and publish a new version of the plan", func(t *testing.T) {
@@ -590,12 +590,12 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, planAPIRes.JSON201.Version)
 		require.NotNil(t, planAPIRes.JSON201.Key)
 
-		assert.NotEqual(t, planId, *planAPIRes.JSON201.Id)
+		assert.NotEqual(t, planId, planAPIRes.JSON201.Id)
 		assert.Equal(t, PlanKey, planAPIRes.JSON201.Key)
-		assert.Equal(t, 2, *planAPIRes.JSON201.Version)
+		assert.Equal(t, 2, planAPIRes.JSON201.Version)
 
 		// Let's publish the new version
-		apiRes2, err := client.PublishPlanWithResponse(ctx, *planAPIRes.JSON201.Id)
+		apiRes2, err := client.PublishPlanWithResponse(ctx, planAPIRes.JSON201.Id)
 		require.Nil(t, err)
 
 		assert.Equal(t, 200, apiRes2.StatusCode(), "received the following body: %s", apiRes2.Body)
@@ -616,10 +616,10 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, apiRes.JSON200.Next.Id)
 		require.NotNil(t, apiRes.JSON200.Current.Id)
 
-		require.Equal(t, subscriptionId, *apiRes.JSON200.Current.Id)
-		require.NotEqual(t, subscriptionId, *apiRes.JSON200.Next.Id)
+		require.Equal(t, subscriptionId, apiRes.JSON200.Current.Id)
+		require.NotEqual(t, subscriptionId, apiRes.JSON200.Next.Id)
 
-		migratedSubscriptionId = *apiRes.JSON200.Next.Id
+		migratedSubscriptionId = apiRes.JSON200.Next.Id
 
 		require.Equal(t, 3, len(apiRes.JSON200.Next.Phases))
 		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.Next.Phases[2].Key)
@@ -649,8 +649,8 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, apiRes.JSON200.Current.Id)
 		require.NotNil(t, apiRes.JSON200.Next.Id)
 
-		require.Equal(t, customSubscriptionId, *apiRes.JSON200.Current.Id)
-		require.NotEqual(t, customSubscriptionId, *apiRes.JSON200.Next.Id)
+		require.Equal(t, customSubscriptionId, apiRes.JSON200.Current.Id)
+		require.NotEqual(t, customSubscriptionId, apiRes.JSON200.Next.Id)
 
 		require.Equal(t, 2, len(planCreate.Phases))
 	})
@@ -704,16 +704,16 @@ func TestPlan(t *testing.T) {
 
 		// Only customer 1 is returned
 		require.Equal(t, 1, len(apiRes.JSON200.Items))
-		require.Equal(t, *customer1.Id, *apiRes.JSON200.Items[0].Id)
+		require.Equal(t, customer1.Id, apiRes.JSON200.Items[0].Id)
 	})
 
 	t.Run("Should check entitlement of customer", func(t *testing.T) {
-		res, err := client.GetCustomerEntitlementValueWithResponse(ctx, *customer1.Id, PlanFeatureKey, nil)
+		res, err := client.GetCustomerEntitlementValueWithResponse(ctx, customer1.Id, PlanFeatureKey, nil)
 		require.Nil(t, err)
 
 		require.Equal(t, http.StatusOK, res.StatusCode(), "received the following body: %s", res.Body)
 		require.NotNil(t, res.JSON200)
 		require.NotNil(t, res.JSON200.HasAccess)
-		assert.True(t, *res.JSON200.HasAccess)
+		assert.True(t, res.JSON200.HasAccess)
 	})
 }
