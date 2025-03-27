@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -136,6 +137,23 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 					return nil, models.NewGenericValidationError(
 						fmt.Errorf("error creating customer: %w", err),
 					)
+				}
+
+				// Check if the key is not an ID of another customer
+				if input.Key != nil {
+					count, err := repo.db.Customer.Query().
+						Where(customerdb.ID(*input.Key)).
+						Where(customerdb.Namespace(input.Namespace)).
+						Count(ctx)
+					if err != nil {
+						return nil, fmt.Errorf("failed to check if key overlaps with id: %w", err)
+					}
+
+					if count > 0 {
+						return nil, models.NewGenericConflictError(
+							fmt.Errorf("key %s overlaps with id of another customer", *input.Key),
+						)
+					}
 				}
 
 				// Create the customer in the database
@@ -309,6 +327,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 					customerdb.Key(input.CustomerIDOrKey.IDOrKey),
 				))
 				query = query.Where(customerdb.DeletedAtIsNil())
+				query = query.Order(customerdb.ByID(sql.OrderAsc()))
 			} else {
 				return nil, models.NewGenericValidationError(
 					fmt.Errorf("customer id or key is required"),

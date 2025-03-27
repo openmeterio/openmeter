@@ -99,7 +99,7 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	require.Equal(t, &TestAddressPhoneNumber, createdCustomer.BillingAddress.PhoneNumber, "Customer billing address phone number must match")
 	require.Equal(t, TestSubjectKeys, createdCustomer.UsageAttribution.SubjectKeys, "Customer usage attribution subject keys must match")
 
-	// Test conflicts
+	// Test key conflicts
 	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
 		Namespace: s.namespace,
 		CustomerMutate: customer.CustomerMutate{
@@ -114,6 +114,24 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 		t,
 		customer.IsSubjectKeyConflictError(err),
 		"Creating a customer with same subject keys must return conflict error",
+	)
+
+	// Test key overlaps with id
+	_, err = service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(createdCustomer.ID),
+			Name: TestName,
+			UsageAttribution: customer.CustomerUsageAttribution{
+				SubjectKeys: []string{"subject-1"},
+			},
+		},
+	})
+
+	require.True(
+		t,
+		models.IsGenericConflictError(err),
+		"Creating a customer with a key that overlaps with id must return conflict error",
 	)
 }
 
@@ -468,6 +486,19 @@ func (s *CustomerHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {
 		CustomerKey: &customer.CustomerKey{
 			Namespace: s.namespace,
 			Key:       TestKey,
+		},
+	})
+
+	require.NoError(t, err, "Fetching customer must not return error")
+	require.NotNil(t, cus, "Customer must not be nil")
+	require.Equal(t, createdCustomer.ID, cus.ID, "Customer ID must match")
+	require.Equal(t, s.namespace, cus.Namespace, "Customer namespace must match")
+
+	// Get the customer by idOrKey
+	cus, err = service.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerIDOrKey: &customer.CustomerIDOrKey{
+			IDOrKey:   createdCustomer.ID,
+			Namespace: s.namespace,
 		},
 	})
 

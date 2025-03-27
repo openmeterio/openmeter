@@ -218,10 +218,25 @@ type GetCustomerInput struct {
 func (i GetCustomerInput) Validate() error {
 	var errs []error
 
+	// At least one of the three fields is required
 	if i.CustomerID == nil && i.CustomerKey == nil && i.CustomerIDOrKey == nil {
 		return models.NewGenericValidationError(errors.New("customer id or key is required"))
 	}
 
+	// Only one of the three fields can be provided
+	if i.CustomerID != nil && i.CustomerKey != nil {
+		return models.NewGenericValidationError(errors.New("customer id and key cannot be provided at the same time"))
+	}
+
+	if i.CustomerID != nil && i.CustomerIDOrKey != nil {
+		return models.NewGenericValidationError(errors.New("customer id and idOrKey cannot be provided at the same time"))
+	}
+
+	if i.CustomerKey != nil && i.CustomerIDOrKey != nil {
+		return models.NewGenericValidationError(errors.New("customer key and idOrKey cannot be provided at the same time"))
+	}
+
+	// Validate the fields
 	if i.CustomerID != nil {
 		errs = append(errs, i.CustomerID.Validate())
 	}
