@@ -32,8 +32,8 @@ const (
 
 // Defines values for AddonInstanceType.
 const (
-	Multiple AddonInstanceType = "multiple"
-	Single   AddonInstanceType = "single"
+	AddonInstanceTypeMultiple AddonInstanceType = "multiple"
+	AddonInstanceTypeSingle   AddonInstanceType = "single"
 )
 
 // Defines values for AddonOrderBy.
@@ -47,8 +47,8 @@ const (
 
 // Defines values for AddonRateCardMode.
 const (
-	Extend   AddonRateCardMode = "extend"
-	Override AddonRateCardMode = "override"
+	AddonRateCardModeExtend   AddonRateCardMode = "extend"
+	AddonRateCardModeOverride AddonRateCardMode = "override"
 )
 
 // Defines values for AddonStatus.
@@ -60,17 +60,17 @@ const (
 
 // Defines values for AppCapabilityType.
 const (
-	CalculateTax     AppCapabilityType = "calculateTax"
-	CollectPayments  AppCapabilityType = "collectPayments"
-	InvoiceCustomers AppCapabilityType = "invoiceCustomers"
-	ReportEvents     AppCapabilityType = "reportEvents"
-	ReportUsage      AppCapabilityType = "reportUsage"
+	AppCapabilityTypeCalculateTax     AppCapabilityType = "calculateTax"
+	AppCapabilityTypeCollectPayments  AppCapabilityType = "collectPayments"
+	AppCapabilityTypeInvoiceCustomers AppCapabilityType = "invoiceCustomers"
+	AppCapabilityTypeReportEvents     AppCapabilityType = "reportEvents"
+	AppCapabilityTypeReportUsage      AppCapabilityType = "reportUsage"
 )
 
 // Defines values for AppStatus.
 const (
-	Ready        AppStatus = "ready"
-	Unauthorized AppStatus = "unauthorized"
+	AppStatusReady        AppStatus = "ready"
+	AppStatusUnauthorized AppStatus = "unauthorized"
 )
 
 // Defines values for AppType.
@@ -114,14 +114,14 @@ const (
 
 // Defines values for CheckoutSessionUIMode.
 const (
-	Embedded CheckoutSessionUIMode = "embedded"
-	Hosted   CheckoutSessionUIMode = "hosted"
+	CheckoutSessionUIModeEmbedded CheckoutSessionUIMode = "embedded"
+	CheckoutSessionUIModeHosted   CheckoutSessionUIMode = "hosted"
 )
 
 // Defines values for CollectionMethod.
 const (
-	ChargeAutomatically CollectionMethod = "charge_automatically"
-	SendInvoice         CollectionMethod = "send_invoice"
+	CollectionMethodChargeAutomatically CollectionMethod = "charge_automatically"
+	CollectionMethodSendInvoice         CollectionMethod = "send_invoice"
 )
 
 // Defines values for CreateCheckoutSessionTaxIdCollectionRequired.
@@ -162,9 +162,9 @@ const (
 
 // Defines values for CreateStripeCheckoutSessionRedirectOnCompletion.
 const (
-	Always     CreateStripeCheckoutSessionRedirectOnCompletion = "always"
-	IfRequired CreateStripeCheckoutSessionRedirectOnCompletion = "if_required"
-	Never      CreateStripeCheckoutSessionRedirectOnCompletion = "never"
+	CreateStripeCheckoutSessionRedirectOnCompletionAlways     CreateStripeCheckoutSessionRedirectOnCompletion = "always"
+	CreateStripeCheckoutSessionRedirectOnCompletionIfRequired CreateStripeCheckoutSessionRedirectOnCompletion = "if_required"
+	CreateStripeCheckoutSessionRedirectOnCompletionNever      CreateStripeCheckoutSessionRedirectOnCompletion = "never"
 )
 
 // Defines values for CustomerOrderBy.
@@ -181,32 +181,32 @@ const (
 
 // Defines values for EditSubscriptionAddItemOp.
 const (
-	AddItem EditSubscriptionAddItemOp = "add_item"
+	EditSubscriptionAddItemOpAddItem EditSubscriptionAddItemOp = "add_item"
 )
 
 // Defines values for EditSubscriptionAddPhaseOp.
 const (
-	AddPhase EditSubscriptionAddPhaseOp = "add_phase"
+	EditSubscriptionAddPhaseOpAddPhase EditSubscriptionAddPhaseOp = "add_phase"
 )
 
 // Defines values for EditSubscriptionRemoveItemOp.
 const (
-	RemoveItem EditSubscriptionRemoveItemOp = "remove_item"
+	EditSubscriptionRemoveItemOpRemoveItem EditSubscriptionRemoveItemOp = "remove_item"
 )
 
 // Defines values for EditSubscriptionRemovePhaseOp.
 const (
-	RemovePhase EditSubscriptionRemovePhaseOp = "remove_phase"
+	EditSubscriptionRemovePhaseOpRemovePhase EditSubscriptionRemovePhaseOp = "remove_phase"
 )
 
 // Defines values for EditSubscriptionStretchPhaseOp.
 const (
-	StretchPhase EditSubscriptionStretchPhaseOp = "stretch_phase"
+	EditSubscriptionStretchPhaseOpStretchPhase EditSubscriptionStretchPhaseOp = "stretch_phase"
 )
 
 // Defines values for EditSubscriptionUnscheduleEditOp.
 const (
-	UnscheduleEdit EditSubscriptionUnscheduleEditOp = "unschedule_edit"
+	EditSubscriptionUnscheduleEditOpUnscheduleEdit EditSubscriptionUnscheduleEditOp = "unschedule_edit"
 )
 
 // Defines values for EntitlementBooleanCreateInputsType.
@@ -275,20 +275,20 @@ const (
 
 // Defines values for InvoiceDocumentRefType.
 const (
-	CreditNodeOriginalInvoice InvoiceDocumentRefType = "credit_node_original_invoice"
+	InvoiceDocumentRefTypeCreditNodeOriginalInvoice InvoiceDocumentRefType = "credit_node_original_invoice"
 )
 
 // Defines values for InvoiceExpand.
 const (
-	Lines        InvoiceExpand = "lines"
-	Preceding    InvoiceExpand = "preceding"
-	WorkflowApps InvoiceExpand = "workflow.apps"
+	InvoiceExpandLines        InvoiceExpand = "lines"
+	InvoiceExpandPreceding    InvoiceExpand = "preceding"
+	InvoiceExpandWorkflowApps InvoiceExpand = "workflow.apps"
 )
 
 // Defines values for InvoiceFlatFeeCategory.
 const (
-	Commitment InvoiceFlatFeeCategory = "commitment"
-	Regular    InvoiceFlatFeeCategory = "regular"
+	InvoiceFlatFeeCategoryCommitment InvoiceFlatFeeCategory = "commitment"
+	InvoiceFlatFeeCategoryRegular    InvoiceFlatFeeCategory = "regular"
 )
 
 // Defines values for InvoiceFlatFeeLineType.
@@ -315,9 +315,9 @@ const (
 
 // Defines values for InvoiceLineStatus.
 const (
-	Detail InvoiceLineStatus = "detail"
-	Split  InvoiceLineStatus = "split"
-	Valid  InvoiceLineStatus = "valid"
+	InvoiceLineStatusDetail InvoiceLineStatus = "detail"
+	InvoiceLineStatusSplit  InvoiceLineStatus = "split"
+	InvoiceLineStatusValid  InvoiceLineStatus = "valid"
 )
 
 // Defines values for InvoiceLineTaxBehavior.
@@ -360,8 +360,8 @@ const (
 
 // Defines values for InvoiceType.
 const (
-	CreditNote InvoiceType = "credit_note"
-	Standard   InvoiceType = "standard"
+	InvoiceTypeCreditNote InvoiceType = "credit_note"
+	InvoiceTypeStandard   InvoiceType = "standard"
 )
 
 // Defines values for InvoiceUsageBasedLineType.
@@ -381,18 +381,18 @@ const (
 
 // Defines values for MeasureUsageFromPreset.
 const (
-	CurrentPeriodStart MeasureUsageFromPreset = "CURRENT_PERIOD_START"
-	Now                MeasureUsageFromPreset = "NOW"
+	MeasureUsageFromPresetCurrentPeriodStart MeasureUsageFromPreset = "CURRENT_PERIOD_START"
+	MeasureUsageFromPresetNow                MeasureUsageFromPreset = "NOW"
 )
 
 // Defines values for MeterAggregation.
 const (
-	Avg         MeterAggregation = "AVG"
-	Count       MeterAggregation = "COUNT"
-	Max         MeterAggregation = "MAX"
-	Min         MeterAggregation = "MIN"
-	Sum         MeterAggregation = "SUM"
-	UniqueCount MeterAggregation = "UNIQUE_COUNT"
+	MeterAggregationAvg         MeterAggregation = "AVG"
+	MeterAggregationCount       MeterAggregation = "COUNT"
+	MeterAggregationMax         MeterAggregation = "MAX"
+	MeterAggregationMin         MeterAggregation = "MIN"
+	MeterAggregationSum         MeterAggregation = "SUM"
+	MeterAggregationUniqueCount MeterAggregation = "UNIQUE_COUNT"
 )
 
 // Defines values for NotificationChannelOrderBy.
@@ -405,7 +405,7 @@ const (
 
 // Defines values for NotificationChannelType.
 const (
-	Webhook NotificationChannelType = "WEBHOOK"
+	NotificationChannelTypeWebhook NotificationChannelType = "WEBHOOK"
 )
 
 // Defines values for NotificationChannelWebhookType.
@@ -454,8 +454,8 @@ const (
 
 // Defines values for NotificationRuleBalanceThresholdValueType.
 const (
-	Number  NotificationRuleBalanceThresholdValueType = "NUMBER"
-	Percent NotificationRuleBalanceThresholdValueType = "PERCENT"
+	NotificationRuleBalanceThresholdValueTypeNumber  NotificationRuleBalanceThresholdValueType = "NUMBER"
+	NotificationRuleBalanceThresholdValueTypePercent NotificationRuleBalanceThresholdValueType = "PERCENT"
 )
 
 // Defines values for NotificationRuleOrderBy.
@@ -468,23 +468,23 @@ const (
 
 // Defines values for OAuth2AuthorizationCodeGrantErrorType.
 const (
-	AccessDenied            OAuth2AuthorizationCodeGrantErrorType = "access_denied"
-	InvalidRequest          OAuth2AuthorizationCodeGrantErrorType = "invalid_request"
-	InvalidScope            OAuth2AuthorizationCodeGrantErrorType = "invalid_scope"
-	ServerError             OAuth2AuthorizationCodeGrantErrorType = "server_error"
-	TemporarilyUnavailable  OAuth2AuthorizationCodeGrantErrorType = "temporarily_unavailable"
-	UnauthorizedClient      OAuth2AuthorizationCodeGrantErrorType = "unauthorized_client"
-	UnsupportedResponseType OAuth2AuthorizationCodeGrantErrorType = "unsupported_response_type"
+	OAuth2AuthorizationCodeGrantErrorTypeAccessDenied            OAuth2AuthorizationCodeGrantErrorType = "access_denied"
+	OAuth2AuthorizationCodeGrantErrorTypeInvalidRequest          OAuth2AuthorizationCodeGrantErrorType = "invalid_request"
+	OAuth2AuthorizationCodeGrantErrorTypeInvalidScope            OAuth2AuthorizationCodeGrantErrorType = "invalid_scope"
+	OAuth2AuthorizationCodeGrantErrorTypeServerError             OAuth2AuthorizationCodeGrantErrorType = "server_error"
+	OAuth2AuthorizationCodeGrantErrorTypeTemporarilyUnavailable  OAuth2AuthorizationCodeGrantErrorType = "temporarily_unavailable"
+	OAuth2AuthorizationCodeGrantErrorTypeUnauthorizedClient      OAuth2AuthorizationCodeGrantErrorType = "unauthorized_client"
+	OAuth2AuthorizationCodeGrantErrorTypeUnsupportedResponseType OAuth2AuthorizationCodeGrantErrorType = "unsupported_response_type"
 )
 
 // Defines values for PaymentTermDueDateType.
 const (
-	DueDate PaymentTermDueDateType = "due_date"
+	PaymentTermDueDateTypeDueDate PaymentTermDueDateType = "due_date"
 )
 
 // Defines values for PaymentTermInstantType.
 const (
-	Instant PaymentTermInstantType = "instant"
+	PaymentTermInstantTypeInstant PaymentTermInstantType = "instant"
 )
 
 // Defines values for PlanOrderBy.
@@ -498,16 +498,16 @@ const (
 
 // Defines values for PlanStatus.
 const (
-	Active    PlanStatus = "active"
-	Archived  PlanStatus = "archived"
-	Draft     PlanStatus = "draft"
-	Scheduled PlanStatus = "scheduled"
+	PlanStatusActive    PlanStatus = "active"
+	PlanStatusArchived  PlanStatus = "archived"
+	PlanStatusDraft     PlanStatus = "draft"
+	PlanStatusScheduled PlanStatus = "scheduled"
 )
 
 // Defines values for PricePaymentTerm.
 const (
-	InAdvance PricePaymentTerm = "in_advance"
-	InArrears PricePaymentTerm = "in_arrears"
+	PricePaymentTermInAdvance PricePaymentTerm = "in_advance"
+	PricePaymentTermInArrears PricePaymentTerm = "in_arrears"
 )
 
 // Defines values for RateCardBooleanEntitlementType.
@@ -517,22 +517,22 @@ const (
 
 // Defines values for RateCardFlatFeeType.
 const (
-	FlatFee RateCardFlatFeeType = "flat_fee"
+	RateCardFlatFeeTypeFlatFee RateCardFlatFeeType = "flat_fee"
 )
 
 // Defines values for RateCardMeteredEntitlementType.
 const (
-	Metered RateCardMeteredEntitlementType = "metered"
+	RateCardMeteredEntitlementTypeMetered RateCardMeteredEntitlementType = "metered"
 )
 
 // Defines values for RateCardStaticEntitlementType.
 const (
-	Static RateCardStaticEntitlementType = "static"
+	RateCardStaticEntitlementTypeStatic RateCardStaticEntitlementType = "static"
 )
 
 // Defines values for RateCardUsageBasedType.
 const (
-	UsageBased RateCardUsageBasedType = "usage_based"
+	RateCardUsageBasedTypeUsageBased RateCardUsageBasedType = "usage_based"
 )
 
 // Defines values for RecurringPeriodIntervalEnum.
@@ -545,8 +545,8 @@ const (
 
 // Defines values for RemovePhaseShifting.
 const (
-	Next RemovePhaseShifting = "next"
-	Prev RemovePhaseShifting = "prev"
+	RemovePhaseShiftingNext RemovePhaseShifting = "next"
+	RemovePhaseShiftingPrev RemovePhaseShifting = "prev"
 )
 
 // Defines values for SandboxAppType.
@@ -556,13 +556,13 @@ const (
 
 // Defines values for SandboxCustomerAppDataType.
 const (
-	Sandbox SandboxCustomerAppDataType = "sandbox"
+	SandboxCustomerAppDataTypeSandbox SandboxCustomerAppDataType = "sandbox"
 )
 
 // Defines values for SortOrder.
 const (
-	ASC  SortOrder = "ASC"
-	DESC SortOrder = "DESC"
+	SortOrderASC  SortOrder = "ASC"
+	SortOrderDESC SortOrder = "DESC"
 )
 
 // Defines values for StripeAppType.
@@ -572,7 +572,7 @@ const (
 
 // Defines values for StripeCheckoutSessionMode.
 const (
-	Setup StripeCheckoutSessionMode = "setup"
+	StripeCheckoutSessionModeSetup StripeCheckoutSessionMode = "setup"
 )
 
 // Defines values for StripeCustomerAppDataType.
@@ -582,27 +582,27 @@ const (
 
 // Defines values for SubscriptionStatus.
 const (
-	SubscriptionStatusActive    SubscriptionStatus = "active"
-	SubscriptionStatusCanceled  SubscriptionStatus = "canceled"
-	SubscriptionStatusInactive  SubscriptionStatus = "inactive"
-	SubscriptionStatusScheduled SubscriptionStatus = "scheduled"
+	SubscriptionStatusSubscriptionStatusActive    SubscriptionStatus = "active"
+	SubscriptionStatusSubscriptionStatusCanceled  SubscriptionStatus = "canceled"
+	SubscriptionStatusSubscriptionStatusInactive  SubscriptionStatus = "inactive"
+	SubscriptionStatusSubscriptionStatusScheduled SubscriptionStatus = "scheduled"
 )
 
 // Defines values for SubscriptionTimingEnum.
 const (
-	Immediate        SubscriptionTimingEnum = "immediate"
-	NextBillingCycle SubscriptionTimingEnum = "next_billing_cycle"
+	SubscriptionTimingEnumImmediate        SubscriptionTimingEnum = "immediate"
+	SubscriptionTimingEnumNextBillingCycle SubscriptionTimingEnum = "next_billing_cycle"
 )
 
 // Defines values for SvixOperationalWebhookRequestType.
 const (
-	EndpointCreated         SvixOperationalWebhookRequestType = "endpoint.created"
-	EndpointDeleted         SvixOperationalWebhookRequestType = "endpoint.deleted"
-	EndpointDisabled        SvixOperationalWebhookRequestType = "endpoint.disabled"
-	EndpointUpdated         SvixOperationalWebhookRequestType = "endpoint.updated"
-	MessageAttemptExhausted SvixOperationalWebhookRequestType = "message.attempt.exhausted"
-	MessageAttemptFailing   SvixOperationalWebhookRequestType = "message.attempt.failing"
-	MessageAttemptRecovered SvixOperationalWebhookRequestType = "message.attempt.recovered"
+	SvixOperationalWebhookRequestTypeEndpointCreated         SvixOperationalWebhookRequestType = "endpoint.created"
+	SvixOperationalWebhookRequestTypeEndpointDeleted         SvixOperationalWebhookRequestType = "endpoint.deleted"
+	SvixOperationalWebhookRequestTypeEndpointDisabled        SvixOperationalWebhookRequestType = "endpoint.disabled"
+	SvixOperationalWebhookRequestTypeEndpointUpdated         SvixOperationalWebhookRequestType = "endpoint.updated"
+	SvixOperationalWebhookRequestTypeMessageAttemptExhausted SvixOperationalWebhookRequestType = "message.attempt.exhausted"
+	SvixOperationalWebhookRequestTypeMessageAttemptFailing   SvixOperationalWebhookRequestType = "message.attempt.failing"
+	SvixOperationalWebhookRequestTypeMessageAttemptRecovered SvixOperationalWebhookRequestType = "message.attempt.recovered"
 )
 
 // Defines values for TaxBehavior.
@@ -613,13 +613,13 @@ const (
 
 // Defines values for TieredPriceMode.
 const (
-	Graduated TieredPriceMode = "graduated"
-	Volume    TieredPriceMode = "volume"
+	TieredPriceModeGraduated TieredPriceMode = "graduated"
+	TieredPriceModeVolume    TieredPriceMode = "volume"
 )
 
 // Defines values for TieredPriceWithCommitmentsType.
 const (
-	Tiered TieredPriceWithCommitmentsType = "tiered"
+	TieredPriceWithCommitmentsTypeTiered TieredPriceWithCommitmentsType = "tiered"
 )
 
 // Defines values for UnitPriceType.
@@ -634,13 +634,13 @@ const (
 
 // Defines values for ValidationIssueSeverity.
 const (
-	Critical ValidationIssueSeverity = "critical"
-	Warning  ValidationIssueSeverity = "warning"
+	ValidationIssueSeverityCritical ValidationIssueSeverity = "critical"
+	ValidationIssueSeverityWarning  ValidationIssueSeverity = "warning"
 )
 
 // Defines values for VoidInvoiceLineDiscardActionType.
 const (
-	Discard VoidInvoiceLineDiscardActionType = "discard"
+	VoidInvoiceLineDiscardActionTypeDiscard VoidInvoiceLineDiscardActionType = "discard"
 )
 
 // Defines values for VoidInvoiceLinePendingActionCreateType.
@@ -650,14 +650,14 @@ const (
 
 // Defines values for VoidInvoiceLinePendingActionCreateItemType.
 const (
-	Pending VoidInvoiceLinePendingActionCreateItemType = "pending"
+	VoidInvoiceLinePendingActionCreateItemTypePending VoidInvoiceLinePendingActionCreateItemType = "pending"
 )
 
 // Defines values for WindowSize.
 const (
-	Day    WindowSize = "DAY"
-	Hour   WindowSize = "HOUR"
-	Minute WindowSize = "MINUTE"
+	WindowSizeDay    WindowSize = "DAY"
+	WindowSizeHour   WindowSize = "HOUR"
+	WindowSizeMinute WindowSize = "MINUTE"
 )
 
 // Addon Addon allows extending subscriptions with compatible plans with additional ratecards.
@@ -666,7 +666,7 @@ type Addon struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency The currency code of the addon.
 	Currency CurrencyCode `json:"currency"`
@@ -684,7 +684,7 @@ type Addon struct {
 	EffectiveTo *time.Time `json:"effectiveTo,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// InstanceType The instanceType of the addons. Can be "single" or "multiple".
 	InstanceType AddonInstanceType `json:"instanceType"`
@@ -706,13 +706,13 @@ type Addon struct {
 	// - draft = no effectiveFrom
 	// - active = effectiveFrom <= now < effectiveTo
 	// - archived  = effectiveTo <= now
-	Status *AddonStatus `json:"status,omitempty"`
+	Status AddonStatus `json:"status"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Version Version of the addon. Incremented when the addon is updated.
-	Version *int `json:"version,omitempty"`
+	Version int `json:"version"`
 }
 
 // AddonCreate Resource create operation model.
@@ -910,13 +910,13 @@ type BadRequestProblemResponse = UnexpectedProblemResponse
 // BalanceHistoryWindow The balance history window.
 type BalanceHistoryWindow struct {
 	// BalanceAtStart The entitlement balance at the start of the period.
-	BalanceAtStart *float64 `json:"balanceAtStart,omitempty"`
+	BalanceAtStart float64 `json:"balanceAtStart"`
 
 	// Period A period with a start and end time.
 	Period Period `json:"period"`
 
 	// Usage The total usage of the feature in the period.
-	Usage *float64 `json:"usage,omitempty"`
+	Usage float64 `json:"usage"`
 }
 
 // BillingCustomerProfile Customer specific merged profile.
@@ -928,13 +928,13 @@ type BillingCustomerProfile struct {
 	// Apps The applications used by this billing profile.
 	//
 	// Expand settings govern if this includes the whole app object or just the ID references.
-	Apps *BillingProfileAppsOrReference `json:"apps,omitempty"`
+	Apps BillingProfileAppsOrReference `json:"apps"`
 
 	// Supplier The name and contact information for the supplier this billing profile represents
-	Supplier *BillingParty `json:"supplier,omitempty"`
+	Supplier BillingParty `json:"supplier"`
 
 	// Workflow The billing workflow settings for this profile
-	Workflow *BillingWorkflow `json:"workflow,omitempty"`
+	Workflow BillingWorkflow `json:"workflow"`
 }
 
 // BillingLineCharge InvoiceLineCharge represents an amount added to the line, and will be applied before taxes.
@@ -946,7 +946,7 @@ type BillingLineCharge struct {
 	Code *string `json:"code,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -955,13 +955,13 @@ type BillingLineCharge struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id ID of the charge or discount.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Percent Percentage if fixed amount not applied
 	Percent *Percentage `json:"percent,omitempty"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // BillingParty Party represents a person or business entity.
@@ -1004,10 +1004,10 @@ type BillingProfile struct {
 	// Apps The applications used by this billing profile.
 	//
 	// Expand settings govern if this includes the whole app object or just the ID references.
-	Apps *BillingProfileAppsOrReference `json:"apps,omitempty"`
+	Apps BillingProfileAppsOrReference `json:"apps"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Default Is this the default profile?
 	Default bool `json:"default"`
@@ -1019,7 +1019,7 @@ type BillingProfile struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -1031,34 +1031,34 @@ type BillingProfile struct {
 	Supplier BillingParty `json:"supplier"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Workflow The billing workflow settings for this profile
-	Workflow *BillingWorkflow `json:"workflow,omitempty"`
+	Workflow BillingWorkflow `json:"workflow"`
 }
 
 // BillingProfileAppReferences BillingProfileAppReferences represents the references (id, type) to the apps used by a billing profile
 type BillingProfileAppReferences struct {
 	// Invoicing The invoicing app used for this workflow
-	Invoicing *AppReference `json:"invoicing,omitempty"`
+	Invoicing AppReference `json:"invoicing"`
 
 	// Payment The payment app used for this workflow
-	Payment *AppReference `json:"payment,omitempty"`
+	Payment AppReference `json:"payment"`
 
 	// Tax The tax app used for this workflow
-	Tax *AppReference `json:"tax,omitempty"`
+	Tax AppReference `json:"tax"`
 }
 
 // BillingProfileApps BillingProfileApps represents the applications used by a billing profile
 type BillingProfileApps struct {
 	// Invoicing The invoicing app used for this workflow
-	Invoicing *App `json:"invoicing,omitempty"`
+	Invoicing App `json:"invoicing"`
 
 	// Payment The payment app used for this workflow
-	Payment *App `json:"payment,omitempty"`
+	Payment App `json:"payment"`
 
 	// Tax The tax app used for this workflow
-	Tax *App `json:"tax,omitempty"`
+	Tax App `json:"tax"`
 }
 
 // BillingProfileAppsCreate BillingProfileAppsCreate represents the input for creating a billing profile's apps
@@ -1111,13 +1111,13 @@ type BillingProfileCustomerOverride struct {
 	BillingProfileId *string `json:"billingProfileId,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CustomerId The customer id this override is associated with.
 	CustomerId string `json:"customerId"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // BillingProfileCustomerOverrideCreate Payload for creating a new or updating an existing customer override.
@@ -1626,7 +1626,7 @@ type Customer struct {
 	BillingAddress *Address `json:"billingAddress,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency Currency of the customer.
 	// Used for billing, tax and invoicing.
@@ -1642,7 +1642,7 @@ type Customer struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Key An optional unique key of the customer.
 	// Useful to reference the customer in external systems.
@@ -1659,7 +1659,7 @@ type Customer struct {
 	PrimaryEmail *string `json:"primaryEmail,omitempty"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsageAttribution Mapping to attribute metered usage to the customer
 	UsageAttribution CustomerUsageAttribution `json:"usageAttribution"`
@@ -1886,7 +1886,7 @@ type EntitlementBaseTemplate struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod The current usage period.
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
@@ -1901,7 +1901,7 @@ type EntitlementBaseTemplate struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *Metadata `json:"metadata,omitempty"`
@@ -1913,7 +1913,7 @@ type EntitlementBaseTemplate struct {
 	Type EntitlementType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod The defined usage period of the entitlement
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
@@ -1954,7 +1954,7 @@ type EntitlementGrant struct {
 	Amount float64 `json:"amount"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -1963,7 +1963,7 @@ type EntitlementGrant struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 
 	// EntitlementId The unique entitlement ULID that the grant is associated with.
-	EntitlementId *string `json:"entitlementId,omitempty"`
+	EntitlementId string `json:"entitlementId"`
 
 	// Expiration The grant expiration definition
 	Expiration ExpirationPeriod `json:"expiration"`
@@ -1972,7 +1972,7 @@ type EntitlementGrant struct {
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// MaxRolloverAmount Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
 	// Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
@@ -2000,7 +2000,7 @@ type EntitlementGrant struct {
 	Recurrence *RecurringPeriod `json:"recurrence,omitempty"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// VoidedAt The time the grant was voided.
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
@@ -2053,10 +2053,10 @@ type EntitlementMetered struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod The current usage period.
-	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
+	CurrentUsagePeriod Period `json:"currentUsagePeriod"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -2068,7 +2068,7 @@ type EntitlementMetered struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// IsSoftLimit If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
 	IsSoftLimit *bool `json:"isSoftLimit,omitempty"`
@@ -2087,10 +2087,10 @@ type EntitlementMetered struct {
 	IssueAfterResetPriority *uint8 `json:"issueAfterResetPriority,omitempty"`
 
 	// LastReset The time the last reset happened.
-	LastReset *time.Time `json:"lastReset,omitempty"`
+	LastReset time.Time `json:"lastReset"`
 
 	// MeasureUsageFrom The time from which usage is measured. If not specified on creation, defaults to entitlement creation time.
-	MeasureUsageFrom *time.Time `json:"measureUsageFrom,omitempty"`
+	MeasureUsageFrom time.Time `json:"measureUsageFrom"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *Metadata `json:"metadata,omitempty"`
@@ -2103,10 +2103,10 @@ type EntitlementMetered struct {
 	Type       EntitlementMeteredType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod THe usage period of the entitlement.
-	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
+	UsagePeriod RecurringPeriod `json:"usagePeriod"`
 }
 
 // EntitlementMeteredType defines model for EntitlementMetered.Type.
@@ -2188,7 +2188,7 @@ type EntitlementStatic struct {
 	Config json.RawMessage `json:"config"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CurrentUsagePeriod The current usage period.
 	CurrentUsagePeriod *Period `json:"currentUsagePeriod,omitempty"`
@@ -2203,7 +2203,7 @@ type EntitlementStatic struct {
 	FeatureKey string `json:"featureKey"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *Metadata `json:"metadata,omitempty"`
@@ -2213,7 +2213,7 @@ type EntitlementStatic struct {
 	Type       EntitlementStaticType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// UsagePeriod The defined usage period of the entitlement
 	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
@@ -2258,7 +2258,7 @@ type EntitlementValue struct {
 	Config *string `json:"config,omitempty"`
 
 	// HasAccess Whether the subject has access to the feature. Shared accross all entitlement types.
-	HasAccess *bool `json:"hasAccess,omitempty"`
+	HasAccess bool `json:"hasAccess"`
 
 	// Overage Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
 	Overage *float64 `json:"overage,omitempty"`
@@ -2292,13 +2292,13 @@ type Feature struct {
 	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 
 	// Id Readonly unique ULID identifier.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Key A key is a unique string that is used to identify a resource.
 	Key      string    `json:"key"`
@@ -2315,7 +2315,7 @@ type Feature struct {
 	Name      string  `json:"name"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // FeatureCreateInputs Represents a feature that can be enabled or disabled for a plan.
@@ -2467,28 +2467,28 @@ type ForbiddenProblemResponse = UnexpectedProblemResponse
 // A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period.
 type GrantBurnDownHistorySegment struct {
 	// BalanceAtEnd The entitlement balance at the end of the period.
-	BalanceAtEnd *float64 `json:"balanceAtEnd,omitempty"`
+	BalanceAtEnd float64 `json:"balanceAtEnd"`
 
 	// BalanceAtStart entitlement balance at the start of the period.
-	BalanceAtStart *float64 `json:"balanceAtStart,omitempty"`
+	BalanceAtStart float64 `json:"balanceAtStart"`
 
 	// GrantBalancesAtEnd The balance breakdown of each active grant at the end of the period: GrantID: Balance
-	GrantBalancesAtEnd *map[string]float64 `json:"grantBalancesAtEnd,omitempty"`
+	GrantBalancesAtEnd map[string]float64 `json:"grantBalancesAtEnd"`
 
 	// GrantBalancesAtStart The balance breakdown of each active grant at the start of the period: GrantID: Balance
-	GrantBalancesAtStart *map[string]float64 `json:"grantBalancesAtStart,omitempty"`
+	GrantBalancesAtStart map[string]float64 `json:"grantBalancesAtStart"`
 
 	// GrantUsages Which grants were actually burnt down in the period and by what amount.
-	GrantUsages *[]GrantUsageRecord `json:"grantUsages,omitempty"`
+	GrantUsages []GrantUsageRecord `json:"grantUsages"`
 
 	// Overage Overuse that wasn't covered by grants.
-	Overage *float64 `json:"overage,omitempty"`
+	Overage float64 `json:"overage"`
 
 	// Period The period of the segment.
 	Period Period `json:"period"`
 
 	// Usage The total usage of the grant in the period.
-	Usage *float64 `json:"usage,omitempty"`
+	Usage float64 `json:"usage"`
 }
 
 // GrantOrderBy Order by options for grants.
@@ -2521,7 +2521,7 @@ type GrantUsageRecord struct {
 // IDResource IDResource is a resouce with an ID.
 type IDResource struct {
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 }
 
 // IngestEventsBody The body of the events request.
@@ -2564,7 +2564,7 @@ type InternalServerErrorProblemResponse = UnexpectedProblemResponse
 // Invoice Invoice represents an invoice in the system.
 type Invoice struct {
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency Currency for all invoice line items.
 	//
@@ -2597,7 +2597,7 @@ type Invoice struct {
 	ExternalIds *InvoiceAppExternalIds `json:"externalIds,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// IssuedAt The time the invoice was issued.
 	//
@@ -2620,7 +2620,7 @@ type Invoice struct {
 	// Please note that the number is (depending on the upstream settings) either unique for the
 	// whole organization or unique for the customer, or in multi (stripe) account setups unique for the
 	// account.
-	Number *InvoiceNumber `json:"number,omitempty"`
+	Number InvoiceNumber `json:"number"`
 
 	// Payment Information on when, how, and to whom the invoice should be paid.
 	Payment *InvoicePaymentTerms `json:"payment,omitempty"`
@@ -2637,16 +2637,16 @@ type Invoice struct {
 	// Status The status of the invoice.
 	//
 	// This field only conatins a simplified status, for more detailed information use the statusDetails field.
-	Status *InvoiceStatus `json:"status,omitempty"`
+	Status InvoiceStatus `json:"status"`
 
 	// StatusDetails The details of the current invoice status.
-	StatusDetails *InvoiceStatusDetails `json:"statusDetails,omitempty"`
+	StatusDetails InvoiceStatusDetails `json:"statusDetails"`
 
 	// Supplier The taxable entity supplying the goods or services.
 	Supplier BillingParty `json:"supplier"`
 
 	// Totals Summary of all the invoice totals, including taxes (calculated).
-	Totals *InvoiceTotals `json:"totals,omitempty"`
+	Totals InvoiceTotals `json:"totals"`
 
 	// Type Type of the invoice.
 	//
@@ -2655,10 +2655,10 @@ type Invoice struct {
 	// Supported types:
 	// - standard: A regular commercial invoice document between a supplier and customer.
 	// - credit_note: Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.
-	Type *InvoiceType `json:"type,omitempty"`
+	Type InvoiceType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// ValidationIssues Validation issues reported by the invoice workflow.
 	ValidationIssues *[]ValidationIssue `json:"validationIssues,omitempty"`
@@ -2694,7 +2694,7 @@ type InvoiceAvailableActionDetails struct {
 	// all intermediate steps are successful.
 	//
 	// For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice.
-	ResultingState *string `json:"resultingState,omitempty"`
+	ResultingState string `json:"resultingState"`
 }
 
 // InvoiceAvailableActionInvoiceDetails InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
@@ -2750,7 +2750,7 @@ type InvoiceFlatFeeLine struct {
 	Children *[]InvoiceLine `json:"children,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency The currency of this line.
 	Currency CurrencyCode `json:"currency"`
@@ -2780,7 +2780,7 @@ type InvoiceFlatFeeLine struct {
 	InvoiceAt time.Time `json:"invoiceAt"`
 
 	// ManagedBy managedBy specifies if the line is manually added via the api or managed by OpenMeter.
-	ManagedBy *InvoiceLineManagedBy `json:"managedBy,omitempty"`
+	ManagedBy InvoiceLineManagedBy `json:"managedBy"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -2806,7 +2806,7 @@ type InvoiceFlatFeeLine struct {
 	//
 	// External calls always create valid lines, other line types are managed by the
 	// billing engine of OpenMeter.
-	Status *InvoiceLineStatus `json:"status,omitempty"`
+	Status InvoiceLineStatus `json:"status"`
 
 	// Subscriptions Subscription are the references to the subscritpions that this line is related to.
 	Subscriptions *InvoiceLineSubscriptionReference `json:"subscriptions,omitempty"`
@@ -2818,13 +2818,13 @@ type InvoiceFlatFeeLine struct {
 	Taxes *[]InvoiceLineTaxItem `json:"taxes,omitempty"`
 
 	// Totals Totals for this line.
-	Totals *InvoiceTotals `json:"totals,omitempty"`
+	Totals InvoiceTotals `json:"totals"`
 
 	// Type Type of the line.
 	Type InvoiceFlatFeeLineType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // InvoiceFlatFeeLineType Type of the line.
@@ -2935,7 +2935,7 @@ type InvoiceGenericDocumentRef struct {
 	Reason *string `json:"reason,omitempty"`
 
 	// Type Type of the document referenced.
-	Type *InvoiceDocumentRefType `json:"type,omitempty"`
+	Type InvoiceDocumentRefType `json:"type"`
 }
 
 // InvoiceLine BillingInvoiceLine represents a line item that is sold to the customer based on a specific (unit) price.
@@ -2961,7 +2961,7 @@ type InvoiceLineDiscount struct {
 	Code *string `json:"code,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -2973,13 +2973,13 @@ type InvoiceLineDiscount struct {
 	ExternalIds *InvoiceLineAppExternalIds `json:"externalIds,omitempty"`
 
 	// Id ID of the charge or discount.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Percent Percentage if fixed amount not applied
 	Percent *Percentage `json:"percent,omitempty"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // InvoiceLineManagedBy InvoiceLineManagedBy specifies who manages the line.
@@ -2996,13 +2996,13 @@ type InvoiceLineStatus string
 // InvoiceLineSubscriptionReference InvoiceLineSubscriptionReference contains the references to the subscriptions that this line is related to.
 type InvoiceLineSubscriptionReference struct {
 	// Item The item this line is related to.
-	Item *IDResource `json:"item,omitempty"`
+	Item IDResource `json:"item"`
 
 	// Phase The phase of the subscription.
-	Phase *IDResource `json:"phase,omitempty"`
+	Phase IDResource `json:"phase"`
 
 	// Subscription The subscription.
-	Subscription *IDResource `json:"subscription,omitempty"`
+	Subscription IDResource `json:"subscription"`
 }
 
 // InvoiceLineTaxBehavior InvoiceLineTaxBehavior details how the tax item is applied to the base amount.
@@ -3096,7 +3096,7 @@ type InvoicePendingLinesActionInput struct {
 // InvoiceReference Reference to an invoice.
 type InvoiceReference struct {
 	// Id The ID of the invoice.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Number The number of the invoice.
 	Number *InvoiceNumber `json:"number,omitempty"`
@@ -3253,37 +3253,37 @@ type InvoiceStatusDetails struct {
 	AvailableActions InvoiceAvailableActions `json:"availableActions"`
 
 	// ExtendedStatus Extended status information for the invoice.
-	ExtendedStatus *string `json:"extendedStatus,omitempty"`
+	ExtendedStatus string `json:"extendedStatus"`
 
 	// Failed Is the invoice in a failed state?
-	Failed *bool `json:"failed,omitempty"`
+	Failed bool `json:"failed"`
 
 	// Immutable Is the invoice editable?
-	Immutable *bool `json:"immutable,omitempty"`
+	Immutable bool `json:"immutable"`
 }
 
 // InvoiceTotals Totals contains the summaries of all calculations for the invoice.
 type InvoiceTotals struct {
 	// Amount The total value of the line before taxes, discounts and commitments.
-	Amount *Numeric `json:"amount,omitempty"`
+	Amount Numeric `json:"amount"`
 
 	// ChargesTotal The amount of value of the line that are due to additional charges.
-	ChargesTotal *Numeric `json:"chargesTotal,omitempty"`
+	ChargesTotal Numeric `json:"chargesTotal"`
 
 	// DiscountsTotal The amount of value of the line that are due to discounts.
-	DiscountsTotal *Numeric `json:"discountsTotal,omitempty"`
+	DiscountsTotal Numeric `json:"discountsTotal"`
 
 	// TaxesExclusiveTotal The total amount of taxes that are added on top of amount from the line.
-	TaxesExclusiveTotal *Numeric `json:"taxesExclusiveTotal,omitempty"`
+	TaxesExclusiveTotal Numeric `json:"taxesExclusiveTotal"`
 
 	// TaxesInclusiveTotal The total amount of taxes that are included in the line.
-	TaxesInclusiveTotal *Numeric `json:"taxesInclusiveTotal,omitempty"`
+	TaxesInclusiveTotal Numeric `json:"taxesInclusiveTotal"`
 
 	// TaxesTotal The total amount of taxes for this line.
-	TaxesTotal *Numeric `json:"taxesTotal,omitempty"`
+	TaxesTotal Numeric `json:"taxesTotal"`
 
 	// Total The total amount value of the line after taxes, discounts and commitments.
-	Total *Numeric `json:"total,omitempty"`
+	Total Numeric `json:"total"`
 }
 
 // InvoiceType InvoiceType represents the type of invoice.
@@ -3303,7 +3303,7 @@ type InvoiceUsageBasedLine struct {
 	Children *[]InvoiceLine `json:"children,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency The currency of this line.
 	Currency CurrencyCode `json:"currency"`
@@ -3336,7 +3336,7 @@ type InvoiceUsageBasedLine struct {
 	InvoiceAt time.Time `json:"invoiceAt"`
 
 	// ManagedBy managedBy specifies if the line is manually added via the api or managed by OpenMeter.
-	ManagedBy *InvoiceLineManagedBy `json:"managedBy,omitempty"`
+	ManagedBy InvoiceLineManagedBy `json:"managedBy"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -3364,7 +3364,7 @@ type InvoiceUsageBasedLine struct {
 	//
 	// External calls always create valid lines, other line types are managed by the
 	// billing engine of OpenMeter.
-	Status *InvoiceLineStatus `json:"status,omitempty"`
+	Status InvoiceLineStatus `json:"status"`
 
 	// Subscriptions Subscription are the references to the subscritpions that this line is related to.
 	Subscriptions *InvoiceLineSubscriptionReference `json:"subscriptions,omitempty"`
@@ -3376,13 +3376,13 @@ type InvoiceUsageBasedLine struct {
 	Taxes *[]InvoiceLineTaxItem `json:"taxes,omitempty"`
 
 	// Totals Totals for this line.
-	Totals *InvoiceTotals `json:"totals,omitempty"`
+	Totals InvoiceTotals `json:"totals"`
 
 	// Type Type of the line.
 	Type InvoiceUsageBasedLineType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // InvoiceUsageBasedLineType Type of the line.
@@ -3504,7 +3504,7 @@ type InvoiceWorkflowSettings struct {
 	//
 	// The profile is snapshotted on invoice creation, after which it can be altered independently
 	// of the profile itself.
-	SourceBillingProfileId *string `json:"sourceBillingProfileId,omitempty"`
+	SourceBillingProfileId string `json:"sourceBillingProfileId"`
 
 	// Workflow The workflow details used by this invoice.
 	Workflow BillingWorkflow `json:"workflow"`
@@ -3602,7 +3602,7 @@ type Meter struct {
 	Aggregation MeterAggregation `json:"aggregation"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -3626,7 +3626,7 @@ type Meter struct {
 	GroupBy *map[string]string `json:"groupBy,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -3640,7 +3640,7 @@ type Meter struct {
 	Slug string `json:"slug"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// ValueProperty JSONPath expression to extract the value from the ingested event's data property.
 	//
@@ -3769,10 +3769,10 @@ type NotificationChannelCreateRequest = NotificationChannelWebhookCreateRequest
 // NotificationChannelMeta Metadata only fields of a notification channel.
 type NotificationChannelMeta struct {
 	// Id Identifies the notification channel.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Type Notification channel type.
-	Type *NotificationChannelType `json:"type,omitempty"`
+	Type NotificationChannelType `json:"type"`
 }
 
 // NotificationChannelOrderBy Order by options for notification channels.
@@ -3799,7 +3799,7 @@ type NotificationChannelType string
 // NotificationChannelWebhook Notification channel with webhook type.
 type NotificationChannelWebhook struct {
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// CustomHeaders Custom HTTP headers sent as part of the webhook request.
 	CustomHeaders *map[string]string `json:"customHeaders,omitempty"`
@@ -3811,7 +3811,7 @@ type NotificationChannelWebhook struct {
 	Disabled *bool `json:"disabled,omitempty"`
 
 	// Id Identifies the notification channel.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Name User friendly name of the channel.
 	Name string `json:"name"`
@@ -3825,7 +3825,7 @@ type NotificationChannelWebhook struct {
 	Type NotificationChannelWebhookType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Url Webhook URL where the notification is sent.
 	Url string `json:"url"`
@@ -3866,37 +3866,37 @@ type NotificationEvent struct {
 	Annotations *Annotations `json:"annotations,omitempty"`
 
 	// CreatedAt Timestamp when the notification event was created in RFC 3339 format.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeliveryStatus The delivery status of the notification event.
-	DeliveryStatus *[]NotificationEventDeliveryStatus `json:"deliveryStatus,omitempty"`
+	DeliveryStatus []NotificationEventDeliveryStatus `json:"deliveryStatus"`
 
 	// Id A unique identifier of the notification event.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Payload Timestamp when the notification event was created in RFC 3339 format.
-	Payload *NotificationEventPayload `json:"payload,omitempty"`
+	Payload NotificationEventPayload `json:"payload"`
 
 	// Rule The nnotification rule which generated this event.
-	Rule *NotificationRule `json:"rule,omitempty"`
+	Rule NotificationRule `json:"rule"`
 
 	// Type Type of the notification event.
-	Type *NotificationEventType `json:"type,omitempty"`
+	Type NotificationEventType `json:"type"`
 }
 
 // NotificationEventBalanceThresholdPayload Payload for notification event with `entitlements.balance.threshold` type.
 type NotificationEventBalanceThresholdPayload struct {
 	// Data The data of the payload.
-	Data *NotificationEventBalanceThresholdPayloadData `json:"data,omitempty"`
+	Data NotificationEventBalanceThresholdPayloadData `json:"data"`
 
 	// Id A unique identifier for the notification event the payload belongs to.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Timestamp Timestamp when the notification event was created in RFC 3339 format.
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 
 	// Type Type of the notification event.
-	Type *NotificationEventBalanceThresholdPayloadType `json:"type,omitempty"`
+	Type NotificationEventBalanceThresholdPayloadType `json:"type"`
 }
 
 // NotificationEventBalanceThresholdPayloadType Type of the notification event.
@@ -3904,26 +3904,26 @@ type NotificationEventBalanceThresholdPayloadType string
 
 // NotificationEventBalanceThresholdPayloadData Data of the payload for notification event with `entitlements.balance.threshold` type.
 type NotificationEventBalanceThresholdPayloadData struct {
-	Entitlement *EntitlementMetered                    `json:"entitlement,omitempty"`
-	Feature     *Feature                               `json:"feature,omitempty"`
-	Subject     *Subject                               `json:"subject,omitempty"`
-	Threshold   *NotificationRuleBalanceThresholdValue `json:"threshold,omitempty"`
-	Value       *EntitlementValue                      `json:"value,omitempty"`
+	Entitlement EntitlementMetered                    `json:"entitlement"`
+	Feature     Feature                               `json:"feature"`
+	Subject     Subject                               `json:"subject"`
+	Threshold   NotificationRuleBalanceThresholdValue `json:"threshold"`
+	Value       EntitlementValue                      `json:"value"`
 }
 
 // NotificationEventDeliveryStatus The delivery status of the notification event.
 type NotificationEventDeliveryStatus struct {
 	// Channel Notification channel the delivery sattus associated with.
-	Channel *NotificationChannelMeta `json:"channel,omitempty"`
+	Channel NotificationChannelMeta `json:"channel"`
 
 	// Reason The reason of the last deliverry state update.
-	Reason *string `json:"reason,omitempty"`
+	Reason string `json:"reason"`
 
 	// State Delivery state of the notification event to the channel.
-	State *NotificationEventDeliveryStatusState `json:"state,omitempty"`
+	State NotificationEventDeliveryStatusState `json:"state"`
 
 	// UpdatedAt Timestamp of when the status was last updated in RFC 3339 format.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // NotificationEventDeliveryStatusState The delivery state of the notification event to the channel.
@@ -3962,7 +3962,7 @@ type NotificationRuleBalanceThreshold struct {
 	Channels []NotificationChannelMeta `json:"channels"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -3974,7 +3974,7 @@ type NotificationRuleBalanceThreshold struct {
 	Features *[]FeatureMeta `json:"features,omitempty"`
 
 	// Id Identifies the notification rule.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Name The user friendly name of the notification rule.
 	Name string `json:"name"`
@@ -3986,7 +3986,7 @@ type NotificationRuleBalanceThreshold struct {
 	Type NotificationRuleBalanceThresholdType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // NotificationRuleBalanceThresholdType Notification rule type.
@@ -4058,13 +4058,13 @@ type OAuth2AuthorizationCodeGrantErrorType string
 // PaymentDueDate PaymentDueDate contains an amount that should be paid by the given date.
 type PaymentDueDate struct {
 	// Amount How much needs to be paid by the date.
-	Amount *Numeric `json:"amount,omitempty"`
+	Amount Numeric `json:"amount"`
 
 	// Currency If different from the parent document's base currency.
 	Currency *CurrencyCode `json:"currency,omitempty"`
 
 	// DueAt When the payment is due.
-	DueAt *time.Time `json:"dueAt,omitempty"`
+	DueAt time.Time `json:"dueAt"`
 
 	// Notes Other details to take into account for the due date.
 	Notes *string `json:"notes,omitempty"`
@@ -4079,7 +4079,7 @@ type PaymentTermDueDate struct {
 	Detail *string `json:"detail,omitempty"`
 
 	// DueAt When the payment is due.
-	DueAt *[]PaymentDueDate `json:"dueAt,omitempty"`
+	DueAt []PaymentDueDate `json:"dueAt"`
 
 	// Notes Description of the conditions for payment.
 	Notes *string `json:"notes,omitempty"`
@@ -4131,7 +4131,7 @@ type Plan struct {
 	Alignment *Alignment `json:"alignment,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency The currency code of the plan.
 	Currency CurrencyCode `json:"currency"`
@@ -4149,7 +4149,7 @@ type Plan struct {
 	EffectiveTo *time.Time `json:"effectiveTo,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Key A semi-unique identifier for the resource.
 	Key string `json:"key"`
@@ -4170,13 +4170,13 @@ type Plan struct {
 	// - active = effectiveFrom <= now < effectiveTo
 	// - archived / inactive = effectiveTo <= now
 	// - scheduled = now < effectiveFrom < effectiveTo
-	Status *PlanStatus `json:"status,omitempty"`
+	Status PlanStatus `json:"status"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Version Version of the plan. Incremented when the plan is updated.
-	Version *int `json:"version,omitempty"`
+	Version int `json:"version"`
 }
 
 // PlanCreate Resource create operation model.
@@ -4604,7 +4604,7 @@ type ResetEntitlementUsageInput struct {
 // verifying OpenMeter features.
 type SandboxApp struct {
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Default Default for the app type
 	// Only one app of each type can be default.
@@ -4617,10 +4617,10 @@ type SandboxApp struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Listing The marketplace listing that this installed app is based on.
-	Listing *MarketplaceListing `json:"listing,omitempty"`
+	Listing MarketplaceListing `json:"listing"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -4629,13 +4629,13 @@ type SandboxApp struct {
 	Name string `json:"name"`
 
 	// Status Status of the app connection.
-	Status *AppStatus `json:"status,omitempty"`
+	Status AppStatus `json:"status"`
 
 	// Type The app's type is Sandbox.
 	Type SandboxAppType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // SandboxAppType The app's type is Sandbox.
@@ -4673,7 +4673,7 @@ type StripeAPIKeyInput struct {
 // StripeApp A installed Stripe app object.
 type StripeApp struct {
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Default Default for the app type
 	// Only one app of each type can be default.
@@ -4686,10 +4686,10 @@ type StripeApp struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Listing The marketplace listing that this installed app is based on.
-	Listing *MarketplaceListing `json:"listing,omitempty"`
+	Listing MarketplaceListing `json:"listing"`
 
 	// Livemode Livemode, true if the app is in production mode.
 	Livemode bool `json:"livemode"`
@@ -4705,7 +4705,7 @@ type StripeApp struct {
 	Name string `json:"name"`
 
 	// Status Status of the app connection.
-	Status *AppStatus `json:"status,omitempty"`
+	Status AppStatus `json:"status"`
 
 	// StripeAccountId The Stripe account ID.
 	StripeAccountId string `json:"stripeAccountId"`
@@ -4714,7 +4714,7 @@ type StripeApp struct {
 	Type StripeAppType `json:"type"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // StripeAppType The app's type is Stripe.
@@ -4798,7 +4798,7 @@ type Subject struct {
 	DisplayName *string `json:"displayName"`
 
 	// Id A unique identifier for the subject.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Key A unique, human-readable identifier for the subject.
 	Key              string                  `json:"key"`
@@ -4835,7 +4835,7 @@ type Subscription struct {
 	Alignment *Alignment `json:"alignment,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency The currency code of the subscription.
 	// Will be revised once we add multi currency support.
@@ -4851,7 +4851,7 @@ type Subscription struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -4863,10 +4863,10 @@ type Subscription struct {
 	Plan *PlanReference `json:"plan,omitempty"`
 
 	// Status The status of the subscription.
-	Status *SubscriptionStatus `json:"status,omitempty"`
+	Status SubscriptionStatus `json:"status"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // SubscriptionAlignment Alignment details enriched with the current billing period.
@@ -4925,7 +4925,7 @@ type SubscriptionExpanded struct {
 	Alignment *SubscriptionAlignment `json:"alignment,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// Currency The currency code of the subscription.
 	// Will be revised once we add multi currency support.
@@ -4941,7 +4941,7 @@ type SubscriptionExpanded struct {
 	Description *string `json:"description,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Metadata Additional metadata for the resource.
 	Metadata *Metadata `json:"metadata"`
@@ -4956,10 +4956,10 @@ type SubscriptionExpanded struct {
 	Plan *PlanReference `json:"plan,omitempty"`
 
 	// Status The status of the subscription.
-	Status *SubscriptionStatus `json:"status,omitempty"`
+	Status SubscriptionStatus `json:"status"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // SubscriptionItem The actual contents of the Subscription, what the user gets, what they pay, etc...
@@ -4975,7 +4975,7 @@ type SubscriptionItem struct {
 	BillingCadence *string `json:"billingCadence"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -4987,7 +4987,7 @@ type SubscriptionItem struct {
 	FeatureKey *string `json:"featureKey,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Included Describes what access is gained via the SubscriptionItem
 	Included *SubscriptionItemIncluded `json:"included,omitempty"`
@@ -5019,7 +5019,7 @@ type SubscriptionItem struct {
 	TaxConfig *TaxConfig `json:"taxConfig,omitempty"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // SubscriptionItemIncluded Included contents like Entitlement, or the Feature.
@@ -5078,7 +5078,7 @@ type SubscriptionPhaseExpanded struct {
 	ActiveTo *time.Time `json:"activeTo,omitempty"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -5090,7 +5090,7 @@ type SubscriptionPhaseExpanded struct {
 	Discounts *[]Discount `json:"discounts,omitempty"`
 
 	// Id A unique identifier for the resource.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// ItemTimelines Includes all versions of the items on each key, including all edits, scheduled changes, etc...
 	ItemTimelines map[string][]SubscriptionItem `json:"itemTimelines"`
@@ -5112,7 +5112,7 @@ type SubscriptionPhaseExpanded struct {
 	Name string `json:"name"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // SubscriptionStatus Subscription status.
@@ -5238,10 +5238,10 @@ type ValidationIssue struct {
 	Code *string `json:"code,omitempty"`
 
 	// Component Component reporting the issue.
-	Component *string `json:"component,omitempty"`
+	Component string `json:"component"`
 
 	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// DeletedAt Timestamp of when the resource was permanently deleted.
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
@@ -5250,19 +5250,19 @@ type ValidationIssue struct {
 	Field *string `json:"field,omitempty"`
 
 	// Id ID of the charge or discount.
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Message A human-readable description of the issue.
-	Message *string `json:"message,omitempty"`
+	Message string `json:"message"`
 
 	// Metadata Additional context for the issue.
 	Metadata *Metadata `json:"metadata,omitempty"`
 
 	// Severity The severity of the issue.
-	Severity *ValidationIssueSeverity `json:"severity,omitempty"`
+	Severity ValidationIssueSeverity `json:"severity"`
 
 	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // ValidationIssueSeverity ValidationIssueSeverity describes the severity of a validation issue.
