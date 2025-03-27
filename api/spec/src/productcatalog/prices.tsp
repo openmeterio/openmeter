@@ -8,6 +8,8 @@ enum PriceType {
   flat: "flat",
   unit: "unit",
   tiered: "tiered",
+  dynamic: "dynamic",
+  package: "package",
 }
 
 /**
@@ -25,6 +27,12 @@ union Price {
 
   @summary("Tiered price")
   tiered: TieredPrice,
+
+  @summary("Dynamic price")
+  dynamic: DynamicPrice,
+
+  @summary("Package price")
+  package: PackagePrice,
 }
 
 /**
@@ -172,6 +180,74 @@ model PriceTier {
 }
 
 /**
+ * Dynamic price.
+ *
+ * The underlying meter's value is considered the base price in the
+ * customer's currency.
+ *
+ * The rate specifies the markup over the price.
+ */
+@friendlyName("DynamicPrice")
+model DynamicPrice {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.dynamic;
+
+  /**
+   * The rate to apply to the base price to get the dynamic price.
+   *
+   * Examples:
+   * - 0.0: the price is zero
+   * - 0.5: the price is 50% of the base price
+   * - 1.0: the price is the same as the base price
+   * - 1.5: the price is 150% of the base price
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("The rate to apply to the base price to get the dynamic price")
+  markupRate?: Numeric = "1";
+}
+
+/**
+ * Package price.
+ *
+ * The item is sold in packages. Each package contains quantityPerPackage items, the price of the
+ * package is set in amount.
+ *
+ * The total price of the usage will be enough packages that can accomodate all the usage.
+ *
+ * Examples (given a package size of 20, and an amount of $10):
+ * - if the quantity is 98, the price will be 5*$10=$50.
+ * - if the quantity is zero, the price will be 0*$10=$0, as even the first package is not purchased.
+ * - if the quantity is 20, the price will be 1*$10=$10, as the usage fits into the first package.
+ * - if the quantity is 20.1, the price will be 2*$10=$20, as the additional 0.1 usage (compared to the
+ *   previous example) requires a new package.
+ */
+@friendlyName("PackagePrice")
+model PackagePrice {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.package;
+
+  /**
+   * The price of one package.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Amount")
+  amount: Money;
+
+  /**
+   * The quantity per package.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Quantity per package")
+  quantityPerPackage: Numeric;
+}
+
+/**
  * Spending commitments.
  * The customer is committed to spend at least the minimum amount and at most the maximum amount.
  */
@@ -207,5 +283,23 @@ model UnitPriceWithCommitments {
 @friendlyName("TieredPriceWithCommitments")
 model TieredPriceWithCommitments {
   ...TieredPrice;
+  ...SpendCommitments;
+}
+
+/**
+ * Dynamic price with spend commitments.
+ */
+@friendlyName("DynamicPriceWithCommitments")
+model DynamicPriceWithCommitments {
+  ...DynamicPrice;
+  ...SpendCommitments;
+}
+
+/**
+ * Package price with spend commitments.
+ */
+@friendlyName("PackagePriceWithCommitments")
+model PackagePriceWithCommitments {
+  ...PackagePrice;
   ...SpendCommitments;
 }

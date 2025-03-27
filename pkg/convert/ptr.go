@@ -1,6 +1,11 @@
 package convert
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/samber/lo"
+)
 
 func ToPointer[T any](value T) *T {
 	return &value
@@ -45,4 +50,13 @@ func DerefHeaderPtr[E any, T Header[E]](header *T) T {
 		return nil
 	}
 	return *header
+}
+
+// StringerPtrToStringPtr converts a pointer to a type with String() method to a pointer to a string
+// It returns nil if the input is nil
+func StringerPtrToStringPtr[T fmt.Stringer](value *T) *string {
+	if value == nil {
+		return nil
+	}
+	return lo.ToPtr((*value).String())
 }

@@ -11780,6 +11780,70 @@ components:
       enum:
         - percentage
       description: The type of the discount.
+    DynamicPrice:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - dynamic
+          description: The type of the price.
+        markupRate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The rate to apply to the base price to get the dynamic price.
+
+            Examples:
+            - 0.0: the price is zero
+            - 0.5: the price is 50% of the base price
+            - 1.0: the price is the same as the base price
+            - 1.5: the price is 150% of the base price
+          title: The rate to apply to the base price to get the dynamic price
+          default: '1'
+      description: |-
+        Dynamic price.
+
+        The underlying meter's value is considered the base price in the
+        customer's currency.
+
+        The rate specifies the markup over the price.
+    DynamicPriceWithCommitments:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - dynamic
+          description: The type of the price.
+        markupRate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The rate to apply to the base price to get the dynamic price.
+
+            Examples:
+            - 0.0: the price is zero
+            - 0.5: the price is 50% of the base price
+            - 1.0: the price is the same as the base price
+            - 1.5: the price is 150% of the base price
+          title: The rate to apply to the base price to get the dynamic price
+          default: '1'
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Dynamic price with spend commitments.
     EditOp:
       type: string
       enum:
@@ -16361,6 +16425,75 @@ components:
         - server_error
         - temporarily_unavailable
       description: OAuth2 authorization code grant error types.
+    PackagePrice:
+      type: object
+      required:
+        - type
+        - amount
+        - quantityPerPackage
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The price of one package.
+          title: Amount
+        quantityPerPackage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity per package.
+          title: Quantity per package
+      description: |-
+        Package price.
+
+        The item is sold in packages. Each package contains quantityPerPackage items, the price of the
+        package is set in amount.
+
+        The total price of the usage will be enough packages that can accomodate all the usage.
+
+        Examples (given a package size of 20, and an amount of $10):
+        - if the quantity is 98, the price will be 5*$10=$50.
+        - if the quantity is zero, the price will be 0*$10=$0, as even the first package is not purchased.
+        - if the quantity is 20, the price will be 1*$10=$10, as the usage fits into the first package.
+        - if the quantity is 20.1, the price will be 2*$10=$20, as the additional 0.1 usage (compared to the
+        previous example) requires a new package.
+    PackagePriceWithCommitments:
+      type: object
+      required:
+        - type
+        - amount
+        - quantityPerPackage
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+          description: The type of the price.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The price of one package.
+          title: Amount
+        quantityPerPackage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity per package.
+          title: Quantity per package
+        minimumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximumAmount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: Package price with spend commitments.
     PaymentDueDate:
       type: object
       required:
@@ -16943,12 +17076,16 @@ components:
         - $ref: '#/components/schemas/FlatPrice'
         - $ref: '#/components/schemas/UnitPrice'
         - $ref: '#/components/schemas/TieredPrice'
+        - $ref: '#/components/schemas/DynamicPrice'
+        - $ref: '#/components/schemas/PackagePrice'
       discriminator:
         propertyName: type
         mapping:
           flat: '#/components/schemas/FlatPrice'
           unit: '#/components/schemas/UnitPrice'
           tiered: '#/components/schemas/TieredPrice'
+          dynamic: '#/components/schemas/DynamicPrice'
+          package: '#/components/schemas/PackagePrice'
       description: |-
         Price.
         One of: flat, unit, or tiered.
@@ -16996,6 +17133,8 @@ components:
         - flat
         - unit
         - tiered
+        - dynamic
+        - package
       description: The type of the price.
     Progress:
       type: object
@@ -17356,12 +17495,16 @@ components:
         - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
         - $ref: '#/components/schemas/UnitPriceWithCommitments'
         - $ref: '#/components/schemas/TieredPriceWithCommitments'
+        - $ref: '#/components/schemas/DynamicPriceWithCommitments'
+        - $ref: '#/components/schemas/PackagePriceWithCommitments'
       discriminator:
         propertyName: type
         mapping:
           flat: '#/components/schemas/FlatPriceWithPaymentTerm'
           unit: '#/components/schemas/UnitPriceWithCommitments'
           tiered: '#/components/schemas/TieredPriceWithCommitments'
+          dynamic: '#/components/schemas/DynamicPriceWithCommitments'
+          package: '#/components/schemas/PackagePriceWithCommitments'
       description: The price of the usage based rate card.
     RecurringPeriod:
       type: object
