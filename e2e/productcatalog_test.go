@@ -376,7 +376,7 @@ func TestPlan(t *testing.T) {
 		subscription := apiRes.JSON201
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
-		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, subscription.Status)
+		assert.Equal(t, api.SubscriptionStatusActive, subscription.Status)
 		assert.Nil(t, subscription.Plan)
 
 		customSubscriptionId = subscription.Id
@@ -431,7 +431,7 @@ func TestPlan(t *testing.T) {
 		subscription := apiRes.JSON201
 		require.NotNil(t, subscription)
 		require.NotNil(t, subscription.Id)
-		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, subscription.Status)
+		assert.Equal(t, api.SubscriptionStatusActive, subscription.Status)
 		assert.Equal(t, planId, subscription.Plan.Id)
 
 		subscriptionId = subscription.Id
@@ -450,7 +450,7 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, subscription.Id)
 
 		assert.Equal(t, subscriptionId, subscription.Id)
-		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, subscription.Status)
+		assert.Equal(t, api.SubscriptionStatusActive, subscription.Status)
 
 		// Should have the current period info
 		assert.NotNil(t, subscription.Alignment)
@@ -540,7 +540,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 
 		require.NotNil(t, apiRes.JSON200)
-		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusCanceled, apiRes.JSON200.Status)
+		assert.Equal(t, api.SubscriptionStatusCanceled, apiRes.JSON200.Status)
 	})
 
 	t.Run("Should unschedule cancellation", func(t *testing.T) {
@@ -552,7 +552,7 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
 
 		require.NotNil(t, apiRes.JSON200)
-		assert.Equal(t, api.SubscriptionStatusSubscriptionStatusActive, apiRes.JSON200.Status)
+		assert.Equal(t, api.SubscriptionStatusActive, apiRes.JSON200.Status)
 	})
 
 	t.Run("Should create and publish a new version of the plan", func(t *testing.T) {
