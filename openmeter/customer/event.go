@@ -130,7 +130,7 @@ func (e CustomerDeleteEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
 		ID:     metadata.GetMutationEventID(metadata.EntityMutationTypeDelete, e.Previous.ID, e.deletedAt),
 		Source: metadata.ComposeResourcePath(e.Previous.Namespace, metadata.EntityCustomer, e.Previous.ID),
-		Time:   *e.Previous.DeletedAt,
+		Time:   e.deletedAt,
 	}
 }
 
