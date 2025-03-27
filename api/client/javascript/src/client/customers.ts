@@ -39,18 +39,18 @@ export class Customers {
 
   /**
    * Get a customer by ID
-   * @param id - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param signal - An optional abort signal
    * @returns The customer
    */
   public async get(
-    id: operations['getCustomer']['parameters']['path']['id'],
+    customerIdOrKey: operations['getCustomer']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{id}', {
+    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}', {
       params: {
         path: {
-          id,
+          customerIdOrKey,
         },
       },
       ...options,
@@ -61,21 +61,21 @@ export class Customers {
 
   /**
    * Update a customer
-   * @param id - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param customer - The customer to update
    * @param signal - An optional abort signal
    * @returns The updated customer
    */
   public async update(
-    id: operations['updateCustomer']['parameters']['path']['id'],
+    customerIdOrKey: operations['updateCustomer']['parameters']['path']['customerIdOrKey'],
     customer: CustomerReplaceUpdate,
     options?: RequestOptions
   ) {
-    const resp = await this.client.PUT('/api/v1/customers/{id}', {
+    const resp = await this.client.PUT('/api/v1/customers/{customerIdOrKey}', {
       body: customer,
       params: {
         path: {
-          id,
+          customerIdOrKey,
         },
       },
       ...options,
@@ -86,18 +86,18 @@ export class Customers {
 
   /**
    * Delete a customer
-   * @param id - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param signal - An optional abort signal
    * @returns The deleted customer
    */
   public async delete(
-    id: operations['deleteCustomer']['parameters']['path']['id'],
+    customerIdOrKey: operations['deleteCustomer']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions
   ) {
-    const resp = await this.client.DELETE('/api/v1/customers/{id}', {
+    const resp = await this.client.DELETE('/api/v1/customers/{customerIdOrKey}', {
       params: {
         path: {
-          id,
+          customerIdOrKey,
         },
       },
       ...options,
@@ -131,25 +131,25 @@ export class Customers {
  * Manage customer apps.
  */
 export class CustomerApps {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Upsert customer app data
-   * @param customerId - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param appData - The app data to upsert
    * @param signal - An optional abort signal
    * @returns The upserted app data
    */
   public async upsert(
-    customerId: operations['upsertCustomerAppData']['parameters']['path']['customerId'],
+    customerIdOrKey: operations['upsertCustomerAppData']['parameters']['path']['customerIdOrKey'],
     appData: CustomerAppData[],
     options?: RequestOptions
   ) {
-    const resp = await this.client.PUT('/api/v1/customers/{customerId}/apps', {
+    const resp = await this.client.PUT('/api/v1/customers/{customerIdOrKey}/apps', {
       body: appData,
       params: {
         path: {
-          customerId,
+          customerIdOrKey,
         },
       },
       ...options,
@@ -160,19 +160,19 @@ export class CustomerApps {
 
   /**
    * List customer app data
-   * @param customerId - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param query - The query parameters
    * @param signal - An optional abort signal
    * @returns The list of customer app data
    */
   public async list(
-    customerId: operations['listCustomerAppData']['parameters']['path']['customerId'],
+    customerIdOrKey: operations['listCustomerAppData']['parameters']['path']['customerIdOrKey'],
     query?: operations['listCustomerAppData']['parameters']['query'],
     options?: RequestOptions
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerId}/apps', {
+    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/apps', {
       params: {
-        path: { customerId },
+        path: { customerIdOrKey },
         query,
       },
       ...options,
@@ -183,20 +183,20 @@ export class CustomerApps {
 
   /**
    * Delete customer app data
-   * @param customerId - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param appId - The ID of the app
    * @param signal - An optional abort signal
    * @returns The deleted customer app data
    */
   public async delete(
-    customerId: operations['deleteCustomerAppData']['parameters']['path']['customerId'],
+    customerIdOrKey: operations['deleteCustomerAppData']['parameters']['path']['customerIdOrKey'],
     appId: operations['deleteCustomerAppData']['parameters']['path']['appId'],
     options?: RequestOptions
   ) {
     const resp = await this.client.DELETE(
-      '/api/v1/customers/{customerId}/apps/{appId}',
+      '/api/v1/customers/{customerIdOrKey}/apps/{appId}',
       {
-        params: { path: { appId, customerId } },
+        params: { path: { appId, customerIdOrKey } },
         ...options,
       }
     )
@@ -205,14 +205,14 @@ export class CustomerApps {
   }
 
   public async listSubscriptions(
-    customerId: operations['listCustomerSubscriptions']['parameters']['path']['customerId'],
+    customerIdOrKey: operations['listCustomerSubscriptions']['parameters']['path']['customerIdOrKey'],
     query?: operations['listCustomerSubscriptions']['parameters']['query'],
     options?: RequestOptions
   ) {
     const resp = await this.client.GET(
-      '/api/v1/customers/{customerId}/subscriptions',
+      '/api/v1/customers/{customerIdOrKey}/subscriptions',
       {
-        params: { path: { customerId }, query },
+        params: { path: { customerIdOrKey }, query },
         ...options,
       }
     )
@@ -225,24 +225,24 @@ export class CustomerApps {
  * Customer Entitlements
  */
 export class CustomerEntitlements {
-  constructor(private client: Client<paths, `${string}/${string}`>) {}
+  constructor(private client: Client<paths, `${string}/${string}`>) { }
 
   /**
    * Get the value of an entitlement for a customer
-   * @param customerId - The ID of the customer
+   * @param customerIdOrKey - The ID or Key of the customer
    * @param featureKey - The key of the feature
    * @param signal - An optional abort signal
    * @returns The value of the entitlement
    */
   public async value(
-    customerId: operations['getCustomerEntitlementValue']['parameters']['path']['customerId'],
+    customerIdOrKey: operations['getCustomerEntitlementValue']['parameters']['path']['customerIdOrKey'],
     featureKey: operations['getCustomerEntitlementValue']['parameters']['path']['featureKey'],
     options?: RequestOptions
   ) {
     const resp = await this.client.GET(
-      '/api/v1/customers/{customerId}/entitlements/{featureKey}/value',
+      '/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}/value',
       {
-        params: { path: { customerId, featureKey } },
+        params: { path: { customerIdOrKey, featureKey } },
         ...options,
       }
     )
