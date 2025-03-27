@@ -217,7 +217,6 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 							Metadata:    phase.Metadata,
 							Duration:    phase.Duration,
 						},
-						Discounts: phase.Discounts,
 						RateCards: phase.RateCards,
 					},
 				})

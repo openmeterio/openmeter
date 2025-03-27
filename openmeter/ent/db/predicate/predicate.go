@@ -148,17 +148,6 @@ type Plan func(*sql.Selector)
 // PlanPhase is the predicate function for planphase builders.
 type PlanPhase func(*sql.Selector)
 
-// PlanPhaseOrErr calls the predicate only if the error is not nit.
-func PlanPhaseOrErr(p PlanPhase, err error) PlanPhase {
-	return func(s *sql.Selector) {
-		if err != nil {
-			s.AddError(err)
-			return
-		}
-		p(s)
-	}
-}
-
 // PlanRateCard is the predicate function for planratecard builders.
 type PlanRateCard func(*sql.Selector)
 
