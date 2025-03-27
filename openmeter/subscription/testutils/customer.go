@@ -29,8 +29,9 @@ func NewCustomerAdapter(t *testing.T, dbDeps *DBDeps) *testCustomerRepo {
 	logger := testutils.NewLogger(t)
 
 	repo, err := customeradapter.New(customeradapter.Config{
-		Client: dbDeps.DBClient,
-		Logger: logger,
+		Client:    dbDeps.DBClient,
+		Logger:    logger,
+		Publisher: eventbus.NewMock(t),
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer repo: %v", err)

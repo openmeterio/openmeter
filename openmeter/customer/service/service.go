@@ -25,6 +25,10 @@ func (c Config) Validate() error {
 		return errors.New("adapter cannot be null")
 	}
 
+	if c.EntitlementConnector == nil {
+		return errors.New("entitlement connector cannot be null")
+	}
+
 	return nil
 }
 

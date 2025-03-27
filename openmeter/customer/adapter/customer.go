@@ -226,15 +226,21 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 				// so we don't need to fetch it here.
 
 				customerEntity.Edges.Subjects = customerSubjects
-				customer, err := CustomerFromDBEntity(*customerEntity)
+				cus, err := CustomerFromDBEntity(*customerEntity)
 				if err != nil {
-					return customer, fmt.Errorf("failed to convert customer: %w", err)
+					return cus, fmt.Errorf("failed to convert customer: %w", err)
 				}
-				if customer == nil {
-					return customer, fmt.Errorf("invalid query result: nil customer received")
+				if cus == nil {
+					return cus, fmt.Errorf("invalid query result: nil customer received")
 				}
 
-				return customer, nil
+				// Publish the customer created event
+				customerCreatedEvent := customer.NewCustomerCreateEvent(*cus)
+				if err := repo.publisher.Publish(ctx, customerCreatedEvent); err != nil {
+					return nil, fmt.Errorf("failed to publish customer created event: %w", err)
+				}
+
+				return cus, nil
 			},
 		)
 	})
@@ -251,6 +257,17 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 					return nil, models.NewGenericValidationError(
 						fmt.Errorf("error deleting customer: %w", err),
 					)
+				}
+
+				// Get the previous customer
+				previousCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
+					CustomerID: &customer.CustomerID{
+						Namespace: input.Namespace,
+						ID:        input.ID,
+					},
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to get customer: %w", err)
 				}
 
 				deletedAt := clock.Now().UTC()
@@ -282,6 +299,12 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 					Exec(ctx)
 				if err != nil {
 					return nil, fmt.Errorf("failed to delete customer subjects: %w", err)
+				}
+
+				// Publish the customer deleted event
+				customerDeletedEvent := customer.NewCustomerDeleteEvent(*previousCustomer, deletedAt)
+				if err := repo.publisher.Publish(ctx, customerDeletedEvent); err != nil {
+					return nil, fmt.Errorf("failed to publish customer deleted event: %w", err)
 				}
 
 				return nil, nil
@@ -395,15 +418,15 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				}
 
 				// Get the customer to diff the subjects
-				dbCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
+				previousCustomer, err := repo.GetCustomer(ctx, customer.GetCustomerInput{
 					CustomerID: &input.CustomerID,
 				})
 				if err != nil {
 					return nil, err
 				}
 
-				query := repo.db.Customer.UpdateOneID(dbCustomer.ID).
-					Where(customerdb.Namespace(dbCustomer.Namespace)).
+				query := repo.db.Customer.UpdateOneID(previousCustomer.ID).
+					Where(customerdb.Namespace(previousCustomer.Namespace)).
 					SetUpdatedAt(clock.Now().UTC()).
 					SetName(input.Name).
 					SetOrClearDescription(input.Description).
@@ -456,7 +479,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				for _, subjectKey := range input.UsageAttribution.SubjectKeys {
 					found := false
 
-					for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+					for _, existingSubjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
 						if subjectKey == existingSubjectKey {
 							found = true
 							continue
@@ -495,7 +518,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				// Remove subjects
 				var subjectKeysToRemove []string
 
-				for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+				for _, existingSubjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
 					found := false
 
 					for _, subjectKey := range input.UsageAttribution.SubjectKeys {
@@ -550,7 +573,7 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				entity.Edges.Subjects = []*entdb.CustomerSubjects{}
 
 				// Loop through the existing subjects and add the ones that are not removed
-				for _, subjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
+				for _, subjectKey := range previousCustomer.UsageAttribution.SubjectKeys {
 					if lo.Contains(subjectKeysToRemove, subjectKey) {
 						continue
 					}
@@ -571,7 +594,22 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 					})
 				}
 
-				return CustomerFromDBEntity(*entity)
+				cus, err := CustomerFromDBEntity(*entity)
+				if err != nil {
+					return cus, fmt.Errorf("failed to convert customer: %w", err)
+				}
+
+				if cus == nil {
+					return cus, fmt.Errorf("invalid query result: nil customer received")
+				}
+
+				// Publish the customer updated event
+				customerUpdatedEvent := customer.NewCustomerUpdateEvent(*cus, *previousCustomer)
+				if err := repo.publisher.Publish(ctx, customerUpdatedEvent); err != nil {
+					return nil, fmt.Errorf("failed to publish customer updated event: %w", err)
+				}
+
+				return cus, nil
 			},
 		)
 	})

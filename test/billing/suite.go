@@ -126,8 +126,9 @@ func (s *BaseSuite) SetupSuite() {
 	// Customer
 
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client: dbClient,
-		Logger: slog.Default(),
+		Client:    dbClient,
+		Logger:    slog.Default(),
+		Publisher: eventbus.NewMock(t),
 	})
 	require.NoError(t, err)
 

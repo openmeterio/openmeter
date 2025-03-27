@@ -83,8 +83,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
-		Client: entClient,
-		Logger: logger.WithGroup("postgres"),
+		Client:    entClient,
+		Logger:    logger.WithGroup("postgres"),
+		Publisher: eventbus.NewMock(t),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer repo: %w", err)
