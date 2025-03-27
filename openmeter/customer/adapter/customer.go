@@ -301,12 +301,14 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 			} else if input.CustomerKey != nil {
 				query = query.Where(customerdb.Namespace(input.CustomerKey.Namespace))
 				query = query.Where(customerdb.Key(input.CustomerKey.Key))
+				query = query.Where(customerdb.DeletedAtIsNil())
 			} else if input.CustomerIDOrKey != nil {
 				query = query.Where(customerdb.Namespace(input.CustomerIDOrKey.Namespace))
 				query = query.Where(customerdb.Or(
 					customerdb.ID(input.CustomerIDOrKey.IDOrKey),
 					customerdb.Key(input.CustomerIDOrKey.IDOrKey),
 				))
+				query = query.Where(customerdb.DeletedAtIsNil())
 			} else {
 				return nil, models.NewGenericValidationError(
 					fmt.Errorf("customer id or key is required"),
