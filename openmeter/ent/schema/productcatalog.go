@@ -85,7 +85,7 @@ func (PlanPhase) Fields() []ent.Field {
 			Nillable().
 			Comment("The duration of the phase."),
 		field.String("discounts").
-			GoType([]productcatalog.Discount{}).
+			GoType(productcatalog.Discounts{}).
 			ValueScanner(DiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
