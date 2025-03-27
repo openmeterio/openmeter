@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
@@ -38,7 +39,9 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	}
 
 	// Get the customer first to check their usage attribution subjects
-	cust, err := v.customerService.GetCustomer(ctx, customer.GetCustomerInput(input))
+	cust, err := v.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: lo.ToPtr(customer.CustomerID(input)),
+	})
 	if err != nil {
 		return err
 	}
