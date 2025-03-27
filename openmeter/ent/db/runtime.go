@@ -1067,6 +1067,9 @@ func init() {
 	planratecardDescPhaseID := planratecardFields[6].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
+	// planratecardDescDiscounts is the schema descriptor for discounts field.
+	planratecardDescDiscounts := planratecardFields[8].Descriptor()
+	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[productcatalog.Discounts])
 	// planratecardDescID is the schema descriptor for id field.
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.

@@ -143,6 +143,14 @@ func TestRateCard_JSON(t *testing.T) {
 									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1000)),
 								},
 							}),
+						Discounts: productcatalog.Discounts{
+							productcatalog.NewDiscountFrom(productcatalog.PercentageDiscount{
+								Percentage: models.NewPercentage(10),
+							}),
+							productcatalog.NewDiscountFrom(productcatalog.UsageDiscount{
+								Quantity: decimal.NewFromInt(100),
+							}),
+						},
 					},
 					BillingCadence: isodate.MustParse(t, "P1M"),
 				},

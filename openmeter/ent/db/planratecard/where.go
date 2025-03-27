@@ -902,6 +902,16 @@ func FeatureIDContainsFold(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldContainsFold(FieldFeatureID, v))
 }
 
+// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
+func DiscountsIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldDiscounts))
+}
+
+// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
+func DiscountsNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldDiscounts))
+}
+
 // HasPhase applies the HasEdge predicate on the "phase" edge.
 func HasPhase() predicate.PlanRateCard {
 	return predicate.PlanRateCard(func(s *sql.Selector) {

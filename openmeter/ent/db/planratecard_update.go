@@ -214,6 +214,18 @@ func (prcu *PlanRateCardUpdate) ClearFeatureID() *PlanRateCardUpdate {
 	return prcu
 }
 
+// SetDiscounts sets the "discounts" field.
+func (prcu *PlanRateCardUpdate) SetDiscounts(pr productcatalog.Discounts) *PlanRateCardUpdate {
+	prcu.mutation.SetDiscounts(pr)
+	return prcu
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (prcu *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
+	prcu.mutation.ClearDiscounts()
+	return prcu
+}
+
 // SetPhase sets the "phase" edge to the PlanPhase entity.
 func (prcu *PlanRateCardUpdate) SetPhase(p *PlanPhase) *PlanRateCardUpdate {
 	return prcu.SetPhaseID(p.ID)
@@ -396,6 +408,16 @@ func (prcu *PlanRateCardUpdate) sqlSave(ctx context.Context) (n int, err error) 
 	}
 	if prcu.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
+	}
+	if value, ok := prcu.mutation.Discounts(); ok {
+		vv, err := planratecard.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
+	}
+	if prcu.mutation.DiscountsCleared() {
+		_spec.ClearField(planratecard.FieldDiscounts, field.TypeString)
 	}
 	if prcu.mutation.PhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -657,6 +679,18 @@ func (prcuo *PlanRateCardUpdateOne) ClearFeatureID() *PlanRateCardUpdateOne {
 	return prcuo
 }
 
+// SetDiscounts sets the "discounts" field.
+func (prcuo *PlanRateCardUpdateOne) SetDiscounts(pr productcatalog.Discounts) *PlanRateCardUpdateOne {
+	prcuo.mutation.SetDiscounts(pr)
+	return prcuo
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (prcuo *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
+	prcuo.mutation.ClearDiscounts()
+	return prcuo
+}
+
 // SetPhase sets the "phase" edge to the PlanPhase entity.
 func (prcuo *PlanRateCardUpdateOne) SetPhase(p *PlanPhase) *PlanRateCardUpdateOne {
 	return prcuo.SetPhaseID(p.ID)
@@ -869,6 +903,16 @@ func (prcuo *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRat
 	}
 	if prcuo.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
+	}
+	if value, ok := prcuo.mutation.Discounts(); ok {
+		vv, err := planratecard.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
+	}
+	if prcuo.mutation.DiscountsCleared() {
+		_spec.ClearField(planratecard.FieldDiscounts, field.TypeString)
 	}
 	if prcuo.mutation.PhaseCleared() {
 		edge := &sqlgraph.EdgeSpec{

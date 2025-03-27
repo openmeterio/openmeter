@@ -173,6 +173,14 @@ func TestPlan(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	p2RC2UsageDiscount := api.DiscountUsage{
+		Type:     api.DiscountUsageType("usage"),
+		Quantity: "100",
+	}
+	p2RC2Discount := api.Discount{}
+	err = p2RC2Discount.FromDiscountUsage(p2RC2UsageDiscount)
+	require.Nil(t, err)
+
 	p2RC2 := api.RateCard{}
 	err = p2RC2.FromRateCardUsageBased(api.RateCardUsageBased{
 		Name:        "Test Plan Phase 2 Rate Card 2",
@@ -186,6 +194,7 @@ func TestPlan(t *testing.T) {
 		},
 		BillingCadence: "P1M",
 		Price:          &p2RC2P,
+		Discounts:      lo.ToPtr([]api.Discount{p2RC2Discount}),
 		Type:           api.RateCardUsageBasedType("usage_based"),
 	})
 	require.Nil(t, err)
@@ -234,6 +243,46 @@ func TestPlan(t *testing.T) {
 
 		require.NotNil(t, plan.Id)
 		planId = plan.Id
+	})
+
+	t.Run("Plan should have discounts correctly recorded", func(t *testing.T) {
+		require.Len(t, planCreate.Phases, 2)
+		require.Len(t, planCreate.Phases[1].RateCards, 2)
+
+		rateCard, found := lo.Find(planCreate.Phases[1].RateCards, func(rc api.RateCard) bool {
+			disc, err := rc.Discriminator()
+			if err != nil {
+				return false
+			}
+
+			if disc != string(api.RateCardUsageBasedTypeUsageBased) {
+				return false
+			}
+
+			usageBased, err := rc.AsRateCardUsageBased()
+			if err != nil {
+				return false
+			}
+
+			return *usageBased.FeatureKey == PlanMeteredFeatureKey
+		})
+		require.True(t, found)
+
+		ubpRateCard, err := rateCard.AsRateCardUsageBased()
+		require.NoError(t, err)
+		require.NotNil(t, ubpRateCard)
+
+		require.NotNil(t, ubpRateCard.Discounts)
+		require.Len(t, *ubpRateCard.Discounts, 1)
+
+		discount := (*ubpRateCard.Discounts)[0]
+		discountType, err := discount.Discriminator()
+		require.NoError(t, err)
+		require.Equal(t, string(api.DiscountUsageTypeUsage), discountType)
+
+		usageDiscount, err := discount.AsDiscountUsage()
+		require.NoError(t, err)
+		require.Equal(t, "100", usageDiscount.Quantity)
 	})
 
 	t.Run("Should publish the plan", func(t *testing.T) {

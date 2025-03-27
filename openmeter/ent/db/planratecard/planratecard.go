@@ -49,6 +49,8 @@ const (
 	FieldPhaseID = "phase_id"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
+	// FieldDiscounts holds the string denoting the discounts field in the database.
+	FieldDiscounts = "discounts"
 	// EdgePhase holds the string denoting the phase edge name in mutations.
 	EdgePhase = "phase"
 	// EdgeFeatures holds the string denoting the features edge name in mutations.
@@ -90,6 +92,7 @@ var Columns = []string{
 	FieldPrice,
 	FieldPhaseID,
 	FieldFeatureID,
+	FieldDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -122,6 +125,7 @@ var (
 		EntitlementTemplate field.TypeValueScanner[*productcatalog.EntitlementTemplate]
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
+		Discounts           field.TypeValueScanner[productcatalog.Discounts]
 	}
 )
 
@@ -216,6 +220,11 @@ func ByPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// ByDiscounts orders the results by the discounts field.
+func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
 // ByPhaseField orders the results by phase field.

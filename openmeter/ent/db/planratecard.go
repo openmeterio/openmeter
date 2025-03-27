@@ -54,6 +54,8 @@ type PlanRateCard struct {
 	PhaseID string `json:"phase_id,omitempty"`
 	// The feature identifier the ratecard is related to.
 	FeatureID *string `json:"feature_id,omitempty"`
+	// Discounts holds the value of the "discounts" field.
+	Discounts productcatalog.Discounts `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanRateCardQuery when eager-loading is set.
 	Edges        PlanRateCardEdges `json:"edges"`
@@ -110,6 +112,8 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 			values[i] = planratecard.ValueScanner.TaxConfig.ScanValue()
 		case planratecard.FieldPrice:
 			values[i] = planratecard.ValueScanner.Price.ScanValue()
+		case planratecard.FieldDiscounts:
+			values[i] = planratecard.ValueScanner.Discounts.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -234,6 +238,12 @@ func (prc *PlanRateCard) assignValues(columns []string, values []any) error {
 				prc.FeatureID = new(string)
 				*prc.FeatureID = value.String
 			}
+		case planratecard.FieldDiscounts:
+			if value, err := planratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				prc.Discounts = value
+			}
 		default:
 			prc.selectValues.Set(columns[i], values[i])
 		}
@@ -343,6 +353,9 @@ func (prc *PlanRateCard) String() string {
 		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("discounts=")
+	builder.WriteString(fmt.Sprintf("%v", prc.Discounts))
 	builder.WriteByte(')')
 	return builder.String()
 }

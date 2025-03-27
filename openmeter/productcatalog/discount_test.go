@@ -3,6 +3,7 @@ package productcatalog
 import (
 	"testing"
 
+	decimal "github.com/alpacahq/alpacadecimal"
 	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,13 +18,15 @@ func TestDiscount_JSON(t *testing.T) {
 		ExpectedError bool
 	}{
 		{
-			Name: "Valid",
+			Name: "Valid - percentage",
 			Discount: NewDiscountFrom(PercentageDiscount{
 				Percentage: models.NewPercentage(99.9),
-				RateCards: []string{
-					"ratecard-1",
-					"ratecard-2",
-				},
+			}),
+		},
+		{
+			Name: "Valid - usage",
+			Discount: NewDiscountFrom(UsageDiscount{
+				Quantity: decimal.NewFromInt(100),
 			}),
 		},
 	}
@@ -58,33 +61,17 @@ func TestDiscountsEqual(t *testing.T) {
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(200),
-					RateCards: []string{
-						"ratecard3",
-						"ratecard4",
-					},
 				}),
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(200),
-					RateCards: []string{
-						"ratecard3",
-						"ratecard4",
-					},
 				}),
 			},
 			ExpectedResult: true,
@@ -94,26 +81,14 @@ func TestDiscountsEqual(t *testing.T) {
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(200),
-					RateCards: []string{
-						"ratecard3",
-						"ratecard4",
-					},
 				}),
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
 			},
 			ExpectedResult: false,
@@ -123,26 +98,14 @@ func TestDiscountsEqual(t *testing.T) {
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
 			},
 			Right: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(200),
-					RateCards: []string{
-						"ratecard3",
-						"ratecard4",
-					},
 				}),
 			},
 			ExpectedResult: false,
@@ -152,33 +115,17 @@ func TestDiscountsEqual(t *testing.T) {
 			Left: []Discount{
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard1",
-						"ratecard2",
-					},
 				}),
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(100),
-					RateCards: []string{
-						"ratecard3",
-						"ratecard4",
-					},
+				NewDiscountFrom(UsageDiscount{
+					Quantity: decimal.NewFromInt(100),
 				}),
 			},
 			Right: []Discount{
-				NewDiscountFrom(PercentageDiscount{
-					Percentage: models.NewPercentage(200),
-					RateCards: []string{
-						"ratecard5",
-						"ratecard6",
-					},
+				NewDiscountFrom(UsageDiscount{
+					Quantity: decimal.NewFromInt(200),
 				}),
 				NewDiscountFrom(PercentageDiscount{
 					Percentage: models.NewPercentage(200),
-					RateCards: []string{
-						"ratecard7",
-						"ratecard8",
-					},
 				}),
 			},
 			ExpectedResult: false,
@@ -189,6 +136,56 @@ func TestDiscountsEqual(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			match := test.Left.Equal(test.Right)
 			assert.Equal(t, test.ExpectedResult, match)
+		})
+	}
+}
+
+func TestDiscountsValidateForPrice(t *testing.T) {
+	tests := []struct {
+		Name string
+
+		Discounts Discounts
+
+		ExpectedError bool
+	}{
+		{
+			Name: "Valid",
+			Discounts: Discounts{
+				NewDiscountFrom(PercentageDiscount{
+					Percentage: models.NewPercentage(50),
+				}),
+				NewDiscountFrom(PercentageDiscount{
+					Percentage: models.NewPercentage(50),
+				}),
+			},
+			ExpectedError: false,
+		},
+		{
+			Name: "Invalid - more than 100% percentage discount",
+			Discounts: Discounts{
+				NewDiscountFrom(PercentageDiscount{
+					Percentage: models.NewPercentage(100),
+				}),
+				NewDiscountFrom(PercentageDiscount{
+					Percentage: models.NewPercentage(100),
+				}),
+			},
+			ExpectedError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := test.Discounts.ValidateForPrice(NewPriceFrom(
+				UnitPrice{
+					Amount: decimal.NewFromInt(100),
+				},
+			))
+			if test.ExpectedError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
