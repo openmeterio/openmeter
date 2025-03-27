@@ -125,7 +125,8 @@ func rateCardBulkCreate(c *entdb.PlanRateCardClient, rateCards productcatalog.Ra
 			SetNillableFeatureKey(rateCardEntity.FeatureKey).
 			SetNillableFeaturesID(rateCardEntity.FeatureID).
 			SetEntitlementTemplate(rateCardEntity.EntitlementTemplate).
-			SetNillableBillingCadence(rateCardEntity.BillingCadence)
+			SetNillableBillingCadence(rateCardEntity.BillingCadence).
+			SetDiscounts(rateCardEntity.Discounts)
 
 		if rateCardEntity.TaxConfig != nil {
 			q.SetTaxConfig(rateCardEntity.TaxConfig)

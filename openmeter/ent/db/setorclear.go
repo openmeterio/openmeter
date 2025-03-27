@@ -2015,6 +2015,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *PlanRateCardUpdate) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value *[]productcatalog.Discount) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
 func (u *SubscriptionUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func FromPlan(p plan.Plan) (api.Plan, error) {
@@ -147,6 +148,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			Price:               price,
 			TaxConfig:           taxConfig,
 			Type:                api.RateCardFlatFeeTypeFlatFee,
+			Discounts:           FromDiscountsPercentages(rc.Discounts),
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast FlatPriceRateCard: %w", err)
@@ -196,6 +198,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			Name:                rc.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
+			Discounts:           FromDiscounts(rc.Discounts),
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
@@ -390,6 +393,75 @@ func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCard
 	}
 
 	return result, nil
+}
+
+func FromDiscountsPercentages(discounts productcatalog.Discounts) (*[]api.DiscountPercentage, error) {
+	if len(discounts) == 0 {
+		return nil, nil
+	}
+
+	out, err := slicesx.MapWithErr(discounts, func(d productcatalog.Discount) (api.DiscountPercentage, error) {
+		if d.Type() != productcatalog.PercentageDiscountType {
+			return api.DiscountPercentage{}, fmt.Errorf("invalid Discount type: %s", d.Type())
+		}
+
+		percentage, err := d.AsPercentage()
+		if err != nil {
+			return api.DiscountPercentage{}, fmt.Errorf("failed to cast Percentage Discount: %w", err)
+		}
+
+		return api.DiscountPercentage{
+			Type:       api.DiscountPercentageTypePercentage,
+			Percentage: percentage.Percentage,
+		}, nil
+	})
+	if err != nil {
+		return nil, models.NewGenericValidationError(err)
+	}
+
+	return &out, nil
+}
+
+func FromDiscounts(discounts productcatalog.Discounts) (*[]api.Discount, error) {
+	if len(discounts) == 0 {
+		return nil, nil
+	}
+
+	out, err := slicesx.MapWithErr(discounts, func(d productcatalog.Discount) (api.Discount, error) {
+		discount := api.Discount{}
+
+		switch d.Type() {
+		case productcatalog.UsageDiscountType:
+			usage, err := d.AsUsage()
+			if err != nil {
+				return api.Discount{}, fmt.Errorf("failed to cast Usage Discount: %w", err)
+			}
+
+			discount.FromUsageDiscount(api.UsageDiscount{
+				Type:     api.UsageDiscountTypeUsage,
+				Quantity: usage.Usage.String(),
+			})
+		case productcatalog.PercentageDiscountType:
+			percentage, err := d.AsPercentage()
+			if err != nil {
+				return api.Discount{}, fmt.Errorf("failed to cast Percentage Discount: %w", err)
+			}
+
+			discount.FromDiscountPercentage(api.DiscountPercentage{
+				Type:       api.DiscountPercentageTypePercentage,
+				Percentage: percentage.Percentage,
+			})
+		default:
+			return api.Discount{}, fmt.Errorf("invalid Discount type: %s", d.Type())
+		}
+
+		return discount, nil
+	})
+	if err != nil {
+		return nil, models.NewGenericValidationError(err)
+	}
+
+	return &out, nil
 }
 
 func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest, error) {

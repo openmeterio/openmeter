@@ -135,6 +135,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
+		Discounts:           r.Discounts,
 	}
 
 	// Resolve feature
@@ -218,6 +219,7 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 		TaxConfig:           meta.TaxConfig,
 		Price:               meta.Price,
 		Type:                r.Type(),
+		Discounts:           meta.Discounts,
 	}
 
 	if managed, ok := r.(plan.ManagedRateCard); ok {
