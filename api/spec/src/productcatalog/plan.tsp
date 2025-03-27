@@ -166,13 +166,6 @@ model PlanPhase {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rate cards")
   rateCards: RateCard[];
-
-  /**
-   * The discounts on the plan.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Discounts")
-  discounts?: Discount[];
 }
 
 /**
