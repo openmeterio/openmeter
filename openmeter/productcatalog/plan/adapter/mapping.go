@@ -89,7 +89,6 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 				Description: p.Description,
 				Metadata:    p.Metadata,
 			},
-			Discounts: p.Discounts,
 		},
 	}
 

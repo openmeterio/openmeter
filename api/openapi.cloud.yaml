@@ -11811,9 +11811,9 @@ components:
         One customer can have multiple subjects,
         but one subject can only belong to one customer.
     Discount:
-      type: object
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/DiscountPercentage'
+        - $ref: '#/components/schemas/DiscountUsage'
       description: A discount on a price.
     DiscountPercentage:
       type: object
@@ -11834,19 +11834,33 @@ components:
           maximum: 100
           description: The percentage of the discount.
           title: Percentage
-        rateCards:
-          type: array
-          items:
-            type: string
-            minLength: 1
-            maxLength: 64
-            pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
-            description: A key is a unique string that is used to identify a resource.
-          description: |-
-            The rate cards that the discount applies to.
-            When not specified, the discount applies to all rate cards.
-          title: Discounted RateCards
       description: Percentage discount.
+    DiscountUsage:
+      type: object
+      required:
+        - type
+        - quantity
+      properties:
+        type:
+          type: string
+          enum:
+            - usage
+          description: The type of the discount.
+          title: Type
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The quantity of the usage discount.
+
+            Must be positive.
+          title: Usage
+      description: |-
+        Usage discount.
+
+        Usage discount means that the first N items are free. From billing perspective
+        this means that any usage on a specific feature is considered 0 until this discount
+        is exhausted.
     DynamicPriceWithCommitments:
       type: object
       required:
@@ -16648,12 +16662,6 @@ components:
             $ref: '#/components/schemas/RateCard'
           description: The rate cards of the plan.
           title: Rate cards
-        discounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Discount'
-          description: The discounts on the plan.
-          title: Discounts
       description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
     PlanReference:
       type: object
@@ -17046,6 +17054,14 @@ components:
             type: flat
             amount: '100'
             paymentTerm: in_arrears
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscountPercentage'
+          description: |-
+            The discount of the rate card. For flat fee rate cards only percentage discounts are supported.
+            Only available when price is set.
+          title: Discounts
       description: A flat fee rate card defines a one-time purchase or a recurring fee.
     RateCardMeteredEntitlement:
       type: object
@@ -17188,6 +17204,15 @@ components:
           description: |-
             The price of the rate card.
             When null, the feature or service is free.
+        discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discount'
+          description: |-
+            The discounts of the rate card.
+
+            Flat fee rate cards only support percentage discounts.
+          title: Discounts
       description: A usage-based rate card defines a price based on usage.
     RateCardUsageBasedPrice:
       type: object

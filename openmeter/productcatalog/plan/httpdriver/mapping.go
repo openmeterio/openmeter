@@ -75,27 +75,6 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 		Duration:    (*string)(p.Duration.ISOStringPtrOrNil()),
 	}
 
-	if len(p.Discounts) > 0 {
-		discounts := make([]api.Discount, 0, len(p.Discounts))
-
-		for _, discount := range p.Discounts {
-			percentage, err := discount.AsPercentage()
-			if err != nil {
-				return resp, fmt.Errorf("failed to cast Discount: %w", err)
-			}
-
-			d := api.Discount{
-				RateCards:  lo.EmptyableToPtr(percentage.RateCards),
-				Percentage: percentage.Percentage,
-				Type:       api.DiscountPercentageTypePercentage,
-			}
-
-			discounts = append(discounts, d)
-		}
-
-		resp.Discounts = lo.ToPtr(discounts)
-	}
-
 	resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
 	for _, rateCard := range p.RateCards {
 		rc, err := FromRateCard(rateCard)
@@ -494,28 +473,6 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 	phase.Duration, err = (*isodate.String)(a.Duration).ParsePtrOrNil()
 	if err != nil {
 		return phase, fmt.Errorf("failed to cast duration to period: %w", err)
-	}
-
-	discounts := lo.FromPtrOr(a.Discounts, nil)
-	if len(discounts) > 0 {
-		phase.Discounts = make([]productcatalog.Discount, 0, len(discounts))
-
-		for _, discount := range discounts {
-			switch discount.Type {
-			case api.DiscountPercentageTypePercentage:
-				percentageDiscount := productcatalog.PercentageDiscount{
-					Percentage: discount.Percentage,
-					RateCards:  lo.FromPtrOr(discount.RateCards, nil),
-				}
-
-				phaseDiscount := productcatalog.NewDiscountFrom(percentageDiscount)
-				if err = phaseDiscount.Validate(); err != nil {
-					return phase, fmt.Errorf("invalid Discount: %w", err)
-				}
-
-				phase.Discounts = append(phase.Discounts, phaseDiscount)
-			}
-		}
 	}
 
 	if len(a.RateCards) > 0 {

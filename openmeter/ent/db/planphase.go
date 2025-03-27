@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/isodate"
 )
 
@@ -43,8 +42,6 @@ type PlanPhase struct {
 	Index uint8 `json:"index,omitempty"`
 	// The duration of the phase.
 	Duration *isodate.String `json:"duration,omitempty"`
-	// Discounts holds the value of the "discounts" field.
-	Discounts []productcatalog.Discount `json:"discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanPhaseQuery when eager-loading is set.
 	Edges        PlanPhaseEdges `json:"edges"`
@@ -95,8 +92,6 @@ func (*PlanPhase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case planphase.FieldCreatedAt, planphase.FieldUpdatedAt, planphase.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case planphase.FieldDiscounts:
-			values[i] = planphase.ValueScanner.Discounts.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -189,12 +184,6 @@ func (pp *PlanPhase) assignValues(columns []string, values []any) error {
 				pp.Duration = new(isodate.String)
 				*pp.Duration = isodate.String(value.String)
 			}
-		case planphase.FieldDiscounts:
-			if value, err := planphase.ValueScanner.Discounts.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				pp.Discounts = value
-			}
 		default:
 			pp.selectValues.Set(columns[i], values[i])
 		}
@@ -279,9 +268,6 @@ func (pp *PlanPhase) String() string {
 		builder.WriteString("duration=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("discounts=")
-	builder.WriteString(fmt.Sprintf("%v", pp.Discounts))
 	builder.WriteByte(')')
 	return builder.String()
 }
