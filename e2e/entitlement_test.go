@@ -45,7 +45,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
-		featureId = *resp.JSON201.Id
+		featureId = resp.JSON201.Id
 	})
 
 	t.Run("Create a Entitlement", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, metered.SubjectKey, subject)
-		entitlementId = *metered.Id
+		entitlementId = metered.Id
 	})
 
 	grantAmount := 100.0
@@ -201,7 +201,7 @@ func TestEntitlementISOUsagePeriod(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
-			featureId = *resp.JSON201.Id
+			featureId = resp.JSON201.Id
 		})
 
 		t.Run("Create a Entitlement", func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestEntitlementISOUsagePeriod(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, metered.SubjectKey, subject)
-			entitlementId = *metered.Id
+			entitlementId = metered.Id
 		})
 
 		t.Run("Create Grant", func(t *testing.T) {

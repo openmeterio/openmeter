@@ -646,7 +646,7 @@ func TestCredit(t *testing.T) {
 	client := initClient(t)
 	subject := "customer-1"
 	meterSlug := "credit_test_meter"
-	var featureId *string
+	var featureId string
 	var featureKey string
 
 	const waitTime = time.Second * 30
@@ -684,20 +684,21 @@ func TestCredit(t *testing.T) {
 			},
 		}
 
-		require.NotEmpty(t, *resp.JSON201.CreatedAt)
-		require.NotEmpty(t, *resp.JSON201.UpdatedAt)
-		resp.JSON201.CreatedAt = nil
-		resp.JSON201.UpdatedAt = nil
+		require.NotEmpty(t, resp.JSON201.CreatedAt)
+		require.NotEmpty(t, resp.JSON201.UpdatedAt)
 
+		// Exclude created_at and update_at from comparison
+		resp.JSON201.CreatedAt = time.Time{}
+		resp.JSON201.UpdatedAt = time.Time{}
 		require.Equal(t, expected, resp.JSON201)
 	})
 
-	var entitlementId *string
-	var eCreatedAt *time.Time
+	var entitlementId string
+	var eCreatedAt time.Time
 	t.Run("Create a Entitlement", func(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: featureId,
+			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: *apiMONTH,
@@ -722,7 +723,7 @@ func TestCredit(t *testing.T) {
 	t.Run("Create for same subject and feature", func(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: featureId,
+			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: *apiMONTH,
@@ -738,7 +739,7 @@ func TestCredit(t *testing.T) {
 
 		require.NotNil(t, resp.ApplicationproblemJSON409)
 		require.NotEmpty(t, resp.ApplicationproblemJSON409.Extensions["conflictingEntityId"])
-		require.Equal(t, *entitlementId, resp.ApplicationproblemJSON409.Extensions["conflictingEntityId"])
+		require.Equal(t, entitlementId, resp.ApplicationproblemJSON409.Extensions["conflictingEntityId"])
 	})
 
 	t.Run("Create a Entitlement With Default Grants", func(t *testing.T) {
@@ -749,7 +750,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: featureId,
+			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: *apiMONTH,
@@ -770,10 +771,10 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, randSubject, metered.SubjectKey)
-		require.Equal(t, &measureUsageFrom, metered.MeasureUsageFrom)
+		require.Equal(t, measureUsageFrom, metered.MeasureUsageFrom)
 
 		// fetch grants for entitlement
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubject, *metered.Id, nil)
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubject, metered.Id, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -790,11 +791,11 @@ func TestCredit(t *testing.T) {
 		randSubject := ulid.Make().String()
 		periodAnchor := time.Now().Truncate(time.Minute).Add(-time.Hour).In(time.UTC)
 		muf := &api.MeasureUsageFrom{}
-		err := muf.FromMeasureUsageFromPreset(api.CurrentPeriodStart)
+		err := muf.FromMeasureUsageFromPreset(api.MeasureUsageFromPresetCurrentPeriodStart)
 		require.NoError(t, err)
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: featureId,
+			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   &periodAnchor,
 				Interval: *apiMONTH,
@@ -813,7 +814,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, randSubject, metered.SubjectKey)
-		require.Equal(t, &periodAnchor, metered.MeasureUsageFrom)
+		require.Equal(t, periodAnchor, metered.MeasureUsageFrom)
 	})
 
 	t.Run("Create Grant", func(t *testing.T) {
@@ -824,7 +825,7 @@ func TestCredit(t *testing.T) {
 		minRolloverAmount := 0.0
 
 		// Create grant
-		resp, err := client.CreateGrantWithResponse(context.Background(), subject, *entitlementId, api.EntitlementGrantCreateInput{
+		resp, err := client.CreateGrantWithResponse(context.Background(), subject, entitlementId, api.EntitlementGrantCreateInput{
 			Amount:      100,
 			EffectiveAt: effectiveAt,
 			Expiration: api.ExpirationPeriod{
@@ -866,8 +867,9 @@ func TestCredit(t *testing.T) {
 			},
 		}
 
-		resp.JSON201.CreatedAt = nil
-		resp.JSON201.UpdatedAt = nil
+		// Exclude timestamps from comparison
+		resp.JSON201.CreatedAt = time.Time{}
+		resp.JSON201.UpdatedAt = time.Time{}
 		resp.JSON201.ExpiresAt = nil
 		resp.JSON201.NextRecurrence = nil
 
@@ -941,7 +943,7 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Entitlement Value", func(t *testing.T) {
 		// Get grants
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, *entitlementId, nil)
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, entitlementId, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -956,7 +958,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, features, 1)
 
-		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementValueParams{
+		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, entitlementId, &api.GetEntitlementValueParams{
 			Time: convert.ToPointer(eCreatedAt.Add(time.Minute * 2)),
 		})
 		require.NoError(t, err)
@@ -964,7 +966,7 @@ func TestCredit(t *testing.T) {
 
 		expected := &api.EntitlementValue{
 			Balance:   convert.ToPointer(99.0),
-			HasAccess: convert.ToPointer(true),
+			HasAccess: true,
 			Overage:   convert.ToPointer(0.0),
 			Usage:     convert.ToPointer(1.0),
 		}
@@ -978,7 +980,7 @@ func TestCredit(t *testing.T) {
 		effectiveAt := time.Now().Truncate(time.Minute)
 
 		// Get grants
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, *entitlementId, nil)
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, entitlementId, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -994,7 +996,7 @@ func TestCredit(t *testing.T) {
 		require.Len(t, features, 1)
 
 		// Reset usage
-		resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, *entitlementId, api.ResetEntitlementUsageJSONRequestBody{
+		resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, entitlementId, api.ResetEntitlementUsageJSONRequestBody{
 			EffectiveAt: &effectiveAt,
 		})
 
@@ -1010,7 +1012,7 @@ func TestCredit(t *testing.T) {
 	t.Run("Create entitlement with automatic grant issuing", func(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: featureId,
+			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: *apiMONTH,
@@ -1031,7 +1033,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, metered.SubjectKey, subject2)
 
 		// fetch grants for entitlement
-		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject2, *metered.Id, nil)
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject2, metered.Id, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -1041,7 +1043,7 @@ func TestCredit(t *testing.T) {
 	t.Run("Override previous entitlement", func(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: featureId,
+			FeatureId: &featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: *apiMONTH,
@@ -1064,7 +1066,7 @@ func TestCredit(t *testing.T) {
 		entId := metered.Id
 
 		// Override entitlement
-		resp2, err := client.OverrideEntitlementWithResponse(context.Background(), subject, *entId, *body)
+		resp2, err := client.OverrideEntitlementWithResponse(context.Background(), subject, entId, *body)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
