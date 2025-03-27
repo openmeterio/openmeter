@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -162,7 +161,7 @@ type (
 // UpdateCustomer returns a handler for updating a customer.
 func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID string) (UpdateCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerIDOrKey string) (UpdateCustomerRequest, error) {
 			body := api.CustomerReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateCustomerRequest{}, fmt.Errorf("field to decode update customer request: %w", err)
@@ -173,11 +172,19 @@ func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 				return UpdateCustomerRequest{}, err
 			}
 
-			req := UpdateCustomerRequest{
-				CustomerID: customer.CustomerID{
+			// Get the customer
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   customerIDOrKey,
 					Namespace: ns,
-					ID:        customerID,
 				},
+			})
+			if err != nil {
+				return UpdateCustomerRequest{}, err
+			}
+
+			req := UpdateCustomerRequest{
+				CustomerID: cus.GetID(),
 				CustomerMutate: customer.CustomerMutate{
 					Key:              body.Key,
 					Name:             body.Name,
@@ -220,16 +227,24 @@ type (
 // DeleteCustomer returns a handler for deleting a customer.
 func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerID string) (DeleteCustomerRequest, error) {
+		func(ctx context.Context, r *http.Request, customerIDOrKey string) (DeleteCustomerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return DeleteCustomerRequest{}, err
 			}
 
-			return DeleteCustomerRequest{
-				Namespace: ns,
-				ID:        customerID,
-			}, nil
+			// Get the customer
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   customerIDOrKey,
+					Namespace: ns,
+				},
+			})
+			if err != nil {
+				return DeleteCustomerRequest{}, err
+			}
+
+			return DeleteCustomerRequest(cus.GetID()), nil
 		},
 		func(ctx context.Context, request DeleteCustomerRequest) (DeleteCustomerResponse, error) {
 			err := h.service.DeleteCustomer(ctx, request)
@@ -293,8 +308,8 @@ type (
 	GetCustomerEntitlementValueRequest  = customer.GetEntitlementValueInput
 	GetCustomerEntitlementValueResponse = api.EntitlementValue
 	GetCustomerEntitlementValueParams   = struct {
-		CustomerID string
-		FeatureKey string
+		CustomerIDOrKey string
+		FeatureKey      string
 	}
 	GetCustomerEntitlementValueHandler httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
 )
@@ -308,12 +323,20 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 				return GetCustomerEntitlementValueRequest{}, err
 			}
 
-			return GetCustomerEntitlementValueRequest{
-				FeatureKey: params.FeatureKey,
-				ID: models.NamespacedID{
-					ID:        params.CustomerID,
+			// Get the customer
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIDOrKey,
 					Namespace: ns,
 				},
+			})
+			if err != nil {
+				return GetCustomerEntitlementValueRequest{}, err
+			}
+
+			return GetCustomerEntitlementValueRequest{
+				FeatureKey: params.FeatureKey,
+				CustomerID: cus.GetID(),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {

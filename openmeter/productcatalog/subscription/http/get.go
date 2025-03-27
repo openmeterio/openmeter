@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -67,11 +68,11 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 
 type (
 	ListCustomerSubscriptionsParams = struct {
-		CustomerID string
-		Params     api.ListCustomerSubscriptionsParams
+		CustomerIDOrKey string
+		Params          api.ListCustomerSubscriptionsParams
 	}
 	ListCustomerSubscriptionsRequest = struct {
-		CustomerID models.NamespacedID
+		CustomerID customer.CustomerID
 		Page       pagination.Page
 	}
 	ListCustomerSubscriptionsResponse = pagination.PagedResponse[api.Subscription]
@@ -86,12 +87,20 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				return ListCustomerSubscriptionsRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return ListCustomerSubscriptionsRequest{
-				CustomerID: models.NamespacedID{
+			// Get the customer
+			cus, err := h.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIDOrKey,
 					Namespace: ns,
-					ID:        params.CustomerID,
 				},
-				Page: pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
+			})
+			if err != nil {
+				return ListCustomerSubscriptionsRequest{}, err
+			}
+
+			return ListCustomerSubscriptionsRequest{
+				CustomerID: cus.GetID(),
+				Page:       pagination.NewPageFromRef(params.Params.Page, params.Params.PageSize),
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerSubscriptionsRequest) (ListCustomerSubscriptionsResponse, error) {

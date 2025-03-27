@@ -102,8 +102,10 @@ func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.Na
 	}
 
 	customer, err := r.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-		Namespace: subsID.Namespace,
-		ID:        subsView.Customer.ID,
+		CustomerID: &customer.CustomerID{
+			ID:        subsView.Customer.ID,
+			Namespace: subsID.Namespace,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get customer: %w", err)

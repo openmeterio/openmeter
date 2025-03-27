@@ -40,20 +40,22 @@ interface Customers {
    * Get a customer by ID or key.
    */
   @get
-  @route("/{idOrKey}")
+  @route("/{customerIdOrKey}")
   @operationId("getCustomer")
   @summary("Get customer")
-  get(@path idOrKey: ULIDOrKey): Customer | NotFoundError | CommonErrors;
+  get(
+    @path customerIdOrKey: ULIDOrKey,
+  ): Customer | NotFoundError | CommonErrors;
 
   /**
    * Update a customer by ID.
    */
   @put
-  @route("/{id}")
+  @route("/{customerIdOrKey}")
   @operationId("updateCustomer")
   @summary("Update customer")
   update(
-    @path id: ULID,
+    @path customerIdOrKey: ULIDOrKey,
     @body customer: Rest.Resource.ResourceReplaceModel<Customer>,
   ): Customer | NotFoundError | CommonErrors;
 
@@ -61,10 +63,10 @@ interface Customers {
    * Delete a customer by ID.
    */
   @delete
-  @route("/{id}")
+  @route("/{customerIdOrKey}")
   @operationId("deleteCustomer")
   @summary("Delete customer")
-  delete(@path id: ULID): {
+  delete(@path customerIdOrKey: ULIDOrKey): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
 
@@ -72,11 +74,11 @@ interface Customers {
    * List customers app data.
    */
   @get
-  @route("/{customerId}/apps")
+  @route("/{customerIdOrKey}/apps")
   @operationId("listCustomerAppData")
   @summary("List customer app data")
   listAppData(
-    @path customerId: ULID,
+    @path customerIdOrKey: ULIDOrKey,
     ...ListCustomerAppDataParams,
   ): PaginatedResponse<App.CustomerAppData> | NotFoundError | CommonErrors;
 
@@ -84,11 +86,11 @@ interface Customers {
    * Upsert customer app data.
    */
   @put
-  @route("/{customerId}/apps")
+  @route("/{customerIdOrKey}/apps")
   @operationId("upsertCustomerAppData")
   @summary("Upsert customer app data")
   upsertAppData(
-    @path customerId: ULID,
+    @path customerIdOrKey: ULIDOrKey,
     @body appData: App.CustomerAppData[],
   ): App.CustomerAppData[] | NotFoundError | CommonErrors;
 
@@ -96,10 +98,10 @@ interface Customers {
    * Delete customer app data.
    */
   @delete
-  @route("/{customerId}/apps/{appId}")
+  @route("/{customerIdOrKey}/apps/{appId}")
   @operationId("deleteCustomerAppData")
   @summary("Delete customer app data")
-  deleteAppData(@path customerId: ULID, @path appId: ULID): {
+  deleteAppData(@path customerIdOrKey: ULIDOrKey, @path appId: ULID): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
 
@@ -107,11 +109,11 @@ interface Customers {
    * Lists all subscriptions for a customer.
    */
   @get
-  @route("/{customerId}/subscriptions")
+  @route("/{customerIdOrKey}/subscriptions")
   @operationId("listCustomerSubscriptions")
   @summary("List customer subscriptions")
   listCustomerSubscriptions(
-    @path customerId: ULID,
+    @path customerIdOrKey: ULIDOrKey,
     ...QueryPagination,
   ): PaginatedResponse<ProductCatalog.Subscription> | NotFoundError | CommonErrors;
 
@@ -120,11 +122,11 @@ interface Customers {
    */
   @get
   @operationId("getCustomerEntitlementValue")
-  @route("/{customerId}/entitlements/{featureKey}/value")
+  @route("/{customerIdOrKey}/entitlements/{featureKey}/value")
   @summary("Get entitlement value")
   getCustomerEntitlementValue(
-    @path customerId: string,
-    @path featureKey: string,
+    @path customerIdOrKey: ULIDOrKey,
+    @path featureKey: Key,
     @query(#{ explode: true }) time?: DateTime,
   ): Entitlements.EntitlementValue | OpenMeter.CommonErrors | OpenMeter.NotFoundError;
 }

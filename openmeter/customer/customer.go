@@ -238,12 +238,12 @@ func (i GetCustomerInput) Validate() error {
 }
 
 type GetEntitlementValueInput struct {
-	ID         models.NamespacedID
+	CustomerID CustomerID
 	FeatureKey string
 }
 
 func (i GetEntitlementValueInput) Validate() error {
-	if err := i.ID.Validate(); err != nil {
+	if err := i.CustomerID.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
 	}
 
