@@ -79,11 +79,10 @@ model RateCardBase<T extends RateCardType> {
  * A rate card defines the pricing and entitlement of a feature or service.
  */
 @friendlyName("RateCard")
-@discriminator("type")
-@oneOf
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union RateCard {
-  flatFee: RateCardFlatFee,
-  usageBased: RateCardUsageBased,
+  flat_fee: RateCardFlatFee,
+  usage_based: RateCardUsageBased,
 }
 
 /**
@@ -124,8 +123,7 @@ model RateCardFlatFee {
  * The price of the usage based rate card.
  */
 @friendlyName("RateCardUsageBasedPrice")
-@discriminator("type")
-@oneOf
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union RateCardUsageBasedPrice {
   flat: FlatPriceWithPaymentTerm,
   unit: UnitPriceWithCommitments,
@@ -166,10 +164,10 @@ model RateCardUsageBased {
  * Rate card override.
  */
 @friendlyName("RateCardOverride")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union RateCardOverride {
-  flatFee: RateCardOverrideFlatFee,
-  usageBased: RateCardOverrideUsageBased,
+  flat_fee: RateCardOverrideFlatFee,
+  usage_based: RateCardOverrideUsageBased,
 }
 
 /**
@@ -192,7 +190,7 @@ model RateCardOverrideUsageBased {
  * Entitlement templates are used to define the entitlements of a plan.
  * Features are omitted from the entitlement template, as they are defined in the rate card.
  */
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 @friendlyName("RateCardEntitlement")
 union RateCardEntitlement {
   metered: RateCardMeteredEntitlement,

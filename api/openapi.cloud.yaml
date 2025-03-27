@@ -54,6 +54,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: id
           in: query
           required: false
@@ -65,6 +66,7 @@ paths:
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
               example: 01G65Z755AFWAKHE12NY0CQ9FH
+          style: form
         - name: key
           in: query
           required: false
@@ -77,6 +79,7 @@ paths:
               maxLength: 64
               pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
               description: A key is a unique string that is used to identify a resource.
+          style: form
         - name: keyVersion
           in: query
           required: false
@@ -102,6 +105,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/AddonStatus'
+          style: form
         - name: currency
           in: query
           required: false
@@ -110,6 +114,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/CurrencyCode'
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/AddonOrderByOrdering.order'
@@ -256,6 +261,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -1178,6 +1184,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingProfileCustomerOverrideExpand'
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -1614,6 +1621,7 @@ paths:
               $ref: '#/components/schemas/InvoiceExpand'
             default:
               - lines
+          style: form
         - name: includeDeletedLines
           in: query
           required: false
@@ -1621,6 +1629,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -2216,6 +2225,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: expand
           in: query
           required: false
@@ -2223,6 +2233,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingProfileExpand'
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/BillingProfileOrderByOrdering.order'
@@ -2429,6 +2440,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingProfileExpand'
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -3160,6 +3172,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -3370,6 +3383,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: subject
           in: query
           required: false
@@ -3381,6 +3395,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: entitlementType
           in: query
           required: false
@@ -3392,6 +3407,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/EntitlementType'
+          style: form
         - name: excludeInactive
           in: query
           required: false
@@ -3400,6 +3416,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -3547,6 +3564,7 @@ paths:
             minLength: 1
             maxLength: 36
           explode: false
+          style: form
         - name: ingestedAtFrom
           in: query
           required: false
@@ -3557,6 +3575,7 @@ paths:
           schema:
             type: string
             format: date-time
+          style: form
         - name: ingestedAtTo
           in: query
           required: false
@@ -3567,6 +3586,7 @@ paths:
           schema:
             type: string
             format: date-time
+          style: form
         - name: id
           in: query
           required: false
@@ -3577,6 +3597,7 @@ paths:
           schema:
             type: string
           explode: false
+          style: form
         - name: subject
           in: query
           required: false
@@ -3587,6 +3608,7 @@ paths:
           schema:
             type: string
           explode: false
+          style: form
         - name: from
           in: query
           required: false
@@ -3597,6 +3619,7 @@ paths:
           schema:
             type: string
             format: date-time
+          style: form
         - name: to
           in: query
           required: false
@@ -3607,6 +3630,7 @@ paths:
           schema:
             type: string
             format: date-time
+          style: form
         - name: limit
           in: query
           required: false
@@ -3617,6 +3641,7 @@ paths:
             maximum: 100
             default: 100
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -3750,6 +3775,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: includeArchived
           in: query
           required: false
@@ -3758,6 +3784,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -4036,6 +4063,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: subject
           in: query
           required: false
@@ -4047,6 +4075,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: includeDeleted
           in: query
           required: false
@@ -4055,6 +4084,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/LimitOffset.offset'
@@ -5127,6 +5157,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: includeDisabled
           in: query
           required: false
@@ -5138,6 +5169,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/NotificationChannelOrderByOrdering.order'
@@ -5484,6 +5516,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
         - name: to
           in: query
           required: false
@@ -5494,6 +5527,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
         - name: feature
           in: query
           required: false
@@ -5505,6 +5539,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: subject
           in: query
           required: false
@@ -5516,6 +5551,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - name: rule
           in: query
           required: false
@@ -5530,6 +5566,7 @@ paths:
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
               example: 01G65Z755AFWAKHE12NY0CQ9FH
+          style: form
         - name: channel
           in: query
           required: false
@@ -5544,6 +5581,7 @@ paths:
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
               example: 01G65Z755AFWAKHE12NY0CQ9FH
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/NotificationEventOrderByOrdering.order'
@@ -5684,6 +5722,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: includeDisabled
           in: query
           required: false
@@ -5695,6 +5734,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: feature
           in: query
           required: false
@@ -5714,6 +5754,7 @@ paths:
                 A key is a unique string that is used to identify a resource.
 
                 TODO: this is a temporary solution to support both ULID and Key in the same spec for codegen.
+          style: form
         - name: channel
           in: query
           required: false
@@ -5725,6 +5766,7 @@ paths:
             type: array
             items:
               type: string
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/NotificationRuleOrderByOrdering.order'
@@ -6202,6 +6244,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: id
           in: query
           required: false
@@ -6213,6 +6256,7 @@ paths:
               pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
               description: ULID (Universally Unique Lexicographically Sortable Identifier).
               example: 01G65Z755AFWAKHE12NY0CQ9FH
+          style: form
         - name: key
           in: query
           required: false
@@ -6225,6 +6269,7 @@ paths:
               maxLength: 64
               pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
               description: A key is a unique string that is used to identify a resource.
+          style: form
         - name: keyVersion
           in: query
           required: false
@@ -6250,6 +6295,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/PlanStatus'
+          style: form
         - name: currency
           in: query
           required: false
@@ -6258,6 +6304,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/CurrencyCode'
+          style: form
         - $ref: '#/components/parameters/Pagination.page'
         - $ref: '#/components/parameters/Pagination.pageSize'
         - $ref: '#/components/parameters/PlanOrderByOrdering.order'
@@ -6553,6 +6600,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -6978,6 +7026,7 @@ paths:
             maximum: 100
             default: 25
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -7520,6 +7569,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -7596,6 +7646,7 @@ paths:
             type: boolean
             default: false
           explode: false
+          style: form
         - name: orderBy
           in: query
           required: false
@@ -7603,6 +7654,7 @@ paths:
             $ref: '#/components/schemas/GrantOrderBy'
             default: updatedAt
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -7859,6 +7911,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -8088,6 +8141,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
         - name: to
           in: query
           required: false
@@ -8098,6 +8152,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
         - name: windowSize
           in: query
           required: true
@@ -8105,6 +8160,7 @@ paths:
           schema:
             $ref: '#/components/schemas/WindowSize'
           explode: false
+          style: form
         - name: windowTimeZone
           in: query
           required: false
@@ -8113,6 +8169,7 @@ paths:
             type: string
             default: UTC
           explode: false
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -8336,6 +8393,7 @@ paths:
             type: string
             format: date-time
             example: '2023-01-01T01:01:01.001Z'
+          style: form
       responses:
         '200':
           description: The request has succeeded.
@@ -8970,6 +9028,7 @@ paths:
             minLength: 1
             maxLength: 36
           explode: false
+          style: form
         - name: id
           in: query
           required: false
@@ -9090,6 +9149,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     AddonOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9098,6 +9158,7 @@ components:
       schema:
         $ref: '#/components/schemas/AddonOrderBy'
       explode: false
+      style: form
     BillingProfileCustomerOverrideOrderByOrdering.order:
       name: order
       in: query
@@ -9107,6 +9168,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     BillingProfileCustomerOverrideOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9115,6 +9177,7 @@ components:
       schema:
         $ref: '#/components/schemas/BillingProfileCustomerOverrideOrderBy'
       explode: false
+      style: form
     BillingProfileListCustomerOverridesParams.billingProfile:
       name: billingProfile
       in: query
@@ -9127,6 +9190,7 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+      style: form
     BillingProfileListCustomerOverridesParams.customerId:
       name: customerId
       in: query
@@ -9139,6 +9203,7 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+      style: form
     BillingProfileListCustomerOverridesParams.customerKey:
       name: customerKey
       in: query
@@ -9147,6 +9212,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     BillingProfileListCustomerOverridesParams.customerName:
       name: customerName
       in: query
@@ -9155,6 +9221,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     BillingProfileListCustomerOverridesParams.customerPrimaryEmail:
       name: customerPrimaryEmail
       in: query
@@ -9163,6 +9230,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     BillingProfileListCustomerOverridesParams.expand:
       name: expand
       in: query
@@ -9172,6 +9240,7 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/BillingProfileCustomerOverrideExpand'
+      style: form
     BillingProfileListCustomerOverridesParams.includeAllCustomers:
       name: includeAllCustomers
       in: query
@@ -9185,6 +9254,7 @@ components:
       schema:
         type: boolean
         default: true
+      style: form
     BillingProfileOrderByOrdering.order:
       name: order
       in: query
@@ -9194,6 +9264,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     BillingProfileOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9202,6 +9273,7 @@ components:
       schema:
         $ref: '#/components/schemas/BillingProfileOrderBy'
       explode: false
+      style: form
     CursorPagination.cursor:
       name: cursor
       in: query
@@ -9210,6 +9282,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     CursorPagination.limit:
       name: limit
       in: query
@@ -9221,6 +9294,7 @@ components:
         maximum: 100
         default: 100
       explode: false
+      style: form
     CustomerOrderByOrdering.order:
       name: order
       in: query
@@ -9230,6 +9304,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     CustomerOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9238,6 +9313,7 @@ components:
       schema:
         $ref: '#/components/schemas/CustomerOrderBy'
       explode: false
+      style: form
     EntitlementOrderByOrdering.order:
       name: order
       in: query
@@ -9247,6 +9323,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     EntitlementOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9255,6 +9332,7 @@ components:
       schema:
         $ref: '#/components/schemas/EntitlementOrderBy'
       explode: false
+      style: form
     FeatureOrderByOrdering.order:
       name: order
       in: query
@@ -9264,6 +9342,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     FeatureOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9272,6 +9351,7 @@ components:
       schema:
         $ref: '#/components/schemas/FeatureOrderBy'
       explode: false
+      style: form
     GrantOrderByOrdering.order:
       name: order
       in: query
@@ -9281,6 +9361,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     GrantOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9289,6 +9370,7 @@ components:
       schema:
         $ref: '#/components/schemas/GrantOrderBy'
       explode: false
+      style: form
     InvoiceListParams.customers:
       name: customers
       in: query
@@ -9301,6 +9383,7 @@ components:
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
           description: ULID (Universally Unique Lexicographically Sortable Identifier).
           example: 01G65Z755AFWAKHE12NY0CQ9FH
+      style: form
     InvoiceListParams.expand:
       name: expand
       in: query
@@ -9310,6 +9393,7 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/InvoiceExpand'
+      style: form
     InvoiceListParams.extendedStatuses:
       name: extendedStatuses
       in: query
@@ -9319,6 +9403,7 @@ components:
         type: array
         items:
           type: string
+      style: form
     InvoiceListParams.includeDeleted:
       name: includeDeleted
       in: query
@@ -9327,6 +9412,7 @@ components:
       schema:
         type: boolean
       explode: false
+      style: form
     InvoiceListParams.issuedAfter:
       name: issuedAfter
       in: query
@@ -9336,6 +9422,7 @@ components:
         type: string
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
+      style: form
     InvoiceListParams.issuedBefore:
       name: issuedBefore
       in: query
@@ -9345,6 +9432,7 @@ components:
         type: string
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
+      style: form
     InvoiceListParams.statuses:
       name: statuses
       in: query
@@ -9354,6 +9442,7 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/InvoiceStatus'
+      style: form
     InvoiceOrderByOrdering.order:
       name: order
       in: query
@@ -9363,6 +9452,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     InvoiceOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9371,6 +9461,7 @@ components:
       schema:
         $ref: '#/components/schemas/InvoiceOrderBy'
       explode: false
+      style: form
     LimitOffset.limit:
       name: limit
       in: query
@@ -9385,6 +9476,7 @@ components:
         maximum: 1000
         default: 100
       explode: false
+      style: form
     LimitOffset.offset:
       name: offset
       in: query
@@ -9398,6 +9490,7 @@ components:
         minimum: 0
         default: 0
       explode: false
+      style: form
     MarketplaceApiKeyInstallRequest.type:
       name: type
       in: path
@@ -9424,6 +9517,7 @@ components:
         minLength: 1
         maxLength: 36
       explode: false
+      style: form
     MeterQuery.filterGroupBy:
       name: filterGroupBy
       in: query
@@ -9451,6 +9545,7 @@ components:
         type: string
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
+      style: form
     MeterQuery.groupBy:
       name: groupBy
       in: query
@@ -9464,6 +9559,7 @@ components:
         type: array
         items:
           type: string
+      style: form
     MeterQuery.subject:
       name: subject
       in: query
@@ -9476,6 +9572,7 @@ components:
         type: array
         items:
           type: string
+      style: form
     MeterQuery.to:
       name: to
       in: query
@@ -9490,6 +9587,7 @@ components:
         type: string
         format: date-time
         example: '2023-01-01T01:01:01.001Z'
+      style: form
     MeterQuery.windowSize:
       name: windowSize
       in: query
@@ -9501,6 +9599,7 @@ components:
       schema:
         $ref: '#/components/schemas/WindowSize'
       explode: false
+      style: form
     MeterQuery.windowTimeZone:
       name: windowTimeZone
       in: query
@@ -9514,6 +9613,7 @@ components:
         type: string
         default: UTC
       explode: false
+      style: form
     NotificationChannelOrderByOrdering.order:
       name: order
       in: query
@@ -9523,6 +9623,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     NotificationChannelOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9531,6 +9632,7 @@ components:
       schema:
         $ref: '#/components/schemas/NotificationChannelOrderBy'
       explode: false
+      style: form
     NotificationEventOrderByOrdering.order:
       name: order
       in: query
@@ -9540,6 +9642,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     NotificationEventOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9548,6 +9651,7 @@ components:
       schema:
         $ref: '#/components/schemas/NotificationEventOrderBy'
       explode: false
+      style: form
     NotificationRuleOrderByOrdering.order:
       name: order
       in: query
@@ -9557,6 +9661,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     NotificationRuleOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9565,6 +9670,7 @@ components:
       schema:
         $ref: '#/components/schemas/NotificationRuleOrderBy'
       explode: false
+      style: form
     OAuth2AuthorizationCodeGrantErrorParams.error:
       name: error
       in: query
@@ -9575,6 +9681,7 @@ components:
       schema:
         $ref: '#/components/schemas/OAuth2AuthorizationCodeGrantErrorType'
       explode: false
+      style: form
     OAuth2AuthorizationCodeGrantErrorParams.error_description:
       name: error_description
       in: query
@@ -9585,6 +9692,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     OAuth2AuthorizationCodeGrantErrorParams.error_uri:
       name: error_uri
       in: query
@@ -9596,6 +9704,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     OAuth2AuthorizationCodeGrantSuccessParams.code:
       name: code
       in: query
@@ -9606,6 +9715,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     OAuth2AuthorizationCodeGrantSuccessParams.state:
       name: state
       in: query
@@ -9619,6 +9729,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     Pagination.page:
       name: page
       in: query
@@ -9632,6 +9743,7 @@ components:
         minimum: 1
         default: 1
       explode: false
+      style: form
     Pagination.pageSize:
       name: pageSize
       in: query
@@ -9646,6 +9758,7 @@ components:
         maximum: 1000
         default: 100
       explode: false
+      style: form
     PlanOrderByOrdering.order:
       name: order
       in: query
@@ -9655,6 +9768,7 @@ components:
         $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
+      style: form
     PlanOrderByOrdering.orderBy:
       name: orderBy
       in: query
@@ -9663,6 +9777,7 @@ components:
       schema:
         $ref: '#/components/schemas/PlanOrderBy'
       explode: false
+      style: form
     queryCustomerList.includeDeleted:
       name: includeDeleted
       in: query
@@ -9672,6 +9787,7 @@ components:
         type: boolean
         default: false
       explode: false
+      style: form
     queryCustomerList.key:
       name: key
       in: query
@@ -9682,6 +9798,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     queryCustomerList.name:
       name: name
       in: query
@@ -9692,6 +9809,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     queryCustomerList.planKey:
       name: planKey
       in: query
@@ -9700,6 +9818,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     queryCustomerList.primaryEmail:
       name: primaryEmail
       in: query
@@ -9710,6 +9829,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     queryCustomerList.subject:
       name: subject
       in: query
@@ -9720,6 +9840,7 @@ components:
       schema:
         type: string
       explode: false
+      style: form
     queryCustomerList.type:
       name: type
       in: query
@@ -9728,6 +9849,7 @@ components:
       schema:
         $ref: '#/components/schemas/AppType'
       explode: false
+      style: form
   schemas:
     Addon:
       type: object
@@ -10053,7 +10175,8 @@ components:
       example:
         externalId: 019142cc-a016-796a-8113-1a942fecd26d
     App:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/StripeApp'
         - $ref: '#/components/schemas/SandboxApp'
       discriminator:
@@ -11518,7 +11641,8 @@ components:
         createdAt: '2024-01-01T01:01:01.001Z'
         updatedAt: '2024-01-01T01:01:01.001Z'
     CustomerAppData:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/StripeCustomerAppData'
         - $ref: '#/components/schemas/SandboxCustomerAppData'
       discriminator:
@@ -11743,9 +11867,7 @@ components:
       type: object
       allOf:
         - $ref: '#/components/schemas/DiscountPercentage'
-      description: |-
-        A discount on a price.
-        One of: percentage, amount, or usage.
+      description: A discount on a price.
     DiscountPercentage:
       type: object
       required:
@@ -11867,7 +11989,8 @@ components:
             - unschedule_edit
       description: Unschedules any edits from the current phase.
     Entitlement:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/EntitlementMetered'
         - $ref: '#/components/schemas/EntitlementStatic'
         - $ref: '#/components/schemas/EntitlementBoolean'
@@ -12102,7 +12225,8 @@ components:
             - boolean
       description: Create inputs for boolean entitlement
     EntitlementCreateInputs:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/EntitlementMeteredCreateInputs'
         - $ref: '#/components/schemas/EntitlementStaticCreateInputs'
         - $ref: '#/components/schemas/EntitlementBooleanCreateInputs'
@@ -13996,7 +14120,8 @@ components:
         ext: 	Extensions for additional codes that may be required.
       title: InvoiceGenericDocumentRef is used to describe an existing document or a specific part of it's contents.
     InvoiceLine:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/InvoiceUsageBasedLine'
         - $ref: '#/components/schemas/InvoiceFlatFeeLine'
       discriminator:
@@ -14080,7 +14205,8 @@ components:
         - manual
       description: InvoiceLineManagedBy specifies who manages the line.
     InvoiceLineReplaceUpdate:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/InvoiceUsageBasedLineReplaceUpdate'
         - $ref: '#/components/schemas/InvoiceFlatFeeLineReplaceUpdate'
       discriminator:
@@ -14212,7 +14338,8 @@ components:
           description: The terms of payment for the invoice.
       description: Payment contains details as to how the invoice should be paid.
     InvoicePendingLineCreate:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/InvoiceUsageBasedPendingLineCreate'
         - $ref: '#/components/schemas/InvoiceFlatFeePendingLineCreate'
       discriminator:
@@ -14431,7 +14558,8 @@ components:
           description: Lines to be included in the generated invoice.
       description: InvoiceSimulationInput is the input for simulating an invoice.
     InvoiceSimulationLine:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/InvoiceSimulationUsageBasedLine'
         - $ref: '#/components/schemas/InvoiceSimulationFlatFeeLine'
       discriminator:
@@ -15541,7 +15669,6 @@ components:
             - $ref: '#/components/schemas/NotificationChannelType'
           description: Notification channel type.
           title: Channel Type
-          readOnly: true
       description: Metadata only fields of a notification channel.
     NotificationChannelOrderBy:
       type: string
@@ -16002,6 +16129,8 @@ components:
           minItems: 1
           description: Optional field containing list of features the rule applies to.
           title: Features
+      discriminator:
+        propertyName: type
       description: Notification rule with entitlements.balance.threshold type.
     NotificationRuleBalanceThresholdCreateRequest:
       type: object
@@ -16061,6 +16190,8 @@ components:
           minItems: 1
           description: Optional field for defining the scope of notification by feature. It may contain features by id or key.
           title: Features
+      discriminator:
+        propertyName: type
       description: Request with input parameters for creating new notification rule with entitlements.balance.threashold type.
     NotificationRuleBalanceThresholdValue:
       type: object
@@ -16785,6 +16916,7 @@ components:
           example: '2023-01-01T01:01:01.001Z'
       description: Progress describes a progress of a task.
     RateCard:
+      type: object
       oneOf:
         - $ref: '#/components/schemas/RateCardFlatFee'
         - $ref: '#/components/schemas/RateCardUsageBased'
@@ -16809,7 +16941,8 @@ components:
             - boolean
       description: Entitlement template of a boolean entitlement.
     RateCardEntitlement:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/RateCardMeteredEntitlement'
         - $ref: '#/components/schemas/RateCardStaticEntitlement'
         - $ref: '#/components/schemas/RateCardBooleanEntitlement'
@@ -17047,6 +17180,7 @@ components:
             When null, the feature or service is free.
       description: A usage-based rate card defines a price based on usage.
     RateCardUsageBasedPrice:
+      type: object
       oneOf:
         - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
         - $ref: '#/components/schemas/UnitPriceWithCommitments'
@@ -17755,6 +17889,7 @@ components:
           description: Whether the billing period should be restarted.Timing configuration to allow for the changes to take effect at different times.
       description: Subscription edit input.
     SubscriptionEditOperation:
+      type: object
       oneOf:
         - $ref: '#/components/schemas/EditSubscriptionAddItem'
         - $ref: '#/components/schemas/EditSubscriptionRemoveItem'
@@ -18538,7 +18673,8 @@ components:
           description: The action to take on the line item.
       description: VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when voiding.
     VoidInvoiceLineActionCreate:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/VoidInvoiceLineDiscardAction'
         - $ref: '#/components/schemas/VoidInvoiceLinePendingActionCreate'
       discriminator:
@@ -18548,7 +18684,8 @@ components:
           pending: '#/components/schemas/VoidInvoiceLinePendingActionCreate'
       description: VoidInvoiceLineAction describes how to handle a specific line item in the invoice when voiding.
     VoidInvoiceLineActionCreateItem:
-      anyOf:
+      type: object
+      oneOf:
         - $ref: '#/components/schemas/VoidInvoiceLineDiscardAction'
         - $ref: '#/components/schemas/VoidInvoiceLinePendingActionCreateItem'
       discriminator:
@@ -18641,7 +18778,7 @@ components:
   securitySchemes:
     CloudTokenAuth:
       type: http
-      scheme: bearer
+      scheme: Bearer
       description: Cloud API token.
     CloudCookieAuth:
       type: apiKey
@@ -18650,7 +18787,7 @@ components:
       description: Cloud API web app cookie.
     CloudPortalTokenAuth:
       type: http
-      scheme: bearer
+      scheme: Bearer
       description: Cloud consumer portal token.
 servers:
   - url: https://openmeter.cloud

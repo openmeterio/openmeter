@@ -3,7 +3,6 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
@@ -236,9 +235,7 @@ union IngestEventsBody {
 @extension("x-go-type", "event.Event")
 @extension(
   "x-go-type-import",
-  {
-    path: "github.com/cloudevents/sdk-go/v2/event",
-  }
+  #{ path: "github.com/cloudevents/sdk-go/v2/event" }
 )
 @friendlyName("Event")
 @example(#{

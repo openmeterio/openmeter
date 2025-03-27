@@ -337,7 +337,7 @@ interface Subscriptions {
   @operationId("editSubscription")
   @summary("Edit subscription")
   @route("/{subscriptionId}")
-  @parameterVisibility("create")
+  @parameterVisibility(Lifecycle.Create)
   edit(
     @path subscriptionId: ULID,
 

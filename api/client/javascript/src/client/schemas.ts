@@ -3332,8 +3332,7 @@ export interface components {
        */
       subjectKeys: string[]
     }
-    /** @description A discount on a price.
-     *     One of: percentage, amount, or usage. */
+    /** @description A discount on a price. */
     Discount: components['schemas']['DiscountPercentage']
     /** @description Percentage discount. */
     DiscountPercentage: {
@@ -3563,7 +3562,7 @@ export interface components {
       currentUsagePeriod?: components['schemas']['Period']
       /** @description The defined usage period of the entitlement */
       usagePeriod?: components['schemas']['RecurringPeriod']
-    } & WithRequired<
+    } & (WithRequired<
       components['schemas']['EntitlementBaseTemplate'],
       | 'type'
       | 'createdAt'
@@ -3573,7 +3572,13 @@ export interface components {
       | 'subjectKey'
       | 'featureKey'
       | 'featureId'
-    >
+    > & {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'boolean'
+    })
     /** @description Create inputs for boolean entitlement */
     EntitlementBooleanCreateInputs: {
       /**
@@ -3592,7 +3597,10 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The usage period associated with the entitlement. */
       usagePeriod?: components['schemas']['RecurringPeriodCreateInput']
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'boolean'
     }
     /** @description Create inputs for entitlement */
@@ -3758,7 +3766,10 @@ export interface components {
     /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
      *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
     EntitlementMetered: {
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'metered'
       /**
        * Soft limit
@@ -3889,7 +3900,10 @@ export interface components {
       featureId?: string
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'metered'
       /**
        * Soft limit
@@ -3957,7 +3971,10 @@ export interface components {
     }
     /** @description A static entitlement. */
     EntitlementStatic: {
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'static'
       /**
        * Format: json
@@ -4050,7 +4067,10 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The usage period associated with the entitlement. */
       usagePeriod?: components['schemas']['RecurringPeriodCreateInput']
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'static'
       /**
        * Format: json
@@ -4832,7 +4852,7 @@ export interface components {
       /** @description Subscription are the references to the subscritpions that this line is related to. */
       readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
@@ -4883,7 +4903,7 @@ export interface components {
        */
       invoiceAt: Date
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
@@ -4939,7 +4959,7 @@ export interface components {
        */
       invoiceAt: Date
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
@@ -5223,7 +5243,7 @@ export interface components {
        */
       invoiceAt: Date
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'flat_fee'
@@ -5294,7 +5314,7 @@ export interface components {
        */
       invoiceAt: Date
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
@@ -5453,7 +5473,7 @@ export interface components {
       /** @description Subscription are the references to the subscritpions that this line is related to. */
       readonly subscriptions?: components['schemas']['InvoiceLineSubscriptionReference']
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
@@ -5500,7 +5520,7 @@ export interface components {
        */
       invoiceAt: Date
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
@@ -5546,7 +5566,7 @@ export interface components {
        */
       invoiceAt: Date
       /**
-       * @description Type of the line.
+       * @description Type of the line. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'usage_based'
@@ -6058,7 +6078,7 @@ export interface components {
        * Channel Type
        * @description Notification channel type.
        */
-      readonly type: components['schemas']['NotificationChannelType']
+      type: components['schemas']['NotificationChannelType']
     }
     /**
      * @description Order by options for notification channels.
@@ -6347,7 +6367,9 @@ export interface components {
      */
     NotificationEventType: 'entitlements.balance.threshold'
     /** @description Notification Rule. */
-    NotificationRule: components['schemas']['NotificationRuleBalanceThreshold']
+    NotificationRule: {
+      type: 'NotificationRule'
+    } & components['schemas']['NotificationRuleBalanceThreshold']
     /** @description Notification rule with entitlements.balance.threshold type. */
     NotificationRuleBalanceThreshold: {
       /**
@@ -6471,7 +6493,9 @@ export interface components {
      */
     NotificationRuleBalanceThresholdValueType: 'PERCENT' | 'NUMBER'
     /** @description Union type for requests creating new notification rule with certain type. */
-    NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
+    NotificationRuleCreateRequest: {
+      type: 'NotificationRuleCreateRequest'
+    } & components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
     /**
      * @description Order by options for notification channels.
      * @enum {string}
@@ -6967,7 +6991,10 @@ export interface components {
     RateCardBooleanEntitlement: {
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'boolean'
     }
     /** @description Entitlement templates are used to define the entitlements of a plan.
@@ -7040,7 +7067,10 @@ export interface components {
     RateCardMeteredEntitlement: {
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'metered'
       /**
        * Soft limit
@@ -7082,7 +7112,10 @@ export interface components {
     RateCardStaticEntitlement: {
       /** @description Additional metadata for the feature. */
       metadata?: components['schemas']['Metadata']
-      /** @enum {string} */
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
       type: 'static'
       /**
        * Format: json
@@ -7282,7 +7315,7 @@ export interface components {
        *     Only one app of each type can be default. */
       default: boolean
       /**
-       * @description The app's type is Sandbox.
+       * @description The app's type is Sandbox. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'sandbox'
@@ -7299,8 +7332,7 @@ export interface components {
        */
       id?: string
       /**
-       * App Type
-       * @description The app name.
+       * @description The app name. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'sandbox'
@@ -7408,7 +7440,7 @@ export interface components {
        *     Only one app of each type can be default. */
       default: boolean
       /**
-       * @description The app's type is Stripe.
+       * @description The app's type is Stripe. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'stripe'
@@ -7441,8 +7473,7 @@ export interface components {
        */
       id?: string
       /**
-       * App Type
-       * @description The app name.
+       * @description The app name. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'stripe'
@@ -8281,7 +8312,7 @@ export interface components {
     /** @description VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLineDiscardAction: {
       /**
-       * @description The action to take on the line item.
+       * @description The action to take on the line item. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'discard'
@@ -8289,7 +8320,7 @@ export interface components {
     /** @description VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLinePendingActionCreate: {
       /**
-       * @description The action to take on the line item.
+       * @description The action to take on the line item. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'pending'
@@ -8305,7 +8336,7 @@ export interface components {
     /** @description VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice. */
     VoidInvoiceLinePendingActionCreateItem: {
       /**
-       * @description The action to take on the line item.
+       * @description The action to take on the line item. (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'pending'

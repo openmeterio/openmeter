@@ -94,14 +94,17 @@ export class Customers {
     customerIdOrKey: operations['deleteCustomer']['parameters']['path']['customerIdOrKey'],
     options?: RequestOptions
   ) {
-    const resp = await this.client.DELETE('/api/v1/customers/{customerIdOrKey}', {
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.DELETE(
+      '/api/v1/customers/{customerIdOrKey}',
+      {
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
-      },
-      ...options,
-    })
+        ...options,
+      }
+    )
 
     return transformResponse(resp)
   }
@@ -131,7 +134,7 @@ export class Customers {
  * Manage customer apps.
  */
 export class CustomerApps {
-  constructor(private client: Client<paths, `${string}/${string}`>) { }
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
    * Upsert customer app data
@@ -145,22 +148,25 @@ export class CustomerApps {
     appData: CustomerAppData[],
     options?: RequestOptions
   ) {
-    const resp = await this.client.PUT('/api/v1/customers/{customerIdOrKey}/apps', {
-      body: appData,
-      params: {
-        path: {
-          customerIdOrKey,
+    const resp = await this.client.PUT(
+      '/api/v1/customers/{customerIdOrKey}/apps',
+      {
+        body: appData,
+        params: {
+          path: {
+            customerIdOrKey,
+          },
         },
-      },
-      ...options,
-    })
+        ...options,
+      }
+    )
 
     return transformResponse(resp)
   }
 
   /**
    * List customer app data
-   * @param customerIdOrKey - The ID or Key of the customer
+   * @param customerIdOrKey - The ID or key of the customer
    * @param query - The query parameters
    * @param signal - An optional abort signal
    * @returns The list of customer app data
@@ -170,20 +176,23 @@ export class CustomerApps {
     query?: operations['listCustomerAppData']['parameters']['query'],
     options?: RequestOptions
   ) {
-    const resp = await this.client.GET('/api/v1/customers/{customerIdOrKey}/apps', {
-      params: {
-        path: { customerIdOrKey },
-        query,
-      },
-      ...options,
-    })
+    const resp = await this.client.GET(
+      '/api/v1/customers/{customerIdOrKey}/apps',
+      {
+        params: {
+          path: { customerIdOrKey },
+          query,
+        },
+        ...options,
+      }
+    )
 
     return transformResponse(resp)
   }
 
   /**
    * Delete customer app data
-   * @param customerIdOrKey - The ID or Key of the customer
+   * @param customerIdOrKey - The ID or key of the customer
    * @param appId - The ID of the app
    * @param signal - An optional abort signal
    * @returns The deleted customer app data
@@ -204,6 +213,13 @@ export class CustomerApps {
     return transformResponse(resp)
   }
 
+  /**
+   * List customer subscriptions
+   * @param customerIdOrKey - The ID or key of the customer
+   * @param query - The query parameters
+   * @param signal - An optional abort signal
+   * @returns The list of customer subscriptions
+   */
   public async listSubscriptions(
     customerIdOrKey: operations['listCustomerSubscriptions']['parameters']['path']['customerIdOrKey'],
     query?: operations['listCustomerSubscriptions']['parameters']['query'],
@@ -225,7 +241,7 @@ export class CustomerApps {
  * Customer Entitlements
  */
 export class CustomerEntitlements {
-  constructor(private client: Client<paths, `${string}/${string}`>) { }
+  constructor(private client: Client<paths, `${string}/${string}`>) {}
 
   /**
    * Get the value of an entitlement for a customer

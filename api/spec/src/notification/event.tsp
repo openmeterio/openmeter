@@ -3,7 +3,6 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Notification;
@@ -58,7 +57,7 @@ model NotificationEventDeliveryStatus {
  */
 @friendlyName("NotificationEventDeliveryStatusState")
 @summary("Delivery State")
-@extension("x-enum-varnames", ["Success", "Failed", "Sending", "Pending"])
+@extension("x-enum-varnames", #["Success", "Failed", "Sending", "Pending"])
 enum NotificationEventDeliveryStatusState {
   Success: "SUCCESS",
   Failed: "FAILED",
@@ -70,10 +69,8 @@ enum NotificationEventDeliveryStatusState {
  * The delivery status of the notification event.
  */
 @friendlyName("NotificationEventPayload")
-@discriminator("type")
-@oneOf
 union NotificationEventPayload {
-  entitlementsBalanceThreshold: NotificationEventBalanceThresholdPayload,
+  NotificationEventBalanceThresholdPayload,
 }
 
 /**

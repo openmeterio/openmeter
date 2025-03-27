@@ -56,6 +56,7 @@ func (m *Generate) Openapicloud() *dagger.File {
 func typespecBase(source *dagger.Directory) *dagger.Container {
 	return dag.Container().
 		From(NODEJS_CONTAINER_IMAGE).
+		WithEnvVariable("CI", "true").
 		WithExec([]string{"npm", "install", "-g", fmt.Sprintf("corepack@v%s", COREPACK_VERSION)}).
 		WithExec([]string{"corepack", "enable"}).
 		WithDirectory("/work", source).

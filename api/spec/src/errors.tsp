@@ -14,9 +14,7 @@ namespace OpenMeter;
 @extension("x-go-type", "models.StatusProblem")
 @extension(
   "x-go-type-import",
-  {
-    path: "github.com/openmeterio/openmeter/pkg/models",
-  }
+  #{ path: "github.com/openmeterio/openmeter/pkg/models" }
 )
 @friendlyName("UnexpectedProblemResponse")
 model Error {

@@ -15,7 +15,7 @@ enum PriceType {
  * One of: flat, unit, or tiered.
  */
 @friendlyName("Price")
-@discriminator("type")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union Price {
   @summary("Flat price")
   flat: FlatPrice,

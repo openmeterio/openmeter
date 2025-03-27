@@ -16,22 +16,22 @@
     "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
   },
   "devDependencies": {
-    "@typespec/compiler": "0.64.0",
-    "@typespec/http": "0.64.0",
-    "@typespec/openapi": "0.64.0",
-    "@typespec/openapi3": "0.64.0",
-    "@typespec/prettier-plugin-typespec": "0.64.0",
-    "@typespec/rest": "0.64.0",
-    "@typespec/versioning": "0.64.0",
-    "prettier": "3.4.2"
+    "@typespec/compiler": "0.67.2",
+    "@typespec/http": "0.67.1",
+    "@typespec/openapi": "0.67.1",
+    "@typespec/openapi3": "0.67.1",
+    "@typespec/prettier-plugin-typespec": "0.67.1",
+    "@typespec/rest": "0.67.1",
+    "@typespec/versioning": "0.67.1",
+    "prettier": "3.5.3"
   },
   "private": true,
-  "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321",
+  "packageManager": "pnpm@10.7.0+sha512.6b865ad4b62a1d9842b61d674a393903b871d9244954f652b8842c2b553c72176b278f64c463e52d40fff8aba385c235c8c9ecf5cc7de4fd78b8bb6d49633ab6",
   "pnpm": {
     "patchedDependencies": {
       "@typespec/http": "patches/@typespec__http.patch",
-      "@typespec/openapi": "patches/@typespec__openapi.patch",
-      "@typespec/openapi3": "patches/@typespec__openapi3.patch"
+      "@typespec/openapi3": "patches/@typespec__openapi3.patch",
+      "@typespec/openapi": "patches/@typespec__openapi.patch"
     }
   }
 }

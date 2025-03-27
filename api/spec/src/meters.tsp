@@ -238,7 +238,7 @@ model Meter {
 @friendlyName("MeterAggregation")
 @extension(
   "x-enum-varnames",
-  ["Sum", "Count", "UniqueCount", "Avg", "Min", "Max"]
+  #["Sum", "Count", "UniqueCount", "Avg", "Min", "Max"]
 )
 enum MeterAggregation {
   SUM,
@@ -253,7 +253,7 @@ enum MeterAggregation {
  * Aggregation window size.
  */
 @friendlyName("WindowSize")
-@extension("x-enum-varnames", ["Minute", "Hour", "Day"])
+@extension("x-enum-varnames", #["Minute", "Hour", "Day"])
 enum WindowSize {
   MINUTE,
   HOUR,
